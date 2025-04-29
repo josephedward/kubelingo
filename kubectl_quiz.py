@@ -7,8 +7,10 @@ import random
 import argparse
 import sys
 
-# Quiz data in JSON format
-DATA_JSON = r'''
+# Default quiz data file path
+DEFAULT_DATA_FILE = 'quiz_data.json'
+# Quiz data literal (externalized to JSON file)
+r'''
 [
   {
     "category": "Pod Management",
@@ -354,8 +356,14 @@ DATA_JSON = r'''
 ]
 '''  # end of DATA_JSON
 
-def load_questions():
-    data = json.loads(DATA_JSON)
+def load_questions(data_file):
+    # Load quiz data from JSON file
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error loading quiz data from {data_file}: {e}")
+        sys.exit(1)
     questions = []
     for cat in data:
         category = cat.get('category', '')
@@ -369,6 +377,8 @@ def load_questions():
 
 def main():
     parser = argparse.ArgumentParser(description='kubectl quiz tool')
+    parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
+                        help='Path to quiz data JSON file')
     parser.add_argument('-n', '--num', type=int, default=0,
                         help='Number of questions to ask (default: all)')
     parser.add_argument('-c', '--category', type=str,
@@ -377,7 +387,7 @@ def main():
                         help='List available categories and exit')
     args = parser.parse_args()
 
-    questions = load_questions()
+    questions = load_questions(args.file)
     if args.list_categories:
         cats = sorted({q['category'] for q in questions})
         for cat in cats:
