@@ -6,10 +6,13 @@ import json
 import random
 import argparse
 import sys
+import datetime
 # OS utilities
 import os
 import shutil
 import subprocess
+import logging
+from datetime import datetime
 
 # Interactive prompts library (optional for arrow-key selection)
 try:
@@ -32,6 +35,8 @@ except ImportError:
 
 # Default quiz data file path
 DEFAULT_DATA_FILE = 'ckad_quiz_data.json'
+# History file for storing past quiz performance
+HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
 def load_questions(data_file):
     # Load quiz data from JSON file
@@ -53,6 +58,50 @@ def load_questions(data_file):
             })
     return questions
 
+def show_history():
+    """Display quiz history and aggregated statistics."""
+    if not os.path.exists(HISTORY_FILE):
+        print(f"No quiz history found ({HISTORY_FILE}).")
+        return
+    try:
+        with open(HISTORY_FILE, 'r') as f:
+            history = json.load(f)
+    except Exception as e:
+        print(f"Error reading history file {HISTORY_FILE}: {e}")
+        return
+    if not isinstance(history, list) or not history:
+        print("No quiz history available.")
+        return
+    print("Quiz History:")
+    for entry in history:
+        ts = entry.get('timestamp')
+        nq = entry.get('num_questions', 0)
+        nc = entry.get('num_correct', 0)
+        pct = (nc / nq * 100) if nq else 0
+        data_file = entry.get('data_file', '')
+        filt = entry.get('category_filter') or 'ALL'
+        print(f"{ts}: {nc}/{nq} ({pct:.1f}%), File: {data_file}, Category: {filt}")
+    print()
+    # Aggregate per-category performance
+    agg = {}
+    for entry in history:
+        for cat, stats in entry.get('per_category', {}).items():
+            asked = stats.get('asked', 0)
+            correct = stats.get('correct', 0)
+            if cat not in agg:
+                agg[cat] = {'asked': 0, 'correct': 0}
+            agg[cat]['asked'] += asked
+            agg[cat]['correct'] += correct
+    if agg:
+        print("Aggregate performance per category:")
+        for cat, stats in agg.items():
+            asked = stats['asked']
+            correct = stats['correct']
+            pct = (correct / asked * 100) if asked else 0
+            print(f"{cat}: {correct}/{asked} ({pct:.1f}%)")
+    else:
+        print("No per-category stats to aggregate.")
+
 def main():
     parser = argparse.ArgumentParser(description='kubectl quiz tool')
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -63,7 +112,13 @@ def main():
                         help='Limit quiz to a specific category')
     parser.add_argument('--list-categories', action='store_true',
                         help='List available categories and exit')
+    parser.add_argument('--history', action='store_true',
+                        help='Show quiz history and statistics')
     args = parser.parse_args()
+    # If history flag is set, display history and exit
+    if args.history:
+        show_history()
+        sys.exit(0)
 
     # Select quiz data JSON file (via arrow-key UI if available)
     if questionary:
@@ -119,18 +174,56 @@ def main():
     max_q = args.num if args.num > 0 else total
     correct = 0
     asked = 0
-    # Check LLM availability for detailed explanations
-    if os.environ.get('OPENAI_API_KEY'):
+    # Track per-category performance for this session
+    category_stats = {}
+    # Setup session logging
+    log_dir = 'logs'
+    os.makedirs(log_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_path = os.path.join(log_dir, f'quiz_{timestamp}.log')
+    logger = logging.getLogger('quiz_logger')
+    logger.setLevel(logging.INFO)
+    fh = logging.FileHandler(log_path)
+    fh.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    logger.addHandler(fh)
+    logger.info(f"Session start: data_file={args.file}, num_questions={max_q}, category={args.category}")
+    # Check OpenAI API key and prompt for it if not set
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        try:
+            key_input = input(
+                Fore.YELLOW +
+                "OpenAI API key not set. Enter your OpenAI API key now "
+                "(or press Enter to skip and proceed without LLM support): " +
+                Style.RESET_ALL
+            ).strip()
+        except EOFError:
+            print()  # newline on EOF
+            key_input = ''
+        if key_input:
+            os.environ['OPENAI_API_KEY'] = key_input
+            api_key = key_input
+        else:
+            print(Fore.YELLOW +
+                  "Warning: OPENAI_API_KEY not set; LLM queries disabled." +
+                  Style.RESET_ALL)
+    # Determine LLM availability for detailed explanations
+    if api_key:
         if shutil.which('llm'):
             llm_enabled = True
         else:
-            print(Fore.YELLOW + "Warning: LLM CLI 'llm' not found; intelligent explanations disabled." + Style.RESET_ALL)
+            print(Fore.YELLOW +
+                  "Warning: LLM CLI 'llm' not found; intelligent explanations disabled." +
+                  Style.RESET_ALL)
             llm_enabled = False
     else:
-        print(Fore.YELLOW + "Warning: OPENAI_API_KEY not set; LLM queries disabled." + Style.RESET_ALL)
         llm_enabled = False
     for q in questions[:max_q]:
         asked += 1
+        # Update per-category stats
+        cat = q.get('category', '')
+        stats = category_stats.setdefault(cat, {'asked': 0, 'correct': 0})
+        stats['asked'] += 1
         print(f"[{asked}/{max_q}] Category: {q['category']}\nQ: {q['prompt']}")
         try:
             ans = input('Your answer: ').strip()
@@ -141,6 +234,8 @@ def main():
             # Correct answer feedback
             print(Fore.GREEN + 'Correct!' + Style.RESET_ALL + '\n')
             correct += 1
+            # Update per-category correct count
+            stats['correct'] += 1
             # Show explanation if available
             if q.get('explanation'):
                 print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
@@ -150,6 +245,8 @@ def main():
             # Show explanation if available
             if q.get('explanation'):
                 print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        # Log question result
+        logger.info(f"Question {asked}/{max_q}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{ans}\" result=\"{'correct' if ans == q['response'] else 'incorrect'}\"")
         # Offer optional LLM query for further explanation
         if llm_enabled:
             try:
@@ -175,6 +272,35 @@ def main():
         # End of question loop actions
     if asked:
         print(f"Quiz complete. Score: {correct}/{asked} ({correct/asked*100:.1f}%)")
+        # Show performance by subject area for this session
+        print("Performance by category:")
+        for cat, stats in category_stats.items():
+            c_asked = stats.get('asked', 0)
+            c_correct = stats.get('correct', 0)
+            pct = (c_correct / c_asked * 100) if c_asked else 0
+            print(f"  {cat}: {c_correct}/{c_asked} ({pct:.1f}%)")
+        # Record session history
+        try:
+            # Load existing history
+            if os.path.exists(HISTORY_FILE):
+                with open(HISTORY_FILE, 'r') as f_hist:
+                    history = json.load(f_hist)
+            else:
+                history = []
+            # Append new entry
+            entry = {
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'data_file': args.file,
+                'category_filter': args.category,
+                'num_questions': asked,
+                'num_correct': correct,
+                'per_category': category_stats
+            }
+            history.append(entry)
+            with open(HISTORY_FILE, 'w') as f_hist:
+                json.dump(history, f_hist, indent=2)
+        except Exception as e:
+            print(f"Warning: could not record quiz history: {e}")
     else:
         print('No questions answered.')
 
