@@ -1,0 +1,792 @@
+[
+  {
+    "category": "Pod Management",
+    "prompts": [
+      {
+        "prompt": "Create a pod named nginx using the nginx image and expose port 80",
+        "response": "kubectl run nginx --image=nginx --port=80",
+        "explanation": "This uses `kubectl run` to create a pod named nginx using the nginx image and expose port 80. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a pod named busybox that runs the command 'sleep 3600'",
+        "response": "kubectl run busybox --image=busybox -- sleep 3600",
+        "explanation": "This uses `kubectl run` to create a pod named busybox that runs the command 'sleep 3600'. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Generate a YAML definition file for a pod named nginx without creating it",
+        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml",
+        "explanation": "This uses `kubectl run` to generate a YAML definition file for a pod named nginx without creating it. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db",
+        "response": "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\"",
+        "explanation": "This uses `kubectl run` to create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace",
+        "response": "kubectl get pod webapp -n development -o yaml > webapp.yaml",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Create a pod with labels app=web and tier=frontend",
+        "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\"",
+        "explanation": "This uses `kubectl run` to create a pod with labels app=web and tier=frontend. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues",
+        "response": "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash",
+        "explanation": "This uses `kubectl run` to create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a pod with resource requests of 100m CPU and 256Mi memory",
+        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # Then add requests specification",
+        "explanation": "This uses `kubectl run` to create a pod with resource requests of 100m CPU and 256Mi memory. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a pod that runs curl against an internal service at 10.244.0.4",
+        "response": "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4",
+        "explanation": "This uses `kubectl run` to create a pod that runs curl against an internal service at 10.244.0.4. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a pod that mounts a ConfigMap named 'app-config' as a volume at '/etc/config'",
+        "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # Then add volume mount configuration",
+        "explanation": "This uses `kubectl run` to create a pod that mounts a ConfigMap named 'app-config' as a volume at '/etc/config'. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      }
+    ]
+  },
+  {
+    "category": "Deployment Management",
+    "prompts": [
+      {
+        "prompt": "Create a deployment named webapp with image nginx:1.17 and 3 replicas",
+        "response": "kubectl create deployment webapp --image=nginx:1.17 --replicas=3",
+        "explanation": "Executes `kubectl create deployment webapp --image=nginx:1.17 --replicas=3` to perform the described action: create a deployment named webapp with image nginx:1.17 and 3 replicas. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Generate a YAML file for a deployment with nginx image without creating it",
+        "response": "kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml",
+        "explanation": "Executes `kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml` to perform the described action: generate a yaml file for a deployment with nginx image without creating it. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Scale a deployment named 'frontend' to 5 replicas",
+        "response": "kubectl scale deployment frontend --replicas=5",
+        "explanation": "Executes `kubectl scale deployment frontend --replicas=5` to perform the described action: scale a deployment named 'frontend' to 5 replicas. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Update the image of a deployment named 'webapp' to nginx:1.18",
+        "response": "kubectl set image deployment/webapp webapp=nginx:1.18",
+        "explanation": "Executes `kubectl set image deployment/webapp webapp=nginx:1.18` to perform the described action: update the image of a deployment named 'webapp' to nginx:1.18. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Check the rollout status of a deployment named 'frontend'",
+        "response": "kubectl rollout status deployment/frontend",
+        "explanation": "Executes `kubectl rollout status deployment/frontend` to perform the described action: check the rollout status of a deployment named 'frontend'. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Roll back a deployment named 'webapp' to its previous version",
+        "response": "kubectl rollout undo deployment/webapp",
+        "explanation": "Executes `kubectl rollout undo deployment/webapp` to perform the described action: roll back a deployment named 'webapp' to its previous version. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Create a deployment with a record of the change-cause for future reference",
+        "response": "kubectl create deployment nginx --image=nginx --record",
+        "explanation": "Executes `kubectl create deployment nginx --image=nginx --record` to perform the described action: create a deployment with a record of the change-cause for future reference. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "View the history of a deployment named 'webapp'",
+        "response": "kubectl rollout history deployment/webapp",
+        "explanation": "Executes `kubectl rollout history deployment/webapp` to perform the described action: view the history of a deployment named 'webapp'. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Pause the rollout of a deployment named 'frontend'",
+        "response": "kubectl rollout pause deployment/frontend",
+        "explanation": "Pauses a deployment rollout via `kubectl rollout pause`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#rollout."
+      },
+      {
+        "prompt": "Resume the rollout of a deployment named 'frontend'",
+        "response": "kubectl rollout resume deployment/frontend",
+        "explanation": "Resumes a paused deployment rollout via `kubectl rollout resume`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#rollout."
+      }
+    ]
+  },
+  {
+    "category": "Namespace Operations",
+    "prompts": [
+      {
+        "prompt": "Create a new namespace called 'development'",
+        "response": "kubectl create namespace development",
+        "explanation": "Creates a new namespace using `kubectl create namespace`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-namespace."
+      },
+      {
+        "prompt": "Set the current context to use the 'production' namespace by default",
+        "response": "kubectl config set-context --current --namespace=production",
+        "explanation": "Executes `kubectl config set-context --current --namespace=production` to perform the described action: set the current context to use the 'production' namespace by default. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Verify which namespace is currently being used in your context",
+        "response": "kubectl config view --minify | grep namespace:",
+        "explanation": "Executes `kubectl config view --minify | grep namespace:` to perform the described action: verify which namespace is currently being used in your context. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Create a new namespace called 'testing' and output its YAML definition",
+        "response": "kubectl create ns testing --dry-run=client -o yaml",
+        "explanation": "Executes `kubectl create ns testing --dry-run=client -o yaml` to perform the described action: create a new namespace called 'testing' and output its yaml definition. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all resources across all namespaces",
+        "response": "kubectl get all -A",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "List all pods in the 'kube-system' namespace",
+        "response": "kubectl get pods -n kube-system",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Create a pod in the 'development' namespace",
+        "response": "kubectl run nginx --image=nginx -n development",
+        "explanation": "This uses `kubectl run` to create a pod in the 'development' namespace. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Delete a namespace called 'testing' and all its resources",
+        "response": "kubectl delete namespace testing",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "List all namespaces in the cluster",
+        "response": "kubectl get namespaces",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
+        "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
+        "explanation": "Defines resource quotas in a namespace with `kubectl create quota`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-resourcequota."
+      }
+    ]
+  },
+  {
+    "category": "ConfigMap Operations",
+    "prompts": [
+      {
+        "prompt": "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod",
+        "response": "kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod",
+        "explanation": "Creates a ConfigMap based on provided data via `kubectl create configmap`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-configmap."
+      },
+      {
+        "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at '/configs/game.properties'",
+        "response": "kubectl create cm game-config --from-file=/configs/game.properties",
+        "explanation": "Creates a ConfigMap based on provided data via `kubectl create configmap`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-configmap."
+      },
+      {
+        "prompt": "View the contents of a ConfigMap named 'db-config'",
+        "response": "kubectl describe cm db-config",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Create a ConfigMap from all files in the '/configs' directory",
+        "response": "kubectl create cm app-settings --from-file=/configs",
+        "explanation": "Creates a ConfigMap based on provided data via `kubectl create configmap`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-configmap."
+      },
+      {
+        "prompt": "Create a pod that uses a ConfigMap as environment variables",
+        "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef",
+        "explanation": "This uses `kubectl run` to create a pod that uses a ConfigMap as environment variables. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Extract a ConfigMap to YAML format",
+        "response": "kubectl get cm app-config -o yaml > config.yaml",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Update a value in an existing ConfigMap named 'app-config'",
+        "response": "kubectl edit cm app-config",
+        "explanation": "Executes `kubectl edit cm app-config` to perform the described action: update a value in an existing configmap named 'app-config'. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Create a ConfigMap with multiple key-value pairs from command line",
+        "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true",
+        "explanation": "Creates a ConfigMap based on provided data via `kubectl create configmap`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-configmap."
+      },
+      {
+        "prompt": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions",
+        "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with ConfigMap and defaultMode",
+        "explanation": "This uses `kubectl run` to mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a ConfigMap from an env file",
+        "response": "kubectl create cm env-config --from-env-file=config.env",
+        "explanation": "Creates a ConfigMap based on provided data via `kubectl create configmap`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-configmap."
+      }
+    ]
+  },
+  {
+    "category": "Secret Management",
+    "prompts": [
+      {
+        "prompt": "Create a Secret named 'db-creds' with username=admin and password=password123",
+        "response": "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      },
+      {
+        "prompt": "Create a Secret named 'tls-cert' from a certificate file",
+        "response": "kubectl create secret generic tls-cert --from-file=/path/to/cert.pem",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      },
+      {
+        "prompt": "View the encoded values in a Secret named 'api-secrets'",
+        "response": "kubectl get secret api-secrets -o yaml",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Encode a string for use in a Secret YAML definition",
+        "response": "echo -n 'string' | base64",
+        "explanation": "Executes `echo -n 'string' | base64` to perform the described action: encode a string for use in a secret yaml definition. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Decode a base64 encoded Secret value",
+        "response": "echo -n 'encoded string...' | base64 --decode",
+        "explanation": "Executes `echo -n 'encoded string...' | base64 --decode` to perform the described action: decode a base64 encoded secret value. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Create a TLS Secret type from certificate and key files",
+        "response": "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      },
+      {
+        "prompt": "Create a pod that uses a Secret value as an environment variable",
+        "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add env with secretKeyRef",
+        "explanation": "This uses `kubectl run` to create a pod that uses a Secret value as an environment variable. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a Secret from a .env file",
+        "response": "kubectl create secret generic my-secrets --from-env-file=.env",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      },
+      {
+        "prompt": "Mount a Secret as a volume in a pod",
+        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with secretName",
+        "explanation": "This uses `kubectl run` to mount a Secret as a volume in a pod. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "Create a docker-registry type Secret for private registry authentication",
+        "response": "kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      }
+    ]
+  },
+  {
+    "category": "Service Account Operations",
+    "prompts": [
+      {
+        "prompt": "Create a Service Account named 'deployment-sa'",
+        "response": "kubectl create sa deployment-sa",
+        "explanation": "Creates a ServiceAccount via `kubectl create serviceaccount`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount."
+      },
+      {
+        "prompt": "List all Service Accounts in the current namespace",
+        "response": "kubectl get sa",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      }
+    ]
+  },
+  {
+    "category": "Additional Commands",
+    "prompts": [
+      {
+        "prompt": "Create an alias 'k' for 'kubectl'",
+        "response": "alias k=kubectl",
+        "explanation": "Executes `alias k=kubectl` to perform the described action: create an alias 'k' for 'kubectl'. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enable kubectl autocompletion for bash",
+        "response": "source <(kubectl completion bash)",
+        "explanation": "Executes `source <(kubectl completion bash)` to perform the described action: enable kubectl autocompletion for bash. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Add kubectl autocompletion to ~/.bashrc",
+        "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc",
+        "explanation": "Executes `echo \"source <(kubectl completion bash)\" >> ~/.bashrc` to perform the described action: add kubectl autocompletion to ~/.bashrc. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Set the KUBECONFIG environment variable to /home/user/config",
+        "response": "export KUBECONFIG=/home/user/config",
+        "explanation": "Executes `export KUBECONFIG=/home/user/config` to perform the described action: set the kubeconfig environment variable to /home/user/config. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Check the kubectl client and server versions",
+        "response": "kubectl version",
+        "explanation": "Executes `kubectl version` to perform the described action: check the kubectl client and server versions. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Create a namespace named dev",
+        "response": "kubectl create namespace dev",
+        "explanation": "Creates a new namespace using `kubectl create namespace`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-namespace."
+      },
+      {
+        "prompt": "List all namespaces",
+        "response": "kubectl get namespaces",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe namespace dev",
+        "response": "kubectl describe namespace dev",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete namespace dev",
+        "response": "kubectl delete namespace dev",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Create a deployment named frontend using image nginx:1.14",
+        "response": "kubectl create deployment frontend --image=nginx:1.14",
+        "explanation": "Executes `kubectl create deployment frontend --image=nginx:1.14` to perform the described action: create a deployment named frontend using image nginx:1.14. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all deployments",
+        "response": "kubectl get deployments",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe deployment frontend",
+        "response": "kubectl describe deployment frontend",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Scale deployment frontend to 3 replicas",
+        "response": "kubectl scale deployment frontend --replicas=3",
+        "explanation": "Executes `kubectl scale deployment frontend --replicas=3` to perform the described action: scale deployment frontend to 3 replicas. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Roll back the deployment frontend to the previous version",
+        "response": "kubectl rollout undo deployment frontend",
+        "explanation": "Executes `kubectl rollout undo deployment frontend` to perform the described action: roll back the deployment frontend to the previous version. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment frontend",
+        "explanation": "Executes `kubectl rollout restart deployment frontend` to perform the described action: restart the deployment frontend. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Delete deployment frontend",
+        "response": "kubectl delete deployment frontend",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Run a pod named busybox with image busybox that runs indefinitely",
+        "response": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\"",
+        "explanation": "This uses `kubectl run` to run a pod named busybox with image busybox that runs indefinitely. For more details, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run."
+      },
+      {
+        "prompt": "List all pods",
+        "response": "kubectl get pods",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe pod busybox",
+        "response": "kubectl describe pod busybox",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete pod busybox",
+        "response": "kubectl delete pod busybox",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc",
+        "response": "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc",
+        "explanation": "Executes `kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc` to perform the described action: expose deployment frontend on port 80 as a clusterip service named frontend-svc. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all services",
+        "response": "kubectl get services",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe service frontend-svc",
+        "response": "kubectl describe service frontend-svc",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete service frontend-svc",
+        "response": "kubectl delete service frontend-svc",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Create a ConfigMap named app-config from file config.yaml",
+        "response": "kubectl create configmap app-config --from-file=config.yaml",
+        "explanation": "Executes `kubectl create configmap app-config --from-file=config.yaml` to perform the described action: create a configmap named app-config from file config.yaml. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all ConfigMaps",
+        "response": "kubectl get configmaps",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe configmap app-config",
+        "response": "kubectl describe configmap app-config",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete configmap app-config",
+        "response": "kubectl delete configmap app-config",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Create a generic secret named db-secret with literal username and password",
+        "response": "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret",
+        "explanation": "Creates a Secret with the given parameters using `kubectl create secret`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-secret."
+      },
+      {
+        "prompt": "List all secrets",
+        "response": "kubectl get secrets",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe secret db-secret",
+        "response": "kubectl describe secret db-secret",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete secret db-secret",
+        "response": "kubectl delete secret db-secret",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Create a ServiceAccount named default-sa",
+        "response": "kubectl create serviceaccount default-sa",
+        "explanation": "Executes `kubectl create serviceaccount default-sa` to perform the described action: create a serviceaccount named default-sa. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all ServiceAccounts",
+        "response": "kubectl get serviceaccounts",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Describe serviceaccount default-sa",
+        "response": "kubectl describe serviceaccount default-sa",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "Delete serviceaccount default-sa",
+        "response": "kubectl delete serviceaccount default-sa",
+        "explanation": "Deletes the specified resource with `kubectl delete`. For more, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#delete."
+      },
+      {
+        "prompt": "Label pod busybox with env=prod",
+        "response": "kubectl label pod busybox env=prod",
+        "explanation": "Adds or updates labels on resources using `kubectl label`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label."
+      },
+      {
+        "prompt": "Remove the label env from pod busybox",
+        "response": "kubectl label pod busybox env-",
+        "explanation": "Adds or updates labels on resources using `kubectl label`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#label."
+      },
+      {
+        "prompt": "Annotate deployment frontend with description=test",
+        "response": "kubectl annotate deployment frontend description=test",
+        "explanation": "Adds annotations to resources via `kubectl annotate`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#annotate."
+      },
+      {
+        "prompt": "Remove the annotation description from deployment frontend",
+        "response": "kubectl annotate deployment frontend description-",
+        "explanation": "Adds annotations to resources via `kubectl annotate`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#annotate."
+      },
+      {
+        "prompt": "Apply the configuration in deployment.yaml",
+        "response": "kubectl apply -f deployment.yaml",
+        "explanation": "Applies resource changes from a manifest via `kubectl apply`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#apply."
+      },
+      {
+        "prompt": "Replace configmap using file configmap.yaml",
+        "response": "kubectl replace -f configmap.yaml",
+        "explanation": "Executes `kubectl replace -f configmap.yaml` to perform the described action: replace configmap using file configmap.yaml. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Open the file app.yaml in Vim",
+        "response": "vim app.yaml",
+        "explanation": "Executes `vim app.yaml` to perform the described action: open the file app.yaml in vim. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Use kubectl to edit deployment frontend",
+        "response": "kubectl edit deployment frontend",
+        "explanation": "Executes `kubectl edit deployment frontend` to perform the described action: use kubectl to edit deployment frontend. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Open service.yaml in Vim",
+        "response": "vim service.yaml",
+        "explanation": "Executes `vim service.yaml` to perform the described action: open service.yaml in vim. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "View logs of pod busybox",
+        "response": "kubectl logs busybox",
+        "explanation": "Executes `kubectl logs busybox` to perform the described action: view logs of pod busybox. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Follow logs of pod busybox",
+        "response": "kubectl logs busybox -f",
+        "explanation": "Executes `kubectl logs busybox -f` to perform the described action: follow logs of pod busybox. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "View logs of container nginx in pod frontend-pod",
+        "response": "kubectl logs frontend-pod -c nginx",
+        "explanation": "Executes `kubectl logs frontend-pod -c nginx` to perform the described action: view logs of container nginx in pod frontend-pod. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Execute a shell in pod busybox",
+        "response": "kubectl exec -it busybox -- /bin/sh",
+        "explanation": "Executes `kubectl exec -it busybox -- /bin/sh` to perform the described action: execute a shell in pod busybox. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Port-forward local port 8080 to port 80 on service frontend-svc",
+        "response": "kubectl port-forward service/frontend-svc 8080:80",
+        "explanation": "Forwards local ports to a pod with `kubectl port-forward`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#port-forward."
+      },
+      {
+        "prompt": "Describe pod busybox for troubleshooting",
+        "response": "kubectl describe pod busybox",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "List all events",
+        "response": "kubectl get events",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Get pod busybox in YAML format",
+        "response": "kubectl get pods busybox -o yaml",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Get pod busybox in JSON format",
+        "response": "kubectl get pods busybox -o json",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Copy file /tmp/data from pod busybox to current directory",
+        "response": "kubectl cp busybox:/tmp/data ./",
+        "explanation": "Executes `kubectl cp busybox:/tmp/data ./` to perform the described action: copy file /tmp/data from pod busybox to current directory. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Show resource usage of pods",
+        "response": "kubectl top pods",
+        "explanation": "Displays resource metrics (CPU/memory) with `kubectl top`. See https://kubernetes.io/docs/tasks/debug-application-cluster/resource-metrics-pipeline/."
+      },
+      {
+        "prompt": "Show resource usage of nodes",
+        "response": "kubectl top nodes",
+        "explanation": "Displays resource metrics (CPU/memory) with `kubectl top`. See https://kubernetes.io/docs/tasks/debug-application-cluster/resource-metrics-pipeline/."
+      },
+      {
+        "prompt": "Describe node worker-node-1",
+        "response": "kubectl describe node worker-node-1",
+        "explanation": "Shows detailed information about the resource with `kubectl describe`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe."
+      },
+      {
+        "prompt": "View the current kubectl context",
+        "response": "kubectl config current-context",
+        "explanation": "Executes `kubectl config current-context` to perform the described action: view the current kubectl context. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "List all contexts",
+        "response": "kubectl config get-contexts",
+        "explanation": "Executes `kubectl config get-contexts` to perform the described action: list all contexts. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Switch kubectl context to minikube",
+        "response": "kubectl config use-context minikube",
+        "explanation": "Executes `kubectl config use-context minikube` to perform the described action: switch kubectl context to minikube. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Set the namespace to dev in the current context",
+        "response": "kubectl config set-context --current --namespace=dev",
+        "explanation": "Executes `kubectl config set-context --current --namespace=dev` to perform the described action: set the namespace to dev in the current context. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Display cluster info",
+        "response": "kubectl cluster-info",
+        "explanation": "Executes `kubectl cluster-info` to perform the described action: display cluster info. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Show available API resource types",
+        "response": "kubectl api-resources",
+        "explanation": "Executes `kubectl api-resources` to perform the described action: show available api resource types. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Explain the fields of pods",
+        "response": "kubectl explain pods",
+        "explanation": "Executes `kubectl explain pods` to perform the described action: explain the fields of pods. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Get pods with label app=frontend",
+        "response": "kubectl get pods -l app=frontend",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Get pods with all labels",
+        "response": "kubectl get pods --show-labels",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Apply deployment.yaml without sending to server (dry run)",
+        "response": "kubectl apply -f deployment.yaml --dry-run=client",
+        "explanation": "Applies resource changes from a manifest via `kubectl apply`. See https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#apply."
+      },
+      {
+        "prompt": "Generate YAML for deployment 'test' without creating it",
+        "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
+        "explanation": "Executes `kubectl create deployment test --image=nginx --dry-run=client -o yaml` to perform the described action: generate yaml for deployment 'test' without creating it. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Continuously watch pods",
+        "response": "kubectl get pods -w",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Get all resources in all namespaces",
+        "response": "kubectl get all -A",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "List pods with status phase=Running",
+        "response": "kubectl get pods --field-selector=status.phase=Running",
+        "explanation": "Retrieves the resource as specified using `kubectl get`. For more info, see https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get."
+      },
+      {
+        "prompt": "Watch the rollout status of deployment frontend",
+        "response": "kubectl rollout status deployment/frontend -w",
+        "explanation": "Executes `kubectl rollout status deployment/frontend -w` to perform the described action: watch the rollout status of deployment frontend. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment/frontend",
+        "explanation": "Executes `kubectl rollout restart deployment/frontend` to perform the described action: restart the deployment frontend. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU",
+        "response": "kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80",
+        "explanation": "Executes `kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80` to perform the described action: auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% cpu. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Check if you can create pods",
+        "response": "kubectl auth can-i create pods",
+        "explanation": "Executes `kubectl auth can-i create pods` to perform the described action: check if you can create pods. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Show only context names",
+        "response": "kubectl config get-contexts -o name",
+        "explanation": "Executes `kubectl config get-contexts -o name` to perform the described action: show only context names. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Open or create the file app.yaml in Vim",
+        "response": "vim app.yaml",
+        "explanation": "Executes `vim app.yaml` to perform the described action: open or create the file app.yaml in vim. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enter insert mode",
+        "response": "i",
+        "explanation": "Executes `i` to perform the described action: enter insert mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Exit insert mode",
+        "response": "<Esc>",
+        "explanation": "Executes `<Esc>` to perform the described action: exit insert mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Save and quit Vim",
+        "response": ":wq",
+        "explanation": "Executes `:wq` to perform the described action: save and quit vim. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Quit without saving",
+        "response": ":q!",
+        "explanation": "Executes `:q!` to perform the described action: quit without saving. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Delete the current line",
+        "response": "dd",
+        "explanation": "Executes `dd` to perform the described action: delete the current line. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Yank (copy) the current line",
+        "response": "yy",
+        "explanation": "Executes `yy` to perform the described action: yank (copy) the current line. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Paste after the cursor",
+        "response": "p",
+        "explanation": "Executes `p` to perform the described action: paste after the cursor. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Search forward for 'pattern'",
+        "response": "/pattern",
+        "explanation": "Executes `/pattern` to perform the described action: search forward for 'pattern'. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Go to line N",
+        "response": ":N",
+        "explanation": "Executes `:N` to perform the described action: go to line n. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Undo the last change",
+        "response": "u",
+        "explanation": "Executes `u` to perform the described action: undo the last change. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Redo the last undone change",
+        "response": "<C-r>",
+        "explanation": "Executes `<C-r>` to perform the described action: redo the last undone change. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enter visual mode",
+        "response": "v",
+        "explanation": "Executes `v` to perform the described action: enter visual mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enter visual line mode",
+        "response": "V",
+        "explanation": "Executes `V` to perform the described action: enter visual line mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enter visual block mode",
+        "response": "<C-v>",
+        "explanation": "Executes `<C-v>` to perform the described action: enter visual block mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Enter replace mode",
+        "response": "R",
+        "explanation": "Executes `R` to perform the described action: enter replace mode. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Move to the next word",
+        "response": "w",
+        "explanation": "Executes `w` to perform the described action: move to the next word. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Move to the previous word",
+        "response": "b",
+        "explanation": "Executes `b` to perform the described action: move to the previous word. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Move to the end of the word",
+        "response": "e",
+        "explanation": "Executes `e` to perform the described action: move to the end of the word. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Move to the first character of the line",
+        "response": "0",
+        "explanation": "Executes `0` to perform the described action: move to the first character of the line. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Move to the end of the line",
+        "response": "$",
+        "explanation": "Executes `$` to perform the described action: move to the end of the line. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      },
+      {
+        "prompt": "Jump to matching bracket",
+        "response": "%",
+        "explanation": "Executes `%` to perform the described action: jump to matching bracket. For details, see https://kubernetes.io/docs/reference/kubectl/overview/."
+      }
+    ]
+  }
+]
