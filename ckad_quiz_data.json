@@ -166,7 +166,7 @@
         "response": "kubectl edit cm app-config"
       },
       {
-        "prompt": "Create a ConfigMap with multiple key-value pairs from command line",
+        "prompt": "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line",
         "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true"
       },
       {
