@@ -1,5 +1,100 @@
 [
   {
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "prompts": [
+      {
+        "prompt": "Create an alias 'k' for 'kubectl'",
+        "response": "alias k=kubectl",
+        "explanation": "Defines a shell alias `k` so you can type `k get pods` instead of `kubectl get pods`, saving keystrokes on every invocation."
+      },
+      {
+        "prompt": "Create an alias 'kd' for 'kubectl describe'",
+        "response": "alias kd='kubectl describe'",
+        "explanation": "Defines a shell alias `kd` so you can type `kd pod nginx` instead of `kubectl describe pod nginx`, streamlining the describe command."
+      },
+      {
+        "prompt": "Create an alias 'kr' for 'kubectl run'",
+        "response": "alias kr='kubectl run'",
+        "explanation": "Defines a shell alias `kr` so you can type `kr nginx --image=nginx` instead of `kubectl run nginx --image=nginx`, speeding up pod creation."
+      },
+      {
+        "prompt": "Create an alias 'kc' for 'kubectl create'",
+        "response": "alias kc='kubectl create'",
+        "explanation": "Defines a shell alias `kc` so you can type `kc deployment webapp --image=nginx` instead of `kubectl create deployment webapp --image=nginx`, simplifying resource creation."
+      },
+      {
+        "prompt": "Create an alias 'ke' for 'kubectl explain'",
+        "response": "alias ke='kubectl explain'",
+        "explanation": "Defines a shell alias `ke` so you can type `ke pods` instead of `kubectl explain pods`, making API field lookup quicker."
+      },
+      {
+        "prompt": "Create an alias 'kgp' for 'kubectl get pods'",
+        "response": "alias kgp='kubectl get pods'",
+        "explanation": "Defines a shell alias `kgp` so you can list pods with just `kgp`, reducing typing for frequent pod listings."
+      },
+      {
+        "prompt": "Create an alias 'kgs' for 'kubectl get svc'",
+        "response": "alias kgs='kubectl get svc'",
+        "explanation": "Defines a shell alias `kgs` so you can list services with just `kgs`, making service inspection faster."
+      },
+      {
+        "prompt": "Enable kubectl autocomplete in your shell",
+        "response": "source <(kubectl completion bash)\ncomplete -F __start_kubectl k",
+        "explanation": "Loads the kubectl bash completion script and registers it for the `k` alias, providing real-time tab-completion of commands, flags, and resource names."
+      },
+      {
+        "prompt": "List pods using the 'kgp' alias",
+        "response": "kgp",
+        "explanation": "Runs `kubectl get pods` via the `kgp` alias to display all Pods in the current namespace."
+      },
+      {
+        "prompt": "List replicasets using the short alias",
+        "response": "k get rs",
+        "explanation": "Uses `rs` as the short resource name for ReplicaSets with the `k` alias for a quick listing."
+      },
+      {
+        "prompt": "List daemonsets using the short alias",
+        "response": "k get ds",
+        "explanation": "Uses `ds` as the short resource name for DaemonSets with the `k` alias to view all DaemonSets."
+      },
+      {
+        "prompt": "List services using the 'kgs' alias",
+        "response": "kgs",
+        "explanation": "Runs `kubectl get svc` via the `kgs` alias to display all Services in the current namespace."
+      },
+      {
+        "prompt": "List ConfigMaps using the short alias",
+        "response": "k get cm",
+        "explanation": "Uses `cm` as the short resource name for ConfigMaps with the `k` alias to quickly list ConfigMaps."
+      },
+      {
+        "prompt": "List secrets using the short alias",
+        "response": "k get secret",
+        "explanation": "Runs `kubectl get secret` with the `k` alias to display all Secrets."
+      },
+      {
+        "prompt": "List HorizontalPodAutoscalers using the short alias",
+        "response": "k get hpa",
+        "explanation": "Uses `hpa` as the short resource name for HorizontalPodAutoscalers with the `k` alias."
+      },
+      {
+        "prompt": "List Ingresses using the short alias",
+        "response": "k get ing",
+        "explanation": "Uses `ing` as the short resource name for Ingress resources with the `k` alias."
+      },
+      {
+        "prompt": "List NetworkPolicies using the short alias",
+        "response": "k get netpol",
+        "explanation": "Uses `netpol` as the short resource name for NetworkPolicy objects with the `k` alias."
+      },
+      {
+        "prompt": "List ServiceAccounts using the short alias",
+        "response": "k get sa",
+        "explanation": "Uses `sa` as the short resource name for ServiceAccounts with the `k` alias."
+      }
+    ]
+  },
+  {
     "category": "Pod Management",
     "prompts": [
       {
@@ -203,7 +298,7 @@
         "explanation": "Opens the live ConfigMap in your default editor, letting you change keys inline; upon save, Kubernetes replaces the resource atomically."
       },
       {
-        "prompt": "Create a ConfigMap with multiple key-value pairs from command line",
+        "prompt": "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line",
         "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true",
         "explanation": "Bundles three literals into `multi-config`, showcasing how to supply multiple discrete settings in a single invocation."
       },
