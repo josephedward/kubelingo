@@ -12,7 +12,9 @@ This project is licensed under the MIT License – see the LICENSE file for deta
  - Filter by category
  - Specify number of questions
  - Load questions from an external JSON file
-- Optional LLM-based detailed explanations after each question (requires $OPENAI_API_KEY and the 'llm' CLI tool)
+ - Optional LLM-based detailed explanations after each question (requires $OPENAI_API_KEY and the 'llm' CLI tool)
+ - If $OPENAI_API_KEY is not set, the app will prompt you at startup to enter it (or press Enter to skip and continue without LLM support)
+ - Each quiz session logs question-by-question results and overall score to a timestamped file under a `logs/` directory
 
  ## Requirements
 
@@ -73,6 +75,12 @@ This project is licensed under the MIT License – see the LICENSE file for deta
 
    ```bash
    python3 cli_quiz.py -n 5 -c "Pod Management"
+   ```
+  
+ - Show quiz history and performance statistics:
+
+   ```bash
+   python3 cli_quiz.py --history
    ```
 
  ## Custom Data
