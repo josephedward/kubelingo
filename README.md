@@ -12,6 +12,7 @@ This project is licensed under the MIT License – see the LICENSE file for deta
  - Filter by category
  - Specify number of questions
  - Load questions from an external JSON file
+- Optional LLM-based detailed explanations after each question (requires $OPENAI_API_KEY and the 'llm' CLI tool)
 
  ## Requirements
 
@@ -47,6 +48,7 @@ This project is licensed under the MIT License – see the LICENSE file for deta
     ```
 
  ## Usage
+ After answering each question, you may be prompted to query an external LLM for a more detailed explanation. Type 'y' when asked to enable this (requires $OPENAI_API_KEY and the 'llm' CLI tool).
 
  - List available categories:
 
