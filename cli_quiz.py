@@ -8,6 +8,8 @@ import argparse
 import sys
 # OS utilities
 import os
+import shutil
+import subprocess
 
 # Interactive prompts library (optional for arrow-key selection)
 try:
@@ -117,6 +119,16 @@ def main():
     max_q = args.num if args.num > 0 else total
     correct = 0
     asked = 0
+    # Check LLM availability for detailed explanations
+    if os.environ.get('OPENAI_API_KEY'):
+        if shutil.which('llm'):
+            llm_enabled = True
+        else:
+            print(Fore.YELLOW + "Warning: LLM CLI 'llm' not found; intelligent explanations disabled." + Style.RESET_ALL)
+            llm_enabled = False
+    else:
+        print(Fore.YELLOW + "Warning: OPENAI_API_KEY not set; LLM queries disabled." + Style.RESET_ALL)
+        llm_enabled = False
     for q in questions[:max_q]:
         asked += 1
         print(f"[{asked}/{max_q}] Category: {q['category']}\nQ: {q['prompt']}")
@@ -138,6 +150,29 @@ def main():
             # Show explanation if available
             if q.get('explanation'):
                 print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        # Offer optional LLM query for further explanation
+        if llm_enabled:
+            try:
+                ans_llm = input(Fore.CYAN + "Show detailed LLM explanation? [y/N]: " + Style.RESET_ALL).strip().lower()
+            except EOFError:
+                ans_llm = ''
+            if ans_llm == 'y':
+                # Construct a focused LLM prompt explaining the answer relative to the question
+                llm_prompt = (
+                    f"Explain why the command \"{q['response']}\" is the correct solution "
+                    f"to the question: \"{q['prompt']}\"."
+                )
+                try:
+                    result = subprocess.run(
+                        ["llm", llm_prompt], capture_output=True, text=True
+                    )
+                    if result.returncode == 0:
+                        print(Fore.MAGENTA + result.stdout + Style.RESET_ALL)
+                    else:
+                        print(Fore.RED + f"LLM call failed (exit {result.returncode}): {result.stderr}" + Style.RESET_ALL)
+                except FileNotFoundError:
+                    print(Fore.RED + "LLM CLI tool 'llm' not found. Please install to use this feature." + Style.RESET_ALL)
+        # End of question loop actions
     if asked:
         print(f"Quiz complete. Score: {correct}/{asked} ({correct/asked*100:.1f}%)")
     else:
