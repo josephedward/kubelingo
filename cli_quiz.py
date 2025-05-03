@@ -6,6 +6,27 @@ import json
 import random
 import argparse
 import sys
+# OS utilities
+import os
+
+# Interactive prompts library (optional for arrow-key selection)
+try:
+    import questionary
+except ImportError:
+    questionary = None
+
+# Colored terminal output (optional)
+try:
+    import colorama
+    from colorama import Fore, Style
+    colorama.init(autoreset=True)
+except ImportError:
+    class _DummyFore:
+        CYAN = MAGENTA = YELLOW = GREEN = RED = ''
+    class _DummyStyle:
+        RESET_ALL = ''
+    Fore = _DummyFore()
+    Style = _DummyStyle()
 
 # Default quiz data file path
 DEFAULT_DATA_FILE = 'ckad_quiz_data.json'
@@ -26,6 +47,7 @@ def load_questions(data_file):
                 'category': category,
                 'prompt': item.get('prompt', ''),
                 'response': item.get('response', ''),
+                'explanation': item.get('explanation', '')
             })
     return questions
 
@@ -41,14 +63,37 @@ def main():
                         help='List available categories and exit')
     args = parser.parse_args()
 
-    # Prompt user for quiz data JSON file path (override -f/--file)
-    try:
-        user_input = input(f"Enter path to JSON quiz data file (default: {args.file}): ").strip()
-    except EOFError:
-        print()  # newline on EOF
-        user_input = ''
-    if user_input:
-        args.file = user_input
+    # Select quiz data JSON file (via arrow-key UI if available)
+    if questionary:
+        json_files = sorted([f for f in os.listdir('.') if f.lower().endswith('.json')])
+        if json_files:
+            choices = json_files + ["Enter custom path"]
+            default_choice = args.file if args.file in json_files else None
+            selected = questionary.select("Select quiz data file:", choices=choices, default=default_choice).ask()
+            if selected is None:
+                sys.exit(0)
+            if selected == "Enter custom path":
+                path = questionary.text(
+                    f"Enter JSON quiz data file path (default: {args.file})", default=args.file
+                ).ask()
+                args.file = path.strip() if path and path.strip() else args.file
+            else:
+                args.file = selected
+        else:
+            # No JSON files found, prompt for path
+            path = questionary.text(
+                f"Enter JSON quiz data file path (default: {args.file})", default=args.file
+            ).ask()
+            args.file = path.strip() if path and path.strip() else args.file
+    else:
+        # Fallback to manual input if questionary unavailable
+        try:
+            user_input = input(f"Enter path to JSON quiz data file (default: {args.file}): ").strip()
+        except EOFError:
+            print()  # newline on EOF
+            user_input = ''
+        if user_input:
+            args.file = user_input
 
     questions = load_questions(args.file)
     if args.list_categories:
@@ -81,10 +126,18 @@ def main():
             print()  # newline
             break
         if ans == q['response']:
-            print('Correct!\n')
+            # Correct answer feedback
+            print(Fore.GREEN + 'Correct!' + Style.RESET_ALL + '\n')
             correct += 1
+            # Show explanation if available
+            if q.get('explanation'):
+                print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
         else:
-            print(f"Incorrect. Correct answer: {q['response']}\n")
+            # Incorrect answer feedback
+            print(Fore.RED + f"Incorrect. Correct answer: {q['response']}" + Style.RESET_ALL + '\n')
+            # Show explanation if available
+            if q.get('explanation'):
+                print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
     if asked:
         print(f"Quiz complete. Score: {correct}/{asked} ({correct/asked*100:.1f}%)")
     else:
