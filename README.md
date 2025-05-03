@@ -14,6 +14,8 @@ This project is licensed under the MIT License – see the LICENSE file for deta
  - Load questions from an external JSON file
  - Optional LLM-based detailed explanations after each question (requires $OPENAI_API_KEY and the 'llm' CLI tool)
  - If $OPENAI_API_KEY is not set, the app will prompt you at startup to enter it (or press Enter to skip and continue without LLM support)
+ - Displays elapsed time during the quiz and reports total time taken at completion
+ - Persists each session's duration and performance history, viewable with `--history`
  - Each quiz session logs question-by-question results and overall score to a timestamped file under a `logs/` directory
 
  ## Requirements
@@ -64,6 +66,9 @@ This project is licensed under the MIT License – see the LICENSE file for deta
    python3 cli_quiz.py
    ```
 
+After completing the quiz, the tool displays your total time taken for the session.
+
+ 
  - Use a specific JSON file for questions:
 
    ```bash
