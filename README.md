@@ -26,16 +26,24 @@ This project is licensed under the MIT License – see the LICENSE file for deta
     cd <repository_directory>
     ```
 
- 2. Ensure the quiz data JSON file exists:
+ 2. Create a Python virtual environment and install dependencies:
 
     ```bash
-    ls quiz_data.json
+    python3 -m venv .venv
+    source .venv/bin/activate        # On Windows: .\\.venv\\Scripts\\activate
+    pip install -r requirements.txt
     ```
 
- 3. Make the quiz script executable (optional):
+ 3. Ensure the quiz data JSON file exists (you'll be prompted to select one):
 
     ```bash
-    chmod +x kubectl_quiz.py
+    ls *.json
+    ```
+
+ 4. Make the quiz script executable (optional):
+
+    ```bash
+    chmod +x cli_quiz.py
     ```
 
  ## Usage
@@ -43,30 +51,31 @@ This project is licensed under the MIT License – see the LICENSE file for deta
  - List available categories:
 
    ```bash
-   python3 kubectl_quiz.py --list-categories
+   python3 cli_quiz.py --list-categories
    ```
 
  - Start a quiz with all questions:
 
    ```bash
-   python3 kubectl_quiz.py
+   python3 cli_quiz.py
    ```
 
  - Use a specific JSON file for questions:
 
    ```bash
-   python3 kubectl_quiz.py -f quiz_data.json
+   python3 cli_quiz.py -f ckad_quiz_data.json
    ```
+  (Or specify another JSON file: `-f <your_file.json>`)
 
  - Ask 5 questions from a specific category:
 
    ```bash
-   python3 kubectl_quiz.py -n 5 -c "Pod Management"
+   python3 cli_quiz.py -n 5 -c "Pod Management"
    ```
 
  ## Custom Data
 
- Add your own questions by editing `quiz_data.json` or specifying a different JSON file with the same format:
+ Add your own questions by editing `ckad_quiz_data.json` or specifying a different JSON file with the same format:
 
  ```json
  [
