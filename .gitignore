@@ -1,0 +1,6 @@
+# Virtual environment directory
+.venv/
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
