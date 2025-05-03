@@ -41,6 +41,15 @@ def main():
                         help='List available categories and exit')
     args = parser.parse_args()
 
+    # Prompt user for quiz data JSON file path (override -f/--file)
+    try:
+        user_input = input(f"Enter path to JSON quiz data file (default: {args.file}): ").strip()
+    except EOFError:
+        print()  # newline on EOF
+        user_input = ''
+    if user_input:
+        args.file = user_input
+
     questions = load_questions(args.file)
     if args.list_categories:
         cats = sorted({q['category'] for q in questions})
