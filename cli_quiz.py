@@ -78,9 +78,10 @@ def show_history():
         nq = entry.get('num_questions', 0)
         nc = entry.get('num_correct', 0)
         pct = (nc / nq * 100) if nq else 0
+        duration = entry.get('duration', '')
         data_file = entry.get('data_file', '')
         filt = entry.get('category_filter') or 'ALL'
-        print(f"{ts}: {nc}/{nq} ({pct:.1f}%), File: {data_file}, Category: {filt}")
+        print(f"{ts}: {nc}/{nq} ({pct:.1f}%), Time: {duration}, File: {data_file}, Category: {filt}")
     print()
     # Aggregate per-category performance
     agg = {}
@@ -218,13 +219,25 @@ def main():
             llm_enabled = False
     else:
         llm_enabled = False
+    # Start timer for quiz session
+    quiz_start = datetime.now()
     for q in questions[:max_q]:
+        # Compute elapsed time
+        elapsed = datetime.now() - quiz_start
+        total_sec = int(elapsed.total_seconds())
+        hrs = total_sec // 3600
+        mins = (total_sec % 3600) // 60
+        secs = total_sec % 60
+        elapsed_str = f"{hrs:02}:{mins:02}:{secs:02}"
         asked += 1
         # Update per-category stats
         cat = q.get('category', '')
         stats = category_stats.setdefault(cat, {'asked': 0, 'correct': 0})
         stats['asked'] += 1
-        print(f"[{asked}/{max_q}] Category: {q['category']}\nQ: {q['prompt']}")
+        print('\033[2J\033[H', end='')
+        # Highlight current question
+        print(Fore.CYAN + f"[{asked}/{max_q}] Elapsed: {elapsed_str} Category: {q['category']}" + Style.RESET_ALL)
+        print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
         try:
             ans = input('Your answer: ').strip()
         except EOFError:
@@ -240,8 +253,11 @@ def main():
             if q.get('explanation'):
                 print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
         else:
-            # Incorrect answer feedback
-            print(Fore.RED + f"Incorrect. Correct answer: {q['response']}" + Style.RESET_ALL + '\n')
+            # Incorrect answer feedback with highlighted correct command
+            print(
+                Fore.RED + "Incorrect. Correct answer: " + Style.RESET_ALL
+                + Fore.GREEN + q['response'] + Style.RESET_ALL + '\n'
+            )
             # Show explanation if available
             if q.get('explanation'):
                 print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
@@ -279,6 +295,14 @@ def main():
             c_correct = stats.get('correct', 0)
             pct = (c_correct / c_asked * 100) if c_asked else 0
             print(f"  {cat}: {c_correct}/{c_asked} ({pct:.1f}%)")
+        # Show total time taken
+        total_elapsed = datetime.now() - quiz_start
+        total_sec = int(total_elapsed.total_seconds())
+        hrs = total_sec // 3600
+        mins = (total_sec % 3600) // 60
+        secs = total_sec % 60
+        duration_str = f"{hrs:02}:{mins:02}:{secs:02}"
+        print(f"Total time: {duration_str}\n")
         # Record session history
         try:
             # Load existing history
@@ -294,6 +318,8 @@ def main():
                 'category_filter': args.category,
                 'num_questions': asked,
                 'num_correct': correct,
+                'duration': duration_str,
+                'duration_seconds': total_sec,
                 'per_category': category_stats
             }
             history.append(entry)
