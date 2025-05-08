@@ -57,6 +57,33 @@ def load_questions(data_file):
                 'explanation': item.get('explanation', '')
             })
     return questions
+    
+def mark_question_for_review(data_file, category, prompt_text):
+    """Adds 'review': True to the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text:
+                    item['review'] = True
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
 
 def show_history():
     """Display quiz history and aggregated statistics."""
@@ -188,14 +215,79 @@ def main():
     fh.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
     logger.addHandler(fh)
     logger.info(f"Session start: data_file={args.file}, num_questions={max_q}, category={args.category}")
-    # Check OpenAI API key and prompt for it if not set
+    # Load default OpenAI API key from .env if available
+    dotenv_path = os.path.join(os.getcwd(), '.env')
+    default_key = None
+    if os.path.isfile(dotenv_path):
+        try:
+            with open(dotenv_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#') or '=' not in line:
+                        continue
+                    k, v = line.split('=', 1)
+                    if k.strip() == 'OPENAI_API_KEY':
+                        default_key = v.strip().strip('"').strip("'")
+                        break
+        except Exception:
+            default_key = None
+
+    # Determine which API key to use: environment, default, new entry, or none
     api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
+    if not api_key and default_key:
+        # Prompt user to choose key option
+        if questionary:
+            choices = [
+                'Use default key from .env',
+                'Enter a new key',
+                'Proceed without a key'
+            ]
+            selection = questionary.select(
+                'OpenAI API key options:',
+                choices=choices,
+                default=choices[0]
+            ).ask()
+            if selection is None:
+                sys.exit(0)
+            if selection == choices[0]:
+                api_key = default_key
+            elif selection == choices[1]:
+                new_key = questionary.text('Enter your OpenAI API key:').ask()
+                api_key = new_key.strip() if new_key else None
+            else:
+                api_key = None
+        else:
+            print(Fore.YELLOW + 'Default OpenAI API key found in .env' + Style.RESET_ALL)
+            print('1) Use default key from .env')
+            print('2) Enter a new key')
+            print('3) Proceed without a key')
+            try:
+                choice = input('Select option [1/2/3] (default 1): ').strip()
+            except EOFError:
+                print()
+                choice = ''
+            if choice in ('', '1'):
+                api_key = default_key
+            elif choice == '2':
+                try:
+                    new_key = input('Enter your OpenAI API key: ').strip()
+                except EOFError:
+                    print()
+                    new_key = ''
+                api_key = new_key if new_key else None
+            else:
+                api_key = None
+        if api_key:
+            os.environ['OPENAI_API_KEY'] = api_key
+        else:
+            print(Fore.YELLOW + 'Proceeding without OpenAI API key; LLM queries disabled.' + Style.RESET_ALL)
+    elif not api_key:
+        # No default key or environment variable set
         try:
             key_input = input(
                 Fore.YELLOW +
-                "OpenAI API key not set. Enter your OpenAI API key now "
-                "(or press Enter to skip and proceed without LLM support): " +
+                'OpenAI API key not set. Enter your OpenAI API key now '
+                '(or press Enter to skip and proceed without LLM support): ' +
                 Style.RESET_ALL
             ).strip()
         except EOFError:
@@ -206,7 +298,7 @@ def main():
             api_key = key_input
         else:
             print(Fore.YELLOW +
-                  "Warning: OPENAI_API_KEY not set; LLM queries disabled." +
+                  'Warning: OPENAI_API_KEY not set; LLM queries disabled.' +
                   Style.RESET_ALL)
     # Determine LLM availability for detailed explanations
     if api_key:
@@ -222,6 +314,8 @@ def main():
     # Start timer for quiz session
     quiz_start = datetime.now()
     for q in questions[:max_q]:
+        # Flag to pause after review prompt if LLM explanation was shown
+        show_pause = False
         # Compute elapsed time
         elapsed = datetime.now() - quiz_start
         total_sec = int(elapsed.total_seconds())
@@ -276,15 +370,43 @@ def main():
                     f"to the question: \"{q['prompt']}\"."
                 )
                 try:
-                    result = subprocess.run(
-                        ["llm", llm_prompt], capture_output=True, text=True
-                    )
-                    if result.returncode == 0:
-                        print(Fore.MAGENTA + result.stdout + Style.RESET_ALL)
-                    else:
-                        print(Fore.RED + f"LLM call failed (exit {result.returncode}): {result.stderr}" + Style.RESET_ALL)
+                    # Stream the LLM explanation directly to the terminal
+                    print(Fore.MAGENTA, end='')
+                    proc = subprocess.run(["llm", llm_prompt])
+                    # If the CLI returns an error, notify the user
+                    if proc.returncode != 0:
+                        print(Fore.RED + f"LLM call failed (exit {proc.returncode})" + Style.RESET_ALL)
+                    # Reset styling after output
+                    print(Style.RESET_ALL, end='')
                 except FileNotFoundError:
                     print(Fore.RED + "LLM CLI tool 'llm' not found. Please install to use this feature." + Style.RESET_ALL)
+                # Mark that we should pause after review prompt
+                show_pause = True
+        # Prompt to flag this question for review
+        if questionary:
+            choice = questionary.select(
+                "Flag this question for review?",
+                choices=["No", "Yes"],
+                default="No"
+            ).ask()
+            review_flag = (choice == "Yes")
+        else:
+            try:
+                ans_rev = input(Fore.CYAN + "Flag this question for review? [y/N]: " + Style.RESET_ALL).strip().lower()
+            except EOFError:
+                print()
+                ans_rev = ''
+            review_flag = (ans_rev == 'y')
+        if review_flag:
+            mark_question_for_review(args.file, q.get('category', ''), q.get('prompt', ''))
+            logger.info(f"Question flagged for review: prompt=\"{q['prompt']}\"")
+            print(Fore.YELLOW + "Question flagged for review." + Style.RESET_ALL)
+        # Pause to allow reading review confirmation before next question
+        if show_pause:
+            try:
+                input(Fore.CYAN + "Press Enter to continue to next question..." + Style.RESET_ALL)
+            except EOFError:
+                pass
         # End of question loop actions
     if asked:
         print(f"Quiz complete. Score: {correct}/{asked} ({correct/asked*100:.1f}%)")
