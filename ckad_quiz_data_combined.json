@@ -343,7 +343,7 @@
         "explanation": "Validates and prints the changes locally, ensuring your manifest is correct before touching live resources."
       },
       {
-        "prompt": "Generate YAML for deployment 'test' with image nginx without creating it",
+        "prompt": "Generate YAML for deployment 'test' without creating it",
         "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
         "explanation": "Locally outputs the `test` Deployment spec as YAML for review, avoiding API server calls."
       },
@@ -523,7 +523,7 @@
         "explanation": "Iterates over every file under `/configs`, creating corresponding keys in `app-settings`, great for grouping multiple configs."
       },
       {
-        "prompt": "Create a pod named app using the nginx image that uses a ConfigMap as environment variables",
+        "prompt": "Create a pod that uses a ConfigMap as environment variables",
         "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef",
         "explanation": ""
       },
@@ -653,7 +653,7 @@
         "explanation": "Shows core control-plane and system Pods managed by Kubernetes in the `kube-system` namespace, used for health checks or troubleshooting."
       },
       {
-        "prompt": "Create a pod named nginx in the 'development' namespace",
+        "prompt": "Create a pod named nginx using the nginx image in the 'development' namespace",
         "response": "kubectl run nginx --image=nginx -n development",
         "explanation": "Launches a Pod named `nginx` within `development`, isolating it from other namespaces and inheriting the namespace\u2019s resource quotas and policies."
       },
@@ -668,7 +668,7 @@
         "explanation": "Displays every namespace, their statuses, and age\u2014useful for housekeeping or capacity planning."
       },
       {
-        "prompt": "Create a resource quota named ns-quota in the development namespace limiting it to 10 pods",
+        "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
         "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
         "explanation": "Establishes a `ResourceQuota` named `ns-quota` in `development`, capping Pod creation at 10 to prevent resource exhaustion."
       }
@@ -783,7 +783,7 @@
         "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion."
       },
       {
-        "prompt": "Create a pod named secret-pod using the nginx image that mounts a Secret as a volume",
+        "prompt": "Mount a Secret as a volume in a pod",
         "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with secretName",
         "explanation": ""
       },
