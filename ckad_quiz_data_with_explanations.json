@@ -123,7 +123,7 @@
         "explanation": "Retrieves the live Pod object `webapp` from namespace `development` and outputs its complete spec, metadata, and status as YAML into `webapp.yaml`, allowing diff-based debugging against source manifests."
       },
       {
-        "prompt": "Create a pod with labels app=web and tier=frontend",
+        "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
         "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\"",
         "explanation": "Tags the new `nginx` Pod with `app=web` and `tier=frontend` labels, enabling Services, ReplicaSets, and `kubectl get -l` selectors to group and manage it alongside related resources."
       },
@@ -358,7 +358,7 @@
         "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion."
       },
       {
-        "prompt": "Mount a Secret as a volume in a pod",
+        "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
         "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
         "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars."
       },
@@ -728,7 +728,7 @@
         "explanation": "Validates and prints the changes locally, ensuring your manifest is correct before touching live resources."
       },
       {
-        "prompt": "Generate YAML for deployment 'test' without creating it",
+        "prompt": "Generate YAML for deployment 'test' using the nginx image without creating it",
         "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
         "explanation": "Locally outputs the `test` Deployment spec as YAML for review, avoiding API server calls."
       },

@@ -343,7 +343,7 @@
         "explanation": "Validates and prints the changes locally, ensuring your manifest is correct before touching live resources."
       },
       {
-        "prompt": "Generate YAML for deployment 'test' without creating it",
+        "prompt": "Generate YAML for deployment 'test' using the nginx image without creating it",
         "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
         "explanation": "Locally outputs the `test` Deployment spec as YAML for review, avoiding API server calls."
       },
@@ -525,7 +525,8 @@
       {
         "prompt": "Create a pod that uses a ConfigMap as environment variables",
         "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef",
-        "explanation": ""
+        "explanation": "",
+        "review": true
       },
       {
         "prompt": "Extract a ConfigMap to YAML format",
@@ -703,9 +704,10 @@
         "explanation": "Retrieves the live Pod object `webapp` from namespace `development` and outputs its complete spec, metadata, and status as YAML into `webapp.yaml`, allowing diff-based debugging against source manifests."
       },
       {
-        "prompt": "Create a pod with labels app=web and tier=frontend",
+        "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
         "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\"",
-        "explanation": "Tags the new `nginx` Pod with `app=web` and `tier=frontend` labels, enabling Services, ReplicaSets, and `kubectl get -l` selectors to group and manage it alongside related resources."
+        "explanation": "Tags the new `nginx` Pod with `app=web` and `tier=frontend` labels, enabling Services, ReplicaSets, and `kubectl get -l` selectors to group and manage it alongside related resources.",
+        "review": true
       },
       {
         "prompt": "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues",
@@ -783,9 +785,9 @@
         "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion."
       },
       {
-        "prompt": "Mount a Secret as a volume in a pod",
-        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with secretName",
-        "explanation": ""
+        "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
+        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
+        "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars."
       },
       {
         "prompt": "Create a docker-registry type Secret for private registry authentication",
@@ -796,11 +798,6 @@
         "prompt": "Create a pod that uses a Secret value as an environment variable",
         "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # add env.secretKeyRef",
         "explanation": "Emits a Pod spec stub; modify `env` to reference `secretKeyRef.name: db-creds, key: password` so the container sees the secret at runtime without plaintext."
-      },
-      {
-        "prompt": "Mount a Secret as a volume in a pod",
-        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
-        "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars."
       }
     ]
   },

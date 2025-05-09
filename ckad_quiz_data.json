@@ -23,7 +23,7 @@
         "response": "kubectl get pod webapp -n development -o yaml > webapp.yaml"
       },
       {
-        "prompt": "Create a pod with labels app=web and tier=frontend",
+        "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
         "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\""
       },
       {
@@ -215,8 +215,8 @@
         "response": "kubectl create secret generic my-secrets --from-env-file=.env"
       },
       {
-        "prompt": "Mount a Secret as a volume in a pod",
-        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with secretName"
+        "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
+        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret"
       },
       {
         "prompt": "Create a docker-registry type Secret for private registry authentication",
@@ -307,7 +307,7 @@
       {"prompt": "Get pods with label app=frontend", "response": "kubectl get pods -l app=frontend"},
       {"prompt": "Get pods with all labels", "response": "kubectl get pods --show-labels"},
       {"prompt": "Apply deployment.yaml without sending to server (dry run)", "response": "kubectl apply -f deployment.yaml --dry-run=client"},
-      {"prompt": "Generate YAML for deployment 'test' without creating it", "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml"},
+      {"prompt": "Generate YAML for deployment 'test' using the nginx image without creating it", "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml"},
       {"prompt": "Continuously watch pods", "response": "kubectl get pods -w"},
       {"prompt": "Get all resources in all namespaces", "response": "kubectl get all -A"},
       {"prompt": "List pods with status phase=Running", "response": "kubectl get pods --field-selector=status.phase=Running"},
