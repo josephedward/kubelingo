@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import logging
 from datetime import datetime
+from datetime import timedelta
 
 # Interactive prompts library (optional for arrow-key selection)
 try:
@@ -311,26 +312,31 @@ def main():
             llm_enabled = False
     else:
         llm_enabled = False
-    # Start timer for quiz session
+    # Start timer for quiz session and initialize countdown limit (3 hours)
+    time_limit = timedelta(hours=3)
     quiz_start = datetime.now()
     for q in questions[:max_q]:
         # Flag to pause after review prompt if LLM explanation was shown
         show_pause = False
-        # Compute elapsed time
+        # Compute remaining time for countdown
         elapsed = datetime.now() - quiz_start
-        total_sec = int(elapsed.total_seconds())
+        remaining = time_limit - elapsed
+        if remaining.total_seconds() <= 0:
+            print(Fore.RED + "Time's up! Maximum time exceeded." + Style.RESET_ALL)
+            break
+        total_sec = int(remaining.total_seconds())
         hrs = total_sec // 3600
         mins = (total_sec % 3600) // 60
         secs = total_sec % 60
-        elapsed_str = f"{hrs:02}:{mins:02}:{secs:02}"
+        remaining_str = f"{hrs:02}:{mins:02}:{secs:02}"
         asked += 1
         # Update per-category stats
         cat = q.get('category', '')
         stats = category_stats.setdefault(cat, {'asked': 0, 'correct': 0})
         stats['asked'] += 1
         print('\033[2J\033[H', end='')
-        # Highlight current question
-        print(Fore.CYAN + f"[{asked}/{max_q}] Elapsed: {elapsed_str} Category: {q['category']}" + Style.RESET_ALL)
+        # Highlight current question with countdown remaining
+        print(Fore.CYAN + f"[{asked}/{max_q}] Remaining: {remaining_str} Category: {q['category']}" + Style.RESET_ALL)
         print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
         try:
             ans = input('Your answer: ').strip()
@@ -357,13 +363,32 @@ def main():
                 print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
         # Log question result
         logger.info(f"Question {asked}/{max_q}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{ans}\" result=\"{'correct' if ans == q['response'] else 'incorrect'}\"")
+        # Prompt to flag this question for review
+        if questionary:
+            choice = questionary.select(
+                "Flag this question for review?",
+                choices=["No", "Yes"],
+                default="No"
+            ).ask()
+            review_flag = (choice == "Yes")
+        else:
+            try:
+                ans_rev = input(Fore.CYAN + "Flag this question for review? [y/N]: " + Style.RESET_ALL).strip().lower()
+            except EOFError:
+                print()
+                ans_rev = ''
+            review_flag = ans_rev.startswith('y')
+        if review_flag:
+            mark_question_for_review(args.file, q.get('category', ''), q.get('prompt', ''))
+            logger.info(f"Question flagged for review: prompt=\"{q['prompt']}\"")
+            print(Fore.YELLOW + "Question flagged for review." + Style.RESET_ALL)
         # Offer optional LLM query for further explanation
         if llm_enabled:
             try:
                 ans_llm = input(Fore.CYAN + "Show detailed LLM explanation? [y/N]: " + Style.RESET_ALL).strip().lower()
             except EOFError:
                 ans_llm = ''
-            if ans_llm == 'y':
+            if ans_llm.startswith('y'):
                 # Construct a focused LLM prompt explaining the answer relative to the question
                 llm_prompt = (
                     f"Explain why the command \"{q['response']}\" is the correct solution "
@@ -380,27 +405,8 @@ def main():
                     print(Style.RESET_ALL, end='')
                 except FileNotFoundError:
                     print(Fore.RED + "LLM CLI tool 'llm' not found. Please install to use this feature." + Style.RESET_ALL)
-                # Mark that we should pause after review prompt
+                # Mark that we should pause after showing LLM explanation
                 show_pause = True
-        # Prompt to flag this question for review
-        if questionary:
-            choice = questionary.select(
-                "Flag this question for review?",
-                choices=["No", "Yes"],
-                default="No"
-            ).ask()
-            review_flag = (choice == "Yes")
-        else:
-            try:
-                ans_rev = input(Fore.CYAN + "Flag this question for review? [y/N]: " + Style.RESET_ALL).strip().lower()
-            except EOFError:
-                print()
-                ans_rev = ''
-            review_flag = (ans_rev == 'y')
-        if review_flag:
-            mark_question_for_review(args.file, q.get('category', ''), q.get('prompt', ''))
-            logger.info(f"Question flagged for review: prompt=\"{q['prompt']}\"")
-            print(Fore.YELLOW + "Question flagged for review." + Style.RESET_ALL)
         # Pause to allow reading review confirmation before next question
         if show_pause:
             try:
