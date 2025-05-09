@@ -143,7 +143,7 @@
         "explanation": "Launches a disposable Pod named `curl1` to execute `curl 10.244.0.4` inside the cluster; `--rm` and `--restart=Never` ensure it doesn’t persist, while `-i -t` streams output to your terminal."
       },
       {
-        "prompt": "Create a pod that mounts a ConfigMap named 'app-config' as a volume at '/etc/config'",
+        "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
         "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # add volume and volumeMount",
         "explanation": "Outputs a BusyBox Pod manifest to `pod.yaml`; edit its `spec.volumes` to reference `configMap.name: app-config` and `spec.containers[0].volumeMounts` to mount it at `/etc/config`, injecting config files at runtime."
       }
