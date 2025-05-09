@@ -39,7 +39,7 @@
         "response": "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4"
       },
       {
-        "prompt": "Create a pod that mounts a ConfigMap named 'app-config' as a volume at '/etc/config'",
+        "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
         "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # Then add volume mount configuration"
       }
     ]
