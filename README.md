@@ -1,4 +1,4 @@
- # kubectl-quiz
+ # kubelingo
 A simple CLI tool to quiz yourself on `kubectl` commands.  
 
 
