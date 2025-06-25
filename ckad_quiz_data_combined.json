@@ -905,5 +905,98 @@
         "explanation": "Uses `sa` as the short resource name for ServiceAccounts with the `k` alias."
       }
     ]
+  },
+  {
+    "category": "Vim Commands",
+    "prompts": [
+      {
+        "prompt": "Vim: Open or create the file app.yaml in Vim",
+        "response": "vim app.yaml"
+      },
+      {
+        "prompt": "Vim: Enter insert mode",
+        "response": "i"
+      },
+      {
+        "prompt": "Vim: Exit insert mode",
+        "response": "<Esc>"
+      },
+      {
+        "prompt": "Vim: Save and quit Vim",
+        "response": ":wq"
+      },
+      {
+        "prompt": "Vim: Quit without saving",
+        "response": ":q!"
+      },
+      {
+        "prompt": "Vim: Delete the current line",
+        "response": "dd"
+      },
+      {
+        "prompt": "Vim: Yank (copy) the current line",
+        "response": "yy"
+      },
+      {
+        "prompt": "Vim: Paste after the cursor",
+        "response": "p"
+      },
+      {
+        "prompt": "Vim: Search forward for 'pattern'",
+        "response": "/pattern"
+      },
+      {
+        "prompt": "Vim: Go to line N",
+        "response": ":N"
+      },
+      {
+        "prompt": "Vim: Undo the last change",
+        "response": "u"
+      },
+      {
+        "prompt": "Vim: Redo the last undone change",
+        "response": "<C-r>"
+      },
+      {
+        "prompt": "Vim: Enter visual mode",
+        "response": "v"
+      },
+      {
+        "prompt": "Vim: Enter visual line mode",
+        "response": "V"
+      },
+      {
+        "prompt": "Vim: Enter visual block mode",
+        "response": "<C-v>"
+      },
+      {
+        "prompt": "Vim: Enter replace mode",
+        "response": "R"
+      },
+      {
+        "prompt": "Vim: Move to the next word",
+        "response": "w"
+      },
+      {
+        "prompt": "Vim: Move to the previous word",
+        "response": "b"
+      },
+      {
+        "prompt": "Vim: Move to the end of the word",
+        "response": "e"
+      },
+      {
+        "prompt": "Vim: Move to the first character of the line",
+        "response": "0"
+      },
+      {
+        "prompt": "Vim: Move to the end of the line",
+        "response": "$"
+      },
+      {
+        "prompt": "Vim: Jump to matching bracket",
+        "response": "%"
+      }
+    ]
   }
 ]
