@@ -45,20 +45,20 @@ python3 cli_quiz.py --yaml-exercises
 ## Usage Examples
 
 ```bash
+# List available categories
+python3 cli_quiz.py --list-categories
+
 # Standard kubectl command quiz
-python3 -m kubelingo.cli -n 10 -c "Pod Management"
+python3 cli_quiz.py -n 10 -c "Pod Management"
 
 # Interactive YAML editing exercises (alias: --yaml-edit)
-python3 -m kubelingo.cli --yaml-exercises
+python3 cli_quiz.py --yaml-exercises
 
 # Vim commands practice
-python3 -m kubelingo.cli --vim-quiz
+python3 cli_quiz.py --vim-quiz
 
 # View performance history
-python3 -m kubelingo.cli --history
-
-# List available categories
-python3 -m kubelingo.cli --list-categories
+python3 cli_quiz.py --history
 ```
 
 
