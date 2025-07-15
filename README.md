@@ -1,6 +1,6 @@
  # kubelingo
 
-A comprehensive CLI tool to master `kubectl` commands and Kubernetes YAML editing through interactive quizzes and hands-on exercises.
+kubelingo is a modular CLI package for mastering `kubectl` commands, Kubernetes YAML editing, and cloud-backed EKS exercises.
 
 ## Features
 
@@ -45,19 +45,35 @@ python3 cli_quiz.py --yaml-edit
 
 ```bash
 # Standard kubectl command quiz
-python3 cli_quiz.py -n 10 -c "Pod Management"
+kubelingo/cli.py -n 10 -c "Pod Management"
 
-# Interactive YAML editing exercises  
-python3 cli_quiz.py --yaml-edit
+```bash
+# Interactive YAML editing exercises
+kubelingo/cli.py --yaml-exercises
 
+```bash
 # Vim commands practice
-python3 cli_quiz.py --vim-quiz
+kubelingo/cli.py --vim-quiz
 
+```bash
 # View performance history
-python3 cli_quiz.py --history
+kubelingo/cli.py --history
 
 # List available categories
 python3 cli_quiz.py --list-categories
+```
+
+## Data Utilities
+Utilities for maintaining and validating quiz data sources:
+```bash
+# Install dependencies (includes PyYAML)
+pip install -r requirements.txt
+
+# Merge multiple JSON sources into a single deduplicated file
+python3 scripts/merge_quiz_data.py
+
+# Verify JSON structure and YAML syntax of quiz data
+python3 scripts/verify_quiz_data.py
 ```
 
 ```bash
@@ -91,10 +107,11 @@ Example:
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.8+
 - PyYAML (`pip install -r requirements.txt`)
 - Vim or preferred editor (set via `$EDITOR`)
-- kubectl (for command validation)
+- kubectl, eksctl (for command validation and cloud exercises)
+- Go and GoSandbox CLI (for cloud exercises)
 
 ## CKAD Exam Coverage
 
@@ -111,13 +128,14 @@ Comprehensive coverage of all CKAD exam domains:
 ## File Structure
 
 ```
-data/                      # Quiz data (JSON) separate from code
-kubelingo/                 # Core application package (CLI, modules, session manager)
-logs/                      # Quiz session logs & history
-kubelingo-work/            # Runtime workspace for YAML editing
-scripts/                   # Utility scripts (merge, verify data)
-docs/                      # Project documentation and API reference
-```  
+. (project root)
+├── data/                 # Quiz data (JSON) separate from code
+├── kubelingo/            # Core application package (CLI, modules, tools)
+├── logs/                 # Quiz session logs & history
+├── kubelingo-work/       # Runtime workspace for YAML editing
+├── docs/                 # Project documentation (Markdown and API refs)
+└── requirements.txt      # Python dependencies
+```
 
 ## Creating Custom Questions
 
@@ -144,237 +162,3 @@ docs/                      # Project documentation and API reference
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-
-## GoSandbox Integration
-
-This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
-
-### Quick Setup
-
-1. **Run the setup script**:
-   ```bash
-   python3 setup_gosandbox_integration.py
-   ```
-
-2. **Install new dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Ensure gosandbox is available**:
-   ```bash
-   # Clone gosandbox if not already done
-   git clone <gosandbox-repo-url> ../gosandbox
-   cd ../gosandbox
-   # Configure .env file with A Cloud Guru credentials
-   ```
-
-### Integrated Study Session
-
-Start a complete CKAD study session with real AWS resources:
-
-```python
-from tools.session_manager import CKADStudySession
-
-session = CKADStudySession()
-session.initialize_session()  # Acquires AWS creds, optionally creates EKS
-session.start_kubelingo()     # Starts vim editor with cloud integration
-```
-
-### Manual Integration
-
-For more control over the process:
-
-```bash
-# Acquire AWS credentials
-python3 tools/gosandbox_integration.py --acquire
-
-# Export to environment
-python3 tools/gosandbox_integration.py --export
-
-# Update kubeconfig for EKS
-python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
-
-# Start quiz with cloud context
-python3 cli_quiz.py --cloud-mode
-```
-
-### Features
-
-- **Automated AWS credential acquisition** via gosandbox
-- **Optional EKS cluster creation** for realistic practice
-- **Real cluster resource deployment** from vim exercises
-- **Session monitoring** and automatic cleanup
-- **GitHub secrets management** for CI/CD practice
-
-### Integration Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
-│   (Python)      │    │   (Go)           │    │   (Cloud)       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-        │                        │                        │
-        ▼                        ▼                        ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
-│   YAML Practice │    │   Credentials    │    │   Real K8s      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-
-## GoSandbox Integration
-
-This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
-
-### Quick Setup
-
-1. **Run the setup script**:
-   ```bash
-   python3 setup_gosandbox_integration.py
-   ```
-
-2. **Install new dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Ensure gosandbox is available**:
-   ```bash
-   # Clone gosandbox if not already done
-   git clone <gosandbox-repo-url> ../gosandbox
-   cd ../gosandbox
-   # Configure .env file with A Cloud Guru credentials
-   ```
-
-### Integrated Study Session
-
-Start a complete CKAD study session with real AWS resources:
-
-```python
-from tools.session_manager import CKADStudySession
-
-session = CKADStudySession()
-session.initialize_session()  # Acquires AWS creds, optionally creates EKS
-session.start_kubelingo()     # Starts vim editor with cloud integration
-```
-
-### Manual Integration
-
-For more control over the process:
-
-```bash
-# Acquire AWS credentials
-python3 tools/gosandbox_integration.py --acquire
-
-# Export to environment
-python3 tools/gosandbox_integration.py --export
-
-# Update kubeconfig for EKS
-python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
-
-# Start quiz with cloud context
-python3 cli_quiz.py --cloud-mode
-```
-
-### Features
-
-- **Automated AWS credential acquisition** via gosandbox
-- **Optional EKS cluster creation** for realistic practice
-- **Real cluster resource deployment** from vim exercises
-- **Session monitoring** and automatic cleanup
-- **GitHub secrets management** for CI/CD practice
-
-### Integration Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
-│   (Python)      │    │   (Go)           │    │   (Cloud)       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-        │                        │                        │
-        ▼                        ▼                        ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
-│   YAML Practice │    │   Credentials    │    │   Real K8s      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-
-## GoSandbox Integration
-
-This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
-
-### Quick Setup
-
-1. **Run the setup script**:
-   ```bash
-   python3 setup_gosandbox_integration.py
-   ```
-
-2. **Install new dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Ensure gosandbox is available**:
-   ```bash
-   # Clone gosandbox if not already done
-   git clone <gosandbox-repo-url> ../gosandbox
-   cd ../gosandbox
-   # Configure .env file with A Cloud Guru credentials
-   ```
-
-### Integrated Study Session
-
-Start a complete CKAD study session with real AWS resources:
-
-```python
-from tools.session_manager import CKADStudySession
-
-session = CKADStudySession()
-session.initialize_session()  # Acquires AWS creds, optionally creates EKS
-session.start_kubelingo()     # Starts vim editor with cloud integration
-```
-
-### Manual Integration
-
-For more control over the process:
-
-```bash
-# Acquire AWS credentials
-python3 tools/gosandbox_integration.py --acquire
-
-# Export to environment
-python3 tools/gosandbox_integration.py --export
-
-# Update kubeconfig for EKS
-python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
-
-# Start quiz with cloud context
-python3 cli_quiz.py --cloud-mode
-```
-
-### Features
-
-- **Automated AWS credential acquisition** via gosandbox
-- **Optional EKS cluster creation** for realistic practice
-- **Real cluster resource deployment** from vim exercises
-- **Session monitoring** and automatic cleanup
-- **GitHub secrets management** for CI/CD practice
-
-### Integration Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
-│   (Python)      │    │   (Go)           │    │   (Cloud)       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-        │                        │                        │
-        ▼                        ▼                        ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
-│   YAML Practice │    │   Credentials    │    │   Real K8s      │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
