@@ -30,11 +30,11 @@ def load_data(path):
         return json.load(f)
 
 def extract_name_and_image(response):
-    '''Extracts the pod name (from 'run <name>') and image (from '--image=') from a kubectl command.'''
+    '''Extracts the resource name (from 'run <name>' or 'create deployment <name>') and image (from '--image=') from a kubectl command.'''
     name = None
     image = None
-    # match 'run <name>'
-    m = re.search(r'\brun\s+([^\s]+)', response)
+    # match 'run <name>' or 'create deployment <name>'
+    m = re.search(r'\b(?:run|create\s+deployment)\s+([^\s]+)', response)
     if m:
         name = m.group(1)
     # match '--image=<image>'
