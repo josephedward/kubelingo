@@ -18,11 +18,11 @@ Practice real-world Kubernetes scenarios by editing YAML manifests in Vim with i
 
 ```bash
 # Run interactive YAML editing exercises
-python3 cli_quiz.py --yaml-exercises
+kubelingo --yaml-exercises
 
 # Set your preferred editor (default: vim)
 export EDITOR=nano  # or vim, emacs, etc.
-python3 cli_quiz.py --yaml-exercises
+kubelingo --yaml-exercises
 ```
 
 ### How YAML Editing Works
@@ -110,13 +110,12 @@ Comprehensive coverage of all CKAD exam domains:
 
 ```
 . (project root)
-├── cli_quiz.py           # Main CLI entrypoint
+├── pyproject.toml        # Project definition and dependencies
 ├── data/                 # Quiz data (JSON) separate from code
 ├── kubelingo/            # Core application package (CLI, modules, tools)
 ├── logs/                 # Quiz session logs & history
 ├── kubelingo-work/       # Runtime workspace for YAML editing
 ├── docs/                 # Project documentation (Markdown and API refs)
-└── requirements.txt      # Python dependencies
 ```
 
 ## Creating Custom Questions
