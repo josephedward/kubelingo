@@ -305,3 +305,81 @@ python3 cli_quiz.py --cloud-mode
 │   YAML Practice │    │   Credentials    │    │   Real K8s      │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
+
+
+## GoSandbox Integration
+
+This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
+
+### Quick Setup
+
+1. **Run the setup script**:
+   ```bash
+   python3 setup_gosandbox_integration.py
+   ```
+
+2. **Install new dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Ensure gosandbox is available**:
+   ```bash
+   # Clone gosandbox if not already done
+   git clone <gosandbox-repo-url> ../gosandbox
+   cd ../gosandbox
+   # Configure .env file with A Cloud Guru credentials
+   ```
+
+### Integrated Study Session
+
+Start a complete CKAD study session with real AWS resources:
+
+```python
+from tools.session_manager import CKADStudySession
+
+session = CKADStudySession()
+session.initialize_session()  # Acquires AWS creds, optionally creates EKS
+session.start_kubelingo()     # Starts vim editor with cloud integration
+```
+
+### Manual Integration
+
+For more control over the process:
+
+```bash
+# Acquire AWS credentials
+python3 tools/gosandbox_integration.py --acquire
+
+# Export to environment
+python3 tools/gosandbox_integration.py --export
+
+# Update kubeconfig for EKS
+python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
+
+# Start quiz with cloud context
+python3 cli_quiz.py --cloud-mode
+```
+
+### Features
+
+- **Automated AWS credential acquisition** via gosandbox
+- **Optional EKS cluster creation** for realistic practice
+- **Real cluster resource deployment** from vim exercises
+- **Session monitoring** and automatic cleanup
+- **GitHub secrets management** for CI/CD practice
+
+### Integration Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
+│   (Python)      │    │   (Go)           │    │   (Cloud)       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
+│   YAML Practice │    │   Credentials    │    │   Real K8s      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
