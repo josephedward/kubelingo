@@ -500,13 +500,23 @@ def run_yaml_editing_mode(data_file):
     
     editor = VimYamlEditor()
     
-    # Filter for yaml_edit questions
+    # Determine YAML editing questions list. Support both nested format and flat list format.
     yaml_questions = []
-    for section in data:
-        for item in section.get('prompts', []):
-            if item.get('question_type') == 'yaml_edit':
-                yaml_questions.append(item)
-    
+    if isinstance(data, list) and data and isinstance(data[0], dict) and 'starting_yaml' in data[0]:
+        for item in data:
+            yaml_questions.append({
+                'prompt': item.get('prompt', ''),
+                'starting_yaml': item.get('starting_yaml', ''),
+                'correct_yaml': item.get('correct_yaml', ''),
+                'explanation': item.get('explanation', ''),
+                'category': item.get('category', '')
+            })
+    else:
+        for section in data:
+            for item in section.get('prompts', []):
+                if item.get('question_type') == 'yaml_edit':
+                    yaml_questions.append(item)
+
     if not yaml_questions:
         print("No YAML editing questions available in data file.")
         return
@@ -551,6 +561,16 @@ def main():
                         help='Run YAML editing exercises with semantic validation')
     parser.add_argument('--vim-quiz', action='store_true',
                         help='Run Vim commands quiz')
+    parser.add_argument('--cloud-mode', action='store_true',
+                        help='Run live Kubernetes cloud exercises using gosandbox/eksctl')
+    parser.add_argument('--exercises', type=str,
+                        help='Path to custom exercises JSON file for cloud mode')
+    parser.add_argument('--cluster-context', type=str,
+                        help='Kubernetes cluster context to use for cloud mode')
+    parser.add_argument('--exercises', type=str,
+                        help='Path to custom exercises JSON file for cloud mode')
+    parser.add_argument('--cluster-context', type=str,
+                        help='Kubernetes cluster context to use for cloud mode')
     
     args = parser.parse_args()
     
@@ -573,6 +593,42 @@ def main():
             return
         # Run YAML editing exercises from dedicated data file
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+        return
+    if args.cloud_mode:
+        # Cloud-specific exercises: static YAML editing if custom exercises provided
+        if args.exercises:
+            file_arg = args.exercises
+            # Resolve file path
+            if os.path.exists(file_arg):
+                file_path = file_arg
+            else:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                file_path = os.path.join(script_dir, 'data', file_arg)
+            if not os.path.exists(file_path):
+                print(Fore.RED + f"Error: Exercises file not found: {file_arg}" + Style.RESET_ALL)
+                return
+            print(f"\n{Fore.CYAN}=== Cloud-Specific YAML Exercises Mode ==={Style.RESET_ALL}")
+            print(f"Using exercises file: {file_path}")
+            if args.cluster_context:
+                print(f"Cluster context: {args.cluster_context}")
+                os.environ['KUBECTL_CONTEXT'] = args.cluster_context
+            run_yaml_editing_mode(file_path)
+            return
+        # Legacy live cloud-based Kubernetes exercises
+        log_file = 'quiz_cloud_log.txt'
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+        logger = logging.getLogger()
+        questions = load_questions(args.file)
+        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+        if not cloud_qs:
+            print("No live Kubernetes cloud exercises found in data file.")
+            return
+        for i, q in enumerate(cloud_qs, 1):
+            print(f"\n{Fore.CYAN}=== Cloud Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
+            is_correct, _ = handle_live_k8s_question(q, logger)
+            if q.get('explanation'):
+                level = Fore.GREEN if is_correct else Fore.RED
+                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
         return
 
     questions = load_questions(args.file)
