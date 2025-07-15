@@ -18,11 +18,11 @@ Practice real-world Kubernetes scenarios by editing YAML manifests in Vim with i
 
 ```bash
 # Run interactive YAML editing exercises
-python3 cli_quiz.py --yaml-edit
+python3 -m kubelingo.cli --yaml-exercises
 
 # Set your preferred editor (default: vim)
 export EDITOR=nano  # or vim, emacs, etc.
-python3 cli_quiz.py --yaml-edit
+python3 -m kubelingo.cli --yaml-exercises
 ```
 
 ### How YAML Editing Works
@@ -41,46 +41,27 @@ python3 cli_quiz.py --yaml-edit
 - **Smart Hints**: Specific guidance on what's missing or incorrect
 - **Flexible Grading**: Different key orders, spacing, and styles all accepted
 
+
 ## Usage Examples
 
 ```bash
 # Standard kubectl command quiz
-python3 cli_quiz.py -n 10 -c "Pod Management"
+python3 -m kubelingo.cli -n 10 -c "Pod Management"
 
-```bash
-# Interactive YAML editing exercises
-python3 cli_quiz.py --yaml-exercises
+# Interactive YAML editing exercises (alias: --yaml-edit)
+python3 -m kubelingo.cli --yaml-exercises
 
-```bash
 # Vim commands practice
-python3 cli_quiz.py --vim-quiz
+python3 -m kubelingo.cli --vim-quiz
 
-```bash
 # View performance history
-python3 cli_quiz.py --history
+python3 -m kubelingo.cli --history
 
 # List available categories
-python3 cli_quiz.py --list-categories
+python3 -m kubelingo.cli --list-categories
+```
 ```
 
-## Data Utilities
-Utilities for maintaining and validating quiz data sources.
-_Note: The following scripts are for legacy data management and may be deprecated in future versions._
-```bash
-# Install dependencies (includes PyYAML)
-pip install -r requirements.txt
-
-# Merge multiple JSON sources into a single deduplicated file
-python3 scripts/merge_quiz_data.py
-
-# Verify JSON structure and YAML syntax of quiz data
-python3 scripts/verify_quiz_data.py
-```
-
-```bash
-# Cloud-Specific YAML editing exercises
-python3 cli_quiz.py --cloud-mode --exercises aws_cloud_exercises.json --cluster-context ckad-practice
-```
 
 ## Question Types
 
