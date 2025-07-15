@@ -1,10 +1,29 @@
 #!/usr/bin/env python3
 """
-verify_quiz_data.py: Identify quiz prompts that omit details used in their answers.
+verify_quiz_data.py: Validate quiz data including new YAML editing questions
 """
 import json
-import re
 import yaml
+import re
+
+def validate_yaml_edit_question(item):
+    """Validate a yaml_edit question structure"""
+    issues = []
+    
+    required_fields = ['prompt', 'starting_yaml', 'correct_yaml']
+    for field in required_fields:
+        if field not in item:
+            issues.append(f"Missing required field: {field}")
+    
+    # Validate YAML syntax
+    for yaml_field in ['starting_yaml', 'correct_yaml']:
+        if yaml_field in item:
+            try:
+                yaml.safe_load(item[yaml_field])
+            except yaml.YAMLError as e:
+                issues.append(f"Invalid YAML in {yaml_field}: {e}")
+    
+    return issues
 
 def load_data(path):
     with open(path, 'r') as f:
@@ -33,65 +52,78 @@ def extract_namespace(response):
     return None
 
 def check_prompt_item(item):
-    question_type = item.get('type', 'command')
+    """Enhanced validation for different question types"""
+    prompt = item.get('prompt', '')
+    response = item.get('response', '')
+    question_type = item.get('question_type', 'standard')
     issues = []
-
+    
     if question_type == 'yaml_edit':
-        if 'starting_yaml' not in item:
-            issues.append("missing 'starting_yaml' key")
-        else:
-            try:
-                yaml.safe_load(item['starting_yaml'])
-            except yaml.YAMLError as e:
-                issues.append(f"invalid YAML in 'starting_yaml': {e}")
-        
-        if 'correct_yaml' not in item:
-            issues.append("missing 'correct_yaml' key")
-        else:
-            try:
-                yaml.safe_load(item['correct_yaml'])
-            except yaml.YAMLError as e:
-                issues.append(f"invalid YAML in 'correct_yaml': {e}")
-
-    else: # command-based question
-        prompt = item.get('prompt', '')
-        response = item.get('response', '')
+        # Validate YAML editing questions
+        yaml_issues = validate_yaml_edit_question(item)
+        issues.extend(yaml_issues)
+    else:
+        # Existing validation for standard questions
         name, image = extract_name_and_image(response)
         ns = extract_namespace(response)
-        # Skip namespace check for echo commands (e.g., base64 encode/decode)
+        
+        # Skip namespace check for echo commands
         if response.lstrip().startswith('echo '):
             ns = None
-        # Check that any extracted elements appear in the prompt
+        
         if name and name not in prompt:
             issues.append(f"pod name '{name}' not in prompt")
         if image and image not in prompt:
             issues.append(f"image '{image}' not in prompt")
         if ns and ns not in prompt:
             issues.append(f"namespace '{ns}' not in prompt")
-
+    
     return issues
 
 def main():
-    data_file = 'ckad_quiz_data_combined.json'
-    try:
-        data = load_data(data_file)
-    except Exception as e:
-        print(f"Error loading combined data from {data_file}: {e}")
-        return
-    flagged = []
-    for section in data:
-        for item in section.get('prompts', []):
-            issues = check_prompt_item(item)
-            if issues:
-                flagged.append((item['prompt'], item['response'], issues))
-    if not flagged:
-        print("No prompts found that omit details used in their answers.")
-        return
-    print(f"Found {len(flagged)} prompts with potential issues:\n")
-    for prompt, response, issues in flagged:
-        print(f"Prompt: {prompt}")
-        print(f"Answer: {response}")
-        print(f"Issues: {', '.join(issues)}\n")
+    data_files = [
+        'ckad_quiz_data_combined.json',
+        'data/yaml_edit_questions.json',
+        'data/ckad_exercises_extended.json'
+    ]
+    
+    total_flagged = 0
+    
+    for data_file in data_files:
+        try:
+            with open(data_file, 'r') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            print(f"File not found: {data_file}, skipping...")
+            continue
+        except Exception as e:
+            print(f"Error loading {data_file}: {e}")
+            continue
+        
+        print(f"\n=== Validating {data_file} ===")
+        flagged = []
+        
+        for section in data:
+            for item in section.get('prompts', []):
+                issues = check_prompt_item(item)
+                if issues:
+                    flagged.append((item.get('prompt', 'No prompt'), 
+                                  item.get('response', 'No response'), 
+                                  issues))
+        
+        if not flagged:
+            print("✅ No issues found")
+        else:
+            print(f"❌ Found {len(flagged)} items with issues:")
+            for prompt, response, issues in flagged:
+                print(f"\nPrompt: {prompt[:80]}...")
+                print(f"Response: {response[:80]}...")
+                print(f"Issues: {', '.join(issues)}")
+        
+        total_flagged += len(flagged)
+    
+    print(f"\n=== Summary ===")
+    print(f"Total issues found across all files: {total_flagged}")
 
 if __name__ == '__main__':
     main()
