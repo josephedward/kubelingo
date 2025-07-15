@@ -55,13 +55,23 @@ def check_prompt_item(item):
     """Enhanced validation for different question types"""
     prompt = item.get('prompt', '')
     response = item.get('response', '')
-    question_type = item.get('question_type', 'standard')
+    question_type = item.get('type', 'command')
     issues = []
     
     if question_type == 'yaml_edit':
         # Validate YAML editing questions
         yaml_issues = validate_yaml_edit_question(item)
         issues.extend(yaml_issues)
+    elif question_type == 'live_k8s_edit':
+        if 'starting_yaml' not in item:
+            issues.append("missing 'starting_yaml' key")
+        else:
+            try:
+                yaml.safe_load(item['starting_yaml'])
+            except yaml.YAMLError as e:
+                issues.append(f"invalid YAML in 'starting_yaml': {e}")
+        if not item.get('assert_script'):
+            issues.append("missing or empty 'assert_script'")
     else:
         # Existing validation for standard questions
         name, image = extract_name_and_image(response)
