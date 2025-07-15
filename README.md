@@ -111,18 +111,13 @@ Comprehensive coverage of all CKAD exam domains:
 ## File Structure
 
 ```
-kubelingo/
-├── cli_quiz.py                    # Main CLI application
-├── modules/
-│   └── vim_yaml_editor.py         # YAML editing engine
-├── data/
-│   ├── ckad_quiz_data.json        # Standard kubectl questions
-│   ├── yaml_edit_questions.json   # YAML editing exercises
-│   └── ckad_exercises_extended.json # Extended CKAD content
-├── kubelingo-work/
-│   └── tmp/                       # Temporary YAML files during editing
-└── logs/                          # Session logs and history
-```
+data/                      # Quiz data (JSON) separate from code
+kubelingo/                 # Core application package (CLI, modules, session manager)
+logs/                      # Quiz session logs & history
+kubelingo-work/            # Runtime workspace for YAML editing
+scripts/                   # Utility scripts (merge, verify data)
+docs/                      # Project documentation and API reference
+```  
 
 ## Creating Custom Questions
 
