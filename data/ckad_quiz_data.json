@@ -32,7 +32,10 @@
       },
       {
         "prompt": "Create a pod with resource requests of 100m CPU and 256Mi memory",
-        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # Then add requests specification"
+        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # Then add requests specification",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Create a pod with resource requests of 100m CPU and 256Mi memory"
       },
       {
         "prompt": "Create a pod that runs curl against an internal service at 10.244.0.4",
@@ -40,7 +43,10 @@
       },
       {
         "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
-        "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # Then add volume mount configuration"
+        "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # Then add volume mount configuration",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`"
       }
     ]
   },
@@ -155,7 +161,10 @@
       },
       {
         "prompt": "Create a pod that uses a ConfigMap as environment variables",
-        "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef"
+        "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Create a pod that uses a ConfigMap as environment variables"
       },
       {
         "prompt": "Extract a ConfigMap to YAML format",
@@ -171,7 +180,10 @@
       },
       {
         "prompt": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions",
-        "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with ConfigMap and defaultMode"
+        "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with ConfigMap and defaultMode",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions"
       },
       {
         "prompt": "Create a ConfigMap from an env file",
@@ -208,7 +220,10 @@
       },
       {
         "prompt": "Create a pod that uses a Secret value as an environment variable",
-        "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add env with secretKeyRef"
+        "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add env with secretKeyRef",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Create a pod that uses a Secret value as an environment variable"
       },
       {
         "prompt": "Create a Secret from a .env file",
@@ -216,7 +231,10 @@
       },
       {
         "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
-        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret"
+        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
+        "yaml_exercise": true,
+        "exercise_type": "pod",
+        "requirements": "Create a pod that mounts a Secret as a volume using the nginx image"
       },
       {
         "prompt": "Create a docker-registry type Secret for private registry authentication",

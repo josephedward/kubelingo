@@ -50,8 +50,6 @@ except ImportError:
 
 # Default quiz data file path
 DEFAULT_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'ckad_quiz_data.json')
-# YAML editing questions data file
-YAML_QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
@@ -75,6 +73,8 @@ def load_questions(data_file):
     for cat in data:
         category = cat.get('category', '')
         for item in cat.get('prompts', []):
+            if item.get('yaml_exercise'):
+                continue
             question_type = item.get('type', 'command')
             question = {
                 'category': category,
@@ -489,58 +489,59 @@ def run_quiz(data_file, max_q, category_filter=None):
     except Exception as e:
         print(f"Error saving quiz history: {e}")
 
-def run_yaml_editing_mode(data_file):
-    """Run YAML editing questions with semantic validation"""
+def run_yaml_exercise_mode(data_file):
+    """Run interactive YAML exercises."""
     try:
         with open(data_file, 'r') as f:
             data = json.load(f)
     except Exception as e:
-        print(f"Error loading data: {e}")
+        print(f"Error loading YAML exercise data from {data_file}: {e}")
         return
-    
+
     editor = VimYamlEditor()
     
-    # Determine YAML editing questions list. Support both nested format and flat list format.
-    yaml_questions = []
-    if isinstance(data, list) and data and isinstance(data[0], dict) and 'starting_yaml' in data[0]:
-        for item in data:
-            yaml_questions.append({
-                'prompt': item.get('prompt', ''),
-                'starting_yaml': item.get('starting_yaml', ''),
-                'correct_yaml': item.get('correct_yaml', ''),
-                'explanation': item.get('explanation', ''),
-                'category': item.get('category', '')
-            })
-    else:
-        for section in data:
-            for item in section.get('prompts', []):
-                if item.get('question_type') == 'yaml_edit':
-                    yaml_questions.append(item)
+    yaml_exercises = []
+    for section in data:
+        category = section.get('category', 'General')
+        for item in section.get('prompts', []):
+            if item.get('yaml_exercise'):
+                item['category'] = category
+                yaml_exercises.append(item)
 
-    if not yaml_questions:
-        print("No YAML editing questions available in data file.")
+    if not yaml_exercises:
+        print("No YAML exercises found in data file.")
         return
-    
-    print(f"\n{Fore.CYAN}=== Kubelingo YAML Editing Mode ==={Style.RESET_ALL}")
-    print(f"Found {len(yaml_questions)} YAML editing exercises")
+
+    print(f"\n{Fore.CYAN}=== Kubelingo YAML Exercise Mode ==={Style.RESET_ALL}")
+    print(f"Found {len(yaml_exercises)} YAML exercises.")
     print(f"Editor: {os.environ.get('EDITOR', 'vim')}")
-    
+
     correct_count = 0
+    total_exercises = len(yaml_exercises)
     
-    for i, question in enumerate(yaml_questions, 1):
-        print(f"\n{Fore.YELLOW}=== Exercise {i}/{len(yaml_questions)} ==={Style.RESET_ALL}")
-        print(f"Category: {question.get('category', 'General')}")
-        
-        success = editor.run_yaml_edit_question(question, i)
+    for i, exercise in enumerate(yaml_exercises, 1):
+        print(f"\n{Fore.YELLOW}=== Exercise {i}/{total_exercises} ==={Style.RESET_ALL}")
+        print(f"Category: {exercise.get('category')}")
+        print(f"Prompt: {exercise.get('prompt')}")
+
+        success = editor.run_interactive_exercise(
+            exercise.get('exercise_type', 'pod'),
+            exercise.get('requirements', exercise.get('prompt'))
+        )
         if success:
             correct_count += 1
+            if exercise.get('explanation'):
+                print(f"{Fore.GREEN}Explanation: {exercise['explanation']}{Style.RESET_ALL}")
         
-        if i < len(yaml_questions):
-            if input(f"\n{Fore.CYAN}Continue to next exercise? (y/n): {Style.RESET_ALL}").lower() != 'y':
+        if i < total_exercises:
+            try:
+                if input(f"\n{Fore.CYAN}Continue to next exercise? (y/n): {Style.RESET_ALL}").lower() != 'y':
+                    break
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting exercise mode.")
                 break
-    
-    # Show final results
-    print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
+
+    print(f"\n{Fore.CYAN}=== YAML Exercise Session Complete ==={Style.RESET_ALL}")
     print(f"Completed: {correct_count}/{i} exercises")
     percentage = (correct_count / i * 100) if i > 0 else 0
     print(f"Success rate: {percentage:.1f}%")
@@ -557,8 +558,8 @@ def main():
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
-    parser.add_argument('--yaml-exercises', '--yaml-edit', dest='yaml_exercises', action='store_true',
-                        help='Run YAML editing exercises with semantic validation')
+    parser.add_argument('--yaml-exercises', action='store_true',
+                        help='Run interactive YAML exercises')
     parser.add_argument('--vim-quiz', action='store_true',
                         help='Run Vim commands quiz')
     parser.add_argument('--cloud-mode', action='store_true',
@@ -591,9 +592,10 @@ def main():
         if not VimYamlEditor:
             print("YAML editor module not loaded.")
             return
-        # Run YAML editing exercises from dedicated data file
-        run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+        # Run YAML exercises from dedicated data file
+        run_yaml_exercise_mode(args.file)
         return
+
     if args.cloud_mode:
         # Cloud-specific exercises: static YAML editing if custom exercises provided
         if args.exercises:
