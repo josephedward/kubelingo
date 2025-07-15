@@ -18,11 +18,11 @@ Practice real-world Kubernetes scenarios by editing YAML manifests in Vim with i
 
 ```bash
 # Run interactive YAML editing exercises
-python3 -m kubelingo.cli --yaml-exercises
+python3 cli_quiz.py --yaml-exercises
 
 # Set your preferred editor (default: vim)
 export EDITOR=nano  # or vim, emacs, etc.
-python3 -m kubelingo.cli --yaml-exercises
+python3 cli_quiz.py --yaml-exercises
 ```
 
 ### How YAML Editing Works
