@@ -107,6 +107,19 @@ class VimYamlEditor:
         
         return True, "YAML is valid"
     
+    def _validate_yaml_semantically(self, user_yaml, correct_yaml):
+        """Validate YAML by semantic comparison, not string matching"""
+        try:
+            user_data = yaml.safe_load(user_yaml)
+            correct_data = yaml.safe_load(correct_yaml)
+            return self._compare_kubernetes_objects(user_data, correct_data)
+        except yaml.YAMLError as e:
+            return {
+                'valid': False,
+                'error': f'YAML syntax error: {e}',
+                'hints': 'Check your YAML syntax - indentation, colons, dashes'
+            }
+    
     def run_interactive_exercise(self, exercise_type, requirements):
         """Run a complete interactive YAML editing exercise"""
         print(f"\n=== Vim YAML Exercise: {exercise_type.title()} ===")
