@@ -45,26 +45,27 @@ python3 cli_quiz.py --yaml-edit
 
 ```bash
 # Standard kubectl command quiz
-kubelingo/cli.py -n 10 -c "Pod Management"
+python3 cli_quiz.py -n 10 -c "Pod Management"
 
 ```bash
 # Interactive YAML editing exercises
-kubelingo/cli.py --yaml-exercises
+python3 cli_quiz.py --yaml-exercises
 
 ```bash
 # Vim commands practice
-kubelingo/cli.py --vim-quiz
+python3 cli_quiz.py --vim-quiz
 
 ```bash
 # View performance history
-kubelingo/cli.py --history
+python3 cli_quiz.py --history
 
 # List available categories
 python3 cli_quiz.py --list-categories
 ```
 
 ## Data Utilities
-Utilities for maintaining and validating quiz data sources:
+Utilities for maintaining and validating quiz data sources.
+_Note: The following scripts are for legacy data management and may be deprecated in future versions._
 ```bash
 # Install dependencies (includes PyYAML)
 pip install -r requirements.txt
@@ -129,6 +130,7 @@ Comprehensive coverage of all CKAD exam domains:
 
 ```
 . (project root)
+├── cli_quiz.py           # Main CLI entrypoint
 ├── data/                 # Quiz data (JSON) separate from code
 ├── kubelingo/            # Core application package (CLI, modules, tools)
 ├── logs/                 # Quiz session logs & history
