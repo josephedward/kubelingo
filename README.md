@@ -89,7 +89,7 @@ Example:
 ## Requirements
 
 - Python 3.8+
-- PyYAML (`pip install -r requirements.txt`)
+- `pip` for installing the package (`pip install -e .`)
 - Vim or preferred editor (set via `$EDITOR`)
 - kubectl, eksctl (for command validation and cloud exercises)
 - Go and GoSandbox CLI (for cloud exercises)
