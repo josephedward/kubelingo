@@ -557,29 +557,34 @@ def main():
     # Handle special modes first
     if args.history:
         show_history()
-        sys.exit(0)
+        return
     
     if args.vim_quiz:
-        from modules.vim_yaml_editor import vim_commands_quiz
+        if not vim_commands_quiz:
+            print("Vim quiz module not loaded.")
+            return
         score = vim_commands_quiz()
         print(f"\nVim Quiz completed with {score:.1%} accuracy")
-        sys.exit(0)
+        return
     
-    if getattr(args, 'yaml_exercises', False):
+    if args.yaml_exercises:
+        if not VimYamlEditor:
+            print("YAML editor module not loaded.")
+            return
         # Run YAML editing exercises from dedicated data file
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-        sys.exit(0)
-    
-    # Continue with existing quiz logic...
+        return
+
     questions = load_questions(args.file)
-    
     if args.list_categories:
-        cats = sorted({q['category'] for q in questions})
+        # Use a set to get unique categories, then sort
+        cats = sorted({q['category'] for q in questions if q.get('category')})
         for cat in cats:
             print(cat)
-        sys.exit(0)
-    
-    # Rest of existing main() function continues unchanged... (omitted for brevity)
+        return
+
+    # Default action is to run the main quiz
+    run_quiz(args.file, args.num, args.category)
 
 if __name__ == '__main__':
     main()
