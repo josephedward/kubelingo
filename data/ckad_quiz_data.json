@@ -339,5 +339,31 @@
       {"prompt": "Move to the end of the line", "response": "$"},
       {"prompt": "Jump to matching bracket", "response": "%"}
     ]
+  },
+  {
+    "category": "Live Kubernetes Questions",
+    "prompts": [
+      {
+        "type": "live_k8s_edit",
+        "prompt": "The provided YAML is for a basic pod. Modify it to create a pod named 'nginx-live' that uses the 'nginx:stable' image.",
+        "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]",
+        "assert_script": "#!/bin/bash\nset -e\n# Check pod name\nPOD_NAME=$(kubectl get pods -o jsonpath='{.items[0].metadata.name}')\nif [ \"$POD_NAME\" != \"nginx-live\" ]; then\n  echo \"Error: Pod name is '$POD_NAME', expected 'nginx-live'\"\n  exit 1\nfi\n# Check image\nIMAGE=$(kubectl get pod nginx-live -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx:stable\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx:stable'\"\n  exit 1\nfi\necho \"Pod 'nginx-live' with image 'nginx:stable' found.\"",
+        "explanation": "To solve this, you need to change the `metadata.name` to 'nginx-live' and the `spec.containers[0].image` to 'nginx:stable'."
+      },
+      {
+        "type": "live_k8s_edit",
+        "prompt": "A 'webapp' deployment is defined in the file. Add a new NodePort service named 'webapp-svc' that exposes the deployment on port 80. The service should target port 8080 on the pods.",
+        "starting_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: webapp\n  labels:\n    app: webapp\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: webapp\n  template:\n    metadata:\n      labels:\n        app: webapp\n    spec:\n      containers:\n      - name: webapp\n        image: httpd\n        ports:\n        - containerPort: 8080\n---\n# Add your Service definition below",
+        "assert_script": "#!/bin/bash\nset -e\nkubectl wait --for=condition=available deployment/webapp --timeout=60s > /dev/null\n# Check service exists and is NodePort\nTYPE=$(kubectl get svc webapp-svc -o jsonpath='{.spec.type}')\nif [ \"$TYPE\" != \"NodePort\" ]; then\n  echo \"Error: Service 'webapp-svc' is type '$TYPE', expected 'NodePort'\"\n  exit 1\nfi\n# Check service port and targetPort\nPORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].port}')\nTARGET_PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].targetPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Service port is '$PORT', expected '80'\"\n  exit 1\nfi\nif [ \"$TARGET_PORT\" != \"8080\" ]; then\n  echo \"Error: Service targetPort is '$TARGET_PORT', expected '8080'\"\n  exit 1\nfi\necho \"Service 'webapp-svc' correctly configured as a NodePort.\"",
+        "explanation": "You need to add a second resource definition for the Service, setting `spec.type` to `NodePort`, `spec.ports[0].port` to 80, `spec.ports[0].targetPort` to 8080, and `spec.selector` to match the deployment's labels (`app: webapp`)."
+      },
+      {
+        "type": "live_k8s_edit",
+        "prompt": "Create two resources: 1. A ConfigMap named 'app-config' with data 'index.html: <h1>Hello World</h1>'. 2. A Pod named 'web-server' using the 'nginx' image that mounts the ConfigMap as a volume at '/usr/share/nginx/html', replacing the default nginx page.",
+        "starting_yaml": "# Add your ConfigMap and Pod definitions here",
+        "assert_script": "#!/bin/bash\nset -e\n# Check ConfigMap data\nDATA=$(kubectl get cm app-config -o jsonpath='{.data.index\\.html}')\nif ! echo \"$DATA\" | grep -q 'Hello World'; then\n  echo \"Error: ConfigMap 'app-config' does not have the correct data.\"\n  exit 1\nfi\n# Wait for pod to be ready\nkubectl wait --for=condition=Ready pod/web-server --timeout=120s > /dev/null\n# Check that the mounted file contains the correct content\nCONTENT=$(kubectl exec web-server -- curl -s localhost)\nif ! echo \"$CONTENT\" | grep -q 'Hello World'; then\n  echo \"Error: The web server did not return the expected content from the ConfigMap.\"\n  echo \"Received: $CONTENT\"\n  exit 1\nfi\necho \"Pod is serving content from the mounted ConfigMap correctly.\"",
+        "explanation": "You need to define a ConfigMap with the specified data. Then, define a Pod that references this ConfigMap in `spec.volumes` and mounts it into the container at the correct path using `spec.containers[0].volumeMounts`."
+      }
+    ]
   }
 ]
