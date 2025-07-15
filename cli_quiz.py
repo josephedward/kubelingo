@@ -7,6 +7,7 @@ import random
 import argparse
 import sys
 import datetime
+import tempfile
 # OS utilities
 import os
 import shutil
@@ -20,6 +21,11 @@ try:
     import questionary
 except ImportError:
     questionary = None
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 # Colored terminal output (optional)
 try:
@@ -51,12 +57,22 @@ def load_questions(data_file):
     for cat in data:
         category = cat.get('category', '')
         for item in cat.get('prompts', []):
-            questions.append({
+            question_type = item.get('type', 'command')
+            question = {
                 'category': category,
                 'prompt': item.get('prompt', ''),
-                'response': item.get('response', ''),
-                'explanation': item.get('explanation', '')
-            })
+                'explanation': item.get('explanation', ''),
+                'type': question_type
+            }
+            if question_type == 'yaml_edit':
+                if not yaml:
+                    # If yaml lib is missing, we can't process these questions.
+                    continue
+                question['starting_yaml'] = item.get('starting_yaml', '')
+                question['correct_yaml'] = item.get('correct_yaml', '')
+            else:  # command
+                question['response'] = item.get('response', '')
+            questions.append(question)
     return questions
     
 def mark_question_for_review(data_file, category, prompt_text):
@@ -338,31 +354,83 @@ def main():
         # Highlight current question with countdown remaining
         print(Fore.CYAN + f"[{asked}/{max_q}] Remaining: {remaining_str} Category: {q['category']}" + Style.RESET_ALL)
         print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
-        try:
-            ans = input('Your answer: ').strip()
-        except EOFError:
-            print()  # newline
-            break
-        if ans == q['response']:
-            # Correct answer feedback
-            print(Fore.GREEN + 'Correct!' + Style.RESET_ALL + '\n')
-            correct += 1
-            # Update per-category correct count
-            stats['correct'] += 1
-            # Show explanation if available
-            if q.get('explanation'):
-                print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
-        else:
-            # Incorrect answer feedback with highlighted correct command
-            print(
-                Fore.RED + "Incorrect. Correct answer: " + Style.RESET_ALL
-                + Fore.GREEN + q['response'] + Style.RESET_ALL + '\n'
-            )
-            # Show explanation if available
-            if q.get('explanation'):
-                print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
-        # Log question result
-        logger.info(f"Question {asked}/{max_q}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{ans}\" result=\"{'correct' if ans == q['response'] else 'incorrect'}\"")
+        
+        q_type = q.get('type', 'command')
+
+        if q_type == 'yaml_edit':
+            if not yaml:
+                print(Fore.RED + "YAML questions require the 'PyYAML' package. Please install it." + Style.RESET_ALL)
+                continue
+            with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp:
+                tmp.write(q.get('starting_yaml', ''))
+                tmp_path = tmp.name
+            
+            editor = os.environ.get('EDITOR', 'vim')
+            print(f"Opening a temp file in '{editor}' for you to edit...")
+            try:
+                subprocess.run([editor, tmp_path], check=True)
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                print(Fore.RED + f"Error opening editor '{editor}': {e}. Skipping question." + Style.RESET_ALL)
+                os.remove(tmp_path)
+                continue
+            
+            with open(tmp_path, 'r', encoding='utf-8') as f:
+                user_yaml_str = f.read()
+            os.remove(tmp_path)
+
+            is_correct = False
+            try:
+                user_data = yaml.safe_load(user_yaml_str) or {}
+                correct_data = yaml.safe_load(q.get('correct_yaml', ''))
+                is_correct = (user_data == correct_data)
+            except yaml.YAMLError as e:
+                print(Fore.RED + f"Your response was not valid YAML: {e}" + Style.RESET_ALL)
+                is_correct = False
+            
+            if is_correct:
+                print(Fore.GREEN + 'Correct!' + Style.RESET_ALL + '\n')
+                correct += 1
+                stats['correct'] += 1
+                if q.get('explanation'):
+                    print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+            else:
+                print(Fore.RED + "Incorrect." + Style.RESET_ALL + '\n')
+                print(Fore.RED + "Correct YAML:" + Style.RESET_ALL)
+                print(Fore.GREEN + q.get('correct_yaml', '') + Style.RESET_ALL)
+                if q.get('explanation'):
+                    print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+            
+            expected_answer = q.get('correct_yaml', '')
+            log_user_answer = (user_yaml_str[:200] + '...') if len(user_yaml_str) > 200 else user_yaml_str
+            log_expected_answer = (expected_answer[:200] + '...') if len(expected_answer) > 200 else expected_answer
+            logger.info(f"Question {asked}/{max_q}: type={q_type} prompt=\"{q['prompt']}\" expected=\"{log_expected_answer}\" answer=\"{log_user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
+        else: # command-based question
+            try:
+                ans = input('Your answer: ').strip()
+            except EOFError:
+                print()  # newline
+                break
+            if ans == q['response']:
+                # Correct answer feedback
+                print(Fore.GREEN + 'Correct!' + Style.RESET_ALL + '\n')
+                correct += 1
+                # Update per-category correct count
+                stats['correct'] += 1
+                # Show explanation if available
+                if q.get('explanation'):
+                    print(Fore.GREEN + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+            else:
+                # Incorrect answer feedback with highlighted correct command
+                print(
+                    Fore.RED + "Incorrect. Correct answer: " + Style.RESET_ALL
+                    + Fore.GREEN + q['response'] + Style.RESET_ALL + '\n'
+                )
+                # Show explanation if available
+                if q.get('explanation'):
+                    print(Fore.RED + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+            # Log question result
+            logger.info(f"Question {asked}/{max_q}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{ans}\" result=\"{'correct' if ans == q['response'] else 'incorrect'}\"")
         # Prompt to flag this question for review
         if questionary:
             choice = questionary.select(
