@@ -835,9 +835,9 @@
         "explanation": "Defines a shell alias `kc` so you can type `kc deployment webapp --image=nginx` instead of `kubectl create deployment webapp --image=nginx`, simplifying resource creation."
       },
       {
-        "prompt": "Create an alias 'ke' for 'kubectl explain'",
-        "response": "alias ke='kubectl explain'",
-        "explanation": "Defines a shell alias `ke` so you can type `ke pods` instead of `kubectl explain pods`, making API field lookup quicker."
+        "prompt": "Create an alias 'ke' for 'kubectl explain --recursive'",
+        "response": "alias ke='kubectl explain --recursive'",
+        "explanation": "It helps to find details of field/schema of resources. The --recursive flag is useful for nested fields."
       },
       {
         "prompt": "Create an alias 'kgp' for 'kubectl get pods'",
@@ -903,6 +903,36 @@
         "prompt": "List ServiceAccounts using the short alias",
         "response": "k get sa",
         "explanation": "Uses `sa` as the short resource name for ServiceAccounts with the `k` alias."
+      },
+      {
+        "prompt": "Create an alias 'kn' to set the namespace for the current context.",
+        "response": "alias kn='k config set-context --current --namespace '",
+        "explanation": "This alias allows you to quickly switch the default namespace for the current context, e.g., 'kn my-namespace'."
+      },
+      {
+        "prompt": "Create an alias 'kc' to list all available contexts.",
+        "response": "alias kc='k config get-contexts'",
+        "explanation": "This alias provides a shortcut to list all available contexts in your kubeconfig file."
+      },
+      {
+        "prompt": "Create an alias 'kg' for 'k get'.",
+        "response": "alias kg='k get'",
+        "explanation": "To get any resource information, e.g., 'kg pods'."
+      },
+      {
+        "prompt": "Create an alias 'ka' for 'kubectl apply -f'.",
+        "response": "alias ka='kubectl apply -f'",
+        "explanation": "To create resources from a YAML file, e.g., 'ka my-app.yaml'."
+      },
+      {
+        "prompt": "Create an export 'dr' for dry-run YAML output.",
+        "response": "export dr='--dry-run=client -o yaml'",
+        "explanation": "To generate a YAML file from an imperative command without creating the resource. Very useful, e.g., `k run nginx --image=nginx $dr`."
+      },
+      {
+        "prompt": "Create an export 'now' to force delete a resource.",
+        "response": "export now='--grace-period 0 --force'",
+        "explanation": "Use this to terminate a running resource immediately, e.g., `k delete pod mypod $now`."
       }
     ]
   },
