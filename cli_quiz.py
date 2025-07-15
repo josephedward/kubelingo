@@ -171,8 +171,8 @@ def show_history():
 def handle_live_k8s_question(q, logger):
     """Handles a live Kubernetes question with a temporary kind cluster."""
     is_correct = False
-    # Check for dependencies
-    deps = check_dependencies('docker', 'kind', 'kubectl')
+    # Check for required tools: Go for gosandbox, eksctl for EKS, kubectl for Kubernetes
+    deps = check_dependencies('go', 'eksctl', 'kubectl')
     if deps:
         print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Skipping." + Style.RESET_ALL)
         return False, ''
@@ -182,12 +182,28 @@ def handle_live_k8s_question(q, logger):
     user_yaml_str = ''
     
     try:
-        print(Fore.YELLOW + f"Creating temporary cluster '{cluster_name}'... (this may take a minute)" + Style.RESET_ALL)
-        subprocess.run(['kind', 'create', 'cluster', '--name', cluster_name], check=True, capture_output=True)
-        
-        # Set KUBECONFIG for this session
+        # Acquire AWS sandbox credentials
+        print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
+        subprocess.run(['go', 'run', 'tools/gosandbox/main.go', '--acquire-credentials'], check=True)
+
+        # Provision EKS cluster via eksctl
+        region = os.environ.get('AWS_REGION', 'us-west-2')
+        node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
+        node_count = os.environ.get('NODE_COUNT', '2')
+        print(Fore.YELLOW + f"Provisioning EKS cluster '{cluster_name}' (region={region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
+        subprocess.run([
+            'eksctl', 'create', 'cluster',
+            '--name', cluster_name,
+            '--region', region,
+            '--nodegroup-name', 'worker-nodes',
+            '--node-type', node_type,
+            '--nodes', node_count
+        ], check=True)
+
+        # Extract kubeconfig for this cluster
         os.environ['KUBECONFIG'] = kubeconfig_path
-        subprocess.run(['kind', 'get', 'kubeconfig', '--name', cluster_name], stdout=open(kubeconfig_path, 'w'), check=True)
+        with open(kubeconfig_path, 'w') as kc:
+            subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
 
         editor = os.environ.get('EDITOR', 'vim')
         
@@ -242,8 +258,14 @@ def handle_live_k8s_question(q, logger):
                 break
     
     finally:
-        print(Fore.YELLOW + f"Deleting temporary cluster '{cluster_name}'..." + Style.RESET_ALL)
-        subprocess.run(['kind', 'delete', 'cluster', '--name', cluster_name], check=True, capture_output=True)
+        # Cleanup EKS cluster
+        print(Fore.YELLOW + f"Deleting EKS cluster '{cluster_name}'..." + Style.RESET_ALL)
+        region = os.environ.get('AWS_REGION', 'us-west-2')
+        subprocess.run([
+            'eksctl', 'delete', 'cluster',
+            '--name', cluster_name,
+            '--region', region
+        ], check=True)
         if os.path.exists(kubeconfig_path):
             os.remove(kubeconfig_path)
         if 'KUBECONFIG' in os.environ:
