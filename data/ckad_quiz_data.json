@@ -383,5 +383,94 @@
         "explanation": "You need to define a ConfigMap with the specified data. Then, define a Pod that references this ConfigMap in `spec.volumes` and mounts it into the container at the correct path using `spec.containers[0].volumeMounts`."
       }
     ]
+  },
+  {
+    "category": "Advanced Scenarios",
+    "prompts": [
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nCreate a single Pod of image httpd:2.4.41-alpine in Namespace default. The Pod should be named pod1 and the container should be named pod1-container.\nYour manager would like to run a command manually on occasion to output the status of that exact Pod. Please write a command that does this into /opt/course/2/pod1-status-command.sh on ckad5601. The command should use kubectl.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune needs a Job template located at /opt/course/3/job.yaml. This Job should run image busybox:1.31.0 and execute sleep 2 && echo done. It should be in namespace neptune, run a total of 3 times and should execute 2 runs in parallel.\nStart the Job and check its history. Each pod created by the Job should have the label id: awesome-job. The job should be named neb-new-job and the container neb-new-job-container.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nTeam Mercury asked you to perform some operations using Helm, all in Namespace mercury:\nDelete release internal-issue-report-apiv1\nUpgrade release internal-issue-report-apiv2 to any newer version of chart bitnami/nginx available\nInstall a new release internal-issue-report-apache of chart bitnami/apache. The Deployment should have two replicas, set these via Helm-values during install\nThere seems to be a broken release, stuck in pending-install state. Find it and delete it",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune has its own ServiceAccount named neptune-sa-v2 in Namespace neptune. A coworker needs the token from the Secret that belongs to that ServiceAccount. Write the base64 decoded token to file /opt/course/5/token on ckad7326.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nCreate a single Pod named pod6 in Namespace default of image busybox:1.31.0. The Pod should have a readiness-probe executing cat /tmp/ready. It should initially wait 5 and periodically wait 10 seconds. This will set the container ready only if the file /tmp/ready exists.\nThe Pod should run the command touch /tmp/ready && sleep 1d, which will create the necessary file to be ready and then idles. Create the Pod and confirm it starts.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nThe board of Team Neptune decided to take over control of one e-commerce webserver from Team Saturn. The administrator who once setup this webserver is not part of the organisation any longer. All information you could get was that the e-commerce system is called my-happy-shop.\nSearch for the correct Pod in Namespace saturn and move it to Namespace neptune. It doesn't matter if you shut it down and spin it up again, it probably hasn't any customers anyways.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nThere is an existing Deployment named api-new-c32 in Namespace neptune. A developer did make an update to the Deployment but the updated version never came online. Check the Deployment history and find a revision that works, then rollback to it. Could you tell Team Neptune what the error was so it doesn't happen again?",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nIn Namespace pluto there is single Pod named holy-api. It has been working okay for a while now but Team Pluto needs it to be more reliable.\nConvert the Pod into a Deployment named holy-api with 3 replicas and delete the single Pod once done. The raw Pod template file is available at /opt/course/9/holy-api-pod.yaml.\nIn addition, the new Deployment should set allowPrivilegeEscalation: false and privileged: false for the security context on container level.\nPlease create the Deployment and save its yaml under /opt/course/9/holy-api-deployment.yaml on ckad9043.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nTeam Pluto needs a new cluster internal Service. Create a ClusterIP Service named project-plt-6cc-svc in Namespace pluto. This Service should expose a single Pod named project-plt-6cc-api of image nginx:1.17.3-alpine, create that Pod as well. The Pod should be identified by label project: plt-6cc-api. The Service should use tcp port redirection of 3333:80.\nFinally use for example curl from a temporary nginx:alpine Pod to get the response from the Service. Write the response into /opt/course/10/service_test.html on ckad9043. Also check if the logs of Pod project-plt-6cc-api show the request and write those into /opt/course/10/service_test.log on ckad9043.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nThere are files to build a container image located at /opt/course/11/image on ckad9043. The container will run a Golang application which outputs information to stdout. You're asked to perform the following tasks:\nℹ️ Run all Docker and Podman commands as user root. Use sudo docker and sudo podman or become root with sudo -i\nChange the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f\nBuild the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker and push it to the registry\nBuild the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman and push it to the registry\nRun a container using sudo podman, which keeps running detached in the background, named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman\nWrite the logs your container sun-cipher produces into /opt/course/11/logs on ckad9043",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nCreate a new PersistentVolume named earth-project-earthflower-pv. It should have a capacity of 2Gi, accessMode ReadWriteOnce, hostPath /Volumes/Data and no storageClassName defined.\nNext create a new PersistentVolumeClaim in Namespace earth named earth-project-earthflower-pvc . It should request 2Gi storage, accessMode ReadWriteOnce and should not define a storageClassName. The PVC should bound to the PV correctly.\nFinally create a new Deployment project-earthflower in Namespace earth which mounts that volume at /tmp/project-data. The Pods of that Deployment should be of image httpd:2.4.41-alpine.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nTeam Moonpie, which has the Namespace moon, needs more storage. Create a new PersistentVolumeClaim named moon-pvc-126 in that namespace. This claim should use a new StorageClass moon-retain with the provisioner set to moon-retainer and the reclaimPolicy set to Retain. The claim should request storage of 3Gi, an accessMode of ReadWriteOnce and should use the new StorageClass.\nThe provisioner moon-retainer will be created by another team, so it's expected that the PVC will not boot yet. Confirm this by writing the event message from the PVC into file /opt/course/13/pvc-126-reason on ckad9043.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nYou need to make changes on an existing Pod in Namespace moon called secret-handler. Create a new Secret secret1 which contains user=test and pass=pwd. The Secret's content should be available in Pod secret-handler as environment variables SECRET1_USER and SECRET1_PASS. The yaml for Pod secret-handler is available at /opt/course/14/secret-handler.yaml.\nThere is existing yaml for another Secret at /opt/course/14/secret2.yaml, create this Secret and mount it inside the same Pod at /tmp/secret2. Your changes should be saved under /opt/course/14/secret-handler-new.yaml on ckad9043. Both Secrets should only be available in Namespace moon.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nTeam Moonpie has a nginx server Deployment called web-moon in Namespace moon. Someone started configuring it but it was never completed. To complete please create a ConfigMap called configmap-web-moon-html containing the content of file /opt/course/15/web-moon.html under the data key-name index.html.\nThe Deployment web-moon is already configured to work with this ConfigMap and serve its content. Test the nginx configuration for example using curl from a temporary nginx:alpine Pod.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nThe Tech Lead of Mercury2D decided it's time for more logging, to finally fight all these missing data incidents. There is an existing container named cleaner-con in Deployment cleaner in Namespace mercury. This container mounts a volume and writes logs into a file called cleaner.log.\nThe yaml for the existing Deployment is available at /opt/course/16/cleaner.yaml. Persist your changes at /opt/course/16/cleaner-new.yaml on ckad7326 but also make sure the Deployment is running.\nCreate a sidecar container named logger-con, image busybox:1.31.0 , which mounts the same volume and writes the content of cleaner.log to stdout, you can use the tail -f command for this. This way it can be picked up by kubectl logs.\nCheck if the logs of the new container reveal something about the missing data incidents.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nLast lunch you told your coworker from department Mars Inc how amazing InitContainers are. Now he would like to see one in action. There is a Deployment yaml at /opt/course/17/test-init-container.yaml. This Deployment spins up a single Pod of image nginx:1.17.3-alpine and serves files from a mounted volume, which is empty right now.\nCreate an InitContainer named init-con which also mounts that volume and creates a file index.html with content check this out! in the root of the mounted volume. For this test we ignore that it doesn't contain valid html.\nThe InitContainer should be using image busybox:1.31.0. Test your implementation for example using curl from a temporary nginx:alpine Pod.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nThere seems to be an issue in Namespace mars where the ClusterIP service manager-api-svc should make the Pods of Deployment manager-api-deployment available inside the cluster.\nYou can test this with curl manager-api-svc.mars:4444 from a temporary nginx:alpine Pod. Check for the misconfiguration and apply a fix.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad5601\nIn Namespace jupiter you'll find an apache Deployment (with one replica) named jupiter-crew-deploy and a ClusterIP Service called jupiter-crew-svc which exposes it. Change this service to a NodePort one to make it available on all nodes on port 30100.\nTest the NodePort Service using the internal IP of all available nodes and the port 30100 using curl, you can reach the internal node IPs directly from your main terminal. On which nodes is the Service reachable? On which node is the Pod running?",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nIn Namespace venus you'll find two Deployments named api and frontend. Both Deployments are exposed inside the cluster using Services. Create a NetworkPolicy named np1 which restricts outgoing tcp connections from Deployment frontend and only allows those going to Deployment api. Make sure the NetworkPolicy still allows outgoing traffic on UDP/TCP ports 53 for DNS resolution.\nTest using: wget www.google.com and wget api:2222 from a Pod of Deployment frontend.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune needs 3 Pods of image httpd:2.4-alpine, create a Deployment named neptune-10ab for this. The containers should be named neptune-pod-10ab. Each container should have a memory request of 20Mi and a memory limit of 50Mi.\nTeam Neptune has its own ServiceAccount neptune-sa-v2 under which the Pods should run. The Deployment should be in Namespace neptune.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      },
+      {
+        "prompt": "Solve this question on instance: ssh ckad9043\nTeam Sunny needs to identify some of their Pods in namespace sun. They ask you to add a new label protected: true to all Pods with an existing label type: worker or type: runner. Also add an annotation protected: do not delete this pod to all Pods having the new label protected: true.",
+        "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
+      }
+    ]
   }
 ]
