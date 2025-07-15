@@ -29,11 +29,11 @@ except ImportError:
 
 # Import from local modules
 try:
-    from vim_yaml_editor import VimYamlEditor, vim_commands_quiz
+    from modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
 except ImportError:
-    print("Warning: vim_yaml_editor.py not found. YAML/Vim exercises will not be available.")
-    VimYamlEditor = None
-    vim_commands_quiz = None
+    print("Warning: modules/vim_yaml_editor.py not found. YAML/Vim exercises will not be available.")
+    VimYamlEditor = None  # YAML editing disabled
+    vim_commands_quiz = None  # Vim quiz disabled
 
 # Colored terminal output (optional)
 try:
@@ -49,7 +49,9 @@ except ImportError:
     Style = _DummyStyle()
 
 # Default quiz data file path
-DEFAULT_DATA_FILE = 'ckad_quiz_data.json'
+DEFAULT_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'ckad_quiz_data.json')
+# YAML editing questions data file
+YAML_QUESTIONS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
@@ -184,13 +186,8 @@ def run_yaml_editing_mode(data_file):
             if item.get('question_type') == 'yaml_edit':
                 yaml_questions.append(item)
     
-    # If no yaml_edit questions found, use built-in samples
     if not yaml_questions:
-        print("No YAML editing questions found in data file. Using built-in examples.")
-        yaml_questions = create_yaml_edit_questions()
-    
-    if not yaml_questions:
-        print("No YAML editing questions available.")
+        print("No YAML editing questions available in data file.")
         return
     
     print(f"\n{Fore.CYAN}=== Kubelingo YAML Editing Mode ==={Style.RESET_ALL}")
@@ -220,7 +217,7 @@ def run_yaml_editing_mode(data_file):
 def main():
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
-                        help='Path to quiz data JSON file')
+                        help='Path to quiz data JSON file for command quiz')
     parser.add_argument('-n', '--num', type=int, default=0,
                         help='Number of questions to ask (default: all)')
     parser.add_argument('-c', '--category', type=str,
@@ -229,7 +226,7 @@ def main():
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
-    parser.add_argument('--yaml-edit', action='store_true',
+    parser.add_argument('--yaml-exercises', '--yaml-edit', dest='yaml_exercises', action='store_true',
                         help='Run YAML editing exercises with semantic validation')
     parser.add_argument('--vim-quiz', action='store_true',
                         help='Run Vim commands quiz')
@@ -247,8 +244,9 @@ def main():
         print(f"\nVim Quiz completed with {score:.1%} accuracy")
         sys.exit(0)
     
-    if args.yaml_edit:
-        run_yaml_editing_mode(args.file)
+    if getattr(args, 'yaml_exercises', False):
+        # Run YAML editing exercises from dedicated data file
+        run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         sys.exit(0)
     
     # Continue with existing quiz logic...
