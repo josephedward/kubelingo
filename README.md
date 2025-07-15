@@ -60,7 +60,6 @@ python3 -m kubelingo.cli --history
 # List available categories
 python3 -m kubelingo.cli --list-categories
 ```
-```
 
 
 ## Question Types
