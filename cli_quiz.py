@@ -4,6 +4,9 @@ Root CLI wrapper for kubelingo package.
 """
 import sys
 
+
+# FIXME: This script depends on the `kubelingo` package. Without this
+# package installed, the script will fail at runtime with an ImportError.
 def main():
     try:
         from kubelingo.cli import main as cli_main
