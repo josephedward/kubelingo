@@ -27,6 +27,14 @@ try:
 except ImportError:
     yaml = None
 
+# Import from local modules
+try:
+    from vim_yaml_editor import VimYamlEditor, vim_commands_quiz
+except ImportError:
+    print("Warning: vim_yaml_editor.py not found. YAML/Vim exercises will not be available.")
+    VimYamlEditor = None
+    vim_commands_quiz = None
+
 # Colored terminal output (optional)
 try:
     import colorama
@@ -44,39 +52,14 @@ except ImportError:
 DEFAULT_DATA_FILE = 'ckad_quiz_data.json'
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
-# --- YAML editing question support
-def run_edit_question(qid):
-    base_dir = os.path.join(os.path.dirname(__file__), 'edit_questions', f'q{qid}')
-    if not os.path.isdir(base_dir):
-        print(f"Error: no edit question with ID {qid} (looking for {base_dir})")
-        sys.exit(1)
-    template = os.path.join(base_dir, 'template.yaml')
-    assert_script = os.path.join(base_dir, 'assert.sh')
-    if not os.path.isfile(template):
-        print(f"Error: missing template.yaml for question {qid}")
-        sys.exit(1)
-    if not os.path.isfile(assert_script):
-        print(f"Error: missing assert.sh for question {qid}")
-        sys.exit(1)
-    temp_file = os.path.abspath(f'edit_q{qid}.yaml')
-    shutil.copy(template, temp_file)
-    editor = os.environ.get('EDITOR', 'vim')
-    while True:
-        subprocess.call([editor, temp_file])
-        print("Running tests...")
-        result = subprocess.run(['bash', assert_script, temp_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        print(result.stdout)
-        if result.returncode == 0:
-            print("✅ Correct!")
-            break
-        try:
-            ans = input("Incorrect. Reopen editor? [Y/n]: ").strip().lower()
-        except EOFError:
-            ans = ''
-        if ans and not ans.startswith('y'):
-            print("Exiting edit session.")
-            break
-    print("Done.")
+
+def check_dependencies(*commands):
+    """Check if all command-line tools in `commands` are available."""
+    missing = []
+    for cmd in commands:
+        if not shutil.which(cmd):
+            missing.append(cmd)
+    return missing
 
 def load_questions(data_file):
     # Load quiz data from JSON file
@@ -103,6 +86,9 @@ def load_questions(data_file):
                     continue
                 question['starting_yaml'] = item.get('starting_yaml', '')
                 question['correct_yaml'] = item.get('correct_yaml', '')
+            elif question_type == 'live_k8s_edit':
+                question['starting_yaml'] = item.get('starting_yaml', '')
+                question['assert_script'] = item.get('assert_script', '')
             else:  # command
                 question['response'] = item.get('response', '')
             questions.append(question)
