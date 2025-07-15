@@ -4,6 +4,7 @@ verify_quiz_data.py: Identify quiz prompts that omit details used in their answe
 """
 import json
 import re
+import yaml
 
 def load_data(path):
     with open(path, 'r') as f:
@@ -32,21 +33,42 @@ def extract_namespace(response):
     return None
 
 def check_prompt_item(item):
-    prompt = item.get('prompt', '')
-    response = item.get('response', '')
+    question_type = item.get('type', 'command')
     issues = []
-    name, image = extract_name_and_image(response)
-    ns = extract_namespace(response)
-    # Skip namespace check for echo commands (e.g., base64 encode/decode)
-    if response.lstrip().startswith('echo '):
-        ns = None
-    # Check that any extracted elements appear in the prompt
-    if name and name not in prompt:
-        issues.append(f"pod name '{name}' not in prompt")
-    if image and image not in prompt:
-        issues.append(f"image '{image}' not in prompt")
-    if ns and ns not in prompt:
-        issues.append(f"namespace '{ns}' not in prompt")
+
+    if question_type == 'yaml_edit':
+        if 'starting_yaml' not in item:
+            issues.append("missing 'starting_yaml' key")
+        else:
+            try:
+                yaml.safe_load(item['starting_yaml'])
+            except yaml.YAMLError as e:
+                issues.append(f"invalid YAML in 'starting_yaml': {e}")
+        
+        if 'correct_yaml' not in item:
+            issues.append("missing 'correct_yaml' key")
+        else:
+            try:
+                yaml.safe_load(item['correct_yaml'])
+            except yaml.YAMLError as e:
+                issues.append(f"invalid YAML in 'correct_yaml': {e}")
+
+    else: # command-based question
+        prompt = item.get('prompt', '')
+        response = item.get('response', '')
+        name, image = extract_name_and_image(response)
+        ns = extract_namespace(response)
+        # Skip namespace check for echo commands (e.g., base64 encode/decode)
+        if response.lstrip().startswith('echo '):
+            ns = None
+        # Check that any extracted elements appear in the prompt
+        if name and name not in prompt:
+            issues.append(f"pod name '{name}' not in prompt")
+        if image and image not in prompt:
+            issues.append(f"image '{image}' not in prompt")
+        if ns and ns not in prompt:
+            issues.append(f"namespace '{ns}' not in prompt")
+
     return issues
 
 def main():
