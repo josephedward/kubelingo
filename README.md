@@ -1,111 +1,307 @@
  # kubelingo
-A simple CLI tool to quiz yourself on `kubectl` commands.  
 
+A comprehensive CLI tool to master `kubectl` commands and Kubernetes YAML editing through interactive quizzes and hands-on exercises.
 
-This project is licensed under the MIT License – see the LICENSE file for details.
- Every Kubernetes practitioner needs to know `kubectl` commands by heart. This tool helps you memorize and practice common `kubectl` operations via an interactive quiz.
+## Features
 
- ## Features
+- **Command Quiz Mode**: Categorized kubectl questions with randomized order
+- **YAML Editing Mode**: Interactive Vim-based YAML editing with semantic validation
+- **Vim Commands Quiz**: Master essential Vim commands for YAML editing
+- **CKAD Exam Prep**: Extensive exercises covering all CKAD exam topics
+- **Semantic Validation**: YAML answers graded by meaning, not text matching
+- **Performance Tracking**: Session history and progress statistics
+- **LLM Integration**: Optional detailed explanations (requires OpenAI API key)
 
- - Categorized questions (Pods, Deployments, Namespaces, etc.)
- - Randomized order
- - Filter by category
- - Specify number of questions
- - Load questions from an external JSON file
- - Optional LLM-based detailed explanations after each question (requires $OPENAI_API_KEY and the 'llm' CLI tool)
- - If $OPENAI_API_KEY is not set, the app will prompt you at startup to enter it (or press Enter to skip and continue without LLM support)
- - Displays elapsed time during the quiz and reports total time taken at completion
- - Persists each session's duration and performance history, viewable with `--history`
- - Each quiz session logs question-by-question results and overall score to a timestamped file under a `logs/` directory
+## YAML Editing Mode
 
- ## Requirements
+Practice real-world Kubernetes scenarios by editing YAML manifests in Vim with intelligent validation:
 
- - Python 3.6+
+```bash
+# Run interactive YAML editing exercises
+python3 cli_quiz.py --yaml-edit
 
- ## Setup
+# Set your preferred editor (default: vim)
+export EDITOR=nano  # or vim, emacs, etc.
+python3 cli_quiz.py --yaml-edit
+```
 
- 1. Clone the repository:
+### How YAML Editing Works
 
-    ```bash
-    git clone <repository_url>
-    cd <repository_directory>
-    ```
+1. **Template Provided**: Start with a skeleton YAML file containing TODO comments
+2. **Edit in Your Editor**: File opens in Vim (or your preferred `$EDITOR`)
+3. **Semantic Validation**: Your YAML is validated by meaning, not exact text match
+4. **Immediate Feedback**: Get specific error messages and hints for corrections
+5. **Multiple Attempts**: Up to 3 tries per question with helpful guidance
 
- 2. Create a Python virtual environment and install dependencies:
+### Validation Features
 
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate        # On Windows: .\\.venv\\Scripts\\activate
-    pip install -r requirements.txt
-    ```
+- **Syntax Checking**: Catches YAML parsing errors with line numbers
+- **Semantic Comparison**: Compares parsed objects, not raw text
+- **Field Validation**: Checks required Kubernetes fields (apiVersion, kind, metadata)
+- **Smart Hints**: Specific guidance on what's missing or incorrect
+- **Flexible Grading**: Different key orders, spacing, and styles all accepted
 
- 3. Ensure the quiz data JSON file exists (you'll be prompted to select one):
+## Usage Examples
 
-    ```bash
-    ls *.json
-    ```
+```bash
+# Standard kubectl command quiz
+python3 cli_quiz.py -n 10 -c "Pod Management"
 
- 4. Make the quiz script executable (optional):
+# Interactive YAML editing exercises  
+python3 cli_quiz.py --yaml-edit
 
-    ```bash
-    chmod +x cli_quiz.py
-    ```
+# Vim commands practice
+python3 cli_quiz.py --vim-quiz
 
- ## Usage
- After answering each question, you may be prompted to query an external LLM for a more detailed explanation. Type 'y' when asked to enable this (requires $OPENAI_API_KEY and the 'llm' CLI tool).
+# View performance history
+python3 cli_quiz.py --history
 
- - List available categories:
+# List available categories
+python3 cli_quiz.py --list-categories
+```
 
-   ```bash
-   python3 cli_quiz.py --list-categories
-   ```
+```bash
+# Cloud-Specific YAML editing exercises
+python3 cli_quiz.py --cloud-mode --exercises aws_cloud_exercises.json --cluster-context ckad-practice
+```
 
- - Start a quiz with all questions:
+## Question Types
 
-   ```bash
-   python3 cli_quiz.py
-   ```
+### Standard Questions
+Traditional kubectl command questions with text-based answers.
 
-After completing the quiz, the tool displays your total time taken for the session.
+### YAML Editing Questions
+Hands-on YAML editing with these fields:
+- `question_type`: "yaml_edit"
+- `prompt`: Task description
+- `starting_yaml`: Template with TODO comments
+- `correct_yaml`: Expected solution for validation
+- `explanation`: Learning objectives
 
- 
- - Use a specific JSON file for questions:
+Example:
+```json
+{
+  "question_type": "yaml_edit",
+  "prompt": "Create a Pod named 'web-server' using nginx:1.20",
+  "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO\n...",
+  "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\n...",
+  "explanation": "Basic pod creation exercise"
+}
+```
 
-   ```bash
-   python3 cli_quiz.py -f ckad_quiz_data.json
-   ```
-  (Or specify another JSON file: `-f <your_file.json>`)
+## Requirements
 
- - Ask 5 questions from a specific category:
+- Python 3.6+
+- PyYAML (`pip install -r requirements.txt`)
+- Vim or preferred editor (set via `$EDITOR`)
+- kubectl (for command validation)
 
-   ```bash
-   python3 cli_quiz.py -n 5 -c "Pod Management"
-   ```
-  
- - Show quiz history and performance statistics:
+## CKAD Exam Coverage
 
-   ```bash
-   python3 cli_quiz.py --history
-   ```
+Comprehensive coverage of all CKAD exam domains:
 
- ## Custom Data
+- **Core Concepts (13%)**: Pods, ReplicaSets, Deployments
+- **Configuration (18%)**: ConfigMaps, Secrets, Environment Variables  
+- **Multi-Container Pods (10%)**: Sidecar, Ambassador, Adapter patterns
+- **Observability (18%)**: Probes, Logging, Monitoring, Debugging
+- **Pod Design (20%)**: Labels, Selectors, Annotations, Jobs, CronJobs
+- **Services & Networking (13%)**: ClusterIP, NodePort, Ingress
+- **State Persistence (8%)**: Volumes, PersistentVolumes, Storage Classes
 
- Add your own questions by editing `ckad_quiz_data.json` or specifying a different JSON file with the same format:
+## File Structure
 
- ```json
- [
-   {
-     "category": "Your Category",
-     "prompts": [
-       {
-         "prompt": "Your question here",
-         "response": "Your expected answer here"
-       }
-     ]
-   }
- ]
- ```
+```
+kubelingo/
+├── cli_quiz.py                    # Main CLI application
+├── modules/
+│   └── vim_yaml_editor.py         # YAML editing engine
+├── data/
+│   ├── ckad_quiz_data.json        # Standard kubectl questions
+│   ├── yaml_edit_questions.json   # YAML editing exercises
+│   └── ckad_exercises_extended.json # Extended CKAD content
+├── kubelingo-work/
+│   └── tmp/                       # Temporary YAML files during editing
+└── logs/                          # Session logs and history
+```
 
- ## License
+## Creating Custom Questions
+
+### Standard Questions
+```json
+{
+  "prompt": "Create a pod named nginx",
+  "response": "kubectl run nginx --image=nginx",
+  "explanation": "Basic pod creation command"
+}
+```
+
+### YAML Editing Questions
+```json
+{
+  "question_type": "yaml_edit",
+  "prompt": "Create a ConfigMap with database configuration",
+  "starting_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO\ndata:\n  # TODO",
+  "correct_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: db-config\ndata:\n  host: localhost\n  port: \"5432\"",
+  "explanation": "ConfigMap creation with key-value data"
+}
+```
+
+## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+
+## GoSandbox Integration
+
+This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
+
+### Quick Setup
+
+1. **Run the setup script**:
+   ```bash
+   python3 setup_gosandbox_integration.py
+   ```
+
+2. **Install new dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Ensure gosandbox is available**:
+   ```bash
+   # Clone gosandbox if not already done
+   git clone <gosandbox-repo-url> ../gosandbox
+   cd ../gosandbox
+   # Configure .env file with A Cloud Guru credentials
+   ```
+
+### Integrated Study Session
+
+Start a complete CKAD study session with real AWS resources:
+
+```python
+from tools.session_manager import CKADStudySession
+
+session = CKADStudySession()
+session.initialize_session()  # Acquires AWS creds, optionally creates EKS
+session.start_kubelingo()     # Starts vim editor with cloud integration
+```
+
+### Manual Integration
+
+For more control over the process:
+
+```bash
+# Acquire AWS credentials
+python3 tools/gosandbox_integration.py --acquire
+
+# Export to environment
+python3 tools/gosandbox_integration.py --export
+
+# Update kubeconfig for EKS
+python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
+
+# Start quiz with cloud context
+python3 cli_quiz.py --cloud-mode
+```
+
+### Features
+
+- **Automated AWS credential acquisition** via gosandbox
+- **Optional EKS cluster creation** for realistic practice
+- **Real cluster resource deployment** from vim exercises
+- **Session monitoring** and automatic cleanup
+- **GitHub secrets management** for CI/CD practice
+
+### Integration Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
+│   (Python)      │    │   (Go)           │    │   (Cloud)       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
+│   YAML Practice │    │   Credentials    │    │   Real K8s      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+
+## GoSandbox Integration
+
+This project now includes integration with the gosandbox Go application for seamless AWS credential management during CKAD study sessions.
+
+### Quick Setup
+
+1. **Run the setup script**:
+   ```bash
+   python3 setup_gosandbox_integration.py
+   ```
+
+2. **Install new dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Ensure gosandbox is available**:
+   ```bash
+   # Clone gosandbox if not already done
+   git clone <gosandbox-repo-url> ../gosandbox
+   cd ../gosandbox
+   # Configure .env file with A Cloud Guru credentials
+   ```
+
+### Integrated Study Session
+
+Start a complete CKAD study session with real AWS resources:
+
+```python
+from tools.session_manager import CKADStudySession
+
+session = CKADStudySession()
+session.initialize_session()  # Acquires AWS creds, optionally creates EKS
+session.start_kubelingo()     # Starts vim editor with cloud integration
+```
+
+### Manual Integration
+
+For more control over the process:
+
+```bash
+# Acquire AWS credentials
+python3 tools/gosandbox_integration.py --acquire
+
+# Export to environment
+python3 tools/gosandbox_integration.py --export
+
+# Update kubeconfig for EKS
+python3 tools/gosandbox_integration.py --kubeconfig ckad-practice
+
+# Start quiz with cloud context
+python3 cli_quiz.py --cloud-mode
+```
+
+### Features
+
+- **Automated AWS credential acquisition** via gosandbox
+- **Optional EKS cluster creation** for realistic practice
+- **Real cluster resource deployment** from vim exercises
+- **Session monitoring** and automatic cleanup
+- **GitHub secrets management** for CI/CD practice
+
+### Integration Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Kubelingo     │───▶│   GoSandbox      │───▶│   AWS Sandbox   │
+│   (Python)      │    │   (Go)           │    │   (Cloud)       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Vim Editor    │    │   A Cloud Guru   │    │   EKS Cluster   │
+│   YAML Practice │    │   Credentials    │    │   Real K8s      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
