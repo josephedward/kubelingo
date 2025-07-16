@@ -26,7 +26,7 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-class KubernetesSession(StudySession):
+class NewSession(StudySession):
     """A study session for live Kubernetes exercises on a temporary EKS cluster."""
 
     def __init__(self, logger):
@@ -198,4 +198,4 @@ class KubernetesSession(StudySession):
             del os.environ['KUBECONFIG']
         
         self.cluster_name = None
-        self.kubeconfig_path = None
+
