@@ -169,18 +169,37 @@ class NewSession(StudySession):
         category_filter = cli_args.category
         review_only = cli_args.review_only
 
+        # If not using a CLI flag, ask interactively about quiz mode.
+        if not review_only and not category_filter and questionary is not None:
+            try:
+                quiz_mode = questionary.select(
+                    "Select quiz mode:",
+                    choices=["Standard Quiz (by category)", "Review Flagged Questions"]
+                ).ask()
+
+                if quiz_mode is None:  # User pressed Ctrl+C
+                    print("\nExiting.")
+                    return
+                
+                if quiz_mode == "Review Flagged Questions":
+                    review_only = True
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
+                return
+
         questions = load_questions(data_file)
         all_categories = sorted(list(set(q['category'] for q in questions if q['category'])))
 
         if category_filter and category_filter not in all_categories:
-            print(Fore.YELLOW + f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}" + Style.RESET_ALL)
+            print(Fore.RED + f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}" + Style.RESET_ALL)
             return
 
-        if not category_filter and all_categories and questionary is not None:
+        # Only ask for category in a standard quiz
+        if not review_only and not category_filter and all_categories and questionary is not None:
             try:
                 choices = ['ALL'] + all_categories
                 category_filter = questionary.select(
-                    "Which category do you want to be quizzed on?",
+                    "Which category would you like to study?",
                     choices=choices
                 ).ask()
                 if category_filter is None or category_filter == 'ALL':
