@@ -3,7 +3,7 @@
 
 This document outlines the vision, features, and enhancements planned for the Kubelingo CLI quiz tool. It is organized into key focus areas and milestone ideas.
 
-> _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._# KubeLingo Project Roadmap
+> _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._
 
 
 ## Phase 1: Core Enhancements
