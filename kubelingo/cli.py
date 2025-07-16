@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import logging
 import shlex
-from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent
+from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent, handle_live_k8s_question
 from kubelingo.modules.base.loader import discover_modules, load_session
 from datetime import datetime
 from datetime import timedelta
@@ -100,6 +100,8 @@ def load_questions(data_file):
                 'explanation': item.get('explanation', ''),
                 'type': question_type
             }
+            # Preserve review flag if present
+            question['review'] = item.get('review', False)
             if question_type == 'yaml_edit':
                 if not yaml:
                     # If yaml lib is missing, we can't process these questions.
@@ -443,6 +445,10 @@ def main():
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                         help='Path to quiz data JSON file for command quiz')
+    parser.add_argument('-M', '--module', type=str, choices=['kubernetes', 'custom'],
+                        help='Study module to load (kubernetes or custom)')
+    parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
+                        help='Path to custom quiz JSON file for custom module')
     parser.add_argument('-n', '--num', type=int, default=0,
                         help='Number of questions to ask (default: all)')
     parser.add_argument('-c', '--category', type=str,
@@ -467,6 +473,9 @@ def main():
                         help='Kubernetes cluster context to use for a module')
     
     args = parser.parse_args()
+    # If no arguments provided, default to listing categories (for colored menu)
+    if len(sys.argv) == 1:
+        args.list_categories = True
     
     
     # Handle special modes first
@@ -500,57 +509,48 @@ def main():
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         return
 
-    if args.module:
-        available_modules = discover_modules()
-        if args.module not in available_modules:
-            print(Fore.RED + f"Error: module '{args.module}' not found." + Style.RESET_ALL)
-            print(f"Available modules: {', '.join(available_modules)}")
-            return
-        
-        # This part of the logic remains specific to the 'kubernetes' module for now.
-        if args.module == 'kubernetes' and args.exercises:
-            file_arg = args.exercises
-            # Resolve file path (custom or default data directory)
-            if os.path.exists(file_arg):
-                file_path = file_arg
+    # If user hasn't selected a module yet, prompt to choose
+    if not args.module:
+        modules = discover_modules()
+        if modules:
+            if questionary:
+                args.module = questionary.select(
+                    "Select study module:", choices=modules
+                ).ask()
             else:
-                file_path = os.path.join(DATA_DIR, file_arg)
-            if not os.path.exists(file_path):
-                print(Fore.RED + f"Error: Exercises file not found: {file_arg}" + Style.RESET_ALL)
+                print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
+                for m in modules:
+                    print(Fore.YELLOW + m + Style.RESET_ALL)
+                args.module = input("Module to load: ").strip()
+        if not args.module:
+            print(Fore.RED + "No module selected; exiting." + Style.RESET_ALL)
+            return
+
+    if args.module:
+        if args.module == 'kubernetes':
+            # Live Kubernetes cloud exercises
+            log_file = 'quiz_cloud_log.txt'
+            logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+            logger = logging.getLogger()
+            questions = load_questions(args.file)
+            cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+            if not cloud_qs:
+                print(Fore.RED + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
                 return
-            print(f"\n{Fore.CYAN}=== {args.module.capitalize()}-Specific YAML Exercises Mode ==={Style.RESET_ALL}")
-            print(f"Using exercises file: {file_path}")
-            if args.cluster_context:
-                print(f"Cluster context: {args.cluster_context}")
-                os.environ['KUBECTL_CONTEXT'] = args.cluster_context
-            run_yaml_editing_mode(file_path)
+            for i, q in enumerate(cloud_qs, 1):
+                print(f"\n{Fore.CYAN}=== Kubernetes Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
+                is_correct, _ = handle_live_k8s_question(q, logger)
+                if q.get('explanation'):
+                    level = Fore.GREEN if is_correct else Fore.RED
+                    print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
             return
-        
-        # Live exercises with a session
-        log_file = f'quiz_{args.module}_log.txt'
-        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-        logger = logging.getLogger()
-        
-        questions = load_questions(args.file)
-        # Note: Question filtering is specific to 'live_k8s_edit' for now.
-        # Future modules would require their own question types.
-        module_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
-        if not module_qs:
-            print(Fore.YELLOW + f"No live exercises found for module '{args.module}' in the data file." + Style.RESET_ALL)
+        elif args.module == 'custom':
+            custom_file = args.exercises or input("Enter path to custom quiz JSON file: ").strip()
+            run_quiz(custom_file, args.num, args.category)
             return
-
-        try:
-            session = load_session(args.module, logger)
-        except (ImportError, AttributeError) as e:
-            print(Fore.RED + f"Error loading module '{args.module}': {e}" + Style.RESET_ALL)
+        else:
+            print(Fore.RED + f"Error: module '{args.module}' not supported." + Style.RESET_ALL)
             return
-
-        try:
-            if session.initialize():
-                session.run_exercises(module_qs)
-        finally:
-            session.cleanup()
-        return
 
     questions = load_questions(args.file)
     if args.list_categories:
