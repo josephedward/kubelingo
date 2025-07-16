@@ -526,7 +526,7 @@ def main():
     if len(sys.argv) == 1:
         if questionary:
             try:
-                choices = ['kubernetes', 'custom', 'help']
+                choices = ['quiz', 'custom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -537,7 +537,10 @@ def main():
                 if action == 'help':
                     parser.print_help()
                     return
-                args.module = action
+                if action == 'quiz':
+                    args.module = 'kubernetes'
+                else:
+                    args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
@@ -545,18 +548,21 @@ def main():
             # Fallback for when questionary is not installed, use simple input prompt
             while True:
                 try:
-                    print("What would you like to do? Available options: kubernetes, custom, help")
+                    print("What would you like to do? Available options: quiz, custom, help")
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     return
-                if action in ['kubernetes', 'custom', 'help']:
+                if action in ['quiz', 'custom', 'help']:
                     break
-                print("Invalid choice. Please enter kubernetes, custom, or help.")
+                print("Invalid choice. Please enter quiz, custom, or help.")
             if action == 'help':
                 parser.print_help()
                 return
-            args.module = action
+            if action == 'quiz':
+                args.module = 'kubernetes'
+            else:
+                args.module = action
     
     # Handle modes that exit immediately
     if args.history:
