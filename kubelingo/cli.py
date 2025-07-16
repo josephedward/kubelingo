@@ -315,10 +315,6 @@ def main():
         module_name = args.module.lower()
         if module_name == 'k8s':
             module_name = 'kubernetes'
-        # Kubernetes alias runs the classic commands quiz
-        if module_name == 'kubernetes':
-            run_quiz(args.file, args.num, args.category, review_only=args.review_only)
-            return
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
         logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
