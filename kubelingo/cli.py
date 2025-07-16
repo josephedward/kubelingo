@@ -495,8 +495,6 @@ def main():
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
-    parser.add_argument('--review-only', '--flagged', dest='review_only', action='store_true',
-                        help='Run only questions flagged for review and unflag after answering')
     parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                         help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
     parser.add_argument('--yaml-exercises', action='store_true',
@@ -565,8 +563,9 @@ def main():
                 print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
         return
     elif module == 'custom':
-        custom_file = args.exercises or input("Enter path to custom quiz JSON file: ").strip()
-        run_quiz(custom_file, args.num, args.category)
+        # Use provided custom-file flag, or fallback to --exercises, or prompt interactively
+        custom_file = args.custom_file or args.exercises or input("Enter path to custom quiz JSON file: ").strip()
+        run_quiz(custom_file, args.num, args.category, review_only=args.review_only)
         return
     else:
         print(Fore.RED + f"Error: module '{module}' not supported." + Style.RESET_ALL)
