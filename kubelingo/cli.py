@@ -15,6 +15,7 @@ import subprocess
 import logging
 import shlex
 from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent
+from kubelingo.modules.kubernetes.session import KubernetesSession
 from datetime import datetime
 from datetime import timedelta
 
@@ -77,15 +78,6 @@ DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
-
-def check_dependencies(*commands):
-    """Check if all command-line tools in `commands` are available."""
-    missing = []
-    for cmd in commands:
-        if not shutil.which(cmd):
-            missing.append(cmd)
-    return missing
-
 
 def load_questions(data_file):
     # Load quiz data from JSON file
@@ -194,116 +186,6 @@ def show_history():
     else:
         print("No per-category stats to aggregate.")
 
-def handle_live_k8s_question(q, logger):
-    """Handles a live Kubernetes question with a temporary kind cluster."""
-    is_correct = False
-    # Check for required tools: Go for gosandbox, eksctl for EKS, kubectl for Kubernetes
-    deps = check_dependencies('go', 'eksctl', 'kubectl')
-    if deps:
-        print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Skipping." + Style.RESET_ALL)
-        return False, ''
-
-    cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
-    kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{cluster_name}.kubeconfig")
-    user_yaml_str = ''
-    
-    try:
-        # Acquire AWS sandbox credentials via GoSandboxIntegration
-        from kubelingo.tools.gosandbox_integration import GoSandboxIntegration
-        print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
-        gs = GoSandboxIntegration()
-        creds = gs.acquire_credentials()
-        if not creds:
-            print(Fore.RED + "Failed to acquire AWS credentials. Cannot proceed with cloud exercise." + Style.RESET_ALL)
-            return False, ''
-        gs.export_to_environment()
-
-        # Provision EKS cluster via eksctl
-        region = os.environ.get('AWS_REGION', 'us-west-2')
-        node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
-        node_count = os.environ.get('NODE_COUNT', '2')
-        print(Fore.YELLOW + f"Provisioning EKS cluster '{cluster_name}' (region={region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
-        subprocess.run([
-            'eksctl', 'create', 'cluster',
-            '--name', cluster_name,
-            '--region', region,
-            '--nodegroup-name', 'worker-nodes',
-            '--node-type', node_type,
-            '--nodes', node_count
-        ], check=True)
-
-        # Extract kubeconfig for this cluster
-        os.environ['KUBECONFIG'] = kubeconfig_path
-        with open(kubeconfig_path, 'w') as kc:
-            subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
-
-        editor = os.environ.get('EDITOR', 'vim')
-        
-        while True:
-            with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp_yaml:
-                tmp_yaml.write(q.get('starting_yaml', ''))
-                tmp_yaml_path = tmp_yaml.name
-
-            print(f"Opening a temp file in '{editor}' for you to edit...")
-            try:
-                subprocess.run([editor, tmp_yaml_path], check=True)
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                print(Fore.RED + f"Error opening editor '{editor}': {e}. Skipping question." + Style.RESET_ALL)
-                break 
-
-            with open(tmp_yaml_path, 'r', encoding='utf-8') as f:
-                user_yaml_str = f.read()
-            os.remove(tmp_yaml_path)
-
-            print("Applying your YAML to the cluster...")
-            apply_proc = subprocess.run(
-                ['kubectl', 'apply', '-f', '-'],
-                input=user_yaml_str, text=True, capture_output=True
-            )
-            if apply_proc.returncode != 0:
-                print(Fore.RED + "Error applying YAML:" + Style.RESET_ALL)
-                print(apply_proc.stderr)
-            else:
-                print("Running validation script...")
-                with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
-                    tmp_assert.write(q.get('assert_script', 'exit 1'))
-                    tmp_assert_path = tmp_assert.name
-                
-                os.chmod(tmp_assert_path, 0o755)
-                assert_proc = subprocess.run(['bash', tmp_assert_path], capture_output=True, text=True)
-                os.remove(tmp_assert_path)
-
-                if assert_proc.returncode == 0:
-                    print(Fore.GREEN + "Correct!" + Style.RESET_ALL)
-                    print(assert_proc.stdout)
-                    is_correct = True
-                    break
-                else:
-                    print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
-                    print(assert_proc.stdout or assert_proc.stderr)
-
-            try:
-                retry = input("Reopen editor to try again? [Y/n]: ").strip().lower()
-            except EOFError:
-                retry = 'n'
-            if retry.startswith('n'):
-                break
-    
-    finally:
-        # Cleanup EKS cluster
-        print(Fore.YELLOW + f"Deleting EKS cluster '{cluster_name}'..." + Style.RESET_ALL)
-        region = os.environ.get('AWS_REGION', 'us-west-2')
-        subprocess.run([
-            'eksctl', 'delete', 'cluster',
-            '--name', cluster_name,
-            '--region', region
-        ], check=True)
-        if os.path.exists(kubeconfig_path):
-            os.remove(kubeconfig_path)
-        if 'KUBECONFIG' in os.environ:
-            del os.environ['KUBECONFIG']
-        
-    return is_correct, user_yaml_str
 
 def run_quiz(data_file, max_q, category_filter=None):
     # Configure logging
@@ -335,6 +217,12 @@ def run_quiz(data_file, max_q, category_filter=None):
     # Filter questions by category if a filter is set
     if category_filter:
         questions = [q for q in questions if q['category'] == category_filter]
+
+    # Live k8s questions are handled separately by --cloud-mode
+    live_k8s_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+    if live_k8s_qs:
+        print(Fore.YELLOW + f"Found {len(live_k8s_qs)} live Kubernetes exercise(s). To run them, use the --cloud-mode flag." + Style.RESET_ALL)
+        questions = [q for q in questions if q.get('type') != 'live_k8s_edit']
     
     # Shuffle and select the number of questions for the quiz
     random.shuffle(questions)
@@ -382,22 +270,7 @@ def run_quiz(data_file, max_q, category_filter=None):
         
         q_type = q.get('type', 'command')
 
-        if q_type == 'live_k8s_edit':
-            is_correct, user_yaml_str = handle_live_k8s_question(q, logger)
-            if is_correct:
-                correct += 1
-                if cat:
-                    category_stats[cat]['correct'] += 1
-            if q.get('explanation'):
-                level = Fore.GREEN if is_correct else Fore.RED
-                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
-            
-            expected_answer = q.get('assert_script', '')
-            log_user_answer = (user_yaml_str[:200] + '...') if len(user_yaml_str) > 200 else user_yaml_str
-            log_expected_answer = (expected_answer[:200] + '...') if len(expected_answer) > 200 else expected_answer
-            logger.info(f"Question {asked}/{max_q}: type={q_type} prompt=\"{q['prompt']}\" expected=\"{log_expected_answer}\" answer=\"{log_user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-
-        elif q_type == 'yaml_edit':
+        if q_type == 'yaml_edit':
             if not yaml:
                 print(Fore.RED + "YAML questions require the 'PyYAML' package. Please install it." + Style.RESET_ALL)
                 continue
