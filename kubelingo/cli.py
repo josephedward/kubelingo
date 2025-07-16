@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import logging
 import shlex
-from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent
+from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent, handle_live_k8s_question
 from kubelingo.modules.kubernetes.session import KubernetesSession
 from datetime import datetime
 from datetime import timedelta
@@ -466,9 +466,6 @@ def main():
     
     args = parser.parse_args()
     
-    # If no arguments are given, default to listing categories
-    if len(sys.argv) == 1:
-        args.list_categories = True
     
     # Handle special modes first
     if args.history:
