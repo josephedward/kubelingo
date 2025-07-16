@@ -1,0 +1,8 @@
+[
+  {
+    "category": "Test",
+    "prompts": [
+      { "prompt": "echo hello", "response": "echo hello", "review": true }
+    ]
+  }
+]
