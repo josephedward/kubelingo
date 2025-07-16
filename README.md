@@ -46,19 +46,19 @@ kubelingo --yaml-exercises
 
 ```bash
 # List available categories
-python3 cli_quiz.py --list-categories
+python3 -m kubelingo.cli --list-categories
 
 # Standard kubectl command quiz
-python3 cli_quiz.py -n 10 -c "Pod Management"
+python3 -m kubelingo.cli -n 10 -c "Pod Management"
 
 # Interactive YAML editing exercises (alias: --yaml-edit)
-python3 cli_quiz.py --yaml-exercises
+python3 -m kubelingo.cli --yaml-exercises
 
 # Vim commands practice
-python3 cli_quiz.py --vim-quiz
+python3 -m kubelingo.cli --vim-quiz
 
 # View performance history
-python3 cli_quiz.py --history
+python3 -m kubelingo.cli --history
 ```
 
 
@@ -110,12 +110,20 @@ Comprehensive coverage of all CKAD exam domains:
 
 ```
 . (project root)
-├── pyproject.toml        # Project definition and dependencies
-├── data/                 # Quiz data (JSON) separate from code
-├── kubelingo/            # Core application package (CLI, modules, tools)
-├── logs/                 # Quiz session logs & history
-├── kubelingo-work/       # Runtime workspace for YAML editing
-├── docs/                 # Project documentation (Markdown and API refs)
+├── kubelingo/cli.py      # Main CLI entry point (console script: kubelingo)
+├── setup.py              # Packaging and installation script
+├── pyproject.toml        # Project metadata and dependencies
+├── requirements.txt      # Python dependencies for development
+├── LICENSE               # Project license
+├── MANIFEST.in           # Package manifest
+├── README.md             # Project overview and usage
+├── docs/                 # Documentation (Markdown files)
+└── kubelingo/            # Core application package
+    ├── __init__.py
+    ├── cli.py            # Main CLI implementation
+    ├── data/             # Bundled quiz data (JSON)
+    ├── modules/          # YAML editor and related modules
+    └── tools/            # Cloud integration and session management
 ```
 
 ## Creating Custom Questions
