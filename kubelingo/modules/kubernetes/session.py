@@ -32,6 +32,14 @@ class _AnsiStyle:
 Fore = _AnsiFore()
 Style = _AnsiStyle()
 
+# Quiz data directory (project root 'data/' directory)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+DATA_DIR = os.path.join(ROOT, 'data')
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'ckad_quiz_data.json')
+# History file for storing past quiz performance
+HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
+
+
 def check_dependencies(*commands):
     """Check if all command-line tools in `commands` are available."""
     missing = []
@@ -40,8 +48,97 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-class NewSession(StudySession):
-    """A study session for live Kubernetes exercises on a temporary EKS cluster or existing context."""
+def load_questions(data_file):
+    # Load quiz data from JSON file
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error loading quiz data from {data_file}: {e}")
+        sys.exit(1)
+    questions = []
+    for cat in data:
+        category = cat.get('category', '')
+        for item in cat.get('prompts', []):
+            question_type = item.get('type', 'command')
+            question = {
+                'category': category,
+                'prompt': item.get('prompt', ''),
+                'explanation': item.get('explanation', ''),
+                'type': question_type,
+                'review': item.get('review', False)
+            }
+            if question_type == 'yaml_edit':
+                if not yaml:
+                    # If yaml lib is missing, we can't process these questions.
+                    continue
+                question['starting_yaml'] = item.get('starting_yaml', '')
+                question['correct_yaml'] = item.get('correct_yaml', '')
+            elif question_type == 'live_k8s_edit':
+                question['starting_yaml'] = item.get('starting_yaml', '')
+                question['assert_script'] = item.get('assert_script', '')
+            else:  # command
+                question['response'] = item.get('response', '')
+            questions.append(question)
+    return questions
+    
+def mark_question_for_review(data_file, category, prompt_text):
+    """Adds 'review': True to the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text:
+                    item['review'] = True
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
+    
+
+def unmark_question_for_review(data_file, category, prompt_text):
+    """Removes 'review' flag from the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text and item.get('review'):
+                    del item['review']
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+
+class KubernetesSession(StudySession):
+    """A study session for all Kubernetes-related quizzes."""
 
     def __init__(self, logger):
         super().__init__(logger)
@@ -114,45 +211,201 @@ class NewSession(StudySession):
         print(Fore.RED + "Invalid choice. Aborting." + Style.RESET_ALL)
         return False
 
-    def run_exercises(self, exercises):
-        """Dispatch to either command-line quiz or live cluster exercises."""
-        # Command-line kubectl quiz
-        if self.mode == 'cli':
-            print(Fore.YELLOW + "Starting kubectl command-line quiz..." + Style.RESET_ALL)
-            try:
-                from kubelingo.cli import run_quiz
-            except ImportError:
-                print(Fore.RED + "Internal error: cannot launch command-line quiz." + Style.RESET_ALL)
-                return
-            # exercises is the path to the JSON quiz data file
-            run_quiz(exercises, 0)
+    def run_exercises(self, cli_args):
+        """Runs a quiz session, handling command, YAML, and live Kubernetes questions."""
+        data_file = cli_args.file
+        max_q = cli_args.num
+        category_filter = cli_args.category
+        review_only = cli_args.review_only
+
+        questions = load_questions(data_file)
+        # Get all categories for interactive selection if no filter is provided
+        all_categories = sorted(list(set(q['category'] for q in questions if q['category'])))
+        # If a filter is provided, validate it
+        if category_filter and category_filter not in all_categories:
+            print(f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}")
             return
-        # Live cluster exercises
-        if self.mode == 'live':
+        # If no filter, but there are categories, let the user choose
+        if not category_filter and all_categories and questionary is not None:
             try:
-                from kubelingo.cli import load_questions
-            except ImportError:
-                print(Fore.RED + "Internal error: cannot load live exercises." + Style.RESET_ALL)
+                choices = ['ALL'] + all_categories
+                category_filter = questionary.select(
+                    "Which category do you want to be quizzed on?",
+                    choices=choices
+                ).ask()
+                if category_filter is None:
+                    print("\nExiting.")
+                    return
+                if category_filter == 'ALL':
+                    category_filter = None
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
                 return
-            # Load only live exercises
-            all_qs = load_questions(exercises)
-            live_qs = [q for q in all_qs if q.get('type') == 'live_k8s_edit']
-            if not live_qs:
-                print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
+
+        # Filter questions by category if a filter is set
+        if category_filter:
+            questions = [q for q in questions if q['category'] == category_filter]
+
+        if review_only:
+            questions = [q for q in questions if q.get('review')]
+            if not questions:
+                print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
                 return
-            for i, q in enumerate(live_qs, 1):
-                print(f"\n{Fore.CYAN}=== Live Kubernetes Exercise {i}/{len(live_qs)} ==={Style.RESET_ALL}")
-                print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
-                is_correct, user_yaml = self._run_one_exercise(q)
-                exp = q.get('assert_script', '')
-                log_ans = (user_yaml[:200] + '...') if len(user_yaml) > 200 else user_yaml
-                log_exp = (exp[:200] + '...') if len(exp) > 200 else exp
-                self.logger.info(
-                    f"Question {i}/{len(live_qs)}: prompt=\"{q['prompt']}\" expected=\"{log_exp}\""
-                    f" answer=\"{log_ans}\" result=\"{'correct' if is_correct else 'incorrect'}\""
-                )
-            return
-        print(Fore.RED + "Session mode not set. Cannot run exercises." + Style.RESET_ALL)
+            print(Fore.MAGENTA + f"Starting review session for {len(questions)} flagged questions." + Style.RESET_ALL)
+
+        random.shuffle(questions)
+        
+        if max_q == 0:
+            max_q = len(questions)
+
+        if len(questions) < max_q:
+            max_q = len(questions)
+            if max_q == 0:
+                print("No questions found for the selected category.")
+                return
+            print(f"Not enough questions, setting quiz length to {max_q}")
+        
+        quiz_questions = questions[:max_q]
+        
+        category_stats = {cat: {'asked': 0, 'correct': 0} for cat in all_categories}
+        
+        start_time = datetime.now()
+        print(f"\nStarting quiz with {len(quiz_questions)} questions... (press Ctrl+D to exit anytime)")
+        
+        correct = 0
+        asked = 0
+        for i, q in enumerate(quiz_questions):
+            asked += 1
+            cat = q['category']
+            if cat:
+                category_stats.setdefault(cat, {'asked': 0, 'correct': 0})['asked'] += 1
+            
+            if i > 0:
+                elapsed = (datetime.now() - start_time).total_seconds()
+                avg_time = elapsed / i
+                remaining_q = len(quiz_questions) - i
+                remaining_time = timedelta(seconds=int(avg_time * remaining_q))
+                remaining_str = str(remaining_time)
+            else:
+                remaining_str = "..."
+            
+            print(Fore.CYAN + f"[{asked}/{len(quiz_questions)}] Remaining: {remaining_str} Category: {q['category']}" + Style.RESET_ALL)
+            print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
+            
+            q_type = q.get('type', 'command')
+            is_correct = False
+            user_answer_str = ""
+
+            if q_type == 'live_k8s_edit':
+                if not self.cluster_name:
+                    print(Fore.RED + "Cannot run live exercise: session not initialized for a cluster." + Style.RESET_ALL)
+                    continue
+                is_correct, user_answer_str = self._run_one_exercise(q)
+            elif q_type == 'yaml_edit':
+                if not yaml:
+                    print(Fore.RED + "YAML questions require 'PyYAML'. Skipping." + Style.RESET_ALL)
+                    continue
+                with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp:
+                    tmp.write(q.get('starting_yaml', ''))
+                    tmp_path = tmp.name
+                
+                editor = os.environ.get('EDITOR', 'vim')
+                print(f"Opening a temp file in '{editor}' for you to edit...")
+                try:
+                    subprocess.run([editor, tmp_path], check=True)
+                except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                    print(Fore.RED + f"Error opening editor '{editor}': {e}. Skipping." + Style.RESET_ALL)
+                    os.remove(tmp_path)
+                    continue
+                
+                with open(tmp_path, 'r', encoding='utf-8') as f:
+                    user_answer_str = f.read()
+                os.remove(tmp_path)
+
+                try:
+                    user_data = yaml.safe_load(user_answer_str) or {}
+                    correct_data = yaml.safe_load(q.get('correct_yaml', ''))
+                    is_correct = (user_data == correct_data)
+                except yaml.YAMLError as e:
+                    print(Fore.RED + f"Your response was not valid YAML: {e}" + Style.RESET_ALL)
+                
+                if not is_correct:
+                    print(Fore.RED + "Incorrect. Correct YAML:" + Style.RESET_ALL)
+                    print(Fore.GREEN + q.get('correct_yaml', '') + Style.RESET_ALL)
+                
+                log_expected_answer = (q.get('correct_yaml', '')[:200] + '...') if len(q.get('correct_yaml', '')) > 200 else q.get('correct_yaml', '')
+                self.logger.info(f"Question {asked}/{len(quiz_questions)}: type={q_type} prompt=\"{q['prompt']}\" expected=\"{log_expected_answer}\" answer=\"{user_answer_str}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
+            else: # command
+                try:
+                    user_answer_str = input('Your answer: ').strip()
+                except EOFError:
+                    print()
+                    break
+                is_correct = commands_equivalent(user_answer_str, q['response'])
+                if not is_correct:
+                    print(Fore.RED + "Incorrect. Correct answer: " + Style.RESET_ALL + Fore.GREEN + q['response'] + Style.RESET_ALL)
+                self.logger.info(f"Question {asked}/{len(quiz_questions)}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{user_answer_str}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
+            if is_correct:
+                print(Fore.GREEN + 'Correct!' + Style.RESET_ALL)
+                correct += 1
+                if cat:
+                    category_stats.setdefault(cat, {'asked': 0, 'correct': 0})['correct'] += 1
+            
+            if q.get('explanation'):
+                level = Fore.GREEN if is_correct else Fore.RED
+                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL)
+            
+            print() # newline after explanation
+
+            try:
+                if review_only:
+                    review = input("Un-flag this question? [y/N]: ").strip().lower()
+                    if review.startswith('y'):
+                        unmark_question_for_review(data_file, q['category'], q['prompt'])
+                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                else:
+                    review = input("Flag this question for review? [y/N]: ").strip().lower()
+                    if review.startswith('y'):
+                        mark_question_for_review(data_file, q['category'], q['prompt'])
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            print() # newline
+
+        end_time = datetime.now()
+        duration = end_time - start_time
+        duration_fmt = str(duration).split('.')[0]
+        
+        print('--- Quiz Finished ---')
+        print(f'Score: {correct}/{asked}')
+        if asked > 0:
+            pct = (correct / asked) * 100
+            print(f'Percentage: {pct:.1f}%')
+        print(f'Time taken: {duration_fmt}')
+        
+        history_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'num_questions': asked,
+            'num_correct': correct,
+            'duration': duration_fmt,
+            'data_file': data_file,
+            'category_filter': category_filter,
+            'per_category': category_stats
+        }
+        
+        try:
+            history = []
+            if os.path.exists(HISTORY_FILE):
+                with open(HISTORY_FILE, 'r') as f:
+                    history = json.load(f)
+            history.append(history_entry)
+            with open(HISTORY_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+        except Exception as e:
+            print(f"Error saving quiz history: {e}")
 
     def _run_one_exercise(self, q):
         """Handles a single live Kubernetes question."""
