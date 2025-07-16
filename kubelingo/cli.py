@@ -522,11 +522,37 @@ def main():
 
     args = parser.parse_args()
 
-    # If no arguments provided, run the default CLI quiz silently
+    # If no arguments provided, show an interactive menu
     if len(sys.argv) == 1:
-        print(Fore.CYAN + "Type 'kubelingo --help' for full options." + Style.RESET_ALL)
-        run_quiz(args.file, args.num, args.category, review_only=args.review_only)
-        return
+        if questionary:
+            try:
+                choices = ['kubernetes', 'kustom', 'help']
+                action = questionary.select(
+                    "What would you like to do?",
+                    choices=choices
+                ).ask()
+
+                if action is None:  # User pressed Ctrl+C
+                    print("\nExiting.")
+                    return
+
+                if action == 'help':
+                    parser.print_help()
+                    return
+
+                # Map 'kustom' to the 'custom' module and set it for module execution
+                if action == 'kustom':
+                    args.module = 'custom'
+                else:
+                    args.module = action
+            except (EOFError, KeyboardInterrupt):
+                print("\nExiting.")
+                return
+        else:
+            # Fallback for when questionary is not installed
+            print(Fore.CYAN + "Type 'kubelingo --help' for full options." + Style.RESET_ALL)
+            parser.print_help()
+            return
     
     # Handle modes that exit immediately
     if args.history:
