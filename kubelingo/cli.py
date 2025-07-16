@@ -143,6 +143,33 @@ def mark_question_for_review(data_file, category, prompt_text):
     except Exception as e:
         print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
 
+def unmark_question_for_review(data_file, category, prompt_text):
+    """Removes 'review' flag from the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text and item.get('review'):
+                    del item['review']
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+
 def show_history():
     """Display quiz history and aggregated statistics."""
     if not os.path.exists(HISTORY_FILE):
@@ -189,7 +216,7 @@ def show_history():
         print("No per-category stats to aggregate.")
 
 
-def run_quiz(data_file, max_q, category_filter=None):
+def run_quiz(data_file, max_q, category_filter=None, review_only=False):
     # Configure logging
     log_file = 'quiz_log.txt'
     logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -219,6 +246,13 @@ def run_quiz(data_file, max_q, category_filter=None):
     # Filter questions by category if a filter is set
     if category_filter:
         questions = [q for q in questions if q['category'] == category_filter]
+
+    if review_only:
+        questions = [q for q in questions if q.get('review')]
+        if not questions:
+            print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
+            return
+        print(Fore.MAGENTA + f"Starting review session for {len(questions)} flagged questions." + Style.RESET_ALL)
 
     # Live k8s questions are handled separately by --cloud-mode
     live_k8s_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
@@ -350,14 +384,22 @@ def run_quiz(data_file, max_q, category_filter=None):
             # Log question result
             logger.info(f"Question {asked}/{max_q}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{ans}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
         
-        # Ask to flag for review
+        # Ask to flag for review or un-flag
         try:
-            review = input("Flag this question for review? [y/N]: ").strip().lower()
-            if review.startswith('y'):
-                mark_question_for_review(data_file, q['category'], q['prompt'])
-                print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL + '\n')
+            if review_only:
+                review = input("Un-flag this question? [y/N]: ").strip().lower()
+                if review.startswith('y'):
+                    unmark_question_for_review(data_file, q['category'], q['prompt'])
+                    print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL + '\n')
+                else:
+                    print()  # newline
             else:
-                print() # newline
+                review = input("Flag this question for review? [y/N]: ").strip().lower()
+                if review.startswith('y'):
+                    mark_question_for_review(data_file, q['category'], q['prompt'])
+                    print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL + '\n')
+                else:
+                    print()  # newline
         except (EOFError, KeyboardInterrupt):
             print()
             break
@@ -457,6 +499,8 @@ def main():
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
+    parser.add_argument('--review-flagged', action='store_true',
+                        help='Quiz only on questions flagged for review')
     parser.add_argument('--yaml-exercises', action='store_true',
                         help='Run semantic YAML editing exercises')
     parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
@@ -562,7 +606,7 @@ def main():
         return
 
     # Default action is to run the main quiz
-    run_quiz(args.file, args.num, args.category)
+    run_quiz(args.file, args.num, args.category, review_only=args.review_flagged)
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
