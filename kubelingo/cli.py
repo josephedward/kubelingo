@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import logging
 import shlex
+from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent
 from datetime import datetime
 from datetime import timedelta
 
@@ -85,74 +86,6 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-# Normalize and compare kubectl command variants (allow aliases like 'k' and resource shortcuts like 'ns')
-# Kubernetes command alias mappings
-_VERB_ALIASES = {
-    'apply': 'apply', 'create': 'create', 'get': 'get', 'describe': 'describe',
-    'delete': 'delete', 'del': 'delete', 'rm': 'delete', 'scale': 'scale',
-    'annotate': 'annotate', 'set': 'set', 'rollout': 'rollout',
-}
-_RESOURCE_ALIASES = {
-    'po': 'pods', 'pod': 'pods', 'pods': 'pods',
-    'svc': 'services', 'service': 'services', 'services': 'services',
-    'deploy': 'deployments', 'deployment': 'deployments', 'deployments': 'deployments',
-    'ns': 'namespaces', 'namespace': 'namespaces', 'namespaces': 'namespaces',
-}
-_FLAG_ALIASES = {
-    '-n': '--namespace', '--namespace': '--namespace',
-    '-o': '--output', '--output': '--output',
-    '-f': '--filename', '--filename': '--filename',
-    '--dry-run': '--dry-run', '--record': '--record',
-    '--replicas': '--replicas', '--image': '--image',
-}
-
-def normalize_command(cmd_str):
-    """Parse a kubectl command into canonical tokens: map aliases, group flags, sort flags, and lower-case."""
-    tokens = shlex.split(cmd_str)
-    tokens = [t.lower() for t in tokens]
-    norm = []
-    i = 0
-    # command name
-    if i < len(tokens) and tokens[i] in ('k', 'kubectl'):
-        norm.append('kubectl')
-        i += 1
-    elif i < len(tokens):
-        norm.append(tokens[i])
-        i += 1
-    # verb
-    if i < len(tokens):
-        norm.append(_VERB_ALIASES.get(tokens[i], tokens[i]))
-        i += 1
-    # resource (positional, if not a flag)
-    if i < len(tokens) and not tokens[i].startswith('-'):
-        norm.append(_RESOURCE_ALIASES.get(tokens[i], tokens[i]))
-        i += 1
-    # flags and args
-    args = []
-    flags = []
-    while i < len(tokens):
-        tok = tokens[i]
-        if tok.startswith('-'):
-            name = tok
-            val = None
-            if '=' in tok:
-                name, val = tok.split('=', 1)
-            else:
-                if i + 1 < len(tokens) and not tokens[i + 1].startswith('-'):
-                    val = tokens[i + 1]
-                    i += 1
-            name = _FLAG_ALIASES.get(name, name)
-            flags.append(f'{name}={val}' if val is not None else name)
-        else:
-            args.append(tok)
-        i += 1
-    norm.extend(args)
-    norm.extend(sorted(flags))
-    return norm
-
-def commands_equivalent(ans, expected):
-    """Return True if two kubectl command strings are equivalent after normalization."""
-    return normalize_command(ans) == normalize_command(expected)
 
 def load_questions(data_file):
     # Load quiz data from JSON file
@@ -704,21 +637,16 @@ def main():
                 os.environ['KUBECTL_CONTEXT'] = args.cluster_context
             run_yaml_editing_mode(file_path)
             return
-        # Legacy live cloud-based Kubernetes exercises
-        log_file = 'quiz_cloud_log.txt'
-        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-        logger = logging.getLogger()
-        questions = load_questions(args.file)
-        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
-        if not cloud_qs:
-            print("No live Kubernetes cloud exercises found in data file.")
-            return
-        for i, q in enumerate(cloud_qs, 1):
-            print(f"\n{Fore.CYAN}=== Cloud Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
-            is_correct, _ = handle_live_k8s_question(q, logger)
-            if q.get('explanation'):
-                level = Fore.GREEN if is_correct else Fore.RED
-                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        # Live Kubernetes cloud exercises via pluggable session module
+        from kubelingo.modules.kubernetes.session import KubernetesSession
+        session = KubernetesSession(
+            questions_file=args.file,
+            exercises_file=None,
+            cluster_context=args.cluster_context
+        )
+        session.initialize()
+        session.run_exercises()
+        session.cleanup()
         return
 
     questions = load_questions(args.file)
