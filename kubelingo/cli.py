@@ -660,6 +660,10 @@ def main():
     
     args = parser.parse_args()
     
+    # If no arguments are given, default to listing categories
+    if len(sys.argv) == 1:
+        args.list_categories = True
+    
     # Handle special modes first
     if args.history:
         show_history()
