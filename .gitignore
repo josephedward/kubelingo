@@ -1,10 +1,26 @@
-# Virtual environment directory
-.venv/
-# Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
-*$py.class
-/logs
-.env
-.aider*
+*.so
+*.egg-info/
+dist/
+build/
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.venv/
+env/
+venv/
+*.swp
+*.swo
 .DS_Store
+*.log
+*.txt
+kubelingo-work/
+logs/
+.aider.chat.history.md
+.aider.input.history
