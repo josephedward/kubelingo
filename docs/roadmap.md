@@ -5,7 +5,6 @@ This document outlines the vision, features, and enhancements planned for the Ku
 
 > _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._
 
-
 ## Phase 1: Core Enhancements
 
 Focus on solidifying the core quiz experience and adding high-value features.
