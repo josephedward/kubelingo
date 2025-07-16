@@ -383,24 +383,30 @@ def main():
 
     # Handle module-based execution.
     if args.module:
+        log_file = 'quiz_log.txt'
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
         logger = logging.getLogger()
+
+        # The `custom` module needs special handling for the file path
+        if args.module == 'custom':
+            if not args.custom_file and not args.exercises:
+                print(Fore.RED + "For the 'custom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
+                return
+        
         session = load_session(args.module, logger)
         if session:
             init_ok = session.initialize()
             if not init_ok:
+                print(Fore.RED + f"Module '{args.module}' initialization failed. Exiting." + Style.RESET_ALL)
                 return
-            # Determine exercises argument for the module
-            if args.module == 'kubernetes':
-                exercises_arg = args.file
-            else:
-                exercises_arg = args.custom_file or args.exercises
-            session.run_exercises(exercises_arg)
+
+            session.run_exercises(args)
             session.cleanup()
         else:
             print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
         return
 
-    # No default quiz: require module selection
+    # If no module was selected and no other command was run, show help.
     parser.print_help()
 
 # Alias for backward-compatibility
