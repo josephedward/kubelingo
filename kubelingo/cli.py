@@ -191,10 +191,39 @@ def run_command_quiz(args):
         print(f"\n{Fore.YELLOW}Question {i}/{total_asked} (Category: {category}){Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-        try:
-            user_answer = input(f"{Fore.CYAN}Your answer: {Style.RESET_ALL}").strip()
-        except (EOFError, KeyboardInterrupt):
-            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+        # Loop to allow for 'llm' help without failing the question
+        while True:
+            try:
+                user_answer = input(f"{Fore.CYAN}Your answer (or 'llm' for help): {Style.RESET_ALL}").strip()
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                user_answer = "QUIT_QUIZ"  # Special value to break outer loop
+                break
+
+            if user_answer.lower() == 'llm':
+                print(f"{Fore.YELLOW}Asking for a hint...{Style.RESET_ALL}")
+                try:
+                    log_file = 'quiz_log.txt'
+                    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+                    logger = logging.getLogger()
+                    session = load_session('llm', logger)
+                    if session:
+                        if session.initialize():
+                            session.run_exercises(q)  # pass the question dict
+                            session.cleanup()
+                        else:
+                            print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
+                    else:
+                        print(Fore.RED + "Failed to load LLM module." + Style.RESET_ALL)
+                except Exception as e:
+                    print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
+                # After getting help, prompt for the answer again.
+                continue
+            else:
+                # User provided a real answer, break the help loop.
+                break
+
+        if user_answer == "QUIT_QUIZ":
             break
 
         is_correct = commands_equivalent(user_answer, q.get('response', ''))
