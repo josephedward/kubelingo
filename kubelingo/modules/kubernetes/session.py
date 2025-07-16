@@ -1,10 +1,24 @@
+import json
 import os
 import random
 import shutil
 import subprocess
+import sys
 import tempfile
+from datetime import datetime, timedelta
+
+try:
+    import questionary
+except ImportError:
+    questionary = None
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 from kubelingo.modules.base.session import StudySession
+from kubelingo.modules.k8s_quiz import commands_equivalent
 
 # Colored terminal output (ANSI codes) - copied from cli.py
 class _AnsiFore:
