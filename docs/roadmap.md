@@ -3,85 +3,8 @@
 
 This document outlines the vision, features, and enhancements planned for the Kubelingo CLI quiz tool. It is organized into key focus areas and milestone ideas.
 
-## 1. Core Quiz Functionality
-- Command-based quizzes (kubectl commands, flags, resource shortcuts)
-- YAML edit quizzes (load starting YAML, apply edits, compare against expected)
-- Vim command quizzes (interactive Vim shortcut and command practice)
-- Live Kubernetes cluster quizzes (apply/validate on a real or simulated cluster)
-- Question categories, randomization, and scheduling
-
-## 2. Sandbox & Homelab Cluster Integration
-- **Cloud Sandboxes** (AWS, GCP, Azure)
-  - Authentication flows (gosandbox, AWS IAM, GCP service accounts)
-  - Ephemeral cluster provisioning (eksctl, kind, kops)
-  - Credential exporting and isolation per quiz
-  - Cleanup logic and error handling
-  - Command capture and logging for scoring
-- **On-Prem / Homelab Clusters**
-  - Support local kind, k3s, microk8s, minikube contexts
-  - Automatic context detection and kubeconfig management
-  - Performance profiling differences between cloud and homelab
-  - Secure access (SSH tunneling, kubeconfig distribution)
-- **Cluster Provider Interface**
-  - Abstract provider API (start, stop, validate, clean)
-  - Plugin system for external repos to implement new providers
-
-## 3. Validation & Scoring
-- Accurate command normalization (aliases, resource shortcuts, flags)
-- Exit-code based correctness and output diffs
-- YAML semantic comparison (using schemas or `kubectl diff` semantics)
-- Detailed feedback: diff highlights, line-by-line hints
-- Explanation and review-flagging per question
-
-## 4. Metrics & Analytics
-- Real-time timing metrics (per-question and total quiz duration)
-- Historical tracking of performance (correct % over time)
-- Per-category and per-difficulty aggregation
-- Exportable reports (JSON, CSV)
-- Optional central server or dashboard integration (Grafana, Prometheus)
-
-## 5. Customization & Difficulty Levels
-- Adjustable difficulty (Easy, Medium, Hard) based on:
-  - Command complexity (simple `get` vs `kubectl patch --type=json`)
-  - YAML exercise depth (simple edit vs multi-resource manifests)
-  - Time limits per question
-- User profiles & preferences (favorite categories, skip lists)
-- Custom quiz definitions and imports (local JSON files)
-- Weighted randomization and adaptive question selection
-
-## 6. UX & CLI Enhancements
-- Interactive menus and filters (questionary, arrow keys)
-- Enhanced ASCII art / branding / color themes
-- Toggleable color output and accessibility modes
-- Tab-completion and fuzzy search (fzf, readline)
-- Localization / i18n support
-- Progress bars and spinners for long operations
-
-## 7. Testing & Continuous Integration
-- Unit tests for core modules (question loading, scoring logic)
-- Integration tests against kind or mock clusters
-- E2E tests: full quiz flows, sandbox provisioning
-- Pre-commit hooks: linting, formatting (black, flake8)
-- CI pipeline for packaging, publishing, and coverage
-
-## 8. Documentation & Community
-- Comprehensive user guide and examples
-- Quickstart tutorial for new users
-- API reference for plugin authors
-- Contribution guidelines, code of conduct, issue templates
-- GitHub Projects/Boards to track roadmap items in issues
-
-## 9. Future Vision & Extensions
-- Web UI or TUI for richer interactive experience
-- Real-time collaborative quizzes (pair mode)
-- Integrations with GitHub Actions and CI pipelines
-- Mobile or VSCode extension for on-the-go practice
-- AI-powered question generation and hints
-- Support for other CNCF projects (Helm, Prometheus, Istio)
-
 > _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._# KubeLingo Project Roadmap
 
-This document outlines the planned features and improvements for KubeLingo. The roadmap is divided into several key areas, reflecting our vision for making this the best tool for learning and practicing Kubernetes skills.
 
 ## Phase 1: Core Enhancements
 
