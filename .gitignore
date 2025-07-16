@@ -25,3 +25,4 @@ logs/
 .aider.input.history
 .aider*
 misc
+/pytest-of-user
