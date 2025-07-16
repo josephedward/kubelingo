@@ -525,8 +525,8 @@ def main():
     if len(sys.argv) == 1:
         if questionary:
             try:
-                # Interactive modules: k8s cluster exercises and custom quizzes
-                choices = ['k8s', 'kustom', 'help']
+                # Interactive modules: k8s cluster exercises, custom quizzes, and flagged questions
+                choices = ['k8s', 'kustom', 'flagged', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -566,14 +566,17 @@ def main():
                 parser.print_help()
                 break
 
-            if action == 'k8s':
-                if run_command_quiz(args) == 'back_to_main':
-                    restart_loop = True
-
-            elif action == 'kustom':
-                args.module = 'custom'
-            else:
-                args.module = action
+                if action == 'k8s':
+                    if run_command_quiz(args) == 'back_to_main':
+                        restart_loop = True
+                elif action == 'flagged':
+                    args.review_only = True
+                    if run_command_quiz(args) == 'back_to_main':
+                        restart_loop = True
+                elif action == 'kustom':
+                    args.module = 'custom'
+                else:
+                    args.module = action
     
     if restart_loop:
         sys.argv = [sys.argv[0]]
