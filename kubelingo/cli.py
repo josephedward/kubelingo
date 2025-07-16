@@ -303,7 +303,7 @@ def main():
         if questionary:
             try:
                 # Interactive modules: k8s cluster exercises and custom quizzes
-                choices = ['k8s', 'kustom', 'help']
+                choices = ['k8s', 'custom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -324,7 +324,7 @@ def main():
                 return
         else:
             # Fallback prompt
-            valid = ['k8s', 'kustom', 'help']
+            valid = ['k8s', 'custom', 'help']
             while True:
                 try:
                     print("What would you like to do? Available options: k8s, kustom, help")
@@ -383,31 +383,38 @@ def main():
 
     # Handle module-based execution.
     if args.module:
+        # Map alias 'k8s' to 'kubernetes'
+        module_name = args.module.lower()
+        if module_name == 'k8s':
+            module_name = 'kubernetes'
+        # Kubernetes alias runs the classic commands quiz
+        if module_name == 'kubernetes':
+            run_quiz(args.file, args.num, args.category, review_only=args.review_only)
+            return
+        # Prepare logging for other modules
         log_file = 'quiz_log.txt'
         logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
         logger = logging.getLogger()
-
         # The `custom` module needs special handling for the file path
-        if args.module == 'custom':
+        if module_name == 'custom':
             if not args.custom_file and not args.exercises:
                 print(Fore.RED + "For the 'custom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
                 return
-        
-        session = load_session(args.module, logger)
+        # Load and run the specified module's session
+        session = load_session(module_name, logger)
         if session:
             init_ok = session.initialize()
             if not init_ok:
-                print(Fore.RED + f"Module '{args.module}' initialization failed. Exiting." + Style.RESET_ALL)
+                print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
                 return
-
             session.run_exercises(args)
             session.cleanup()
         else:
-            print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
+            print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
         return
 
-    # If no module was selected and no other command was run, show help.
-    parser.print_help()
+    # Default to the classic command quiz if no module was selected and no other mode was triggered.
+    run_quiz(args.file, args.num, args.category, review_only=args.review_only)
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
