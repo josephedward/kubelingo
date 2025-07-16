@@ -386,7 +386,7 @@ def main():
         if questionary:
             try:
                 # Interactive modules: k8s cluster exercises and custom quizzes
-                choices = ['k8s', 'kustom', 'help']
+                choices = ['k8s', 'custom', 'llm', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -404,17 +404,17 @@ def main():
                 return
         else:
             # Fallback prompt
-            valid = ['k8s', 'kustom', 'help']
+            valid = ['k8s', 'custom', 'llm', 'help']
             while True:
                 try:
-                    print("What would you like to do? Available options: k8s, kustom, help")
+                    print("What would you like to do? Available options: k8s, custom, llm, help")
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     return
                 if action in valid:
                     break
-                print("Invalid choice. Please enter one of: k8s, kustom, help.")
+                print("Invalid choice. Please enter one of: k8s, custom, llm, help.")
             if action == 'help':
                 parser.print_help()
                 return
@@ -477,6 +477,8 @@ def main():
         module_name = args.module.lower()
         if module_name in ('k8s', 'kubernetes'):
             module_name = 'kubernetes'
+        elif module_name in ('llm', 'kustom'):
+            module_name = 'custom'
 
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
@@ -485,7 +487,7 @@ def main():
         # The `custom` module needs special handling for the file path
         if module_name == 'custom':
             if not args.custom_file and not args.exercises:
-                print(Fore.RED + "For the 'custom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
+                print(Fore.RED + "For the 'custom' or 'llm' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
                 return
         # Load and run the specified module's session
         session = load_session(module_name, logger)
