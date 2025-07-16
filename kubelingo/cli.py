@@ -526,7 +526,8 @@ def main():
     if len(sys.argv) == 1:
         if questionary:
             try:
-                choices = ['quiz', 'custom', 'help']
+                # Interactive modules: k8s cluster exercises and custom quizzes
+                choices = ['k8s', 'kustom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -537,32 +538,34 @@ def main():
                 if action == 'help':
                     parser.print_help()
                     return
-                if action == 'quiz':
+                # Map friendly names to module names
+                if action == 'k8s':
                     args.module = 'kubernetes'
                 else:
-                    args.module = action
+                    args.module = 'custom'
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
         else:
-            # Fallback for when questionary is not installed, use simple input prompt
+            # Fallback prompt
+            valid = ['k8s', 'kustom', 'help']
             while True:
                 try:
-                    print("What would you like to do? Available options: quiz, custom, help")
+                    print("What would you like to do? Available options: k8s, kustom, help")
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     return
-                if action in ['quiz', 'custom', 'help']:
+                if action in valid:
                     break
-                print("Invalid choice. Please enter quiz, custom, or help.")
+                print("Invalid choice. Please enter one of: k8s, kustom, help.")
             if action == 'help':
                 parser.print_help()
                 return
-            if action == 'quiz':
+            if action == 'k8s':
                 args.module = 'kubernetes'
             else:
-                args.module = action
+                args.module = 'custom'
     
     # Handle modes that exit immediately
     if args.history:
@@ -604,27 +607,25 @@ def main():
 
     # Handle module-based execution.
     if args.module:
-        # The 'kubernetes' module runs the command quiz directly.
-        if args.module == 'kubernetes':
-            run_quiz(args.file, args.num, args.category, review_only=args.review_only)
-            return
-
-        # For other modules, load and run the session.
         logger = logging.getLogger()
         session = load_session(args.module, logger)
         if session:
             init_ok = session.initialize()
             if not init_ok:
                 return
-            exercises_file = args.custom_file or args.exercises
-            session.run_exercises(exercises_file)
+            # Determine exercises argument for the module
+            if args.module == 'kubernetes':
+                exercises_arg = args.file
+            else:
+                exercises_arg = args.custom_file or args.exercises
+            session.run_exercises(exercises_arg)
             session.cleanup()
         else:
             print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
         return
 
-    # Default action: run the classic command quiz if no other mode was triggered
-    run_quiz(args.file, args.num, args.category, review_only=args.review_only)
+    # No default quiz: require module selection
+    parser.print_help()
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
