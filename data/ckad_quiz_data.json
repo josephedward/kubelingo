@@ -104,11 +104,13 @@
       },
       {
         "prompt": "Set the current context to use the 'production' namespace by default",
-        "response": "kubectl config set-context --current --namespace=production"
+        "response": "kubectl config set-context --current --namespace=production",
+        "review": true
       },
       {
         "prompt": "Verify which namespace is currently being used in your context",
-        "response": "kubectl config view --minify | grep namespace:"
+        "response": "kubectl config view --minify | grep namespace:",
+        "review": true
       },
       {
         "prompt": "Create a new namespace called 'testing' and output its YAML definition",
@@ -116,15 +118,18 @@
       },
       {
         "prompt": "List all resources across all namespaces",
-        "response": "kubectl get all -A"
+        "response": "kubectl get all -A",
+        "review": true
       },
       {
         "prompt": "List all pods in the 'kube-system' namespace",
-        "response": "kubectl get pods -n kube-system"
+        "response": "kubectl get pods -n kube-system",
+        "review": true
       },
       {
         "prompt": "Create a pod in the 'development' namespace",
-        "response": "kubectl run nginx --image=nginx -n development"
+        "response": "kubectl run nginx --image=nginx -n development",
+        "review": true
       },
       {
         "prompt": "Delete a namespace called 'testing' and all its resources",
@@ -136,7 +141,8 @@
       },
       {
         "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
-        "response": "kubectl create quota ns-quota --hard=pods=10 -n development"
+        "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
+        "review": true
       }
     ]
   },
@@ -157,7 +163,8 @@
       },
       {
         "prompt": "Create a ConfigMap from all files in the '/configs' directory",
-        "response": "kubectl create cm app-settings --from-file=/configs"
+        "response": "kubectl create cm app-settings --from-file=/configs",
+        "review": true
       },
       {
         "prompt": "Create a pod that uses a ConfigMap as environment variables",
@@ -250,112 +257,410 @@
         "response": "kubectl create sa deployment-sa"
       },
       {
-        "prompt": "List all Service Accounts in the current namespace","response": "kubectl get sa"
+        "prompt": "List all Service Accounts in the current namespace",
+        "response": "kubectl get sa"
       }
     ]
   },
   {
     "category": "Additional Commands",
     "prompts": [
-      {"prompt": "Create an alias 'k' for 'kubectl'", "response": "alias k=kubectl"},
-      {"prompt": "Enable kubectl autocompletion for bash", "response": "source <(kubectl completion bash)"},
-      {"prompt": "Add kubectl autocompletion to ~/.bashrc", "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc"},
-      {"prompt": "Set the KUBECONFIG environment variable to /home/user/config", "response": "export KUBECONFIG=/home/user/config"},
-      {"prompt": "Check the kubectl client and server versions", "response": "kubectl version"},
-      {"prompt": "Create a namespace named dev", "response": "kubectl create namespace dev"},
-      {"prompt": "List all namespaces", "response": "kubectl get namespaces"},
-      {"prompt": "Describe namespace dev", "response": "kubectl describe namespace dev"},
-      {"prompt": "Delete namespace dev", "response": "kubectl delete namespace dev"},
-      {"prompt": "Create a deployment named frontend using image nginx:1.14", "response": "kubectl create deployment frontend --image=nginx:1.14"},
-      {"prompt": "List all deployments", "response": "kubectl get deployments"},
-      {"prompt": "Describe deployment frontend", "response": "kubectl describe deployment frontend"},
-      {"prompt": "Scale deployment frontend to 3 replicas", "response": "kubectl scale deployment frontend --replicas=3"},
-      {"prompt": "Roll back the deployment frontend to the previous version", "response": "kubectl rollout undo deployment frontend"},
-      {"prompt": "Restart the deployment frontend", "response": "kubectl rollout restart deployment frontend"},
-      {"prompt": "Delete deployment frontend", "response": "kubectl delete deployment frontend"},
-      {"prompt": "Run a pod named busybox with image busybox that runs indefinitely", "response": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\""},
-      {"prompt": "List all pods", "response": "kubectl get pods"},
-      {"prompt": "Describe pod busybox", "response": "kubectl describe pod busybox"},
-      {"prompt": "Delete pod busybox", "response": "kubectl delete pod busybox"},
-      {"prompt": "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc", "response": "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc"},
-      {"prompt": "List all services", "response": "kubectl get services"},
-      {"prompt": "Describe service frontend-svc", "response": "kubectl describe service frontend-svc"},
-      {"prompt": "Delete service frontend-svc", "response": "kubectl delete service frontend-svc"},
-      {"prompt": "Create a ConfigMap named app-config from file config.yaml", "response": "kubectl create configmap app-config --from-file=config.yaml"},
-      {"prompt": "List all ConfigMaps", "response": "kubectl get configmaps"},
-      {"prompt": "Describe configmap app-config", "response": "kubectl describe configmap app-config"},
-      {"prompt": "Delete configmap app-config", "response": "kubectl delete configmap app-config"},
-      {"prompt": "Create a generic secret named db-secret with literal username and password", "response": "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret"},
-      {"prompt": "List all secrets", "response": "kubectl get secrets"},
-      {"prompt": "Describe secret db-secret", "response": "kubectl describe secret db-secret"},
-      {"prompt": "Delete secret db-secret", "response": "kubectl delete secret db-secret"},
-      {"prompt": "Create a ServiceAccount named default-sa", "response": "kubectl create serviceaccount default-sa"},
-      {"prompt": "List all ServiceAccounts", "response": "kubectl get serviceaccounts"},
-      {"prompt": "Describe serviceaccount default-sa", "response": "kubectl describe serviceaccount default-sa"},
-      {"prompt": "Delete serviceaccount default-sa", "response": "kubectl delete serviceaccount default-sa"},
-      {"prompt": "Label pod busybox with env=prod", "response": "kubectl label pod busybox env=prod"},
-      {"prompt": "Remove the label env from pod busybox", "response": "kubectl label pod busybox env-"},
-      {"prompt": "Annotate deployment frontend with description=test", "response": "kubectl annotate deployment frontend description=test"},
-      {"prompt": "Remove the annotation description from deployment frontend", "response": "kubectl annotate deployment frontend description-"},
-      {"prompt": "Apply the configuration in deployment.yaml", "response": "kubectl apply -f deployment.yaml"},
-      {"prompt": "Replace configmap using file configmap.yaml", "response": "kubectl replace -f configmap.yaml"},
-      {"prompt": "Open the file app.yaml in Vim", "response": "vim app.yaml"},
-      {"prompt": "Use kubectl to edit deployment frontend", "response": "kubectl edit deployment frontend"},
-      {"prompt": "Open service.yaml in Vim", "response": "vim service.yaml"},
-      {"prompt": "View logs of pod busybox", "response": "kubectl logs busybox"},
-      {"prompt": "Follow logs of pod busybox", "response": "kubectl logs busybox -f"},
-      {"prompt": "View logs of container nginx in pod frontend-pod", "response": "kubectl logs frontend-pod -c nginx"},
-      {"prompt": "Execute a shell in pod busybox", "response": "kubectl exec -it busybox -- /bin/sh"},
-      {"prompt": "Port-forward local port 8080 to port 80 on service frontend-svc", "response": "kubectl port-forward service/frontend-svc 8080:80"},
-      {"prompt": "Describe pod busybox for troubleshooting", "response": "kubectl describe pod busybox"},
-      {"prompt": "List all events", "response": "kubectl get events"},
-      {"prompt": "Get pod busybox in YAML format", "response": "kubectl get pods busybox -o yaml"},
-      {"prompt": "Get pod busybox in JSON format", "response": "kubectl get pods busybox -o json"},
-      {"prompt": "Copy file /tmp/data from pod busybox to current directory", "response": "kubectl cp busybox:/tmp/data ./"},
-      {"prompt": "Show resource usage of pods", "response": "kubectl top pods"},
-      {"prompt": "Show resource usage of nodes", "response": "kubectl top nodes"},
-      {"prompt": "Describe node worker-node-1", "response": "kubectl describe node worker-node-1"},
-      {"prompt": "View the current kubectl context", "response": "kubectl config current-context"},
-      {"prompt": "List all contexts", "response": "kubectl config get-contexts"},
-      {"prompt": "Switch kubectl context to minikube", "response": "kubectl config use-context minikube"},
-      {"prompt": "Set the namespace to dev in the current context", "response": "kubectl config set-context --current --namespace=dev"},
-      {"prompt": "Display cluster info", "response": "kubectl cluster-info"},
-      {"prompt": "Show available API resource types", "response": "kubectl api-resources"},
-      {"prompt": "Explain the fields of pods", "response": "kubectl explain pods"},
-      {"prompt": "Get pods with label app=frontend", "response": "kubectl get pods -l app=frontend"},
-      {"prompt": "Get pods with all labels", "response": "kubectl get pods --show-labels"},
-      {"prompt": "Apply deployment.yaml without sending to server (dry run)", "response": "kubectl apply -f deployment.yaml --dry-run=client"},
-      {"prompt": "Generate YAML for deployment 'test' using the nginx image without creating it", "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml"},
-      {"prompt": "Continuously watch pods", "response": "kubectl get pods -w"},
-      {"prompt": "Get all resources in all namespaces", "response": "kubectl get all -A"},
-      {"prompt": "List pods with status phase=Running", "response": "kubectl get pods --field-selector=status.phase=Running"},
-      {"prompt": "Watch the rollout status of deployment frontend", "response": "kubectl rollout status deployment/frontend -w"},
-      {"prompt": "Restart the deployment frontend", "response": "kubectl rollout restart deployment/frontend"},
-      {"prompt": "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU", "response": "kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80"},
-      {"prompt": "Check if you can create pods", "response": "kubectl auth can-i create pods"},
-      {"prompt": "Show only context names", "response": "kubectl config get-contexts -o name"},
-      {"prompt": "Open or create the file app.yaml in Vim", "response": "vim app.yaml"},
-      {"prompt": "Enter insert mode", "response": "i"},
-      {"prompt": "Exit insert mode", "response": "<Esc>"},
-      {"prompt": "Save and quit Vim", "response": ":wq"},
-      {"prompt": "Quit without saving", "response": ":q!"},
-      {"prompt": "Delete the current line", "response": "dd"},
-      {"prompt": "Yank (copy) the current line", "response": "yy"},
-      {"prompt": "Paste after the cursor", "response": "p"},
-      {"prompt": "Search forward for 'pattern'", "response": "/pattern"},
-      {"prompt": "Go to line N", "response": ":N"},
-      {"prompt": "Undo the last change", "response": "u"},
-      {"prompt": "Redo the last undone change", "response": "<C-r>"},
-      {"prompt": "Enter visual mode", "response": "v"},
-      {"prompt": "Enter visual line mode", "response": "V"},
-      {"prompt": "Enter visual block mode", "response": "<C-v>"},
-      {"prompt": "Enter replace mode", "response": "R"},
-      {"prompt": "Move to the next word", "response": "w"},
-      {"prompt": "Move to the previous word", "response": "b"},
-      {"prompt": "Move to the end of the word", "response": "e"},
-      {"prompt": "Move to the first character of the line", "response": "0"},
-      {"prompt": "Move to the end of the line", "response": "$"},
-      {"prompt": "Jump to matching bracket", "response": "%"}
+      {
+        "prompt": "Create an alias 'k' for 'kubectl'",
+        "response": "alias k=kubectl"
+      },
+      {
+        "prompt": "Enable kubectl autocompletion for bash",
+        "response": "source <(kubectl completion bash)"
+      },
+      {
+        "prompt": "Add kubectl autocompletion to ~/.bashrc",
+        "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc"
+      },
+      {
+        "prompt": "Set the KUBECONFIG environment variable to /home/user/config",
+        "response": "export KUBECONFIG=/home/user/config"
+      },
+      {
+        "prompt": "Check the kubectl client and server versions",
+        "response": "kubectl version"
+      },
+      {
+        "prompt": "Create a namespace named dev",
+        "response": "kubectl create namespace dev"
+      },
+      {
+        "prompt": "List all namespaces",
+        "response": "kubectl get namespaces"
+      },
+      {
+        "prompt": "Describe namespace dev",
+        "response": "kubectl describe namespace dev"
+      },
+      {
+        "prompt": "Delete namespace dev",
+        "response": "kubectl delete namespace dev"
+      },
+      {
+        "prompt": "Create a deployment named frontend using image nginx:1.14",
+        "response": "kubectl create deployment frontend --image=nginx:1.14"
+      },
+      {
+        "prompt": "List all deployments",
+        "response": "kubectl get deployments"
+      },
+      {
+        "prompt": "Describe deployment frontend",
+        "response": "kubectl describe deployment frontend"
+      },
+      {
+        "prompt": "Scale deployment frontend to 3 replicas",
+        "response": "kubectl scale deployment frontend --replicas=3"
+      },
+      {
+        "prompt": "Roll back the deployment frontend to the previous version",
+        "response": "kubectl rollout undo deployment frontend"
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment frontend"
+      },
+      {
+        "prompt": "Delete deployment frontend",
+        "response": "kubectl delete deployment frontend"
+      },
+      {
+        "prompt": "Run a pod named busybox with image busybox that runs indefinitely",
+        "response": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\""
+      },
+      {
+        "prompt": "List all pods",
+        "response": "kubectl get pods"
+      },
+      {
+        "prompt": "Describe pod busybox",
+        "response": "kubectl describe pod busybox"
+      },
+      {
+        "prompt": "Delete pod busybox",
+        "response": "kubectl delete pod busybox"
+      },
+      {
+        "prompt": "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc",
+        "response": "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc"
+      },
+      {
+        "prompt": "List all services",
+        "response": "kubectl get services"
+      },
+      {
+        "prompt": "Describe service frontend-svc",
+        "response": "kubectl describe service frontend-svc"
+      },
+      {
+        "prompt": "Delete service frontend-svc",
+        "response": "kubectl delete service frontend-svc"
+      },
+      {
+        "prompt": "Create a ConfigMap named app-config from file config.yaml",
+        "response": "kubectl create configmap app-config --from-file=config.yaml"
+      },
+      {
+        "prompt": "List all ConfigMaps",
+        "response": "kubectl get configmaps"
+      },
+      {
+        "prompt": "Describe configmap app-config",
+        "response": "kubectl describe configmap app-config"
+      },
+      {
+        "prompt": "Delete configmap app-config",
+        "response": "kubectl delete configmap app-config"
+      },
+      {
+        "prompt": "Create a generic secret named db-secret with literal username and password",
+        "response": "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret"
+      },
+      {
+        "prompt": "List all secrets",
+        "response": "kubectl get secrets"
+      },
+      {
+        "prompt": "Describe secret db-secret",
+        "response": "kubectl describe secret db-secret"
+      },
+      {
+        "prompt": "Delete secret db-secret",
+        "response": "kubectl delete secret db-secret"
+      },
+      {
+        "prompt": "Create a ServiceAccount named default-sa",
+        "response": "kubectl create serviceaccount default-sa"
+      },
+      {
+        "prompt": "List all ServiceAccounts",
+        "response": "kubectl get serviceaccounts"
+      },
+      {
+        "prompt": "Describe serviceaccount default-sa",
+        "response": "kubectl describe serviceaccount default-sa"
+      },
+      {
+        "prompt": "Delete serviceaccount default-sa",
+        "response": "kubectl delete serviceaccount default-sa"
+      },
+      {
+        "prompt": "Label pod busybox with env=prod",
+        "response": "kubectl label pod busybox env=prod"
+      },
+      {
+        "prompt": "Remove the label env from pod busybox",
+        "response": "kubectl label pod busybox env-"
+      },
+      {
+        "prompt": "Annotate deployment frontend with description=test",
+        "response": "kubectl annotate deployment frontend description=test"
+      },
+      {
+        "prompt": "Remove the annotation description from deployment frontend",
+        "response": "kubectl annotate deployment frontend description-"
+      },
+      {
+        "prompt": "Apply the configuration in deployment.yaml",
+        "response": "kubectl apply -f deployment.yaml"
+      },
+      {
+        "prompt": "Replace configmap using file configmap.yaml",
+        "response": "kubectl replace -f configmap.yaml"
+      },
+      {
+        "prompt": "Open the file app.yaml in Vim",
+        "response": "vim app.yaml"
+      },
+      {
+        "prompt": "Use kubectl to edit deployment frontend",
+        "response": "kubectl edit deployment frontend"
+      },
+      {
+        "prompt": "Open service.yaml in Vim",
+        "response": "vim service.yaml"
+      },
+      {
+        "prompt": "View logs of pod busybox",
+        "response": "kubectl logs busybox"
+      },
+      {
+        "prompt": "Follow logs of pod busybox",
+        "response": "kubectl logs busybox -f"
+      },
+      {
+        "prompt": "View logs of container nginx in pod frontend-pod",
+        "response": "kubectl logs frontend-pod -c nginx"
+      },
+      {
+        "prompt": "Execute a shell in pod busybox",
+        "response": "kubectl exec -it busybox -- /bin/sh"
+      },
+      {
+        "prompt": "Port-forward local port 8080 to port 80 on service frontend-svc",
+        "response": "kubectl port-forward service/frontend-svc 8080:80"
+      },
+      {
+        "prompt": "Describe pod busybox for troubleshooting",
+        "response": "kubectl describe pod busybox"
+      },
+      {
+        "prompt": "List all events",
+        "response": "kubectl get events"
+      },
+      {
+        "prompt": "Get pod busybox in YAML format",
+        "response": "kubectl get pods busybox -o yaml"
+      },
+      {
+        "prompt": "Get pod busybox in JSON format",
+        "response": "kubectl get pods busybox -o json"
+      },
+      {
+        "prompt": "Copy file /tmp/data from pod busybox to current directory",
+        "response": "kubectl cp busybox:/tmp/data ./"
+      },
+      {
+        "prompt": "Show resource usage of pods",
+        "response": "kubectl top pods"
+      },
+      {
+        "prompt": "Show resource usage of nodes",
+        "response": "kubectl top nodes"
+      },
+      {
+        "prompt": "Describe node worker-node-1",
+        "response": "kubectl describe node worker-node-1"
+      },
+      {
+        "prompt": "View the current kubectl context",
+        "response": "kubectl config current-context"
+      },
+      {
+        "prompt": "List all contexts",
+        "response": "kubectl config get-contexts"
+      },
+      {
+        "prompt": "Switch kubectl context to minikube",
+        "response": "kubectl config use-context minikube"
+      },
+      {
+        "prompt": "Set the namespace to dev in the current context",
+        "response": "kubectl config set-context --current --namespace=dev"
+      },
+      {
+        "prompt": "Display cluster info",
+        "response": "kubectl cluster-info"
+      },
+      {
+        "prompt": "Show available API resource types",
+        "response": "kubectl api-resources"
+      },
+      {
+        "prompt": "Explain the fields of pods",
+        "response": "kubectl explain pods"
+      },
+      {
+        "prompt": "Get pods with label app=frontend",
+        "response": "kubectl get pods -l app=frontend"
+      },
+      {
+        "prompt": "Get pods with all labels",
+        "response": "kubectl get pods --show-labels"
+      },
+      {
+        "prompt": "Apply deployment.yaml without sending to server (dry run)",
+        "response": "kubectl apply -f deployment.yaml --dry-run=client"
+      },
+      {
+        "prompt": "Generate YAML for deployment 'test' using the nginx image without creating it",
+        "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml"
+      },
+      {
+        "prompt": "Continuously watch pods",
+        "response": "kubectl get pods -w"
+      },
+      {
+        "prompt": "Get all resources in all namespaces",
+        "response": "kubectl get all -A"
+      },
+      {
+        "prompt": "List pods with status phase=Running",
+        "response": "kubectl get pods --field-selector=status.phase=Running"
+      },
+      {
+        "prompt": "Watch the rollout status of deployment frontend",
+        "response": "kubectl rollout status deployment/frontend -w"
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment/frontend"
+      },
+      {
+        "prompt": "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU",
+        "response": "kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80"
+      },
+      {
+        "prompt": "Check if you can create pods",
+        "response": "kubectl auth can-i create pods"
+      },
+      {
+        "prompt": "Show only context names",
+        "response": "kubectl config get-contexts -o name"
+      },
+      {
+        "prompt": "Open or create the file app.yaml in Vim",
+        "response": "vim app.yaml"
+      },
+      {
+        "prompt": "Enter insert mode",
+        "response": "i"
+      },
+      {
+        "prompt": "Exit insert mode",
+        "response": "<Esc>"
+      },
+      {
+        "prompt": "Save and quit Vim",
+        "response": ":wq"
+      },
+      {
+        "prompt": "Quit without saving",
+        "response": ":q!"
+      },
+      {
+        "prompt": "Delete the current line",
+        "response": "dd"
+      },
+      {
+        "prompt": "Yank (copy) the current line",
+        "response": "yy"
+      },
+      {
+        "prompt": "Paste after the cursor",
+        "response": "p"
+      },
+      {
+        "prompt": "Search forward for 'pattern'",
+        "response": "/pattern"
+      },
+      {
+        "prompt": "Go to line N",
+        "response": ":N"
+      },
+      {
+        "prompt": "Undo the last change",
+        "response": "u"
+      },
+      {
+        "prompt": "Redo the last undone change",
+        "response": "<C-r>"
+      },
+      {
+        "prompt": "Enter visual mode",
+        "response": "v"
+      },
+      {
+        "prompt": "Enter visual line mode",
+        "response": "V"
+      },
+      {
+        "prompt": "Enter visual block mode",
+        "response": "<C-v>"
+      },
+      {
+        "prompt": "Enter replace mode",
+        "response": "R"
+      },
+      {
+        "prompt": "Move to the next word",
+        "response": "w"
+      },
+      {
+        "prompt": "Move to the previous word",
+        "response": "b"
+      },
+      {
+        "prompt": "Move to the end of the word",
+        "response": "e"
+      },
+      {
+        "prompt": "Move to the first character of the line",
+        "response": "0"
+      },
+      {
+        "prompt": "Move to the end of the line",
+        "response": "$"
+      },
+      {
+        "prompt": "Jump to matching bracket",
+        "response": "%"
+      }
     ]
   },
   {
@@ -424,7 +729,7 @@
         "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
       },
       {
-        "prompt": "Solve this question on instance: ssh ckad9043\nThere are files to build a container image located at /opt/course/11/image on ckad9043. The container will run a Golang application which outputs information to stdout. You're asked to perform the following tasks:\nℹ️ Run all Docker and Podman commands as user root. Use sudo docker and sudo podman or become root with sudo -i\nChange the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f\nBuild the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker and push it to the registry\nBuild the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman and push it to the registry\nRun a container using sudo podman, which keeps running detached in the background, named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman\nWrite the logs your container sun-cipher produces into /opt/course/11/logs on ckad9043",
+        "prompt": "Solve this question on instance: ssh ckad9043\nThere are files to build a container image located at /opt/course/11/image on ckad9043. The container will run a Golang application which outputs information to stdout. You're asked to perform the following tasks:\n\u2139\ufe0f Run all Docker and Podman commands as user root. Use sudo docker and sudo podman or become root with sudo -i\nChange the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f\nBuild the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker and push it to the registry\nBuild the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman and push it to the registry\nRun a container using sudo podman, which keeps running detached in the background, named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman\nWrite the logs your container sun-cipher produces into /opt/course/11/logs on ckad9043",
         "response": "This is a complex scenario. Follow the prompt instructions on the specified instance."
       },
       {
