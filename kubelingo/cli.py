@@ -228,7 +228,7 @@ def main():
                 if action == 'k8s':
                     args.module = 'kubernetes'
                 else:
-                    args.module = 'custom'
+                    args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
@@ -251,7 +251,7 @@ def main():
             if action == 'k8s':
                 args.module = 'kubernetes'
             else:
-                args.module = 'custom'
+                args.module = action
     
     # Handle modes that exit immediately
     if args.history:
