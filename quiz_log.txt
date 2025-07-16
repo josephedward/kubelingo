@@ -12,3 +12,5 @@
 2025-07-16 13:18:15,280 - Question 10/10: prompt="Create a pod in the 'development' namespace" expected="kubectl run nginx --image=nginx -n development" answer="k create pod development -n development" result="incorrect"
 2025-07-16 13:59:18,815 - Question 1/1: prompt="Create a pod named nginx using the nginx image and set labels app=web and tier=frontend" expected="kubectl run nginx --image=nginx --labels="app=web,tier=frontend"" answer="exit" result="incorrect"
 2025-07-16 14:05:53,137 - Question 1/8: prompt="Create a ConfigMap from all files in the '/configs' directory" expected="kubectl create cm app-settings --from-file=/configs" answer="k create configmap -d /configs" result="incorrect"
+2025-07-16 14:24:41,901 - Question 1/1: prompt="foo" expected="foo" answer="foo" result="correct"
+2025-07-16 14:24:55,059 - Question 1/1: prompt="foo" expected="foo" answer="foo" result="correct"
