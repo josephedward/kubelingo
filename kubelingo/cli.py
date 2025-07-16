@@ -398,11 +398,7 @@ def main():
                     parser.print_help()
                     return
                 # Map friendly names to module names
-                if action == 'k8s':
-                    run_command_quiz(args)
-                    return
-                else:
-                    args.module = action
+                args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
@@ -422,11 +418,7 @@ def main():
             if action == 'help':
                 parser.print_help()
                 return
-            if action == 'k8s':
-                run_command_quiz(args)
-                return
-            else:
-                args.module = action
+            args.module = action
     
     # Handle modes that exit immediately
     if args.history:
@@ -484,8 +476,7 @@ def main():
     if args.module:
         module_name = args.module.lower()
         if module_name in ('k8s', 'kubernetes'):
-            run_command_quiz(args)
-            return
+            module_name = 'kubernetes'
 
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
