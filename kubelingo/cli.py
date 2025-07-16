@@ -98,10 +98,9 @@ def load_questions(data_file):
                 'category': category,
                 'prompt': item.get('prompt', ''),
                 'explanation': item.get('explanation', ''),
-                'type': question_type
+                'type': question_type,
+                'review': item.get('review', False)
             }
-            # Preserve review flag if present
-            question['review'] = item.get('review', False)
             if question_type == 'yaml_edit':
                 if not yaml:
                     # If yaml lib is missing, we can't process these questions.
