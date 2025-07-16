@@ -522,9 +522,10 @@ def main():
 
     args = parser.parse_args()
 
-    # If no arguments provided, show help.
+    # If no arguments provided, run the default CLI quiz silently
     if len(sys.argv) == 1:
-        parser.print_help()
+        print(Fore.CYAN + "Type 'kubelingo --help' for full options." + Style.RESET_ALL)
+        run_quiz(args.file, args.num, args.category, review_only=args.review_only)
         return
     
     # Handle modes that exit immediately
