@@ -98,6 +98,62 @@ def load_questions(data_file):
     return all_questions
 
 
+def mark_question_for_review(data_file, category, prompt_text):
+    """Adds 'review': True to the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text:
+                    item['review'] = True
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
+
+
+def unmark_question_for_review(data_file, category, prompt_text):
+    """Removes 'review' flag from the matching question in the JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text and item.get('review'):
+                    del item['review']
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+
+
 def commands_equivalent(ans, expected):
     """
     Basic command comparison. Ignores extra whitespace and order of arguments.
@@ -221,43 +277,13 @@ def run_command_quiz(args):
         print(f"\n{Fore.YELLOW}Question {i}/{total_asked} (Category: {category}){Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-        # Loop to allow for 'llm' help without failing the question
-        while True:
-            try:
-                user_answer = input(f"{Fore.CYAN}Your answer (or 'llm' for help): {Style.RESET_ALL}").strip()
-            except (EOFError, KeyboardInterrupt):
-                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                user_answer = "QUIT_QUIZ"  # Special value to break outer loop
-                break
-
-            if user_answer.lower() == 'llm':
-                print(f"{Fore.YELLOW}Asking for a hint...{Style.RESET_ALL}")
-                try:
-                    log_file = 'quiz_log.txt'
-                    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-                    logger = logging.getLogger()
-                    session = load_session('llm', logger)
-                    if session:
-                        if session.initialize():
-                            session.run_exercises(q)  # pass the question dict
-                            session.cleanup()
-                        else:
-                            print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
-                    else:
-                        print(Fore.RED + "Failed to load LLM module." + Style.RESET_ALL)
-                except Exception as e:
-                    print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
-                # After getting help, prompt for the answer again.
-                continue
-            else:
-                # User provided a real answer, break the help loop.
-                break
-
-        if user_answer == "QUIT_QUIZ":
+        try:
+            user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
             break
-
+        
         is_correct = commands_equivalent(user_answer, q.get('response', ''))
-
         if is_correct:
             correct_count += 1
             per_category_stats[category]['correct'] += 1
@@ -268,6 +294,65 @@ def run_command_quiz(args):
 
         if q.get('explanation'):
             print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+        # --- Post-question action menu ---
+        action_interrupted = False
+        back_to_main = False
+        while True:
+            print() # Spacer
+            try:
+                is_flagged = q.get('review', False)
+                flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
+                
+                if questionary:
+                    choices = ["Next Question", flag_option, "Get LLM Clarification", "Back to Main Menu"]
+                    action = questionary.select("Choose an action:", choices=choices, use_indicator=True).ask()
+                    if action is None: raise KeyboardInterrupt
+                else:
+                    # Fallback for no questionary
+                    print("Choose an action:")
+                    print("  1: Next Question")
+                    print(f"  2: {flag_option}")
+                    print("  3: Get LLM Clarification")
+                    print("  4: Back to Main Menu")
+                    choice = input("Enter choice [1]: ").strip()
+                    action_map = {'1': "Next Question", '2': flag_option, '3': "Get LLM Clarification", '4': "Back to Main Menu"}
+                    action = action_map.get(choice, "Next Question")
+
+                if action == "Next Question":
+                    break
+                elif action == "Back to Main Menu":
+                    back_to_main = True
+                    break
+                elif action.startswith("Flag for Review"):
+                    mark_question_for_review(args.file, q['category'], q['prompt'])
+                    q['review'] = True
+                    print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                elif action.startswith("Un-flag for Review"):
+                    unmark_question_for_review(args.file, q['category'], q['prompt'])
+                    q['review'] = False
+                    print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                elif action == "Get LLM Clarification":
+                    print(f"\n{Fore.CYAN}--- AI Clarification ---{Style.RESET_ALL}")
+                    print("(AI feature is not yet implemented. This would provide a detailed explanation.)")
+                    print(f"{Fore.CYAN}------------------------{Style.RESET_ALL}")
+
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                action_interrupted = True
+                break
+
+        if action_interrupted or back_to_main:
+            break
+
+    end_time = datetime.datetime.now()
+    duration = str(end_time - start_time).split('.')[0]
+
+    print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
+    score = (correct_count / total_asked * 100) if total_asked > 0 else 0
+    print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+    if back_to_main:
+        return 'back_to_main'
 
     end_time = datetime.datetime.now()
     duration = str(end_time - start_time).split('.')[0]
@@ -398,11 +483,12 @@ def run_yaml_editing_mode(data_file):
     
 # Legacy alias for cloud-mode static branch
 def main():
-    print_banner()
-    print()
-    parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
-    
-    # Core quiz options
+    while True:
+        print_banner()
+        print()
+        parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
+        
+        # Core quiz options
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                         help='Path to quiz data JSON file for command quiz')
     parser.add_argument('-n', '--num', type=int, default=0,
@@ -439,6 +525,7 @@ def main():
                         help='For the kubernetes module: run live exercises instead of the command quiz.')
 
     args = parser.parse_args()
+    restart_loop = False
 
     # If no arguments provided, show an interactive menu
     if len(sys.argv) == 1:
@@ -452,22 +539,22 @@ def main():
                 ).ask()
                 if action is None:
                     print("\nExiting.")
-                    return
+                    break
                 if action == 'help':
                     parser.print_help()
-                    return
+                    break
 
                 if action == 'k8s':
-                    run_command_quiz(args)
-                    return
+                    if run_command_quiz(args) == 'back_to_main':
+                        restart_loop = True
                 
-                if action == 'kustom':
+                elif action == 'kustom':
                     args.module = 'custom'
                 else:
                     args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
-                return
+                break
         else:
             # Fallback prompt
             valid = ['k8s', 'kustom', 'help']
@@ -477,27 +564,31 @@ def main():
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
-                    return
+                    break
                 if action in valid:
                     break
                 print("Invalid choice. Please enter one of: k8s, kustom, help.")
             if action == 'help':
                 parser.print_help()
-                return
+                break
 
             if action == 'k8s':
-                run_command_quiz(args)
-                return
+                if run_command_quiz(args) == 'back_to_main':
+                    restart_loop = True
 
-            if action == 'kustom':
+            elif action == 'kustom':
                 args.module = 'custom'
             else:
                 args.module = action
     
+    if restart_loop:
+        sys.argv = [sys.argv[0]]
+        continue
+
     # Handle modes that exit immediately
     if args.history:
         show_history()
-        return
+        break
 
     if args.list_modules:
         modules = discover_modules()
@@ -529,36 +620,40 @@ def main():
                 print("No categories found in data file.")
         except Exception as e:
             print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
-        return
+        break
 
     if args.vim_quiz:
         if not vim_commands_quiz:
             print("Vim quiz module not loaded.")
-            return
+            break
         score = vim_commands_quiz()
         print(f"\nVim Quiz completed with {score:.1%} accuracy")
-        return
+        break
     
     if args.yaml_exercises:
         if not VimYamlEditor:
             print("YAML editor module not loaded.")
-            return
+            break
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-        return
+        break
 
     # Handle module-based execution.
     if args.module:
         module_name = args.module.lower()
         if module_name in ('k8s', 'kubernetes'):
-            run_command_quiz(args)
-            return
+            if run_command_quiz(args) == 'back_to_main':
+                restart_loop = True
         elif module_name == 'kustom':
             module_name = 'custom'
         
         # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
         if module_name == 'llm':
             print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
-            return
+            break
+
+        if restart_loop:
+            sys.argv = [sys.argv[0]]
+            continue
 
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
@@ -575,16 +670,23 @@ def main():
             init_ok = session.initialize()
             if not init_ok:
                 print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
-                return
+                break
             session.run_exercises(args)
             session.cleanup()
         else:
             print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
-        return
+        break
 
     # Default to the classic command quiz if no module was selected and no other mode was triggered.
-    if not args.module:
-        run_command_quiz(args)
+    if not args.module and not restart_loop:
+        if run_command_quiz(args) == 'back_to_main':
+            restart_loop = True
+
+    if restart_loop:
+        sys.argv = [sys.argv[0]]
+        continue
+    else:
+        break
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
