@@ -70,7 +70,7 @@ ASCII_ART = r"""
 
 # Function to print the ASCII banner with a border
 def print_banner():
-    lines = ASCII_ART.splitlines()
+    lines = ASCII_ART.strip('\n').splitlines()
     width = max(len(line) for line in lines)
     border = '+' + '-'*(width + 2) + '+'
     print(Fore.MAGENTA + border + Style.RESET_ALL)
