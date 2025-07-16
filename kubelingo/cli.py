@@ -76,95 +76,7 @@ YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
-# Load and filter quiz questions from JSON data
-def load_questions(data_file):
-    """Load quiz data from a JSON file into a list of question dicts."""
-    try:
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"Error loading quiz data from {data_file}: {e}")
-        sys.exit(1)
-    questions = []
-    for section in data:
-        category = section.get('category', '')
-        for item in section.get('prompts', []):
-            # Skip YAML exercises here
-            if item.get('yaml_exercise'):
-                continue
-            qtype = item.get('type', 'command')
-            q = {
-                'category': category,
-                'prompt': item.get('prompt', ''),
-                'explanation': item.get('explanation', ''),
-                'type': qtype,
-                'review': item.get('review', False)
-            }
-            if qtype == 'yaml_edit':
-                if not yaml:
-                    continue
-                q['starting_yaml'] = item.get('starting_yaml', '')
-                q['correct_yaml'] = item.get('correct_yaml', '')
-            elif qtype == 'live_k8s_edit':
-                q['starting_yaml'] = item.get('starting_yaml', '')
-                q['assert_script'] = item.get('assert_script', '')
-            else:
-                q['response'] = item.get('response', '')
-            questions.append(q)
-    return questions
-
-# Functions to flag or un-flag questions for review in-place in the data file
-def mark_question_for_review(data_file, category, prompt_text):
-    try:
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-    except Exception as e:
-        print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
-        return
-    changed = False
-    for section in data:
-        if section.get('category') == category:
-            for item in section.get('prompts', []):
-                if item.get('prompt') == prompt_text:
-                    item['review'] = True
-                    changed = True
-                    break
-        if changed:
-            break
-    if not changed:
-        print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
-        return
-    try:
-        with open(data_file, 'w') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
-
-def unmark_question_for_review(data_file, category, prompt_text):
-    try:
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-    except Exception as e:
-        print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
-        return
-    changed = False
-    for section in data:
-        if section.get('category') == category:
-            for item in section.get('prompts', []):
-                if item.get('prompt') == prompt_text and item.get('review'):
-                    del item['review']
-                    changed = True
-                    break
-        if changed:
-            break
-    if not changed:
-        print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
-        return
-    try:
-        with open(data_file, 'w') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+# Quiz-related functions are now part of the 'kubernetes' module.
 
 
 def show_history():
@@ -286,15 +198,17 @@ def main():
     
     # Module-based exercises
     parser.add_argument('module', nargs='?', default=None,
-                        help='Run exercises for a specific module (e.g., kubernetes, custom)')
+                        help='Run exercises for a specific module (e.g., kubernetes, kustom)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                        help='Path to custom quiz JSON file for custom module')
+                        help='Path to custom quiz JSON file for kustom module')
     parser.add_argument('--exercises', type=str,
                         help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
                         help='Kubernetes cluster context to use for a module')
+    parser.add_argument('--live', action='store_true',
+                        help='For the kubernetes module: run live exercises instead of the command quiz.')
 
     args = parser.parse_args()
 
@@ -359,11 +273,25 @@ def main():
         return
 
     if args.list_categories:
-        questions = load_questions(args.file)
-        cats = sorted({q['category'] for q in questions if q.get('category')})
-        print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
-        for cat in cats:
-            print(Fore.YELLOW + cat + Style.RESET_ALL)
+        # Category listing is a function of the kubernetes module.
+        # This provides a simple way to list them without loading the module.
+        print(f"{Fore.YELLOW}Note: Categories are specific to the 'kubernetes' module command quiz.{Style.RESET_ALL}")
+        try:
+            with open(args.file, 'r') as f:
+                data = json.load(f)
+            cats = sorted({
+                section.get('category') 
+                for section in data 
+                if section.get('category') and section.get('prompts')
+            })
+            print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
+            if cats:
+                for cat in cats:
+                    print(Fore.YELLOW + cat + Style.RESET_ALL)
+            else:
+                print("No categories found in data file.")
+        except Exception as e:
+            print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
         return
 
     if args.vim_quiz:
