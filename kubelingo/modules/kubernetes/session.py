@@ -173,7 +173,7 @@ class NewSession(StudySession):
         all_categories = sorted(list(set(q['category'] for q in questions if q['category'])))
 
         if category_filter and category_filter not in all_categories:
-            print(f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}")
+            print(Fore.RED + f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}" + Style.RESET_ALL)
             return
 
         if not category_filter and all_categories and questionary is not None:
@@ -208,24 +208,34 @@ class NewSession(StudySession):
         if len(questions) < max_q:
             max_q = len(questions)
             if max_q == 0:
-                print("No questions found for the selected category.")
+                print(Fore.YELLOW + "No questions found for the selected category." + Style.RESET_ALL)
                 return
-            print(f"Not enough questions, setting quiz length to {max_q}")
+            print(Fore.YELLOW + f"Not enough questions, setting quiz length to {max_q}" + Style.RESET_ALL)
 
         quiz_questions = questions[:max_q]
         category_stats = {cat: {'asked': 0, 'correct': 0} for cat in all_categories}
         start_time = datetime.now()
-        print(f"\nStarting quiz with {len(quiz_questions)} questions... (press Ctrl+D to exit anytime)")
+        print(f"\n{Fore.MAGENTA}Starting quiz with {len(quiz_questions)} questions... (press Ctrl+D to exit anytime){Style.RESET_ALL}")
         
         correct = 0
         asked = 0
         for i, q in enumerate(quiz_questions):
-            # Quiz loop logic is extensive and remains similar to original `run_quiz`
             asked += 1
             cat = q['category']
             if cat:
                 category_stats.setdefault(cat, {'asked': 0, 'correct': 0})['asked'] += 1
             
+            # Calculate remaining time estimate
+            if i > 0:
+                elapsed = (datetime.now() - start_time).total_seconds()
+                avg_time = elapsed / i
+                remaining_q = max_q - i
+                remaining_time = timedelta(seconds=int(avg_time * remaining_q))
+                remaining_str = str(remaining_time)
+            else:
+                remaining_str = "..."
+            
+            print(Fore.CYAN + f"[{asked}/{max_q}] Remaining: {remaining_str} Category: {q['category']}" + Style.RESET_ALL)
             print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
             try:
                 user_answer_str = input('Your answer: ').strip()
@@ -246,11 +256,34 @@ class NewSession(StudySession):
             if q.get('explanation'):
                 level = Fore.GREEN if is_correct else Fore.RED
                 print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL)
+            
+            # Ask to flag for review or un-flag
+            try:
+                if review_only:
+                    review = input("Un-flag this question? [y/N]: ").strip().lower()
+                    if review.startswith('y'):
+                        unmark_question_for_review(data_file, q['category'], q['prompt'])
+                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                else:
+                    review = input("Flag this question for review? [y/N]: ").strip().lower()
+                    if review.startswith('y'):
+                        mark_question_for_review(data_file, q['category'], q['prompt'])
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
             print()
 
         end_time = datetime.now()
         duration = end_time - start_time
-        print(f'Score: {correct}/{asked} ({((correct/asked*100) if asked else 0):.1f}%) in {str(duration).split(".")[0]}')
+        duration_fmt = str(duration).split('.')[0]
+    
+        print(Fore.MAGENTA + '--- Quiz Finished ---' + Style.RESET_ALL)
+        print(f'{Fore.CYAN}Score: {correct}/{asked}{Style.RESET_ALL}')
+        if asked > 0:
+            pct = (correct / asked) * 100
+            print(f'{Fore.CYAN}Percentage: {pct:.1f}%{Style.RESET_ALL}')
+        print(f'{Fore.CYAN}Time taken: {duration_fmt}{Style.RESET_ALL}')
 
 
     def _run_live_mode(self, args):
