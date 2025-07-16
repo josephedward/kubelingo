@@ -510,16 +510,24 @@ def main():
                 os.environ['KUBECTL_CONTEXT'] = args.cluster_context
             run_yaml_editing_mode(file_path)
             return
-        # Live Kubernetes cloud exercises via pluggable session module
-        from kubelingo.modules.kubernetes.session import KubernetesSession
-        session = KubernetesSession(
-            questions_file=args.file,
-            exercises_file=None,
-            cluster_context=args.cluster_context
-        )
-        session.initialize()
-        session.run_exercises()
-        session.cleanup()
+        
+        # Live cloud-based Kubernetes exercises with a session
+        log_file = 'quiz_cloud_log.txt'
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+        logger = logging.getLogger()
+        
+        questions = load_questions(args.file)
+        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+        if not cloud_qs:
+            print(Fore.YELLOW + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
+            return
+            
+        session = KubernetesSession(logger)
+        try:
+            if session.initialize():
+                session.run_exercises(cloud_qs)
+        finally:
+            session.cleanup()
         return
 
     questions = load_questions(args.file)
