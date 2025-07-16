@@ -521,8 +521,10 @@ def main():
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
-    parser.add_argument('--review-flagged', action='store_true',
-                        help='Quiz only on questions flagged for review')
+    parser.add_argument('--review-only', '--flagged', dest='review_only', action='store_true',
+                        help='Run only questions flagged for review and unflag after answering')
+    parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
+                        help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
     parser.add_argument('--yaml-exercises', action='store_true',
                         help='Run semantic YAML editing exercises')
     parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
@@ -547,6 +549,13 @@ def main():
     # Handle special modes first
     if args.history:
         show_history()
+        return
+    if args.list_modules:
+        modules = discover_modules()
+        print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
+        for mod in modules:
+            print(Fore.YELLOW + mod + Style.RESET_ALL)
+        print(Fore.CYAN + "custom" + Style.RESET_ALL)
         return
 
     # Module selection and dispatch
@@ -605,37 +614,6 @@ def main():
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         return
 
-    # Module selection and dispatch
-    modules = discover_modules()
-    if not args.module:
-        if not modules:
-            print(Fore.RED + "No study modules available." + Style.RESET_ALL)
-            return
-        if questionary:
-            args.module = questionary.select("Select study module:", modules).ask()
-        else:
-            print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
-            for m in modules:
-                print(Fore.YELLOW + m + Style.RESET_ALL)
-            args.module = input("Module to load: ").strip()
-        if not args.module:
-            print(Fore.RED + "No module selected; exiting." + Style.RESET_ALL)
-            return
-
-    if args.module == 'kubernetes':
-        from kubelingo.modules.kubernetes.session import KubernetesSession
-        session = KubernetesSession(
-            questions_file=args.file,
-            exercises_file=args.exercises,
-            cluster_context=args.cluster_context
-        )
-        if session.initialize():
-            session.run_exercises()
-        session.cleanup()
-    else:
-        print(Fore.RED + f"Error: module '{args.module}' not supported." + Style.RESET_ALL)
-    return
-
     questions = load_questions(args.file)
     if args.list_categories:
         # Use a set to get unique categories, then sort
@@ -646,7 +624,7 @@ def main():
         return
 
     # Default action is to run the main quiz
-    run_quiz(args.file, args.num, args.category, review_only=args.review_flagged)
+    run_quiz(args.file, args.num, args.category, review_only=args.review_only)
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
