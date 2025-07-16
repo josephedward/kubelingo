@@ -15,7 +15,7 @@ import subprocess
 import logging
 import shlex
 from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent, handle_live_k8s_question
-from kubelingo.modules.kubernetes.session import KubernetesSession
+from kubelingo.modules.base.loader import discover_modules, load_session
 from datetime import datetime
 from datetime import timedelta
 
@@ -221,7 +221,7 @@ def run_quiz(data_file, max_q, category_filter=None):
     # Live k8s questions are handled separately by --cloud-mode
     live_k8s_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
     if live_k8s_qs:
-        print(Fore.YELLOW + f"Found {len(live_k8s_qs)} live Kubernetes exercise(s). To run them, use the --cloud-mode flag." + Style.RESET_ALL)
+        print(Fore.YELLOW + f"Found {len(live_k8s_qs)} live Kubernetes exercise(s). To run them, use the --module kubernetes flag." + Style.RESET_ALL)
         questions = [q for q in questions if q.get('type') != 'live_k8s_edit']
     
     # Shuffle and select the number of questions for the quiz
@@ -457,12 +457,14 @@ def main():
                         help='Alias for --yaml-exercises (semantic YAML editing exercises)')
     parser.add_argument('--vim-quiz', action='store_true',
                         help='Run Vim commands quiz')
-    parser.add_argument('--cloud-mode', action='store_true',
-                        help='Run live Kubernetes cloud exercises using gosandbox/eksctl')
+    parser.add_argument('--module', type=str,
+                        help='Run exercises for a specific module (e.g., kubernetes)')
+    parser.add_argument('--list-modules', action='store_true',
+                        help='List available exercise modules and exit')
     parser.add_argument('--exercises', type=str,
-                        help='Path to custom exercises JSON file for cloud mode')
+                        help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
-                        help='Kubernetes cluster context to use for cloud mode')
+                        help='Kubernetes cluster context to use for a module')
     
     args = parser.parse_args()
     
@@ -470,6 +472,16 @@ def main():
     # Handle special modes first
     if args.history:
         show_history()
+        return
+
+    if args.list_modules:
+        modules = discover_modules()
+        print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
+        if modules:
+            for mod in modules:
+                print(Fore.YELLOW + mod + Style.RESET_ALL)
+        else:
+            print("No modules found.")
         return
     
     if args.vim_quiz:
@@ -488,9 +500,15 @@ def main():
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         return
 
-    if args.cloud_mode:
-        # Cloud-specific exercises: static YAML editing if custom exercises provided
-        if args.exercises:
+    if args.module:
+        available_modules = discover_modules()
+        if args.module not in available_modules:
+            print(Fore.RED + f"Error: module '{args.module}' not found." + Style.RESET_ALL)
+            print(f"Available modules: {', '.join(available_modules)}")
+            return
+        
+        # This part of the logic remains specific to the 'kubernetes' module for now.
+        if args.module == 'kubernetes' and args.exercises:
             file_arg = args.exercises
             # Resolve file path (custom or default data directory)
             if os.path.exists(file_arg):
@@ -500,7 +518,7 @@ def main():
             if not os.path.exists(file_path):
                 print(Fore.RED + f"Error: Exercises file not found: {file_arg}" + Style.RESET_ALL)
                 return
-            print(f"\n{Fore.CYAN}=== Cloud-Specific YAML Exercises Mode ==={Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}=== {args.module.capitalize()}-Specific YAML Exercises Mode ==={Style.RESET_ALL}")
             print(f"Using exercises file: {file_path}")
             if args.cluster_context:
                 print(f"Cluster context: {args.cluster_context}")
@@ -508,21 +526,28 @@ def main():
             run_yaml_editing_mode(file_path)
             return
         
-        # Live cloud-based Kubernetes exercises with a session
-        log_file = 'quiz_cloud_log.txt'
+        # Live exercises with a session
+        log_file = f'quiz_{args.module}_log.txt'
         logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
         logger = logging.getLogger()
         
         questions = load_questions(args.file)
-        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
-        if not cloud_qs:
-            print(Fore.YELLOW + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
+        # Note: Question filtering is specific to 'live_k8s_edit' for now.
+        # Future modules would require their own question types.
+        module_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+        if not module_qs:
+            print(Fore.YELLOW + f"No live exercises found for module '{args.module}' in the data file." + Style.RESET_ALL)
             return
-            
-        session = KubernetesSession(logger)
+
+        try:
+            session = load_session(args.module, logger)
+        except (ImportError, AttributeError) as e:
+            print(Fore.RED + f"Error loading module '{args.module}': {e}" + Style.RESET_ALL)
+            return
+
         try:
             if session.initialize():
-                session.run_exercises(cloud_qs)
+                session.run_exercises(module_qs)
         finally:
             session.cleanup()
         return
