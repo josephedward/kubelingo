@@ -1,6 +1,6 @@
 """
 Kubernetes study session plugin package.
 """
-from .session import NewSession as KubernetesSession
+from .session import KubernetesSession
 
 __all__ = ['KubernetesSession']
