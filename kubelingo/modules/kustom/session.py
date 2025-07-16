@@ -28,7 +28,7 @@ class AIProcessor:
                 })
         return questions
 
-class NewSession(StudySession):
+class KustomSession(StudySession):
     """A study session for custom, user-provided quizzes."""
 
     def __init__(self, logger):
