@@ -39,22 +39,17 @@ except ImportError:
         VimYamlEditor = None
         vim_commands_quiz = None
 
-# Colored terminal output (ANSI codes, with optional colorama support)
-try:
-    import colorama
-    from colorama import Fore, Style
-    colorama.init(autoreset=True)
-except ImportError:
-    class _AnsiFore:
-        CYAN = '\033[36m'
-        MAGENTA = '\033[35m'
-        YELLOW = '\033[33m'
-        GREEN = '\033[32m'
-        RED = '\033[31m'
-    class _AnsiStyle:
-        RESET_ALL = '\033[0m'
-    Fore = _AnsiFore()
-    Style = _AnsiStyle()
+# Colored terminal output (ANSI codes)
+class _AnsiFore:
+    CYAN = '\033[36m'
+    MAGENTA = '\033[35m'
+    YELLOW = '\033[33m'
+    GREEN = '\033[32m'
+    RED = '\033[31m'
+class _AnsiStyle:
+    RESET_ALL = '\033[0m'
+Fore = _AnsiFore()
+Style = _AnsiStyle()
 
 ASCII_ART = r"""
 K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
