@@ -57,13 +57,11 @@ except ImportError:
     Style = _AnsiStyle()
 
 ASCII_ART = r"""
- _  __         _     _                  
-| |/ /        | |   (_)                 
-| ' / __ _ ___| |__  _ _ __   ___  ___  
-|  < / _` / __| '_ \| | '_ \ / _ \/ __| 
-| . \ (_| \__ \ | | | | | | |  __/\__ \ 
-|_|\_\__,_|___/_| |_|_|_| |_|\___||___/ 
-                                        
+K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
+K  K  U   U  B   B E     L      I  NN  N G   G O   O
+KK    U   U  BBBB  EEEE  L      I  N N N G  GG O   O
+K  K  U   U  B   B E     L      I  N  NN G   G O   O
+K   K  UUU   BBBB  EEEEE LLLLL III N   N  GGGG   OOO 
 """
 
 # Function to print the ASCII banner with a border
