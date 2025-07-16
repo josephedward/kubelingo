@@ -54,7 +54,7 @@ def load_questions(data_file):
         with open(data_file, 'r') as f:
             data = json.load(f)
     except Exception as e:
-        print(f"Error loading quiz data from {data_file}: {e}")
+        print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
         sys.exit(1)
     questions = []
     for cat in data:
@@ -173,7 +173,7 @@ class NewSession(StudySession):
         all_categories = sorted(list(set(q['category'] for q in questions if q['category'])))
 
         if category_filter and category_filter not in all_categories:
-            print(Fore.RED + f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}" + Style.RESET_ALL)
+            print(Fore.YELLOW + f"Category '{category_filter}' not found. Available categories: {', '.join(all_categories)}" + Style.RESET_ALL)
             return
 
         if not category_filter and all_categories and questionary is not None:
@@ -215,7 +215,7 @@ class NewSession(StudySession):
         quiz_questions = questions[:max_q]
         category_stats = {cat: {'asked': 0, 'correct': 0} for cat in all_categories}
         start_time = datetime.now()
-        print(f"\n{Fore.MAGENTA}Starting quiz with {len(quiz_questions)} questions... (press Ctrl+D to exit anytime){Style.RESET_ALL}")
+        print(f"\n{Fore.CYAN}Starting quiz with {len(quiz_questions)} questions... (press Ctrl+D to exit anytime){Style.RESET_ALL}")
         
         correct = 0
         asked = 0
