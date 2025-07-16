@@ -123,34 +123,64 @@ def run_command_quiz(args):
     # filtering arguments were passed via the command line.
     is_interactive = questionary and not args.category and not args.review_only and not args.num
     if is_interactive:
-        try:
-            # First, check for any questions flagged for review
-            flagged_questions = [q for q in questions if q.get('review')]
-            if flagged_questions:
-                review_flagged = questionary.confirm("Review only flagged questions?").ask()
-                if review_flagged is None:  # User pressed Ctrl+C
-                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                    return
-                if review_flagged:
-                    args.review_only = True
-
-            # If not reviewing flagged, or if there are no flagged questions, ask for category
-            if not args.review_only:
-                categories = sorted({q['category'] for q in questions if q.get('category')})
-                if categories:
-                    choices = ['All'] + categories
-                    selected_category = questionary.select(
-                        "Choose a subject area:",
-                        choices=choices
+        # Loop to allow going "back" up the menu hierarchy.
+        while True:
+            try:
+                # First, check for any questions flagged for review
+                flagged_questions = [q for q in questions if q.get('review')]
+                if flagged_questions:
+                    review_action = questionary.select(
+                        "Review only flagged questions?",
+                        choices=[
+                            {'name': 'Yes', 'value': True},
+                            {'name': 'No', 'value': False},
+                            {'name': 'Back to main menu', 'value': 'back'}
+                        ],
+                        use_indicator=True
                     ).ask()
-                    if selected_category is None:  # User pressed Ctrl+C
+
+                    if review_action is None:  # User pressed Ctrl+C
                         print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
                         return
-                    if selected_category != 'All':
-                        args.category = selected_category
-        except (EOFError, KeyboardInterrupt):
-            print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-            return
+                    if review_action == 'back':
+                        return  # Exit this function to go back to the main menu prompt.
+                    
+                    args.review_only = review_action
+                
+                # If not reviewing flagged, or if there are no flagged questions, ask for category
+                if not args.review_only:
+                    categories = sorted({q['category'] for q in questions if q.get('category')})
+                    if categories:
+                        choices = ['All']
+                        if flagged_questions:
+                            choices.append('Back to previous step')
+                        choices.extend(categories)
+
+                        selected_category = questionary.select(
+                            "Choose a subject area:",
+                            choices=choices,
+                            use_indicator=True
+                        ).ask()
+
+                        if selected_category is None:  # User pressed Ctrl+C
+                            print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                            return
+                        
+                        if selected_category == 'Back to previous step':
+                            # Reset flags and restart the loop to show the review prompt again.
+                            args.review_only = False
+                            args.category = None
+                            continue
+
+                        if selected_category != 'All':
+                            args.category = selected_category
+                
+                # If we've reached here without continuing, we have our quiz options.
+                break
+
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                return
 
     if args.review_only:
         questions = [q for q in questions if q.get('review')]
