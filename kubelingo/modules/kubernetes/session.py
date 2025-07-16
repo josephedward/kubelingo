@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime
 
 try:
     import questionary
@@ -243,54 +243,43 @@ class NewSession(StudySession):
             cat = q['category']
             if cat:
                 category_stats.setdefault(cat, {'asked': 0, 'correct': 0})['asked'] += 1
+
+            print(f"\n{Fore.YELLOW}Question {asked}/{max_q} (Category: {q['category']}){Style.RESET_ALL}")
+            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
             
-            # Calculate remaining time estimate
-            if i > 0:
-                elapsed = (datetime.now() - start_time).total_seconds()
-                avg_time = elapsed / i
-                remaining_q = max_q - i
-                remaining_time = timedelta(seconds=int(avg_time * remaining_q))
-                remaining_str = str(remaining_time)
-            else:
-                remaining_str = "..."
-            
-            print(Fore.CYAN + f"[{asked}/{max_q}] Remaining: {remaining_str} Category: {q['category']}" + Style.RESET_ALL)
-            print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
             try:
-                user_answer_str = input('Your answer: ').strip()
-            except EOFError:
-                print()
+                user_answer_str = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
                 break
             
             is_correct = commands_equivalent(user_answer_str, q['response'])
+
             if is_correct:
-                print(Fore.GREEN + 'Correct!' + Style.RESET_ALL)
+                print(f'{Fore.GREEN}Correct!{Style.RESET_ALL}')
                 correct += 1
                 if cat:
                     category_stats.setdefault(cat, {'asked': 0, 'correct': 0})['correct'] += 1
             else:
-                print(Fore.RED + "Incorrect. Correct answer: " + Style.RESET_ALL + Fore.GREEN + q['response'] + Style.RESET_ALL)
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
 
             self.logger.info(f"Question {asked}/{len(quiz_questions)}: prompt=\"{q['prompt']}\" expected=\"{q['response']}\" answer=\"{user_answer_str}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
             if q.get('explanation'):
-                level = Fore.GREEN if is_correct else Fore.RED
-                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL)
+                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+            if not is_correct:
+                try:
+                    clarify = input("Type 'llm' for clarification, or press Enter to continue: ").strip().lower()
+                    if clarify == 'llm':
+                        print(f"\n{Fore.CYAN}--- AI Clarification ---{Style.RESET_ALL}")
+                        print("(AI feature is not yet implemented. This would provide a detailed explanation.)")
+                        print(f"{Fore.CYAN}------------------------{Style.RESET_ALL}")
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
             
-            # Ask to flag for review or un-flag
-            try:
-                if review_only:
-                    review = input("Un-flag this question? [y/N]: ").strip().lower()
-                    if review.startswith('y'):
-                        unmark_question_for_review(data_file, q['category'], q['prompt'])
-                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
-                else:
-                    review = input("Flag this question for review? [y/N]: ").strip().lower()
-                    if review.startswith('y'):
-                        mark_question_for_review(data_file, q['category'], q['prompt'])
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
             print()
 
         end_time = datetime.now()
