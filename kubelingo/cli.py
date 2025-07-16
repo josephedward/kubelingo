@@ -507,6 +507,8 @@ def main():
                         help='Run exercises for a specific module (e.g., kubernetes)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
+    parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
+                        help='Path to custom quiz JSON file for custom module')
     parser.add_argument('--exercises', type=str,
                         help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
