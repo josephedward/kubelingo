@@ -118,6 +118,40 @@ def run_command_quiz(args):
     start_time = datetime.datetime.now()
     questions = load_questions(args.file)
 
+    # In interactive mode, prompt user for quiz type (flagged/category)
+    # This is determined by seeing if `questionary` is available and if no
+    # filtering arguments were passed via the command line.
+    is_interactive = questionary and not args.category and not args.review_only and not args.num
+    if is_interactive:
+        try:
+            # First, check for any questions flagged for review
+            flagged_questions = [q for q in questions if q.get('review')]
+            if flagged_questions:
+                review_flagged = questionary.confirm("Review only flagged questions?").ask()
+                if review_flagged is None:  # User pressed Ctrl+C
+                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                    return
+                if review_flagged:
+                    args.review_only = True
+
+            # If not reviewing flagged, or if there are no flagged questions, ask for category
+            if not args.review_only:
+                categories = sorted({q['category'] for q in questions if q.get('category')})
+                if categories:
+                    choices = ['All'] + categories
+                    selected_category = questionary.select(
+                        "Choose a subject area:",
+                        choices=choices
+                    ).ask()
+                    if selected_category is None:  # User pressed Ctrl+C
+                        print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                        return
+                    if selected_category != 'All':
+                        args.category = selected_category
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+            return
+
     if args.review_only:
         questions = [q for q in questions if q.get('review')]
         if not questions:
