@@ -26,7 +26,7 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-class NewSession(StudySession):
+class KubernetesSession(StudySession):
     """A study session for live Kubernetes exercises on a temporary EKS cluster."""
 
     def __init__(self, logger):
