@@ -150,36 +150,6 @@ Comprehensive coverage of all CKAD exam domains:
 }
 ```
 
-## Contributing
-
-### Generating Issues from Roadmap
-
-The project roadmap is managed in `docs/roadmap.md`. To convert the roadmap items into GitHub issues and milestones, you can use the `gitscaffold` tool.
-
-1.  **Install `gitscaffold`**:
-    ```bash
-    pip install gitscaffold
-    ```
-
-2.  **Set API Keys**:
-    Export your GitHub Personal Access Token and an (optional) OpenAI API key as environment variables. The GitHub token requires `repo` scope.
-    ```bash
-    export GITHUB_TOKEN="your_github_personal_access_token_here"
-    export OPENAI_API_KEY="your_openai_api_key_here" # Optional
-    ```
-
-3.  **Run the dry-run**:
-    Preview the issues and milestones that will be created without making any changes to your repository. Replace `<your-github-user-or-org>/<your-repo-name>` with your repository's path (e.g., `johndoe/kubelingo`).
-    ```bash
-    gitscaffold import-md "<your-github-user-or-org>/<your-repo-name>" docs/roadmap.md --heading-level 2 --dry-run
-    ```
-
-4.  **Generate Issues**:
-    If the dry run output is correct, run the command without the `--dry-run` flag to create the issues and milestones on GitHub.
-    ```bash
-    gitscaffold import-md "<your-github-user-or-org>/<your-repo-name>" docs/roadmap.md --heading-level 2
-    ```
-
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
