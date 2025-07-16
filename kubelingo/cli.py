@@ -485,6 +485,8 @@ def main():
     print_banner()
     print()
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
+    
+    # Core quiz options
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                         help='Path to quiz data JSON file for command quiz')
     parser.add_argument('-n', '--num', type=int, default=0,
@@ -497,14 +499,18 @@ def main():
                         help='Show quiz history and statistics')
     parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                         help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
+
+    # Standalone exercise modes
     parser.add_argument('--yaml-exercises', action='store_true',
                         help='Run semantic YAML editing exercises')
     parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
                         help='Alias for --yaml-exercises (semantic YAML editing exercises)')
     parser.add_argument('--vim-quiz', action='store_true',
                         help='Run Vim commands quiz')
+    
+    # Module-based exercises
     parser.add_argument('--module', type=str,
-                        help='Run exercises for a specific module (e.g., kubernetes)')
+                        help='Run exercises for a specific module (e.g., kubernetes, custom)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -513,66 +519,38 @@ def main():
                         help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
                         help='Kubernetes cluster context to use for a module')
-    
+
     args = parser.parse_args()
-    # If no arguments provided, default to listing categories (for colored menu)
+
+    # If no arguments provided, show help.
     if len(sys.argv) == 1:
-        args.list_categories = True
+        parser.print_help()
+        return
     
-    
-    # Handle special modes first
+    # Handle modes that exit immediately
     if args.history:
         show_history()
         return
+
     if args.list_modules:
         modules = discover_modules()
         print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
-        for mod in modules:
-            print(Fore.YELLOW + mod + Style.RESET_ALL)
-        print(Fore.CYAN + "custom" + Style.RESET_ALL)
+        if modules:
+            for mod in modules:
+                print(Fore.YELLOW + mod + Style.RESET_ALL)
+        else:
+            print("No modules found.")
+        print(f"{Fore.CYAN}custom{Style.RESET_ALL}") # Keep compatibility
         return
 
-    # Module selection and dispatch
-    module = args.module
-    if not module:
-        choices = discover_modules() + ['custom']
-        if questionary:
-            try:
-                module = questionary.select("Select study module:", choices).ask()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                return
-        else:
-            print("Available modules:")
-            for m in choices:
-                print(f"  {m}")
-            module = input("Module to load: ").strip().lower()
-    if module == 'kubernetes':
-        # Live Kubernetes cloud exercises
-        log_file = 'quiz_cloud_log.txt'
-        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-        logger = logging.getLogger()
+    if args.list_categories:
         questions = load_questions(args.file)
-        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
-        if not cloud_qs:
-            print(Fore.RED + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
-            return
-        for i, q in enumerate(cloud_qs, 1):
-            print(f"\n{Fore.CYAN}=== Kubernetes Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
-            is_correct, _ = handle_live_k8s_question(q, logger)
-            if q.get('explanation'):
-                level = Fore.GREEN if is_correct else Fore.RED
-                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        cats = sorted({q['category'] for q in questions if q.get('category')})
+        print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
+        for cat in cats:
+            print(Fore.YELLOW + cat + Style.RESET_ALL)
         return
-    elif module == 'custom':
-        # Use provided custom-file flag, or fallback to --exercises, or prompt interactively
-        custom_file = args.custom_file or args.exercises or input("Enter path to custom quiz JSON file: ").strip()
-        run_quiz(custom_file, args.num, args.category, review_only=args.review_only)
-        return
-    else:
-        print(Fore.RED + f"Error: module '{module}' not supported." + Style.RESET_ALL)
-        return
-    
+
     if args.vim_quiz:
         if not vim_commands_quiz:
             print("Vim quiz module not loaded.")
@@ -585,20 +563,23 @@ def main():
         if not VimYamlEditor:
             print("YAML editor module not loaded.")
             return
-        # Run semantic YAML editing exercises
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         return
 
-    questions = load_questions(args.file)
-    if args.list_categories:
-        # Use a set to get unique categories, then sort
-        cats = sorted({q['category'] for q in questions if q.get('category')})
-        print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
-        for cat in cats:
-            print(Fore.YELLOW + cat + Style.RESET_ALL)
+    # Handle module-based execution.
+    if args.module:
+        logger = logging.getLogger()
+        session = load_session(args.module, logger)
+        if session:
+            session.initialize()
+            exercises_file = args.custom_file or args.exercises
+            session.run_exercises(exercises_file)
+            session.cleanup()
+        else:
+            print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
         return
 
-    # Default action is to run the main quiz
+    # Default action: run the classic command quiz if no other mode was triggered
     run_quiz(args.file, args.num, args.category, review_only=args.review_only)
 
 # Alias for backward-compatibility
