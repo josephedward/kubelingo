@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import logging
 import shlex
-from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent, handle_live_k8s_question
+from kubelingo.modules.k8s_quiz import normalize_command, commands_equivalent
 from kubelingo.modules.base.loader import discover_modules, load_session
 from datetime import datetime
 from datetime import timedelta
