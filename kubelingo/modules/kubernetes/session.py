@@ -32,9 +32,6 @@ class NewSession(StudySession):
     def __init__(self, logger):
         super().__init__(logger)
         self.cluster_name = None
-
-# Alias for module loader: session class must be named NewSession
-NewSession = KubernetesSession
         self.kubeconfig_path = None
         self.region = None
         self.creds_acquired = False
