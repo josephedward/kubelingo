@@ -351,16 +351,10 @@ def run_command_quiz(args):
     print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
     score = (correct_count / total_asked * 100) if total_asked > 0 else 0
     print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+    print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+
     if back_to_main:
         return 'back_to_main'
-
-    end_time = datetime.datetime.now()
-    duration = str(end_time - start_time).split('.')[0]
-
-    print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-    score = (correct_count / total_asked * 100) if total_asked > 0 else 0
-    print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
-    print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
     # Save history
     new_history_entry = {
@@ -489,42 +483,42 @@ def main():
         parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
         
         # Core quiz options
-    parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
-                        help='Path to quiz data JSON file for command quiz')
-    parser.add_argument('-n', '--num', type=int, default=0,
-                        help='Number of questions to ask (default: all)')
-    parser.add_argument('-c', '--category', type=str,
-                        help='Limit quiz to a specific category')
-    parser.add_argument('--list-categories', action='store_true',
-                        help='List available categories and exit')
-    parser.add_argument('--history', action='store_true',
-                        help='Show quiz history and statistics')
-    parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
-                        help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
+        parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
+                            help='Path to quiz data JSON file for command quiz')
+        parser.add_argument('-n', '--num', type=int, default=0,
+                            help='Number of questions to ask (default: all)')
+        parser.add_argument('-c', '--category', type=str,
+                            help='Limit quiz to a specific category')
+        parser.add_argument('--list-categories', action='store_true',
+                            help='List available categories and exit')
+        parser.add_argument('--history', action='store_true',
+                            help='Show quiz history and statistics')
+        parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
+                            help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
-    # Standalone exercise modes
-    parser.add_argument('--yaml-exercises', action='store_true',
-                        help='Run semantic YAML editing exercises')
-    parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
-                        help='Alias for --yaml-exercises (semantic YAML editing exercises)')
-    parser.add_argument('--vim-quiz', action='store_true',
-                        help='Run Vim commands quiz')
-    
-    # Module-based exercises
-    parser.add_argument('module', nargs='?', default=None,
-                        help='Run exercises for a specific module (e.g., kubernetes, kustom)')
-    parser.add_argument('--list-modules', action='store_true',
-                        help='List available exercise modules and exit')
-    parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                        help='Path to custom quiz JSON file for kustom module')
-    parser.add_argument('--exercises', type=str,
-                        help='Path to custom exercises JSON file for a module')
-    parser.add_argument('--cluster-context', type=str,
-                        help='Kubernetes cluster context to use for a module')
-    parser.add_argument('--live', action='store_true',
-                        help='For the kubernetes module: run live exercises instead of the command quiz.')
+        # Standalone exercise modes
+        parser.add_argument('--yaml-exercises', action='store_true',
+                            help='Run semantic YAML editing exercises')
+        parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
+                            help='Alias for --yaml-exercises (semantic YAML editing exercises)')
+        parser.add_argument('--vim-quiz', action='store_true',
+                            help='Run Vim commands quiz')
+        
+        # Module-based exercises
+        parser.add_argument('module', nargs='?', default=None,
+                            help='Run exercises for a specific module (e.g., kubernetes, kustom)')
+        parser.add_argument('--list-modules', action='store_true',
+                            help='List available exercise modules and exit')
+        parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
+                            help='Path to custom quiz JSON file for kustom module')
+        parser.add_argument('--exercises', type=str,
+                            help='Path to custom exercises JSON file for a module')
+        parser.add_argument('--cluster-context', type=str,
+                            help='Kubernetes cluster context to use for a module')
+        parser.add_argument('--live', action='store_true',
+                            help='For the kubernetes module: run live exercises instead of the command quiz.')
 
-    args = parser.parse_args()
+        args = parser.parse_args()
     restart_loop = False
 
     # If no arguments provided, show an interactive menu
