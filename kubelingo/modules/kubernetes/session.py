@@ -26,102 +26,119 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-class KubernetesSession(StudySession):
-    """A study session for live Kubernetes exercises on a temporary EKS cluster."""
+class NewSession(StudySession):
+    """A study session for live Kubernetes exercises on a temporary EKS cluster or existing context."""
 
     def __init__(self, logger):
         super().__init__(logger)
+        self.mode = None
         self.cluster_name = None
         self.kubeconfig_path = None
         self.region = None
         self.creds_acquired = False
 
     def initialize(self):
-        """Provisions a temporary EKS cluster for the session, or uses existing context."""
-        deps = check_dependencies('go', 'kubectl')
-        if deps:
-            print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
+        """Initializes the Kubernetes module, selecting command-line or live exercises."""
+        print("Kubernetes module loaded. Select quiz type:")
+        print("  1) kubectl command-line quiz")
+        print("  2) Live Kubernetes exercises (requires go, eksctl, kubectl)")
+        try:
+            choice = input("Enter choice [1/2]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nInitialization cancelled.")
             return False
-
-        if not shutil.which('eksctl'):
-            print(Fore.YELLOW + "Warning: 'eksctl' not found. Using pre-configured Kubernetes context." + Style.RESET_ALL)
-            self.cluster_name = "pre-configured"
-            self.kubeconfig_path = None
+        if choice == '1':
+            self.mode = 'cli'
             return True
-
-        self.cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
-        self.kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{self.cluster_name}.kubeconfig")
-
-        # Acquire AWS sandbox credentials via GoSandboxIntegration
-        try:
-            from kubelingo.tools.gosandbox_integration import GoSandboxIntegration
-            print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
-            gs = GoSandboxIntegration()
-            creds = gs.acquire_credentials()
-            if not creds:
-                print(Fore.RED + "Failed to acquire AWS credentials. Cannot proceed with cloud exercise." + Style.RESET_ALL)
+        if choice == '2':
+            self.mode = 'live'
+            deps = check_dependencies('go', 'eksctl', 'kubectl')
+            if deps:
+                print(Fore.RED + f"Missing dependencies for live exercises: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
                 return False
-            gs.export_to_environment()
-            self.creds_acquired = True
-        except ImportError:
-            print(Fore.RED + "Could not import GoSandboxIntegration. Live cloud exercises are not available." + Style.RESET_ALL)
-            return False
-        except Exception as e:
-            print(Fore.RED + f"An error occurred while acquiring credentials: {e}" + Style.RESET_ALL)
-            return False
-
-        # Provision EKS cluster via eksctl
-        self.region = os.environ.get('AWS_REGION', 'us-west-2')
-        node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
-        node_count = os.environ.get('NODE_COUNT', '2')
-        print(Fore.YELLOW + f"Provisioning EKS cluster '{self.cluster_name}' (region={self.region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
-        try:
-            # Hide verbose output unless error
-            subprocess.run([
-                'eksctl', 'create', 'cluster',
-                '--name', self.cluster_name,
-                '--region', self.region,
-                '--nodegroup-name', 'worker-nodes',
-                '--node-type', node_type,
-                '--nodes', node_count
-            ], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            print(Fore.RED + f"Failed to provision EKS cluster: {e}" + Style.RESET_ALL)
-            print(e.stdout)
-            print(e.stderr)
-            return False
-        except FileNotFoundError:
-            print(Fore.RED + "Failed to provision EKS cluster: 'eksctl' not found." + Style.RESET_ALL)
-            return False
-
-        # Extract kubeconfig for this cluster
-        os.environ['KUBECONFIG'] = self.kubeconfig_path
-        with open(self.kubeconfig_path, 'w') as kc:
-            subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
-        
-        print(Fore.GREEN + "Cluster is ready." + Style.RESET_ALL)
-        return True
+            # Provision EKS cluster
+            self.cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
+            self.kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{self.cluster_name}.kubeconfig")
+            try:
+                from kubelingo.tools.gosandbox_integration import GoSandboxIntegration
+                print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
+                gs = GoSandboxIntegration()
+                creds = gs.acquire_credentials()
+                if not creds:
+                    print(Fore.RED + "Failed to acquire AWS credentials. Cannot proceed with live exercises." + Style.RESET_ALL)
+                    return False
+                gs.export_to_environment()
+                self.creds_acquired = True
+            except ImportError:
+                print(Fore.RED + "Could not import GoSandboxIntegration. Live exercises unavailable." + Style.RESET_ALL)
+                return False
+            except Exception as e:
+                print(Fore.RED + f"Error acquiring credentials: {e}" + Style.RESET_ALL)
+                return False
+            self.region = os.environ.get('AWS_REGION', 'us-west-2')
+            node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
+            node_count = os.environ.get('NODE_COUNT', '2')
+            print(Fore.YELLOW + f"Provisioning EKS cluster '{self.cluster_name}' (region={self.region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
+            try:
+                subprocess.run([
+                    'eksctl', 'create', 'cluster',
+                    '--name', self.cluster_name,
+                    '--region', self.region,
+                    '--nodegroup-name', 'worker-nodes',
+                    '--node-type', node_type,
+                    '--nodes', node_count
+                ], check=True)
+            except subprocess.CalledProcessError as e:
+                print(Fore.RED + f"Failed to provision EKS cluster: {e}" + Style.RESET_ALL)
+                return False
+            # Write kubeconfig
+            os.environ['KUBECONFIG'] = self.kubeconfig_path
+            with open(self.kubeconfig_path, 'w') as kc:
+                subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
+            print(Fore.GREEN + "Cluster is ready." + Style.RESET_ALL)
+            return True
+        print(Fore.RED + "Invalid choice. Aborting." + Style.RESET_ALL)
+        return False
 
     def run_exercises(self, exercises):
-        """Runs a series of Kubernetes exercises against the provisioned cluster."""
-        if not self.cluster_name:
-            print(Fore.RED + "Session not initialized. Cannot run exercises." + Style.RESET_ALL)
+        """Dispatch to either command-line quiz or live cluster exercises."""
+        # Command-line kubectl quiz
+        if self.mode == 'cli':
+            print(Fore.YELLOW + "Starting kubectl command-line quiz..." + Style.RESET_ALL)
+            try:
+                from kubelingo.cli import run_quiz
+            except ImportError:
+                print(Fore.RED + "Internal error: cannot launch command-line quiz." + Style.RESET_ALL)
+                return
+            # exercises is the path to the JSON quiz data file
+            run_quiz(exercises, 0)
             return
-
-        for i, q in enumerate(exercises, 1):
-            print(f"\n{Fore.CYAN}=== Cloud Exercise {i}/{len(exercises)} ==={Style.RESET_ALL}")
-            print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
-            
-            is_correct, user_yaml_str = self._run_one_exercise(q)
-            
-            expected_answer = q.get('assert_script', '')
-            log_user_answer = (user_yaml_str[:200] + '...') if len(user_yaml_str) > 200 else user_yaml_str
-            log_expected_answer = (expected_answer[:200] + '...') if len(expected_answer) > 200 else expected_answer
-            self.logger.info(f"Question {i}/{len(exercises)}: type=live_k8s_edit prompt=\"{q['prompt']}\" expected=\"{log_expected_answer}\" answer=\"{log_user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-
-            if q.get('explanation'):
-                level = Fore.GREEN if is_correct else Fore.RED
-                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        # Live cluster exercises
+        if self.mode == 'live':
+            try:
+                from kubelingo.cli import load_questions
+            except ImportError:
+                print(Fore.RED + "Internal error: cannot load live exercises." + Style.RESET_ALL)
+                return
+            # Load only live exercises
+            all_qs = load_questions(exercises)
+            live_qs = [q for q in all_qs if q.get('type') == 'live_k8s_edit']
+            if not live_qs:
+                print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
+                return
+            for i, q in enumerate(live_qs, 1):
+                print(f"\n{Fore.CYAN}=== Live Kubernetes Exercise {i}/{len(live_qs)} ==={Style.RESET_ALL}")
+                print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
+                is_correct, user_yaml = self._run_one_exercise(q)
+                exp = q.get('assert_script', '')
+                log_ans = (user_yaml[:200] + '...') if len(user_yaml) > 200 else user_yaml
+                log_exp = (exp[:200] + '...') if len(exp) > 200 else exp
+                self.logger.info(
+                    f"Question {i}/{len(live_qs)}: prompt=\"{q['prompt']}\" expected=\"{log_exp}\""
+                    f" answer=\"{log_ans}\" result=\"{'correct' if is_correct else 'incorrect'}\""
+                )
+            return
+        print(Fore.RED + "Session mode not set. Cannot run exercises." + Style.RESET_ALL)
 
     def _run_one_exercise(self, q):
         """Handles a single live Kubernetes question."""
