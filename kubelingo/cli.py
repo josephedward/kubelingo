@@ -510,11 +510,11 @@ def main():
     
     # Module-based exercises
     parser.add_argument('--module', type=str,
-                        help='Run exercises for a specific module (e.g., kubernetes, kustom)')
+                        help='Run exercises for a specific module (e.g., kubernetes, custom)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                        help='Path to custom quiz JSON file for kustom module')
+                        help='Path to custom quiz JSON file for custom module')
     parser.add_argument('--exercises', type=str,
                         help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
@@ -526,7 +526,7 @@ def main():
     if len(sys.argv) == 1:
         if questionary:
             try:
-                choices = ['kubernetes', 'kustom', 'help']
+                choices = ['kubernetes', 'custom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -540,16 +540,26 @@ def main():
                     parser.print_help()
                     return
 
-                # Set module for execution based on user's choice
                 args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
         else:
-            # Fallback for when questionary is not installed
-            print(Fore.CYAN + "Type 'kubelingo --help' for full options." + Style.RESET_ALL)
-            parser.print_help()
-            return
+            # Fallback for when questionary is not installed, use simple input prompt
+            while True:
+                try:
+                    print("What would you like to do? Available options: kubernetes, custom, help")
+                    action = input("Enter choice: ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    print("\nExiting.")
+                    return
+                if action in ['kubernetes', 'custom', 'help']:
+                    break
+                print("Invalid choice. Please enter kubernetes, custom, or help.")
+            if action == 'help':
+                parser.print_help()
+                return
+            args.module = action
     
     # Handle modes that exit immediately
     if args.history:
@@ -594,7 +604,9 @@ def main():
         logger = logging.getLogger()
         session = load_session(args.module, logger)
         if session:
-            session.initialize()
+            init_ok = session.initialize()
+            if not init_ok:
+                return
             exercises_file = args.custom_file or args.exercises
             session.run_exercises(exercises_file)
             session.cleanup()
