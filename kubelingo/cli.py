@@ -540,11 +540,8 @@ def main():
                     parser.print_help()
                     return
 
-                # Map 'kustom' to the 'custom' module and set it for module execution
-                if action == 'kustom':
-                    args.module = 'custom'
-                else:
-                    args.module = action
+                # Set module for execution based on user's choice
+                args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
