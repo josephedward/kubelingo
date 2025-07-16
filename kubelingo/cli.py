@@ -513,10 +513,6 @@ def main():
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                         help='Path to quiz data JSON file for command quiz')
-    parser.add_argument('-M', '--module', type=str, choices=['kubernetes', 'custom'],
-                        help='Study module to load (kubernetes or custom)')
-    parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                        help='Path to custom quiz JSON file for custom module')
     parser.add_argument('-n', '--num', type=int, default=0,
                         help='Number of questions to ask (default: all)')
     parser.add_argument('-c', '--category', type=str,
@@ -553,14 +549,44 @@ def main():
         show_history()
         return
 
-    if args.list_modules:
-        modules = discover_modules()
-        print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
-        if modules:
-            for mod in modules:
-                print(Fore.YELLOW + mod + Style.RESET_ALL)
+    # Module selection and dispatch
+    module = args.module
+    if not module:
+        choices = discover_modules() + ['custom']
+        if questionary:
+            try:
+                module = questionary.select("Select study module:", choices).ask()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                return
         else:
-            print("No modules found.")
+            print("Available modules:")
+            for m in choices:
+                print(f"  {m}")
+            module = input("Module to load: ").strip().lower()
+    if module == 'kubernetes':
+        # Live Kubernetes cloud exercises
+        log_file = 'quiz_cloud_log.txt'
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+        logger = logging.getLogger()
+        questions = load_questions(args.file)
+        cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
+        if not cloud_qs:
+            print(Fore.RED + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
+            return
+        for i, q in enumerate(cloud_qs, 1):
+            print(f"\n{Fore.CYAN}=== Kubernetes Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
+            is_correct, _ = handle_live_k8s_question(q, logger)
+            if q.get('explanation'):
+                level = Fore.GREEN if is_correct else Fore.RED
+                print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
+        return
+    elif module == 'custom':
+        custom_file = args.exercises or input("Enter path to custom quiz JSON file: ").strip()
+        run_quiz(custom_file, args.num, args.category)
+        return
+    else:
+        print(Fore.RED + f"Error: module '{module}' not supported." + Style.RESET_ALL)
         return
     
     if args.vim_quiz:
@@ -579,48 +605,36 @@ def main():
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         return
 
-    # If user hasn't selected a module yet, prompt to choose
+    # Module selection and dispatch
+    modules = discover_modules()
     if not args.module:
-        modules = discover_modules()
-        if modules:
-            if questionary:
-                args.module = questionary.select(
-                    "Select study module:", choices=modules
-                ).ask()
-            else:
-                print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
-                for m in modules:
-                    print(Fore.YELLOW + m + Style.RESET_ALL)
-                args.module = input("Module to load: ").strip()
+        if not modules:
+            print(Fore.RED + "No study modules available." + Style.RESET_ALL)
+            return
+        if questionary:
+            args.module = questionary.select("Select study module:", modules).ask()
+        else:
+            print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
+            for m in modules:
+                print(Fore.YELLOW + m + Style.RESET_ALL)
+            args.module = input("Module to load: ").strip()
         if not args.module:
             print(Fore.RED + "No module selected; exiting." + Style.RESET_ALL)
             return
 
-    if args.module:
-        if args.module == 'kubernetes':
-            # Live Kubernetes cloud exercises
-            log_file = 'quiz_cloud_log.txt'
-            logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-            logger = logging.getLogger()
-            questions = load_questions(args.file)
-            cloud_qs = [q for q in questions if q.get('type') == 'live_k8s_edit']
-            if not cloud_qs:
-                print(Fore.RED + "No live Kubernetes cloud exercises found in data file." + Style.RESET_ALL)
-                return
-            for i, q in enumerate(cloud_qs, 1):
-                print(f"\n{Fore.CYAN}=== Kubernetes Exercise {i}/{len(cloud_qs)} ==={Style.RESET_ALL}")
-                is_correct, _ = handle_live_k8s_question(q, logger)
-                if q.get('explanation'):
-                    level = Fore.GREEN if is_correct else Fore.RED
-                    print(level + f"Explanation: {q['explanation']}" + Style.RESET_ALL + '\n')
-            return
-        elif args.module == 'custom':
-            custom_file = args.exercises or input("Enter path to custom quiz JSON file: ").strip()
-            run_quiz(custom_file, args.num, args.category)
-            return
-        else:
-            print(Fore.RED + f"Error: module '{args.module}' not supported." + Style.RESET_ALL)
-            return
+    if args.module == 'kubernetes':
+        from kubelingo.modules.kubernetes.session import KubernetesSession
+        session = KubernetesSession(
+            questions_file=args.file,
+            exercises_file=args.exercises,
+            cluster_context=args.cluster_context
+        )
+        if session.initialize():
+            session.run_exercises()
+        session.cleanup()
+    else:
+        print(Fore.RED + f"Error: module '{args.module}' not supported." + Style.RESET_ALL)
+    return
 
     questions = load_questions(args.file)
     if args.list_categories:
