@@ -20,9 +20,12 @@ setup(
     include_package_data=True,
     package_data={'kubelingo': ['data/*.json']},
     install_requires=[
-        'PyYAML>=5.3',
-        'questionary>=1.10.0',
-        'colorama>=0.4.3'
+        'boto3>=1.26.0',
+        'click>=8.0.0',
+        'colorama>=0.4.4',
+        'kubernetes>=25.0.0',
+        'PyYAML>=6.0',
+        'questionary>=1.10.0'
     ],
     entry_points={
         'console_scripts': [
