@@ -509,7 +509,7 @@ def main():
                         help='Run Vim commands quiz')
     
     # Module-based exercises
-    parser.add_argument('--module', type=str,
+    parser.add_argument('module', nargs='?', default=None,
                         help='Run exercises for a specific module (e.g., kubernetes, custom)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
