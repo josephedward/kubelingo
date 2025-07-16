@@ -77,6 +77,141 @@ YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
 # Quiz-related functions are now part of the 'kubernetes' module.
+def load_questions(data_file):
+    """Loads and flattens questions from a JSON data file."""
+    try:
+        with open(data_file, 'r') as f:
+            sections = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+        return []
+
+    all_questions = []
+    for section in sections:
+        category = section.get('category', 'General')
+        # Support both 'questions' and 'prompts' keys.
+        qs = section.get('questions', []) or section.get('prompts', [])
+        for q in qs:
+            if 'category' not in q:
+                q['category'] = category
+            all_questions.append(q)
+    return all_questions
+
+
+def commands_equivalent(ans, expected):
+    """
+    Basic command comparison. Ignores extra whitespace and order of arguments.
+    This is a simplified version. For full kubectl command comparison, a more
+    sophisticated normalization (like in k8s_quiz.py) would be better.
+    """
+    if not ans or not expected:
+        return False
+    try:
+        # Split commands into arguments and sort for comparison
+        return sorted(shlex.split(ans)) == sorted(shlex.split(expected))
+    except ValueError:
+        return False  # Handle malformed command strings, e.g., unmatched quotes
+
+
+def run_command_quiz(args):
+    """Run a quiz session for command-line questions."""
+    start_time = datetime.datetime.now()
+    questions = load_questions(args.file)
+
+    if args.review_only:
+        questions = [q for q in questions if q.get('review')]
+        if not questions:
+            print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
+            return
+
+    if args.category:
+        questions = [q for q in questions if q.get('category') == args.category]
+        if not questions:
+            print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
+            return
+
+    if not questions:
+        print(Fore.YELLOW + "No questions available for this quiz." + Style.RESET_ALL)
+        return
+
+    num_to_ask = args.num if args.num > 0 else len(questions)
+    questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
+
+    if not questions_to_ask:
+        print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
+        return
+
+    correct_count = 0
+    per_category_stats = {}
+    total_asked = len(questions_to_ask)
+
+    print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
+    print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_asked}{Style.RESET_ALL}")
+
+    for i, q in enumerate(questions_to_ask, 1):
+        category = q.get('category', 'General')
+        if category not in per_category_stats:
+            per_category_stats[category] = {'asked': 0, 'correct': 0}
+        per_category_stats[category]['asked'] += 1
+
+        print(f"\n{Fore.YELLOW}Question {i}/{total_asked} (Category: {category}){Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+
+        try:
+            user_answer = input(f"{Fore.CYAN}Your answer: {Style.RESET_ALL}").strip()
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+            break
+
+        is_correct = commands_equivalent(user_answer, q.get('response', ''))
+
+        if is_correct:
+            correct_count += 1
+            per_category_stats[category]['correct'] += 1
+            print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+
+        if q.get('explanation'):
+            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+    end_time = datetime.datetime.now()
+    duration = str(end_time - start_time).split('.')[0]
+
+    print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
+    score = (correct_count / total_asked * 100) if total_asked > 0 else 0
+    print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+    print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+
+    # Save history
+    new_history_entry = {
+        'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'num_questions': total_asked,
+        'num_correct': correct_count,
+        'duration': duration,
+        'data_file': os.path.basename(args.file),
+        'category_filter': args.category,
+        'per_category': per_category_stats
+    }
+
+    history = []
+    if os.path.exists(HISTORY_FILE):
+        try:
+            with open(HISTORY_FILE, 'r') as f:
+                history_data = json.load(f)
+                if isinstance(history_data, list):
+                    history = history_data
+        except (json.JSONDecodeError, IOError):
+            pass  # Start with fresh history if file is corrupt or unreadable
+
+    history.insert(0, new_history_entry)
+
+    try:
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except IOError as e:
+        print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
 
 
 def show_history():
@@ -217,7 +352,7 @@ def main():
         if questionary:
             try:
                 # Interactive modules: k8s cluster exercises and custom quizzes
-                choices = ['k8s', 'custom', 'help']
+                choices = ['k8s', 'kustom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -230,7 +365,8 @@ def main():
                     return
                 # Map friendly names to module names
                 if action == 'k8s':
-                    args.module = 'kubernetes'
+                    run_command_quiz(args)
+                    return
                 else:
                     args.module = action
             except (EOFError, KeyboardInterrupt):
@@ -238,7 +374,7 @@ def main():
                 return
         else:
             # Fallback prompt
-            valid = ['k8s', 'custom', 'help']
+            valid = ['k8s', 'kustom', 'help']
             while True:
                 try:
                     print("What would you like to do? Available options: k8s, kustom, help")
@@ -253,7 +389,8 @@ def main():
                 parser.print_help()
                 return
             if action == 'k8s':
-                args.module = 'kubernetes'
+                run_command_quiz(args)
+                return
             else:
                 args.module = action
     
@@ -311,10 +448,11 @@ def main():
 
     # Handle module-based execution.
     if args.module:
-        # Map alias 'k8s' to 'kubernetes'
         module_name = args.module.lower()
-        if module_name == 'k8s':
-            module_name = 'kubernetes'
+        if module_name in ('k8s', 'kubernetes'):
+            run_command_quiz(args)
+            return
+
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
         logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -338,7 +476,8 @@ def main():
         return
 
     # Default to the classic command quiz if no module was selected and no other mode was triggered.
-    run_quiz(args.file, args.num, args.category, review_only=args.review_only)
+    if not args.module:
+        run_command_quiz(args)
 
 # Alias for backward-compatibility
 run_yaml_exercise_mode = run_yaml_editing_mode
