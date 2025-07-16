@@ -531,15 +531,12 @@ def main():
                     "What would you like to do?",
                     choices=choices
                 ).ask()
-
-                if action is None:  # User pressed Ctrl+C
+                if action is None:
                     print("\nExiting.")
                     return
-
                 if action == 'help':
                     parser.print_help()
                     return
-
                 args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
@@ -601,6 +598,38 @@ def main():
 
     # Handle module-based execution.
     if args.module:
+        # Kubernetes module supports both command quiz and live exercises
+        if args.module == 'kubernetes':
+            mode = None
+            choices = ['Commands Quiz', 'Live Kubernetes Exercises']
+            if questionary:
+                try:
+                    sel = questionary.select(
+                        "Which Kubernetes quiz would you like to run?",
+                        choices=choices
+                    ).ask()
+                    if sel is None:
+                        print("\nExiting.")
+                        return
+                    mode = sel.strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    print("\nExiting.")
+                    return
+            else:
+                while True:
+                    try:
+                        sel = input("Choose mode: (1) Commands Quiz, (2) Live Kubernetes Exercises: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nExiting.")
+                        return
+                    if sel in ['1', '2', 'commands', 'live']:
+                        mode = sel
+                        break
+                    print("Invalid choice. Enter 1, 2, 'commands', or 'live'.")
+            if mode.startswith('1') or mode.startswith('c'):
+                run_quiz(args.file, args.num, args.category, review_only=args.review_only)
+                return
+            # else: proceed with live exercises
         logger = logging.getLogger()
         session = load_session(args.module, logger)
         if session:
