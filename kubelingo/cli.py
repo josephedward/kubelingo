@@ -179,64 +179,28 @@ def run_command_quiz(args):
     # filtering arguments were passed via the command line.
     is_interactive = questionary and not args.category and not args.review_only and not args.num
     if is_interactive:
-        # Loop to allow going "back" up the menu hierarchy.
-        while True:
-            try:
-                # First, check for any questions flagged for review
-                flagged_questions = [q for q in questions if q.get('review')]
-                if flagged_questions:
-                    review_action = questionary.select(
-                        "Review only flagged questions?",
-                        choices=[
-                            {'name': 'Yes', 'value': True},
-                            {'name': 'No', 'value': False},
-                            {'name': 'Back to main menu', 'value': 'back'}
-                        ],
-                        use_indicator=True
-                    ).ask()
-
-                    if review_action is None:  # User pressed Ctrl+C
-                        print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                        return
-                    if review_action == 'back':
-                        return  # Exit this function to go back to the main menu prompt.
-                    
-                    args.review_only = review_action
-                
-                # If not reviewing flagged, or if there are no flagged questions, ask for category
-                if not args.review_only:
-                    categories = sorted({q['category'] for q in questions if q.get('category')})
-                    if categories:
-                        choices = ['All']
-                        if flagged_questions:
-                            choices.append('Back to previous step')
-                        choices.extend(categories)
-
-                        selected_category = questionary.select(
-                            "Choose a subject area:",
-                            choices=choices,
-                            use_indicator=True
-                        ).ask()
-
-                        if selected_category is None:  # User pressed Ctrl+C
-                            print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                            return
-                        
-                        if selected_category == 'Back to previous step':
-                            # Reset flags and restart the loop to show the review prompt again.
-                            args.review_only = False
-                            args.category = None
-                            continue
-
-                        if selected_category != 'All':
-                            args.category = selected_category
-                
-                # If we've reached here without continuing, we have our quiz options.
-                break
-
-            except (EOFError, KeyboardInterrupt):
-                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                return
+        flagged_questions = [q for q in questions if q.get('review')]
+        categories = sorted({q['category'] for q in questions if q.get('category')})
+        choices = []
+        if flagged_questions:
+            choices.append({'name': 'Flagged Questions', 'value': 'flagged'})
+        choices.append({'name': 'All Questions', 'value': 'all'})
+        for category in categories:
+            choices.append({'name': category, 'value': category})
+        selected = questionary.select(
+            "Choose a quiz type or subject area:",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+        if selected is None:
+            print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+            return
+        if selected == 'flagged':
+            args.review_only = True
+        elif selected == 'all':
+            pass
+        else:
+            args.category = selected
 
     if args.review_only:
         questions = [q for q in questions if q.get('review')]
@@ -550,33 +514,32 @@ def main():
                 print("\nExiting.")
                 break
         else:
-            # Fallback prompt
-            valid = ['k8s', 'kustom', 'help']
+            # Fallback prompt for modules and flagged questions
+            valid = ['k8s', 'kustom', 'flagged', 'help']
             while True:
                 try:
-                    print("What would you like to do? Available options: k8s, kustom, help")
+                    print("What would you like to do? Available options: k8s, kustom, flagged, help")
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     break
                 if action in valid:
                     break
-                print("Invalid choice. Please enter one of: k8s, kustom, help.")
+                print("Invalid choice. Please enter one of: k8s, kustom, flagged, help.")
             if action == 'help':
                 parser.print_help()
                 break
-
-                if action == 'k8s':
-                    if run_command_quiz(args) == 'back_to_main':
-                        restart_loop = True
-                elif action == 'flagged':
-                    args.review_only = True
-                    if run_command_quiz(args) == 'back_to_main':
-                        restart_loop = True
-                elif action == 'kustom':
-                    args.module = 'custom'
-                else:
-                    args.module = action
+            if action == 'k8s':
+                if run_command_quiz(args) == 'back_to_main':
+                    restart_loop = True
+            elif action == 'flagged':
+                args.review_only = True
+                if run_command_quiz(args) == 'back_to_main':
+                    restart_loop = True
+            elif action == 'kustom':
+                args.module = 'custom'
+            else:
+                args.module = action
     
     if restart_loop:
         sys.argv = [sys.argv[0]]
@@ -637,6 +600,12 @@ def main():
     # Handle module-based execution.
     if args.module:
         module_name = args.module.lower()
+        # Support reviewing flagged questions as a top-level option
+        if module_name == 'flagged':
+            args.review_only = True
+            if run_command_quiz(args) == 'back_to_main':
+                restart_loop = True
+            break
         if module_name in ('k8s', 'kubernetes'):
             if run_command_quiz(args) == 'back_to_main':
                 restart_loop = True
