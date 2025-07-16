@@ -510,11 +510,11 @@ def main():
     
     # Module-based exercises
     parser.add_argument('--module', type=str,
-                        help='Run exercises for a specific module (e.g., kubernetes, custom)')
+                        help='Run exercises for a specific module (e.g., kubernetes, kustom)')
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                        help='Path to custom quiz JSON file for custom module')
+                        help='Path to custom quiz JSON file for kustom module')
     parser.add_argument('--exercises', type=str,
                         help='Path to custom exercises JSON file for a module')
     parser.add_argument('--cluster-context', type=str,
@@ -540,7 +540,6 @@ def main():
                 print(Fore.YELLOW + mod + Style.RESET_ALL)
         else:
             print("No modules found.")
-        print(f"{Fore.CYAN}custom{Style.RESET_ALL}") # Keep compatibility
         return
 
     if args.list_categories:
