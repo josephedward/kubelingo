@@ -20,7 +20,7 @@ class AIProcessor:
         for item in raw_data:
             if 'prompt' in item and 'response' in item:
                 questions.append({
-                    'category': 'custom',
+                    'category': 'kustom',
                     'prompt': item['prompt'],
                     'response': item['response'],
                     'explanation': item.get('explanation', ''),
