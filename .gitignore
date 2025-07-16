@@ -19,7 +19,6 @@ venv/
 *.swo
 .DS_Store
 *.log
-*.txt
 kubelingo-work/
 logs/
 .aider.chat.history.md
