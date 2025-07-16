@@ -269,18 +269,66 @@ class NewSession(StudySession):
             if q.get('explanation'):
                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
-            if not is_correct:
+            # --- Post-question action menu ---
+            action_interrupted = False
+            while True:
+                print()  # Add space before the menu
                 try:
-                    clarify = input("Type 'llm' for clarification, or press Enter to continue: ").strip().lower()
-                    if clarify == 'llm':
+                    is_flagged = q.get('review', False)
+                    flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
+                    
+                    if questionary:
+                        choices = ["Next Question", flag_option, "Get LLM Clarification"]
+                        action = questionary.select(
+                            "Choose an action:",
+                            choices=choices,
+                            use_indicator=True
+                        ).ask()
+
+                        if action is None:  # User pressed Ctrl+C
+                            raise KeyboardInterrupt
+                    else:
+                        # Fallback for no questionary
+                        print("Choose an action:")
+                        print("  1: Next Question")
+                        print(f"  2: {flag_option}")
+                        print("  3: Get LLM Clarification")
+                        choice = input("Enter choice [1]: ").strip()
+                        if not choice or choice == '1':
+                            action = "Next Question"
+                        elif choice == '2':
+                            action = flag_option
+                        elif choice == '3':
+                            action = "Get LLM Clarification"
+                        else:
+                            print(Fore.RED + "Invalid choice." + Style.RESET_ALL)
+                            continue
+                    
+                    if action == "Next Question":
+                        break  # Exit the while loop to go to the next question
+                    
+                    elif action.startswith("Flag for Review"):
+                        mark_question_for_review(data_file, q['category'], q['prompt'])
+                        q['review'] = True  # Update local state for the menu
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+
+                    elif action.startswith("Un-flag for Review"):
+                        unmark_question_for_review(data_file, q['category'], q['prompt'])
+                        q['review'] = False  # Update local state for the menu
+                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+
+                    elif action == "Get LLM Clarification":
                         print(f"\n{Fore.CYAN}--- AI Clarification ---{Style.RESET_ALL}")
                         print("(AI feature is not yet implemented. This would provide a detailed explanation.)")
                         print(f"{Fore.CYAN}------------------------{Style.RESET_ALL}")
+
                 except (EOFError, KeyboardInterrupt):
-                    print()
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    action_interrupted = True
                     break
-            
-            print()
+
+            if action_interrupted:
+                break
 
         end_time = datetime.now()
         duration = end_time - start_time
