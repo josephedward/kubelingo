@@ -415,7 +415,7 @@ def main():
         if questionary:
             try:
                 # Interactive modules: k8s cluster exercises and custom quizzes
-                choices = ['k8s', 'custom', 'help']
+                choices = ['k8s', 'kustom', 'help']
                 action = questionary.select(
                     "What would you like to do?",
                     choices=choices
@@ -426,28 +426,43 @@ def main():
                 if action == 'help':
                     parser.print_help()
                     return
-                # Map friendly names to module names
-                args.module = action
+
+                if action == 'k8s':
+                    run_command_quiz(args)
+                    return
+                
+                if action == 'kustom':
+                    args.module = 'custom'
+                else:
+                    args.module = action
             except (EOFError, KeyboardInterrupt):
                 print("\nExiting.")
                 return
         else:
             # Fallback prompt
-            valid = ['k8s', 'custom', 'help']
+            valid = ['k8s', 'kustom', 'help']
             while True:
                 try:
-                    print("What would you like to do? Available options: k8s, custom, help")
+                    print("What would you like to do? Available options: k8s, kustom, help")
                     action = input("Enter choice: ").strip().lower()
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     return
                 if action in valid:
                     break
-                print("Invalid choice. Please enter one of: k8s, custom, help.")
+                print("Invalid choice. Please enter one of: k8s, kustom, help.")
             if action == 'help':
                 parser.print_help()
                 return
-            args.module = action
+
+            if action == 'k8s':
+                run_command_quiz(args)
+                return
+
+            if action == 'kustom':
+                args.module = 'custom'
+            else:
+                args.module = action
     
     # Handle modes that exit immediately
     if args.history:
@@ -505,9 +520,15 @@ def main():
     if args.module:
         module_name = args.module.lower()
         if module_name in ('k8s', 'kubernetes'):
-            module_name = 'kubernetes'
+            run_command_quiz(args)
+            return
         elif module_name == 'kustom':
             module_name = 'custom'
+        
+        # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
+        if module_name == 'llm':
+            print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
+            return
 
         # Prepare logging for other modules
         log_file = 'quiz_log.txt'
@@ -516,7 +537,7 @@ def main():
         # The `custom` module needs special handling for the file path
         if module_name == 'custom':
             if not args.custom_file and not args.exercises:
-                print(Fore.RED + "For the 'custom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
+                print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
                 return
         # Load and run the specified module's session
         session = load_session(module_name, logger)
