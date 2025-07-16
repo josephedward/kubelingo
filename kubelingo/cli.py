@@ -142,32 +142,6 @@ def mark_question_for_review(data_file, category, prompt_text):
     except Exception as e:
         print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
     
-def unmark_question_for_review(data_file, category, prompt_text):
-    """Removes 'review' flag from the matching question in the JSON data file."""
-    try:
-        with open(data_file, 'r') as f:
-            data = json.load(f)
-    except Exception as e:
-        print(Fore.RED + f"Error opening data file for review unflagging: {e}" + Style.RESET_ALL)
-        return
-    changed = False
-    for section in data:
-        if section.get('category') == category:
-            for item in section.get('prompts', []):
-                if item.get('prompt') == prompt_text and item.get('review'):
-                    item.pop('review', None)
-                    changed = True
-                    break
-        if changed:
-            break
-    if not changed:
-        print(Fore.RED + f"Warning: question not flagged in {data_file} to unflag." + Style.RESET_ALL)
-        return
-    try:
-        with open(data_file, 'w') as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(Fore.RED + f"Error writing data file when unflagging review: {e}" + Style.RESET_ALL)
 
 def unmark_question_for_review(data_file, category, prompt_text):
     """Removes 'review' flag from the matching question in the JSON data file."""
