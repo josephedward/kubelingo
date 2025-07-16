@@ -17,13 +17,14 @@ def discover_modules():
 
 def load_session(module_name: str, logger) -> StudySession:
     """Loads a study session module."""
+    # Convention: session class is named <ModuleName>Session, e.g. KubernetesSession
+    class_name = f'{module_name.capitalize()}Session'
     try:
         module_path = f'kubelingo.modules.{module_name}.session'
         mod = importlib.import_module(module_path)
-        # Convention: session class is named NewSession
-        session_class = getattr(mod, 'NewSession')
+        session_class = getattr(mod, class_name)
         return session_class(logger=logger)
     except ImportError as e:
         raise ImportError(f"Could not import session module for '{module_name}': {e}")
     except AttributeError:
-        raise AttributeError(f"Module '{module_name}'s session.py does not define a 'NewSession' class.")
+        raise AttributeError(f"Module '{module_name}'s session.py does not define a '{class_name}' class.")
