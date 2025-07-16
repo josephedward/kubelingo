@@ -76,6 +76,96 @@ YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
+# Load and filter quiz questions from JSON data
+def load_questions(data_file):
+    """Load quiz data from a JSON file into a list of question dicts."""
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error loading quiz data from {data_file}: {e}")
+        sys.exit(1)
+    questions = []
+    for section in data:
+        category = section.get('category', '')
+        for item in section.get('prompts', []):
+            # Skip YAML exercises here
+            if item.get('yaml_exercise'):
+                continue
+            qtype = item.get('type', 'command')
+            q = {
+                'category': category,
+                'prompt': item.get('prompt', ''),
+                'explanation': item.get('explanation', ''),
+                'type': qtype,
+                'review': item.get('review', False)
+            }
+            if qtype == 'yaml_edit':
+                if not yaml:
+                    continue
+                q['starting_yaml'] = item.get('starting_yaml', '')
+                q['correct_yaml'] = item.get('correct_yaml', '')
+            elif qtype == 'live_k8s_edit':
+                q['starting_yaml'] = item.get('starting_yaml', '')
+                q['assert_script'] = item.get('assert_script', '')
+            else:
+                q['response'] = item.get('response', '')
+            questions.append(q)
+    return questions
+
+# Functions to flag or un-flag questions for review in-place in the data file
+def mark_question_for_review(data_file, category, prompt_text):
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text:
+                    item['review'] = True
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
+
+def unmark_question_for_review(data_file, category, prompt_text):
+    try:
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
+        return
+    changed = False
+    for section in data:
+        if section.get('category') == category:
+            for item in section.get('prompts', []):
+                if item.get('prompt') == prompt_text and item.get('review'):
+                    del item['review']
+                    changed = True
+                    break
+        if changed:
+            break
+    if not changed:
+        print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+        return
+    try:
+        with open(data_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+
 
 def show_history():
     """Display quiz history and aggregated statistics."""
