@@ -37,11 +37,17 @@ class KubernetesSession(StudySession):
         self.creds_acquired = False
 
     def initialize(self):
-        """Provisions a temporary EKS cluster for the session."""
-        deps = check_dependencies('go', 'eksctl', 'kubectl')
+        """Provisions a temporary EKS cluster for the session, or uses existing context."""
+        deps = check_dependencies('go', 'kubectl')
         if deps:
             print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
             return False
+
+        if not shutil.which('eksctl'):
+            print(Fore.YELLOW + "Warning: 'eksctl' not found. Using pre-configured Kubernetes context." + Style.RESET_ALL)
+            self.cluster_name = "pre-configured"
+            self.kubeconfig_path = None
+            return True
 
         self.cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
         self.kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{self.cluster_name}.kubeconfig")
@@ -178,7 +184,7 @@ class KubernetesSession(StudySession):
 
     def cleanup(self):
         """Deletes the EKS cluster and cleans up local files."""
-        if not self.cluster_name:
+        if not self.cluster_name or self.cluster_name == "pre-configured":
             return  # Nothing to cleanup
 
         print(Fore.YELLOW + f"Deleting EKS cluster '{self.cluster_name}'..." + Style.RESET_ALL)
