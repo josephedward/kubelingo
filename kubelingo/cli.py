@@ -236,16 +236,6 @@ def main():
         parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
-        # Standalone exercise modes
-        parser.add_argument('--interactive-yaml', action='store_true',
-                            help='Show menu for interactive YAML exercises (Vim-powered)')
-        parser.add_argument('--yaml-exercises', action='store_true',
-                            help='Run standard YAML editing exercises ("fill in the blanks")')
-        parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
-                            help='Alias for --yaml-exercises')
-        parser.add_argument('--vim-quiz', action='store_true',
-                            help='Run Vim commands quiz')
-        
         # Module-based exercises
         parser.add_argument('module', nargs='?', default=None,
                             help='Run exercises for a specific module (e.g., kubernetes, kustom)')
@@ -367,28 +357,10 @@ def main():
                 print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
             break
 
-        if args.vim_quiz:
-            if not vim_commands_quiz:
-                print("Vim quiz module not loaded.")
-                break
-            score = vim_commands_quiz()
-            print(f"\nVim Quiz completed with {score:.1%} accuracy")
-            break
-        
-        if args.yaml_exercises:
-            if not VimYamlEditor:
-                print("YAML editor module not loaded.")
-                break
-            run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-            break
-
         # Handle module-based execution.
         if args.module:
             module_name = args.module.lower()
-            if module_name in ('k8s', 'kubernetes'):
-                if run_command_quiz(args) == 'back_to_main':
-                    restart_loop = True
-            elif module_name == 'kustom':
+            if module_name == 'kustom':
                 module_name = 'custom'
             
             # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
@@ -396,44 +368,33 @@ def main():
                 print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
                 break
 
-            if restart_loop:
-                sys.argv = [sys.argv[0]]
-                continue
-
             # Prepare logging for other modules
             log_file = 'quiz_log.txt'
             logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
             logger = logging.getLogger()
-            # The `custom` module needs special handling for the file path
+
             if module_name == 'custom':
                 if not args.custom_file and not args.exercises:
                     print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
                     return
             # Load and run the specified module's session
-            session = load_session(module_name, logger)
-            if session:
-                init_ok = session.initialize()
-                if not init_ok:
-                    print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
-                    break
-                session.run_exercises(args)
-                session.cleanup()
-            else:
-                print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
+            try:
+                session = load_session(module_name, logger)
+                if session:
+                    init_ok = session.initialize()
+                    if not init_ok:
+                        print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
+                        break
+                    session.run_exercises(args)
+                    session.cleanup()
+                else:
+                    print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
+            except (ImportError, AttributeError) as e:
+                print(Fore.RED + f"Error loading module '{module_name}': {e}" + Style.RESET_ALL)
             break
 
-        # Default to the classic command quiz if no module was selected and no other mode was triggered.
-        if not args.module and not restart_loop:
-            if run_command_quiz(args) == 'back_to_main':
-                restart_loop = True
-
-        if restart_loop:
-            sys.argv = [sys.argv[0]]
-            continue
-        else:
+        # If no other action was taken, break the loop.
+        if not args.module:
             break
-# Alias for backward-compatibility
-run_yaml_exercise_mode = run_yaml_editing_mode
-
 if __name__ == '__main__':
     main()
