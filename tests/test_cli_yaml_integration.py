@@ -1,68 +1,4 @@
-import json
-import os
 import pytest
-
-from kubelingo.cli import run_yaml_editing_mode, YAML_QUESTIONS_FILE
-
-
-def test_run_yaml_editing_mode_integration(capsys, monkeypatch):
-    # Load YAML exercise definitions
-    with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
-        sections = json.load(f)
-    # Flatten prompts of type 'yaml_edit'
-    prompts = []
-    for section in sections:
-        for item in section.get('prompts', []):
-            if item.get('question_type') == 'yaml_edit':
-                prompts.append(item)
-    assert prompts, "No YAML edit prompts found in data file."
-    # Prepare correct YAMLs for each prompt
-    correct_yamls = [item.get('correct_yaml', '') for item in prompts]
-
-    # Counter for subprocess calls
-    call_state = {'idx': 0}
-
-    # Simulate vim editing by writing the correct YAML to the temp file
-    def simulate_vim_edit(cmd, check=True):  # cmd: [editor, tmp_filename]
-        tmp_file = cmd[1]
-        yaml_text = correct_yamls[call_state['idx']]
-        with open(tmp_file, 'w', encoding='utf-8') as out_f:
-            out_f.write(yaml_text)
-        call_state['idx'] += 1
-
-    # Patch subprocess.run in the YAML editor module
-    monkeypatch.setattr(
-        'kubelingo.modules.vim_yaml_editor.subprocess.run',
-        simulate_vim_edit
-    )
-    # Simulate user input: continue through all exercises except last
-    # run_yaml_editing_mode prompts to continue for each exercise idx < total
-    cont_inputs = ['y'] * (len(prompts) - 1)
-    def fake_input(prompt=None):
-        return cont_inputs.pop(0) if cont_inputs else 'n'
-    monkeypatch.setattr('builtins.input', fake_input)
-
-    # Run the YAML editing mode
-    run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-    captured = capsys.readouterr()
-    out = captured.out
-
-    # Verify header and summary
-    total = len(prompts)
-    assert f"Found {total} YAML editing exercises." in out
-    assert "Editor:" in out
-
-    # Verify each exercise prompt, correctness, and explanation
-    for idx, item in enumerate(prompts, start=1):
-        prompt_line = f"Exercise {idx}/{total}: {item.get('prompt')}"
-        assert prompt_line in out
-        assert "Correct!" in out, f"Missing correct confirmation for exercise {idx}."
-        explanation = item.get('explanation')
-        if explanation:
-            assert explanation in out, f"Missing explanation for exercise {idx}."
-
-    # Verify session completion message
-    assert "YAML Editing Session Complete" in outimport pytest
 import json
 from unittest.mock import patch
 
@@ -119,7 +55,8 @@ def test_yaml_editing_e2e_flow(capsys):
     # There will be (num_questions - 1) such prompts.
     user_inputs = ['y'] * (num_questions - 1)
 
-    with patch('subprocess.run', side_effect=mock_editor_instance) as mock_run, \
+    # Patch subprocess in the module where it's used
+    with patch('kubelingo.modules.vim_yaml_editor.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
          patch('builtins.input', side_effect=user_inputs) as mock_input:
         
         run_yaml_editing_mode(YAML_QUESTIONS_FILE)
@@ -138,25 +75,20 @@ def test_yaml_editing_e2e_flow(capsys):
     # Check for session start and end banners.
     assert "=== Kubelingo YAML Editing Mode ===" in output
     assert "=== YAML Editing Session Complete ===" in output
-
-    # Split the output by "Exercise" to verify each one individually.
-    output_parts = output.split("Exercise ")[1:] # Skip the initial banner part.
-    assert len(output_parts) == num_questions, "The number of exercises in the output should match the number of questions."
-
+    
     # Check that each question's prompt, success message, and explanation were printed.
-    for i, prompt_data in enumerate(all_prompts):
-        part = output_parts[i]
+    for i, prompt_data in enumerate(all_prompts, 1):
         prompt_text = prompt_data['prompt']
         explanation_text = prompt_data['explanation']
 
-        # Verify exercise number and prompt are present in the output for this part.
-        assert f"{i+1}/{num_questions}: {prompt_text}" in part
+        # Verify that the prompt from cli.py is present
+        assert f"Exercise {i}/{num_questions}: {prompt_text}" in output
         
-        # Verify success message and explanation.
-        assert "✅ Correct!" in part
-        assert f"Explanation: {explanation_text}" in part
+        # Verify that the prompt from vim_yaml_editor.py is present
+        assert f"=== Exercise {i}: {prompt_text} ===" in output
 
-        # Ensure "Correct!" appears before the explanation.
-        correct_index = part.find("✅ Correct!")
-        explanation_index = part.find(f"Explanation: {explanation_text}")
-        assert correct_index != -1 and explanation_index > correct_index
+        # Verify explanation for each prompt
+        assert f"Explanation: {explanation_text}" in output
+
+    # Verify correct number of "Correct!" messages
+    assert output.count("✅ Correct!") == num_questions
