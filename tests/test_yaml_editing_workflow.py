@@ -23,6 +23,10 @@ def test_yaml_editing_workflow_success_first_try(editor, capsys):
         tmp_file_path = cmd[1]
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(question['correct_yaml'])
+        # Return a mock process object to simulate a successful editor session.
+        mock_proc = Mock()
+        mock_proc.returncode = 0
+        return mock_proc
 
     with patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit):
         success = editor.run_yaml_edit_question(question, index=1)
@@ -54,6 +58,10 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
         output_to_write = editor_outputs.pop(0)
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(output_to_write)
+        # Return a mock process object to simulate a successful editor session.
+        mock_proc = Mock()
+        mock_proc.returncode = 0
+        return mock_proc
 
     # Mock user input: 'y' to retry.
     with patch('builtins.input', side_effect=['y']) as mock_input, \
@@ -86,6 +94,10 @@ def test_yaml_editing_workflow_fail_and_no_retry(editor, capsys):
         tmp_file_path = cmd[1]
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(incorrect_yaml)
+        # Return a mock process object to simulate a successful editor session.
+        mock_proc = Mock()
+        mock_proc.returncode = 0
+        return mock_proc
 
     # Mock user input: 'n' to not retry.
     with patch('builtins.input', side_effect=['n']) as mock_input, \

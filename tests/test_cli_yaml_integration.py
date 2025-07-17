@@ -46,6 +46,11 @@ class MockEditor:
         except StopIteration:
             raise AssertionError("MockEditor was called more times than there are solutions.")
 
+        # Return a mock process object to simulate a successful editor session.
+        mock_proc = Mock()
+        mock_proc.returncode = 0
+        return mock_proc
+
 def test_yaml_editing_e2e_flow(capsys):
     """
     Tests the end-to-end flow of the YAML editing mode.
