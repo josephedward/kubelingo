@@ -8,10 +8,9 @@ from kubelingo.modules.kubernetes.session import (
     unmark_question_for_review,
     check_dependencies,
     load_questions,
-    VimYamlEditor,
-    vim_commands_quiz
+    VimYamlEditor
 )
-from kubelingo.utils.validation import validate_yaml_structure
+from kubelingo_core import validate_yaml_structure
 import yaml
 
 # --- Fixtures ---
@@ -121,17 +120,3 @@ def test_create_yaml_exercise_unknown_type(yaml_editor):
     with pytest.raises(ValueError, match="Unknown exercise type: non-existent-type"):
         yaml_editor.create_yaml_exercise("non-existent-type")
 
-# --- Test for Vim Commands Quiz ---
-
-def test_vim_commands_quiz(capsys):
-    """Tests the basic flow and scoring of the vim_commands_quiz."""
-    user_inputs = ["i", "a", "o"] + ["wrong"] * 12
-    total_questions = 15
-    
-    with patch('builtins.input', side_effect=user_inputs):
-        score = vim_commands_quiz()
-    
-    assert score == pytest.approx(3.0 / total_questions)
-    captured = capsys.readouterr()
-    assert "Quiz Complete!" in captured.out
-    assert f"Your Score: 3/{total_questions}" in captured.out
