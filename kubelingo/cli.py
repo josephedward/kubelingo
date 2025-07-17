@@ -260,6 +260,8 @@ def main():
                             help='List available categories and exit')
         parser.add_argument('--history', action='store_true',
                             help='Show quiz history and statistics')
+        parser.add_argument('--interactive-yaml', action='store_true',
+                            help='Run the interactive YAML editing menu.')
         parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
