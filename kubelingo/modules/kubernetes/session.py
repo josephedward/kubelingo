@@ -500,34 +500,55 @@ class NewSession(StudySession):
 
             # --- Post-question action menu ---
             action_interrupted = False
-            if questionary:
-                while True:
-                    print() # Spacer
-                    try:
-                        is_flagged = q.get('review', False)
-                        flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
-                        
-                        choices = ["Next Question", flag_option]
+            while True:
+                print() # Spacer
+                try:
+                    is_flagged = q.get('review', False)
+                    flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
+                    
+                    if questionary:
+                        choices = ["Next Question", flag_option, "Get LLM Clarification"]
                         action = questionary.select("Choose an action:", choices=choices, use_indicator=True).ask()
                         if action is None: raise KeyboardInterrupt
+                    else:
+                        # Fallback for no questionary
+                        print("Choose an action:")
+                        print("  1: Next Question")
+                        print(f"  2: {flag_option}")
+                        print("  3: Get LLM Clarification")
+                        choice = input("Enter choice [1]: ").strip()
+                        action_map = {'1': "Next Question", '2': flag_option, '3': "Get LLM Clarification"}
+                        action = action_map.get(choice, "Next Question")
 
-                        if action == "Next Question":
-                            break
-                        elif action.startswith("Flag for Review"):
-                            mark_question_for_review(data_file, q['category'], q['prompt'])
-                            q['review'] = True
-                            print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                        elif action.startswith("Un-flag for Review"):
-                            unmark_question_for_review(data_file, q['category'], q['prompt'])
-                            q['review'] = False
-                            print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
-                    except (EOFError, KeyboardInterrupt):
-                        print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                        action_interrupted = True
+                    if action == "Next Question":
                         break
+                    elif action.startswith("Flag for Review"):
+                        mark_question_for_review(data_file, q['category'], q['prompt'])
+                        q['review'] = True
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                    elif action.startswith("Un-flag for Review"):
+                        unmark_question_for_review(data_file, q['category'], q['prompt'])
+                        q['review'] = False
+                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                    elif action == "Get LLM Clarification":
+                        # Use internal LLM session for explanations
+                        try:
+                            session = load_session('llm', self.logger)
+                            if session.initialize():
+                                session.run_exercises(q)
+                                session.cleanup()
+                            else:
+                                print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
+                        except Exception as e:
+                            print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
 
-                if action_interrupted:
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    action_interrupted = True
                     break
+
+            if action_interrupted:
+                break
 
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
