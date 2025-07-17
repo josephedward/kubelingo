@@ -11,6 +11,8 @@ from kubelingo.modules.kubernetes.session import (
     VimYamlEditor,
     vim_commands_quiz
 )
+from kubelingo.utils.validation import validate_yaml_structure
+import yaml
 
 # --- Fixtures ---
 
@@ -86,25 +88,27 @@ def test_load_questions(sample_quiz_data):
     assert questions[0]['prompt'] == 'Get all pods'
     assert questions[1]['review'] is True
 
-# --- Tests for VimYamlEditor Helpers ---
+# --- Tests for YAML Validation and Creation ---
+
+@pytest.mark.skipif(yaml is None, reason="PyYAML is not installed")
+def test_validate_yaml_structure_success():
+    """Tests validate_yaml_structure with a valid Kubernetes object."""
+    valid_yaml = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': 'test'}}
+    is_valid, msg = validate_yaml_structure(yaml.dump(valid_yaml))
+    assert is_valid is True
+    assert msg == "YAML is valid"
+
+@pytest.mark.skipif(yaml is None, reason="PyYAML is not installed")
+def test_validate_yaml_structure_missing_fields():
+    """Tests validate_yaml_structure with missing required fields."""
+    invalid_yaml = {'apiVersion': 'v1', 'kind': 'Pod'}
+    is_valid, msg = validate_yaml_structure(yaml.dump(invalid_yaml))
+    assert is_valid is False
+    assert "Missing required fields: metadata" in msg
 
 @pytest.fixture
 def yaml_editor():
     return VimYamlEditor()
-
-def test_validate_yaml_success(yaml_editor):
-    """Tests validate_yaml with a valid Kubernetes object."""
-    valid_yaml = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': 'test'}}
-    is_valid, msg = yaml_editor.validate_yaml(valid_yaml)
-    assert is_valid is True
-    assert msg == "YAML is valid"
-
-def test_validate_yaml_missing_fields(yaml_editor):
-    """Tests validate_yaml with missing required fields."""
-    invalid_yaml = {'apiVersion': 'v1', 'kind': 'Pod'}
-    is_valid, msg = yaml_editor.validate_yaml(invalid_yaml)
-    assert is_valid is False
-    assert "Missing required fields: metadata" in msg
 
 def test_create_yaml_exercise_known_type(yaml_editor):
     """Tests that create_yaml_exercise returns a dict for a known type."""
