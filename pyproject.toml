@@ -1,0 +1,41 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "kubelingo"
+version = "0.1.0"
+description = "CLI quizzes for kubectl commands and Kubernetes YAML editing"
+readme = "README.md"
+authors = [
+    { name = "kubelingo Contributors", email = "noreply@example.com" }
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "boto3>=1.26.0",
+    "click>=8.0.0",
+    "colorama>=0.4.4",
+    "kubernetes>=25.0.0",
+    "PyYAML>=6.0",
+    "questionary>=1.10.0",
+    "python-dotenv>=0.21.0",
+    "llm>=0.14.0",
+    "llm-openai>=0.5.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/your-repo/kubelingo"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0",
+]
+
+[project.scripts]
+kubelingo = "kubelingo.cli:main"

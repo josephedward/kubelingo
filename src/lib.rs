@@ -42,16 +42,3 @@ fn kubelingo_core(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(validate_yaml_structure, m)?)?;
     Ok(())
 }
-use pyo3::prelude::*;
-
-/// A placeholder function.
-#[pyfunction]
-fn hello() -> &'static str {
-    "Hello from Rust!"
-}
-
-#[pymodule]
-fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(hello, m)?)?;
-    Ok(())
-}

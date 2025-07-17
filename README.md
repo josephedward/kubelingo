@@ -48,19 +48,19 @@ kubelingo --yaml-exercises
 
 ```bash
 # List available categories
-python3 -m kubelingo.cli --list-categories
+kubelingo --list-categories
 
 # Standard kubectl command quiz
-python3 -m kubelingo.cli -n 10 -c "Pod Management"
+kubelingo -n 10 -c "Pod Management"
 
-# Interactive YAML editing exercises (alias: --yaml-edit)
-python3 -m kubelingo.cli --yaml-exercises
+# Interactive YAML editing exercises
+kubelingo kubernetes --yaml
 
 # Vim commands practice
-python3 -m kubelingo.cli --vim-quiz
+kubelingo kubernetes --vim
 
 # View performance history
-python3 -m kubelingo.cli --history
+kubelingo --history
 ```
 
 See [docs/VIM_INTEGRATION.md](docs/VIM_INTEGRATION.md) for an in-depth guide on integrating Vim into the Kubelingo CLI.
@@ -90,12 +90,28 @@ Example:
 }
 ```
 
+## Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-repo/kubelingo.git
+    cd kubelingo
+    ```
+
+2.  Install dependencies and build the Rust extension for development:
+    ```bash
+    pip install -r requirements.txt
+    maturin develop
+    ```
+    This command compiles the Rust extension and installs `kubelingo` in editable mode.
+
 ## Requirements
 
 - Python 3.8+
-- `pip` for installing the package (`pip install -e .`)
+- Rust toolchain (install from [rustup.rs](https://rustup.rs/))
+- `pip` and `maturin`
 - Vim or preferred editor (set via `$EDITOR`)
-- kubectl, eksctl (for command validation and cloud exercises)
+- `kubectl`, `eksctl` (for command validation and cloud exercises)
 - Go and GoSandbox CLI (for cloud exercises)
 
 ## CKAD Exam Coverage
@@ -114,20 +130,21 @@ Comprehensive coverage of all CKAD exam domains:
 
 ```
 . (project root)
-├── kubelingo/cli.py      # Main CLI entry point (console script: kubelingo)
-├── setup.py              # Packaging and installation script
-├── pyproject.toml        # Project metadata and dependencies
+├── Cargo.toml            # Rust dependencies and workspace config
+├── pyproject.toml        # Python package metadata and build config
 ├── requirements.txt      # Python dependencies for development
-├── LICENSE               # Project license
-├── MANIFEST.in           # Package manifest
 ├── README.md             # Project overview and usage
-├── docs/                 # Documentation (Markdown files)
-└── kubelingo/            # Core application package
+├── src/                  # Rust source code
+│   ├── cli.rs
+│   ├── lib.rs
+│   └── main.rs
+└── kubelingo/            # Core Python application package
     ├── __init__.py
+    ├── bridge.py         # Python-Rust bridge
     ├── cli.py            # Main CLI implementation
     ├── data/             # Bundled quiz data (JSON)
-    ├── modules/          # YAML editor and related modules
-    └── tools/            # Cloud integration and session management
+    ├── modules/          # Quiz modules
+    └── utils/            # Utility functions
 ```
 
 ## Creating Custom Questions
