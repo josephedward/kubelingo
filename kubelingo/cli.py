@@ -142,105 +142,6 @@ def run_command_quiz(args):
         return None
 
 
-def run_interactive_yaml_menu():
-    """Shows the menu for different interactive YAML exercise types."""
-    if not VimYamlEditor or not questionary:
-        print(f"{Fore.RED}This feature requires the 'questionary' library and the VimYamlEditor module.{Style.RESET_ALL}")
-        return
-
-    try:
-        modes = [
-            "Standard Exercises",
-            "Progressive Scenarios",
-            "Live Cluster Exercises",
-            "Create Custom Exercise",
-            "Vim Commands Quiz",
-            questionary.Separator(),
-            "Back to Main Menu"
-        ]
-
-        action = questionary.select(
-            "Choose an Interactive YAML exercise type:",
-            choices=modes,
-            use_indicator=True
-        ).ask()
-
-        if action is None or action == "Back to Main Menu":
-            print("Returning to main menu.")
-            return
-
-        editor = VimYamlEditor()
-        if action == "Standard Exercises":
-            run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-        elif action == "Progressive Scenarios":
-            file_path = input("Enter path to progressive scenarios JSON file: ").strip()
-            if not file_path: return
-            try:
-                with open(file_path, 'r') as f:
-                    exercises = json.load(f)
-                editor.run_progressive_yaml_exercises(exercises)
-            except Exception as e:
-                print(f"Error loading exercises file {file_path}: {e}")
-        elif action == "Live Cluster Exercises":
-            file_path = input("Enter path to live cluster exercise JSON file: ").strip()
-            if not file_path: return
-            try:
-                with open(file_path, 'r') as f:
-                    exercise = json.load(f)
-                editor.run_live_cluster_exercise(exercise)
-            except Exception as e:
-                print(f"Error loading live exercise file {file_path}: {e}")
-        elif action == "Create Custom Exercise":
-            editor.create_interactive_question()
-        elif action == "Vim Commands Quiz":
-            if vim_commands_quiz:
-                vim_commands_quiz()
-            else:
-                print("Vim quiz module not available.")
-    except (EOFError, KeyboardInterrupt):
-        print("\nExiting interactive menu.")
-        return
-
-
-def run_yaml_editing_mode(data_file):
-    """Run semantic YAML editing exercises from JSON definitions."""
-    if VimYamlEditor is None:
-        print("YAML editing requires the VimYamlEditor module.")
-        return
-    try:
-        with open(data_file, 'r') as f:
-            sections = json.load(f)
-    except Exception as e:
-        print(f"Error loading YAML exercise data from {data_file}: {e}")
-        return
-    editor = VimYamlEditor()
-    yaml_exercises = []
-    for section in sections:
-        category = section.get('category', 'General')
-        for item in section.get('prompts', []):
-            if item.get('question_type') == 'yaml_edit':
-                item['category'] = category
-                yaml_exercises.append(item)
-    if not yaml_exercises:
-        print("No YAML exercises found in data file.")
-        return
-    print(f"\n{Fore.CYAN}=== Kubelingo YAML Editing Mode ==={Style.RESET_ALL}")
-    print(f"Found {len(yaml_exercises)} YAML editing exercises.")
-    print(f"Editor: {os.environ.get('EDITOR', 'vim')}")
-    for idx, question in enumerate(yaml_exercises, 1):
-        print(f"\n{Fore.YELLOW}Exercise {idx}/{len(yaml_exercises)}: {question.get('prompt')}{Style.RESET_ALL}")
-        success = editor.run_yaml_edit_question(question, index=idx)
-        if success and question.get('explanation'):
-            print(f"{Fore.GREEN}Explanation: {question['explanation']}{Style.RESET_ALL}")
-        if idx < len(yaml_exercises):
-            try:
-                cont = input("Continue to next exercise? (y/N): ")
-                if not cont.lower().startswith('y'):
-                    break
-            except (EOFError, KeyboardInterrupt):
-                print("\nExiting exercise mode.")
-                break
-    print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
     
 # Legacy alias for cloud-mode static branch
 def main():
@@ -288,9 +189,8 @@ def main():
                 try:
                     # Root menu: k8s, kustom, help, exit
                     choices = [
-                        questionary.Choice(title='Kubernetes Command Quiz', value='k8s'),
-                        questionary.Choice(title='Interactive YAML (Vim)', value='interactive_yaml'),
-                        questionary.Choice(title='Custom Quiz Module (kustom)', value='kustom'),
+                        questionary.Choice(title='Kubernetes', value='kubernetes'),
+                        questionary.Choice(title='Custom Quiz', value='custom'),
                         questionary.Choice(title='Help', value='help'),
                         questionary.Choice(title='Exit', value=None),
                     ]
@@ -298,20 +198,13 @@ def main():
                         "What would you like to do?",
                         choices=choices
                     ).ask()
-                    if action is None or action == 'exit':
+                    if action is None:
                         print("\nExiting.")
                         break
                     
                     if action == 'help':
                         parser.print_help()
                         continue
-                    elif action == 'interactive_yaml':
-                        run_interactive_yaml_menu()
-                        break
-                    elif action == 'k8s':
-                        args.module = 'kubernetes'
-                    elif action == 'kustom':
-                        args.module = 'custom'
                     else:
                         args.module = action
 
@@ -320,10 +213,10 @@ def main():
                     break
             else:
                 # Fallback prompt
-                valid = ['k8s', 'interactive-yaml', 'kustom', 'help', 'exit']
+                valid = ['kubernetes', 'custom', 'help', 'exit']
                 while True:
                     try:
-                        print("What would you like to do? Available options: k8s, interactive-yaml, kustom, help, exit")
+                        print(f"What would you like to do? Available options: {', '.join(valid)}")
                         action = input("Enter choice: ").strip().lower()
                     except (EOFError, KeyboardInterrupt):
                         print("\nExiting.")
@@ -334,16 +227,11 @@ def main():
 
                 if action == 'exit':
                     break
-                if action == 'help':
+                elif action == 'help':
                     parser.print_help()
                     continue
-                elif action == 'interactive-yaml':
-                    run_interactive_yaml_menu()
-                    break
-                elif action == 'k8s':
-                    args.module = 'kubernetes'
-                elif action == 'kustom':
-                    args.module = 'custom'
+                else:
+                    args.module = action
         
         if restart_loop:
             sys.argv = [sys.argv[0]]
@@ -355,9 +243,6 @@ def main():
         ):
             args.module = 'kubernetes'
 
-        if args.interactive_yaml:
-            run_interactive_yaml_menu()
-            break
 
         if args.history:
             show_history()

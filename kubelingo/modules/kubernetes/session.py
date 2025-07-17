@@ -22,6 +22,7 @@ except ImportError:
 
 from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
+from kubelingo.gosandbox_integration import GoSandboxIntegration
 
 # Colored terminal output (ANSI codes) - copied from cli.py
 class _AnsiFore:
@@ -240,7 +241,7 @@ class NewSession(StudySession):
             try:
                 choices = [
                     "Command Quiz",
-                    "YAML Editing Exercises",
+                    "Interactive YAML (Vim)",
                     "Vim Commands Quiz"
                 ]
                 action = questionary.select(
@@ -254,8 +255,8 @@ class NewSession(StudySession):
 
                 if action == "Command Quiz":
                     self._run_command_quiz(args)
-                elif action == "YAML Editing Exercises":
-                    self._run_yaml_editing_mode(args)
+                elif action == "Interactive YAML (Vim)":
+                    self._run_interactive_yaml_menu(args)
                 elif action == "Vim Commands Quiz":
                     self._run_vim_commands_quiz(args)
             except (EOFError, KeyboardInterrupt):
@@ -265,6 +266,58 @@ class NewSession(StudySession):
             # Fallback for non-interactive
             print("Running default Kubernetes command quiz.")
             self._run_command_quiz(args)
+
+    def _run_interactive_yaml_menu(self, args):
+        """Shows the menu for different interactive YAML exercise types."""
+        if not questionary:
+            print(f"{Fore.RED}This feature requires the 'questionary' library.{Style.RESET_ALL}")
+            return
+
+        try:
+            modes = [
+                "Standard Exercises",
+                "Progressive Scenarios",
+                "Live Cluster Exercises",
+                "Create Custom Exercise",
+                questionary.Separator(),
+                "Back"
+            ]
+
+            action = questionary.select(
+                "Choose an Interactive YAML exercise type:",
+                choices=modes,
+                use_indicator=True
+            ).ask()
+
+            if action is None or action == "Back":
+                return
+
+            editor = VimYamlEditor()
+            if action == "Standard Exercises":
+                self._run_yaml_editing_mode(args)
+            elif action == "Progressive Scenarios":
+                file_path = input("Enter path to progressive scenarios JSON file: ").strip()
+                if not file_path: return
+                try:
+                    with open(file_path, 'r') as f:
+                        exercises = json.load(f)
+                    editor.run_progressive_yaml_exercises(exercises)
+                except Exception as e:
+                    print(f"Error loading exercises file {file_path}: {e}")
+            elif action == "Live Cluster Exercises":
+                file_path = input("Enter path to live cluster exercise JSON file: ").strip()
+                if not file_path: return
+                try:
+                    with open(file_path, 'r') as f:
+                        exercise = json.load(f)
+                    editor.run_live_cluster_exercise(exercise)
+                except Exception as e:
+                    print(f"Error loading live exercise file {file_path}: {e}")
+            elif action == "Create Custom Exercise":
+                editor.create_interactive_question()
+        except (EOFError, KeyboardInterrupt):
+            print("\nExiting interactive menu.")
+            return
 
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
@@ -529,8 +582,108 @@ class NewSession(StudySession):
         return True
     
     def _run_one_exercise(self, q):
-        # This method's implementation remains largely the same as in the original file.
-        pass
+        """Handles a single live Kubernetes question with an ephemeral EKS cluster."""
+        is_correct = False
+        # Ensure dependencies are available
+        deps = check_dependencies('go', 'eksctl', 'kubectl')
+        if deps:
+            print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Skipping." + Style.RESET_ALL)
+            return
+
+        cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
+        kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{cluster_name}.kubeconfig")
+        user_yaml_str = ''
+        try:
+            # Acquire sandbox credentials
+            print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
+            gs = GoSandboxIntegration()
+            creds = gs.acquire_credentials()
+            if not creds:
+                print(Fore.RED + "Failed to acquire AWS credentials. Cannot proceed with cloud exercise." + Style.RESET_ALL)
+                return
+            gs.export_to_environment()
+
+            # Provision EKS cluster
+            region = os.environ.get('AWS_REGION', 'us-west-2')
+            node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
+            node_count = os.environ.get('NODE_COUNT', '2')
+            print(Fore.YELLOW + f"Provisioning EKS cluster '{cluster_name}' "
+                               f"(region={region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
+            subprocess.run([
+                'eksctl', 'create', 'cluster',
+                '--name', cluster_name,
+                '--region', region,
+                '--nodegroup-name', 'worker-nodes',
+                '--node-type', node_type,
+                '--nodes', node_count
+            ], check=True)
+
+            # Write kubeconfig
+            os.environ['KUBECONFIG'] = kubeconfig_path
+            with open(kubeconfig_path, 'w') as kc:
+                subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
+
+            editor = os.environ.get('EDITOR', 'vim')
+            # User edit loop
+            while True:
+                with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp_yaml:
+                    tmp_yaml.write(q.get('starting_yaml', ''))
+                    tmp_path = tmp_yaml.name
+
+                print(f"Opening a temp file in '{editor}' for you to edit...")
+                try:
+                    subprocess.run([editor, tmp_path], check=True)
+                except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                    print(Fore.RED + f"Error opening editor '{editor}': {e}. Skipping question." + Style.RESET_ALL)
+                    break
+
+                with open(tmp_path, 'r', encoding='utf-8') as f:
+                    user_yaml_str = f.read()
+                os.remove(tmp_path)
+
+                print("Applying your YAML to the cluster...")
+                apply_proc = subprocess.run([
+                    'kubectl', 'apply', '-f', '-'
+                ], input=user_yaml_str, text=True, capture_output=True)
+                if apply_proc.returncode != 0:
+                    print(Fore.RED + "Error applying YAML:" + Style.RESET_ALL)
+                    print(apply_proc.stderr)
+                else:
+                    print("Running validation script...")
+                    with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
+                        tmp_assert.write(q.get('assert_script', 'exit 1'))
+                        assert_path = tmp_assert.name
+                    os.chmod(assert_path, 0o755)
+                    assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
+                    os.remove(assert_path)
+                    if assert_proc.returncode == 0:
+                        print(Fore.GREEN + "Correct!" + Style.RESET_ALL)
+                        print(assert_proc.stdout)
+                        is_correct = True
+                        break
+                    else:
+                        print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
+                        print(assert_proc.stdout or assert_proc.stderr)
+
+                try:
+                    retry = input("Reopen editor to try again? [Y/n]: ").strip().lower()
+                except EOFError:
+                    retry = 'n'
+                if retry.startswith('n'):
+                    break
+        finally:
+            # Delete cluster and cleanup
+            print(Fore.YELLOW + f"Deleting EKS cluster '{cluster_name}'..." + Style.RESET_ALL)
+            subprocess.run([
+                'eksctl', 'delete', 'cluster',
+                '--name', cluster_name,
+                '--region', os.environ.get('AWS_REGION', 'us-west-2')
+            ], check=True)
+            if os.path.exists(kubeconfig_path):
+                os.remove(kubeconfig_path)
+            if 'KUBECONFIG' in os.environ:
+                del os.environ['KUBECONFIG']
+        self.logger.info(f"Live exercise: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
     def cleanup(self):
         """Deletes the EKS cluster if one was created for a live session."""
