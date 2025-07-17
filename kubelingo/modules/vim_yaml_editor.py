@@ -25,7 +25,8 @@ class VimYamlEditor:
             "pod": self._pod_exercise,
             "configmap": self._configmap_exercise,
             "deployment": self._deployment_exercise,
-            "service": self._service_exercise
+            "service": self._service_exercise,
+            "secret": self._secret_exercise
         }
         if exercise_type in exercises:
             return exercises[exercise_type](template_data or {})
@@ -86,6 +87,15 @@ class VimYamlEditor:
                 "ports": data.get("ports", [{"port": 80, "targetPort": 80}]),
                 "type": data.get("type", "ClusterIP")
             }
+        }
+
+    def _secret_exercise(self, data):
+        return {
+            "apiVersion": "v1",
+            "kind": "Secret",
+            "metadata": {"name": data.get("name", "my-secret")},
+            "type": "Opaque",
+            "data": data.get("data", {})
         }
 
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
