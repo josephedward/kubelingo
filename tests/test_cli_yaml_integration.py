@@ -62,7 +62,8 @@ def test_yaml_editing_e2e_flow(capsys):
 
     # Patch subprocess in the module where it's used
     with patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
-         patch('builtins.input', side_effect=user_inputs) as mock_input:
+         patch('builtins.input', side_effect=user_inputs) as mock_input, \
+         patch('kubelingo.modules.kubernetes.session.random.sample', lambda pop, k: pop):
         
         session._run_yaml_editing_mode(mock_args)
 

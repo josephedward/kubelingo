@@ -818,24 +818,30 @@ class VimYamlEditor:
                 yaml.dump(yaml_content, tmp, default_flow_style=False)
             tmp_filename = tmp.name
 
-        # Launch editor
-        editor = os.environ.get('EDITOR', 'vim')
         try:
-            subprocess.run([editor, tmp_filename], check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            print("Error launching editor. Ensure EDITOR is set and available.")
-            os.unlink(tmp_filename)
-            return None
+            # Launch editor
+            editor = os.environ.get('EDITOR', 'vim')
+            try:
+                result = subprocess.run([editor, tmp_filename])
+                if result.returncode != 0:
+                    # A non-zero exit code might not be a failure to save,
+                    # so we'll just warn the user and attempt to read the file.
+                    print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
+            except FileNotFoundError:
+                print(f"{Fore.RED}Error: Editor '{editor}' not found.{Style.RESET_ALL}")
+                print("Please ensure your EDITOR environment variable is set correctly.")
+                return None
 
-        # Read edited content
-        try:
+            # Read edited content
             with open(tmp_filename, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            print(f"Failed to parse YAML: {e}")
+            print(f"{Fore.RED}Failed to process YAML file: {e}{Style.RESET_ALL}")
             return None
         finally:
-            os.unlink(tmp_filename)
+            # Clean up the temporary file
+            if os.path.exists(tmp_filename):
+                os.unlink(tmp_filename)
 
 
     def run_yaml_edit_question(self, question, index=None):
