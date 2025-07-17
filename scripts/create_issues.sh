@@ -107,4 +107,100 @@ Improve test coverage for error handling and edge cases throughout the applicati
 ## Priority
 High - user experience" --label "testing,error-handling"
 
-echo "Created 5 test-related issues. Run this script to create the remaining issues for validation and developer experience."
+gh issue create --title "Improve YAML Structure Validation Logic" --body "Enhance the YAML validation to support comprehensive Kubernetes schema checks.
+
+## Description
+The current YAML validation only checks for the presence of basic keys like \`apiVersion\`, \`kind\`, and \`metadata\`. We need to implement more robust validation against the Kubernetes API schema to provide more accurate feedback.
+
+## Tasks
+- [ ] Integrate a Kubernetes schema validation library
+- [ ] Validate resource types against their official schemas
+- [ ] Check for deprecated API versions
+- [ ] Provide detailed error messages for validation failures
+
+## Acceptance Criteria
+- [ ] YAML validation covers all standard Kubernetes resources
+- [ ] Validation errors are specific and actionable
+- [ ] The system can handle custom resource definitions (CRDs) gracefully
+
+## Priority
+Medium - improves core functionality" --label "validation,enhancement"
+
+gh issue create --title "Enhance Command Equivalence Logic" --body "Improve the logic for comparing user-provided 'kubectl' commands with expected solutions.
+
+## Description
+The current command comparison logic is basic and only normalizes whitespace. It should be enhanced to understand 'kubectl' command structures, including aliases, argument order, and shorthand flags.
+
+## Tasks
+- [ ] Parse 'kubectl' commands into a structured format
+- [ ] Compare command components (resource, verb, flags) semantically
+- [ ] Handle common aliases (e.g., 'po' for 'pods')
+- [ ] Ignore non-essential differences in flag order
+
+## Acceptance Criteria
+- [ ] Command comparison is robust and flexible
+- [ ] Correctly validates a wider range of user inputs
+- [ ] The system correctly identifies equivalent but non-identical commands
+
+## Priority
+Medium - improves user experience" --label "validation,enhancement"
+
+gh issue create --title "Add Developer Documentation" --body "Create comprehensive developer documentation to streamline onboarding and contributions.
+
+## Description
+To encourage community contributions and make maintenance easier, we need clear documentation for developers. This should cover project setup, architecture, and contribution guidelines.
+
+## Tasks
+- [ ] Write a \`CONTRIBUTING.md\` guide
+- [ ] Document the project architecture and module interactions
+- [ ] Provide instructions for setting up the development environment
+- [ ] Explain the process for running tests and adding new ones
+
+## Acceptance Criteria
+- [ ] A clear and comprehensive \`CONTRIBUTING.md\` exists
+- [ ] New developers can set up the project and run tests successfully
+- [ ] The documentation is sufficient to guide the addition of new features
+
+## Priority
+High - developer experience" --label "documentation,developer-experience"
+
+gh issue create --title "Implement CI/CD Pipeline" --body "Set up a continuous integration and deployment pipeline to automate testing and releases.
+
+## Description
+A CI/CD pipeline will improve code quality and development velocity by automating routine tasks. The pipeline should run tests on every pull request and facilitate automated releases.
+
+## Tasks
+- [ ] Set up a GitHub Actions workflow
+- [ ] Configure the pipeline to run linters and formatters
+- [ ] Add a step to run the full test suite
+- [ ] Automate building binaries for different platforms
+- [ ] (Optional) Set up automated releases to GitHub
+
+## Acceptance Criteria
+- [ ] Tests are automatically run for all pull requests
+- [ ] The pipeline provides clear feedback on test failures
+- [ ] The build process is automated and reliable
+
+## Priority
+High - developer experience" --label "ci-cd,developer-experience"
+
+gh issue create --title "Ensure Cross-Platform Compatibility" --body "Verify and ensure that the application builds and runs correctly on Windows, macOS, and Linux.
+
+## Description
+The application uses both Python and Rust, which can introduce cross-platform compatibility challenges. We need to test and address any issues to ensure a consistent experience for all users.
+
+## Tasks
+- [ ] Test the build process on Windows, macOS, and Linux
+- [ ] Verify that all tests pass on each platform
+- [ ] Address any platform-specific issues, such as path handling or binary execution
+- [ ] Document any platform-specific setup steps
+
+## Acceptance Criteria
+- [ ] The application can be successfully built on all three major platforms
+- [ ] The test suite passes consistently across platforms
+- [ ] Users have a seamless experience regardless of their operating system
+
+## Priority
+Medium - improves accessibility" --label "compatibility,developer-experience"
+
+echo "Created 10 issues for testing, validation, and developer experience."
