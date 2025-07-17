@@ -72,7 +72,7 @@ Add performance testing to ensure the system scales well with larger question se
 
 ## Tasks
 - [ ] Question loading performance tests
-- [- ] YAML validation speed benchmarks
+- [ ] YAML validation speed benchmarks
 - [ ] Memory usage optimization tests
 - [ ] Startup time benchmarks
 - [ ] Large dataset handling tests
