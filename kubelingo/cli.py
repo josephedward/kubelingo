@@ -28,6 +28,7 @@ except ImportError:
     yaml = None
 
 # Import from local modules (support both package and direct script use)
+# Load Vim YAML editor module
 try:
     from kubelingo.modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
 except ImportError:
@@ -37,6 +38,8 @@ except ImportError:
         print("Warning: modules/vim_yaml_editor.py not found. YAML/Vim exercises will not be available.")
         VimYamlEditor = None
         vim_commands_quiz = None
+        
+from kubelingo.modules.base.loader import discover_modules, load_session
 
 # Colored terminal output (ANSI codes)
 class _AnsiFore:
@@ -154,19 +157,7 @@ def unmark_question_for_review(data_file, category, prompt_text):
         print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
 
 
-def commands_equivalent(ans, expected):
-    """
-    Basic command comparison. Ignores extra whitespace and order of arguments.
-    This is a simplified version. For full kubectl command comparison, a more
-    sophisticated normalization (like in k8s_quiz.py) would be better.
-    """
-    if not ans or not expected:
-        return False
-    try:
-        # Split commands into arguments and sort for comparison
-        return sorted(shlex.split(ans)) == sorted(shlex.split(expected))
-    except ValueError:
-        return False  # Handle malformed command strings, e.g., unmatched quotes
+from kubelingo.modules.k8s_quiz import commands_equivalent
 
 
 def run_command_quiz(args):
@@ -297,9 +288,19 @@ def run_command_quiz(args):
                     q['review'] = False
                     print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
                 elif action == "Get LLM Clarification":
-                    print(f"\n{Fore.CYAN}--- AI Clarification ---{Style.RESET_ALL}")
-                    print("(AI feature is not yet implemented. This would provide a detailed explanation.)")
-                    print(f"{Fore.CYAN}------------------------{Style.RESET_ALL}")
+                    # Use internal LLM session for explanations
+                    log_file = 'quiz_log.txt'
+                    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+                    logger = logging.getLogger()
+                    try:
+                        session = load_session('llm', logger)
+                        if session.initialize():
+                            session.run_exercises(q)
+                            session.cleanup()
+                        else:
+                            print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
+                    except Exception as e:
+                        print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
 
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
@@ -489,8 +490,13 @@ def main():
         if len(sys.argv) == 1:
             if questionary:
                 try:
-                    # Interactive modules: k8s cluster exercises and custom quizzes
-                    choices = ['k8s', 'kustom', 'help']
+                    # Root menu: Kubernetes, Kustom, Help, Exit
+                    choices = [
+                        questionary.Choice(title='Kubernetes (k8s)', value='k8s'),
+                        questionary.Choice(title='Custom Module (kustom)', value='kustom'),
+                        questionary.Choice(title='Help', value='help'),
+                        questionary.Choice(title='Exit', value=None),
+                    ]
                     action = questionary.select(
                         "What would you like to do?",
                         choices=choices
@@ -501,11 +507,36 @@ def main():
                     if action == 'help':
                         parser.print_help()
                         break
-
+                    # Kubernetes submenu
                     if action == 'k8s':
-                        if run_command_quiz(args) == 'back_to_main':
-                            restart_loop = True
-                    
+                        sub_choices = [
+                            questionary.Choice(title='Command Quiz', value='command_quiz'),
+                            questionary.Choice(title='YAML Editing (Vim)', value='yaml_exercises'),
+                            questionary.Choice(title='Vim Commands Quiz', value='vim_quiz'),
+                            questionary.Choice(title='Back', value=None),
+                        ]
+                        sub_action = questionary.select(
+                            "Select Kubernetes exercise:",
+                            choices=sub_choices
+                        ).ask()
+                        if sub_action is None or sub_action == 'Back':
+                            continue
+                        if sub_action == 'command_quiz':
+                            if run_command_quiz(args) == 'back_to_main':
+                                restart_loop = True
+                        elif sub_action == 'yaml_exercises':
+                            if not VimYamlEditor:
+                                print("YAML editor module not loaded.")
+                            else:
+                                run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+                        elif sub_action == 'vim_quiz':
+                            if not vim_commands_quiz:
+                                print("Vim quiz module not loaded.")
+                            else:
+                                score = vim_commands_quiz()
+                                print(f"\nVim Quiz completed with {score:.1%} accuracy")
+                        break
+                    # Custom kustom module
                     elif action == 'kustom':
                         args.module = 'custom'
                     else:
@@ -529,11 +560,28 @@ def main():
                 if action == 'help':
                     parser.print_help()
                     break
-
                 if action == 'k8s':
-                    if run_command_quiz(args) == 'back_to_main':
-                        restart_loop = True
-
+                    # Kubernetes submenu (fallback)
+                    sub_valid = ['command-quiz', 'yaml-exercises', 'vim-quiz', 'back']
+                    while True:
+                        print("Kubernetes exercises: command-quiz, yaml-exercises, vim-quiz, back")
+                        sub_act = input("Choose exercise: ").strip().lower()
+                        if sub_act in sub_valid:
+                            break
+                        print("Invalid choice. Must be one of: command-quiz, yaml-exercises, vim-quiz, back.")
+                    if sub_act == 'back':
+                        continue
+                    if sub_act == 'command-quiz':
+                        if run_command_quiz(args) == 'back_to_main':
+                            restart_loop = True
+                    elif sub_act == 'yaml-exercises':
+                        if VimYamlEditor:
+                            run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+                    elif sub_act == 'vim-quiz':
+                        if vim_commands_quiz:
+                            score = vim_commands_quiz()
+                            print(f"\nVim Quiz completed with {score:.1%} accuracy")
+                    break
                 elif action == 'kustom':
                     args.module = 'custom'
                 else:
