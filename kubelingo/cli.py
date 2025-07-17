@@ -427,16 +427,38 @@ def run_interactive_yaml_menu():
             print("Returning to main menu.")
             return
 
+        editor = VimYamlEditor()
         if action == "Standard Exercises (existing --yaml-exercises)":
             run_yaml_editing_mode(YAML_QUESTIONS_FILE)
         elif action == "Progressive Exercises":
-            print(f"\n{Fore.YELLOW}Progressive exercises are not yet implemented.{Style.RESET_ALL}")
+            file_path = input("Enter path to progressive exercises JSON file: ").strip()
+            try:
+                with open(file_path, 'r') as f:
+                    exercises = json.load(f)
+            except Exception as e:
+                print(f"Error loading exercises file {file_path}: {e}")
+                return
+            editor.run_progressive_yaml_exercises(exercises)
         elif action == "Scenario Exercises":
-            print(f"\n{Fore.YELLOW}Scenario exercises are not yet implemented.{Style.RESET_ALL}")
+            file_path = input("Enter path to scenario exercises JSON file: ").strip()
+            try:
+                with open(file_path, 'r') as f:
+                    scenario = json.load(f)
+            except Exception as e:
+                print(f"Error loading scenario file {file_path}: {e}")
+                return
+            editor.run_scenario_exercise(scenario)
         elif action == "Live Cluster Exercises":
-            print(f"\n{Fore.YELLOW}Live cluster exercises are not yet implemented.{Style.RESET_ALL}")
+            file_path = input("Enter path to live cluster exercise JSON file: ").strip()
+            try:
+                with open(file_path, 'r') as f:
+                    exercise = json.load(f)
+            except Exception as e:
+                print(f"Error loading live exercise file {file_path}: {e}")
+                return
+            editor.run_live_cluster_exercise(exercise)
         elif action == "Create Custom Exercise":
-            print(f"\n{Fore.YELLOW}Custom exercise creation is not yet implemented.{Style.RESET_ALL}")
+            editor.create_interactive_question()
     except (EOFError, KeyboardInterrupt):
         print("\nExiting interactive menu.")
         return
@@ -481,6 +503,16 @@ def run_yaml_editing_mode(data_file):
                 print("\nExiting exercise mode.")
                 break
     print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
+    
+# ----------------------------------------------------------------------------
+# Interactive YAML submenu entrypoint
+# ----------------------------------------------------------------------------
+def run_interactive_yaml_menu():
+    """
+    Run the enhanced interactive YAML submenu (Vim-powered).
+    Currently delegates to the standard YAML editing exercises.
+    """
+    run_yaml_editing_mode(YAML_QUESTIONS_FILE)
     
 # Legacy alias for cloud-mode static branch
 def main():
@@ -534,12 +566,12 @@ def main():
         if len(sys.argv) == 1:
             if questionary:
                 try:
-                    # Root menu: Kubernetes, Kustom, Help, Exit
+                    # Root menu: k8s, kustom, help, exit
                     choices = [
-                        questionary.Choice(title='Kubernetes (k8s)', value='k8s'),
-                        questionary.Choice(title='Custom Module (kustom)', value='kustom'),
-                        questionary.Choice(title='Help', value='help'),
-                        questionary.Choice(title='Exit', value=None),
+                        questionary.Choice(title='k8s', value='k8s'),
+                        questionary.Choice(title='kustom', value='kustom'),
+                        questionary.Choice(title='help', value='help'),
+                        questionary.Choice(title='exit', value=None),
                     ]
                     action = questionary.select(
                         "What would you like to do?",
