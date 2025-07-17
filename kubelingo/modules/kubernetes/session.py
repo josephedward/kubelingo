@@ -38,7 +38,7 @@ Fore = _AnsiFore()
 Style = _AnsiStyle()
 
 # Quiz data directory (project root 'data/' directory)
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
 DATA_DIR = os.path.join(ROOT, 'data')
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
