@@ -61,9 +61,9 @@ def test_yaml_editing_e2e_flow(capsys):
     # Instantiate our mock editor with the correct solutions.
     mock_editor_instance = MockEditor(correct_yaml_solutions)
 
-    # Mock user input to automatically answer 'y' to "Continue?" prompts.
-    # There will be (num_questions - 1) such prompts.
-    user_inputs = ['y'] * (num_questions - 1)
+    # Mock user input to automatically answer 'y' to "Continue?" prompts
+    # and 'n' to any retry prompts. Need enough inputs for all scenarios.
+    user_inputs = ['n'] * 20  # Generous amount for all possible prompts
 
     # The function is now a method on the NewSession class
     session = NewSession(logger=Mock())
