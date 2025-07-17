@@ -23,9 +23,28 @@ This document outlines the vision, features, and enhancements planned for the Ku
 - [x] **CI/CD Pipeline**: GitHub Actions with multi-Python version testing
 - [x] **Modular Design**: Separate modules for different quiz types
 
-## Phase 1: Core Enhancements
+## Phase 1: Core Enhancements (UPDATED)
 
 Focus on solidifying the core quiz experience and adding high-value features.
+
+### Bug Fixes & Stability
+- [ ] **Fix Command Validation**: `k get sa` should be equivalent to `kubectl get sa` - RESOLVED ✅
+- [ ] **Fix YAML Validation API**: Update validation function calls to use new dictionary format - RESOLVED ✅
+- [ ] **Fix Import Errors**: Resolve `kubelingo_core` import issues in tests - RESOLVED ✅
+- [ ] **Fix Vim Editor Integration**: Handle KeyboardInterrupt and validation errors properly - RESOLVED ✅
+
+### Test Coverage Improvements (NEW)
+- [ ] **Comprehensive CLI Testing**: Add tests for main entry points, argument parsing, and error handling [#55]
+- [ ] **YAML Editing Workflow Tests**: Mock vim subprocess calls and test file I/O operations [#56]
+- [ ] **Integration Test Framework**: End-to-end workflow testing for complete user journeys [#57]
+- [ ] **Performance Benchmarks**: Add tests for question loading and validation performance [#58]
+- [ ] **Error Handling Coverage**: Test edge cases and error recovery scenarios [#59]
+
+### Enhanced Validation System (NEW)
+- [ ] **Multi-Document YAML Support**: Handle YAML files with multiple Kubernetes resources [#60]
+- [ ] **Advanced Semantic Comparison**: Improve YAML structure comparison for complex nested objects [#61]
+- [ ] **Validation Error Quality**: Provide more specific and actionable error messages [#62]
+- [ ] **Custom Validation Rules**: Allow exercises to define custom validation criteria [#63]
 
 ### Difficulty Levels
 - [ ] Implement a mechanism to tag questions with difficulty levels (Beginner, Intermediate, Advanced). [#1]
@@ -40,6 +59,20 @@ Focus on solidifying the core quiz experience and adding high-value features.
 ### Spaced Repetition System (SRS)
 - [ ] Integrate an SRS algorithm to prioritize questions the user has previously answered incorrectly. [#7]
 - [ ] Automatically schedule questions for review based on performance. [#8]
+
+## Phase 1.5: Developer Experience (NEW)
+
+### Code Quality & Maintenance
+- [ ] **Automated Test Coverage Reporting**: Integrate codecov.io for coverage tracking [#64]
+- [ ] **Pre-commit Hooks**: Add linting, formatting, and test validation [#65]
+- [ ] **Documentation Generation**: Auto-generate API docs from docstrings [#66]
+- [ ] **Dependency Management**: Regular security updates and compatibility checks [#67]
+
+### Development Workflow
+- [ ] **Hot Reload for Development**: Automatically reload question data during development [#28]
+- [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions [#29]
+- [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML) [#30]
+- [ ] **Question Analytics**: Track which questions are most/least effective [#31]
 
 ## Phase 2: Interactive Environments
 
