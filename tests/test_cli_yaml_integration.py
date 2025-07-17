@@ -1,10 +1,10 @@
 import pytest
 import json
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 # Import the function to be tested and the path to the data file from the CLI module.
 # This makes the test robust against changes in file locations.
-from kubelingo.cli import run_yaml_editing_mode, YAML_QUESTIONS_FILE
+from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
 
 # Load the test data once to get the list of questions and correct solutions.
 with open(YAML_QUESTIONS_FILE, 'r') as f:
@@ -55,11 +55,16 @@ def test_yaml_editing_e2e_flow(capsys):
     # There will be (num_questions - 1) such prompts.
     user_inputs = ['y'] * (num_questions - 1)
 
+    # The function is now a method on the NewSession class
+    session = NewSession(logger=Mock())
+    # Mock CLI args, though they are not used by this specific method
+    mock_args = Mock()
+
     # Patch subprocess in the module where it's used
-    with patch('kubelingo.modules.vim_yaml_editor.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
+    with patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
          patch('builtins.input', side_effect=user_inputs) as mock_input:
         
-        run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+        session._run_yaml_editing_mode(mock_args)
 
     # --- Assertions ---
     # Assert that the editor was called once for each question.

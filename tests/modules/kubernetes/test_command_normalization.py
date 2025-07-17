@@ -1,5 +1,5 @@
 import pytest
-from kubelingo.modules.kubernetes.session import normalize_command, commands_equivalent
+from kubelingo.utils.validation import normalize_command, commands_equivalent
 
 @pytest.mark.parametrize("input_command, expected_normalized_list", [
     # Simple case

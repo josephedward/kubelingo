@@ -5,7 +5,7 @@ try:
 except ImportError:
     yaml = None
 
-from kubelingo.modules.vim_yaml_editor import VimYamlEditor
+from kubelingo.modules.kubernetes.session import VimYamlEditor
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def test_progressive_yaml_exercise_e2e_success(editor):
     Tests the end-to-end flow of a progressive YAML exercise, simulating
     successful user edits at each step.
     """
-    with patch('kubelingo.modules.vim_yaml_editor.VimYamlEditor.edit_yaml_with_vim') as mock_edit:
+    with patch('kubelingo.modules.kubernetes.session.VimYamlEditor.edit_yaml_with_vim') as mock_edit:
         # Simulate the user successfully editing the YAML in Vim at each step
         mock_edit.side_effect = [
             step1_edited_pod_dict,  # Return for step 1
@@ -95,7 +95,7 @@ def test_progressive_yaml_exercise_e2e_invalid_yaml(editor):
     Tests that the progressive exercise handles invalid YAML from the editor
     and exits gracefully.
     """
-    with patch('kubelingo.modules.vim_yaml_editor.VimYamlEditor.edit_yaml_with_vim') as mock_edit:
+    with patch('kubelingo.modules.kubernetes.session.VimYamlEditor.edit_yaml_with_vim') as mock_edit:
         # Simulate the editor returning None (e.g., user saves invalid YAML)
         mock_edit.return_value = None
 
