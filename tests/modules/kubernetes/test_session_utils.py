@@ -93,17 +93,17 @@ def test_load_questions(sample_quiz_data):
 def test_validate_yaml_structure_success():
     """Tests validate_yaml_structure with a valid Kubernetes object."""
     valid_yaml = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': 'test'}}
-    result = validate_yaml_structure(yaml.dump(valid_yaml))
-    assert result['valid'] is True
-    assert not result['errors']
+    valid, msg = validate_yaml_structure(yaml.dump(valid_yaml))
+    assert valid is True
+    assert "valid" in msg.lower()
 
 @pytest.mark.skipif(yaml is None, reason="PyYAML is not installed")
 def test_validate_yaml_structure_missing_fields():
     """Tests validate_yaml_structure with missing required fields."""
     invalid_yaml = {'apiVersion': 'v1', 'kind': 'Pod'}
-    result = validate_yaml_structure(yaml.dump(invalid_yaml))
-    assert result['valid'] is False
-    assert any("Missing required field: metadata" in error for error in result['errors'])
+    valid, msg = validate_yaml_structure(yaml.dump(invalid_yaml))
+    assert valid is False
+    assert "Missing required fields" in msg
 
 @pytest.fixture
 def yaml_editor():
