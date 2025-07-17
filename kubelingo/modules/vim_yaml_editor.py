@@ -137,10 +137,19 @@ class VimYamlEditor:
         # Interactive edit loop, allow retries on failure
         success = False
         last_valid = False
+        content_to_edit = starting
         while True:
-            edited = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml")
+            edited = self.edit_yaml_with_vim(content_to_edit, f"exercise-{index}.yaml")
             if edited is None:
-                return False
+                try:
+                    retry = input("Could not parse YAML. Try again from last valid state? (y/N): ").strip().lower().startswith('y')
+                except (EOFError, KeyboardInterrupt):
+                    retry = False
+                if not retry:
+                    break
+                continue
+
+            content_to_edit = edited  # Update content for next retry
             # Semantic validation of required fields
             valid, msg = self.validate_yaml(edited)
             print(f"Validation: {msg}")
