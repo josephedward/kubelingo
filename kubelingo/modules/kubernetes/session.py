@@ -1035,15 +1035,20 @@ class VimYamlEditor:
             print("Invalid resource type")
             return None
         requirements = []
+        cancelled = False
         while True:
             try:
                 req = input("Add requirement (or 'done'): ").strip()
+                if req.lower() == 'done':
+                    break
+                requirements.append(req)
             except (EOFError, KeyboardInterrupt):
-                print("\nCustom exercise creation cancelled.")
-                return None
-            if req.lower() == 'done':
+                cancelled = True
                 break
-            requirements.append(req)
+        
+        if cancelled:
+            print("\nCustom exercise creation cancelled.")
+            return None
         if not requirements:
             print("No requirements added, cancelling exercise.")
             return None
