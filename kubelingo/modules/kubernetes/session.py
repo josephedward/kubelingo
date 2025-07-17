@@ -25,17 +25,14 @@ from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
 from kubelingo.gosandbox_integration import GoSandboxIntegration
 
-# Colored terminal output (ANSI codes) - copied from cli.py
-class _AnsiFore:
-    CYAN = '\033[36m'
-    MAGENTA = '\033[35m'
-    YELLOW = '\033[33m'
-    GREEN = '\032[32m'
-    RED = '\033[31m'
-class _AnsiStyle:
-    RESET_ALL = '\033[0m'
-Fore = _AnsiFore()
-Style = _AnsiStyle()
+try:
+    from colorama import Fore, Style
+except ImportError:
+    # Fallback if colorama is not available
+    class Fore:
+        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
+    class Style:
+        RESET_ALL = ""
 
 # Quiz data directory (project root 'data/' directory)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
