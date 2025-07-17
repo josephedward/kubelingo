@@ -27,7 +27,6 @@ try:
 except ImportError:
     yaml = None
 
-from kubelingo.modules.base.loader import discover_modules, load_session
 try:
     from kubelingo.modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
 except ImportError:
@@ -119,6 +118,28 @@ def show_history():
 
 
 
+
+
+def run_command_quiz(args):
+    """Loads and runs the Kubernetes command quiz module."""
+    # This function acts as a bridge to the kubernetes module for the classic quiz
+    log_file = 'quiz_log.txt'
+    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+    logger = logging.getLogger()
+    session = load_session('kubernetes', logger)
+    if session:
+        init_ok = session.initialize()
+        if not init_ok:
+            print(Fore.RED + "Module 'kubernetes' initialization failed. Exiting." + Style.RESET_ALL)
+            return None
+
+        # The original code expects 'back_to_main'. We assume run_exercises might return that.
+        result = session.run_exercises(args)
+        session.cleanup()
+        return result
+    else:
+        print(Fore.RED + "Failed to load module 'kubernetes'." + Style.RESET_ALL)
+        return None
 
 
 def run_interactive_yaml_menu():
@@ -257,8 +278,6 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
-        restart_loop = False
-
         restart_loop = False
 
         # If no arguments provided, show an interactive menu
