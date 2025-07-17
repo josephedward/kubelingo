@@ -25,7 +25,10 @@ setup(
         'colorama>=0.4.4',
         'kubernetes>=25.0.0',
         'PyYAML>=6.0',
-        'questionary>=1.10.0'
+        'questionary>=1.10.0',
+        'python-dotenv>=0.21.0',
+        'openai>=0.27.0',
+        'llm>=0.14.0'
     ],
     entry_points={
         'console_scripts': [

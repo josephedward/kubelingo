@@ -1,4 +1,10 @@
 import os
+try:
+    import llm
+    HAS_LLM = True
+except ImportError:
+    llm = None
+    HAS_LLM = False
 import openai
 from kubelingo.modules.base.session import StudySession
 
@@ -17,8 +23,15 @@ Style = _AnsiStyle()
 # Integrates with OpenAI to provide explanations for quiz questions.
 class AIHelper:
     def __init__(self, api_key=None):
+        # Determine API key from parameter or environment
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        if self.api_key:
+        # Initialize preferred LLM client
+        if HAS_LLM:
+            # Simon Willison's llm.Client
+            self.client = llm.Client()
+        elif self.api_key:
+            # Fallback to OpenAI SDK
+            openai.api_key = self.api_key
             self.client = openai.OpenAI(api_key=self.api_key)
         else:
             self.client = None
@@ -29,8 +42,8 @@ class AIHelper:
         
         if not self.client:
             return (
-                f"{Fore.YELLOW}Could not get explanation. The OPENAI_API_KEY environment variable is not set. "
-                f"Please set it to your OpenAI API key to use this feature.{Style.RESET_ALL}"
+                f"{Fore.YELLOW}Could not get explanation. No LLM client is available. "
+                f"Please install 'llm' or set OPENAI_API_KEY.{Style.RESET_ALL}"
             )
 
         # Handle empty/missing answers, which can happen for YAML edit questions
@@ -38,9 +51,13 @@ class AIHelper:
             answer = "(The answer involves editing a YAML file, so no single command is provided.)"
 
         try:
-            system_prompt = "You are a helpful assistant for a Kubernetes quiz. Explain concisely why the provided answer is correct for the given question. If the answer is a YAML edit, explain the necessary changes."
+            system_prompt = (
+                "You are a helpful assistant for a Kubernetes quiz. "
+                "Explain why the provided answer is correct for the given question. "
+                "If the answer is a YAML edit, explain the necessary changes."
+            )
             user_prompt = f"Question: {prompt}\nCorrect Answer: {answer}\n\nExplanation:"
-            
+            # Use unified API for llm or openai client
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -50,9 +67,15 @@ class AIHelper:
                 temperature=0.2,
                 max_tokens=150,
             )
-            explanation = response.choices[0].message.content
+            # Extract content from response
+            content = None
+            if hasattr(response, 'choices') and response.choices:
+                # OpenAI and llm clients return similar structure
+                content = response.choices[0].message.content
+            elif hasattr(response, 'get', False):
+                content = response.get('choices', [])[0].get('message', {}).get('content')
+            explanation = content or ''
             return f"{Fore.CYAN}Explanation from AI Assistant:\n{explanation}{Style.RESET_ALL}"
-            
         except Exception as e:
             return f"{Fore.RED}An error occurred while contacting the AI assistant: {e}{Style.RESET_ALL}"
 
