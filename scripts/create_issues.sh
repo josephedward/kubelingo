@@ -203,4 +203,70 @@ The application uses both Python and Rust, which can introduce cross-platform co
 ## Priority
 Medium - improves accessibility" --label "compatibility,developer-experience"
 
-echo "Created 10 issues for testing, validation, and developer experience."
+# Enhanced Validation System
+gh issue create --title "Multi-Document YAML Support" --body "Support for multi-document YAML files.
+
+## Tasks
+- Handle YAML files with multiple Kubernetes resources
+- Parse document separators correctly
+- Validate each document independently
+- Aggregate validation results" --label "validation,enhancement"
+
+gh issue create --title "Advanced Semantic Comparison" --body "Improve YAML semantic comparison logic.
+
+## Tasks
+- Improve YAML structure comparison for complex nested objects
+- Handle array ordering differences
+- Support partial matching for dynamic fields
+- Add fuzzy matching for similar values" --label "validation,enhancement"
+
+gh issue create --title "Validation Error Quality" --body "Improve the quality of YAML validation errors.
+
+## Tasks
+- Provide more specific and actionable error messages
+- Include line numbers in error reports
+- Suggest corrections for common mistakes
+- Add context-aware hints" --label "validation,ux"
+
+gh issue create --title "Custom Validation Rules" --body "Allow exercises to define custom validation rules.
+
+## Tasks
+- Allow exercises to define custom validation criteria
+- Support regex patterns for flexible matching
+- Add conditional validation rules
+- Enable plugin-based validators" --label "validation,enhancement"
+
+# Developer Experience
+gh issue create --title "Automated Test Coverage Reporting" --body "Set up automated test coverage reporting.
+
+## Tasks
+- Integrate codecov.io for coverage tracking
+- Add coverage badges to README
+- Set up coverage thresholds in CI
+- Generate detailed coverage reports" --label "developer-experience,ci-cd"
+
+gh issue create --title "Pre-commit Hooks" --body "Implement pre-commit hooks for quality gates.
+
+## Tasks
+- Add linting and formatting validation
+- Run tests before commits
+- Check for security vulnerabilities
+- Validate documentation updates" --label "developer-experience,tooling"
+
+gh issue create --title "Documentation Generation" --body "Automate generation of project documentation.
+
+## Tasks
+- Auto-generate API docs from docstrings
+- Create interactive documentation
+- Add code examples to docs
+- Set up documentation deployment" --label "developer-experience,documentation"
+
+gh issue create --title "Dependency Management" --body "Improve dependency management workflow.
+
+## Tasks
+- Regular security updates
+- Compatibility checks across Python versions
+- Automated dependency updates
+- Vulnerability scanning" --label "developer-experience,dependencies"
+
+echo "Created all roadmap issues."
