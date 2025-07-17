@@ -215,16 +215,6 @@ def run_yaml_editing_mode(data_file):
                 break
     print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
     
-# ----------------------------------------------------------------------------
-# Interactive YAML submenu entrypoint
-# ----------------------------------------------------------------------------
-def run_interactive_yaml_menu():
-    """
-    Run the enhanced interactive YAML submenu (Vim-powered).
-    Currently delegates to the standard YAML editing exercises.
-    """
-    run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-    
 # Legacy alias for cloud-mode static branch
 def main():
     while True:
