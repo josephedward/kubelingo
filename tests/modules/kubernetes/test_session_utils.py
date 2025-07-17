@@ -95,7 +95,7 @@ def test_validate_yaml_structure_success():
     valid_yaml = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': 'test'}}
     result = validate_yaml_structure(yaml.dump(valid_yaml))
     assert result['valid'] is True
-    assert len(result['errors']) == 0
+    assert not result['errors']
 
 @pytest.mark.skipif(yaml is None, reason="PyYAML is not installed")
 def test_validate_yaml_structure_missing_fields():
