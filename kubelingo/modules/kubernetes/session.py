@@ -790,6 +790,34 @@ class VimYamlEditor:
             "data": data.get("data", {})
         }
 
+    def validate_yaml(self, yaml_content, expected_fields=None):
+        """
+        Checks for syntax and required fields (`apiVersion`, `kind`, `metadata`),
+        returning (is_valid, message).
+        This is a wrapper for backward compatibility.
+        """
+        # The expected_fields argument is ignored, as the new validation function is more comprehensive.
+        if isinstance(yaml_content, dict):
+            try:
+                yaml_str = yaml.dump(yaml_content)
+            except Exception as e:
+                return False, f"Failed to dump YAML object: {e}"
+        elif isinstance(yaml_content, str):
+            yaml_str = yaml_content
+        else:
+            # Handle cases where editor returns None for empty/invalid file
+            yaml_str = ""
+
+        result = validate_yaml_structure(yaml_str)
+
+        if result['valid']:
+            message = "YAML is valid"
+            if result['warnings']:
+                message += f" (warnings: {', '.join(result['warnings'])})"
+            return True, message
+        else:
+            return False, f"Invalid: {', '.join(result['errors'])}"
+
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
         """
         Opens YAML content in Vim for interactive editing.
@@ -892,15 +920,8 @@ class VimYamlEditor:
 
             content_to_edit = edited  # Update content for next retry
             # Semantic validation of required fields
-            validation_result = validate_yaml_structure(yaml.dump(edited))
-            if validation_result['valid']:
-                msg = "YAML is valid"
-                if validation_result['warnings']:
-                    msg += f" (warnings: {', '.join(validation_result['warnings'])})"
-            else:
-                msg = f"Invalid: {', '.join(validation_result['errors'])}"
+            last_valid, msg = self.validate_yaml(edited)
             print(f"Validation: {msg}")
-            last_valid = validation_result['valid']
             # If expected solution provided, compare
             if expected_obj is not None:
                 if edited == expected_obj:
