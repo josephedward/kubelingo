@@ -1,0 +1,25 @@
+[package]
+name = "kubelingo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+dialoguer = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+regex = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dependencies.pyo3]
+version = "0.20"
+features = ["extension-module"]
+
+[lib]
+name = "kubelingo_core"
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "kubelingo"
+path = "src/main.rs"
