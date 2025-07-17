@@ -400,6 +400,48 @@ def show_history():
 
 
 
+def run_interactive_yaml_menu():
+    """Shows the menu for different interactive YAML exercise types."""
+    if not VimYamlEditor or not questionary:
+        print(f"{Fore.RED}This feature requires the 'questionary' library and the VimYamlEditor module.{Style.RESET_ALL}")
+        return
+
+    try:
+        choices = [
+            "Standard Exercises (existing --yaml-exercises)",
+            "Progressive Exercises",
+            "Scenario Exercises",
+            "Live Cluster Exercises",
+            "Create Custom Exercise",
+            questionary.Separator(),
+            "Back to Main Menu"
+        ]
+        
+        action = questionary.select(
+            "Choose an Interactive YAML exercise type:",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "Back to Main Menu":
+            print("Returning to main menu.")
+            return
+
+        if action == "Standard Exercises (existing --yaml-exercises)":
+            run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+        elif action == "Progressive Exercises":
+            print(f"\n{Fore.YELLOW}Progressive exercises are not yet implemented.{Style.RESET_ALL}")
+        elif action == "Scenario Exercises":
+            print(f"\n{Fore.YELLOW}Scenario exercises are not yet implemented.{Style.RESET_ALL}")
+        elif action == "Live Cluster Exercises":
+            print(f"\n{Fore.YELLOW}Live cluster exercises are not yet implemented.{Style.RESET_ALL}")
+        elif action == "Create Custom Exercise":
+            print(f"\n{Fore.YELLOW}Custom exercise creation is not yet implemented.{Style.RESET_ALL}")
+    except (EOFError, KeyboardInterrupt):
+        print("\nExiting interactive menu.")
+        return
+
+
 def run_yaml_editing_mode(data_file):
     """Run semantic YAML editing exercises from JSON definitions."""
     if VimYamlEditor is None:
@@ -462,10 +504,12 @@ def main():
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
         # Standalone exercise modes
+        parser.add_argument('--interactive-yaml', action='store_true',
+                            help='Show menu for interactive YAML exercises (Vim-powered)')
         parser.add_argument('--yaml-exercises', action='store_true',
-                            help='Run semantic YAML editing exercises')
+                            help='Run standard YAML editing exercises ("fill in the blanks")')
         parser.add_argument('--yaml-edit', action='store_true', dest='yaml_exercises',
-                            help='Alias for --yaml-exercises (semantic YAML editing exercises)')
+                            help='Alias for --yaml-exercises')
         parser.add_argument('--vim-quiz', action='store_true',
                             help='Run Vim commands quiz')
         
@@ -592,6 +636,10 @@ def main():
             continue
 
         # Handle modes that exit immediately
+        if args.interactive_yaml:
+            run_interactive_yaml_menu()
+            break
+
         if args.history:
             show_history()
             break

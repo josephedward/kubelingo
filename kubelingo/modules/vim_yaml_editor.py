@@ -243,6 +243,26 @@ class VimYamlEditor:
         # Return success for expected-based, else last validation status
         return success if expected_obj is not None else last_valid
 
+    def run_progressive_yaml_exercises(self, exercises):
+        """(Not yet implemented) Loop through each step, carry over the YAML, validate, and advance."""
+        print("Progressive YAML exercises are not yet implemented.")
+        return False
+
+    def run_scenario_exercise(self, scenario):
+        """(Not yet implemented) Show scenario, then for each requirement open Vim and validate."""
+        print("Scenario exercises are not yet implemented.")
+        return None
+
+    def run_live_cluster_exercise(self, exercise):
+        """(Not yet implemented) Open Vim, then `kubectl apply` and print success/failure."""
+        print("Live cluster exercises are not yet implemented.")
+        return False
+
+    def create_interactive_question(self):
+        """(Not yet implemented) Prompt your own requirements, build a template, then hand off to run_yaml_edit_question()."""
+        print("Creating a custom interactive question is not yet implemented.")
+        return None
+
 # ==============================================================================
 # Standalone Vim Commands Quiz
 # ==============================================================================
