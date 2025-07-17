@@ -4,19 +4,15 @@ modules/vim_yaml_editor.py: Interactive Vim YAML editing and validation for kube
 """
 import os
 import subprocess
+import tempfile
 try:
     import yaml
 except ImportError:
     yaml = None
-from pathlib import Path
 
 class VimYamlEditor:
     def __init__(self):
-        # Use project workspace for temp YAML files
-        # Project root is two levels above this file
-        root = Path(__file__).resolve().parents[2]
-        self.temp_dir = root / "kubelingo-work" / "tmp"
-        self.temp_dir.mkdir(parents=True, exist_ok=True)
+        pass
 
     def create_yaml_exercise(self, exercise_type, template_data=None):
         exercises = {
@@ -58,28 +54,33 @@ class VimYamlEditor:
         }
 
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
-        temp_file = self.temp_dir / filename
-        # Write initial content
-        with open(temp_file, 'w') as f:
+        # The filename parameter is now ignored, but kept for compatibility.
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode='w', encoding='utf-8') as tmp:
             # If yaml_content is a raw YAML string, write it directly; otherwise dump the Python object
             if isinstance(yaml_content, str):
-                f.write(yaml_content)
+                tmp.write(yaml_content)
             else:
-                yaml.dump(yaml_content, f, default_flow_style=False)
+                yaml.dump(yaml_content, tmp, default_flow_style=False)
+            tmp_filename = tmp.name
+
         # Launch editor
         editor = os.environ.get('EDITOR', 'vim')
         try:
-            subprocess.run([editor, str(temp_file)], check=True)
+            subprocess.run([editor, tmp_filename], check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
             print("Error launching editor. Ensure EDITOR is set and available.")
+            os.unlink(tmp_filename)
             return None
+
         # Read edited content
         try:
-            with open(temp_file, 'r') as f:
+            with open(tmp_filename, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
             print(f"Failed to parse YAML: {e}")
             return None
+        finally:
+            os.unlink(tmp_filename)
 
     def validate_yaml(self, yaml_content, expected_fields=None):
         if not yaml_content:
