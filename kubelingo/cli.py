@@ -28,6 +28,11 @@ except ImportError:
     yaml = None
 
 from kubelingo.modules.base.loader import discover_modules, load_session
+try:
+    from kubelingo.modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
+except ImportError:
+    VimYamlEditor = None
+    vim_commands_quiz = None
 
 # Colored terminal output (ANSI codes)
 class _AnsiFore:
@@ -261,10 +266,11 @@ def main():
                 try:
                     # Root menu: k8s, kustom, help, exit
                     choices = [
-                        questionary.Choice(title='k8s', value='k8s'),
-                        questionary.Choice(title='kustom', value='kustom'),
-                        questionary.Choice(title='help', value='help'),
-                        questionary.Choice(title='exit', value=None),
+                        questionary.Choice(title='Kubernetes Command Quiz', value='k8s'),
+                        questionary.Choice(title='Interactive YAML (Vim)', value='interactive_yaml'),
+                        questionary.Choice(title='Custom Quiz Module (kustom)', value='kustom'),
+                        questionary.Choice(title='Help', value='help'),
+                        questionary.Choice(title='Exit', value=None),
                     ]
                     action = questionary.select(
                         "What would you like to do?",
@@ -277,6 +283,9 @@ def main():
                     if action == 'help':
                         parser.print_help()
                         continue
+                    elif action == 'interactive_yaml':
+                        run_interactive_yaml_menu()
+                        break
                     elif action == 'k8s':
                         args.module = 'kubernetes'
                     elif action == 'kustom':
@@ -289,10 +298,10 @@ def main():
                     break
             else:
                 # Fallback prompt
-                valid = ['k8s', 'kustom', 'help', 'exit']
+                valid = ['k8s', 'interactive-yaml', 'kustom', 'help', 'exit']
                 while True:
                     try:
-                        print("What would you like to do? Available options: k8s, kustom, help, exit")
+                        print("What would you like to do? Available options: k8s, interactive-yaml, kustom, help, exit")
                         action = input("Enter choice: ").strip().lower()
                     except (EOFError, KeyboardInterrupt):
                         print("\nExiting.")
@@ -306,6 +315,9 @@ def main():
                 if action == 'help':
                     parser.print_help()
                     continue
+                elif action == 'interactive-yaml':
+                    run_interactive_yaml_menu()
+                    break
                 elif action == 'k8s':
                     args.module = 'kubernetes'
                 elif action == 'kustom':
@@ -320,6 +332,10 @@ def main():
             args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only or args.live
         ):
             args.module = 'kubernetes'
+
+        if args.interactive_yaml:
+            run_interactive_yaml_menu()
+            break
 
         if args.history:
             show_history()
