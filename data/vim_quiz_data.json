@@ -80,3 +80,85 @@
     ]
   }
 ]
+[
+  {
+    "category": "Vim Commands",
+    "prompts": [
+      {
+        "prompt": "Enter insert mode at cursor",
+        "response": "i",
+        "type": "command"
+      },
+      {
+        "prompt": "Append text after cursor",
+        "response": "a",
+        "type": "command"
+      },
+      {
+        "prompt": "Open a new line below the current line",
+        "response": "o",
+        "type": "command"
+      },
+      {
+        "prompt": "Save file and quit",
+        "response": ":wq",
+        "type": "command"
+      },
+      {
+        "prompt": "Exit without saving changes",
+        "response": ":q!",
+        "type": "command"
+      },
+      {
+        "prompt": "Save file without exiting",
+        "response": "w",
+        "type": "command"
+      },
+      {
+        "prompt": "Delete current line",
+        "response": "dd",
+        "type": "command"
+      },
+      {
+        "prompt": "Copy current line (yank)",
+        "response": "yy",
+        "type": "command"
+      },
+      {
+        "prompt": "Paste after cursor",
+        "response": "p",
+        "type": "command"
+      },
+      {
+        "prompt": "Undo last change",
+        "response": "u",
+        "type": "command"
+      },
+      {
+        "prompt": "Search forward for 'pattern'",
+        "response": "/pattern",
+        "type": "command"
+      },
+      {
+        "prompt": "Find next search occurrence",
+        "response": "n",
+        "type": "command"
+      },
+      {
+        "prompt": "Go to top of file",
+        "response": "gg",
+        "type": "command"
+      },
+      {
+        "prompt": "Go to end of file",
+        "response": "G",
+        "type": "command"
+      },
+      {
+        "prompt": "Go to line 10",
+        "response": ":10",
+        "type": "command"
+      }
+    ]
+  }
+]

@@ -1047,41 +1047,4 @@ class VimYamlEditor:
             print(f"Error running validation script: {e}")
             return False
 
-def vim_commands_quiz():
-    """
-    Runs a simple command-line quiz to test the user's knowledge of basic Vim commands.
-    This is provided as a supplemental tool for users to refresh their Vim skills.
-
-    Returns:
-        float: The final score as a ratio of correct answers to total questions.
-    """
-    vim_commands = [
-        {"prompt": "Enter insert mode at cursor", "answer": "i"},
-        {"prompt": "Append text after cursor", "answer": "a"},
-        {"prompt": "Open a new line below the current line", "answer": "o"},
-        {"prompt": "Save file and quit", "answer": ":wq"},
-        {"prompt": "Exit without saving changes", "answer": ":q!"},
-        {"prompt": "Save file without exiting", "answer": ":w"},
-        {"prompt": "Delete current line", "answer": "dd"},
-        {"prompt": "Copy current line (yank)", "answer": "yy"},
-        {"prompt": "Paste after cursor", "answer": "p"},
-        {"prompt": "Undo last change", "answer": "u"},
-        {"prompt": "Search forward for 'pattern'", "answer": "/pattern"},
-        {"prompt": "Find next search occurrence", "answer": "n"},
-        {"prompt": "Go to top of file", "answer": "gg"},
-        {"prompt": "Go to end of file", "answer": "G"},
-        {"prompt": "Go to line 10", "answer": ":10"},
-    ]
-    print("\n--- Basic Vim Commands Quiz ---")
-    print("Test your knowledge of essential Vim commands.")
-    score = 0
-    for cmd in vim_commands:
-        ans = input(f"\nHow do you: {cmd['prompt']}? ")
-        if ans.strip() == cmd['answer']:
-            print("✅ Correct!")
-            score += 1
-        else:
-            print(f"❌ Incorrect. The correct command is: {cmd['answer']}")
-    print(f"\nQuiz Complete! Your Score: {score}/{len(vim_commands)}")
-    return score / len(vim_commands)
 
