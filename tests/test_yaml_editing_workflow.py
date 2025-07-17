@@ -57,7 +57,7 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
             f.write(output_to_write)
 
     # Mock user input: 'y' to retry.
-    with patch('builtins.input', side_effect=['y']), \
+    with patch('builtins.input', side_effect=['y']) as mock_input, \
          patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit_retry):
         success = editor.run_yaml_edit_question(question, index=2)
 
@@ -66,7 +66,7 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
     captured = capsys.readouterr()
     # First attempt should show mismatch and prompt for retry.
     assert "❌ YAML does not match expected output." in captured.out
-    assert "Try again? (y/N):" in captured.out
+    mock_input.assert_called_once_with("Try again? (y/N): ")
     # Second attempt should be correct.
     assert "✅ Correct!" in captured.out
 
@@ -89,7 +89,7 @@ def test_yaml_editing_workflow_fail_and_no_retry(editor, capsys):
             f.write(incorrect_yaml)
 
     # Mock user input: 'n' to not retry.
-    with patch('builtins.input', side_effect=['n']), \
+    with patch('builtins.input', side_effect=['n']) as mock_input, \
          patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit_fail):
         success = editor.run_yaml_edit_question(question, index=3)
 
@@ -97,7 +97,7 @@ def test_yaml_editing_workflow_fail_and_no_retry(editor, capsys):
 
     captured = capsys.readouterr()
     assert "❌ YAML does not match expected output." in captured.out
-    assert "Try again? (y/N):" in captured.out
+    mock_input.assert_called_once_with("Try again? (y/N): ")
     assert "✅ Correct!" not in captured.out
     # Check if the expected solution is printed at the end
     assert "Expected solution:" in captured.out
