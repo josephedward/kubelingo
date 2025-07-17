@@ -27,17 +27,14 @@ try:
 except ImportError:
     yaml = None
 
-# Colored terminal output (ANSI codes)
-class _AnsiFore:
-    CYAN = '\033[36m'
-    MAGENTA = '\033[35m'
-    YELLOW = '\033[33m'
-    GREEN = '\033[32m'
-    RED = '\033[31m'
-class _AnsiStyle:
-    RESET_ALL = '\033[0m'
-Fore = _AnsiFore()
-Style = _AnsiStyle()
+try:
+    from colorama import Fore, Style
+except ImportError:
+    # Fallback if colorama is not available
+    class Fore:
+        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
+    class Style:
+        RESET_ALL = ""
 
 ASCII_ART = r"""
 K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
