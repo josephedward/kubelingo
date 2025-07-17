@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from setuptools import setup, find_packages
+from setuptools_rust import RustExtension
 import io
 import os
 
@@ -30,6 +31,15 @@ setup(
         'llm>=0.14.0',
         'llm-openai>=0.5.0'
     ],
+    extras_require={
+        'test': [
+            'pytest>=6.0',
+        ],
+    },
+    setup_requires=['setuptools-rust'],
+    rust_extensions=[
+        RustExtension("kubelingo._native", "Cargo.toml", quiet=False),
+    ],
     entry_points={
         'console_scripts': [
             'kubelingo=kubelingo.cli:main',
@@ -41,4 +51,5 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.8',
+    zip_safe=False,
 )
