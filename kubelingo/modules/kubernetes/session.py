@@ -1033,10 +1033,14 @@ class VimYamlEditor:
             try:
                 req = input("Add requirement (or 'done'): ").strip()
             except (EOFError, KeyboardInterrupt):
-                break
+                print("\nCustom exercise creation cancelled.")
+                return None
             if req.lower() == 'done':
                 break
             requirements.append(req)
+        if not requirements:
+            print("No requirements added, cancelling exercise.")
+            return None
         template = self.create_yaml_exercise(resource_type)
         starting_yaml = yaml.dump(template, default_flow_style=False)
         exercise = {
