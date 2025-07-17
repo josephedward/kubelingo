@@ -38,7 +38,7 @@ fn validate_yaml_structure(yaml_content: String) -> PyResult<(bool, String)> {
 }
 
 #[pymodule]
-fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(commands_equivalent, m)?)?;
     m.add_function(wrap_pyfunction!(validate_yaml_structure, m)?)?;
     Ok(())
