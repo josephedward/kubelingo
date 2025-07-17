@@ -555,7 +555,7 @@ def main():
                     if action == 'k8s':
                         sub_choices = [
                             questionary.Choice(title='Command Quiz', value='command_quiz'),
-                            questionary.Choice(title='YAML Editing (Vim)', value='yaml_exercises'),
+                            questionary.Choice(title='Interactive YAML (Vim)', value='interactive_yaml'),
                             questionary.Choice(title='Vim Commands Quiz', value='vim_quiz'),
                             questionary.Choice(title='Back', value=None),
                         ]
@@ -568,11 +568,8 @@ def main():
                         if sub_action == 'command_quiz':
                             if run_command_quiz(args) == 'back_to_main':
                                 restart_loop = True
-                        elif sub_action == 'yaml_exercises':
-                            if not VimYamlEditor:
-                                print("YAML editor module not loaded.")
-                            else:
-                                run_yaml_editing_mode(YAML_QUESTIONS_FILE)
+                        elif sub_action == 'interactive_yaml':
+                            run_interactive_yaml_menu()
                         elif sub_action == 'vim_quiz':
                             if not vim_commands_quiz:
                                 print("Vim quiz module not loaded.")
@@ -606,18 +603,20 @@ def main():
                     break
                 if action == 'k8s':
                     # Kubernetes submenu (fallback)
-                    sub_valid = ['command-quiz', 'yaml-exercises', 'vim-quiz', 'back']
+                    sub_valid = ['command-quiz', 'interactive-yaml', 'yaml-exercises', 'vim-quiz', 'back']
                     while True:
-                        print("Kubernetes exercises: command-quiz, yaml-exercises, vim-quiz, back")
+                        print("Kubernetes exercises: command-quiz, interactive-yaml, yaml-exercises, vim-quiz, back")
                         sub_act = input("Choose exercise: ").strip().lower()
                         if sub_act in sub_valid:
                             break
-                        print("Invalid choice. Must be one of: command-quiz, yaml-exercises, vim-quiz, back.")
+                        print("Invalid choice. Must be one of: command-quiz, interactive-yaml, yaml-exercises, vim-quiz, back.")
                     if sub_act == 'back':
                         continue
                     if sub_act == 'command-quiz':
                         if run_command_quiz(args) == 'back_to_main':
                             restart_loop = True
+                    elif sub_act == 'interactive-yaml':
+                        print(f"{Fore.RED}This feature requires the 'questionary' library. Please install it ('pip install questionary') and run again without arguments.{Style.RESET_ALL}")
                     elif sub_act == 'yaml-exercises':
                         if VimYamlEditor:
                             run_yaml_editing_mode(YAML_QUESTIONS_FILE)
