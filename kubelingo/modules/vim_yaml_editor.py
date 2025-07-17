@@ -12,10 +12,15 @@ except ImportError:
     yaml = None
 
 class VimYamlEditor:
+    """
+    Provides functionality to create, edit, and validate Kubernetes YAML manifests
+    interactively using Vim.
+    """
     def __init__(self):
         pass
 
     def create_yaml_exercise(self, exercise_type, template_data=None):
+        """Creates a YAML exercise template for a given resource type."""
         exercises = {
             "pod": self._pod_exercise,
             "configmap": self._configmap_exercise,
@@ -84,7 +89,25 @@ class VimYamlEditor:
         }
 
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
-        # The filename parameter is now ignored, but kept for compatibility.
+        """
+        Opens YAML content in Vim for interactive editing.
+
+        This method saves the provided YAML content to a temporary file and opens it
+        using the editor specified by the EDITOR environment variable, defaulting to 'vim'.
+        After editing, it reads the modified content, parses it as YAML, and returns
+        the resulting Python object. The temporary file is deleted afterward.
+
+        Args:
+            yaml_content (str or dict): The initial YAML content, either as a raw
+                                       string or a Python dictionary.
+            filename (str): A suggested filename. This parameter is kept for backward
+                            compatibility but is currently ignored.
+
+        Returns:
+            dict or None: The parsed YAML content as a Python dictionary, or None if
+                          the editor fails to launch or the edited content is not
+                          valid YAML.
+        """
         with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode='w', encoding='utf-8') as tmp:
             # If yaml_content is a raw YAML string, write it directly; otherwise dump the Python object
             if isinstance(yaml_content, str):
@@ -113,6 +136,18 @@ class VimYamlEditor:
             os.unlink(tmp_filename)
 
     def validate_yaml(self, yaml_content, expected_fields=None):
+        """
+        Validates basic structure of a Kubernetes YAML object.
+
+        Args:
+            yaml_content (dict): The parsed YAML content.
+            expected_fields (list, optional): A list of top-level fields to check for.
+                                              Defaults to ["apiVersion", "kind", "metadata"].
+
+        Returns:
+            tuple[bool, str]: A tuple containing a boolean indicating validity and a
+                              human-readable message.
+        """
         if not yaml_content:
             return False, "Empty YAML content"
         required = expected_fields or ["apiVersion", "kind", "metadata"]
@@ -122,7 +157,25 @@ class VimYamlEditor:
         return True, "YAML is valid"
 
     def run_yaml_edit_question(self, question, index=None):
-        """Run a YAML editing exercise: open in editor, validate, and compare to expected."""
+        """
+        Runs a full YAML editing exercise for a single question.
+
+        This method orchestrates the exercise by:
+        1. Displaying the prompt.
+        2. Opening the starting YAML in Vim for editing.
+        3. Allowing multiple attempts to edit and validate the YAML.
+        4. Comparing the user's final YAML with the expected solution.
+        5. Providing feedback and showing the correct solution if needed.
+
+        Args:
+            question (dict): A dictionary containing the exercise details, including
+                             'prompt', 'starting_yaml', and 'correct_yaml'.
+            index (int, optional): The index of the question for display purposes.
+
+        Returns:
+            bool: True if the user's solution matches the expected solution (or if it
+                  is structurally valid when no solution is provided), False otherwise.
+        """
         prompt = question.get('prompt') or question.get('requirements', '')
         print(f"\n=== Exercise {index}: {prompt} ===")
         # Prepare initial YAML and expected solution
@@ -190,19 +243,37 @@ class VimYamlEditor:
         # Return success for expected-based, else last validation status
         return success if expected_obj is not None else last_valid
 
+# ==============================================================================
+# Standalone Vim Commands Quiz
+# ==============================================================================
+
 def vim_commands_quiz():
+    """
+    Runs a simple command-line quiz to test the user's knowledge of basic Vim commands.
+    This is provided as a supplemental tool for users to refresh their Vim skills.
+
+    Returns:
+        float: The final score as a ratio of correct answers to total questions.
+    """
     vim_commands = [
-        {"prompt": "Enter insert mode", "answer": "i"},
-        {"prompt": "Save and quit", "answer": ":wq"},
+        {"prompt": "Enter insert mode at cursor", "answer": "i"},
+        {"prompt": "Append text after cursor", "answer": "a"},
+        {"prompt": "Open a new line below the current line", "answer": "o"},
+        {"prompt": "Save file and quit", "answer": ":wq"},
+        {"prompt": "Exit without saving changes", "answer": ":q!"},
+        {"prompt": "Save file without exiting", "answer": ":w"},
         {"prompt": "Delete current line", "answer": "dd"},
-        {"prompt": "Copy current line", "answer": "yy"},
+        {"prompt": "Copy current line (yank)", "answer": "yy"},
         {"prompt": "Paste after cursor", "answer": "p"},
         {"prompt": "Undo last change", "answer": "u"},
         {"prompt": "Search forward for 'pattern'", "answer": "/pattern"},
+        {"prompt": "Find next search occurrence", "answer": "n"},
+        {"prompt": "Go to top of file", "answer": "gg"},
+        {"prompt": "Go to end of file", "answer": "G"},
         {"prompt": "Go to line 10", "answer": ":10"},
-        {"prompt": "Exit without saving", "answer": ":q!"}
     ]
-    print("\n=== Vim Commands Quiz ===")
+    print("\n--- Basic Vim Commands Quiz ---")
+    print("Test your knowledge of essential Vim commands.")
     score = 0
     for cmd in vim_commands:
         ans = input(f"\nHow do you: {cmd['prompt']}? ")
@@ -210,6 +281,6 @@ def vim_commands_quiz():
             print("✅ Correct!")
             score += 1
         else:
-            print(f"❌ Incorrect. Answer: {cmd['answer']}")
-    print(f"\nFinal Score: {score}/{len(vim_commands)}")
+            print(f"❌ Incorrect. The correct command is: {cmd['answer']}")
+    print(f"\nQuiz Complete! Your Score: {score}/{len(vim_commands)}")
     return score / len(vim_commands)
