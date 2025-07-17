@@ -63,6 +63,8 @@ python3 -m kubelingo.cli --vim-quiz
 python3 -m kubelingo.cli --history
 ```
 
+See [docs/VIM_INTEGRATION.md](docs/VIM_INTEGRATION.md) for an in-depth guide on integrating Vim into the Kubelingo CLI.
+
 
 ## Question Types
 
