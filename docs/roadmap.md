@@ -5,6 +5,24 @@ This document outlines the vision, features, and enhancements planned for the Ku
 
 > _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._
 
+## Phase 0: Current Implementation (Not Previously Documented)
+
+### Existing Features to Maintain
+- [x] **LLM Integration**: OpenAI API integration for detailed explanations (`kubelingo/utils/llm_integration.py`)
+- [x] **Review/Flagging System**: Mark questions for later review (`mark_question_for_review`, `unmark_question_for_review`)
+- [x] **Rust-Python Bridge**: Performance-critical validation functions in Rust (`kubelingo_core` module)
+- [x] **Session History**: Basic session logging and history tracking
+- [x] **Semantic YAML Validation**: Compare parsed YAML structures, not raw text
+- [x] **Category Filtering**: Filter questions by Kubernetes topic areas
+- [x] **Randomized Question Order**: Prevent memorization of question sequences
+- [x] **Multiple Question Types**: Command-based and YAML editing exercises
+
+### Technical Infrastructure
+- [x] **Hybrid Architecture**: Python CLI with Rust performance modules
+- [x] **Maturin Build System**: Python package with Rust extensions
+- [x] **CI/CD Pipeline**: GitHub Actions with multi-Python version testing
+- [x] **Modular Design**: Separate modules for different quiz types
+
 ## Phase 1: Core Enhancements
 
 Focus on solidifying the core quiz experience and adding high-value features.
@@ -57,6 +75,46 @@ Improve the YAML editing experience and expand the question library.
 - [ ] Add question packs for CKA and CKS certification topics.
 - [ ] Introduce troubleshooting scenarios where the user must diagnose and fix a broken resource in a live environment.
 - [ ] Add questions about Kubernetes security best practices.
+
+## Phase 4: Advanced Features (From Development Discussions)
+
+### Enhanced Learning Analytics
+- [ ] **Detailed Performance Metrics**: Time per question, accuracy trends, weak topic identification
+- [ ] **Learning Curve Analysis**: Track improvement over time with statistical analysis
+- [ ] **Adaptive Difficulty**: Automatically adjust question difficulty based on performance
+- [ ] **Competency Mapping**: Map performance to specific CKAD exam objectives
+
+### Developer Experience Improvements
+- [ ] **Hot Reload**: Automatically reload question data during development
+- [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions
+- [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML)
+- [ ] **Question Analytics**: Track which questions are most/least effective
+
+### Integration Enhancements
+- [ ] **IDE Plugins**: VSCode/Vim plugins for in-editor practice
+- [ ] **Kubernetes Dashboard Integration**: Practice directly in K8s web UI
+- [ ] **CI/CD Integration**: Run kubelingo tests in development pipelines
+- [ ] **Slack/Discord Bots**: Team-based practice and competitions
+
+### Advanced Validation
+- [ ] **Multi-Solution Support**: Accept multiple correct answers for open-ended questions
+- [ ] **Partial Credit Scoring**: Grade partially correct YAML with detailed feedback
+- [ ] **Context-Aware Validation**: Validate based on cluster state, not just manifest content
+- [ ] **Security Scanning**: Integrate with tools like Falco for security best practices
+
+## Phase 5: Ecosystem Integration
+
+### Cloud Provider Specific Features
+- [ ] **GCP GKE Integration**: Google Cloud sandbox environments
+- [ ] **Azure AKS Integration**: Azure sandbox environments  
+- [ ] **Multi-Cloud Scenarios**: Practice migrating workloads between providers
+- [ ] **Cloud-Native Tools**: Integration with Helm, Kustomize, ArgoCD
+
+### Enterprise Features
+- [ ] **Team Management**: Multi-user environments with progress tracking
+- [ ] **Custom Branding**: White-label versions for training organizations
+- [ ] **Reporting Dashboard**: Manager/instructor view of team progress
+- [ ] **Integration APIs**: Connect with LMS and HR systems
 
 ## Future Vision & Long-Term Goals
 
