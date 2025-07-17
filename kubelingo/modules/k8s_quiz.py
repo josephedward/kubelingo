@@ -36,7 +36,7 @@ def normalize_command(cmd_str):
     norm = []
     i = 0
     # command name
-    if i < len(tokens) and tokens[i] in ('k', 'kubectl'):
+    if i < len(tokens) and tokens[i] == 'k':
         norm.append('kubectl')
         i += 1
     elif i < len(tokens):
