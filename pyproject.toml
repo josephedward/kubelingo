@@ -25,8 +25,6 @@ dependencies = [
     "PyYAML>=6.0",
     "questionary>=1.10.0",
     "python-dotenv>=0.21.0",
-    "llm>=0.14.0",
-    "llm-openai>=0.5.0",
 ]
 
 [project.urls]
@@ -35,6 +33,10 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest>=6.0",
+]
+llm = [
+    "llm>=0.14.0",
+    "llm-openai",
 ]
 
 [project.scripts]
