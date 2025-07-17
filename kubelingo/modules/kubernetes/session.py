@@ -491,9 +491,9 @@ class NewSession(StudySession):
             is_correct = user_answer == q.get('response', '')
             if is_correct:
                 correct_count += 1
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
             else:
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                print(f"\n{Fore.RED}Incorrect.{Style.RESET_ALL}")
                 print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
 
             self.logger.info(f"Vim Question {i}/{total_asked}: prompt=\"{q['prompt']}\" expected=\"{q.get('response', '')}\" answer=\"{user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
@@ -889,9 +889,15 @@ class VimYamlEditor:
 
             content_to_edit = edited  # Update content for next retry
             # Semantic validation of required fields
-            valid, msg = validate_yaml_structure(yaml.dump(edited))
+            validation_result = validate_yaml_structure(yaml.dump(edited))
+            if validation_result['valid']:
+                msg = "YAML is valid"
+                if validation_result['warnings']:
+                    msg += f" (warnings: {', '.join(validation_result['warnings'])})"
+            else:
+                msg = f"Invalid: {', '.join(validation_result['errors'])}"
             print(f"Validation: {msg}")
-            last_valid = valid
+            last_valid = validation_result['valid']
             # If expected solution provided, compare
             if expected_obj is not None:
                 if edited == expected_obj:
