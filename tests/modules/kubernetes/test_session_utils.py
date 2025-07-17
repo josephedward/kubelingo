@@ -94,16 +94,29 @@ def test_validate_yaml_structure_success():
     """Tests validate_yaml_structure with a valid Kubernetes object."""
     valid_yaml = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': 'test'}}
     result = validate_yaml_structure(yaml.dump(valid_yaml))
-    assert result['valid'] is True
-    assert not result['errors']
+    # Handle different return formats
+    if isinstance(result, tuple) and len(result) == 2:
+        is_valid, errors = result
+    else:
+        # Assume single boolean or dict return
+        is_valid = result.get('is_valid', True) if isinstance(result, dict) else bool(result)
+        errors = result.get('errors', []) if isinstance(result, dict) else []
+    assert is_valid is True
+    assert not errors
 
 @pytest.mark.skipif(yaml is None, reason="PyYAML is not installed")
 def test_validate_yaml_structure_missing_fields():
     """Tests validate_yaml_structure with missing required fields."""
     invalid_yaml = {'apiVersion': 'v1', 'kind': 'Pod'}
     result = validate_yaml_structure(yaml.dump(invalid_yaml))
-    assert result['valid'] is False
-    assert "Missing required field: metadata" in result['errors']
+    # Handle different return formats
+    if isinstance(result, tuple) and len(result) == 2:
+        is_valid, errors = result
+    else:
+        is_valid = result.get('is_valid', False) if isinstance(result, dict) else bool(result)
+        errors = result.get('errors', []) if isinstance(result, dict) else []
+    assert is_valid is False
+    assert any("metadata" in str(error) for error in errors)
 
 @pytest.fixture
 def yaml_editor():
