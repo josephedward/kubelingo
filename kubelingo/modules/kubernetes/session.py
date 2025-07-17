@@ -239,58 +239,6 @@ class NewSession(StudySession):
         # For non-live exercises, all quiz types are presented in one menu.
         self._run_command_quiz(args)
 
-    def _run_interactive_yaml_menu(self, args):
-        """Shows the menu for different interactive YAML exercise types."""
-        if not questionary:
-            print(f"{Fore.RED}This feature requires the 'questionary' library.{Style.RESET_ALL}")
-            return
-
-        try:
-            modes = [
-                "Standard Exercises",
-                "Progressive Scenarios",
-                "Live Cluster Exercises",
-                "Create Custom Exercise",
-                questionary.Separator(),
-                "Back"
-            ]
-
-            action = questionary.select(
-                "Choose an Interactive YAML exercise type:",
-                choices=modes,
-                use_indicator=True
-            ).ask()
-
-            if action is None or action == "Back":
-                return
-
-            editor = VimYamlEditor()
-            if action == "Standard Exercises":
-                self._run_yaml_editing_mode(args)
-            elif action == "Progressive Scenarios":
-                file_path = input("Enter path to progressive scenarios JSON file: ").strip()
-                if not file_path: return
-                try:
-                    with open(file_path, 'r') as f:
-                        exercises = json.load(f)
-                    editor.run_progressive_yaml_exercises(exercises)
-                except Exception as e:
-                    print(f"Error loading exercises file {file_path}: {e}")
-            elif action == "Live Cluster Exercises":
-                file_path = input("Enter path to live cluster exercise JSON file: ").strip()
-                if not file_path: return
-                try:
-                    with open(file_path, 'r') as f:
-                        exercise = json.load(f)
-                    editor.run_live_cluster_exercise(exercise)
-                except Exception as e:
-                    print(f"Error loading live exercise file {file_path}: {e}")
-            elif action == "Create Custom Exercise":
-                editor.create_interactive_question()
-        except (EOFError, KeyboardInterrupt):
-            print("\nExiting interactive menu.")
-            return
-
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
         start_time = datetime.now()
@@ -303,17 +251,21 @@ class NewSession(StudySession):
             categories = sorted({q['category'] for q in questions if q.get('category')})
             choices = []
             if flagged_questions:
-                choices.append({'name': "Flagged Questions", 'value': "flagged"})
+                choices.append({'name': "Flagged Command Questions", 'value': "flagged"})
             choices.append({'name': "All Command Questions", 'value': "all"})
             for category in categories:
-                choices.append({'name': category, 'value': category})
+                choices.append({'name': f"Commands: {category}", 'value': category})
 
             choices.append(questionary.Separator())
-            choices.append({'name': "Interactive YAML (Vim)", 'value': "interactive_yaml"})
+            choices.append({'name': "YAML Editing Quiz", 'value': "yaml_standard"})
+            choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
+            choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
+            choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
+            choices.append(questionary.Separator())
             choices.append({'name': "Vim Commands Quiz", 'value': "vim_quiz"})
 
             selected = questionary.select(
-                "Choose a quiz type or subject area:",
+                "Choose an exercise type or subject area:",
                 choices=choices,
                 use_indicator=True
             ).ask()
@@ -322,10 +274,31 @@ class NewSession(StudySession):
                 print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
                 return
 
+            editor = VimYamlEditor()
             if selected == 'flagged':
                 args.review_only = True
-            elif selected == 'interactive_yaml':
-                return self._run_interactive_yaml_menu(args)
+            elif selected == 'yaml_standard':
+                return self._run_yaml_editing_mode(args)
+            elif selected == 'yaml_progressive':
+                file_path = input("Enter path to progressive scenarios JSON file: ").strip()
+                if not file_path: return
+                try:
+                    with open(file_path, 'r') as f:
+                        exercises = json.load(f)
+                    return editor.run_progressive_yaml_exercises(exercises)
+                except Exception as e:
+                    print(f"Error loading exercises file {file_path}: {e}")
+            elif selected == 'yaml_live':
+                file_path = input("Enter path to live cluster exercise JSON file: ").strip()
+                if not file_path: return
+                try:
+                    with open(file_path, 'r') as f:
+                        exercise = json.load(f)
+                    return editor.run_live_cluster_exercise(exercise)
+                except Exception as e:
+                    print(f"Error loading live exercise file {file_path}: {e}")
+            elif selected == 'yaml_create':
+                return editor.create_interactive_question()
             elif selected == 'vim_quiz':
                 return self._run_vim_commands_quiz(args)
             elif selected != 'all':
