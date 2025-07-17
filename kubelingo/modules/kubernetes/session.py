@@ -914,7 +914,7 @@ class VimYamlEditor:
                     print(f"Error generating diff: {diff_err}")
             else:
                 # No expected, use basic validation
-                if valid:
+                if last_valid:
                     success = True
                     break
             # Ask user to retry or skip
