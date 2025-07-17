@@ -1,5 +1,5 @@
 import pytest
-from kubelingo.utils.validation import normalize_command, commands_equivalent
+from kubelingo_core import commands_equivalent
 
 
 @pytest.mark.parametrize("command1, command2, are_equivalent", [
