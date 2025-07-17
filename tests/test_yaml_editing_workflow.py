@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from kubelingo.modules.vim_yaml_editor import VimYamlEditor
+from kubelingo.modules.kubernetes.session import VimYamlEditor
 
 @pytest.fixture
 def editor():
@@ -24,7 +24,7 @@ def test_yaml_editing_workflow_success_first_try(editor, capsys):
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(question['correct_yaml'])
 
-    with patch('kubelingo.modules.vim_yaml_editor.subprocess.run', side_effect=simulate_vim_edit):
+    with patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit):
         success = editor.run_yaml_edit_question(question, index=1)
 
     assert success is True
@@ -58,7 +58,7 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
 
     # Mock user input: 'y' to retry.
     with patch('builtins.input', side_effect=['y']), \
-         patch('kubelingo.modules.vim_yaml_editor.subprocess.run', side_effect=simulate_vim_edit_retry):
+         patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit_retry):
         success = editor.run_yaml_edit_question(question, index=2)
 
     assert success is True
@@ -90,7 +90,7 @@ def test_yaml_editing_workflow_fail_and_no_retry(editor, capsys):
 
     # Mock user input: 'n' to not retry.
     with patch('builtins.input', side_effect=['n']), \
-         patch('kubelingo.modules.vim_yaml_editor.subprocess.run', side_effect=simulate_vim_edit_fail):
+         patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=simulate_vim_edit_fail):
         success = editor.run_yaml_edit_question(question, index=3)
 
     assert success is False
