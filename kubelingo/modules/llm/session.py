@@ -54,7 +54,7 @@ class AIHelper:
         if not self.client:
             return (
                 f"{Fore.YELLOW}Could not get explanation. "
-                "Install 'llm' package or set OPENAI_API_KEY for OpenAI SDK. "
+                "Install LLM dependencies (pip install -e '.[llm]') and ensure OPENAI_API_KEY is set. "
                 f"{Style.RESET_ALL}"
             )
         # Default message for YAML exercises
