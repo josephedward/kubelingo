@@ -4,6 +4,7 @@ modules/vim_yaml_editor.py: Interactive Vim YAML editing and validation for kube
 """
 import os
 import subprocess
+import difflib
 import tempfile
 try:
     import yaml
@@ -52,6 +53,35 @@ class VimYamlEditor:
             "data": data.get("data", {"database_url": "mysql://localhost:3306/app",
                                           "debug": "true"})
         }
+    def _deployment_exercise(self, data):
+        return {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": {"name": data.get("name", "example-deployment")},
+            "spec": {
+                "replicas": data.get("replicas", 1),
+                "selector": {"matchLabels": data.get("selector", {"app": "example"})},
+                "template": {
+                    "metadata": {"labels": data.get("selector", {"app": "example"})},
+                    "spec": {"containers": [{
+                        "name": data.get("container_name", "example"),
+                        "image": data.get("image", "nginx:latest"),
+                        "ports": data.get("ports", [{"containerPort": 80}])
+                    }]}
+                }
+            }
+        }
+    def _service_exercise(self, data):
+        return {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {"name": data.get("name", "example-service")},
+            "spec": {
+                "selector": data.get("selector", {"app": "example"}),
+                "ports": data.get("ports", [{"port": 80, "targetPort": 80}]),
+                "type": data.get("type", "ClusterIP")
+            }
+        }
 
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
         # The filename parameter is now ignored, but kept for compatibility.
@@ -92,23 +122,64 @@ class VimYamlEditor:
         return True, "YAML is valid"
 
     def run_yaml_edit_question(self, question, index=None):
+        """Run a YAML editing exercise: open in editor, validate, and compare to expected."""
         prompt = question.get('prompt') or question.get('requirements', '')
         print(f"\n=== Exercise {index}: {prompt} ===")
-        starting = question.get('starting_yaml', {})
-        expected = question.get('correct_yaml', {})
-        edited = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml")
-        if edited is None:
-            return False
-        valid, msg = self.validate_yaml(edited)
-        print(f"Validation: {msg}")
-        # For full correctness, compare edited to expected
-        if expected and edited == expected:
-            print("✅ Correct!")
-            return True
-        if expected:
-            print("❌ YAML does not match expected output.")
-            return False
-        return valid
+        # Prepare initial YAML and expected solution
+        starting = question.get('starting_yaml', '')
+        expected_raw = question.get('correct_yaml')
+        expected_obj = None
+        if expected_raw is not None and yaml:
+            try:
+                expected_obj = yaml.safe_load(expected_raw) if isinstance(expected_raw, str) else expected_raw
+            except Exception:
+                expected_obj = None
+        # Interactive edit loop, allow retries on failure
+        success = False
+        last_valid = False
+        while True:
+            edited = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml")
+            if edited is None:
+                return False
+            # Semantic validation of required fields
+            valid, msg = self.validate_yaml(edited)
+            print(f"Validation: {msg}")
+            last_valid = valid
+            # If expected solution provided, compare
+            if expected_obj is not None:
+                if edited == expected_obj:
+                    print("✅ Correct!")
+                    success = True
+                    break
+                print("❌ YAML does not match expected output. Differences:")
+                try:
+                    exp_lines = yaml.dump(expected_obj, default_flow_style=False).splitlines()
+                    edit_lines = yaml.dump(edited, default_flow_style=False).splitlines()
+                    for line in difflib.unified_diff(exp_lines, edit_lines, fromfile='Expected', tofile='Your', lineterm=''):
+                        print(line)
+                except Exception as diff_err:
+                    print(f"Error generating diff: {diff_err}")
+            else:
+                # No expected, use basic validation
+                if valid:
+                    success = True
+                    break
+            # Ask user to retry or skip
+            try:
+                retry = input("Try again? (y/N): ").strip().lower().startswith('y')
+            except (EOFError, KeyboardInterrupt):
+                retry = False
+            if not retry:
+                break
+        # If expected exists and failed after retries, show expected solution
+        if expected_obj is not None and not success:
+            print("\nExpected solution:" )
+            try:
+                print(yaml.dump(expected_obj, default_flow_style=False))
+            except Exception:
+                print(expected_raw)
+        # Return success for expected-based, else last validation status
+        return success if expected_obj is not None else last_valid
 
 def vim_commands_quiz():
     vim_commands = [
