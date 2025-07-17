@@ -407,19 +407,19 @@ def run_interactive_yaml_menu():
         return
 
     try:
-        choices = [
-            "Standard Exercises (existing --yaml-exercises)",
-            "Progressive Exercises",
-            "Scenario Exercises",
+        modes = [
+            "Standard Exercises",
+            "Progressive Scenarios",
             "Live Cluster Exercises",
             "Create Custom Exercise",
+            "Vim Commands Quiz",
             questionary.Separator(),
             "Back to Main Menu"
         ]
-        
+
         action = questionary.select(
             "Choose an Interactive YAML exercise type:",
-            choices=choices,
+            choices=modes,
             use_indicator=True
         ).ask()
 
@@ -428,37 +428,33 @@ def run_interactive_yaml_menu():
             return
 
         editor = VimYamlEditor()
-        if action == "Standard Exercises (existing --yaml-exercises)":
+        if action == "Standard Exercises":
             run_yaml_editing_mode(YAML_QUESTIONS_FILE)
-        elif action == "Progressive Exercises":
-            file_path = input("Enter path to progressive exercises JSON file: ").strip()
+        elif action == "Progressive Scenarios":
+            file_path = input("Enter path to progressive scenarios JSON file: ").strip()
+            if not file_path: return
             try:
                 with open(file_path, 'r') as f:
                     exercises = json.load(f)
+                editor.run_progressive_yaml_exercises(exercises)
             except Exception as e:
                 print(f"Error loading exercises file {file_path}: {e}")
-                return
-            editor.run_progressive_yaml_exercises(exercises)
-        elif action == "Scenario Exercises":
-            file_path = input("Enter path to scenario exercises JSON file: ").strip()
-            try:
-                with open(file_path, 'r') as f:
-                    scenario = json.load(f)
-            except Exception as e:
-                print(f"Error loading scenario file {file_path}: {e}")
-                return
-            editor.run_scenario_exercise(scenario)
         elif action == "Live Cluster Exercises":
             file_path = input("Enter path to live cluster exercise JSON file: ").strip()
+            if not file_path: return
             try:
                 with open(file_path, 'r') as f:
                     exercise = json.load(f)
+                editor.run_live_cluster_exercise(exercise)
             except Exception as e:
                 print(f"Error loading live exercise file {file_path}: {e}")
-                return
-            editor.run_live_cluster_exercise(exercise)
         elif action == "Create Custom Exercise":
             editor.create_interactive_question()
+        elif action == "Vim Commands Quiz":
+            if vim_commands_quiz:
+                vim_commands_quiz()
+            else:
+                print("Vim quiz module not available.")
     except (EOFError, KeyboardInterrupt):
         print("\nExiting interactive menu.")
         return
