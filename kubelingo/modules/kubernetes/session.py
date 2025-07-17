@@ -236,36 +236,8 @@ class NewSession(StudySession):
         if args.live:
             return self._run_live_mode(args)
 
-        # Interactive menu for k8s module
-        if questionary:
-            try:
-                choices = [
-                    "Command Quiz",
-                    "Interactive YAML (Vim)",
-                    "Vim Commands Quiz"
-                ]
-                action = questionary.select(
-                    "Select Kubernetes exercise type:",
-                    choices=choices,
-                    use_indicator=True
-                ).ask()
-                
-                if action is None:
-                    return
-
-                if action == "Command Quiz":
-                    self._run_command_quiz(args)
-                elif action == "Interactive YAML (Vim)":
-                    self._run_interactive_yaml_menu(args)
-                elif action == "Vim Commands Quiz":
-                    self._run_vim_commands_quiz(args)
-            except (EOFError, KeyboardInterrupt):
-                print("\nExiting.")
-                return
-        else:
-            # Fallback for non-interactive
-            print("Running default Kubernetes command quiz.")
-            self._run_command_quiz(args)
+        # For non-live exercises, all quiz types are presented in one menu.
+        self._run_command_quiz(args)
 
     def _run_interactive_yaml_menu(self, args):
         """Shows the menu for different interactive YAML exercise types."""
@@ -331,20 +303,31 @@ class NewSession(StudySession):
             categories = sorted({q['category'] for q in questions if q.get('category')})
             choices = []
             if flagged_questions:
-                choices.append({'name': 'Flagged Questions', 'value': 'flagged'})
-            choices.append({'name': 'All Questions', 'value': 'all'})
+                choices.append({'name': "Flagged Questions", 'value': "flagged"})
+            choices.append({'name': "All Command Questions", 'value': "all"})
             for category in categories:
                 choices.append({'name': category, 'value': category})
+
+            choices.append(questionary.Separator())
+            choices.append({'name': "Interactive YAML (Vim)", 'value': "interactive_yaml"})
+            choices.append({'name': "Vim Commands Quiz", 'value': "vim_quiz"})
+
             selected = questionary.select(
                 "Choose a quiz type or subject area:",
                 choices=choices,
                 use_indicator=True
             ).ask()
+
             if selected is None:
                 print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
                 return
+
             if selected == 'flagged':
                 args.review_only = True
+            elif selected == 'interactive_yaml':
+                return self._run_interactive_yaml_menu(args)
+            elif selected == 'vim_quiz':
+                return self._run_vim_commands_quiz(args)
             elif selected != 'all':
                 args.category = selected
 
