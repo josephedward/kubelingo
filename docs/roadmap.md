@@ -1,11 +1,10 @@
-<!-- Kubelingo Roadmap -->
 # Kubelingo Project Roadmap
 
 This document outlines the vision, features, and enhancements planned for the Kubelingo CLI quiz tool. It is organized into key focus areas and milestone ideas.
 
 > _This roadmap is a living document. Feel free to propose additions or reprioritize items via issues or pull requests._
 
-## Phase 0: Current Implementation (Not Previously Documented)
+## Phase 0: Current Implementation
 
 ### Existing Features to Maintain
 - [x] **LLM Integration**: OpenAI API integration for detailed explanations (`kubelingo/utils/llm_integration.py`)
@@ -23,28 +22,96 @@ This document outlines the vision, features, and enhancements planned for the Ku
 - [x] **CI/CD Pipeline**: GitHub Actions with multi-Python version testing
 - [x] **Modular Design**: Separate modules for different quiz types
 
-## Issues to Create
+## Test Coverage Improvements
 
-### Test Coverage Improvements
-- [ ] **Issue #55**: Comprehensive CLI Testing - Add tests for main entry points, argument parsing, and error handling
-- [ ] **Issue #56**: YAML Editing Workflow Tests - Mock vim subprocess calls and test file I/O operations  
-- [ ] **Issue #57**: Integration Test Framework - End-to-end workflow testing for complete user journeys
-- [ ] **Issue #58**: Performance Benchmarks - Add tests for question loading and validation performance
-- [ ] **Issue #59**: Error Handling Coverage - Test edge cases and error recovery scenarios
+### Comprehensive CLI Testing
+- Add tests for main entry points
+- Test argument parsing edge cases  
+- Test session initialization
+- Test error handling and user feedback
+- Test configuration management
 
-### Enhanced Validation System
-- [ ] **Issue #60**: Multi-Document YAML Support - Handle YAML files with multiple Kubernetes resources
-- [ ] **Issue #61**: Advanced Semantic Comparison - Improve YAML structure comparison for complex nested objects
-- [ ] **Issue #62**: Validation Error Quality - Provide more specific and actionable error messages
-- [ ] **Issue #63**: Custom Validation Rules - Allow exercises to define custom validation criteria
+### YAML Editing Workflow Tests
+- Mock vim subprocess calls
+- Test file I/O operations
+- Validate exercise generation
+- Test validation feedback loops
+- Test error recovery scenarios
 
-### Developer Experience
-- [ ] **Issue #64**: Automated Test Coverage Reporting - Integrate codecov.io for coverage tracking
-- [ ] **Issue #65**: Pre-commit Hooks - Add linting, formatting, and test validation
-- [ ] **Issue #66**: Documentation Generation - Auto-generate API docs from docstrings
-- [ ] **Issue #67**: Dependency Management - Regular security updates and compatibility checks
+### Integration Test Framework
+- End-to-end workflow tests
+- User journey validation
+- Cross-module integration testing
+- Performance validation
+- Error path testing
 
-## Phase 1: Core Enhancements (UPDATED)
+### Performance Benchmarks
+- Question loading performance tests
+- YAML validation speed benchmarks
+- Memory usage optimization tests
+- Startup time benchmarks
+- Large dataset handling tests
+
+### Error Handling Coverage
+- Test all error paths
+- Validate error messages
+- Test recovery scenarios
+- Test invalid input handling
+- Test network failure scenarios
+
+## Enhanced Validation System
+
+### Multi-Document YAML Support
+- Handle YAML files with multiple Kubernetes resources
+- Parse document separators correctly
+- Validate each document independently
+- Aggregate validation results
+
+### Advanced Semantic Comparison
+- Improve YAML structure comparison for complex nested objects
+- Handle array ordering differences
+- Support partial matching for dynamic fields
+- Add fuzzy matching for similar values
+
+### Validation Error Quality
+- Provide more specific and actionable error messages
+- Include line numbers in error reports
+- Suggest corrections for common mistakes
+- Add context-aware hints
+
+### Custom Validation Rules
+- Allow exercises to define custom validation criteria
+- Support regex patterns for flexible matching
+- Add conditional validation rules
+- Enable plugin-based validators
+
+## Developer Experience
+
+### Automated Test Coverage Reporting
+- Integrate codecov.io for coverage tracking
+- Add coverage badges to README
+- Set up coverage thresholds in CI
+- Generate detailed coverage reports
+
+### Pre-commit Hooks
+- Add linting and formatting validation
+- Run tests before commits
+- Check for security vulnerabilities
+- Validate documentation updates
+
+### Documentation Generation
+- Auto-generate API docs from docstrings
+- Create interactive documentation
+- Add code examples to docs
+- Set up documentation deployment
+
+### Dependency Management
+- Regular security updates
+- Compatibility checks across Python versions
+- Automated dependency updates
+- Vulnerability scanning
+
+## Phase 1: Core Enhancements
 
 Focus on solidifying the core quiz experience and adding high-value features.
 
@@ -53,19 +120,6 @@ Focus on solidifying the core quiz experience and adding high-value features.
 - [x] **Fix YAML Validation API**: Update validation function calls to use new dictionary format - RESOLVED ✅
 - [x] **Fix Import Errors**: Resolve `kubelingo_core` import issues in tests - RESOLVED ✅
 - [x] **Fix Vim Editor Integration**: Handle KeyboardInterrupt and validation errors properly - RESOLVED ✅
-
-### Test Coverage Improvements (NEW)
-- [ ] **Comprehensive CLI Testing**: Add tests for main entry points, argument parsing, and error handling [#55]
-- [ ] **YAML Editing Workflow Tests**: Mock vim subprocess calls and test file I/O operations [#56]
-- [ ] **Integration Test Framework**: End-to-end workflow testing for complete user journeys [#57]
-- [ ] **Performance Benchmarks**: Add tests for question loading and validation performance [#58]
-- [ ] **Error Handling Coverage**: Test edge cases and error recovery scenarios [#59]
-
-### Enhanced Validation System (NEW)
-- [ ] **Multi-Document YAML Support**: Handle YAML files with multiple Kubernetes resources [#60]
-- [ ] **Advanced Semantic Comparison**: Improve YAML structure comparison for complex nested objects [#61]
-- [ ] **Validation Error Quality**: Provide more specific and actionable error messages [#62]
-- [ ] **Custom Validation Rules**: Allow exercises to define custom validation criteria [#63]
 
 ### Difficulty Levels
 - [ ] Implement a mechanism to tag questions with difficulty levels (Beginner, Intermediate, Advanced). [#1]
@@ -80,20 +134,6 @@ Focus on solidifying the core quiz experience and adding high-value features.
 ### Spaced Repetition System (SRS)
 - [ ] Integrate an SRS algorithm to prioritize questions the user has previously answered incorrectly. [#7]
 - [ ] Automatically schedule questions for review based on performance. [#8]
-
-## Phase 1.5: Developer Experience (NEW)
-
-### Code Quality & Maintenance
-- [ ] **Automated Test Coverage Reporting**: Integrate codecov.io for coverage tracking [#64]
-- [ ] **Pre-commit Hooks**: Add linting, formatting, and test validation [#65]
-- [ ] **Documentation Generation**: Auto-generate API docs from docstrings [#66]
-- [ ] **Dependency Management**: Regular security updates and compatibility checks [#67]
-
-### Development Workflow
-- [ ] **Hot Reload for Development**: Automatically reload question data during development [#28]
-- [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions [#29]
-- [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML) [#30]
-- [ ] **Question Analytics**: Track which questions are most/least effective [#31]
 
 ## Phase 2: Interactive Environments
 
@@ -130,7 +170,7 @@ Improve the YAML editing experience and expand the question library.
 - [ ] Introduce troubleshooting scenarios where the user must diagnose and fix a broken resource in a live environment. [#22]
 - [ ] Add questions about Kubernetes security best practices. [#23]
 
-## Phase 4: Advanced Features (From Development Discussions)
+## Phase 4: Advanced Features
 
 ### Enhanced Learning Analytics
 - [ ] **Detailed Performance Metrics**: Time per question, accuracy trends, weak topic identification [#24]
@@ -138,8 +178,8 @@ Improve the YAML editing experience and expand the question library.
 - [ ] **Adaptive Difficulty**: Automatically adjust question difficulty based on performance [#26]
 - [ ] **Competency Mapping**: Map performance to specific CKAD exam objectives [#27]
 
-### Developer Experience Improvements
-- [ ] **Hot Reload**: Automatically reload question data during development [#28]
+### Development Workflow
+- [ ] **Hot Reload for Development**: Automatically reload question data during development [#28]
 - [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions [#29]
 - [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML) [#30]
 - [ ] **Question Analytics**: Track which questions are most/least effective [#31]
@@ -188,3 +228,24 @@ Ideas that are further out on the horizon.
 
 ### Multiplayer Mode
 - [ ] A competitive mode where two or more users race to answer questions correctly. [#54]
+
+## Issues to Create
+
+### Test Coverage Improvements
+- [ ] **Issue #55**: Comprehensive CLI Testing - Add tests for main entry points, argument parsing, and error handling
+- [ ] **Issue #56**: YAML Editing Workflow Tests - Mock vim subprocess calls and test file I/O operations  
+- [ ] **Issue #57**: Integration Test Framework - End-to-end workflow testing for complete user journeys
+- [ ] **Issue #58**: Performance Benchmarks - Add tests for question loading and validation performance
+- [ ] **Issue #59**: Error Handling Coverage - Test edge cases and error recovery scenarios
+
+### Enhanced Validation System
+- [ ] **Issue #60**: Multi-Document YAML Support - Handle YAML files with multiple Kubernetes resources
+- [ ] **Issue #61**: Advanced Semantic Comparison - Improve YAML structure comparison for complex nested objects
+- [ ] **Issue #62**: Validation Error Quality - Provide more specific and actionable error messages
+- [ ] **Issue #63**: Custom Validation Rules - Allow exercises to define custom validation criteria
+
+### Developer Experience
+- [ ] **Issue #64**: Automated Test Coverage Reporting - Integrate codecov.io for coverage tracking
+- [ ] **Issue #65**: Pre-commit Hooks - Add linting, formatting, and test validation
+- [ ] **Issue #66**: Documentation Generation - Auto-generate API docs from docstrings
+- [ ] **Issue #67**: Dependency Management - Regular security updates and compatibility checks
