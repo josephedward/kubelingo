@@ -231,21 +231,23 @@ Ideas that are further out on the horizon.
 
 ## Issues to Create
 
+A script is available to create these issues on GitHub automatically. See `scripts/create_issues.sh`.
+
 ### Test Coverage Improvements
-- [ ] **Issue #55**: Comprehensive CLI Testing - Add tests for main entry points, argument parsing, and error handling
-- [ ] **Issue #56**: YAML Editing Workflow Tests - Mock vim subprocess calls and test file I/O operations  
-- [ ] **Issue #57**: Integration Test Framework - End-to-end workflow testing for complete user journeys
-- [ ] **Issue #58**: Performance Benchmarks - Add tests for question loading and validation performance
-- [ ] **Issue #59**: Error Handling Coverage - Test edge cases and error recovery scenarios
+- [x] **Issue #55**: Comprehensive CLI Testing - Add tests for main entry points, argument parsing, and error handling
+- [x] **Issue #56**: YAML Editing Workflow Tests - Mock vim subprocess calls and test file I/O operations  
+- [x] **Issue #57**: Integration Test Framework - End-to-end workflow testing for complete user journeys
+- [x] **Issue #58**: Performance Benchmarks - Add tests for question loading and validation performance
+- [x] **Issue #59**: Error Handling Coverage - Test edge cases and error recovery scenarios
 
 ### Enhanced Validation System
-- [ ] **Issue #60**: Multi-Document YAML Support - Handle YAML files with multiple Kubernetes resources
-- [ ] **Issue #61**: Advanced Semantic Comparison - Improve YAML structure comparison for complex nested objects
-- [ ] **Issue #62**: Validation Error Quality - Provide more specific and actionable error messages
-- [ ] **Issue #63**: Custom Validation Rules - Allow exercises to define custom validation criteria
+- [x] **Issue #60**: Multi-Document YAML Support - Handle YAML files with multiple Kubernetes resources
+- [x] **Issue #61**: Advanced Semantic Comparison - Improve YAML structure comparison for complex nested objects
+- [x] **Issue #62**: Validation Error Quality - Provide more specific and actionable error messages
+- [x] **Issue #63**: Custom Validation Rules - Allow exercises to define custom validation criteria
 
 ### Developer Experience
-- [ ] **Issue #64**: Automated Test Coverage Reporting - Integrate codecov.io for coverage tracking
-- [ ] **Issue #65**: Pre-commit Hooks - Add linting, formatting, and test validation
-- [ ] **Issue #66**: Documentation Generation - Auto-generate API docs from docstrings
-- [ ] **Issue #67**: Dependency Management - Regular security updates and compatibility checks
+- [x] **Issue #64**: Automated Test Coverage Reporting - Integrate codecov.io for coverage tracking
+- [x] **Issue #65**: Pre-commit Hooks - Add linting, formatting, and test validation
+- [x] **Issue #66**: Documentation Generation - Auto-generate API docs from docstrings
+- [x] **Issue #67**: Dependency Management - Regular security updates and compatibility checks
