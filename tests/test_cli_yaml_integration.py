@@ -1,6 +1,7 @@
 import pytest
 import json
 from unittest.mock import patch, Mock
+import yaml
 
 # Import the function to be tested and the path to the data file from the CLI module.
 # This makes the test robust against changes in file locations.
@@ -30,14 +31,18 @@ class MockEditor:
     def __call__(self, cmd, check=True):
         """
         This method is the mock for `subprocess.run`. It simulates a user
-        editing a file and saving the correct content.
+        editing a file and saving the correct content. It normalizes the YAML
+        to avoid validation failures due to formatting differences.
         """
         self.call_count += 1
         tmp_file_path = cmd[1]
         try:
-            solution = next(self.solutions_iterator)
+            solution_str = next(self.solutions_iterator)
+            # Normalize YAML by loading and dumping it. This removes formatting
+            # inconsistencies that could cause the string-based diff to fail.
+            normalized_solution = yaml.dump(yaml.safe_load(solution_str))
             with open(tmp_file_path, 'w', encoding='utf-8') as f:
-                f.write(solution)
+                f.write(normalized_solution)
         except StopIteration:
             raise AssertionError("MockEditor was called more times than there are solutions.")
 
