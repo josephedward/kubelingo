@@ -41,6 +41,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.par
 DATA_DIR = os.path.join(ROOT, 'data')
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
+VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'vim_quiz_data.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
@@ -247,11 +248,25 @@ class NewSession(StudySession):
         # In interactive mode, prompt user for quiz type (flagged/category)
         is_interactive = questionary and not args.category and not args.review_only and not args.num
         if is_interactive:
-            flagged_questions = [q for q in questions if q.get('review')]
+            # Check for flagged command questions
+            flagged_command_questions = [q for q in questions if q.get('review')]
+            # Check for flagged Vim questions
+            vim_questions = []
+            if os.path.exists(VIM_QUESTIONS_FILE):
+                vim_questions = load_questions(VIM_QUESTIONS_FILE)
+            flagged_vim_questions = [q for q in vim_questions if q.get('review')]
+
             categories = sorted({q['category'] for q in questions if q.get('category')})
             choices = []
-            if flagged_questions:
-                choices.append({'name': "Flagged Command Questions", 'value': "flagged"})
+            
+            if flagged_command_questions:
+                choices.append({'name': f"Review {len(flagged_command_questions)} Flagged Command Questions", 'value': "flagged"})
+            if flagged_vim_questions:
+                choices.append({'name': f"Review {len(flagged_vim_questions)} Flagged Vim Questions", 'value': "vim_review"})
+
+            if flagged_command_questions or flagged_vim_questions:
+                choices.append(questionary.Separator())
+
             choices.append({'name': "All Command Questions", 'value': "all"})
             for category in categories:
                 choices.append({'name': f"Commands: {category}", 'value': category})
@@ -277,6 +292,9 @@ class NewSession(StudySession):
             editor = VimYamlEditor()
             if selected == 'flagged':
                 args.review_only = True
+            elif selected == 'vim_review':
+                args.review_only = True
+                return self._run_vim_commands_quiz(args)
             elif selected == 'yaml_standard':
                 return self._run_yaml_editing_mode(args)
             elif selected == 'yaml_progressive':
@@ -300,6 +318,7 @@ class NewSession(StudySession):
             elif selected == 'yaml_create':
                 return editor.create_interactive_question()
             elif selected == 'vim_quiz':
+                args.review_only = False
                 return self._run_vim_commands_quiz(args)
             elif selected != 'all':
                 args.category = selected
@@ -500,8 +519,90 @@ class NewSession(StudySession):
         print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
 
     def _run_vim_commands_quiz(self, args):
-        score = vim_commands_quiz()
-        print(f"\nVim Quiz completed with {score:.1%} accuracy")
+        """Runs the Vim commands quiz, with flagging support."""
+        start_time = datetime.now()
+        data_file = VIM_QUESTIONS_FILE
+        if not os.path.exists(data_file):
+            print(f"{Fore.RED}Vim questions data file not found at {data_file}{Style.RESET_ALL}")
+            return
+        
+        questions = load_questions(data_file)
+
+        if args.review_only:
+            questions = [q for q in questions if q.get('review')]
+            if not questions:
+                print(Fore.YELLOW + "No Vim questions flagged for review found." + Style.RESET_ALL)
+                return
+            print(Fore.MAGENTA + f"Starting review session for {len(questions)} flagged Vim questions." + Style.RESET_ALL)
+        
+        questions_to_ask = random.sample(questions, len(questions))
+            
+        correct_count = 0
+        total_asked = len(questions_to_ask)
+
+        print(f"\n{Fore.CYAN}--- Basic Vim Commands Quiz ---{Style.RESET_ALL}")
+        print("Test your knowledge of essential Vim commands.")
+
+        for i, q in enumerate(questions_to_ask, 1):
+            category = q.get('category', 'Vim')
+
+            print(f"\n{Fore.YELLOW}Question {i}/{total_asked}{Style.RESET_ALL}")
+            print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
+
+            try:
+                user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                break
+            
+            is_correct = user_answer == q.get('response', '')
+            if is_correct:
+                correct_count += 1
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+
+            self.logger.info(f"Vim Question {i}/{total_asked}: prompt=\"{q['prompt']}\" expected=\"{q.get('response', '')}\" answer=\"{user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
+            # --- Post-question action menu ---
+            action_interrupted = False
+            if questionary:
+                while True:
+                    print() # Spacer
+                    try:
+                        is_flagged = q.get('review', False)
+                        flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
+                        
+                        choices = ["Next Question", flag_option]
+                        action = questionary.select("Choose an action:", choices=choices, use_indicator=True).ask()
+                        if action is None: raise KeyboardInterrupt
+
+                        if action == "Next Question":
+                            break
+                        elif action.startswith("Flag for Review"):
+                            mark_question_for_review(data_file, q['category'], q['prompt'])
+                            q['review'] = True
+                            print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                        elif action.startswith("Un-flag for Review"):
+                            unmark_question_for_review(data_file, q['category'], q['prompt'])
+                            q['review'] = False
+                            print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                        action_interrupted = True
+                        break
+
+                if action_interrupted:
+                    break
+
+        end_time = datetime.now()
+        duration = str(end_time - start_time).split('.')[0]
+
+        print(f"\n{Fore.CYAN}--- Vim Quiz Complete ---{Style.RESET_ALL}")
+        score = (correct_count / total_asked * 100) if total_asked > 0 else 0
+        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+        print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
     def _run_live_mode(self, args):
         """Handles setup and execution of live Kubernetes exercises."""
