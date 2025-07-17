@@ -36,7 +36,8 @@ test = [
 ]
 llm = [
     "llm>=0.14.0",
-    "llm-openai",
+    "llm-openai>=0.5.0",
+    "openai>=1.0.0",
 ]
 
 [project.scripts]
