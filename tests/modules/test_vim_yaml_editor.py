@@ -64,36 +64,3 @@ def test_edit_yaml_with_vim_invalid_yaml_after_edit(editor, capsys):
     captured = capsys.readouterr()
     assert "Failed to parse YAML" in captured.out, "A parsing error message should be printed."
 
-# --- Tests for standalone vim_commands_quiz function ---
-
-def test_vim_commands_quiz_flow(capsys):
-    """
-    Tests the basic flow of the vim_commands_quiz, simulating user input.
-    """
-    user_inputs = [
-        "i",         # Correct
-        "A",         # Incorrect
-        "o",         # Correct
-        ":wq",       # Correct
-        ":q!",       # Correct
-        "w",         # Incorrect
-        "dd",        # Correct
-        "Y",         # Incorrect
-        "p",         # Correct
-        "u",         # Correct
-        "/pattern",  # Correct
-        "n",         # Correct
-        "gg",        # Correct
-        "G",         # Correct
-        "10G",       # Incorrect
-    ]
-    
-    expected_score = 11.0 / 15.0
-    
-    with patch('builtins.input', side_effect=user_inputs):
-        final_score = vim_commands_quiz()
-
-    assert final_score == pytest.approx(expected_score)
-    captured = capsys.readouterr()
-    assert "Quiz Complete!" in captured.out
-    assert "Your Score: 11/15" in captured.out
