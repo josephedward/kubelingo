@@ -1,5 +1,5 @@
 import json
-from kubelingo.cli import load_questions, mark_question_for_review, unmark_question_for_review
+from kubelingo.modules.kubernetes.session import load_questions, mark_question_for_review, unmark_question_for_review
 
 data_file = 'testdata.json'
 # Initialize test data

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from kubelingo.modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
+from kubelingo.modules.kubernetes.session import VimYamlEditor, vim_commands_quiz
 
 # Fixture to provide a VimYamlEditor instance for tests
 @pytest.fixture
