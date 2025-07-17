@@ -1,11 +1,5 @@
 import os
-try:
-    import llm
-    HAS_LLM = True
-except ImportError:
-    llm = None
-    HAS_LLM = False
-import openai
+import llm
 from kubelingo.modules.base.session import StudySession
 
 # Style settings copied from other modules for consistency
@@ -20,30 +14,29 @@ class _AnsiStyle:
 Fore = _AnsiFore()
 Style = _AnsiStyle()
 
-# Integrates with OpenAI to provide explanations for quiz questions.
+# Integrates with LLM to provide explanations for quiz questions.
 class AIHelper:
     def __init__(self, api_key=None):
-        # Determine API key from parameter or environment
+        # api_key is passed for compatibility, but llm handles its own key management.
+        # If passed, we can set it on the model.
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        # Initialize preferred LLM client
-        if HAS_LLM:
-            # Simon Willison's llm.Client
-            self.client = llm.Client()
-        elif self.api_key:
-            # Fallback to OpenAI SDK
-            openai.api_key = self.api_key
-            self.client = openai.OpenAI(api_key=self.api_key)
-        else:
-            self.client = None
+        self.model = None
+        try:
+            self.model = llm.get_model("gpt-3.5-turbo")
+            if self.api_key:
+                self.model.key = self.api_key
+        except llm.UnknownModelError:
+            self.model = None
 
     def get_explanation(self, question_data):
         prompt = question_data.get('prompt', '')
         answer = question_data.get('response', '')
-        
-        if not self.client:
+
+        if not self.model:
             return (
-                f"{Fore.YELLOW}Could not get explanation. No LLM client is available. "
-                f"Please install 'llm' or set OPENAI_API_KEY.{Style.RESET_ALL}"
+                f"{Fore.YELLOW}Could not get explanation. "
+                f"The 'llm-openai' plugin may not be installed. "
+                f"Try 'pip install llm-openai'.{Style.RESET_ALL}"
             )
 
         # Handle empty/missing answers, which can happen for YAML edit questions
@@ -57,8 +50,8 @@ class AIHelper:
                 "If the answer is a YAML edit, explain the necessary changes."
             )
             user_prompt = f"Question: {prompt}\nCorrect Answer: {answer}\n\nExplanation:"
-            # Use unified API for llm or openai client
-            response = self.client.chat.completions.create(
+            # Use the model's client, which is a compatible OpenAI client
+            response = self.model.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -68,14 +61,13 @@ class AIHelper:
                 max_tokens=150,
             )
             # Extract content from response
-            content = None
-            if hasattr(response, 'choices') and response.choices:
-                # OpenAI and llm clients return similar structure
-                content = response.choices[0].message.content
-            elif hasattr(response, 'get', False):
-                content = response.get('choices', [])[0].get('message', {}).get('content')
-            explanation = content or ''
+            explanation = response.choices[0].message.content or ''
             return f"{Fore.CYAN}Explanation from AI Assistant:\n{explanation}{Style.RESET_ALL}"
+        except llm.NeedsKey:
+            return (
+                f"{Fore.YELLOW}Could not get explanation. OpenAI API key not found. "
+                f"Please set OPENAI_API_KEY environment variable or run 'llm keys set openai'.{Style.RESET_ALL}"
+            )
         except Exception as e:
             return f"{Fore.RED}An error occurred while contacting the AI assistant: {e}{Style.RESET_ALL}"
 
