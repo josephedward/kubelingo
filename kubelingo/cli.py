@@ -27,12 +27,6 @@ try:
 except ImportError:
     yaml = None
 
-try:
-    from kubelingo.modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
-except ImportError:
-    VimYamlEditor = None
-    vim_commands_quiz = None
-
 # Colored terminal output (ANSI codes)
 class _AnsiFore:
     CYAN = '\033[36m'
@@ -120,26 +114,6 @@ def show_history():
 
 
 
-def run_command_quiz(args):
-    """Loads and runs the Kubernetes command quiz module."""
-    # This function acts as a bridge to the kubernetes module for the classic quiz
-    log_file = 'quiz_log.txt'
-    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
-    logger = logging.getLogger()
-    session = load_session('kubernetes', logger)
-    if session:
-        init_ok = session.initialize()
-        if not init_ok:
-            print(Fore.RED + "Module 'kubernetes' initialization failed. Exiting." + Style.RESET_ALL)
-            return None
-
-        # The original code expects 'back_to_main'. We assume run_exercises might return that.
-        result = session.run_exercises(args)
-        session.cleanup()
-        return result
-    else:
-        print(Fore.RED + "Failed to load module 'kubernetes'." + Style.RESET_ALL)
-        return None
 
 
     
@@ -161,8 +135,6 @@ def main():
                             help='List available categories and exit')
         parser.add_argument('--history', action='store_true',
                             help='Show quiz history and statistics')
-        parser.add_argument('--interactive-yaml', action='store_true',
-                            help='Run the interactive YAML editing menu.')
         parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
