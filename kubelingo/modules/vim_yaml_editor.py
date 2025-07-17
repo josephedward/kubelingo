@@ -244,24 +244,144 @@ class VimYamlEditor:
         return success if expected_obj is not None else last_valid
 
     def run_progressive_yaml_exercises(self, exercises):
-        """(Not yet implemented) Loop through each step, carry over the YAML, validate, and advance."""
-        print("Progressive YAML exercises are not yet implemented.")
-        return False
+        """Run multi-step YAML exercise with progressive complexity."""
+        if not exercises:
+            print("No exercises provided.")
+            return False
+        current_yaml = exercises[0].get('starting_yaml', '')
+        for step_idx, step in enumerate(exercises, start=1):
+            print(f"\n=== Step {step_idx}: {step.get('prompt', '')} ===")
+            content_to_edit = current_yaml
+            while True:
+                edited = self.edit_yaml_with_vim(content_to_edit, f"step-{step_idx}.yaml")
+                if edited is None:
+                    return False
+                if 'validation_func' in step and callable(step['validation_func']):
+                    valid, msg = step['validation_func'](edited)
+                    print(f"Step validation: {msg}")
+                    if not valid:
+                        try:
+                            retry = input("Fix this step? (y/N): ").strip().lower().startswith('y')
+                        except (EOFError, KeyboardInterrupt):
+                            retry = False
+                        if retry:
+                            content_to_edit = edited
+                            continue
+                        return False
+                current_yaml = edited
+                break
+        return True
 
     def run_scenario_exercise(self, scenario):
-        """(Not yet implemented) Show scenario, then for each requirement open Vim and validate."""
-        print("Scenario exercises are not yet implemented.")
-        return None
+        """Run scenario-based exercise with dynamic requirements."""
+        title = scenario.get('title', '')
+        print(f"\n=== Scenario: {title} ===")
+        description = scenario.get('description', '')
+        if description:
+            print(description)
+        current_yaml = scenario.get('base_template', '')
+        for requirement in scenario.get('requirements', []):
+            desc = requirement.get('description', '')
+            print(f"\n📋 Requirement: {desc}")
+            if requirement.get('hints'):
+                try:
+                    show_hints = input("Show hints? (y/N): ").strip().lower().startswith('y')
+                except (EOFError, KeyboardInterrupt):
+                    show_hints = False
+                if show_hints:
+                    for hint in requirement.get('hints', []):
+                        print(f"💡 {hint}")
+            edited = self.edit_yaml_with_vim(current_yaml)
+            if edited is None:
+                continue
+            if self._validate_requirement(edited, requirement):
+                print("✅ Requirement satisfied!")
+                current_yaml = edited
+            else:
+                print("❌ Requirement not met. Try again.")
+        return current_yaml
 
     def run_live_cluster_exercise(self, exercise):
-        """(Not yet implemented) Open Vim, then `kubectl apply` and print success/failure."""
-        print("Live cluster exercises are not yet implemented.")
-        return False
+        """Interactive exercise that applies to real cluster."""
+        print(f"\n🚀 Live Exercise: {exercise.get('prompt', '')}")
+        starting_yaml = exercise.get('starting_yaml', '')
+        edited_yaml = self.edit_yaml_with_vim(starting_yaml)
+        if edited_yaml is None:
+            return False
+        try:
+            apply_choice = input("Apply to cluster? (y/N): ").strip().lower().startswith('y')
+        except (EOFError, KeyboardInterrupt):
+            apply_choice = False
+        if apply_choice:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+                yaml.dump(edited_yaml, f)
+                temp_path = f.name
+            try:
+                result = subprocess.run(['kubectl', 'apply', '-f', temp_path], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print("✅ Successfully applied to cluster!")
+                    if exercise.get('validation_script'):
+                        self._run_validation_script(exercise['validation_script'])
+                else:
+                    print(f"❌ Apply failed: {result.stderr}")
+            finally:
+                os.unlink(temp_path)
+        return True
 
     def create_interactive_question(self):
-        """(Not yet implemented) Prompt your own requirements, build a template, then hand off to run_yaml_edit_question()."""
-        print("Creating a custom interactive question is not yet implemented.")
-        return None
+        """Build custom YAML exercise interactively."""
+        if yaml is None:
+            print("YAML library not available.")
+            return None
+        print("\n=== Create Custom YAML Exercise ===")
+        resource_types = ["pod", "deployment", "service", "configmap", "secret"]
+        print("Available resource types: " + ", ".join(resource_types))
+        try:
+            resource_type = input("Choose resource type: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return None
+        if resource_type not in resource_types:
+            print("Invalid resource type")
+            return None
+        requirements = []
+        while True:
+            try:
+                req = input("Add requirement (or 'done'): ").strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+            if req.lower() == 'done':
+                break
+            requirements.append(req)
+        template = self.create_yaml_exercise(resource_type)
+        starting_yaml = yaml.dump(template, default_flow_style=False)
+        exercise = {
+            'prompt': f"Create a {resource_type} with: {', '.join(requirements)}",
+            'starting_yaml': starting_yaml
+        }
+        return self.run_yaml_edit_question(exercise)
+
+    def _validate_requirement(self, yaml_obj, requirement):
+        """Internal helper to validate a single requirement."""
+        if 'validation_func' in requirement and callable(requirement['validation_func']):
+            valid, _ = requirement['validation_func'](yaml_obj)
+            return valid
+        return True
+
+    def _run_validation_script(self, script):
+        """Internal helper to run an external validation script."""
+        try:
+            if isinstance(script, str):
+                result = subprocess.run(script, shell=True, capture_output=True, text=True)
+            else:
+                result = subprocess.run(script, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Validation script failed: {result.stderr}")
+                return False
+            print(result.stdout)
+            return True
+        except Exception as e:
+            print(f"Error running validation script: {e}")
+            return False
 
 # ==============================================================================
 # Standalone Vim Commands Quiz
