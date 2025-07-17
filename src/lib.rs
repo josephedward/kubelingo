@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use regex::Regex;
+use serde_yaml;
 
 #[pyfunction]
 fn commands_equivalent(user_cmd: String, expected_cmd: String) -> bool {
@@ -37,7 +38,7 @@ fn validate_yaml_structure(yaml_content: String) -> PyResult<(bool, String)> {
 }
 
 #[pymodule]
-fn kubelingo_core(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(commands_equivalent, m)?)?;
     m.add_function(wrap_pyfunction!(validate_yaml_structure, m)?)?;
     Ok(())
