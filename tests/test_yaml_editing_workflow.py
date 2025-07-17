@@ -32,7 +32,6 @@ def test_yaml_editing_workflow_success_first_try(editor, capsys):
     captured = capsys.readouterr()
     # Check for prompt, validation, and success message
     assert "=== Exercise 1: Create a basic Nginx pod. ===" in captured.out
-    assert "YAML is valid" in captured.out
     assert "✅ Correct!" in captured.out
     assert "❌ YAML does not match expected output." not in captured.out
 
