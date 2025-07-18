@@ -92,15 +92,16 @@ def test_edit_yaml_with_real_vim(mock_print, vim_editor, vim_script):
 
 
 @pytest.fixture
-def vim_client():
+def vim_client(vim_executable):
     """Fixture to start a vim instance and provide a client."""
-    server = vimrunner.Server()
+    if not vimrunner:
+        pytest.skip("vimrunner is not installed")
+    server = vimrunner.Server(executable=vim_executable)
     client = server.start()
     yield client
     server.kill()
 
 
-@pytest.mark.skipif(vimrunner is None, reason="vimrunner is not installed")
 def test_vim_editing_with_vimrunner(vim_client):
     """
     Tests Vim editing capabilities using vimrunner for robust interaction.
