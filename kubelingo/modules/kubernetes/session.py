@@ -818,7 +818,7 @@ class VimYamlEditor:
         else:
             return False, f"Invalid: {', '.join(result['errors'])}"
 
-    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
+    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None):
         """
         Opens YAML content in Vim for interactive editing.
 
@@ -832,6 +832,8 @@ class VimYamlEditor:
                                        string or a Python dictionary.
             filename (str): A suggested filename. This parameter is kept for backward
                             compatibility but is currently ignored.
+            _vim_args (list, optional): For internal testing only. A list of
+                                        additional arguments to pass to Vim.
 
         Returns:
             dict or None: The parsed YAML content as a Python dictionary, or None if
@@ -849,8 +851,10 @@ class VimYamlEditor:
         try:
             # Launch editor
             editor = os.environ.get('EDITOR', 'vim')
+            vim_args = _vim_args or []
             try:
-                result = subprocess.run([editor, tmp_filename])
+                cmd = [editor] + vim_args + [tmp_filename]
+                result = subprocess.run(cmd)
                 if result.returncode != 0:
                     # A non-zero exit code might not be a failure to save,
                     # so we'll just warn the user and attempt to read the file.
