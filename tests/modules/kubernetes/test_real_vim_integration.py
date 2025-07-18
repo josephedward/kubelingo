@@ -2,11 +2,25 @@ import pytest
 import shutil
 import tempfile
 import os
+import subprocess
 from kubelingo.modules.kubernetes.vimrunner import Server
 
+def _vim_supports_clientserver():
+    """Checks if vim is installed and has the +clientserver feature."""
+    if shutil.which('vim') is None:
+        return False
+    try:
+        # The version info can be on stdout or stderr depending on the system
+        output = subprocess.check_output(
+            ['vim', '--version'], text=True, stderr=subprocess.STDOUT
+        )
+        return '+clientserver' in output
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
 pytestmark = pytest.mark.skipif(
-    shutil.which('vim') is None,
-    reason="Vim is not installed, skipping real integration tests"
+    not _vim_supports_clientserver(),
+    reason="Vim with +clientserver support not available, skipping real integration tests"
 )
 
 @pytest.fixture
