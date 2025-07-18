@@ -27,6 +27,8 @@ export EDITOR=nano  # or vim, emacs, etc.
 kubelingo --yaml-exercises
 ```
 
+For a pure Python alternative to Vim, consider installing [pyvim](https://github.com/prompt-toolkit/pyvim).
+
 ### How YAML Editing Works
 
 1. **Template Provided**: Start with a skeleton YAML file containing TODO comments
