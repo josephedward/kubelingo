@@ -853,6 +853,33 @@ class VimYamlEditor:
         try:
             # Launch editor
             editor = os.environ.get('EDITOR', 'vim')
+
+            # Special handling for embedded pyvim editor
+            if editor == 'pyvim':
+                try:
+                    # We assume pyvim is installed via pip
+                    from pyvim.entrypoints.pyvim import run as run_pyvim
+                    
+                    # Run pyvim on the temporary file
+                    run_pyvim(file_to_edit=tmp_filename)
+                    
+                    # After pyvim exits, read the content and return,
+                    # letting the outer finally block handle cleanup.
+                    with open(tmp_filename, 'r', encoding='utf-8') as f:
+                        return yaml.safe_load(f)
+                except ImportError:
+                    print(f"{Fore.RED}Editor 'pyvim' is not installed.{Style.RESET_ALL}")
+                    print("Please run 'pip install pyvim' to use it.")
+                    return None
+                except Exception as e:
+                    print(f"{Fore.RED}An error occurred while running pyvim: {e}{Style.RESET_ALL}")
+                    # Attempt to read the file anyway, it might have been saved before crashing
+                    try:
+                        with open(tmp_filename, 'r', encoding='utf-8') as f:
+                            return yaml.safe_load(f)
+                    except Exception:
+                        return None
+
             vim_args = _vim_args or []
             # Separate non-script flags from script file paths (drop explicit '-S')
             flags = [arg for arg in vim_args if arg != '-S' and not os.path.isfile(arg)]
