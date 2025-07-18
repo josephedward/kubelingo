@@ -100,4 +100,31 @@ def test_edit_yaml_with_vim_editor_not_found(mock_subprocess, mock_env_get, mock
     # Assert
     assert result is None
     captured = capsys.readouterr()
-    assert "Error: Editor 'vim_not_installed' not found." in captured.out
+    assert "Error launching editor 'vim_not_installed'" in captured.out
+    
+@patch('kubelingo.modules.kubernetes.session.tempfile.NamedTemporaryFile')
+@patch('kubelingo.modules.kubernetes.session.os.environ.get')
+@patch('kubelingo.modules.kubernetes.session.subprocess.run')
+def test_edit_yaml_with_vim_interrupt(mock_subprocess, mock_env_get, mock_tempfile, editor, capsys):
+    """
+    Tests handling of KeyboardInterrupt during the editor session.
+    """
+    # Arrange
+    mock_env_get.return_value = 'vim'
+    def simulate_interrupt(cmd, timeout=None):
+        raise KeyboardInterrupt
+    mock_subprocess.side_effect = simulate_interrupt
+
+    mock_file_obj = MagicMock()
+    mock_file_obj.name = "/tmp/fakefile.yaml"
+    mock_temp_context = MagicMock()
+    mock_temp_context.__enter__.return_value = mock_file_obj
+    mock_tempfile.return_value = mock_temp_context
+    
+    # Act
+    result = editor.edit_yaml_with_vim("key: val")
+
+    # Assert
+    assert result is None
+    captured = capsys.readouterr()
+    assert "Editor session interrupted" in captured.out

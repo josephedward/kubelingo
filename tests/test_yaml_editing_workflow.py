@@ -19,7 +19,7 @@ def test_yaml_editing_workflow_success_first_try(editor, capsys):
     }
 
     # This mock simulates the user editing the file correctly.
-    def simulate_vim_edit(cmd, check=True):
+    def simulate_vim_edit(cmd, check=True, timeout=None):
         tmp_file_path = cmd[1]
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(question['correct_yaml'])
@@ -53,7 +53,7 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
     incorrect_yaml = 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: my-app\nspec:\n  replicas: 2'
     editor_outputs = [incorrect_yaml, question['correct_yaml']]
 
-    def simulate_vim_edit_retry(cmd, check=True):
+    def simulate_vim_edit_retry(cmd, check=True, timeout=None):
         tmp_file_path = cmd[1]
         output_to_write = editor_outputs.pop(0)
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
@@ -88,7 +88,7 @@ def test_yaml_editing_workflow_fail_and_no_retry(editor, capsys):
 
     incorrect_yaml = 'apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\n  annotations:\n    some: annotation'
 
-    def simulate_vim_edit_fail(cmd, check=True):
+    def simulate_vim_edit_fail(cmd, check=True, timeout=None):
         tmp_file_path = cmd[1]
         with open(tmp_file_path, 'w', encoding='utf-8') as f:
             f.write(incorrect_yaml)
@@ -116,7 +116,7 @@ def test_edit_yaml_with_vim_success(editor):
     initial_yaml_obj = {"key": "initial_value"}
     edited_yaml_str = "key: edited_value"
 
-    def simulate_vim_edit(cmd, check=True):
+    def simulate_vim_edit(cmd, check=True, timeout=None):
         """Mock for subprocess.run that simulates a user editing a file."""
         tmp_file_path = cmd[1]
         with open(tmp_file_path, 'w', encoding='utf-8') as f:

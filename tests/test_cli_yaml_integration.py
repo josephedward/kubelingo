@@ -28,7 +28,7 @@ class MockEditor:
         self.solutions_iterator = iter(solutions)
         self.call_count = 0
 
-    def __call__(self, cmd, check=True):
+    def __call__(self, cmd, check=True, timeout=None):
         """
         This method is the mock for `subprocess.run`. It simulates a user
         editing a file and saving the correct content. It normalizes the YAML
