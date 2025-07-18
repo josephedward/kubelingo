@@ -834,6 +834,8 @@ class VimYamlEditor:
                             compatibility but is currently ignored.
             _vim_args (list, optional): For internal testing only. A list of
                                         additional arguments to pass to Vim.
+            _timeout (int, optional): The session timeout in seconds. Defaults to 300.
+                                     Set to None to disable.
 
         Returns:
             dict or None: The parsed YAML content as a Python dictionary, or None if
@@ -863,7 +865,8 @@ class VimYamlEditor:
                     print("Please ensure your EDITOR environment variable is set correctly.")
                     return None
                 except subprocess.TimeoutExpired:
-                    print(f"{Fore.RED}Editor session timed out after {_timeout} seconds.{Style.RESET_ALL}")
+                    timeout_msg = f"{_timeout} seconds" if _timeout is not None else "the specified limit"
+                    print(f"{Fore.RED}Editor session timed out after {timeout_msg}.{Style.RESET_ALL}")
                     return None
                 except KeyboardInterrupt:
                     print(f"{Fore.YELLOW}Editor session interrupted by user.{Style.RESET_ALL}")
