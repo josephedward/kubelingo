@@ -56,7 +56,6 @@ Mock vim subprocess calls and test file I/O operations
 ## Body
 The YAML editing workflow currently has minimal test coverage. We need comprehensive tests that mock external dependencies and also test against a real Vim instance.
 
-## Tasks
 - [x] Mock vim subprocess calls
 - [ ] Test file I/O operations
 - [ ] Validate exercise generation
@@ -81,7 +80,6 @@ End-to-end workflow testing for complete user journeys
 ## Body
 We need an integration test framework to test complete user workflows from start to finish.
 
-## Requirements
 - [ ] End-to-end workflow tests
 - [ ] User journey validation
 - [ ] Cross-module integration testing
@@ -105,7 +103,6 @@ Add tests for question loading and validation performance
 ## Body
 Add performance testing to ensure the system scales well with larger question sets.
 
-## Tasks
 - [ ] Question loading performance tests
 - [ ] YAML validation speed benchmarks
 - [ ] Memory usage optimization tests
@@ -129,7 +126,6 @@ Test edge cases and error recovery scenarios
 ## Body
 Improve test coverage for error handling and edge cases throughout the application.
 
-## Tasks
 - [ ] Test all error paths
 - [ ] Validate error messages
 - [ ] Test recovery scenarios
@@ -155,7 +151,6 @@ Enhance the YAML validation to support comprehensive Kubernetes schema checks.
 ## Body
 The current YAML validation only checks for the presence of basic keys like `apiVersion`, `kind`, and `metadata`. We need to implement more robust validation against the Kubernetes API schema to provide more accurate feedback.
 
-## Tasks
 - [ ] Integrate a Kubernetes schema validation library
 - [ ] Validate resource types against their official schemas
 - [ ] Check for deprecated API versions
@@ -177,7 +172,6 @@ Improve the logic for comparing user-provided 'kubectl' commands with expected s
 ## Body
 The current command comparison logic is basic and only normalizes whitespace. It should be enhanced to understand 'kubectl' command structures, including aliases, argument order, and shorthand flags.
 
-## Tasks
 - [ ] Parse 'kubectl' commands into a structured format
 - [ ] Compare command components (resource, verb, flags) semantically
 - [ ] Handle common aliases (e.g., 'po' for 'pods')
@@ -196,7 +190,7 @@ _Labels: validation, enhancement_
 
 Support for multi-document YAML files.
 
-## Tasks
+## Body
 - Handle YAML files with multiple Kubernetes resources
 - Parse document separators correctly
 - Validate each document independently
@@ -207,7 +201,7 @@ _Labels: validation, enhancement_
 
 Improve YAML semantic comparison logic.
 
-## Tasks
+## Body
 - Improve YAML structure comparison for complex nested objects
 - Handle array ordering differences
 - Support partial matching for dynamic fields
@@ -218,7 +212,7 @@ _Labels: validation, ux_
 
 Improve the quality of YAML validation errors.
 
-## Tasks
+## Body
 - Provide more specific and actionable error messages
 - Include line numbers in error reports
 - Suggest corrections for common mistakes
@@ -229,7 +223,7 @@ _Labels: validation, enhancement_
 
 Allow exercises to define custom validation rules.
 
-## Tasks
+## Body
 - Allow exercises to define custom validation criteria
 - Support regex patterns for flexible matching
 - Add conditional validation rules
@@ -245,7 +239,6 @@ Create comprehensive developer documentation to streamline onboarding and contri
 ## Body
 To encourage community contributions and make maintenance easier, we need clear documentation for developers. This should cover project setup, architecture, and contribution guidelines.
 
-## Tasks
 - [ ] Write a `CONTRIBUTING.md` guide
 - [ ] Document the project architecture and module interactions
 - [ ] Provide instructions for setting up the development environment
@@ -267,7 +260,6 @@ Set up a continuous integration and deployment pipeline to automate testing and 
 ## Body
 A CI/CD pipeline will improve code quality and development velocity by automating routine tasks. The pipeline should run tests on every pull request and facilitate automated releases.
 
-## Tasks
 - [ ] Set up a GitHub Actions workflow
 - [ ] Configure the pipeline to run linters and formatters
 - [ ] Add a step to run the full test suite
@@ -290,7 +282,6 @@ Verify and ensure that the application builds and runs correctly on Windows, mac
 ## Body
 The application uses both Python and Rust, which can introduce cross-platform compatibility challenges. We need to test and address any issues to ensure a consistent experience for all users.
 
-## Tasks
 - [ ] Test the build process on Windows, macOS, and Linux
 - [ ] Verify that all tests pass on each platform
 - [ ] Address any platform-specific issues, such as path handling or binary execution
@@ -309,7 +300,7 @@ _Labels: developer-experience, ci-cd_
 
 Set up automated test coverage reporting.
 
-## Tasks
+## Body
 - Integrate codecov.io for coverage tracking
 - Add coverage badges to README
 - Set up coverage thresholds in CI
@@ -320,7 +311,7 @@ _Labels: developer-experience, tooling_
 
 Implement pre-commit hooks for quality gates.
 
-## Tasks
+## Body
 - Add linting and formatting validation
 - Run tests before commits
 - Check for security vulnerabilities
@@ -331,7 +322,7 @@ _Labels: developer-experience, documentation_
 
 Automate generation of project documentation.
 
-## Tasks
+## Body
 - Auto-generate API docs from docstrings
 - Create interactive documentation
 - Add code examples to docs
@@ -342,7 +333,7 @@ _Labels: developer-experience, dependencies_
 
 Improve dependency management workflow.
 
-## Tasks
+## Body
 - Regular security updates
 - Compatibility checks across Python versions
 - Automated dependency updates
