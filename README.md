@@ -112,7 +112,7 @@ Example:
 - Python 3.8+
 - Rust toolchain (install from [rustup.rs](https://rustup.rs/))
 - `pip` and `maturin`
-- Vim or preferred editor (set via `$EDITOR`)
+- Vim (with `+clientserver` support for integration tests) or preferred editor (set via `$EDITOR`)
 - `kubectl`, `eksctl` (for command validation and cloud exercises)
 - Go and GoSandbox CLI (for cloud exercises)
 
