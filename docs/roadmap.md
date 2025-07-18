@@ -29,7 +29,7 @@ _Labels: testing, enhancement_
 
 Add tests for main entry points, argument parsing, and error handling
 
-## Description
+## Body
 The current CLI module lacks comprehensive test coverage. We need to add tests for:
 
 - Main entry point logic
@@ -53,7 +53,7 @@ _Labels: testing, yaml-editing_
 
 Mock vim subprocess calls and test file I/O operations
 
-## Description
+## Body
 The YAML editing workflow currently has minimal test coverage. We need comprehensive tests that mock external dependencies and also test against a real Vim instance.
 
 ## Tasks
@@ -78,7 +78,7 @@ _Labels: testing, integration_
 
 End-to-end workflow testing for complete user journeys
 
-## Description
+## Body
 We need an integration test framework to test complete user workflows from start to finish.
 
 ## Requirements
@@ -102,7 +102,7 @@ _Labels: testing, performance_
 
 Add tests for question loading and validation performance
 
-## Description
+## Body
 Add performance testing to ensure the system scales well with larger question sets.
 
 ## Tasks
@@ -126,7 +126,7 @@ _Labels: testing, error-handling_
 
 Test edge cases and error recovery scenarios
 
-## Description
+## Body
 Improve test coverage for error handling and edge cases throughout the application.
 
 ## Tasks
@@ -152,7 +152,7 @@ _Labels: validation, enhancement_
 
 Enhance the YAML validation to support comprehensive Kubernetes schema checks.
 
-## Description
+## Body
 The current YAML validation only checks for the presence of basic keys like `apiVersion`, `kind`, and `metadata`. We need to implement more robust validation against the Kubernetes API schema to provide more accurate feedback.
 
 ## Tasks
@@ -174,7 +174,7 @@ _Labels: validation, enhancement_
 
 Improve the logic for comparing user-provided 'kubectl' commands with expected solutions.
 
-## Description
+## Body
 The current command comparison logic is basic and only normalizes whitespace. It should be enhanced to understand 'kubectl' command structures, including aliases, argument order, and shorthand flags.
 
 ## Tasks
@@ -242,7 +242,7 @@ _Labels: documentation, developer-experience_
 
 Create comprehensive developer documentation to streamline onboarding and contributions.
 
-## Description
+## Body
 To encourage community contributions and make maintenance easier, we need clear documentation for developers. This should cover project setup, architecture, and contribution guidelines.
 
 ## Tasks
@@ -264,7 +264,7 @@ _Labels: ci-cd, developer-experience_
 
 Set up a continuous integration and deployment pipeline to automate testing and releases.
 
-## Description
+## Body
 A CI/CD pipeline will improve code quality and development velocity by automating routine tasks. The pipeline should run tests on every pull request and facilitate automated releases.
 
 ## Tasks
@@ -287,7 +287,7 @@ _Labels: compatibility, developer-experience_
 
 Verify and ensure that the application builds and runs correctly on Windows, macOS, and Linux.
 
-## Description
+## Body
 The application uses both Python and Rust, which can introduce cross-platform compatibility challenges. We need to test and address any issues to ensure a consistent experience for all users.
 
 ## Tasks
