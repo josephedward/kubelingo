@@ -818,7 +818,7 @@ class VimYamlEditor:
         else:
             return False, f"Invalid: {', '.join(result['errors'])}"
 
-    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None):
+    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None, _timeout=None):
         """
         Opens YAML content in Vim for interactive editing.
 
@@ -854,21 +854,30 @@ class VimYamlEditor:
             vim_args = _vim_args or []
             try:
                 cmd = [editor] + vim_args + [tmp_filename]
-                result = subprocess.run(cmd)
-                if result.returncode != 0:
-                    # A non-zero exit code might not be a failure to save,
-                    # so we'll just warn the user and attempt to read the file.
-                    print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
-            except FileNotFoundError:
-                print(f"{Fore.RED}Error: Editor '{editor}' not found.{Style.RESET_ALL}")
-                print("Please ensure your EDITOR environment variable is set correctly.")
-                return None
+                try:
+                    if _timeout:
+                        result = subprocess.run(cmd, timeout=_timeout)
+                    else:
+                        result = subprocess.run(cmd)
+                    if result and result.returncode != 0:
+                        print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
+                except FileNotFoundError as e:
+                    print(f"{Fore.RED}Error launching editor '{editor}': {e}{Style.RESET_ALL}")
+                    print("Please ensure your EDITOR environment variable is set correctly.")
+                    return None
+                except subprocess.TimeoutExpired:
+                    print(f"{Fore.RED}Editor session timed out after {_timeout} seconds.{Style.RESET_ALL}")
+                    return None
+                except KeyboardInterrupt:
+                    print(f"{Fore.YELLOW}Editor session interrupted by user.{Style.RESET_ALL}")
+                    return None
 
             # Read edited content
             with open(tmp_filename, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            print(f"{Fore.RED}Failed to process YAML file: {e}{Style.RESET_ALL}")
+            # Catch parsing or execution errors and inform the user
+            print(f"{Fore.RED}Failed to parse YAML: {e}{Style.RESET_ALL}")
             return None
         finally:
             # Clean up the temporary file
