@@ -54,14 +54,15 @@ _Labels: testing, yaml-editing_
 Mock vim subprocess calls and test file I/O operations
 
 ## Description
-The YAML editing workflow currently has minimal test coverage. We need comprehensive tests that mock external dependencies.
+The YAML editing workflow currently has minimal test coverage. We need comprehensive tests that mock external dependencies and also test against a real Vim instance.
 
 ## Tasks
-- [ ] Mock vim subprocess calls
+- [x] Mock vim subprocess calls
 - [ ] Test file I/O operations
 - [ ] Validate exercise generation
 - [ ] Test validation feedback loops
 - [ ] Test error recovery scenarios
+- [ ] **(New)** Add real Vim integration tests using a `vimrunner` harness.
 
 ## Acceptance Criteria
 - [ ] All YAML editing workflows tested
@@ -398,7 +399,7 @@ _Status: Planned. See [Vim Integration Analysis](vim_integration_analysis.md) fo
 
 #### Foundation
 - [ ] **Enhanced Vim Editor**: Extend `VimYamlEditor` with efficiency tracking and command recording. [#55]
-- [ ] **Vim Command Trainer**: Create a dedicated module for practicing Vim commands, modal editing, and efficiency patterns. [#56]
+- [ ] **Vim Command Trainer**: Create a dedicated module for practicing Vim commands, modal editing, and efficiency patterns. `pyvim` has been integrated as an optional editor. [#56]
 
 #### Realistic Scenarios
 - [ ] **CKAD Scenario Engine**: Develop an engine to generate realistic exam scenarios (pods, deployments, troubleshooting). [#57]
