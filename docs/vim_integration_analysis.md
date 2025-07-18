@@ -40,13 +40,27 @@ def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml"):
 5. Parse and validate YAML structure
 6. Return parsed Python object or None on error
 
-**2. Environment Variable Respect**
+**2. Environment Variable Respect and Process Handling**
 ```python
+# The implementation respects the EDITOR variable and handles process errors.
 editor = os.environ.get('EDITOR', 'vim')
-subprocess.run([editor, str(temp_file)], check=True)
+try:
+    # `_vim_args` allows passing test-specific arguments.
+    # The command is built to handle flags and script files.
+    cmd = build_vim_command(editor, _vim_args, temp_file_path)
+    result = subprocess.run(cmd, timeout=_timeout)
+    if result.returncode != 0:
+        # Warns user on non-zero exit code but proceeds.
+        print(f"Warning: Editor '{editor}' exited with non-zero status code...")
+except FileNotFoundError:
+    print(f"Error: Editor '{editor}' not found.")
+    return None
+except subprocess.TimeoutExpired:
+    print(f"Editor session timed out after {_timeout} seconds.")
+    return None
 ```
 
-This approach correctly follows Unix conventions by respecting the `$EDITOR` environment variable while defaulting to Vim.
+This approach correctly follows Unix conventions by respecting the `$EDITOR` variable. It includes more robust error handling for cases where the editor is not found, times out, or returns a non-zero exit code, making it more resilient for user-facing exercises.
 
 **3. Exercise Workflow Integration**
 ```python
