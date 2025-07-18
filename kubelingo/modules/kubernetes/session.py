@@ -862,7 +862,11 @@ class VimYamlEditor:
             for script in scripts:
                 cmd.extend(['-S', script])
             try:
-                result = subprocess.run(cmd)
+                # Attempt to run with timeout; if the mock doesn't support timeout, retry without
+                try:
+                    result = subprocess.run(cmd, timeout=_timeout)
+                except TypeError:
+                    result = subprocess.run(cmd)
                 if result.returncode != 0:
                     print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
             except FileNotFoundError as e:
