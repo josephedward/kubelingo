@@ -245,7 +245,7 @@ Here’s a typical “manual” release flow for a `maturin`-powered project.
     ```
 
 5.  **Publish to PyPI**:
-    First, [create a PyPI API token](https://pypi.org/manage/account/token/) and export it.
+    First, visit your [PyPI account settings](https://pypi.org/manage/account/) to create an API token, then export it.
     ```bash
     export PYPI_TOKEN="pypi-..."
     ```
