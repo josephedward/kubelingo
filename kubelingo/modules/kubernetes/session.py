@@ -818,7 +818,7 @@ class VimYamlEditor:
         else:
             return False, f"Invalid: {', '.join(result['errors'])}"
 
-    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None, _timeout=None):
+    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None, _timeout=300):
         """
         Opens YAML content in Vim for interactive editing.
 
@@ -855,11 +855,8 @@ class VimYamlEditor:
             try:
                 cmd = [editor] + vim_args + [tmp_filename]
                 try:
-                    if _timeout:
-                        result = subprocess.run(cmd, timeout=_timeout)
-                    else:
-                        result = subprocess.run(cmd)
-                    if result and result.returncode != 0:
+                    result = subprocess.run(cmd, timeout=_timeout)
+                    if result.returncode != 0:
                         print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
                 except FileNotFoundError as e:
                     print(f"{Fore.RED}Error launching editor '{editor}': {e}{Style.RESET_ALL}")
