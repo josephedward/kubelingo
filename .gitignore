@@ -26,3 +26,5 @@ logs/
 .aider*
 misc
 /pytest-of-user
+.env
+/target
