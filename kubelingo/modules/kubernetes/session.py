@@ -851,16 +851,10 @@ class VimYamlEditor:
             tmp_filename = tmp.name
 
         try:
-            # Launch editor with given flags and source any provided Vim scripts after loading the file
+            # Launch editor
             editor = os.environ.get('EDITOR', 'vim')
             vim_args = _vim_args or []
-            # Separate non-file flags from script file paths
-            flags = [arg for arg in vim_args if not os.path.isfile(arg)]
-            scripts = [arg for arg in vim_args if os.path.isfile(arg)]
-            # Build command: editor, flags, then the YAML file, then source scripts
-            cmd = [editor] + flags + [tmp_filename]
-            for script in scripts:
-                cmd.extend(['-S', script])
+            cmd = [editor] + vim_args + [tmp_filename]
             try:
                 # Attempt to run with timeout; if the mock doesn't support timeout, retry without
                 try:
