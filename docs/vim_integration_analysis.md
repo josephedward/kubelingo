@@ -196,7 +196,7 @@ q<letter>        " Record macro for repetitive edits
 
 **1. Limited Vim-Specific Features**
 - No Vim command practice mode
-- No modal editing simulation
+- **(In Progress)** No modal editing simulation. `pyvim` has been integrated as an optional editor to provide an in-application Vim experience without requiring an external installation.
 - Missing Vim-specific error scenarios
 - No macro recording practice
 
@@ -251,10 +251,12 @@ def test_vim_integration_basic(mock_subprocess):
     # Test basic editor invocation and file handling
 ```
 
-**2. Integration Testing (Needed)**
+**2. Integration Testing (In Progress)**
 ```python
 # Real Vim process testing
 def test_real_vim_integration():
+    # A vimrunner-style test harness has been added to enable
+    # real process testing. See tests/modules/kubernetes/test_real_vim_integration.py
     # Launch actual Vim with automated input
     # Validate file modifications
     # Test error scenarios
