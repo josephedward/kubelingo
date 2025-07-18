@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import yaml
 
 try:
@@ -91,7 +91,6 @@ def test_edit_yaml_with_real_vim(mock_print, vim_editor, vim_script):
     mock_print.assert_not_called()
 
 
-@pytest.mark.skipif(vimrunner is None, reason="vimrunner-python is not installed")
 @pytest.fixture
 def vim_client():
     """Fixture to start a vim instance and provide a client."""
@@ -101,7 +100,7 @@ def vim_client():
     server.kill()
 
 
-@pytest.mark.skipif(vimrunner is None, reason="vimrunner-python is not installed")
+@pytest.mark.skipif(vimrunner is None, reason="vimrunner is not installed")
 def test_vim_editing_with_vimrunner(vim_client):
     """
     Tests Vim editing capabilities using vimrunner for robust interaction.
@@ -144,3 +143,89 @@ spec:
         # Clean up the temporary file
         if os.path.exists(tmp_filename):
             os.remove(tmp_filename)
+
+
+@pytest.fixture
+def multi_vim_script():
+    """Create two vim scripts: one to add a label, one to change the image."""
+    script1_content = """/metadata/a
+  labels:
+    app: myapp-multi
+.
+"""
+    script2_content = """:%s/image: nginx/image: nginx:1.21/g
+:wq
+"""
+    # Create temporary files for scripts
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".vim", encoding='utf-8') as f1, \
+         tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".vim", encoding='utf-8') as f2:
+        f1.write(script1_content)
+        f2.write(script2_content)
+        script1_path, script2_path = f1.name, f2.name
+
+    yield [script1_path, script2_path]
+
+    os.remove(script1_path)
+    os.remove(script2_path)
+
+def test_edit_yaml_with_multiple_vim_scripts(vim_editor, multi_vim_script):
+    """
+    Tests that multiple vim scripts passed via _vim_args are executed in order.
+    """
+    initial_yaml = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": "test-pod"},
+                    "spec": {"containers": [{"name": "nginx", "image": "nginx"}]}}
+
+    # The implementation will automatically convert file paths to -S arguments
+    vim_args = ["-e", "-s"] + multi_vim_script
+
+    edited_yaml = vim_editor.edit_yaml_with_vim(initial_yaml, _vim_args=vim_args)
+
+    assert edited_yaml is not None
+    assert edited_yaml.get("metadata", {}).get("labels") == {"app": "myapp-multi"}
+    assert edited_yaml.get("spec", {}).get("containers")[0].get("image") == "nginx:1.21"
+
+def test_edit_yaml_with_vim_c_command(vim_editor):
+    """
+    Tests editing using a vim -c command argument.
+    """
+    initial_yaml = {"apiVersion": "v1", "kind": "Pod", "metadata": {"name": "test-pod"}}
+    vim_args = ["-e", "-s", "-c", "%s/test-pod/renamed-pod/g", "-c", "wq"]
+
+    edited_yaml = vim_editor.edit_yaml_with_vim(initial_yaml, _vim_args=vim_args)
+
+    assert edited_yaml is not None
+    assert edited_yaml.get("metadata", {}).get("name") == "renamed-pod"
+
+def test_edit_yaml_with_raw_string_input(vim_editor, vim_script):
+    """
+    Tests passing a raw YAML string to the editor function.
+    """
+    initial_yaml_str = """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+"""
+    vim_args = ["-e", "-s", "-S", vim_script] # script adds a label
+    edited_yaml = vim_editor.edit_yaml_with_vim(initial_yaml_str, _vim_args=vim_args)
+
+    assert edited_yaml is not None
+    assert edited_yaml.get("metadata", {}).get("labels") == {"app": "myapp"}
+
+def test_temp_file_is_cleaned_up(vim_editor, tmp_path):
+    """
+    Ensures the temporary file is deleted after editing, even on failure.
+    """
+    # Point tempfile directory to pytest's tmp_path for this test
+    original_tempdir = tempfile.tempdir
+    tempfile.tempdir = str(tmp_path)
+    
+    # Simulate an error during editing by providing invalid YAML
+    with patch('yaml.safe_load', side_effect=yaml.YAMLError("parsing failed")):
+        vim_editor.edit_yaml_with_vim("key: value: invalid", _vim_args=["-c", "wq"])
+
+    # After the function returns (even with an error), the temp dir should be empty
+    assert len(list(tmp_path.iterdir())) == 0
+
+    # Reset tempdir to avoid side effects on other tests
+    tempfile.tempdir = original_tempdir
