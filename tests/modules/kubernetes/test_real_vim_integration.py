@@ -2,43 +2,14 @@ import pytest
 import shutil
 import tempfile
 import os
-import subprocess
-import sys
-from kubelingo.modules.kubernetes.vimrunner import Server, VimrunnerException
+from kubelingo.modules.kubernetes.vimrunner import Server
 
-def _find_compatible_vim():
-    """Finds a vim executable with +clientserver support."""
-    # On macOS, prefer 'mvim' or homebrew 'vim'. On Linux, 'gvim' or 'vim'.
-    candidates = ['gvim', 'vim']
-    if sys.platform == "darwin":
-        # On macOS, graphical vim (mvim) is a good candidate
-        candidates.insert(0, 'mvim')
-
-    for candidate in candidates:
-        executable = shutil.which(candidate)
-        if not executable:
-            continue
-        try:
-            output = subprocess.check_output(
-                [executable, '--version'], text=True, stderr=subprocess.STDOUT
-            )
-            if '+clientserver' in output:
-                return executable
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            continue
-    return None
-
-COMPATIBLE_VIM = _find_compatible_vim()
-
-pytestmark = pytest.mark.skipif(
-    not COMPATIBLE_VIM,
-    reason="A vim executable with +clientserver support was not found."
-)
+# The vim_executable fixture from conftest.py handles discovery and skipping.
 
 @pytest.fixture
-def vim_server():
+def vim_server(vim_executable):
     """Fixture to start and clean up a Vim server for testing."""
-    server = Server(executable=COMPATIBLE_VIM)
+    server = Server(executable=vim_executable)
     yield server
     server.kill()
 
