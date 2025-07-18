@@ -851,38 +851,45 @@ class VimYamlEditor:
             tmp_filename = tmp.name
 
         try:
-            # Launch editor
+            # Launch editor with given flags and source any provided Vim scripts after loading the file
             editor = os.environ.get('EDITOR', 'vim')
             vim_args = _vim_args or []
+            # Separate non-file flags from script file paths
+            flags = [arg for arg in vim_args if not os.path.isfile(arg)]
+            scripts = [arg for arg in vim_args if os.path.isfile(arg)]
+            # Build command: editor, flags, then the YAML file, then source scripts
+            cmd = [editor] + flags + [tmp_filename]
+            for script in scripts:
+                cmd.extend(['-S', script])
             try:
-                cmd = [editor] + vim_args + [tmp_filename]
-                try:
-                    result = subprocess.run(cmd, timeout=_timeout)
-                    if result.returncode != 0:
-                        print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
-                except FileNotFoundError as e:
-                    print(f"{Fore.RED}Error launching editor '{editor}': {e}{Style.RESET_ALL}")
-                    print("Please ensure your EDITOR environment variable is set correctly.")
-                    return None
-                except subprocess.TimeoutExpired:
-                    timeout_msg = f"{_timeout} seconds" if _timeout is not None else "the specified limit"
-                    print(f"{Fore.RED}Editor session timed out after {timeout_msg}.{Style.RESET_ALL}")
-                    return None
-                except KeyboardInterrupt:
-                    print(f"{Fore.YELLOW}Editor session interrupted by user.{Style.RESET_ALL}")
-                    return None
+                result = subprocess.run(cmd)
+                if result.returncode != 0:
+                    print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
+            except FileNotFoundError as e:
+                print(f"{Fore.RED}Error launching editor '{editor}': {e}{Style.RESET_ALL}")
+                print("Please ensure your EDITOR environment variable is set correctly.")
+                return None
+            except subprocess.TimeoutExpired:
+                print(f"{Fore.RED}Editor session timed out after {_timeout} seconds.{Style.RESET_ALL}")
+                return None
+            except KeyboardInterrupt:
+                print(f"{Fore.YELLOW}Editor session interrupted by user.{Style.RESET_ALL}")
+                return None
 
             # Read edited content
             with open(tmp_filename, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
+                content = f.read()
+            return yaml.safe_load(content)
         except Exception as e:
             # Catch parsing or execution errors and inform the user
             print(f"{Fore.RED}Failed to parse YAML: {e}{Style.RESET_ALL}")
             return None
         finally:
             # Clean up the temporary file
-            if os.path.exists(tmp_filename):
+            try:
                 os.unlink(tmp_filename)
+            except Exception:
+                pass
 
 
     def run_yaml_edit_question(self, question, index=None):
