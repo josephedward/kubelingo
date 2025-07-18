@@ -40,26 +40,44 @@ class Server(object):
 
     def start(self, file_to_edit=None):
         """Starts the Vim server in the background."""
+        # Use --nofork to keep gvim process in the foreground for Popen to manage
         cmd = self.executable + ['--servername', self.name]
+        # --nofork is a gvim-specific flag, not applicable to terminal vim
+        if 'gvim' in self.executable[0] or 'mvim' in self.executable[0]:
+            cmd.append('--nofork')
+            
         if file_to_edit:
             cmd.append(file_to_edit)
-        
-        self.process = subprocess.Popen(cmd)
-        
-        # Wait for the server to initialize. A more robust implementation
-        # would poll `vim --serverlist`.
-        time.sleep(1)
 
-        return Client(self)
+        self.process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Wait for the server to initialize by polling --serverlist.
+        for _ in range(20):  # Try for 2 seconds
+            time.sleep(0.1)
+            try:
+                serverlist = subprocess.check_output(self.executable + ['--serverlist'], text=True, stderr=subprocess.DEVNULL)
+                if self.name in serverlist.splitlines():
+                    return Client(self)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                # This can happen if vim is starting up.
+                continue
+
+        # If server did not start, clean up and raise error.
+        self.kill()
+        raise VimrunnerException(f"Failed to start Vim server '{self.name}'.")
 
     def kill(self):
         """Stops the Vim server process."""
         if self.process:
+            # First, try a graceful shutdown using a remote command
             try:
-                # Politely ask Vim to quit
-                cmd = self.executable + ['--servername', self.name, '--remote-expr', 'execute("q!")']
-                subprocess.check_call(cmd, stderr=subprocess.PIPE)
+                cmd = self.executable + ['--servername', self.name, '--remote-expr', 'execute("qa!")']
+                subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except (subprocess.CalledProcessError, FileNotFoundError):
-                # If Vim is already gone or command fails, forcefully kill.
-                self.process.kill()
-            self.process.wait()
+                # If graceful shutdown fails, terminate the process
+                self.process.terminate()
+
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()  # Force kill if it doesn't terminate
