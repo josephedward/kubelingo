@@ -123,8 +123,7 @@
       },
       {
         "prompt": "List all pods in the 'kube-system' namespace",
-        "response": "kubectl get pods -n kube-system",
-        "review": true
+        "response": "kubectl get pods -n kube-system"
       },
       {
         "prompt": "Create a pod in the 'development' namespace",
