@@ -393,9 +393,24 @@ Bridge the gap between theory and practice by integrating with live Kubernetes c
 
 Improve the YAML editing experience and expand the question library.
 
-### Vim Mode for YAML Editing
-- [ ] Integrate a terminal-based text editor with Vim keybindings for the YAML editing exercises. [#17]
-- [ ] Explore options like `pyvim` or creating a temporary file and launching the user's `$EDITOR`. [#18]
+### CKAD-Level Vim Integration
+_Status: Planned. See [Vim Integration Analysis](vim_integration_analysis.md) for details._
+
+#### Foundation
+- [ ] **Enhanced Vim Editor**: Extend `VimYamlEditor` with efficiency tracking and command recording. [#55]
+- [ ] **Vim Command Trainer**: Create a dedicated module for practicing Vim commands, modal editing, and efficiency patterns. [#56]
+
+#### Realistic Scenarios
+- [ ] **CKAD Scenario Engine**: Develop an engine to generate realistic exam scenarios (pods, deployments, troubleshooting). [#57]
+- [ ] **`kubectl edit` Simulation**: Implement a workflow to simulate `kubectl edit` and `dry-run` patterns. [#58]
+
+#### Advanced Features
+- [ ] **Performance Analytics**: Build a system to analyze Vim usage, generate efficiency reports, and track progress. [#59]
+- [ ] **Adaptive Difficulty**: Implement logic to adjust exercise difficulty and time limits based on user performance. [#60]
+
+#### Integration and Polish
+- [ ] **Comprehensive Vim Testing**: Add integration tests using a real Vim process and a Vim automation framework. [#61]
+- [ ] **Documentation and Guides**: Create Vim quick-reference guides and training materials for CKAD-specific techniques. [#62]
 
 ### Real-time YAML Validation
 - [ ] Integrate a YAML linter (e.g., `yamllint`) and the Kubernetes OpenAPI schema. [#19]
