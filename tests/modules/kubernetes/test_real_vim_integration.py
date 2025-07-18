@@ -3,30 +3,42 @@ import shutil
 import tempfile
 import os
 import subprocess
-from kubelingo.modules.kubernetes.vimrunner import Server
+import sys
+from kubelingo.modules.kubernetes.vimrunner import Server, VimrunnerException
 
-def _vim_supports_clientserver():
-    """Checks if vim is installed and has the +clientserver feature."""
-    if shutil.which('vim') is None:
-        return False
-    try:
-        # The version info can be on stdout or stderr depending on the system
-        output = subprocess.check_output(
-            ['vim', '--version'], text=True, stderr=subprocess.STDOUT
-        )
-        return '+clientserver' in output
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+def _find_compatible_vim():
+    """Finds a vim executable with +clientserver support."""
+    # On macOS, prefer 'mvim' or homebrew 'vim'. On Linux, 'gvim' or 'vim'.
+    candidates = ['gvim', 'vim']
+    if sys.platform == "darwin":
+        # On macOS, graphical vim (mvim) is a good candidate
+        candidates.insert(0, 'mvim')
+
+    for candidate in candidates:
+        executable = shutil.which(candidate)
+        if not executable:
+            continue
+        try:
+            output = subprocess.check_output(
+                [executable, '--version'], text=True, stderr=subprocess.STDOUT
+            )
+            if '+clientserver' in output:
+                return executable
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            continue
+    return None
+
+COMPATIBLE_VIM = _find_compatible_vim()
 
 pytestmark = pytest.mark.skipif(
-    not _vim_supports_clientserver(),
-    reason="Vim with +clientserver support not available, skipping real integration tests"
+    not COMPATIBLE_VIM,
+    reason="A vim executable with +clientserver support was not found."
 )
 
 @pytest.fixture
 def vim_server():
     """Fixture to start and clean up a Vim server for testing."""
-    server = Server()
+    server = Server(executable=COMPATIBLE_VIM)
     yield server
     server.kill()
 

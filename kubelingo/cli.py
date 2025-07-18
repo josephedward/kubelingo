@@ -121,6 +121,10 @@ def main():
         print()
         parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
         
+        # Kubernetes module shortcut
+        parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
+                            help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
+
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                             help='Path to quiz data JSON file for command quiz')
@@ -150,6 +154,11 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
+        
+        # Handle --k8s shortcut
+        if args.k8s_mode:
+            args.module = 'kubernetes'
+
         restart_loop = False
 
         # If no arguments provided, show an interactive menu
