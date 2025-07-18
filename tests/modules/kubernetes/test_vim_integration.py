@@ -4,6 +4,12 @@ import shutil
 import tempfile
 from unittest.mock import patch
 import yaml
+
+try:
+    import vimrunner
+except ImportError:
+    vimrunner = None
+
 from kubelingo.modules.kubernetes.session import VimYamlEditor
 
 # Skip all tests in this file if vim is not available
@@ -68,8 +74,11 @@ def test_edit_yaml_with_real_vim(mock_print, vim_editor, vim_script):
     }
 
     # Use the internal _vim_args to pass the script to vim.
-    # `-es` runs in ex mode silently, which is ideal for scripting.
-    vim_args = ["-es", vim_script]
+    # -e: start in Ex mode (non-visual)
+    # -s: silent mode (less output)
+    # -S {file}: source the given script file after the first file has been read
+    # This combination allows for non-interactive scripting of Vim.
+    vim_args = ["-e", "-s", "-S", vim_script]
     
     edited_yaml = vim_editor.edit_yaml_with_vim(initial_yaml, _vim_args=vim_args)
 
@@ -80,3 +89,58 @@ def test_edit_yaml_with_real_vim(mock_print, vim_editor, vim_script):
 
     # The script should exit cleanly (returncode 0), so no warning should be printed.
     mock_print.assert_not_called()
+
+
+@pytest.mark.skipif(vimrunner is None, reason="vimrunner-python is not installed")
+@pytest.fixture
+def vim_client():
+    """Fixture to start a vim instance and provide a client."""
+    server = vimrunner.Server()
+    client = server.start()
+    yield client
+    server.kill()
+
+
+@pytest.mark.skipif(vimrunner is None, reason="vimrunner-python is not installed")
+def test_vim_editing_with_vimrunner(vim_client):
+    """
+    Tests Vim editing capabilities using vimrunner for robust interaction.
+    This demonstrates a more advanced testing pattern for full-flow simulations.
+    """
+    initial_yaml_content = '''apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+'''
+    # vimrunner works with files, so we create a temporary one.
+    with tempfile.NamedTemporaryFile(mode='w', suffix=".yaml", delete=False, encoding='utf-8') as tmp:
+        tmp.write(initial_yaml_content)
+        tmp_filename = tmp.name
+
+    try:
+        # Edit the file with the running vim instance
+        vim_client.edit(tmp_filename)
+
+        # Use a combination of ex commands and fed keys for robust scripting
+        vim_client.command('execute "normal /metadata\\ro  labels:\\n    app: myapp"')
+        vim_client.command('wq')
+
+        # Verify the file content
+        with open(tmp_filename, 'r', encoding='utf-8') as f:
+            edited_content = f.read()
+
+        edited_yaml = yaml.safe_load(edited_content)
+
+        assert edited_yaml is not None
+        assert "labels" in edited_yaml.get("metadata", {})
+        assert edited_yaml["metadata"]["labels"] == {"app": "myapp"}
+        assert edited_yaml["spec"]["containers"][0]["image"] == "nginx"
+
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(tmp_filename):
+            os.remove(tmp_filename)
