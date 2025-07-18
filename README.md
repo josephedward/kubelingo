@@ -201,6 +201,66 @@ To import issues:
     git-scaffold import-md issues.md --repo-owner YOUR_USERNAME --repo-name kubelingo
     ```
 
+## Release Process
+
+Here’s a typical “manual” release flow for a `maturin`-powered project.
+
+1.  **Bump the version** in `pyproject.toml` and `Cargo.toml`.
+
+    *   `pyproject.toml`:
+        ```toml
+        [project]
+        name = "kubelingo"
+        version = "0.1.1"  # <-- update
+        ```
+    *   `Cargo.toml`:
+        ```toml
+        [package]
+        name = "kubelingo"
+        version = "0.1.1"  # <-- update
+        ```
+    *   Commit the changes:
+        ```bash
+        git add pyproject.toml Cargo.toml
+        git commit -m "chore: bump version to 0.1.1"
+        git tag v0.1.1
+        git push origin main --tags
+        ```
+
+2.  **Install build tools** (if you haven't already):
+    ```bash
+    pip install --upgrade maturin build twine
+    ```
+
+3.  **Build the distributions**:
+    ```bash
+    # Using maturin directly (recommended)
+    maturin build --release --strip
+    ```
+    This will create wheel and sdist artifacts in `target/wheels/` and `dist/`.
+
+4.  **Verify artifacts**:
+    ```bash
+    twine check dist/*
+    ```
+
+5.  **Publish to PyPI**:
+    First, [create a PyPI API token](https://pypi.org/manage/account/token/) and export it.
+    ```bash
+    export PYPI_TOKEN="pypi-..."
+    ```
+    Then, upload with `twine`:
+    ```bash
+    twine upload -u __token__ -p "$PYPI_TOKEN" dist/*
+    ```
+    Alternatively, use `maturin`'s built-in publisher:
+    ```bash
+    maturin publish --release --strip --username __token__ --password "$PYPI_TOKEN"
+    ```
+
+6.  **(Optional) Draft a GitHub release**:
+    Go to your repository's "Releases" page, draft a new release from the tag you just created, add your changelog, and publish.
+
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
