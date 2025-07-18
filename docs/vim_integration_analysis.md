@@ -79,22 +79,24 @@ The exercise workflow includes:
 
 ### Current Testing Approach
 
-The existing test suite uses mocking to simulate Vim interactions:
+The testing approach has been significantly enhanced to cover multiple layers, moving from pure simulation to real process interaction.
 
-```python
-def simulate_vim_edit(cmd, check=True):
-    """Mock for subprocess.run that simulates a user editing a file."""
-    tmp_file_path = cmd[1]
-    with open(tmp_file_path, 'w', encoding='utf-8') as f:
-        f.write(edited_yaml_str)
-```
+**1. Unit Testing (`test_vim_editor_unit.py`)**
+A comprehensive suite of unit tests validates the `VimYamlEditor`'s internal logic. These tests use mocking to isolate the function and cover:
+- **Command Construction**: Parametrized tests ensure that `vim` command-line arguments are correctly constructed for various scenarios (flags, scripts, mixed).
+- **Failure Branches**: All conceivable error paths are tested, including `FileNotFoundError` (editor not found), `subprocess.TimeoutExpired`, `KeyboardInterrupt`, and `yaml.YAMLError` (invalid YAML syntax).
+- **Edge Cases**: Correct handling of the `$EDITOR` environment variable and fallback to `vim` is verified.
 
-**Test Coverage Areas:**
-- Successful editing scenarios
-- Editor command not found errors
-- Invalid YAML syntax handling
-- File I/O operations
-- Subprocess error handling
+**2. Integration Testing (`test_vim_integration.py`)**
+Integration tests validate the editor against a real, live `vim` process, ensuring correct behavior in a realistic environment.
+- **Scripted Edits**: Tests verify that `vim` can be driven non-interactively using `-S` (script) and `-c` (command) arguments to perform and save edits. This covers single scripts, multiple scripts, and command-line expressions.
+- **Input/Output**: Correct handling of both dictionary and raw string YAML input is tested.
+- **Resource Management**: A test ensures that temporary files are always cleaned up, even in cases of failure.
+
+**3. Advanced Integration Testing with `vimrunner` (`test_real_vim_integration.py`)**
+For more complex, stateful interactions, tests use the `vimrunner` library to control a `vim` server instance.
+- **Client/Server Interaction**: These tests validate the ability to start a `vim` server, connect a client, send commands (e.g., navigation, text entry), and save files.
+- **Compatibility Checks**: The test suite now includes a fixture that automatically detects a `vim` executable with `+clientserver` support (`vim`, `gvim`, `mvim`) and gracefully skips these tests if none is found.
 
 ### Integration Points
 
@@ -214,11 +216,11 @@ q<letter>        " Record macro for repetitive edits
 - Missing Vim-specific error scenarios
 - No macro recording practice
 
-**2. Unrealistic Testing Environment**
-- Mocked subprocess calls don't test real Vim interaction
-- No validation of actual Vim proficiency
-- Missing keyboard interrupt handling
-- No timeout scenarios
+**2. Unrealistic Testing Environment (Partially Addressed)**
+- **Mocked subprocess calls don't test real Vim interaction**: ADDRESSED. We now have integration tests that run a real `vim` process and use `vimrunner` for server-based testing.
+- **No validation of actual Vim proficiency**: This gap remains. The current tests validate functionality, not user skill or efficiency.
+- **Missing keyboard interrupt handling**: ADDRESSED. Unit tests now simulate and verify correct handling of `KeyboardInterrupt`.
+- **No timeout scenarios**: ADDRESSED. Unit tests now simulate and verify correct handling of `subprocess.TimeoutExpired`.
 
 **3. Insufficient YAML Complexity**
 - Simple single-resource exercises
@@ -255,35 +257,25 @@ Current exercises don't build Vim skills progressively:
 
 ## Testing Strategy
 
-### Multi-Layer Testing Approach
+### Multi-Layer Testing Approach (Now Implemented)
 
-**1. Unit Testing (Current)**
-```python
-# Mock-based testing for basic functionality
-@patch('subprocess.run')
-def test_vim_integration_basic(mock_subprocess):
-    # Test basic editor invocation and file handling
-```
+The testing strategy has been successfully implemented across multiple layers, providing strong confidence in the Vim integration's correctness and robustness.
 
-**2. Integration Testing (In Progress)**
-```python
-# Real Vim process testing
-def test_real_vim_integration():
-    # A vimrunner-style test harness has been added to enable
-    # real process testing. See tests/modules/kubernetes/test_real_vim_integration.py
-    # Launch actual Vim with automated input
-    # Validate file modifications
-    # Test error scenarios
-```
+**1. Unit Testing (Implemented & Comprehensive)**
+- **Status**: Implemented in `tests/modules/kubernetes/test_vim_editor_unit.py`.
+- **Coverage**: Uses `pytest` and `patch` to exhaustively test `VimYamlEditor`'s logic in isolation. It covers argument construction, all failure modes (file not found, timeout, interrupt, parse errors), and environment variable handling.
 
-**3. End-to-End Testing (Missing)**
-```python
-# Complete workflow testing
-def test_ckad_scenario_simulation():
-    # Simulate complete exam scenario
-    # Include time pressure
-    # Validate efficiency metrics
-```
+**2. Integration Testing (Implemented)**
+- **Status**: Implemented in `tests/modules/kubernetes/test_vim_integration.py`.
+- **Coverage**: Launches a real `vim` process to validate the entire editing flow non-interactively. It verifies that `vim` can be controlled via command-line scripts (`-S`) and commands (`-c`) to modify and save files correctly.
+
+**3. Advanced Integration/E2E Testing (Implemented)**
+- **Status**: Implemented in `tests/modules/kubernetes/test_real_vim_integration.py` using `vimrunner`.
+- **Coverage**: Simulates a user interacting with a live Vim session by starting a `vim` server and sending it commands. This provides a foundation for future end-to-end scenario testing. The tests are designed to be robust, automatically finding a compatible `vim` executable and skipping if one is not available.
+
+**4. CI/Cross-Platform Testing (Needed)**
+- **Status**: This remains the primary outstanding testing gap.
+- **Next Steps**: The full test suite should be run on a CI/CD platform across Linux, macOS, and (if supported) Windows to catch any platform-specific differences in Vim or shell behavior.
 
 ### Proposed Testing Infrastructure
 
