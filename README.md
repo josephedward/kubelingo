@@ -241,7 +241,7 @@ Here’s a typical “manual” release flow for a `maturin`-powered project.
 
 4.  **Verify artifacts**:
     ```bash
-    twine check dist/*
+    twine check dist/* target/wheels/*
     ```
 
 5.  **Publish to PyPI**:
@@ -251,7 +251,7 @@ Here’s a typical “manual” release flow for a `maturin`-powered project.
     ```
     Then, upload with `twine`:
     ```bash
-    twine upload -u __token__ -p "$PYPI_TOKEN" dist/*
+    twine upload --skip-existing dist/* target/wheels/* -u __token__ -p "$PYPI_TOKEN"
     ```
     Alternatively, use `maturin`'s built-in publisher:
     ```bash
