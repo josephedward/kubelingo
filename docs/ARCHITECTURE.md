@@ -3,14 +3,16 @@
 This document outlines the high-level structure and organization of the kubelingo codebase.
 
 ```
-kubelingo/                # Main Python package for CLI and core modules
-├── __init__.py            # Package marker
-├── cli_quiz.py            # CLI entrypoint (legacy; migrating to package)
-├── yaml_editor.py         # Vim-based YAML editing engine
-├── session_manager.py     # CKADStudySession and SessionConfig classes
-└── cloud_env.py           # (Planned) Cloud environment detection & EKS utilities
+kubelingo/                            # Main Python package for CLI and core modules
+├── __init__.py                        # Package marker
+├── __main__.py                        # Console script entrypoint
+├── cli.py                             # Main CLI implementation
+├── modules/vim_yaml_editor.py         # Vim-based YAML editing engine
+├── modules/k8s_quiz.py                # Kubernetes command quiz engine
+├── tools/session_manager.py           # CKADStudySession and GoSandbox integration
+└── tools/gosandbox_integration/       # Cloud (GoSandbox) helpers
 
-data/                      # JSON/YAML data separate from code
+data/                                 # JSON/YAML data separate from code
 ├── ckad_quiz_data.json    # Standard kubectl command questions
 ├── yaml_edit_questions.json # YAML editing exercises
 └── ckad_exercises_extended.json # Extended CKAD content
