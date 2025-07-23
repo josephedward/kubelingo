@@ -818,7 +818,7 @@ class VimYamlEditor:
         else:
             return False, f"Invalid: {', '.join(result['errors'])}"
 
-    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", _vim_args=None, _timeout=300):
+    def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", prompt=None, _vim_args=None, _timeout=300):
         """
         Opens YAML content in Vim for interactive editing.
 
@@ -832,6 +832,7 @@ class VimYamlEditor:
                                        string or a Python dictionary.
             filename (str): A suggested filename. This parameter is kept for backward
                             compatibility but is currently ignored.
+            prompt (str, optional): Text to include as comments at the top of the file.
             _vim_args (list, optional): For internal testing only. A list of
                                         additional arguments to pass to Vim.
             _timeout (int, optional): The session timeout in seconds. Defaults to 300.
@@ -843,7 +844,12 @@ class VimYamlEditor:
                           valid YAML.
         """
         with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode='w', encoding='utf-8') as tmp:
-            # If yaml_content is a raw YAML string, write it directly; otherwise dump the Python object
+            # If prompt is provided, include it as comment header
+            if prompt:
+                for line in str(prompt).splitlines():
+                    tmp.write(f"# {line}\n")
+                tmp.write("\n")
+            # Write YAML content: raw string or dumped Python object
             if isinstance(yaml_content, str):
                 tmp.write(yaml_content)
             else:
@@ -960,7 +966,7 @@ class VimYamlEditor:
         last_valid = False
         content_to_edit = starting
         while True:
-            edited = self.edit_yaml_with_vim(content_to_edit, f"exercise-{index}.yaml")
+            edited = self.edit_yaml_with_vim(content_to_edit, f"exercise-{index}.yaml", prompt=prompt)
             if edited is None:
                 try:
                     retry = input("Could not parse YAML. Try again from last valid state? (y/N): ").strip().lower().startswith('y')
