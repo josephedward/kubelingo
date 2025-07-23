@@ -69,6 +69,9 @@ def test_yaml_editing_workflow_fail_and_retry_success(editor, capsys):
     assert success is True
 
     captured = capsys.readouterr()
+    # Check that the question prompt appears twice (initial attempt and retry)
+    assert captured.out.count("=== Exercise 2: Fix the deployment replicas. ===") == 2, \
+        "The question prompt should be displayed for each attempt."
     # First attempt should show mismatch and prompt for retry.
     assert "❌ YAML does not match expected output." in captured.out
     mock_input.assert_called_once_with("Try again? (y/N): ")

@@ -951,7 +951,6 @@ class VimYamlEditor:
                   is structurally valid when no solution is provided), False otherwise.
         """
         prompt = question.get('prompt') or question.get('requirements', '')
-        print(f"\n=== Exercise {index}: {prompt} ===")
         # Prepare initial YAML and expected solution
         starting = question.get('starting_yaml', '')
         expected_raw = question.get('correct_yaml')
@@ -966,6 +965,7 @@ class VimYamlEditor:
         last_valid = False
         content_to_edit = starting
         while True:
+            print(f"\n=== Exercise {index}: {prompt} ===")
             edited = self.edit_yaml_with_vim(content_to_edit, f"exercise-{index}.yaml", prompt=prompt)
             if edited is None:
                 try:
