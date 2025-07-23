@@ -21,6 +21,13 @@ try:
 except ImportError:
     yaml = None
 
+try:
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.history import FileHistory
+except ImportError:
+    PromptSession = None
+    FileHistory = None
+
 from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
 from kubelingo.gosandbox_integration import GoSandboxIntegration
@@ -284,6 +291,11 @@ class NewSession(StudySession):
         print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
         print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_asked}{Style.RESET_ALL}")
 
+        prompt_session = None
+        if PromptSession and FileHistory:
+            history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_input_history')
+            prompt_session = PromptSession(history=FileHistory(history_path))
+
         for i, q in enumerate(questions_to_ask, 1):
             category = q.get('category', 'General')
             if category not in per_category_stats:
@@ -294,7 +306,10 @@ class NewSession(StudySession):
             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
             try:
-                user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                if prompt_session:
+                    user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                else:
+                    user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
                 break
@@ -473,6 +488,11 @@ class NewSession(StudySession):
         print(f"\n{Fore.CYAN}--- Basic Vim Commands Quiz ---{Style.RESET_ALL}")
         print("Test your knowledge of essential Vim commands.")
 
+        prompt_session = None
+        if PromptSession and FileHistory:
+            history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_vim_history')
+            prompt_session = PromptSession(history=FileHistory(history_path))
+
         for i, q in enumerate(questions_to_ask, 1):
             category = q.get('category', 'Vim')
 
@@ -480,7 +500,10 @@ class NewSession(StudySession):
             print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
 
             try:
-                user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                if prompt_session:
+                    user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                else:
+                    user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
                 break
