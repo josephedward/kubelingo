@@ -1,6 +1,6 @@
  # kubelingo
 
-[![Kubelingo CI](https://github.com/YOUR_USERNAME/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/kubelingo/actions/workflows/ci.yml)
+[![Kubelingo CI](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
 
 kubelingo is a modular CLI package for mastering `kubectl` commands, Kubernetes YAML editing, and cloud-backed EKS exercises.
 
