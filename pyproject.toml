@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your-repo/kubelingo"
+"Homepage" = "https://github.com/josephedward/kubelingo"
 
 [project.optional-dependencies]
 test = [
