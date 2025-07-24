@@ -161,17 +161,24 @@ def main():
 
         restart_loop = False
 
-        # If no arguments provided, show an interactive menu
+        # If no arguments provided, show an interactive menu of modules
         if len(sys.argv) == 1:
+            mods = discover_modules()
+            # Exclude internal-only and CSV quiz modules from root menu
+            modules = [m for m in mods if m not in ('llm', 'killercoda_ckad')]
             if questionary:
                 try:
-                    # Root menu: k8s, kustom, help, exit
-                    choices = [
-                        questionary.Choice(title='Kubernetes', value='kubernetes'),
-                        questionary.Choice(title='Custom Quiz', value='custom'),
-                        questionary.Choice(title='Help', value='help'),
-                        questionary.Choice(title='Exit', value=None),
-                    ]
+                    choices = []
+                    for mod in modules:
+                        if mod == 'custom':
+                            title = 'Custom Quiz'
+                        elif mod == 'killercoda_ckad':
+                            title = 'Killercoda CKAD'
+                        else:
+                            title = mod.replace('_', ' ').title()
+                        choices.append(questionary.Choice(title=title, value=mod))
+                    choices.append(questionary.Choice(title='Help', value='help'))
+                    choices.append(questionary.Choice(title='Exit', value=None))
                     action = questionary.select(
                         "What would you like to do?",
                         choices=choices
@@ -179,19 +186,16 @@ def main():
                     if action is None:
                         print("\nExiting.")
                         break
-                    
                     if action == 'help':
                         parser.print_help()
                         continue
-                    else:
-                        args.module = action
-
+                    args.module = action
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     break
             else:
                 # Fallback prompt
-                valid = ['kubernetes', 'custom', 'help', 'exit']
+                valid = modules + ['help', 'exit']
                 while True:
                     try:
                         print(f"What would you like to do? Available options: {', '.join(valid)}")
@@ -202,14 +206,12 @@ def main():
                     if action in valid:
                         break
                     print(f"Invalid choice. Please enter one of: {', '.join(valid)}.")
-
                 if action == 'exit':
                     break
-                elif action == 'help':
+                if action == 'help':
                     parser.print_help()
                     continue
-                else:
-                    args.module = action
+                args.module = action
         
         if restart_loop:
             sys.argv = [sys.argv[0]]
