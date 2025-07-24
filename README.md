@@ -127,6 +127,8 @@ Comprehensive coverage of all CKAD exam domains:
 - **Pod Design (20%)**: Labels, Selectors, Annotations, Jobs, CronJobs
 - **Services & Networking (13%)**: ClusterIP, NodePort, Ingress
 - **State Persistence (8%)**: Volumes, PersistentVolumes, Storage Classes
+  
+For quick reference on multi-step Killercoda CKAD quiz tasks, see [Killercoda CKAD Quick Reference](docs/killercoda_ckad_cheat_sheet.md).
 
 ## File Structure
 
@@ -201,65 +203,6 @@ To import issues:
     git-scaffold import-md issues.md --repo-owner YOUR_USERNAME --repo-name kubelingo
     ```
 
-## Release Process
-
-Here’s a typical “manual” release flow for a `maturin`-powered project.
-
-1.  **Bump the version** in `pyproject.toml` and `Cargo.toml`.
-
-    *   `pyproject.toml`:
-        ```toml
-        [project]
-        name = "kubelingo"
-        version = "0.1.1"  # <-- update
-        ```
-    *   `Cargo.toml`:
-        ```toml
-        [package]
-        name = "kubelingo"
-        version = "0.1.1"  # <-- update
-        ```
-    *   Commit the changes:
-        ```bash
-        git add pyproject.toml Cargo.toml
-        git commit -m "chore: bump version to 0.1.1"
-        git tag v0.1.1
-        git push origin main --tags
-        ```
-
-2.  **Install build tools** (if you haven't already):
-    ```bash
-    pip install --upgrade maturin build twine
-    ```
-
-3.  **Build the distributions**:
-    ```bash
-    # Using maturin directly (recommended)
-    maturin build --release --strip
-    ```
-    This will create wheel and sdist artifacts in `target/wheels/` and `dist/`.
-
-4.  **Verify artifacts**:
-    ```bash
-    twine check dist/* target/wheels/*
-    ```
-
-5.  **Publish to PyPI**:
-    First, visit your [PyPI account settings](https://pypi.org/manage/account/) to create an API token, then export it.
-    ```bash
-    export PYPI_TOKEN="pypi-..."
-    ```
-    Then, upload with `twine`:
-    ```bash
-    twine upload --skip-existing dist/* target/wheels/* -u __token__ -p "$PYPI_TOKEN"
-    ```
-    Alternatively, use `maturin`'s built-in publisher:
-    ```bash
-    maturin publish --release --strip --username __token__ --password "$PYPI_TOKEN"
-    ```
-
-6.  **(Optional) Draft a GitHub release**:
-    Go to your repository's "Releases" page, draft a new release from the tag you just created, add your changelog, and publish.
 
 ## License
 
