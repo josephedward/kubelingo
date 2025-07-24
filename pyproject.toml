@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "kubelingo"
-version = "0.1.4"
+version = "0.1.5"
 description = "CLI quizzes for kubectl commands and Kubernetes YAML editing"
 readme = "README.md"
 authors = [
