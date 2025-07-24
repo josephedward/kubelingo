@@ -258,7 +258,10 @@ class NewSession(StudySession):
                     break
                 # Offer retry on empty
                 print(f"{Fore.YELLOW}No answer provided.{Style.RESET_ALL}")
-                resp = input("Press 'r' to retry, ENTER to skip: ")
+                try:
+                    resp = input("Press 'r' to retry, ENTER to skip: ")
+                except Exception:
+                    break
                 if resp.strip().lower() != 'r':
                     break
                 # Recreate the template for retry
