@@ -173,35 +173,6 @@ For quick reference on multi-step Killercoda CKAD quiz tasks, see [Killercoda CK
 }
 ```
 
-## Contributing
-
-This project can use `git-scaffold` to bulk-create GitHub issues from a markdown file.
-
-To import issues:
-
-1.  Create a markdown file where each issue is separated by `---`. The `h1` heading will be the issue title and the content below it will be the issue body.
-
-    Example `issues.md`:
-    ````markdown
-    # My first issue
-
-    This is the body of my first issue.
-
-    - it has a list
-    - of items
-
-    ---
-
-    # My second issue
-
-    This is the body of my second issue.
-    ````
-
-2.  Run `git-scaffold import-md` to create the issues on GitHub. You will need to provide the path to the markdown file and specify the repository.
-
-    ```bash
-    git-scaffold import-md issues.md --repo-owner YOUR_USERNAME --repo-name kubelingo
-    ```
 
 
 ## License
