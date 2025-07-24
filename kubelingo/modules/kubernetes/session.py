@@ -215,6 +215,7 @@ class NewSession(StudySession):
             choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
             choices.append(questionary.Separator())
             choices.append({'name': "Vim Commands Quiz", 'value': "vim_quiz"})
+            choices.append({'name': "Killercoda CKAD Quiz", 'value': "killercoda_ckad"})
 
             selected = questionary.select(
                 "Choose an exercise type or subject area:",
@@ -257,6 +258,8 @@ class NewSession(StudySession):
             elif selected == 'vim_quiz':
                 args.review_only = False
                 return self._run_vim_commands_quiz(args)
+            elif selected == 'killercoda_ckad':
+                return self._run_killercoda_ckad(args)
             elif selected != 'all':
                 args.category = selected
 
@@ -577,6 +580,20 @@ class NewSession(StudySession):
         score = (correct_count / total_asked * 100) if total_asked > 0 else 0
         print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+
+    def _run_killercoda_ckad(self, args):  # pylint: disable=unused-argument
+        """Runs the Killercoda CKAD CSV-based quiz via the separate module"""
+        try:
+            session = load_session('killercoda_ckad', self.logger)
+        except Exception as e:
+            print(Fore.RED + f"Error loading Killercoda CKAD module: {e}" + Style.RESET_ALL)
+            return
+        init_ok = session.initialize()
+        if not init_ok:
+            print(Fore.RED + "Killercoda CKAD quiz initialization failed." + Style.RESET_ALL)
+            return
+        session.run_exercises(args)
+        session.cleanup()
 
     def _run_live_mode(self, args):
         """Handles setup and execution of live Kubernetes exercises."""
