@@ -20,3 +20,146 @@
 2025-07-16 15:28:44,213 - Question 1/6: prompt="List all resources across all namespaces" expected="kubectl get all -A" answer="k get -ns all" result="incorrect"
 2025-07-17 16:15:40,184 - Question 1/2: prompt="List all Service Accounts in the current namespace" expected="kubectl get sa" answer="k get sa" result="incorrect"
 2025-07-17 16:21:18,058 - Vim Question 1/15: prompt="Append text after cursor" expected="a" answer="a" result="correct"
+2025-07-24 13:37:39,285 - CKAD CSV Quiz 1/22: prompt="Create a new Namespace limit .
+In that Namespace create a Pod named resource-checker of image httpd:alpine .
+The container should be named my-container .
+It should request 30m CPU and be limited to 300m CPU.
+It should request 30Mi memory and be limited to 30Mi memory." expected="K create ns limit                                                                                                                                                                                                                                                                     ‘’’                                                                                                                                                                                                                             apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name:  my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: "30m"
+        memory: "30Mi"
+      limits:
+        cpu: "300m"
+        memory: “30Mi"" answer="" result="incorrect"
+2025-07-24 13:37:45,907 - CKAD CSV Quiz 2/22: prompt="Create a ConfigMap named trauerweide with content tree=trauerweide
+	Create the ConfigMap stored in existing file /root/cm.yaml" expected="apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trauerweide
+data:
+  tree: trauerweide" answer="" result="incorrect"
+2025-07-24 13:44:15,418 - CKAD CSV Quiz 1/22: prompt="Create a new Namespace limit .
+In that Namespace create a Pod named resource-checker of image httpd:alpine .
+The container should be named my-container .
+It should request 30m CPU and be limited to 300m CPU.
+It should request 30Mi memory and be limited to 30Mi memory." expected="K create ns limit                                                                                                                                                                                                                                                                     ‘’’                                                                                                                                                                                                                             apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name:  my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: "30m"
+        memory: "30Mi"
+      limits:
+        cpu: "300m"
+        memory: “30Mi"" answer="" result="incorrect"
+2025-07-24 14:21:00,456 - CKAD CSV Quiz Step 1/53: step="Create a new Namespace limit ." expected="K create ns limit                                                                                                                                                                                                                                                                     ‘’’                                                                                                                                                                                                                             apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name:  my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: "30m"
+        memory: "30Mi"
+      limits:
+        cpu: "300m"
+        memory: “30Mi"" answer="k create ns limit" result="incorrect"
+2025-07-24 15:14:25,639 - CKAD CSV Quiz 1/4: prompt="In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi." expected="apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name: my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: 30m
+        memory: 30Mi
+      limits:
+        cpu: 300m
+        memory: 30Mi" answer="---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name: my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: "30m"
+        memory: "30Mi"
+      limits:
+        cpu: "300m"
+     	memory: "30Mi"" result="incorrect"
+2025-07-24 15:26:09,719 - CKAD CSV Quiz 2/4: prompt="Create a ConfigMap named trauerweide with data tree=trauerweide." expected="apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trauerweide
+data:
+  tree: trauerweide" answer="---" result="incorrect"
+2025-07-24 15:41:30,056 - CKAD CSV Quiz 1/4: prompt="In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi." expected="apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name: my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: 30m
+        memory: 30Mi
+      limits:
+        cpu: 300m
+        memory: 30Mi" answer="apiVersion: v1
+kind: Pod
+metadata:
+  name: resource-checker
+  namespace: limit
+spec:
+  containers:
+  - name: my-container
+    image: httpd:alpine
+    resources:
+      requests:
+        cpu: "30m"
+        memory: "30Mi"
+      limits:
+        cpu: "300m"
+        memory: "30Mi"" result="incorrect"
+2025-07-24 15:44:49,816 - CKAD CSV Quiz 2/4: prompt="Create a ConfigMap named trauerweide with data tree=trauerweide." expected="apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trauerweide
+data:
+  tree: trauerweide" answer="apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trauerweide
+data:
+  tree: trauerweide" result="correct"
