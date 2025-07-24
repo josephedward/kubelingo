@@ -128,3 +128,49 @@ def test_edit_yaml_with_vim_interrupt(mock_subprocess, mock_env_get, mock_tempfi
     assert result is None
     captured = capsys.readouterr()
     assert "Editor session interrupted" in captured.out
+    
+@patch('kubelingo.modules.kubernetes.session.tempfile.NamedTemporaryFile')
+@patch('kubelingo.modules.kubernetes.session.os.environ.get')
+@patch('kubelingo.modules.kubernetes.session.subprocess.run')
+@patch('kubelingo.modules.kubernetes.session.os.unlink')
+@patch('builtins.open')
+def test_edit_yaml_with_vim_includes_prompt(mock_open, mock_unlink, mock_subprocess, mock_env_get, mock_tempfile, editor):
+    """
+    Tests that edit_yaml_with_vim prepends the prompt as commented lines.
+    """
+    mock_env_get.return_value = 'vim'
+    mock_subprocess.return_value = MagicMock(returncode=0)
+
+    mock_file_obj = MagicMock()
+    mock_file_obj.name = "/tmp/fakefile.yaml"
+    mock_temp_context = MagicMock()
+    mock_temp_context.__enter__.return_value = mock_file_obj
+    mock_tempfile.return_value = mock_temp_context
+
+    # Use simple YAML string to verify write calls
+    initial_yaml_str = "a: 1\nb: 2\n"
+    edited_yaml_str = initial_yaml_str
+
+    # Simulate reading the file after editing
+    mock_read_file = MagicMock()
+    mock_read_file.read.return_value = edited_yaml_str
+    mock_read_file_context = MagicMock()
+    mock_read_file_context.__enter__.return_value = mock_read_file
+    mock_open.return_value = mock_read_file_context
+
+    # Act
+    prompt_text = "Test Prompt"
+    result = editor.edit_yaml_with_vim(initial_yaml_str, prompt=prompt_text)
+
+    # Assert prompt is written as comment lines
+    write_calls = mock_file_obj.write.call_args_list
+    assert write_calls[0][0][0] == f"# {prompt_text}\n"
+    assert write_calls[1][0][0] == "\n"
+    # Assert YAML content is written after prompt
+    assert any(call_arg[0][0] == initial_yaml_str for call_arg in write_calls)
+
+    # Assert normal behavior
+    mock_subprocess.assert_called_once_with(['vim', '/tmp/fakefile.yaml'], timeout=300)
+    mock_open.assert_called_once_with('/tmp/fakefile.yaml', 'r', encoding='utf-8')
+    assert result == {'a': 1, 'b': 2}
+    mock_unlink.assert_called_once_with("/tmp/fakefile.yaml")
