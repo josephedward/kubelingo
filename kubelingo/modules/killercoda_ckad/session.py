@@ -1,11 +1,17 @@
 import os
 import csv
+import random
 import tempfile
 import subprocess
 from datetime import datetime
 
 from kubelingo.modules.base.session import StudySession
 import json
+
+try:
+    import questionary
+except ImportError:
+    questionary = None
 
 try:
     from colorama import Fore, Style
@@ -142,60 +148,87 @@ class NewSession(StudySession):
             print(f"{Fore.RED}CSV file not found at {csv_file}{Style.RESET_ALL}")
             return
 
-        # Parse CSV questions: columns: [*, prompt, answer, ...]
+        # Parse CSV questions: columns: [category, prompt, answer, ...]
         questions = []
-        with open(csv_file, newline='') as f:
+        with open(csv_file, newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
+            # Skip header if present
+            try:
+                first_row = next(reader)
+                if 'prompt' in first_row[1].lower():
+                    pass # it was a header
+                else:
+                    reader = iter([first_row] + list(reader))
+            except StopIteration:
+                pass # empty file
+            
             for row in reader:
                 if len(row) < 3:
                     continue
+                
+                category = row[0].strip()
+                if category.startswith("'") and category.endswith("'"):
+                    category = category[1:-1].strip()
+
                 raw_prompt = row[1].strip()
                 if raw_prompt.startswith("'") and raw_prompt.endswith("'"):
                     raw_prompt = raw_prompt[1:-1].strip()
+                
                 raw_answer = row[2].strip()
                 if raw_answer.startswith("'") and raw_answer.endswith("'"):
                     raw_answer = raw_answer[1:-1].strip()
-                if not raw_prompt or not raw_answer:
+                
+                if not raw_prompt or not raw_answer or not category:
                     continue
-                questions.append({'prompt': raw_prompt, 'answer': raw_answer})
-        # Override the first question to only request the Pod YAML (skip namespace creation)
-        if questions and 'Namespace limit' in questions[0]['prompt']:
-            questions[0] = {
-                'prompt': (
-                    'Provide the Pod YAML manifest to create resource-checker in namespace limit '
-                    'using image httpd:alpine, container named my-container, requests cpu=30m memory=30Mi, '
-                    'limits cpu=300m memory=30Mi.'
-                ),
-                'answer': (
-                    'apiVersion: v1\n'
-                    'kind: Pod\n'
-                    'metadata:\n'
-                    '  name: resource-checker\n'
-                    '  namespace: limit\n'
-                    'spec:\n'
-                    '  containers:\n'
-                    '  - name: my-container\n'
-                    '    image: httpd:alpine\n'
-                    '    resources:\n'
-                    '      requests:\n'
-                    '        cpu: 30m\n'
-                    '        memory: 30Mi\n'
-                    '      limits:\n'
-                    '        cpu: 300m\n'
-                    '        memory: 30Mi'
-                )
-            }
-
-        total = len(questions)
-        if total == 0:
+                
+                questions.append({
+                    'category': category,
+                    'prompt': raw_prompt,
+                    'answer': raw_answer
+                })
+        if not questions:
             print(f"{Fore.YELLOW}No questions found in CSV file.{Style.RESET_ALL}")
             return
 
+        is_interactive = questionary and not args.category and not args.num
+        if is_interactive:
+            categories = sorted({q['category'] for q in questions if q.get('category')})
+            choices = [{'name': "All Questions", 'value': "all"}]
+            for category in categories:
+                choices.append({'name': f"{category}", 'value': category})
+
+            selected = questionary.select(
+                "Choose a category:",
+                choices=choices,
+                use_indicator=True
+            ).ask()
+
+            if selected is None:
+                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                return
+            
+            if selected != 'all':
+                args.category = selected
+
+        if args.category:
+            questions = [q for q in questions if q.get('category') == args.category]
+            if not questions:
+                print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
+                return
+
+        num_to_ask = args.num if args.num and args.num > 0 else len(questions)
+        questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
+        
+        total = len(questions_to_ask)
+        if total == 0:
+            print(f"{Fore.YELLOW}No questions to ask.{Style.RESET_ALL}")
+            return
+            
         correct = 0
         print(f"\n{Fore.CYAN}=== Killercoda CKAD Quiz ==={Style.RESET_ALL}")
-        print(f"Loaded {Fore.CYAN}{total}{Style.RESET_ALL} questions from CSV.")
+        print(f"Starting quiz with {Fore.CYAN}{total}{Style.RESET_ALL} questions.")
 
-        for idx, q in enumerate(questions, start=1):
+        for idx, q in enumerate(questions_to_ask, start=1):
             print(f"\n{Fore.YELLOW}Question {idx}/{total}:{Style.RESET_ALL} {q['prompt']}")
             # Prepare a temporary file: display full prompt as single-line instruction and a YAML manifest stub
             lines = [line.strip() for line in q['prompt'].splitlines() if line.strip()]
