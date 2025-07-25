@@ -14,6 +14,7 @@ except ImportError:
         RED = GREEN = YELLOW = CYAN = MAGENTA = ""
     class Style:
         RESET_ALL = ""
+import random
 
 
 class NewSession(StudySession):
