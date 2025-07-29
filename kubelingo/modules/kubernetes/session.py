@@ -355,7 +355,7 @@ class NewSession(StudySession):
                 if selected in action_map:
                     args.review_only = (selected == 'vim_review')
                     action_map[selected](args)
-                    return
+                    continue
 
                 # Handle cases that populate the `questions` list and fall through
                 if selected == 'review':
@@ -991,7 +991,7 @@ class NewSession(StudySession):
                     answer = answer[1:-1].strip()
                 if not prompt or not answer:
                     continue
-                questions.append({'category': cat or 'CKAD', 'prompt': prompt, 'answer': answer})
+                questions.append({'category': cat or 'CKAD', 'prompt': prompt, 'answer': answer, 'review': False})
         if not questions:
             print(f"{Fore.YELLOW}No questions found in CSV file.{Style.RESET_ALL}")
             return
@@ -1008,67 +1008,132 @@ class NewSession(StudySession):
             to_ask = random.sample(questions, min(num, len(questions)))
         else:
             to_ask = questions[:num]
-        total = len(to_ask)
-        correct = 0
-        print(f"\n{Fore.CYAN}=== Killercoda CKAD CSV Quiz ==={Style.RESET_ALL}")
-        print(f"Starting CKAD quiz with {Fore.CYAN}{total}{Style.RESET_ALL} questions.")
 
-        for idx, q in enumerate(to_ask, 1):
-            print(f"\n{Fore.YELLOW}Question {idx}/{total} (Category: {q['category']}){Style.RESET_ALL}")
-            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-            # Prepare temp file for YAML answer
-            tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
-            tmp_path = tmp.name
-            tmp.close()
-            try:
-                with open(tmp_path, 'w', encoding='utf-8') as tf:
-                    tf.write("# Enter your YAML manifest below, without quotes.\n")
-                    tf.write("---\n")
-            except Exception as e:
-                print(f"{Fore.RED}Error preparing file: {e}{Style.RESET_ALL}")
-                os.unlink(tmp_path)
-                return
-            editor = os.environ.get('EDITOR', 'vim')
-            cmd = [editor]
-            base = os.path.basename(editor)
-            if base in ('vim', 'nvim', 'vi'):
-                cmd += ['-c', 'set tabstop=2 shiftwidth=2 expandtab', '--noplugin']
-            cmd.append(tmp_path)
-            try:
-                subprocess.call(cmd)
-            except Exception as e:
-                print(f"{Fore.RED}Error launching editor: {e}{Style.RESET_ALL}")
-                os.unlink(tmp_path)
-                return
-            # Read user answer
-            try:
-                lines = []
-                with open(tmp_path, encoding='utf-8') as uf:
-                    for line in uf:
-                        if line.lstrip().startswith('#') or line.strip() == '---':
-                            continue
-                        lines.append(line)
-                user_ans = ''.join(lines).strip()
-            finally:
+        total_to_ask = len(to_ask)
+        correct_count = 0
+        asked_count = 0
+        skipped_questions = []
+
+        print(f"\n{Fore.CYAN}=== Killercoda CKAD CSV Quiz ==={Style.RESET_ALL}")
+        print(f"Starting CKAD quiz with {Fore.CYAN}{total_to_ask}{Style.RESET_ALL} questions.")
+
+        quiz_backed_out = False
+        current_question_index = 0
+        while current_question_index < len(to_ask):
+            q = to_ask[current_question_index]
+            i = current_question_index + 1
+            category = q.get('category', 'CKAD')
+            user_answer_content = None
+            was_answered = False
+
+            # Inner loop for the in-quiz menu
+            while True:
+                print(f"\n{Fore.YELLOW}Question {i}/{total_to_ask} (Category: {category}){Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+
+                is_flagged = q.get('review', False)
+                flag_option_text = "Un-flag" if is_flagged else "Flag"
+
+                choices = [
+                    questionary.Choice("1. Answer (Open Editor)", value="answer"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
+                    questionary.Choice("4. Skip", value="skip"),
+                    questionary.Choice("5. Back to Quiz Menu", value="back")
+                ]
+                
                 try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
-            exp = q['answer'].strip()
-            ans = user_ans.strip()
-            if ans == exp or ans.replace("'", '').replace('"', '') == exp.replace("'", '').replace('"', ''):
-                correct += 1
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Expected answer:\n{exp}{Style.RESET_ALL}")
-            self.logger.info(
-                f"CKAD CSV {idx}/{total}: prompt=\"{q['prompt']}\" expected=\"{exp}\" "
-                f"answer=\"{ans}\" result=\"{'correct' if ans==exp else 'incorrect'}\""
-            )
+                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                    if action is None: raise KeyboardInterrupt
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    return
+
+                if action == "back":
+                    quiz_backed_out = True
+                    break
+                
+                if action == "skip":
+                    if not was_answered:
+                        asked_count += 1
+                    skipped_questions.append(q)
+                    self.logger.info(f"CKAD CSV Question {i}/{total_to_ask}: SKIPPED prompt=\"{q['prompt']}\"")
+                    current_question_index += 1
+                    break
+
+                if action == "flag":
+                    if is_flagged:
+                        q['review'] = False
+                        print(Fore.MAGENTA + "Question un-flagged (for this session only)." + Style.RESET_ALL)
+                    else:
+                        q['review'] = True
+                        print(Fore.MAGENTA + "Question flagged for review (for this session only)." + Style.RESET_ALL)
+                    continue
+
+                if action == "answer":
+                    if not was_answered:
+                        asked_count += 1
+                    was_answered = True
+                    tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
+                    tmp_path = tmp.name
+                    tmp.close()
+                    try:
+                        with open(tmp_path, 'w', encoding='utf-8') as tf:
+                            tf.write("# Enter your YAML manifest below, without quotes.\n---\n")
+                        editor = os.environ.get('EDITOR', 'vim')
+                        cmd = [editor, '-c', 'set tabstop=2 shiftwidth=2 expandtab', '--noplugin', tmp_path]
+                        subprocess.call(cmd)
+                        lines = []
+                        with open(tmp_path, encoding='utf-8') as uf:
+                            for line in uf:
+                                if line.lstrip().startswith('#') or line.strip() == '---':
+                                    continue
+                                lines.append(line)
+                        user_answer_content = ''.join(lines).strip()
+                    except Exception as e:
+                        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
+                    finally:
+                        os.unlink(tmp_path)
+                    continue
+
+                if action == "check":
+                    if not was_answered:
+                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        continue
+                    
+                    exp = q['answer'].strip()
+                    ans = user_answer_content.strip()
+                    is_correct = ans == exp or ans.replace("'", '').replace('"', '') == exp.replace("'", '').replace('"', '')
+                    
+                    self.logger.info(
+                        f"CKAD CSV {i}/{total_to_ask}: prompt=\"{q['prompt']}\" expected=\"{exp}\" "
+                        f"answer=\"{ans}\" result=\"{'correct' if is_correct else 'incorrect'}\""
+                    )
+
+                    if is_correct:
+                        correct_count += 1
+                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                        current_question_index += 1
+                        break
+                    else:
+                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}Expected answer:\n{exp}{Style.RESET_ALL}")
+                        continue
+
+            if quiz_backed_out:
+                break
+        
         duration = str(datetime.now() - start_time).split('.')[0]
+        
+        if skipped_questions:
+            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
+            for q in skipped_questions:
+                print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Correct answer: {q.get('answer', 'Not available.')}{Style.RESET_ALL}")
+
         print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-        print(f"You got {Fore.GREEN}{correct}{Style.RESET_ALL} out of {Fore.YELLOW}{total}{Style.RESET_ALL} correct.")
+        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
+        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
     def _run_live_mode(self, args):
