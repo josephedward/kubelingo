@@ -328,7 +328,7 @@ class NewSession(StudySession):
 
                         choices = [
                             questionary.Choice(answer_text, value="answer"),
-                            questionary.Choice("2. Check Answer", value="check"),
+                            questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
                             questionary.Choice(f"3. {flag_option_text}", value="flag"),
                             questionary.Choice("4. Skip", value="skip"),
                             questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -541,7 +541,7 @@ class NewSession(StudySession):
                 
                 choices = [
                     questionary.Choice(answer_text, value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
