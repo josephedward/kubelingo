@@ -162,6 +162,44 @@ def load_questions(data_file, exit_on_error=True):
     loader = None
 
     if ext == '.json':
+        # Support flat JSON list format with 'prompt' and 'answer'
+        try:
+            with open(data_file, 'r', encoding='utf-8') as f:
+                raw = json.load(f)
+        except Exception as e:
+            if exit_on_error:
+                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+                sys.exit(1)
+            return []
+        if isinstance(raw, list) and raw and isinstance(raw[0], dict):
+            # Flat list-of-questions format
+            if 'prompt' in raw[0]:
+                questions = []
+                for item in raw:
+                    questions.append({
+                        'category': item.get('category', 'General'),
+                        'prompt': item.get('prompt', ''),
+                        'explanation': item.get('explanation', ''),
+                        'type': item.get('type', 'command'),
+                        'response': item.get('response', '') or item.get('answer', ''),
+                        'review': item.get('review', False)
+                    })
+                return questions
+            # Section-based list with 'prompts' key
+            if 'prompts' in raw[0]:
+                questions = []
+                for section in raw:
+                    category = section.get('category', 'General')
+                    for item in section.get('prompts', []):
+                        questions.append({
+                            'category': category,
+                            'prompt': item.get('prompt', ''),
+                            'explanation': item.get('explanation', ''),
+                            'type': item.get('type', 'command'),
+                            'response': item.get('response', '') or item.get('answer', ''),
+                            'review': item.get('review', False)
+                        })
+                return questions
         loader = JSONLoader()
     elif ext in ('.md', '.markdown'):
         loader = MDLoader()
