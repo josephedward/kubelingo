@@ -208,14 +208,17 @@ class VimYamlEditor:
                 if result.returncode != 0:
                     print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
             except FileNotFoundError as e:
-                print(f"{Fore.RED}Error launching editor '{editor}': {e}{Style.RESET_ALL}")
+                # Always display ANSI color codes for this error regardless of TTY detection
+                print(f"\033[31mError launching editor '{editor}': {e}\033[0m")
                 print("Please ensure your EDITOR environment variable is set correctly.")
                 return None
             except subprocess.TimeoutExpired:
-                print(f"{Fore.RED}Editor session timed out after {_timeout} seconds.{Style.RESET_ALL}")
+                # Always display ANSI color codes for timeout regardless of TTY detection
+                print(f"\033[31mEditor session timed out after {_timeout} seconds.\033[0m")
                 return None
             except KeyboardInterrupt:
-                print(f"{Fore.YELLOW}Editor session interrupted by user.{Style.RESET_ALL}")
+                # Always display ANSI color codes for interrupt regardless of TTY detection
+                print("\033[33mEditor session interrupted by user.\033[0m")
                 return None
 
             # Read edited content
@@ -224,7 +227,8 @@ class VimYamlEditor:
             return yaml.safe_load(content)
         except Exception as e:
             # Catch parsing or execution errors and inform the user
-            print(f"{Fore.RED}Failed to parse YAML: {e}{Style.RESET_ALL}")
+            # Always display ANSI color codes for parsing errors regardless of TTY detection
+            print(f"\033[31mFailed to parse YAML: {e}\033[0m")
             return None
         finally:
             # Clean up the temporary file
