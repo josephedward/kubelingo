@@ -200,6 +200,10 @@ def main():
         parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
                             help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
+        # Sandbox mode
+        parser.add_argument('--sandbox-mode', type=str, choices=['embedded', 'container'],
+                            help='Launch a sandbox environment (embedded PTY or container-based).')
+
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
                             help='Path to quiz data JSON file for command quiz')
