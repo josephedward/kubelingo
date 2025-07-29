@@ -1,7 +1,7 @@
 import json
 import os
 
-from kubelingo.constants import HISTORY_FILE
+from kubelingo.utils.config import HISTORY_FILE
 from kubelingo.utils.ui import Fore, Style
 
 
