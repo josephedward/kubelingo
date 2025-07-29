@@ -354,6 +354,34 @@ class NewSession(StudySession):
         print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
+        new_history_entry = {
+            'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'num_questions': total_asked,
+            'num_correct': correct_count,
+            'duration': duration,
+            'data_file': os.path.basename(args.file),
+            'category_filter': args.category,
+            'per_category': per_category_stats
+        }
+
+        history = []
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, 'r') as f:
+                    history_data = json.load(f)
+                    if isinstance(history_data, list):
+                        history = history_data
+            except (json.JSONDecodeError, IOError):
+                pass  # Start with fresh history if file is corrupt or unreadable
+
+        history.insert(0, new_history_entry)
+
+        try:
+            with open(HISTORY_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+        except IOError as e:
+            print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
+
     def _build_interactive_menu_choices(self, questions):
         """Helper to construct the list of choices for the interactive menu."""
         flagged_command_questions = [q for q in questions if q.get('review')]
@@ -415,36 +443,6 @@ class NewSession(StudySession):
         """Handler for 'YAML Create Custom Exercise' menu option."""
         editor = VimYamlEditor()
         editor.create_interactive_question()
-
-    def _run_yaml_editing_mode(self, args):
-        new_history_entry = {
-            'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
-            'num_questions': total_asked,
-            'num_correct': correct_count,
-            'duration': duration,
-            'data_file': os.path.basename(args.file),
-            'category_filter': args.category,
-            'per_category': per_category_stats
-        }
-
-        history = []
-        if os.path.exists(HISTORY_FILE):
-            try:
-                with open(HISTORY_FILE, 'r') as f:
-                    history_data = json.load(f)
-                    if isinstance(history_data, list):
-                        history = history_data
-            except (json.JSONDecodeError, IOError):
-                pass  # Start with fresh history if file is corrupt or unreadable
-
-        history.insert(0, new_history_entry)
-
-        try:
-            with open(HISTORY_FILE, 'w') as f:
-                json.dump(history, f, indent=2)
-        except IOError as e:
-            print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
-
 
     def _run_yaml_editing_mode(self, args):
         """Run semantic YAML editing exercises from JSON definitions."""
