@@ -12,6 +12,15 @@ import logging
 
 from kubelingo.utils.validation import commands_equivalent, validate_yaml_structure
 
+def _humanize_module(name: str) -> str:
+    """Turn a module filename into a human-friendly title."""
+    # If prefixed with order 'a.', drop prefix
+    if '.' in name:
+        disp = name.split('.', 1)[1]
+    else:
+        disp = name
+    return disp.replace('_', ' ').title()
+
 try:
     import questionary
 except ImportError:
@@ -264,7 +273,10 @@ class NewSession(StudySession):
         questions = []  # Defer loading until after menu
 
         # In interactive mode, prompt user for quiz type (flagged/category)
-        is_interactive = questionary and not args.category and not args.review_only and not args.num
+        is_interactive = (
+            questionary and not args.category and not args.review_only and not args.num
+            and (args.file == DEFAULT_DATA_FILE or not os.path.exists(args.file))
+        )
         if is_interactive:
             while True:  # Loop to allow returning to menu after clearing flags
                 choices, flagged_command_questions, flagged_vim_questions = self._build_interactive_menu_choices()
@@ -507,7 +519,11 @@ class NewSession(StudySession):
         if command_quiz_files:
             choices.append(questionary.Separator("Command Quizzes"))
             for file_path in command_quiz_files:
-                choices.append({'name': f"  {os.path.basename(file_path)}", 'value': file_path})
+                base = os.path.basename(file_path)
+                name = os.path.splitext(base)[0]
+                subject = _humanize_module(name)
+                title = f"  {subject} {Style.DIM}({base}){Style.RESET_ALL}"
+                choices.append(questionary.Choice(title=title, value=file_path))
 
         # Other exercises
         choices.append(questionary.Separator("Other Exercises"))

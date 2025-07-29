@@ -44,13 +44,15 @@ except ImportError:
     yaml = None
 
 try:
-    from colorama import Fore, Style
+    from colorama import Fore, Style, init
+    init()
 except ImportError:
     # Fallback if colorama is not available
     class Fore:
         RED = GREEN = YELLOW = CYAN = MAGENTA = ""
     class Style:
         RESET_ALL = ""
+        DIM = ""
     
 # Disable ANSI color codes when not writing to a real terminal
 if not sys.stdout.isatty():
