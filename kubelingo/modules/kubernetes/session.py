@@ -193,6 +193,8 @@ def load_questions(data_file, exit_on_error=True):
             if 'prompts' in raw[0]:
                 questions = []
                 for section in raw:
+                    if not isinstance(section, dict):
+                        continue
                     category = section.get('category', 'General')
                     for item in section.get('prompts', []):
                         questions.append({
