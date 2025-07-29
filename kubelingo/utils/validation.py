@@ -1,5 +1,8 @@
 import re
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None
 from typing import Dict, Any, List, Optional
 
 def commands_equivalent(cmd1: str, cmd2: str) -> bool:
