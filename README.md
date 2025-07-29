@@ -119,7 +119,7 @@ Kubelingo can launch a Docker container to provide an isolated environment simil
 
 - **Isolation**: No network access (container run with `--network=none`), only the pre-installed tools (`bash`, `vim`, `kubectl`).
 - **Reproducibility**: Consistent environment across machines.
-- **Requirements**: Requires Docker Engine to be installed and running.
+- **Requirements**: Requires Docker Engine to be installed and running. (Tip: run `docker info` to verify your Docker setup.)
 
 To enter the container sandbox, run:
 
