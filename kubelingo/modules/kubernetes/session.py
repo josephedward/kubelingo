@@ -221,7 +221,8 @@ def load_questions(data_file):
     questions = []
     for cat in data:
         category = cat.get('category', '')
-        for item in cat.get('prompts', []):
+        prompts = cat.get('prompts', []) or cat.get('questions', [])
+        for item in prompts:
             question_type = item.get('type', 'command')
             question = {
                 'category': category,
