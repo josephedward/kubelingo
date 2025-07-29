@@ -110,8 +110,7 @@
       {
         "prompt": "Generate a YAML definition file for a pod named nginx without creating it",
         "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml",
-        "explanation": "Uses `--dry-run=client` with `-o yaml` to locally render the full Pod manifest for `nginx` without contacting the API server, saving it as `nginx.yaml`. You can then customize or version-control before applying.",
-        "review": true
+        "explanation": "Uses `--dry-run=client` with `-o yaml` to locally render the full Pod manifest for `nginx` without contacting the API server, saving it as `nginx.yaml`. You can then customize or version-control before applying."
       },
       {
         "prompt": "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db",
@@ -191,8 +190,7 @@
       {
         "prompt": "View the history of a deployment named 'webapp'",
         "response": "kubectl rollout history deployment/webapp",
-        "explanation": "Lists all revisions of `webapp`, showing image versions and `change-cause` annotations to help audit past rollouts.",
-        "review": true
+        "explanation": "Lists all revisions of `webapp`, showing image versions and `change-cause` annotations to help audit past rollouts."
       },
       {
         "prompt": "Pause the rollout of a deployment named 'frontend'",
@@ -337,8 +335,7 @@
       {
         "prompt": "Encode a string for use in a Secret YAML definition",
         "response": "echo -n 'string' | base64",
-        "explanation": "Pipes `string` through `base64` to produce the encoded representation required in Secret manifests under `data:`.",
-        "review": true
+        "explanation": "Pipes `string` through `base64` to produce the encoded representation required in Secret manifests under `data:`."
       },
       {
         "prompt": "Decode a base64 encoded Secret value",
@@ -358,14 +355,12 @@
       {
         "prompt": "Create a Secret from a .env file",
         "response": "kubectl create secret generic my-secrets --from-env-file=.env",
-        "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion.",
-        "review": true
+        "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion."
       },
       {
         "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
         "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
-        "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars.",
-        "review": true
+        "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars."
       },
       {
         "prompt": "Create a docker-registry type Secret for private registry authentication",
@@ -665,8 +660,7 @@
       {
         "prompt": "Copy file /tmp/data from pod busybox to current directory",
         "response": "kubectl cp busybox:/tmp/data ./",
-        "explanation": "Transfers `/tmp/data` from the `busybox` Pod into your local cwd, enabling retrieval of logs or test artifacts.",
-        "review": true
+        "explanation": "Transfers `/tmp/data` from the `busybox` Pod into your local cwd, enabling retrieval of logs or test artifacts."
       },
       {
         "prompt": "Show resource usage of pods",
