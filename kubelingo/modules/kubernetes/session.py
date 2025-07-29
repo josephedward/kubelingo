@@ -713,7 +713,7 @@ class NewSession(StudySession):
 
         # Separate flagged questions by type for different review modes
         flagged_command_questions = [
-            q for q in all_flagged if q.get('type', 'command') == 'command' and q['data_file'] != VIM_QUESTIONS_FILE
+            q for q in all_flagged if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit') and q['data_file'] != VIM_QUESTIONS_FILE
         ]
         flagged_vim_questions = [q for q in all_flagged if q['data_file'] == VIM_QUESTIONS_FILE]
 
