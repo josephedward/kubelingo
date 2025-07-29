@@ -947,11 +947,8 @@ class NewSession(StudySession):
     def _run_killercoda_ckad(self, args):
         """Runs the Killercoda CKAD CSV-based quiz"""
         start_time = datetime.now()
-        default_csv = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__), os.pardir, os.pardir,
-                'killercoda-ckad_072425.csv'
-            )
+        default_csv = os.path.join(
+            ROOT, 'question-data', 'csv', 'killercoda-ckad_072425.csv'
         )
         csv_file = os.environ.get('KILLERCODA_CSV', default_csv)
         if not os.path.exists(csv_file):
