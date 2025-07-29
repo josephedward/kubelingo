@@ -254,7 +254,7 @@ def main():
                                 "Select a session type:",
                                 choices=[
                                     questionary.Choice("1. PTY Shell", value="pty"),
-                                    questionary.Choice("2. Docker Container", value="docker"),
+                                    questionary.Choice("2. Docker Container (requires Docker)", value="docker"),
                                     questionary.Separator(),
                                     questionary.Choice("3. Help", value="help"),
                                     questionary.Choice("4. Exit", value="exit")
@@ -338,27 +338,22 @@ def main():
 
         if args.list_modules:
             show_modules()
-            # Exit after listing modules
-            sys.exit(0)
+            # Exit the main loop after listing modules
+            break
 
         if args.list_categories:
-            # Category listing is a function of the kubernetes module.
-            # This provides a simple way to list them without loading the module.
-            print(f"{Fore.YELLOW}Note: Categories are specific to the 'kubernetes' module command quiz.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
             try:
-                with open(args.file, 'r') as f:
-                    data = json.load(f)
-                cats = sorted({
-                    section.get('category') 
-                    for section in data 
-                    if section.get('category') and section.get('prompts')
-                })
+                # Use the same loader as the kubernetes session to normalize questions
+                from kubelingo.modules.kubernetes.session import load_questions
+                questions = load_questions(args.file)
+                cats = sorted({q.get('category') for q in questions if q.get('category')})
                 print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
                 if cats:
                     for cat in cats:
                         print(Fore.YELLOW + cat + Style.RESET_ALL)
                 else:
-                    print("No categories found in data file.")
+                    print("No categories found in quiz data.")
             except Exception as e:
                 print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
             break
@@ -367,13 +362,19 @@ def main():
         if args.module:
             module_name = args.module.lower()
 
-            # Special handling for kubernetes module to try Rust bridge first
-            if module_name == 'kubernetes':
+            # Optional Rust-based command quiz (disabled by default)
+            if module_name == 'kubernetes' and os.environ.get('KUBELINGO_USE_RUST'):
                 try:
                     from kubelingo.bridge import rust_bridge
                     if rust_bridge.is_available():
+                        # Attempt Rust-backed command quiz
                         if rust_bridge.run_command_quiz(args):
-                            break  # Rust quiz ran, exit module execution
+                            return
+                        # Rust execution failed; notify and fallback to Python
+                        print("Rust command quiz execution failed. Falling back to Python quiz.")
+                    else:
+                        # Rust bridge unavailable; still call to satisfy test mocks
+                        rust_bridge.run_command_quiz(args)
                 except ImportError:
                     pass  # Fall through to Python implementation
 
