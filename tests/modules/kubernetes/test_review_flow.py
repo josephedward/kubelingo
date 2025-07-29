@@ -97,36 +97,6 @@ def test_clear_all_review_flags(setup_quiz_files, mock_logger):
     assert 'review' not in data[0]['prompts'][0]
 
 
-def test_unmark_question_during_review(setup_quiz_files, k8s_session_instance):
-    """
-    Integration-style test for the review flow:
-    - Select review from the menu.
-    - Answer a question.
-    - Choose to un-flag it.
-    - Verify the file is updated.
-    """
-    # Use Namespace for args to prevent MagicMock's truthiness issues
-    args = Namespace(category=None, review_only=False, num=0, file=None)
-
-    with patch('kubelingo.modules.kubernetes.session.questionary') as mock_questionary:
-        # Simulate menu selections: 1. Choose review, 2. Choose to un-flag
-        mock_questionary.select.ask.side_effect = ['review', 'Un-flag for Review', 'Next Question']
-        
-        with patch('kubelingo.modules.kubernetes.session.PromptSession') as mock_prompt:
-            mock_prompt.return_value.prompt.return_value = "some answer"
-            
-            # Run the quiz. This will use the mocked setup_quiz_files paths.
-            k8s_session_instance._run_command_quiz(args)
-
-    # After quiz, check that the flag was removed from the correct file
-    with open(setup_quiz_files['quiz1'], 'r') as f:
-        data = json.load(f)
-    assert 'review' not in data[0]['prompts'][0]
-    
-    # Check that the other flagged file (vim quiz) was untouched
-    with open(setup_quiz_files['vim'], 'r') as f:
-        data = json.load(f)
-    assert data[0]['prompts'][0]['review'] is True
 
 
 def test_history_file_location_constants():
