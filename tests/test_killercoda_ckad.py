@@ -37,6 +37,14 @@ def test_parse_csv_has_questions(questions):
     # Ensure at least one question was parsed
     assert len(questions) > 0
 
+
+def test_all_questions_are_single_line(questions):
+    """Ensure all question prompts and answers are single-line strings."""
+    for prompt, answer in questions:
+        assert '\n' not in prompt, f"Multi-line prompt found: {prompt!r}"
+        assert '\n' not in answer, f"Multi-line answer found: {answer!r}"
+
+
 def test_run_exercises_e2e(monkeypatch, capsys, questions):
     # Simulate correct user answers by writing expected content via fake editor
     call_index = {'i': 0}
