@@ -130,6 +130,40 @@ def show_history():
             print(f"{cat}: {correct}/{asked} ({pct:.1f}%)")
     else:
         print("No per-category stats to aggregate.")
+
+def show_modules():
+    """Display available built-in and question-data modules."""
+    # Built-in modules
+    modules = discover_modules()
+    print(f"{Fore.CYAN}Built-in Modules:{Style.RESET_ALL}")
+    if modules:
+        for mod in modules:
+            print(Fore.YELLOW + mod + Style.RESET_ALL)
+    else:
+        print("No built-in modules found.")
+    # Question-data modules by source file
+    print(f"\n{Fore.CYAN}Question-data Modules (by file):{Style.RESET_ALL}")
+    # JSON modules
+    json_paths = JSONLoader().discover()
+    if json_paths:
+        print(Fore.CYAN + "  JSON:" + Style.RESET_ALL)
+        for p in json_paths:
+            name = os.path.splitext(os.path.basename(p))[0]
+            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+    # Markdown modules
+    md_paths = MDLoader().discover()
+    if md_paths:
+        print(Fore.CYAN + "  Markdown:" + Style.RESET_ALL)
+        for p in md_paths:
+            name = os.path.splitext(os.path.basename(p))[0]
+            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+    # YAML modules
+    yaml_paths = YAMLLoader().discover()
+    if yaml_paths:
+        print(Fore.CYAN + "  YAML:" + Style.RESET_ALL)
+        for p in yaml_paths:
+            name = os.path.splitext(os.path.basename(p))[0]
+            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
     
 def spawn_pty_shell():
     """Spawn a real bash shell in a PTY sandbox."""
@@ -264,9 +298,96 @@ def main():
 
         restart_loop = False
 
-        # If no arguments provided, default to the kubernetes module interactive menu
+        # If no arguments provided, show an interactive menu of modules
         if len(sys.argv) == 1:
-            args.module = 'kubernetes'
+            if not questionary:
+                print(f"{Fore.YELLOW}For a rich interactive menu, please install 'questionary' (`pip install questionary`){Style.RESET_ALL}")
+                print("Falling back to default Kubernetes quiz module.")
+                args.module = 'kubernetes'
+            else:
+                try:
+                    # Main interactive loop
+                    while True:
+                        action = questionary.select(
+                            "Welcome to Kubelingo! What would you like to do?",
+                            choices=[
+                                questionary.Choice(
+                                    title=f"{Fore.GREEN}Start Kubernetes Exercises{Style.RESET_ALL}",
+                                    value="k8s"
+                                ),
+                                questionary.Choice(
+                                    title=f"{Fore.CYAN}Launch Sandbox Environment{Style.RESET_ALL}",
+                                    value="sandbox"
+                                ),
+                                questionary.Separator(),
+                                questionary.Choice(
+                                    title="Show Quiz History",
+                                    value="history"
+                                ),
+                                questionary.Choice(
+                                    title="List Available Modules",
+                                    value="list_modules"
+                                ),
+                                questionary.Separator(),
+                                questionary.Choice(
+                                    title="Exit",
+                                    value="exit"
+                                )
+                            ],
+                            use_indicator=True
+                        ).ask()
+
+                        if action is None or action == 'exit':
+                            print("\nExiting.")
+                            return
+
+                        if action == 'k8s':
+                            args.module = 'kubernetes'
+                            break
+                        elif action == 'sandbox':
+                            sandbox_action = questionary.select(
+                                "Select a sandbox type:",
+                                choices=[
+                                    questionary.Choice(
+                                        title=f"Embedded PTY {Style.DIM}(native shell, no isolation){Style.RESET_ALL}",
+                                        value="embedded"
+                                    ),
+                                    questionary.Choice(
+                                        title=f"Docker Container {Style.DIM}(isolated, requires Docker){Style.RESET_ALL}",
+                                        value="container"
+                                    ),
+                                    questionary.Separator(),
+                                    questionary.Choice(title="Back to Main Menu", value="back")
+                                ],
+                                use_indicator=True
+                            ).ask()
+
+                            if sandbox_action is None or sandbox_action == 'back':
+                                continue
+
+                            if sandbox_action == 'embedded':
+                                spawn_pty_shell()
+                            else:
+                                launch_container_sandbox()
+                            print("\nPress Enter to return to the menu...")
+                            input()
+                            continue
+
+                        elif action == 'history':
+                            print()
+                            show_history()
+                            print("\nPress Enter to return to the menu...")
+                            input()
+                            continue
+                        elif action == 'list_modules':
+                            print()
+                            show_modules()
+                            print("\nPress Enter to return to the menu...")
+                            input()
+                            continue
+                except (EOFError, KeyboardInterrupt):
+                    print("\nExiting.")
+                    return
         
         if restart_loop:
             sys.argv = [sys.argv[0]]
@@ -284,37 +405,7 @@ def main():
             break
 
         if args.list_modules:
-            # Built-in modules
-            modules = discover_modules()
-            print(f"{Fore.CYAN}Built-in Modules:{Style.RESET_ALL}")
-            if modules:
-                for mod in modules:
-                    print(Fore.YELLOW + mod + Style.RESET_ALL)
-            else:
-                print("No built-in modules found.")
-            # Question-data modules by source file
-            print(f"\n{Fore.CYAN}Question-data Modules (by file):{Style.RESET_ALL}")
-            # JSON modules
-            json_paths = JSONLoader().discover()
-            if json_paths:
-                print(Fore.CYAN + "  JSON:" + Style.RESET_ALL)
-                for p in json_paths:
-                    name = os.path.splitext(os.path.basename(p))[0]
-                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
-            # Markdown modules
-            md_paths = MDLoader().discover()
-            if md_paths:
-                print(Fore.CYAN + "  Markdown:" + Style.RESET_ALL)
-                for p in md_paths:
-                    name = os.path.splitext(os.path.basename(p))[0]
-                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
-            # YAML modules
-            yaml_paths = YAMLLoader().discover()
-            if yaml_paths:
-                print(Fore.CYAN + "  YAML:" + Style.RESET_ALL)
-                for p in yaml_paths:
-                    name = os.path.splitext(os.path.basename(p))[0]
-                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            show_modules()
             return
 
         if args.list_categories:
