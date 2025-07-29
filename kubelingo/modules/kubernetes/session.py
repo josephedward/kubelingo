@@ -613,67 +613,31 @@ class NewSession(StudySession):
             self._run_one_exercise(q)
 
     def _initialize_live_session(self):
-        """Provisions a temporary EKS cluster for the session, or uses existing context."""
-        deps = check_dependencies('go', 'kubectl')
+        """Checks for dependencies and prepares for a live session."""
+        deps = check_dependencies('kubectl')
         if deps:
-            print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
+            print(Fore.RED + f"Missing dependency for live questions: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
+            print(Fore.YELLOW + "Please ensure you have a Kubernetes cluster configured (e.g., minikube, Docker Desktop)." + Style.RESET_ALL)
             return False
 
         self.live_session_active = True
+        print(Fore.YELLOW + "Live mode enabled. Using your pre-configured Kubernetes context." + Style.RESET_ALL)
+        try:
+            context = subprocess.check_output(['kubectl', 'config', 'current-context'], text=True).strip()
+            print(f"{Fore.CYAN}Current context: {context}{Style.RESET_ALL}")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print(Fore.RED + "Could not determine current Kubernetes context. Is kubectl configured correctly?" + Style.RESET_ALL)
+            return False
 
-        if not shutil.which('eksctl'):
-            print(Fore.YELLOW + "Warning: 'eksctl' not found. Using pre-configured Kubernetes context." + Style.RESET_ALL)
-            self.cluster_name = "pre-configured"
-            return True
-
-        self.cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
-        # ... rest of the live session setup from the original file ...
+        self.cluster_name = "pre-configured"
         return True
     
     def _run_one_exercise(self, q):
-        """Handles a single live Kubernetes question with an ephemeral EKS cluster."""
+        """Handles a single live Kubernetes question against the user's current context."""
         is_correct = False
-        # Ensure dependencies are available
-        deps = check_dependencies('go', 'eksctl', 'kubectl')
-        if deps:
-            print(Fore.RED + f"Missing dependencies for live questions: {', '.join(deps)}. Skipping." + Style.RESET_ALL)
-            return
-
-        cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
-        kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{cluster_name}.kubeconfig")
         try:
-            # Acquire sandbox credentials
-            print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
-            gs = GoSandboxIntegration()
-            creds = gs.acquire_credentials()
-            if not creds:
-                print(Fore.RED + "Failed to acquire AWS credentials. Cannot proceed with cloud exercise." + Style.RESET_ALL)
-                return
-            gs.export_to_environment()
-
-            # Provision EKS cluster
-            region = os.environ.get('AWS_REGION', 'us-west-2')
-            node_type = os.environ.get('CLUSTER_INSTANCE_TYPE', 't3.medium')
-            node_count = os.environ.get('NODE_COUNT', '2')
-            print(Fore.YELLOW + f"Provisioning EKS cluster '{cluster_name}' "
-                               f"(region={region}, nodes={node_count}, type={node_type})..." + Style.RESET_ALL)
-            subprocess.run([
-                'eksctl', 'create', 'cluster',
-                '--name', cluster_name,
-                '--region', region,
-                '--nodegroup-name', 'worker-nodes',
-                '--node-type', node_type,
-                '--nodes', node_count
-            ], check=True)
-
-            # Write kubeconfig and set environment variable for this session
-            os.environ['KUBECONFIG'] = kubeconfig_path
-            with open(kubeconfig_path, 'w') as kc:
-                subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
-            print(f"Kubeconfig for this session is at: {kubeconfig_path}")
-
             # --- Interactive shell session ---
-            print(Fore.GREEN + "\nYou are in a sandboxed environment. Use kubectl, vim, etc." + Style.RESET_ALL)
+            print(Fore.GREEN + "\nYou are in a sandboxed environment. Your commands will run against the current Kubernetes context." + Style.RESET_ALL)
             print(Fore.GREEN + "Type 'done' or 'exit' when you have completed the task." + Style.RESET_ALL)
 
             if q.get('type') == 'live_k8s_edit' and q.get('starting_yaml'):
@@ -704,17 +668,22 @@ class NewSession(StudySession):
                     break
 
                 cmd_parts = shlex.split(command_str)
-                # KUBECONFIG is already set in the environment for the parent process
 
-                interactive_commands = ['vim', 'vi', 'nano', 'emacs', os.environ.get('EDITOR', '').split('/')[-1]]
+                # Handle interactive editors separately to ensure they run in the foreground
+                editor_env = os.environ.get('EDITOR', 'vim')
+                # Get just the command name, in case it's a path
+                editor_name = editor_env.split('/')[-1]
+                interactive_commands = ['vim', 'vi', 'nano', 'emacs', editor_name]
+
                 if cmd_parts[0] in interactive_commands:
                     try:
-                        subprocess.run(cmd_parts, check=True)  # Inherits stdio
+                        # For editors, run directly and inherit stdio
+                        subprocess.run(cmd_parts, check=True)
                     except (subprocess.CalledProcessError, FileNotFoundError) as e:
                         print(f"{Fore.RED}Error running editor: {e}{Style.RESET_ALL}")
                 else:
                     try:
-                        # For non-interactive commands, capture and print output
+                        # For other commands, capture and print output
                         proc = subprocess.run(cmd_parts, capture_output=True, text=True, check=False)
                         if proc.stdout:
                             print(proc.stdout, end='')
@@ -732,7 +701,7 @@ class NewSession(StudySession):
                 assert_path = tmp_assert.name
             os.chmod(assert_path, 0o755)
 
-            # The validation script needs KUBECONFIG set
+            # The validation script will use the default KUBECONFIG from the environment
             assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
             os.remove(assert_path)
 
@@ -744,18 +713,11 @@ class NewSession(StudySession):
             else:
                 print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
                 print(assert_proc.stdout or assert_proc.stderr)
+        except Exception as e:
+            print(Fore.RED + f"An unexpected error occurred during the exercise: {e}" + Style.RESET_ALL)
         finally:
-            # Delete cluster and cleanup
-            print(Fore.YELLOW + f"Deleting EKS cluster '{cluster_name}'..." + Style.RESET_ALL)
-            subprocess.run([
-                'eksctl', 'delete', 'cluster',
-                '--name', cluster_name,
-                '--region', os.environ.get('AWS_REGION', 'us-west-2')
-            ], check=True)
-            if os.path.exists(kubeconfig_path):
-                os.remove(kubeconfig_path)
-            if 'KUBECONFIG' in os.environ:
-                del os.environ['KUBECONFIG']
+            # No cloud resources to clean up in this mode.
+            pass
         self.logger.info(f"Live exercise: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
     def cleanup(self):
