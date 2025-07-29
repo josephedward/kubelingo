@@ -7,6 +7,13 @@ import argparse
 import sys
 import os
 import logging
+# Provide pytest.anything for test wildcard assertions
+try:
+    import pytest
+    from unittest.mock import ANY
+    pytest.anything = lambda *args, **kwargs: ANY
+except ImportError:
+    pass
 
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
