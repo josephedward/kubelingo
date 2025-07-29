@@ -57,11 +57,37 @@ def _get_quiz_files():
     ])
 
 
+def _get_md_quiz_files():
+    """Returns a list of paths to Markdown quiz files."""
+    md_dir = os.path.join(DATA_DIR, 'md')
+    if not os.path.isdir(md_dir):
+        return []
+    return sorted([
+        os.path.join(md_dir, f)
+        for f in os.listdir(md_dir)
+        if f.endswith(('.md', '.markdown'))
+    ])
+
+
+def _get_yaml_quiz_files():
+    """Returns a list of paths to YAML quiz files."""
+    yaml_dir = os.path.join(DATA_DIR, 'yaml')
+    if not os.path.isdir(yaml_dir):
+        return []
+    return sorted([
+        os.path.join(yaml_dir, f)
+        for f in os.listdir(yaml_dir)
+        if f.endswith(('.yaml', '.yml'))
+    ])
+
+
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    command_quiz_files = _get_quiz_files()
+    all_quiz_files = \
+        _get_quiz_files() + \
+        _get_md_quiz_files() + \
+        _get_yaml_quiz_files()
 
-    all_quiz_files = command_quiz_files[:]
     if os.path.exists(VIM_QUESTIONS_FILE):
         all_quiz_files.append(VIM_QUESTIONS_FILE)
 
@@ -121,10 +147,25 @@ def check_dependencies(*commands):
     return missing
 
 def load_questions(data_file):
-    # Load quiz data from JSON file
+    # Load quiz data from JSON, YAML, or Markdown with YAML frontmatter
     try:
-        with open(data_file, 'r') as f:
-            data = json.load(f)
+        with open(data_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        if data_file.endswith(('.yaml', '.yml')):
+            data = yaml.safe_load(content)
+        elif data_file.endswith(('.md', '.markdown')):
+            if content.startswith('---'):
+                # Basic frontmatter parsing
+                parts = content.split('---', 2)
+                if len(parts) >= 3:
+                    data = yaml.safe_load(parts[1])
+                else:
+                    data = []  # Malformed frontmatter
+            else:
+                data = [] # No frontmatter
+        else:  # Default to JSON
+            data = json.loads(content)
     except Exception as e:
         print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
         sys.exit(1)
@@ -231,8 +272,7 @@ class NewSession(StudySession):
                     'yaml_progressive': self._handle_yaml_progressive,
                     'yaml_live': self._handle_yaml_live,
                     'yaml_create': self._handle_yaml_create,
-                    'vim_quiz': self._run_vim_commands_quiz,
-                    'killercoda_ckad': self._run_killercoda_ckad
+                    'vim_quiz': self._run_vim_commands_quiz
                 }
 
                 if selected in action_map:
@@ -245,7 +285,7 @@ class NewSession(StudySession):
                     args.review_only = True
                     questions = flagged_command_questions
                     args.file = 'review_session'  # Set a placeholder for history
-                elif selected.endswith('.json'):
+                elif selected.endswith(('.json', '.md', '.markdown', '.yaml', '.yml')):
                     args.file = selected
                     questions = load_questions(args.file)
                 else:
@@ -669,7 +709,9 @@ class NewSession(StudySession):
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
-        command_quiz_files = _get_quiz_files()
+        json_quiz_files = _get_quiz_files()
+        md_quiz_files = _get_md_quiz_files()
+        yaml_quiz_files = _get_yaml_quiz_files()
 
         all_flagged = get_all_flagged_questions()
 
@@ -687,16 +729,20 @@ class NewSession(StudySession):
         if flagged_vim_questions:
             choices.append({'name': f"Review {len(flagged_vim_questions)} Flagged Vim Questions", 'value': "vim_review"})
 
+        def add_quiz_files_to_choices(file_list, category_name):
+            if file_list:
+                choices.append(questionary.Separator(category_name))
+                for file_path in file_list:
+                    base = os.path.basename(file_path)
+                    name = os.path.splitext(base)[0]
+                    subject = humanize_module(name)
+                    title = f"  {subject} ({base})"
+                    choices.append(questionary.Choice(title=title, value=file_path))
+
         # Quizzes from files
-        if command_quiz_files:
-            choices.append(questionary.Separator("Command Quizzes"))
-            for file_path in command_quiz_files:
-                base = os.path.basename(file_path)
-                name = os.path.splitext(base)[0]
-                subject = humanize_module(name)
-                # Style.DIM was causing rendering issues with questionary
-                title = f"  {subject} ({base})"
-                choices.append(questionary.Choice(title=title, value=file_path))
+        add_quiz_files_to_choices(json_quiz_files, "Command Quizzes (JSON)")
+        add_quiz_files_to_choices(md_quiz_files, "Command Quizzes (Markdown)")
+        add_quiz_files_to_choices(yaml_quiz_files, "Command Quizzes (YAML)")
 
         # Other exercises
         choices.append(questionary.Separator("Other Exercises"))
@@ -706,12 +752,6 @@ class NewSession(StudySession):
         choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
         choices.append(questionary.Separator())
         choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
-        # Determine Killercoda CKAD quiz CSV file (env override or default)
-        killercoda_csv_file = os.environ.get(
-            'KILLERCODA_CSV',
-            os.path.join(CSV_DIR, 'killercoda-ckad_072425.csv')
-        )
-        choices.append({'name': f"Killercoda CKAD Quiz ({os.path.basename(killercoda_csv_file)})", 'value': "killercoda_ckad"})
 
         # Admin options
         if all_flagged:
