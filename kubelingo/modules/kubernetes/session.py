@@ -65,6 +65,7 @@ LOGS_DIR = os.path.join(ROOT, 'logs')
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim_quiz_data.json')
+KILLERCODA_CSV_FILE = os.path.join(DATA_DIR, 'csv', 'killercoda-ckad_072425.csv')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(LOGS_DIR, '.cli_quiz_history.json')
 
@@ -736,13 +737,14 @@ class NewSession(StudySession):
 
         # Other exercises
         choices.append(questionary.Separator("Other Exercises"))
-        choices.append({'name': "YAML Editing Quiz", 'value': "yaml_standard"})
+        choices.append({'name': f"YAML Editing Quiz ({os.path.basename(YAML_QUESTIONS_FILE)})", 'value': "yaml_standard"})
         choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
         choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
         choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
         choices.append(questionary.Separator())
-        choices.append({'name': "Vim Commands Quiz", 'value': "vim_quiz"})
-        choices.append({'name': "Killercoda CKAD Quiz", 'value': "killercoda_ckad"})
+        choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
+        killercoda_csv_file = os.environ.get('KILLERCODA_CSV', KILLERCODA_CSV_FILE)
+        choices.append({'name': f"Killercoda CKAD Quiz ({os.path.basename(killercoda_csv_file)})", 'value': "killercoda_ckad"})
 
         # Admin options
         if all_flagged:
