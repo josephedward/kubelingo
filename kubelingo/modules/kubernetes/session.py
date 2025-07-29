@@ -210,27 +210,46 @@ def load_questions(data_file, exit_on_error=True):
     elif ext in ('.md', '.markdown'):
         loader = MDLoader()
     elif ext in ('.yaml', '.yml'):
-        # Special-case flat YAML list of questions with 'prompt' key
+        # Manual parser for flat YAML list of questions
+        questions = []
         try:
-            raw_yaml = yaml.safe_load(open(data_file, encoding='utf-8')) or []
+            lines = open(data_file, encoding='utf-8').read().splitlines()
         except Exception as e:
             if exit_on_error:
-                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+                print(Fore.RED + f"Error reading quiz data from {data_file}: {e}" + Style.RESET_ALL)
                 sys.exit(1)
             return []
-        if isinstance(raw_yaml, list) and raw_yaml and isinstance(raw_yaml[0], dict) and 'prompt' in raw_yaml[0]:
-            questions = []
-            for item in raw_yaml:
-                questions.append({
-                    'category': item.get('category', 'General'),
-                    'prompt': item.get('prompt', ''),
-                    'explanation': item.get('explanation', ''),
-                    'type': item.get('type', 'command'),
-                    'response': item.get('response', '') or item.get('answer', ''),
-                    'review': item.get('review', False)
-                })
+        i = 0
+        while i < len(lines):
+            line = lines[i].lstrip()
+            if line.startswith('- prompt:'):
+                # Extract prompt text
+                _, val = line.split(':', 1)
+                prompt_text = val.strip().strip("\"'")
+                q = {'category': 'General', 'prompt': prompt_text,
+                     'explanation': '', 'type': 'command',
+                     'response': '', 'review': False}
+                i += 1
+                # Find answer block
+                while i < len(lines) and 'answer:' not in lines[i]:
+                    i += 1
+                # Skip 'answer:' line
+                i += 1
+                # Collect indented lines as response
+                resp_lines = []
+                while i < len(lines) and (lines[i].startswith(' ') or lines[i].startswith('\t')):
+                    resp_lines.append(lines[i].strip())
+                    i += 1
+                q['response'] = '\n'.join(resp_lines).strip()
+                questions.append(q)
+                continue
+            i += 1
+        if questions:
             return questions
-        loader = YAMLLoader()
+        if exit_on_error:
+            print(Fore.RED + f"Unsupported YAML quiz format in {data_file}." + Style.RESET_ALL)
+            sys.exit(1)
+        return []
     else:
         if exit_on_error:
             print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
