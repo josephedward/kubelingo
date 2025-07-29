@@ -7,7 +7,7 @@ from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 
 @patch('sys.stdout.isatty', return_value=True)
 @patch('pty.spawn')
-@patch('kubelingo.sandbox.rust_bridge')
+@patch('kubelingo.bridge.rust_bridge')
 def test_spawn_pty_shell_python_fallback(mock_rust_bridge, mock_pty_spawn, mock_isatty):
     """Test that spawn_pty_shell uses Python's pty.spawn as a fallback."""
     mock_rust_bridge.is_available.return_value = True
