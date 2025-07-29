@@ -10,6 +10,7 @@ import datetime
 import tempfile
 # OS utilities
 import os
+import pty
 import shutil
 import subprocess
 import logging
@@ -20,6 +21,15 @@ from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
+
+def _humanize_module(name: str) -> str:
+    """Turn a module filename into a human-friendly title."""
+    # If prefixed with order 'a.', drop prefix
+    if '.' in name:
+        disp = name.split('.', 1)[1]
+    else:
+        disp = name
+    return disp.replace('_', ' ').title()
 
 # Interactive prompts library (optional for arrow-key selection)
 try:
@@ -40,6 +50,11 @@ except ImportError:
         RED = GREEN = YELLOW = CYAN = MAGENTA = ""
     class Style:
         RESET_ALL = ""
+    
+# Disable ANSI color codes when not writing to a real terminal
+if not sys.stdout.isatty():
+    Fore.RED = Fore.GREEN = Fore.YELLOW = Fore.CYAN = Fore.MAGENTA = ""
+    Style.RESET_ALL = ""
 
 ASCII_ART = r"""
 K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
@@ -112,6 +127,53 @@ def show_history():
             print(f"{cat}: {correct}/{asked} ({pct:.1f}%)")
     else:
         print("No per-category stats to aggregate.")
+    
+def spawn_pty_shell():
+    """Spawn a real bash shell in a PTY sandbox."""
+    if not sys.stdout.isatty():
+        print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
+        return
+    print(f"{Fore.CYAN}Starting PTY shell (native, no isolation)...{Style.RESET_ALL}")
+    # Set a custom prompt
+    os.environ['PS1'] = '(kubelingo-sandbox)$ '
+    try:
+        pty.spawn(['bash', '--login'])
+    except Exception as e:
+        print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}PTY shell session ended.{Style.RESET_ALL}")
+
+def launch_container_sandbox():
+    """Build and launch a Docker container sandbox for Kubelingo."""
+    docker = shutil.which('docker')
+    if not docker:
+        print("❌ Docker not found. Please install Docker to use container sandbox mode.")
+        return
+    dockerfile = os.path.join(ROOT, 'docker', 'sandbox', 'Dockerfile')
+    if not os.path.exists(dockerfile):
+        print(f"❌ Dockerfile not found at {dockerfile}. Ensure docker/sandbox/Dockerfile exists.")
+        return
+    image = 'kubelingo/sandbox:latest'
+    # Check if image exists locally
+    if subprocess.run(['docker','image','inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        print("🛠️  Building sandbox Docker image (this may take a minute)...")
+        if subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT]).returncode != 0:
+            print("❌ Failed to build sandbox image. Please run:")
+            print(f"    docker build -t kubelingo/sandbox:latest -f {dockerfile} {ROOT}")
+            return
+    print("📦 Launching container sandbox environment. Press Ctrl-D or type 'exit' to exit.")
+    print("- Isolation: No internet by default, fixed toolset (bash, vim, kubectl).")
+    print("- Requirements: Docker installed and running.")
+    cwd = os.getcwd()
+    try:
+        subprocess.run([
+            'docker', 'run', '--rm', '-it', '--network', 'none',
+            '-v', f'{cwd}:/workspace',
+            '-w', '/workspace',
+            image
+        ])
+    except KeyboardInterrupt:
+        pass
+    return
 
 
 
@@ -166,6 +228,13 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
+        # Sandbox mode dispatch: if specified, run embedded PTY or container sandbox
+        if args.sandbox_mode:
+            if args.sandbox_mode == 'embedded':
+                spawn_pty_shell()
+            else:
+                launch_container_sandbox()
+            return
         # If unified exercise requested, load and list questions
         if args.exercise_module:
             questions = []
@@ -201,14 +270,38 @@ def main():
             if questionary:
                 try:
                     choices = []
-                    for mod in modules:
-                        if mod == 'custom':
-                            title = 'Custom Quiz'
-                        elif mod == 'killercoda_ckad':
-                            title = 'Killercoda CKAD'
-                        else:
-                            title = mod.replace('_', ' ').title()
-                        choices.append(questionary.Choice(title=title, value=mod))
+                    # JSON files
+                    json_paths = JSONLoader().discover()
+                    if json_paths:
+                        choices.append(questionary.Separator(Fore.CYAN + " JSON Files " + Style.RESET_ALL))
+                        for path in sorted(json_paths):
+                            base = os.path.basename(path)
+                            name = os.path.splitext(base)[0]
+                            subject = _humanize_module(name)
+                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            choices.append(questionary.Choice(title=title, value=name))
+                    # Markdown files
+                    md_paths = MDLoader().discover()
+                    if md_paths:
+                        choices.append(questionary.Separator(Fore.CYAN + " Markdown Files " + Style.RESET_ALL))
+                        for path in sorted(md_paths):
+                            base = os.path.basename(path)
+                            name = os.path.splitext(base)[0]
+                            subject = _humanize_module(name)
+                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            choices.append(questionary.Choice(title=title, value=name))
+                    # YAML files
+                    yaml_paths = YAMLLoader().discover()
+                    if yaml_paths:
+                        choices.append(questionary.Separator(Fore.CYAN + " YAML Files " + Style.RESET_ALL))
+                        for path in sorted(yaml_paths):
+                            base = os.path.basename(path)
+                            name = os.path.splitext(base)[0]
+                            subject = _humanize_module(name)
+                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            choices.append(questionary.Choice(title=title, value=name))
+                    # Help / Exit
+                    choices.append(questionary.Separator())
                     choices.append(questionary.Choice(title='Help', value='help'))
                     choices.append(questionary.Choice(title='Exit', value=None))
                     action = questionary.select(
