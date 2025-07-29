@@ -161,100 +161,16 @@ def check_dependencies(*commands):
     return missing
 
 def load_questions(data_file, exit_on_error=True):
-    """Loads questions from JSON, YAML, or Markdown files."""
+    """Loads questions from JSON, YAML, or Markdown files using dedicated loaders."""
     ext = os.path.splitext(data_file)[1].lower()
     loader = None
 
     if ext == '.json':
-        # Support flat JSON list format with 'prompt' and 'answer'
-        try:
-            with open(data_file, 'r', encoding='utf-8') as f:
-                raw = json.load(f)
-        except Exception as e:
-            if exit_on_error:
-                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
-                sys.exit(1)
-            return []
-        if isinstance(raw, list) and raw and isinstance(raw[0], dict):
-            # Flat list-of-questions format
-            if 'prompt' in raw[0]:
-                questions = []
-                for item in raw:
-                    questions.append({
-                        'category': item.get('category', 'General'),
-                        'prompt': item.get('prompt', ''),
-                        'explanation': item.get('explanation', ''),
-                        'type': item.get('type', 'command'),
-                        'response': item.get('response', '') or item.get('answer', ''),
-                        'review': item.get('review', False)
-                    })
-                return questions
-            # Section-based list with 'prompts' key
-            elif 'prompts' in raw[0]:
-                questions = []
-                for section in raw:
-                    if not isinstance(section, dict):
-                        continue
-                    category = section.get('category', 'General')
-                    prompts_list = section.get('prompts', [])
-                    if not isinstance(prompts_list, list):
-                        continue
-                    for item in prompts_list:
-                        if not isinstance(item, dict):
-                            continue
-                        questions.append({
-                            'category': category,
-                            'prompt': item.get('prompt', ''),
-                            'explanation': item.get('explanation', ''),
-                            'type': item.get('type', 'command'),
-                            'response': item.get('response', '') or item.get('answer', ''),
-                            'review': item.get('review', False)
-                        })
-                return questions
         loader = JSONLoader()
     elif ext in ('.md', '.markdown'):
         loader = MDLoader()
     elif ext in ('.yaml', '.yml'):
-        # Manual parser for flat YAML list of questions
-        questions = []
-        try:
-            lines = open(data_file, encoding='utf-8').read().splitlines()
-        except Exception as e:
-            if exit_on_error:
-                print(Fore.RED + f"Error reading quiz data from {data_file}: {e}" + Style.RESET_ALL)
-                sys.exit(1)
-            return []
-        i = 0
-        while i < len(lines):
-            line = lines[i].lstrip()
-            if line.startswith('- prompt:'):
-                # Extract prompt text
-                _, val = line.split(':', 1)
-                prompt_text = val.strip().strip("\"'")
-                q = {'category': 'General', 'prompt': prompt_text,
-                     'explanation': '', 'type': 'command',
-                     'response': '', 'review': False}
-                i += 1
-                # Find answer block
-                while i < len(lines) and 'answer:' not in lines[i]:
-                    i += 1
-                # Skip 'answer:' line
-                i += 1
-                # Collect indented lines as response
-                resp_lines = []
-                while i < len(lines) and (lines[i].startswith(' ') or lines[i].startswith('\t')):
-                    resp_lines.append(lines[i].strip())
-                    i += 1
-                q['response'] = '\n'.join(resp_lines).strip()
-                questions.append(q)
-                continue
-            i += 1
-        if questions:
-            return questions
-        if exit_on_error:
-            print(Fore.RED + f"Unsupported YAML quiz format in {data_file}." + Style.RESET_ALL)
-            sys.exit(1)
-        return []
+        loader = YAMLLoader()
     else:
         if exit_on_error:
             print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
@@ -272,6 +188,8 @@ def load_questions(data_file, exit_on_error=True):
             # Ensure a default question type for loaders, to match inline parsing
             if 'type' not in q_dict or not q_dict['type']:
                 q_dict['type'] = 'command'
+            # Ensure response is populated from answer if present, for compatibility
+            q_dict['response'] = q_dict.get('response', '') or q_dict.get('answer', '')
             questions.append(q_dict)
         return questions
     except Exception as e:
