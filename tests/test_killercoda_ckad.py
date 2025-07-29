@@ -6,8 +6,7 @@ import subprocess
 
 import pytest
 
-from kubelingo.modules.killercoda_ckad.session import NewSession
-import kubelingo.modules.killercoda_ckad.session as session_mod
+from kubelingo.modules.kubernetes.session import NewSession
 
 
 @pytest.fixture(scope="module")
@@ -48,6 +47,7 @@ def test_all_questions_are_single_line(questions):
 def test_run_exercises_e2e(monkeypatch, capsys, questions):
     # Simulate correct user answers by writing expected content via fake editor
     call_index = {'i': 0}
+
     def fake_call(cmd, *args, **kwargs):
         # cmd is [editor, tmp_path]
         tmp_path = cmd[-1]
@@ -59,20 +59,41 @@ def test_run_exercises_e2e(monkeypatch, capsys, questions):
 
     monkeypatch.setattr(subprocess, 'call', fake_call)
 
+    # Mock questionary to automate answering
+    class MockQuestionary:
+        def __init__(self, returns):
+            self._returns = iter(returns)
+        def ask(self):
+            try:
+                return next(self._returns)
+            except StopIteration:
+                return None
+
+    # For each question, simulate: 1. Answer, 2. Check
+    questionary_returns = []
+    for _ in questions:
+        questionary_returns.extend(["answer", "check"])
+
+    def mock_select(*args, **kwargs):
+        return MockQuestionary(questionary_returns)
+
+    monkeypatch.setattr("kubelingo.modules.kubernetes.session.questionary.select", mock_select)
+
     logger = logging.getLogger('killercoda_ckad_test')
     session = NewSession(logger=logger)
-    args = argparse.Namespace()
+    # The killercoda quiz uses these args, provide defaults for the test.
+    args = argparse.Namespace(num=0, randomize=False, category=None)
 
-    session.initialize()
-    session.run_exercises(args)
+    # The logic was moved to a private method, so we test it directly
+    session._run_killercoda_ckad(args)
     captured = capsys.readouterr().out
 
     # Verify quiz output (strip ANSI color codes for assertions)
     import re
     clean = re.sub(r'\x1b\[[0-9;]*m', '', captured)
-    assert "Killercoda CKAD Quiz" in clean
+    assert "Killercoda CKAD CSV Quiz" in clean
     assert "Quiz Complete" in clean
     total = len(questions)
-    # Summary should report results (matching the total questions count)
+    # Summary should report results for all questions answered
     assert f"out of {total}" in clean
 
