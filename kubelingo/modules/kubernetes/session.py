@@ -1140,39 +1140,100 @@ class NewSession(StudySession):
         """Handles setup and execution of live Kubernetes exercises."""
         if not self._initialize_live_session():
             return
-        
+
         all_questions = load_questions(args.file)
         live_qs = [q for q in all_questions if q.get('type') in ('live_k8s_edit', 'live_k8s')]
         if not live_qs:
             print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
             return
-        
+
         from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
         sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
 
-        for i, q in enumerate(live_qs, 1):
-            print(f"\n{Fore.CYAN}=== Cloud Exercise {i}/{len(live_qs)} ==={Style.RESET_ALL}")
-            print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
+        total_questions = len(live_qs)
+        questions_to_ask = random.sample(live_qs, total_questions)
 
-            print(Fore.GREEN + "\nA sandbox shell will be opened for you to complete the exercise. Exit the shell when you are done." + Style.RESET_ALL)
-            sandbox_func()
+        quiz_backed_out = False
+        current_question_index = 0
+        while current_question_index < len(questions_to_ask):
+            q = questions_to_ask[current_question_index]
+            i = current_question_index + 1
+            was_answered = False
 
-            is_correct = self._run_one_exercise(q)
-            if is_correct:
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                if q.get('explanation'):
-                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            # Inner loop for the in-quiz menu
+            while True:
+                # We reprint the question each time to keep it visible
+                print(f"\n{Fore.YELLOW}Cloud Exercise {i}/{total_questions} (Category: {q.get('category', 'Live')}){Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}Q: {q['prompt']}{Style.RESET_ALL}")
 
-            if i < len(live_qs):
+                is_flagged = q.get('review', False)
+                flag_option_text = "Un-flag for Review" if is_flagged else "Flag for Review"
+
+                choices = [
+                    questionary.Choice("1. Open Sandbox Shell", value="answer"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                    questionary.Choice("4. Skip", value="skip"),
+                    questionary.Choice("5. Exit Live Mode", value="back")
+                ]
+
                 try:
-                    cont = input("Continue to next exercise? (y/N): ")
-                    if not cont.lower().startswith('y'):
-                        break
+                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                    if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
-                    print("\nExiting exercise mode.")
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    return
+
+                if action == "back":
+                    quiz_backed_out = True
                     break
+
+                if action == "skip":
+                    self.logger.info(f"Live Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
+                    # Could add to a skipped list to review at the end
+                    current_question_index += 1
+                    break
+
+                if action == "flag":
+                    data_file_path = q.get('data_file', args.file)
+                    if is_flagged:
+                        unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                        q['review'] = False
+                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                    else:
+                        mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                        q['review'] = True
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                    continue
+
+                if action == "answer":
+                    was_answered = True
+                    print(Fore.GREEN + "\nA sandbox shell will be opened for you to complete the exercise." + Style.RESET_ALL)
+                    print(Fore.GREEN + "Type 'exit' or press Ctrl-D to return to this menu and check your answer." + Style.RESET_ALL)
+                    sandbox_func()
+                    continue
+
+                if action == "check":
+                    if not was_answered:
+                        print(f"{Fore.RED}You must open the sandbox shell first.{Style.RESET_ALL}")
+                        continue
+
+                    is_correct = self._run_one_exercise(q)
+                    self.logger.info(f"Live Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
+                    if is_correct:
+                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                        if q.get('explanation'):
+                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                        current_question_index += 1
+                        break # to next question
+                    else:
+                        print(f"{Fore.RED}Incorrect. Try again, skip, or exit.{Style.RESET_ALL}")
+                        continue # back to menu for this question
+
+            if quiz_backed_out:
+                print(f"\n{Fore.YELLOW}Exiting live exercise mode.{Style.RESET_ALL}")
+                break
 
     def _initialize_live_session(self):
         """Checks for dependencies and prepares for a live session."""
