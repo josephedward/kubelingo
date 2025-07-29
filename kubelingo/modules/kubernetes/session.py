@@ -1069,10 +1069,32 @@ class NewSession(StudySession):
             print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
             return
         
+        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+
         for i, q in enumerate(live_qs, 1):
             print(f"\n{Fore.CYAN}=== Cloud Exercise {i}/{len(live_qs)} ==={Style.RESET_ALL}")
             print(Fore.YELLOW + f"Q: {q['prompt']}" + Style.RESET_ALL)
-            self._run_one_exercise(q)
+
+            print(Fore.GREEN + "\nA sandbox shell will be opened for you to complete the exercise. Exit the shell when you are done." + Style.RESET_ALL)
+            sandbox_func()
+
+            is_correct = self._run_one_exercise(q)
+            if is_correct:
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                if q.get('explanation'):
+                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+
+            if i < len(live_qs):
+                try:
+                    cont = input("Continue to next exercise? (y/N): ")
+                    if not cont.lower().startswith('y'):
+                        break
+                except (EOFError, KeyboardInterrupt):
+                    print("\nExiting exercise mode.")
+                    break
 
     def _initialize_live_session(self):
         """Checks for dependencies and prepares for a live session."""
