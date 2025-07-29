@@ -25,13 +25,14 @@ def spawn_pty_shell():
         print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
         return
     print(f"\n{Fore.CYAN}--- Starting Embedded PTY Shell ---{Style.RESET_ALL}")
-    print("This is a native shell on your machine. Type 'exit' or press Ctrl-D to end.")
+    print(f"{Fore.YELLOW}This is a native shell on your machine.{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}Type 'exit' or press Ctrl-D to end.{Style.RESET_ALL}")
     os.environ['PS1'] = '(kubelingo-sandbox)$ '
     try:
         pty.spawn(['bash', '--login'])
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
-    print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}\n")
 
 def launch_container_sandbox():
     """Build and launch a Docker container sandbox for Kubelingo."""
@@ -57,8 +58,8 @@ def launch_container_sandbox():
             print(build.stderr)
             return
     print(f"\n📦 {Fore.CYAN}--- Launching Docker Container Sandbox ---{Style.RESET_ALL}")
-    print("This is an isolated container. Your current directory is mounted at /workspace.")
-    print("Type 'exit' or press Ctrl-D to end.")
+    print(f"{Fore.YELLOW}This is an isolated container. Your current directory is mounted at /workspace.{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}Type 'exit' or press Ctrl-D to end.{Style.RESET_ALL}")
     cwd = os.getcwd()
     try:
         subprocess.run([
@@ -72,4 +73,4 @@ def launch_container_sandbox():
     except KeyboardInterrupt:
         pass
     finally:
-        print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}")
+        print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}\n")

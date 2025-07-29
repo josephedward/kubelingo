@@ -67,19 +67,23 @@ def test_cli_sandbox_default_is_pty(mock_spawn_pty_shell):
 
 
 @patch('kubelingo.cli.spawn_pty_shell')
-def test_cli_legacy_pty_flag(mock_spawn_pty_shell):
-    """Test that `kubelingo --pty` calls spawn_pty_shell()."""
+def test_cli_legacy_pty_flag(mock_spawn_pty_shell, capsys):
+    """Test that `kubelingo --pty` calls spawn_pty_shell() and warns."""
     with patch.object(sys, 'argv', ['kubelingo', '--pty']):
         main()
     mock_spawn_pty_shell.assert_called_once()
+    captured = capsys.readouterr()
+    assert "deprecated" in captured.err.lower()
 
 
 @patch('kubelingo.cli.launch_container_sandbox')
-def test_cli_legacy_docker_flag(mock_launch_container_sandbox):
-    """Test that `kubelingo --docker` calls launch_container_sandbox()."""
+def test_cli_legacy_docker_flag(mock_launch_container_sandbox, capsys):
+    """Test that `kubelingo --docker` calls launch_container_sandbox() and warns."""
     with patch.object(sys, 'argv', ['kubelingo', '--docker']):
         main()
     mock_launch_container_sandbox.assert_called_once()
+    captured = capsys.readouterr()
+    assert "deprecated" in captured.err.lower()
 
 
 @patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
