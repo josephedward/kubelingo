@@ -6,8 +6,8 @@ import sys
 
 from kubelingo.utils.ui import Fore, Style
 
-# Path to project root
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+# Project root imported from centralized config
+from kubelingo.utils.config import ROOT
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
