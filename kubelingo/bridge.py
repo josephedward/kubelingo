@@ -46,6 +46,16 @@ class RustBridge:
             print(f"Rust execution failed: {e}")
             
         return False
+    def run_pty_shell(self) -> bool:
+        """Delegate PTY shell spawning to Rust CLI if available"""
+        if not self.is_available():
+            return False
+        cmd = [self.rust_binary, "pty"]
+        try:
+            result = subprocess.run(cmd)
+            return result.returncode == 0
+        except Exception:
+            return False
 
 # Global bridge instance
 rust_bridge = RustBridge()
