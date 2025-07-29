@@ -13,9 +13,17 @@ from kubelingo.utils.validation import commands_equivalent
 from kubelingo.utils.ui import (
     Fore, Style, questionary, yaml, humanize_module
 )
-from kubelingo.constants import (
-    HISTORY_FILE, DEFAULT_DATA_FILE, VIM_QUESTIONS_FILE, YAML_QUESTIONS_FILE,
-    KILLERCODA_CSV_FILE, DATA_DIR, INPUT_HISTORY_FILE, VIM_HISTORY_FILE
+from kubelingo.utils.config import (
+    ROOT,
+    LOGS_DIR,
+    HISTORY_FILE,
+    DEFAULT_DATA_FILE,
+    VIM_QUESTIONS_FILE,
+    YAML_QUESTIONS_FILE,
+    KILLERCODA_CSV_FILE,
+    DATA_DIR,
+    INPUT_HISTORY_FILE,
+    VIM_HISTORY_FILE,
 )
 
 try:
@@ -27,7 +35,9 @@ except ImportError:
 
 from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
+# Existing import
 from .vim_yaml_editor import VimYamlEditor
+# (AI integration is loaded dynamically to avoid import-time dependencies)
 
 
 def _get_quiz_files():
@@ -158,6 +168,20 @@ def load_questions(data_file):
                 question['response'] = item.get('response', '') or item.get('answer', '')
             questions.append(question)
     return questions
+import logging
+from kubelingo.modules.base.session import SessionManager
+
+def mark_question_for_review(data_file, category, prompt_text):
+    """Module-level helper to flag a question for review."""
+    logger = logging.getLogger(__name__)
+    sm = SessionManager(logger)
+    sm.mark_question_for_review(data_file, category, prompt_text)
+
+def unmark_question_for_review(data_file, category, prompt_text):
+    """Module-level helper to remove a question from review."""
+    logger = logging.getLogger(__name__)
+    sm = SessionManager(logger)
+    sm.unmark_question_for_review(data_file, category, prompt_text)
     
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
@@ -186,6 +210,13 @@ class NewSession(StudySession):
 
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
+        # Attempt to delegate to Rust CLI implementation if available
+        try:
+            from kubelingo.bridge import rust_bridge
+        except ImportError:
+            rust_bridge = None
+        if rust_bridge and rust_bridge.is_available() and rust_bridge.run_command_quiz(args):
+            return
         start_time = datetime.now()
         questions = []  # Defer loading until after menu
 
@@ -376,12 +407,28 @@ class NewSession(StudySession):
                                 print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
                                 if q.get('explanation'):
                                     print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                                # AI-generated detailed explanation
+                                try:
+                                    from kubelingo.modules.llm.session import AIHelper
+                                    ai = AIHelper()
+                                    ai_text = ai.get_explanation(q)
+                                    print(ai_text)
+                                except ImportError:
+                                    pass
                                 current_question_index += 1
                                 break
                             else:
                                 print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
                                 if q_type == 'command':
                                     print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                                # AI-generated detailed explanation
+                                try:
+                                    from kubelingo.modules.llm.session import AIHelper
+                                    ai = AIHelper()
+                                    ai_text = ai.get_explanation(q)
+                                    print(ai_text)
+                                except ImportError:
+                                    pass
                                 continue
                     if quiz_backed_out:
                         break  # Exit question loop to go back to quiz menu
@@ -1142,6 +1189,26 @@ class NewSession(StudySession):
         directly from the quiz menu.
         """
         is_correct = False
+        # Interactive input of kubectl commands before validation
+        if not is_check_only:
+            # Prompt user for commands until they enter 'done'
+            if PromptSession:
+                prompt_session = PromptSession()
+            else:
+                prompt_session = None
+            while True:
+                if prompt_session:
+                    user_cmd = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
+                else:
+                    user_cmd = input(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
+                if user_cmd.lower() == 'done':
+                    break
+                if not user_cmd:
+                    continue
+                try:
+                    subprocess.run(user_cmd.split(), capture_output=True, text=True, check=False)
+                except Exception as e:
+                    print(f"{Fore.RED}Error running command '{user_cmd}': {e}{Style.RESET_ALL}")
         print("\nValidating your solution...")
         try:
             with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
@@ -1161,7 +1228,12 @@ class NewSession(StudySession):
                 print(assert_proc.stdout or assert_proc.stderr)
         except Exception as e:
             print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
-        
+        # Record result in logger
+        try:
+            result_str = 'correct' if is_correct else 'incorrect'
+            self.logger.info(f'Live exercise: prompt="{q.get("prompt","")}" result="{result_str}"')
+        except Exception:
+            pass
         return is_correct
 
     def cleanup(self):

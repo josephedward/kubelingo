@@ -21,7 +21,7 @@ from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
     Fore, Style, questionary, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
-from kubelingo.constants import (
+from kubelingo.utils.config import (
     LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
 )
 
@@ -310,7 +310,7 @@ def main():
 
         if args.list_modules:
             show_modules()
-            return
+            sys.exit(0)
 
         if args.list_categories:
             # Category listing is a function of the kubernetes module.
