@@ -730,7 +730,8 @@ class NewSession(StudySession):
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
                 subject = _humanize_module(name)
-                title = f"  {subject} {Style.DIM}({base}){Style.RESET_ALL}"
+                # Style.DIM was causing rendering issues with questionary
+                title = f"  {subject} ({base})"
                 choices.append(questionary.Choice(title=title, value=file_path))
 
         # Other exercises
@@ -746,7 +747,8 @@ class NewSession(StudySession):
         # Admin options
         if all_flagged:
             choices.append(questionary.Separator())
-            choices.append({'name': f"{Fore.YELLOW}Clear All {len(all_flagged)} Review Flags{Style.RESET_ALL}", 'value': "clear_flags"})
+            # Fore.YELLOW was causing rendering issues with questionary
+            choices.append({'name': f"Clear All {len(all_flagged)} Review Flags", 'value': "clear_flags"})
 
         choices.append(questionary.Separator())
         choices.append({'name': "Back to Main Menu", 'value': "back"})
