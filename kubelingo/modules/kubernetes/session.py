@@ -1,4 +1,5 @@
 import json
+import csv
 import os
 import random
 import shutil
@@ -734,19 +735,122 @@ class NewSession(StudySession):
         print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
-    def _run_killercoda_ckad(self, args):  # pylint: disable=unused-argument
-        """Runs the Killercoda CKAD CSV-based quiz via the separate module"""
-        try:
-            session = load_session('killercoda_ckad', self.logger)
-        except Exception as e:
-            print(Fore.RED + f"Error loading Killercoda CKAD module: {e}" + Style.RESET_ALL)
+    def _run_killercoda_ckad(self, args):
+        """Runs the Killercoda CKAD CSV-based quiz"""
+        start_time = datetime.now()
+        default_csv = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), os.pardir, os.pardir,
+                'killercoda-ckad_072425.csv'
+            )
+        )
+        csv_file = os.environ.get('KILLERCODA_CSV', default_csv)
+        if not os.path.exists(csv_file):
+            print(f"{Fore.RED}CSV file not found at {csv_file}{Style.RESET_ALL}")
             return
-        init_ok = session.initialize()
-        if not init_ok:
-            print(Fore.RED + "Killercoda CKAD quiz initialization failed." + Style.RESET_ALL)
+
+        # Parse CSV questions: [category, prompt, answer, ...]
+        questions = []
+        with open(csv_file, newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            # Skip header if present
+            try:
+                first = next(reader)
+                if len(first) >= 2 and 'prompt' in first[1].lower():
+                    pass
+                else:
+                    reader = iter([first] + list(reader))
+            except StopIteration:
+                pass
+            for row in reader:
+                if len(row) < 3:
+                    continue
+                cat, prompt, answer = [r.strip() for r in row[:3]]
+                if prompt.startswith("'") and prompt.endswith("'"):
+                    prompt = prompt[1:-1].strip()
+                if answer.startswith("'") and answer.endswith("'"):
+                    answer = answer[1:-1].strip()
+                if not prompt or not answer:
+                    continue
+                questions.append({'category': cat or 'CKAD', 'prompt': prompt, 'answer': answer})
+        if not questions:
+            print(f"{Fore.YELLOW}No questions found in CSV file.{Style.RESET_ALL}")
             return
-        session.run_exercises(args)
-        session.cleanup()
+
+        # Filter by category if requested
+        if getattr(args, 'category', None):
+            questions = [q for q in questions if q['category'] == args.category]
+            if not questions:
+                print(f"{Fore.YELLOW}No CKAD questions in category '{args.category}'.{Style.RESET_ALL}")
+                return
+        # Determine number to ask
+        num = args.num if getattr(args, 'num', 0) > 0 else len(questions)
+        if getattr(args, 'randomize', False):
+            to_ask = random.sample(questions, min(num, len(questions)))
+        else:
+            to_ask = questions[:num]
+        total = len(to_ask)
+        correct = 0
+        print(f"\n{Fore.CYAN}=== Killercoda CKAD CSV Quiz ==={Style.RESET_ALL}")
+        print(f"Starting CKAD quiz with {Fore.CYAN}{total}{Style.RESET_ALL} questions.")
+
+        for idx, q in enumerate(to_ask, 1):
+            print(f"\n{Fore.YELLOW}Question {idx}/{total} (Category: {q['category']}){Style.RESET_ALL}")
+            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+            # Prepare temp file for YAML answer
+            tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
+            tmp_path = tmp.name
+            tmp.close()
+            try:
+                with open(tmp_path, 'w', encoding='utf-8') as tf:
+                    tf.write("# Enter your YAML manifest below, without quotes.\n")
+                    tf.write("---\n")
+            except Exception as e:
+                print(f"{Fore.RED}Error preparing file: {e}{Style.RESET_ALL}")
+                os.unlink(tmp_path)
+                return
+            editor = os.environ.get('EDITOR', 'vim')
+            cmd = [editor]
+            base = os.path.basename(editor)
+            if base in ('vim', 'nvim', 'vi'):
+                cmd += ['-c', 'set tabstop=2 shiftwidth=2 expandtab', '--noplugin']
+            cmd.append(tmp_path)
+            try:
+                subprocess.call(cmd)
+            except Exception as e:
+                print(f"{Fore.RED}Error launching editor: {e}{Style.RESET_ALL}")
+                os.unlink(tmp_path)
+                return
+            # Read user answer
+            try:
+                lines = []
+                with open(tmp_path, encoding='utf-8') as uf:
+                    for line in uf:
+                        if line.lstrip().startswith('#') or line.strip() == '---':
+                            continue
+                        lines.append(line)
+                user_ans = ''.join(lines).strip()
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            exp = q['answer'].strip()
+            ans = user_ans.strip()
+            if ans == exp or ans.replace("'", '').replace('"', '') == exp.replace("'", '').replace('"', ''):
+                correct += 1
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Expected answer:\n{exp}{Style.RESET_ALL}")
+            self.logger.info(
+                f"CKAD CSV {idx}/{total}: prompt=\"{q['prompt']}\" expected=\"{exp}\" "
+                f"answer=\"{ans}\" result=\"{'correct' if ans==exp else 'incorrect'}\""
+            )
+        duration = str(datetime.now() - start_time).split('.')[0]
+        print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
+        print(f"You got {Fore.GREEN}{correct}{Style.RESET_ALL} out of {Fore.YELLOW}{total}{Style.RESET_ALL} correct.")
+        print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
     def _run_live_mode(self, args):
         """Handles setup and execution of live Kubernetes exercises."""
