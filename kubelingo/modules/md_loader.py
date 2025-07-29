@@ -40,6 +40,7 @@ class MDLoader(BaseLoader):
                     fm_data = {}
         module = fm_data.get('module') or os.path.splitext(os.path.basename(path))[0]
         questions: List[Question] = []
+        # First, try front-matter defined questions
         for idx, item in enumerate(fm_data.get('questions', [])):
             qid = f"{module}::{idx}"
             vals: List[ValidationStep] = []
@@ -59,5 +60,40 @@ class MDLoader(BaseLoader):
                           if k not in ('prompt', 'runner', 'initial_cmds',
                                        'initial_yaml', 'validations',
                                        'explanation', 'categories', 'difficulty')}
+            ))
+        if questions:
+            return questions
+        # Fallback: parse headings and code fences from body
+        lines = body.splitlines()
+        # Identify question headings (level 3 '### ')
+        headings = [i for i, l in enumerate(lines) if l.startswith('### ')]
+        for qidx, start in enumerate(headings):
+            end = headings[qidx + 1] if qidx + 1 < len(headings) else len(lines)
+            prompt = lines[start][4:].strip()
+            # Extract the first fenced code block in the section
+            code_lines: List[str] = []
+            in_code = False
+            for l in lines[start + 1:end]:
+                if l.strip().startswith('```'):
+                    if not in_code:
+                        in_code = True
+                        continue
+                    else:
+                        break
+                if in_code:
+                    code_lines.append(l)
+            cmd = '\n'.join(code_lines).strip()
+            vals = [ValidationStep(cmd=cmd, matcher={})] if cmd else []
+            questions.append(Question(
+                id=f"{module}::{qidx}",
+                prompt=prompt,
+                runner='shell',
+                initial_cmds=[],
+                initial_yaml=None,
+                validations=vals,
+                explanation=None,
+                categories=[],
+                difficulty=None,
+                metadata={}
             ))
         return questions
