@@ -115,6 +115,27 @@ Example:
 - Vim (with `+clientserver` support for integration tests) or preferred editor (set via `$EDITOR`)
 - `kubectl`, `eksctl` (for command validation and cloud exercises)
 - Go and GoSandbox CLI (for cloud exercises)
+  
+### Container Sandbox Mode
+
+Kubelingo can launch a Docker container to provide an isolated environment similar to the CKAD exam:
+
+- **Isolation**: No network access (container run with `--network=none`), only the pre-installed tools (`bash`, `vim`, `kubectl`).
+- **Reproducibility**: Consistent environment across machines.
+- **Requirements**: Requires Docker Engine to be installed and running.
+
+To enter the container sandbox, run:
+
+```bash
+kubelingo --sandbox-mode container
+```
+
+On first run, Kubelingo will build a local Docker image (`kubelingo/sandbox:latest`) from
+`docker/sandbox/Dockerfile`. This requires internet access to download the base image and kubectl binary.
+Subsequent runs reuse the built image.
+
+Inside the container, your current working directory is mounted at `/workspace`, so you can run
+`kubelingo` and kubectl commands against exercises as usual. Exit with `exit` or Ctrl-D.
 
 ## CKAD Exam Coverage
 
