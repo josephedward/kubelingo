@@ -1,11 +1,10 @@
 import pytest
 import json
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 
 # Functions to test
+from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
-    mark_question_for_review,
-    unmark_question_for_review,
     check_dependencies,
     load_questions,
     VimYamlEditor
@@ -34,23 +33,28 @@ def sample_quiz_data():
         }
     ]
 
+@pytest.fixture
+def session_manager():
+    """Fixture for a SessionManager instance."""
+    return SessionManager(logger=MagicMock())
+
 # --- Tests for File Operations ---
 
-def test_mark_question_for_review(sample_quiz_data):
+def test_mark_question_for_review(sample_quiz_data, session_manager):
     """Tests that a question is correctly flagged for review in the data file."""
     mock_file = mock_open(read_data=json.dumps(sample_quiz_data))
     with patch('builtins.open', mock_file):
-        mark_question_for_review("dummy_path.json", "core", "Get all pods")
+        session_manager.mark_question_for_review("dummy_path.json", "core", "Get all pods")
 
     written_content = "".join(call.args[0] for call in mock_file().write.call_args_list)
     updated_data = json.loads(written_content)
     assert updated_data[0]['prompts'][0]['review'] is True
 
-def test_unmark_question_for_review(sample_quiz_data):
+def test_unmark_question_for_review(sample_quiz_data, session_manager):
     """Tests that a 'review' flag is correctly removed from a question."""
     mock_file = mock_open(read_data=json.dumps(sample_quiz_data))
     with patch('builtins.open', mock_file):
-        unmark_question_for_review("dummy_path.json", "core", "Get a specific pod")
+        session_manager.unmark_question_for_review("dummy_path.json", "core", "Get a specific pod")
 
     written_content = "".join(call.args[0] for call in mock_file().write.call_args_list)
     updated_data = json.loads(written_content)
