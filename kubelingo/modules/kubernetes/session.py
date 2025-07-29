@@ -714,17 +714,17 @@ class NewSession(StudySession):
                     title = f"  {subject} ({base})"
                     choices.append(questionary.Choice(title=title, value=file_path))
 
-        # Quizzes from files
-        add_quiz_files_to_choices(json_quiz_files, "Command Quizzes (JSON)")
-        add_quiz_files_to_choices(md_quiz_files, "Command Quizzes (Markdown)")
-        add_quiz_files_to_choices(yaml_quiz_files, "Command Quizzes (YAML)")
+        # Quizzes from files, grouped by file type
+        add_quiz_files_to_choices(json_quiz_files, "Command Quizzes")
+        add_quiz_files_to_choices(md_quiz_files, "Markdown Quizzes")
+        add_quiz_files_to_choices(yaml_quiz_files, "YAML Quizzes")
 
         # Other exercises
         choices.append(questionary.Separator("Other Exercises"))
         choices.append({'name': f"YAML Editing Quiz ({os.path.basename(YAML_QUESTIONS_FILE)})", 'value': "yaml_standard"})
-        choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive", 'disabled': 'Coming soon'})
-        choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live", 'disabled': 'Coming soon'})
-        choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create", 'disabled': 'Coming soon'})
+        choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
+        choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
+        choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
         choices.append(questionary.Separator())
         choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
 
