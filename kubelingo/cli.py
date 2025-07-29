@@ -54,11 +54,11 @@ def print_banner():
         print(Fore.MAGENTA + f"| {line.ljust(width)} |" + Style.RESET_ALL)
     print(Fore.MAGENTA + border + Style.RESET_ALL)
 
-# Quiz data directory (project root 'data/' directory)
+# Quiz data directory (project root 'question-data/' directory)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-DATA_DIR = os.path.join(ROOT, 'data')
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'ckad_quiz_data.json')
-YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml_edit_questions.json')
+DATA_DIR = os.path.join(ROOT, 'question-data')
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
+YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
 # History file for storing past quiz performance
 HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
 
