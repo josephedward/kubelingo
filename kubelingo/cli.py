@@ -10,6 +10,7 @@ import logging
 
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
+from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
     _get_quiz_files,
 )
@@ -26,14 +27,14 @@ from kubelingo.constants import (
 
 def show_history():
     """Display quiz history and aggregated statistics."""
-    if not os.path.exists(HISTORY_FILE):
+    # The logger is not configured at this stage, so we create a dummy one for the manager.
+    # History reading doesn't involve logging in SessionManager.
+    dummy_logger = logging.getLogger('kubelingo_history')
+    session_manager = SessionManager(dummy_logger)
+    history = session_manager.get_history()
+
+    if history is None:
         print(f"No quiz history found ({HISTORY_FILE}).")
-        return
-    try:
-        with open(HISTORY_FILE, 'r') as f:
-            history = json.load(f)
-    except Exception as e:
-        print(f"Error reading history file {HISTORY_FILE}: {e}")
         return
     if not isinstance(history, list) or not history:
         print("No quiz history available.")
