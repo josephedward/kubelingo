@@ -623,10 +623,22 @@ class NewSession(StudySession):
         self.live_session_active = True
         print(Fore.YELLOW + "Live mode enabled. Using your pre-configured Kubernetes context." + Style.RESET_ALL)
         try:
-            context = subprocess.check_output(['kubectl', 'config', 'current-context'], text=True).strip()
-            print(f"{Fore.CYAN}Current context: {context}{Style.RESET_ALL}")
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            print(Fore.RED + "Could not determine current Kubernetes context. Is kubectl configured correctly?" + Style.RESET_ALL)
+            proc = subprocess.run(['kubectl', 'config', 'current-context'], capture_output=True, text=True, check=False)
+            if proc.returncode == 0:
+                context = proc.stdout.strip()
+                if context:
+                    print(f"{Fore.CYAN}Current context: {context}{Style.RESET_ALL}")
+                else:
+                    # A zero exit code with empty output can also mean no context is set.
+                    print(Fore.YELLOW + "Warning: No active Kubernetes context found. "
+                                       "You may need to set one with 'kubectl config use-context <name>'." + Style.RESET_ALL)
+            else:
+                # This handles 'current-context is not set' gracefully.
+                print(Fore.YELLOW + "Warning: No active Kubernetes context found. "
+                                   "You may need to set one with 'kubectl config use-context <name>'." + Style.RESET_ALL)
+        except FileNotFoundError:
+            # This is already handled by check_dependencies, but for safety:
+            print(Fore.RED + "kubectl command not found. Please ensure it is installed and in your PATH." + Style.RESET_ALL)
             return False
 
         self.cluster_name = "pre-configured"
