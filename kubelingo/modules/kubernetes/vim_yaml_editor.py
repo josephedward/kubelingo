@@ -3,21 +3,8 @@ import subprocess
 import tempfile
 import difflib
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
 from kubelingo.utils.validation import validate_yaml_structure
-
-try:
-    from colorama import Fore, Style
-except ImportError:
-    # Fallback if colorama is not available
-    class Fore:
-        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
-    class Style:
-        RESET_ALL = ""
+from kubelingo.utils.ui import Fore, Style, yaml
 
 
 class VimYamlEditor:

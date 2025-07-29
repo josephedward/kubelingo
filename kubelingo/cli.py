@@ -1,99 +1,28 @@
 #!/usr/bin/env python3
 """
-cli_quiz.py: A simple CLI tool to quiz commands (or other strings) based on supplied JSON data.
+Kubelingo: A simple CLI tool to quiz commands (or other strings) based on supplied JSON data.
 """
 import json
-import random
 import argparse
 import sys
-import pty
-import datetime
-import tempfile
-# OS utilities
 import os
-import pty
-import shutil
-import subprocess
 import logging
-import shlex
+
 # Base session loader
-# Core session loader and review utilities
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.kubernetes.session import (
-    get_all_flagged_questions,
-    _clear_all_review_flags,
     _get_quiz_files,
-    load_questions,
-    mark_question_for_review,
-    unmark_question_for_review,
 )
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
-
-def _humanize_module(name: str) -> str:
-    """Turn a module filename into a human-friendly title."""
-    # If prefixed with order 'a.', drop prefix
-    if '.' in name:
-        disp = name.split('.', 1)[1]
-    else:
-        disp = name
-    return disp.replace('_', ' ').title()
-
-# Interactive prompts library (optional for arrow-key selection)
-try:
-    import questionary
-except ImportError:
-    questionary = None
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
-try:
-    from colorama import Fore, Style, init
-    init()
-except ImportError:
-    # Fallback if colorama is not available
-    class Fore:
-        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
-    class Style:
-        RESET_ALL = ""
-        DIM = ""
-    
-# Disable ANSI color codes when not writing to a real terminal
-if not sys.stdout.isatty():
-    Fore.RED = Fore.GREEN = Fore.YELLOW = Fore.CYAN = Fore.MAGENTA = ""
-    Style.RESET_ALL = ""
-
-ASCII_ART = r"""
-K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
-K  K  U   U  B   B E     L      I  NN  N G   G O   O
-KK    U   U  BBBB  EEEE  L      I  N N N G  GG O   O
-K  K  U   U  B   B E     L      I  N  NN G   G O   O
-K   K  UUU   BBBB  EEEEE LLLLL III N   N  GGGG   OOO 
-"""
-
-# Function to print the ASCII banner with a border
-def print_banner():
-    lines = ASCII_ART.strip('\n').splitlines()
-    width = max(len(line) for line in lines)
-    border = '+' + '-'*(width + 2) + '+'
-    print(Fore.MAGENTA + border + Style.RESET_ALL)
-    for line in lines:
-        print(Fore.MAGENTA + f"| {line.ljust(width)} |" + Style.RESET_ALL)
-    print(Fore.MAGENTA + border + Style.RESET_ALL)
-
-# Quiz data directory (project root 'question-data/' directory)
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-DATA_DIR = os.path.join(ROOT, 'question-data')
-LOGS_DIR = os.path.join(ROOT, 'logs')
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
-YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
-# History file for storing past quiz performance
-HISTORY_FILE = os.path.join(LOGS_DIR, '.cli_quiz_history.json')
+from kubelingo.utils.ui import (
+    Fore, Style, questionary, print_banner
+)
+from kubelingo.constants import (
+    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
+)
 
 def show_history():
     """Display quiz history and aggregated statistics."""
@@ -461,8 +390,7 @@ def main():
                 break
 
             # Prepare logging for other modules
-            log_file = os.path.join(LOGS_DIR, 'quiz_log.txt')
-            logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
+            logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
             logger = logging.getLogger()
 
             if module_name == 'custom':
