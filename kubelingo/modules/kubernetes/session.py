@@ -261,7 +261,13 @@ def load_questions(data_file, exit_on_error=True):
         questions_obj = loader.load_file(data_file)
         # The fields of the Question dataclass need to be compatible with what the
         # rest of this module expects. We convert them to dicts.
-        questions = [asdict(q) for q in questions_obj]
+        questions = []
+        for q_obj in questions_obj:
+            q_dict = asdict(q_obj)
+            # Ensure a default question type for loaders, to match inline parsing
+            if 'type' not in q_dict or not q_dict['type']:
+                q_dict['type'] = 'command'
+            questions.append(q_dict)
         return questions
     except Exception as e:
         if exit_on_error:
