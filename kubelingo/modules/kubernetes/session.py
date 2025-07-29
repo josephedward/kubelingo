@@ -360,11 +360,36 @@ class NewSession(StudySession):
                             was_answered = True
 
                             if q_type == 'command':
-                                if prompt_session:
-                                    # Use plain prompt to avoid ANSI codes in answers
-                                    user_answer_content = prompt_session.prompt('Your answer: ').strip()
+                                # Determine if this is a YAML manifest (multi-line) or a simple command
+                                expected_resp = q.get('response', '') or ''
+                                # If expected answer is YAML, open editor for input
+                                if '\n' in expected_resp and yaml:
+                                    # Launch editor to create/edit YAML
+                                    tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
+                                    tmp_path = tmp.name
+                                    tmp.close()
+                                    try:
+                                        # Include prompt as comment header
+                                        with open(tmp_path, 'w', encoding='utf-8') as tf:
+                                            tf.write(f"# {q['prompt']}\n# Enter or modify YAML below\n---\n")
+                                        editor = os.environ.get('EDITOR', 'vim')
+                                        subprocess.call([editor, tmp_path])
+                                        # Read back YAML, skip comments and separators
+                                        with open(tmp_path, 'r', encoding='utf-8') as uf:
+                                            lines = [ln for ln in uf if not ln.lstrip().startswith('#') and ln.strip() != '---']
+                                        user_answer_content = ''.join(lines).strip()
+                                    except Exception as e:
+                                        print(f"{Fore.RED}Error launching editor: {e}{Style.RESET_ALL}")
+                                        user_answer_content = ''
+                                    finally:
+                                        try: os.unlink(tmp_path)
+                                        except: pass
                                 else:
-                                    user_answer_content = input('Your answer: ').strip()
+                                    if prompt_session:
+                                        # Use plain prompt to avoid ANSI codes in answers
+                                        user_answer_content = prompt_session.prompt('Your answer: ').strip()
+                                    else:
+                                        user_answer_content = input('Your answer: ').strip()
                             else:
                                 sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
                                 sandbox_func()
@@ -379,7 +404,18 @@ class NewSession(StudySession):
                                 continue
 
                             if q_type == 'command':
-                                is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
+                                # Determine if comparing YAML manifest or command
+                                expected_resp = (q.get('response', '') or '').strip()
+                                if '\n' in expected_resp and yaml:
+                                    # Compare YAML structures
+                                    try:
+                                        expected_obj = yaml.safe_load(expected_resp)
+                                        answer_obj = yaml.safe_load(user_answer_content or '')
+                                        is_correct = (answer_obj == expected_obj)
+                                    except Exception:
+                                        is_correct = False
+                                else:
+                                    is_correct = commands_equivalent(user_answer_content, expected_resp)
                             elif q_type in ['live_k8s_edit', 'live_k8s']:
                                 is_correct = self._run_one_exercise(q, is_check_only=True)
 
