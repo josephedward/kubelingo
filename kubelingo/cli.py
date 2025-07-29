@@ -243,9 +243,11 @@ def main():
         parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
                             help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
-        # Sandbox modes
-        parser.add_argument('--pty', action='store_true', help="Use an embedded PTY shell for exercises.")
-        parser.add_argument('--docker', action='store_true', help="Use a Docker container for exercises.")
+        # Sandbox modes (deprecated flags) and new sandbox command support
+        parser.add_argument('--pty', action='store_true', help="[deprecated] Use an embedded PTY shell for exercises.")
+        parser.add_argument('--docker', action='store_true', help="[deprecated] Use a Docker container for exercises.")
+        parser.add_argument('--sandbox-mode', choices=['pty','docker'], dest='sandbox_mode',
+                            help='Sandbox mode to use when running the "sandbox" command (default: pty)')
 
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -265,7 +267,7 @@ def main():
 
         # Module-based exercises
         parser.add_argument('module', nargs='?', default=None,
-                            help='Run exercises for a specific module (e.g., kubernetes, kustom)')
+                            help='Run exercises for a specific module (e.g., kubernetes, kustom, sandbox)')
         parser.add_argument('--list-modules', action='store_true',
                             help='List available exercise modules and exit')
         parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -281,11 +283,24 @@ def main():
         # Sandbox mode dispatch: if specified with other args, they are passed to the module.
         # If run alone, they launch a shell and exit.
         from .sandbox import spawn_pty_shell, launch_container_sandbox
-        if (args.pty or args.docker) and args.module is None and not args.k8s_mode and not args.exercise_module:
-            if args.pty:
+        # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
+        if args.module == 'sandbox' or ((args.pty or args.docker)
+                                        and args.module is None
+                                        and not args.k8s_mode
+                                        and not args.exercise_module):
+            # choose mode: explicit sandbox_mode > legacy flags > default 'pty'
+            if args.sandbox_mode:
+                mode = args.sandbox_mode
+            elif args.docker:
+                mode = 'docker'
+            else:
+                mode = 'pty'
+            if mode == 'pty':
                 spawn_pty_shell()
-            if args.docker:
+            elif mode == 'docker':
                 launch_container_sandbox()
+            else:
+                print(f"Unknown sandbox mode: {mode}")
             return
 
         # If unified exercise requested, load and list questions
