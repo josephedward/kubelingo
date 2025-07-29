@@ -275,7 +275,7 @@ class NewSession(StudySession):
         # In interactive mode, prompt user for quiz type (flagged/category)
         is_interactive = (
             questionary and not args.category and not args.review_only and not args.num
-            and (args.file == DEFAULT_DATA_FILE or not os.path.exists(args.file))
+            and (args.file is None or args.file == DEFAULT_DATA_FILE or not os.path.exists(args.file))
         )
         if is_interactive:
             while True:  # Loop to allow returning to menu after clearing flags

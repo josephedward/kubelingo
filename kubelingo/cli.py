@@ -198,7 +198,7 @@ def launch_container_sandbox():
             print(f"    docker build -t kubelingo/sandbox:latest -f {dockerfile} {ROOT}")
             return
     print("📦 Launching container sandbox environment. Press Ctrl-D or type 'exit' to exit.")
-    print("- Isolation: No internet by default, fixed toolset (bash, vim, kubectl).")
+    print("- Isolation: Full network isolation, fixed toolset (bash, vim, kubectl).")
     print("- Requirements: Docker installed and running.")
     cwd = os.getcwd()
     try:
@@ -234,9 +234,9 @@ def main():
         parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
                             help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
-        # Sandbox mode
-        parser.add_argument('--sandbox-mode', type=str, choices=['embedded', 'container'],
-                            help='Launch a sandbox environment (embedded PTY or container-based).')
+        # Sandbox modes
+        parser.add_argument('--pty', action='store_true', help="Launch an embedded PTY shell sandbox.")
+        parser.add_argument('--docker', action='store_true', help="Launch a Docker container sandbox.")
 
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -269,13 +269,14 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
-        # Sandbox mode dispatch: if specified, run embedded PTY or container sandbox
-        if args.sandbox_mode:
-            if args.sandbox_mode == 'embedded':
-                spawn_pty_shell()
-            else:
-                launch_container_sandbox()
+        # Sandbox mode dispatch: if specified, run and exit
+        if args.pty:
+            spawn_pty_shell()
             return
+        if args.docker:
+            launch_container_sandbox()
+            return
+
         # If unified exercise requested, load and list questions
         if args.exercise_module:
             questions = []
