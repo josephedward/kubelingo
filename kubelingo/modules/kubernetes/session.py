@@ -219,8 +219,20 @@ def load_questions(data_file):
         print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
         sys.exit(1)
     questions = []
+    
+    if not data:
+        return []
+
+    # Heuristic to detect format: flat list vs. list of categories
+    is_flat_list = isinstance(data[0], dict) and 'prompt' in data[0]
+
+    if is_flat_list:
+        # Wrap flat list in a 'General' category to be processed by the same logic
+        data = [{'category': 'General', 'questions': data}]
+
     for cat in data:
         category = cat.get('category', '')
+        # Support both 'questions' and 'prompts' keys for question lists.
         prompts = cat.get('prompts', []) or cat.get('questions', [])
         for item in prompts:
             question_type = item.get('type', 'command')
@@ -241,7 +253,8 @@ def load_questions(data_file):
                 question['starting_yaml'] = item.get('starting_yaml', '')
                 question['assert_script'] = item.get('assert_script', '')
             else:  # command
-                question['response'] = item.get('response', '')
+                # Also handles the 'answer' key for responses in some formats.
+                question['response'] = item.get('response', '') or item.get('answer', '')
             questions.append(question)
     return questions
     
