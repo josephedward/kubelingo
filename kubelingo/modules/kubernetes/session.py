@@ -59,15 +59,22 @@ def _get_quiz_files():
 
 
 def _get_md_quiz_files():
-    """Returns a list of paths to Markdown quiz files."""
+    """Returns a list of paths to Markdown quiz files that contain runnable questions."""
     md_dir = os.path.join(DATA_DIR, 'md')
     if not os.path.isdir(md_dir):
         return []
-    return sorted([
-        os.path.join(md_dir, f)
-        for f in os.listdir(md_dir)
-        if f.endswith(('.md', '.markdown'))
-    ])
+
+    runnable_files = []
+    for f in os.listdir(md_dir):
+        if f.endswith(('.md', '.markdown')):
+            file_path = os.path.join(md_dir, f)
+            # Pass exit_on_error=False to prevent halting on non-quiz markdown files.
+            questions = load_questions(file_path, exit_on_error=False)
+            # A file is a runnable quiz if it has at least one question of a runnable type.
+            if any(q.get('type') in ('command', 'live_k8s', 'live_k8s_edit') for q in questions):
+                runnable_files.append(file_path)
+
+    return sorted(runnable_files)
 
 
 def _get_yaml_quiz_files():
@@ -147,7 +154,7 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
 
-def load_questions(data_file):
+def load_questions(data_file, exit_on_error=True):
     """Loads questions from JSON, YAML, or Markdown files."""
     ext = os.path.splitext(data_file)[1].lower()
     loader = None
@@ -159,8 +166,10 @@ def load_questions(data_file):
     elif ext in ('.yaml', '.yml'):
         loader = YAMLLoader()
     else:
-        print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
-        sys.exit(1)
+        if exit_on_error:
+            print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
+            sys.exit(1)
+        return []
 
     try:
         # Loaders return a list of Question objects. The quiz logic expects dicts.
@@ -170,8 +179,10 @@ def load_questions(data_file):
         questions = [asdict(q) for q in questions_obj]
         return questions
     except Exception as e:
-        print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
-        sys.exit(1)
+        if exit_on_error:
+            print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+            sys.exit(1)
+        return []
 import logging
 from kubelingo.modules.base.session import SessionManager
 
