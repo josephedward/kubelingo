@@ -386,11 +386,15 @@ class NewSession(StudySession):
                             continue
 
                         if action == "check":
-                            if not was_answered:
-                                print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
-                                continue
-                            
                             if q_type == 'command':
+                                if not was_answered:
+                                    expected = q.get('response', '')
+                                    print(f"{Fore.CYAN}Running expected command for environment check: {expected}{Style.RESET_ALL}")
+                                    try:
+                                        subprocess.run(expected.split(), check=False)
+                                    except Exception as e:
+                                        print(f"{Fore.RED}Error running expected command: {e}{Style.RESET_ALL}")
+                                    continue
                                 is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
                             elif q_type in ['live_k8s_edit', 'live_k8s']:
                                 is_correct = self._run_one_exercise(q, is_check_only=True)
@@ -1140,7 +1144,7 @@ class NewSession(StudySession):
 
                 choices = [
                     questionary.Choice("1. Open Sandbox Shell", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Exit Live Mode", value="back")
