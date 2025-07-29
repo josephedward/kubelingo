@@ -17,8 +17,16 @@ import subprocess
 import logging
 import shlex
 # Base session loader
+# Core session loader and review utilities
 from kubelingo.modules.base.loader import discover_modules, load_session
-from kubelingo.modules.kubernetes.session import get_all_flagged_questions, _clear_all_review_flags
+from kubelingo.modules.kubernetes.session import (
+    get_all_flagged_questions,
+    _clear_all_review_flags,
+    _get_quiz_files,
+    load_questions,
+    mark_question_for_review,
+    unmark_question_for_review,
+)
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
