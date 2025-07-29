@@ -118,6 +118,61 @@ def unmark_question_for_review(data_file, category, prompt_text):
         print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
 
 
+def _get_quiz_files():
+    """Returns a list of paths to JSON command quiz files, excluding special ones."""
+    json_dir = os.path.join(DATA_DIR, 'json')
+    if not os.path.isdir(json_dir):
+        return []
+
+    # Exclude special files that have their own quiz modes
+    excluded_files = [os.path.basename(f) for f in [YAML_QUESTIONS_FILE, VIM_QUESTIONS_FILE] if f]
+
+    return sorted([
+        os.path.join(json_dir, f)
+        for f in os.listdir(json_dir)
+        if f.endswith('.json') and f not in excluded_files
+    ])
+
+
+def _clear_all_review_flags(logger):
+    """Removes 'review' flag from all questions in all known JSON quiz files."""
+    quiz_files = _get_quiz_files()
+    # Also include the vim file in the clear operation
+    if os.path.exists(VIM_QUESTIONS_FILE):
+        quiz_files.append(VIM_QUESTIONS_FILE)
+
+    cleared_count = 0
+    for data_file in quiz_files:
+        try:
+            with open(data_file, 'r') as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.error(f"Error opening {data_file} for clearing flags: {e}")
+            continue
+
+        changed_in_file = False
+        for section in data:
+            qs = section.get('questions', []) or section.get('prompts', [])
+            for item in qs:
+                if 'review' in item:
+                    del item['review']
+                    changed_in_file = True
+                    cleared_count += 1
+
+        if changed_in_file:
+            try:
+                with open(data_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+                logger.info(f"Cleared review flags in {data_file}")
+            except Exception as e:
+                logger.error(f"Error writing to {data_file} after clearing flags: {e}")
+
+    if cleared_count > 0:
+        print(f"\n{Fore.GREEN}Cleared {cleared_count} review flags from all quiz files.{Style.RESET_ALL}")
+    else:
+        print(f"\n{Fore.YELLOW}No review flags to clear.{Style.RESET_ALL}")
+
+
 def check_dependencies(*commands):
     """Check if all command-line tools in `commands` are available."""
     missing = []
@@ -188,55 +243,74 @@ class NewSession(StudySession):
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
         start_time = datetime.now()
-        questions = load_questions(args.file)
+        questions = []  # Defer loading until after menu
 
         # In interactive mode, prompt user for quiz type (flagged/category)
         is_interactive = questionary and not args.category and not args.review_only and not args.num
         if is_interactive:
-            choices, flagged_command_questions, flagged_vim_questions = self._build_interactive_menu_choices(questions)
+            while True:  # Loop to allow returning to menu after clearing flags
+                choices, flagged_command_questions, flagged_vim_questions = self._build_interactive_menu_choices()
 
-            selected = questionary.select(
-                "Choose an exercise type or subject area:",
-                choices=choices,
-                use_indicator=True
-            ).ask()
+                selected = questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
 
-            if selected is None:
-                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                return
+                if selected is None or selected == 'back':
+                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                    return
 
-            # Map menu selections to handler methods for cleaner dispatch
-            action_map = {
-                'vim_review': self._run_vim_commands_quiz,
-                'yaml_standard': self._run_yaml_editing_mode,
-                'yaml_progressive': self._handle_yaml_progressive,
-                'yaml_live': self._handle_yaml_live,
-                'yaml_create': self._handle_yaml_create,
-                'vim_quiz': self._run_vim_commands_quiz,
-                'killercoda_ckad': self._run_killercoda_ckad
-            }
+                if selected == 'clear_flags':
+                    _clear_all_review_flags(self.logger)
+                    continue  # Re-display menu
 
-            if selected in action_map:
-                # Set review flag for review-specific modes before calling handler
-                if selected == 'vim_review':
+                # Map menu selections to handler methods for cleaner dispatch
+                action_map = {
+                    'vim_review': self._run_vim_commands_quiz,
+                    'yaml_standard': self._run_yaml_editing_mode,
+                    'yaml_progressive': self._handle_yaml_progressive,
+                    'yaml_live': self._handle_yaml_live,
+                    'yaml_create': self._handle_yaml_create,
+                    'vim_quiz': self._run_vim_commands_quiz,
+                    'killercoda_ckad': self._run_killercoda_ckad
+                }
+
+                if selected in action_map:
+                    args.review_only = (selected == 'vim_review')
+                    action_map[selected](args)
+                    return
+
+                # Handle cases that populate the `questions` list and fall through
+                if selected == 'review':
                     args.review_only = True
+                    questions = flagged_command_questions
+                elif selected.endswith('.json'):
+                    args.file = selected
+                    questions = load_questions(args.file)
                 else:
-                    args.review_only = False
-                # Call the handler and exit
-                action_map[selected](args)
-                return
+                    print(f"{Fore.RED}Internal error: unhandled selection '{selected}'{Style.RESET_ALL}")
+                    return
+                break  # Exit menu loop to start quiz
+        else:
+            # Non-interactive mode
+            if args.review_only:
+                # Load all flagged questions from all command quiz files
+                all_files = _get_quiz_files()
+                all_flagged = []
+                for f in all_files:
+                    qs = load_questions(f)
+                    for q in qs:
+                        if q.get('review'):
+                            q['data_file'] = f  # Tag with origin file
+                            all_flagged.append(q)
+                questions = all_flagged
+            else:
+                questions = load_questions(args.file)
 
-            # Handle cases that modify args and fall through to the main quiz loop
-            if selected == 'flagged':
-                args.review_only = True
-            elif selected != 'all':
-                args.category = selected
-
-        if args.review_only:
-            questions = [q for q in questions if q.get('review')]
-            if not questions:
-                print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
-                return
+        if args.review_only and not questions:
+            print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
+            return
 
         if args.category:
             questions = [q for q in questions if q.get('category') == args.category]
@@ -325,11 +399,13 @@ class NewSession(StudySession):
                     if action == "Next Question":
                         break
                     elif action.startswith("Flag for Review"):
-                        mark_question_for_review(args.file, q['category'], q['prompt'])
+                        data_file_path = q.get('data_file', args.file)
+                        mark_question_for_review(data_file_path, q['category'], q['prompt'])
                         q['review'] = True
                         print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
                     elif action.startswith("Un-flag for Review"):
-                        unmark_question_for_review(args.file, q['category'], q['prompt'])
+                        data_file_path = q.get('data_file', args.file)
+                        unmark_question_for_review(data_file_path, q['category'], q['prompt'])
                         q['review'] = False
                         print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
                     elif action == "Get LLM Clarification":
@@ -388,30 +464,45 @@ class NewSession(StudySession):
         except IOError as e:
             print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
 
-    def _build_interactive_menu_choices(self, questions):
+    def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
-        flagged_command_questions = [q for q in questions if q.get('review')]
-        vim_questions = []
-        if os.path.exists(VIM_QUESTIONS_FILE):
-            vim_questions = load_questions(VIM_QUESTIONS_FILE)
-        flagged_vim_questions = [q for q in vim_questions if q.get('review')]
+        command_quiz_files = _get_quiz_files()
 
-        categories = sorted({q['category'] for q in questions if q.get('category')})
+        # Find all flagged questions (both command and vim)
+        all_quiz_files = command_quiz_files[:]
+        if os.path.exists(VIM_QUESTIONS_FILE):
+            all_quiz_files.append(VIM_QUESTIONS_FILE)
+
+        all_flagged = []
+        for f in all_quiz_files:
+            qs = load_questions(f)
+            for q in qs:
+                if q.get('review'):
+                    q['data_file'] = f  # Tag with origin file
+                    all_flagged.append(q)
+
+        # Separate flagged questions by type for different review modes
+        flagged_command_questions = [
+            q for q in all_flagged if q.get('type', 'command') == 'command' and q['data_file'] != VIM_QUESTIONS_FILE
+        ]
+        flagged_vim_questions = [q for q in all_flagged if q['data_file'] == VIM_QUESTIONS_FILE]
+
         choices = []
-        
+
+        # Review options
         if flagged_command_questions:
-            choices.append({'name': f"Review {len(flagged_command_questions)} Flagged Command Questions", 'value': "flagged"})
+            choices.append({'name': f"Review {len(flagged_command_questions)} Flagged Command Questions", 'value': "review"})
         if flagged_vim_questions:
             choices.append({'name': f"Review {len(flagged_vim_questions)} Flagged Vim Questions", 'value': "vim_review"})
 
-        if flagged_command_questions or flagged_vim_questions:
-            choices.append(questionary.Separator())
+        # Quizzes from files
+        if command_quiz_files:
+            choices.append(questionary.Separator("Command Quizzes"))
+            for file_path in command_quiz_files:
+                choices.append({'name': f"  {os.path.basename(file_path)}", 'value': file_path})
 
-        choices.append({'name': "All Command Questions", 'value': "all"})
-        for category in categories:
-            choices.append({'name': f"Commands: {category}", 'value': category})
-
-        choices.append(questionary.Separator())
+        # Other exercises
+        choices.append(questionary.Separator("Other Exercises"))
         choices.append({'name': "YAML Editing Quiz", 'value': "yaml_standard"})
         choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
         choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
@@ -419,6 +510,15 @@ class NewSession(StudySession):
         choices.append(questionary.Separator())
         choices.append({'name': "Vim Commands Quiz", 'value': "vim_quiz"})
         choices.append({'name': "Killercoda CKAD Quiz", 'value': "killercoda_ckad"})
+
+        # Admin options
+        if all_flagged:
+            choices.append(questionary.Separator())
+            choices.append({'name': f"{Fore.YELLOW}Clear All {len(all_flagged)} Review Flags{Style.RESET_ALL}", 'value': "clear_flags"})
+
+        choices.append(questionary.Separator())
+        choices.append({'name': "Back to Main Menu", 'value': "back"})
+
         return choices, flagged_command_questions, flagged_vim_questions
 
     def _handle_yaml_progressive(self, args):
