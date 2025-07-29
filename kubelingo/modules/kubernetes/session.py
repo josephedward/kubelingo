@@ -20,6 +20,7 @@ from kubelingo.utils.config import (
     DEFAULT_DATA_FILE,
     VIM_QUESTIONS_FILE,
     YAML_QUESTIONS_FILE,
+    CSV_DIR,
     KILLERCODA_CSV_FILE,
     DATA_DIR,
     INPUT_HISTORY_FILE,
@@ -374,9 +375,10 @@ class NewSession(StudySession):
 
                             if q_type == 'command':
                                 if prompt_session:
-                                    user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                                    # Use plain prompt to avoid ANSI codes in answers
+                                    user_answer_content = prompt_session.prompt('Your answer: ').strip()
                                 else:
-                                    user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                                    user_answer_content = input('Your answer: ').strip()
                             else:
                                 sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
                                 sandbox_func()
@@ -679,7 +681,11 @@ class NewSession(StudySession):
         choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
         choices.append(questionary.Separator())
         choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
-        killercoda_csv_file = os.environ.get('KILLERCODA_CSV', KILLERCODA_CSV_FILE)
+        # Determine Killercoda CKAD quiz CSV file (env override or default)
+        killercoda_csv_file = os.environ.get(
+            'KILLERCODA_CSV',
+            os.path.join(CSV_DIR, 'killercoda-ckad_072425.csv')
+        )
         choices.append({'name': f"Killercoda CKAD Quiz ({os.path.basename(killercoda_csv_file)})", 'value': "killercoda_ckad"})
 
         # Admin options
@@ -804,9 +810,10 @@ class NewSession(StudySession):
 
             try:
                 if prompt_session:
-                    user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                    # Use plain prompt to avoid ANSI codes in answers
+                    user_answer = prompt_session.prompt('Your answer: ').strip()
                 else:
-                    user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                    user_answer = input('Your answer: ').strip()
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
                 break
