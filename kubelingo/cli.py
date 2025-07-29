@@ -6,6 +6,7 @@ import json
 import random
 import argparse
 import sys
+import pty
 import datetime
 import tempfile
 # OS utilities
@@ -166,12 +167,22 @@ def show_modules():
             print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
     
 def spawn_pty_shell():
-    """Spawn a real bash shell in a PTY sandbox."""
+    """Spawn a real bash shell in a PTY sandbox, preferring Rust implementation if available."""
+    try:
+        from kubelingo.bridge import rust_bridge
+    except ImportError:
+        rust_bridge = None
+    # Use Rust PTY shell if available
+    if rust_bridge and rust_bridge.is_available():
+        if rust_bridge.run_pty_shell():
+            return
+        else:
+            print(f"{Fore.YELLOW}Rust PTY shell failed, falling back to Python implementation.{Style.RESET_ALL}")
+    # Fallback: Python pty.spawn
     if not sys.stdout.isatty():
         print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
         return
     print(f"{Fore.CYAN}Starting PTY shell (native, no isolation)...{Style.RESET_ALL}")
-    # Set a custom prompt
     os.environ['PS1'] = '(kubelingo-sandbox)$ '
     try:
         pty.spawn(['bash', '--login'])
@@ -310,7 +321,7 @@ def main():
                     # Main interactive loop
                     while True:
                         action = questionary.select(
-                            "Welcome to Kubelingo! What would you like to do?",
+                            "Welcome to Kubelingo!\nUse ↑/↓ to navigate and Enter to select.\nWhat would you like to do?",
                             choices=[
                                 questionary.Choice(
                                     title=f"{Fore.GREEN}Start Kubernetes Exercises{Style.RESET_ALL}",
@@ -347,7 +358,7 @@ def main():
                             break
                         elif action == 'sandbox':
                             sandbox_action = questionary.select(
-                                "Select a sandbox type:",
+                                "Select a sandbox type (use ↑/↓ and Enter to choose):",
                                 choices=[
                                     questionary.Choice(
                                         title=f"Embedded PTY {Style.DIM}(native shell, no isolation){Style.RESET_ALL}",
