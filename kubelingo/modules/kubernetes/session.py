@@ -42,6 +42,11 @@ except ImportError:
         RED = GREEN = YELLOW = CYAN = MAGENTA = ""
     class Style:
         RESET_ALL = ""
+    
+# Disable ANSI color codes when not writing to a real terminal
+if not sys.stdout.isatty():
+    Fore.RED = Fore.GREEN = Fore.YELLOW = Fore.CYAN = Fore.MAGENTA = ""
+    Style.RESET_ALL = ""
 
 # Quiz data directory (project root 'question-data/' directory)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
