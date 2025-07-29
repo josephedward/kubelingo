@@ -1,5 +1,4 @@
 import json
-import csv
 import os
 import random
 import shutil
@@ -20,8 +19,6 @@ from kubelingo.utils.config import (
     DEFAULT_DATA_FILE,
     VIM_QUESTIONS_FILE,
     YAML_QUESTIONS_FILE,
-    CSV_DIR,
-    KILLERCODA_CSV_FILE,
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
@@ -151,56 +148,30 @@ def check_dependencies(*commands):
     return missing
 
 def load_questions(data_file):
-    # Load quiz data from JSON, YAML, or Markdown with YAML frontmatter
-    try:
-        with open(data_file, 'r', encoding='utf-8') as f:
-            content = f.read()
+    """Loads questions from JSON, YAML, or Markdown files."""
+    ext = os.path.splitext(data_file)[1].lower()
+    loader = None
 
-        if data_file.endswith(('.yaml', '.yml')):
-            data = yaml.safe_load(content)
-        elif data_file.endswith(('.md', '.markdown')):
-            if content.startswith('---'):
-                # Basic frontmatter parsing
-                parts = content.split('---', 2)
-                if len(parts) >= 3:
-                    data = yaml.safe_load(parts[1])
-                else:
-                    data = []  # Malformed frontmatter
-            else:
-                data = [] # No frontmatter
-        else:  # Default to JSON
-            data = json.loads(content)
+    if ext == '.json':
+        loader = JSONLoader()
+    elif ext in ('.md', '.markdown'):
+        loader = MDLoader()
+    elif ext in ('.yaml', '.yml'):
+        loader = YAMLLoader()
+    else:
+        print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
+        sys.exit(1)
+
+    try:
+        # Loaders return a list of Question objects. The quiz logic expects dicts.
+        questions_obj = loader.load_file(data_file)
+        # The fields of the Question dataclass need to be compatible with what the
+        # rest of this module expects. We convert them to dicts.
+        questions = [asdict(q) for q in questions_obj]
+        return questions
     except Exception as e:
         print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
         sys.exit(1)
-    questions = []
-    
-    if not data:
-        return []
-
-    for item in data:
-        question_type = item.get('type', 'command')
-        question = {
-            'category': item.get('category', 'General'),
-            'prompt': item.get('prompt', ''),
-            'explanation': item.get('explanation', ''),
-            'type': question_type,
-            'review': item.get('review', False)
-        }
-        if question_type == 'yaml_edit':
-            if not yaml:
-                # If yaml lib is missing, we can't process these questions.
-                continue
-            question['starting_yaml'] = item.get('starting_yaml', '')
-            question['correct_yaml'] = item.get('correct_yaml', '')
-        elif question_type in ('live_k8s_edit', 'live_k8s'):
-            question['starting_yaml'] = item.get('starting_yaml', '')
-            question['assert_script'] = item.get('assert_script', '')
-        else:  # command
-            # Also handles the 'answer' key for responses in some formats.
-            question['response'] = item.get('response', '') or item.get('answer', '')
-        questions.append(question)
-    return questions
 import logging
 from kubelingo.modules.base.session import SessionManager
 
