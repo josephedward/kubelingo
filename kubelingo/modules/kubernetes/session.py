@@ -190,13 +190,18 @@ def load_questions(data_file, exit_on_error=True):
                     })
                 return questions
             # Section-based list with 'prompts' key
-            if 'prompts' in raw[0]:
+            elif 'prompts' in raw[0]:
                 questions = []
                 for section in raw:
                     if not isinstance(section, dict):
                         continue
                     category = section.get('category', 'General')
-                    for item in section.get('prompts', []):
+                    prompts_list = section.get('prompts', [])
+                    if not isinstance(prompts_list, list):
+                        continue
+                    for item in prompts_list:
+                        if not isinstance(item, dict):
+                            continue
                         questions.append({
                             'category': category,
                             'prompt': item.get('prompt', ''),
