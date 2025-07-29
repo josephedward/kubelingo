@@ -1,5 +1,6 @@
 mod cli;
 use clap::Parser;
+use crate::cli::{Commands, run_pty_shell};
 
 fn main() {
     let cli = cli::Cli::parse();
@@ -11,12 +12,25 @@ fn main() {
         if let Err(e) = cli::run_interactive_menu() {
             eprintln!("Error in interactive menu: {}", e);
         }
-        // The interactive menu handles its own logic, so we can exit.
         return;
     }
-
-    if let Some(_command) = cli.command {
-        // In a real app, you would match on _command and run logic.
-        println!("Command-line arguments provided. Functionality to be implemented in Rust.");
+    if let Some(command) = cli.command {
+        match command {
+            Commands::Pty => {
+                if let Err(e) = run_pty_shell() {
+                    eprintln!("Error launching PTY shell: {}", e);
+                    std::process::exit(1);
+                }
+            }
+            Commands::K8s { exercise } => {
+                // Kubernetes exercises not yet implemented in Rust
+                println!("Kubernetes exercises not yet implemented in Rust CLI.");
+            }
+            Commands::Kustom { custom_file } => {
+                // Custom exercises not yet implemented in Rust
+                println!("Custom exercises not yet implemented in Rust CLI.");
+            }
+        }
+        return;
     }
 }
