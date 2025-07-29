@@ -124,6 +124,10 @@ def show_modules():
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
     while True:
+        # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
+        if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
+            # rewrite to explicit sandbox-mode flag
+            sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
         print_banner()
         print()
         parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
@@ -160,6 +164,9 @@ def main():
         # Module-based exercises
         parser.add_argument('module', nargs='?', default=None,
                             help='Run exercises for a specific module (e.g., kubernetes, kustom, sandbox)')
+        # Positional sandbox subcommand for convenience: pty or docker
+        parser.add_argument('sandbox_submode', nargs='?', choices=['pty', 'docker'],
+                            help=argparse.SUPPRESS)
         parser.add_argument('--list-modules', action='store_true',
                             help='List available exercise modules and exit')
         parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -180,11 +187,13 @@ def main():
                                         and args.module is None
                                         and not args.k8s_mode
                                         and not args.exercise_module):
+            # Deprecation warning for legacy flags
             if args.pty or args.docker:
                 print(f"{Fore.YELLOW}Warning: --pty and --docker flags are deprecated. Use 'kubelingo sandbox --sandbox-mode [pty|docker]' instead.{Style.RESET_ALL}", file=sys.stderr)
-
-            # choose mode: explicit sandbox_mode > legacy flags > default 'pty'
-            if args.sandbox_mode:
+            # determine mode: positional > explicit flag > legacy flags > default
+            if getattr(args, 'sandbox_submode', None):
+                mode = args.sandbox_submode
+            elif args.sandbox_mode:
                 mode = args.sandbox_mode
             elif args.docker:
                 mode = 'docker'
@@ -320,7 +329,8 @@ def main():
 
         if args.list_modules:
             show_modules()
-            break
+            # Exit after listing modules
+            sys.exit(0)
 
         if args.list_categories:
             # Category listing is a function of the kubernetes module.
@@ -347,6 +357,13 @@ def main():
         # Handle module-based execution.
         if args.module:
             module_name = args.module.lower()
+            # Attempt Rust-backed command quiz first (fallback to Python if it returns False)
+            if module_name == 'kubernetes':
+                try:
+                    from kubelingo.bridge import rust_bridge
+                    rust_bridge.run_command_quiz(args)
+                except ImportError:
+                    pass
             if module_name == 'kustom':
                 module_name = 'custom'
             
