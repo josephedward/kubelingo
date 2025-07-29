@@ -288,7 +288,7 @@ class NewSession(StudySession):
                         print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                         continue
 
-                runnable_questions = [q for q in questions if q.get('type') in ('command', 'live_k8s', 'live_k8s_edit')]
+                runnable_questions = [q for q in questions if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit')]
                 if not runnable_questions:
                     print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
                     continue
@@ -539,7 +539,7 @@ class NewSession(StudySession):
                 print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                 return
 
-        runnable_questions = [q for q in questions if q.get('type') in ('command', 'live_k8s', 'live_k8s_edit')]
+        runnable_questions = [q for q in questions if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit')]
         if not runnable_questions:
             print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
             return
