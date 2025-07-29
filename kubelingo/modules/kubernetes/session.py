@@ -774,13 +774,13 @@ class NewSession(StudySession):
         print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
 
     def _run_vim_commands_quiz(self, args):
-        """Runs the Vim commands quiz, with flagging support."""
+        """Runs the Vim commands quiz with a standardized, interactive format."""
         start_time = datetime.now()
         data_file = VIM_QUESTIONS_FILE
         if not os.path.exists(data_file):
             print(f"{Fore.RED}Vim questions data file not found at {data_file}{Style.RESET_ALL}")
             return
-        
+
         questions = load_questions(data_file)
 
         if args.review_only:
@@ -789,103 +789,144 @@ class NewSession(StudySession):
                 print(Fore.YELLOW + "No Vim questions flagged for review found." + Style.RESET_ALL)
                 return
             print(Fore.MAGENTA + f"Starting review session for {len(questions)} flagged Vim questions." + Style.RESET_ALL)
-        
+
         questions_to_ask = random.sample(questions, len(questions))
-            
+        
         correct_count = 0
-        total_asked = len(questions_to_ask)
+        total_questions = len(questions_to_ask)
+        asked_count = 0
+        skipped_questions = []
 
-        print(f"\n{Fore.CYAN}--- Basic Vim Commands Quiz ---{Style.RESET_ALL}")
-        print("Test your knowledge of essential Vim commands.")
+        print(f"\n{Fore.CYAN}=== Starting Vim Commands Quiz ==={Style.RESET_ALL}")
+        print(f"File: {Fore.CYAN}{os.path.basename(data_file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
 
-        prompt_session = None
-        if PromptSession and FileHistory:
-            prompt_session = PromptSession(history=FileHistory(VIM_HISTORY_FILE))
-
-        for i, q in enumerate(questions_to_ask, 1):
+        quiz_backed_out = False
+        current_question_index = 0
+        while current_question_index < len(questions_to_ask):
+            q = questions_to_ask[current_question_index]
+            i = current_question_index + 1
             category = q.get('category', 'Vim')
 
-            print(f"\n{Fore.YELLOW}Question {i}/{total_asked}{Style.RESET_ALL}")
-            print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
+            was_answered = False
+            user_answer_content = None # Will store path to vim script log
 
-            try:
-                if prompt_session:
-                    # Use plain prompt to avoid ANSI codes in answers
-                    user_answer = prompt_session.prompt('Your answer: ').strip()
-                else:
-                    user_answer = input('Your answer: ').strip()
-            except (EOFError, KeyboardInterrupt):
-                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                break
-            
-            is_correct = user_answer == q.get('response', '')
-            if is_correct:
-                correct_count += 1
-                print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                print(f"\n{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+            while True: # Inner loop for the in-quiz menu
+                print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
 
-            self.logger.info(f"Vim Question {i}/{total_asked}: prompt=\"{q['prompt']}\" expected=\"{q.get('response', '')}\" answer=\"{user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+                is_flagged = q.get('review', False)
+                flag_option_text = "Unflag" if is_flagged else "Flag"
 
-            # --- Post-question action menu ---
-            action_interrupted = False
-            while True:
-                print() # Spacer
+                choices = [
+                    questionary.Choice("1. Answer (Open Vim)", value="answer"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                    questionary.Choice("4. Skip", value="skip"),
+                    questionary.Choice("5. Back to Quiz Menu", value="back")
+                ]
+
                 try:
-                    is_flagged = q.get('review', False)
-                    flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
-                    
-                    if questionary:
-                        choices = ["Next Question", flag_option, "Get LLM Clarification"]
-                        action = questionary.select("Choose an action:", choices=choices, use_indicator=True).ask()
-                        if action is None: raise KeyboardInterrupt
-                    else:
-                        # Fallback for no questionary
-                        print("Choose an action:")
-                        print("  1: Next Question")
-                        print(f"  2: {flag_option}")
-                        print("  3: Get LLM Clarification")
-                        choice = input("Enter choice [1]: ").strip()
-                        action_map = {'1': "Next Question", '2': flag_option, '3': "Get LLM Clarification"}
-                        action = action_map.get(choice, "Next Question")
+                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                    if action is None: raise KeyboardInterrupt
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    return
 
-                    if action == "Next Question":
-                        break
-                    elif action.startswith("Flag for Review"):
-                        self.session_manager.mark_question_for_review(data_file, q['category'], q['prompt'])
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                    elif action.startswith("Un-flag for Review"):
+                if action == "back":
+                    quiz_backed_out = True
+                    break
+
+                if action == "skip":
+                    if not was_answered:
+                        asked_count += 1
+                    skipped_questions.append(q)
+                    self.logger.info(f"Vim Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
+                    current_question_index += 1
+                    break
+
+                if action == "flag":
+                    if is_flagged:
                         self.session_manager.unmark_question_for_review(data_file, q['category'], q['prompt'])
                         q['review'] = False
                         print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
-                    elif action == "Get LLM Clarification":
-                        # Use internal LLM session for explanations
-                        try:
-                            session = load_session('llm', self.logger)
-                            if session.initialize():
-                                session.run_exercises(q)
-                                session.cleanup()
-                            else:
-                                print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
-                        except Exception as e:
-                            print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
+                    else:
+                        self.session_manager.mark_question_for_review(data_file, q['category'], q['prompt'])
+                        q['review'] = True
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                    continue
 
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    action_interrupted = True
-                    break
+                if action == "answer":
+                    if not was_answered:
+                        asked_count += 1
+                    was_answered = True
+                    
+                    try:
+                        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as tmp_content, \
+                             tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as tmp_script:
+                            tmp_content_path = tmp_content.name
+                            user_answer_content = tmp_script.name
+                            tmp_content.write("This is a test file for your vim exercise.\n")
+                        
+                        editor = os.environ.get('EDITOR', 'vim')
+                        print(f"\n{Fore.GREEN}Opening a temporary file in {editor}. Perform the action and then exit (e.g., with :q).{Style.RESET_ALL}")
+                        
+                        cmd = [editor, '-w', user_answer_content, tmp_content_path]
+                        subprocess.call(cmd)
 
-            if action_interrupted:
+                    finally:
+                        if 'tmp_content_path' in locals() and os.path.exists(tmp_content_path):
+                            os.unlink(tmp_content_path)
+                    continue
+
+                if action == "check":
+                    if not was_answered:
+                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        continue
+                    
+                    is_correct = False
+                    try:
+                        with open(user_answer_content, 'r') as f:
+                            script_log = f.read()
+                        
+                        expected_command = q.get('response', '')
+                        is_correct = expected_command in script_log
+                        self.logger.info(f"Vim Question {i}/{total_questions}: prompt=\"{q['prompt']}\" expected=\"{expected_command}\" log_file=\"{user_answer_content}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+                    except Exception as e:
+                        self.logger.error(f"Error checking vim script log: {e}")
+                    finally:
+                        if user_answer_content and os.path.exists(user_answer_content):
+                            os.unlink(user_answer_content)
+
+                    if is_correct:
+                        correct_count += 1
+                        print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                        if q.get('explanation'):
+                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                        current_question_index += 1
+                        break
+                    else:
+                        print(f"\n{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        continue
+            
+            if quiz_backed_out:
                 break
+        
+        if quiz_backed_out:
+            return
 
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
 
+        if skipped_questions:
+            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
+            for q in skipped_questions:
+                print(f"\n{Fore.YELLOW}Skipped: How do you: {q['prompt']}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Correct answer: {q.get('response', 'Not available.')}{Style.RESET_ALL}")
+
         print(f"\n{Fore.CYAN}--- Vim Quiz Complete ---{Style.RESET_ALL}")
-        score = (correct_count / total_asked * 100) if total_asked > 0 else 0
-        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
+        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
 
     def _run_killercoda_ckad(self, args):
