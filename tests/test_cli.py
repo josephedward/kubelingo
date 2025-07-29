@@ -89,12 +89,13 @@ def test_cli_legacy_docker_flag(mock_launch_container_sandbox, capsys):
 @patch('kubelingo.bridge.rust_bridge')
 def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions):
     """Test that if Rust bridge succeeds, Python quiz does not run."""
+    mock_rust_bridge.is_available.return_value = True
     mock_rust_bridge.run_command_quiz.return_value = True
 
     with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
         main()
 
-    mock_rust_bridge.run_command_quiz.assert_not_called()
+    mock_rust_bridge.run_command_quiz.assert_called_once()
     mock_load_questions.assert_not_called()
 
 
@@ -119,12 +120,11 @@ def test_cli_k8s_quiz_rust_bridge_fail_fallback(mock_rust_bridge, mock_load_ques
 def test_cli_k8s_quiz_rust_bridge_unavailable_fallback(mock_rust_bridge, mock_load_questions, capsys):
     """Test that if Rust bridge is unavailable, Python quiz runs."""
     mock_rust_bridge.is_available.return_value = False
-    mock_rust_bridge.run_command_quiz.return_value = False
 
     with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
         main()
 
-    mock_rust_bridge.run_command_quiz.assert_called_once()
+    mock_rust_bridge.run_command_quiz.assert_not_called()
     mock_load_questions.assert_called_once()
     captured = capsys.readouterr()
     assert "Rust command quiz execution failed" not in captured.out
