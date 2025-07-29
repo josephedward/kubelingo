@@ -384,15 +384,14 @@ class NewSession(StudySession):
                                 user_answer_content = "sandbox_session_completed"
 
                         if action == "check":
+                            if not was_answered:
+                                if q_type == 'command':
+                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                                else:
+                                    print(f"{Fore.YELLOW}Answer cannot be shown directly for this question type. Please attempt a solution first.{Style.RESET_ALL}")
+                                continue
+
                             if q_type == 'command':
-                                if not was_answered:
-                                    expected = q.get('response', '')
-                                    print(f"{Fore.CYAN}Running expected command for environment check: {expected}{Style.RESET_ALL}")
-                                    try:
-                                        subprocess.run(expected.split(), check=False)
-                                    except Exception as e:
-                                        print(f"{Fore.RED}Error running expected command: {e}{Style.RESET_ALL}")
-                                    continue
                                 is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
                             elif q_type in ['live_k8s_edit', 'live_k8s']:
                                 is_correct = self._run_one_exercise(q, is_check_only=True)
@@ -542,7 +541,7 @@ class NewSession(StudySession):
                 
                 choices = [
                     questionary.Choice(f"1. {answer_text}", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -601,7 +600,10 @@ class NewSession(StudySession):
 
                 if action == "check":
                     if not was_answered:
-                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        if q_type == 'command':
+                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        else:
+                            print(f"{Fore.YELLOW}Answer cannot be shown directly for this question type. Please attempt a solution first.{Style.RESET_ALL}")
                         continue
                     
                     if q_type == 'command':
@@ -879,7 +881,7 @@ class NewSession(StudySession):
 
                 if action == "check":
                     if not was_answered:
-                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
                         continue
                     
                     is_correct = False
@@ -1064,7 +1066,7 @@ class NewSession(StudySession):
 
                 if action == "check":
                     if not was_answered:
-                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}Expected answer:\n{q['answer'].strip()}{Style.RESET_ALL}")
                         continue
                     
                     exp = q['answer'].strip()
@@ -1181,7 +1183,7 @@ class NewSession(StudySession):
 
                 if action == "check":
                     if not was_answered:
-                        print(f"{Fore.RED}You must open the sandbox shell first.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}You must open the sandbox shell first. The answer can only be validated, not shown.{Style.RESET_ALL}")
                         continue
 
                     is_correct = self._run_one_exercise(q)
