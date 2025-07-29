@@ -325,10 +325,10 @@ class NewSession(StudySession):
                         
                         q_type = q.get('type', 'command')
                         answer_text = "1. Answer (Enter Command)" if q_type == 'command' else "1. Answer (Open Terminal)"
-                        
+
                         choices = [
                             questionary.Choice(answer_text, value="answer"),
-                            questionary.Choice("Check Answer", value="check", disabled=not was_answered),
+                            questionary.Choice("2. Check Answer", value="check"),
                             questionary.Choice(f"3. {flag_option_text}", value="flag"),
                             questionary.Choice("4. Skip", value="skip"),
                             questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -541,7 +541,7 @@ class NewSession(StudySession):
                 
                 choices = [
                     questionary.Choice(answer_text, value="answer"),
-                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -586,17 +586,17 @@ class NewSession(StudySession):
                     if not was_answered:
                         per_category_stats[category]['asked'] += 1
                         asked_count += 1
-                    was_answered = True
+                        was_answered = True
 
-                    if q_type == 'command':
-                        if prompt_session:
-                            user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                        if q_type == 'command':
+                            if prompt_session:
+                                user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                            else:
+                                user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
                         else:
-                            user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                    else:
-                        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
-                        sandbox_func()
-                        user_answer_content = "sandbox_session_completed"
+                            sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+                            sandbox_func()
+                            user_answer_content = "sandbox_session_completed"
                     continue
 
                 if action == "check":
@@ -964,7 +964,7 @@ class NewSession(StudySession):
 
                 choices = [
                     questionary.Choice("1. Answer (Open Editor)", value="answer"),
-                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -1099,7 +1099,7 @@ class NewSession(StudySession):
 
                 choices = [
                     questionary.Choice("1. Open Sandbox Shell", value="answer"),
-                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Exit Live Mode", value="back")
