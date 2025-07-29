@@ -13,8 +13,8 @@ RUN apk add --no-cache bash vim curl openssl
 RUN curl -L "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
 
-# Set a custom prompt for the container shell
-ENV PS1="(kubelingo-container)$ "
+# Set a custom prompt for the container shell by adding a script to profile.d
+RUN echo 'export PS1="(kubelingo-container)$ "' > /etc/profile.d/kubelingo.sh
 
 # Create a workspace directory. The host CWD will be mounted here.
 RUN mkdir /workspace
