@@ -92,13 +92,11 @@ def _clear_all_review_flags(logger):
             continue
 
         changed_in_file = False
-        for section in data:
-            qs = section.get('questions', []) or section.get('prompts', [])
-            for item in qs:
-                if 'review' in item:
-                    del item['review']
-                    changed_in_file = True
-                    cleared_count += 1
+        for item in data:
+            if 'review' in item:
+                del item['review']
+                changed_in_file = True
+                cleared_count += 1
 
         if changed_in_file:
             try:
@@ -135,39 +133,28 @@ def load_questions(data_file):
     if not data:
         return []
 
-    # Heuristic to detect format: flat list vs. list of categories
-    is_flat_list = isinstance(data[0], dict) and 'prompt' in data[0]
-
-    if is_flat_list:
-        # Wrap flat list in a 'General' category to be processed by the same logic
-        data = [{'category': 'General', 'questions': data}]
-
-    for cat in data:
-        category = cat.get('category', '')
-        # Support both 'questions' and 'prompts' keys for question lists.
-        prompts = cat.get('prompts', []) or cat.get('questions', [])
-        for item in prompts:
-            question_type = item.get('type', 'command')
-            question = {
-                'category': category,
-                'prompt': item.get('prompt', ''),
-                'explanation': item.get('explanation', ''),
-                'type': question_type,
-                'review': item.get('review', False)
-            }
-            if question_type == 'yaml_edit':
-                if not yaml:
-                    # If yaml lib is missing, we can't process these questions.
-                    continue
-                question['starting_yaml'] = item.get('starting_yaml', '')
-                question['correct_yaml'] = item.get('correct_yaml', '')
-            elif question_type in ('live_k8s_edit', 'live_k8s'):
-                question['starting_yaml'] = item.get('starting_yaml', '')
-                question['assert_script'] = item.get('assert_script', '')
-            else:  # command
-                # Also handles the 'answer' key for responses in some formats.
-                question['response'] = item.get('response', '') or item.get('answer', '')
-            questions.append(question)
+    for item in data:
+        question_type = item.get('type', 'command')
+        question = {
+            'category': item.get('category', 'General'),
+            'prompt': item.get('prompt', ''),
+            'explanation': item.get('explanation', ''),
+            'type': question_type,
+            'review': item.get('review', False)
+        }
+        if question_type == 'yaml_edit':
+            if not yaml:
+                # If yaml lib is missing, we can't process these questions.
+                continue
+            question['starting_yaml'] = item.get('starting_yaml', '')
+            question['correct_yaml'] = item.get('correct_yaml', '')
+        elif question_type in ('live_k8s_edit', 'live_k8s'):
+            question['starting_yaml'] = item.get('starting_yaml', '')
+            question['assert_script'] = item.get('assert_script', '')
+        else:  # command
+            # Also handles the 'answer' key for responses in some formats.
+            question['response'] = item.get('response', '') or item.get('answer', '')
+        questions.append(question)
     return questions
 import logging
 from kubelingo.modules.base.session import SessionManager
