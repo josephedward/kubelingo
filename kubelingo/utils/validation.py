@@ -16,57 +16,38 @@ except ImportError:
 
 def commands_equivalent(cmd1: str, cmd2: str) -> bool:
     """
-    Check if two kubectl commands are functionally equivalent.
-    Uses a high-performance Rust implementation if available, otherwise falls back to Python.
+    Check if two kubectl commands are functionally equivalent using the Rust implementation.
+    This function normalizes whitespace and is case-insensitive.
     """
     if rust_commands_equivalent:
         return rust_commands_equivalent(cmd1, cmd2)
 
-    # Fallback to Python implementation, matching Rust's behavior (case-insensitive)
+    # This fallback should ideally not be reached if the Rust extension is built correctly.
+    # It provides a basic, less robust implementation for environments where the
+    # native extension might be missing.
+    print("Warning: Rust extension not found. Falling back to basic Python command comparison.")
     cmd1_norm = ' '.join(cmd1.strip().split()).lower()
     cmd2_norm = ' '.join(cmd2.strip().split()).lower()
+    return cmd1_norm == cmd2_norm
 
-    if cmd1_norm == cmd2_norm:
-        return True
-
-    return _parse_and_compare_kubectl(cmd1_norm, cmd2_norm)
-
-def _parse_and_compare_kubectl(cmd1: str, cmd2: str) -> bool:
-    """Parse and compare kubectl commands semantically."""
-    try:
-        # Extract command parts
-        parts1 = cmd1.split()
-        parts2 = cmd2.split()
-        
-        # Must both be kubectl commands
-        if not (parts1[0] == 'kubectl' and parts2[0] == 'kubectl'):
-            return cmd1 == cmd2
-        
-        # Compare main action (get, create, apply, etc.)
-        if len(parts1) < 2 or len(parts2) < 2:
-            return cmd1 == cmd2
-            
-        action1 = parts1[1]
-        action2 = parts2[1]
-        
-        if action1 != action2:
-            return False
-        
-        # For simple cases, compare remaining parts
-        # This is a simplified implementation
-        remaining1 = set(parts1[2:])
-        remaining2 = set(parts2[2:])
-        
-        return remaining1 == remaining2
-        
-    except Exception:
-        # Fall back to string comparison
-        return cmd1 == cmd2
-
-def validate_yaml_structure(yaml_content: str, expected_structure: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
     """
-    Validate YAML structure and return validation results.
-    Uses a high-performance Rust pre-validator if available.
+    Validates YAML syntax and basic Kubernetes structure using the Rust implementation.
+
+    This function checks for syntax errors and the presence of top-level
+    'apiVersion', 'kind', and 'metadata' fields.
+
+    Args:
+        yaml_content: The YAML content as a string.
+
+    Returns:
+        A dictionary with validation results:
+        {
+            'valid': bool,
+            'errors': List[str],
+            'warnings': List[str],
+            'parsed_yaml': Optional[Any]
+        }
     """
     result = {
         'valid': False,
@@ -75,92 +56,40 @@ def validate_yaml_structure(yaml_content: str, expected_structure: Optional[Dict
         'parsed_yaml': None
     }
 
-    # Rust-based pre-validation for speed
+    # Use the high-performance Rust validator if available.
     if rust_validate_yaml_structure:
         is_valid, message = rust_validate_yaml_structure(yaml_content)
         if not is_valid:
-            result['errors'].append(f"Rust-based validation failed: {message}")
-            try:
-                # Still try to parse to provide the object back to the caller
-                result['parsed_yaml'] = yaml.safe_load(yaml_content)
-            except yaml.YAMLError:
-                pass  # The core error is from Rust
-            return result
-    
-    # Full Python-based validation
-    try:
-        # Parse YAML
-        parsed = yaml.safe_load(yaml_content)
-        result['parsed_yaml'] = parsed
-        
-        if parsed is None:
-            result['errors'].append("YAML content is empty or null")
-            return result
-        
-        # Basic Kubernetes resource validation
-        if isinstance(parsed, dict):
-            # Check required Kubernetes fields
-            required_fields = ['apiVersion', 'kind', 'metadata']
-            missing_fields = [field for field in required_fields if field not in parsed]
-            
-            if missing_fields:
-                result['errors'].extend([f"Missing required field: {field}" for field in missing_fields])
-            else:
-                # Basic structure looks good
-                result['valid'] = True
-                
-                # Additional validations
-                if 'metadata' in parsed and 'name' not in parsed.get('metadata', {}):
-                    result['warnings'].append("metadata.name is recommended")
-        
-        # Compare with expected structure if provided
-        if expected_structure and result['valid']:
-            comparison_result = _compare_yaml_structures(parsed, expected_structure)
-            if not comparison_result['matches']:
-                result['errors'].extend(comparison_result['differences'])
-                result['valid'] = False
-        
-    except yaml.YAMLError as e:
-        result['errors'].append(f"YAML parsing error: {str(e)}")
-    except Exception as e:
-        result['errors'].append(f"Validation error: {str(e)}")
-    
-    return result
-
-def _compare_yaml_structures(actual: Dict[str, Any], expected: Dict[str, Any]) -> Dict[str, Any]:
-    """Compare two YAML structures and return differences."""
-    result = {
-        'matches': True,
-        'differences': []
-    }
-    
-    def _compare_recursive(actual_val, expected_val, path=""):
-        if type(actual_val) != type(expected_val):
-            result['differences'].append(f"Type mismatch at {path}: expected {type(expected_val).__name__}, got {type(actual_val).__name__}")
-            result['matches'] = False
-            return
-        
-        if isinstance(expected_val, dict):
-            for key, value in expected_val.items():
-                current_path = f"{path}.{key}" if path else key
-                if key not in actual_val:
-                    result['differences'].append(f"Missing key: {current_path}")
-                    result['matches'] = False
-                else:
-                    _compare_recursive(actual_val[key], value, current_path)
-        
-        elif isinstance(expected_val, list):
-            if len(actual_val) != len(expected_val):
-                result['differences'].append(f"List length mismatch at {path}: expected {len(expected_val)}, got {len(actual_val)}")
-                result['matches'] = False
-            else:
-                for i, (actual_item, expected_item) in enumerate(zip(actual_val, expected_val)):
-                    _compare_recursive(actual_item, expected_item, f"{path}[{i}]")
-        
+            result['errors'].append(message)
         else:
-            if actual_val != expected_val:
-                result['differences'].append(f"Value mismatch at {path}: expected {expected_val}, got {actual_val}")
-                result['matches'] = False
-    
-    _compare_recursive(actual, expected)
+            result['valid'] = True
+    else:
+        # Fallback to pure Python if the Rust extension is missing.
+        result['warnings'].append("Warning: Rust extension not found. Using Python-based YAML validation.")
+        try:
+            parsed = yaml.safe_load(yaml_content)
+            if parsed is None:
+                result['errors'].append("YAML content is empty or null.")
+            elif not isinstance(parsed, dict):
+                result['errors'].append("YAML is not a dictionary (mapping).")
+            else:
+                # Basic Kubernetes resource validation
+                required_fields = ['apiVersion', 'kind', 'metadata']
+                missing_fields = [field for field in required_fields if field not in parsed]
+                if missing_fields:
+                    result['errors'].extend([f"Missing required field: {field}" for field in missing_fields])
+                else:
+                    result['valid'] = True
+        except yaml.YAMLError as e:
+            result['errors'].append(f"YAML parsing error: {str(e)}")
+
+    # Regardless of the validation method, try to parse and return the object
+    # for further use by the caller.
+    if yaml:
+        try:
+            result['parsed_yaml'] = yaml.safe_load(yaml_content)
+        except yaml.YAMLError:
+            # If parsing fails, parsed_yaml will remain None.
+            pass
+
     return result
