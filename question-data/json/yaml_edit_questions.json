@@ -1,0 +1,45 @@
+[
+  {
+    "category": "YAML Editing - Pods",
+    "prompts": [
+      {
+        "question_type": "yaml_edit",
+        "prompt": "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80",
+        "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\nspec:\n  containers:\n  - name: # TODO: Add container name\n    image: # TODO: Add image\n    ports:\n    - containerPort: # TODO: Add port",
+        "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\nspec:\n  containers:\n  - name: nginx\n    image: nginx:1.20\n    ports:\n    - containerPort: 80",
+        "explanation": "Basic pod with specific name, image, and port configuration"
+      },
+      {
+        "question_type": "yaml_edit",
+        "prompt": "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432",
+        "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables",
+        "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value: localhost\n    - name: DB_PORT\n      value: \"5432\"",
+        "explanation": "Pod with environment variables defined in container spec"
+      }
+    ]
+  },
+  {
+    "category": "YAML Editing - Deployments",
+    "prompts": [
+      {
+        "question_type": "yaml_edit",
+        "prompt": "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21",
+        "starting_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: # TODO: Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n    matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n      containers:\n      - name: nginx\n        image: # TODO: Set image",
+        "correct_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: frontend\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.21",
+        "explanation": "Deployment with replica count and proper label selectors"
+      }
+    ]
+  },
+  {
+    "category": "YAML Editing - ConfigMaps",
+    "prompts": [
+      {
+        "question_type": "yaml_edit",
+        "prompt": "Create a ConfigMap named 'app-config' with data: database_url=mysql://localhost:3306/app",
+        "starting_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add name\ndata:\n  # TODO: Add data fields",
+        "correct_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  database_url: mysql://localhost:3306/app",
+        "explanation": "ConfigMap with key-value data for application configuration"
+      }
+    ]
+  }
+]
