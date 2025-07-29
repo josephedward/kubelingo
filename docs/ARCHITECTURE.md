@@ -1,44 +1,83 @@
 # Architecture Overview
 
-This document outlines the high-level structure and organization of the kubelingo codebase.
+This document outlines the high-level structure and organization of the Kubelingo codebase, which uses a hybrid Python/Rust architecture.
+
+## Directory Structure
 
 ```
-kubelingo/                            # Main Python package for CLI and core modules
-├── __init__.py                        # Package marker
-├── __main__.py                        # Console script entrypoint
-├── cli.py                             # Main CLI implementation
-├── modules/vim_yaml_editor.py         # Vim-based YAML editing engine
-├── modules/k8s_quiz.py                # Kubernetes command quiz engine
-├── tools/session_manager.py           # CKADStudySession and GoSandbox integration
-└── tools/gosandbox_integration/       # Cloud (GoSandbox) helpers
+.
+├── Cargo.toml            # Rust dependencies and workspace configuration
+├── pyproject.toml        # Python package metadata and build configuration (PEP 621)
+├── kubelingo/            # Core Python application package
+│   ├── __init__.py
+│   ├── cli.py            # Main CLI entrypoint (argparse, interactive menus)
+│   ├── bridge.py         # Python-Rust bridge for invoking Rust binary
+│   ├── sandbox.py        # PTY and Docker sandbox launchers
+│   ├── constants.py      # Centralized constants (paths, etc.)
+│   ├── utils/            # Shared utility functions
+│   │   ├── __init__.py
+│   │   └── ui.py         # UI helpers (colors, banners)
+│   └── modules/          # Pluggable modules for different study topics
+│       ├── base/         # Base classes for sessions and loaders
+│       ├── kubernetes/   # Kubernetes-specific quizzes and exercises
+│       │   ├── session.py
+│       │   └── vim_yaml_editor.py
+│       ├── custom/       # Module for user-provided quizzes
+│       └── llm/          # Module for LLM integration
+├── question-data/        # Quiz data in various formats
+│   ├── json/
+│   ├── yaml/
+│   └── md/
+├── src/                  # Rust source code for performance-critical components
+│   ├── main.rs           # Rust CLI entrypoint
+│   ├── cli.rs            # clap-based CLI definition
+│   └── lib.rs            # PyO3 module for Python interop (validation functions)
+├── tests/                # Pytest unit and integration tests
+├── scripts/              # Helper scripts for data management
+└── docs/                 # Project documentation
+```
 
-data/                                 # JSON/YAML data separate from code
-├── ckad_quiz_data.json    # Standard kubectl command questions
-├── yaml_edit_questions.json # YAML editing exercises
-└── ckad_exercises_extended.json # Extended CKAD content
+## Key Components
 
-scripts/                   # Utility scripts and verification tools
-├── merge_quiz_data.py     # Combine & dedupe multiple JSON sources
-├── verify_quiz_data.py    # Lint & validate quiz data formatting
-└── cross-reference.sh      # Helper for text extraction & reference builds
+1.  **Python CLI (`kubelingo/cli.py`)**:
+    - The main user-facing entrypoint.
+    - Uses `argparse` for command-line argument parsing.
+    - Uses `questionary` to provide interactive menus for quiz and mode selection.
+    - Delegates to the appropriate `StudySession` module to run exercises.
 
-modules/                   # Deprecated — will be merged into `kubelingo` package
-tools/                     # Deprecated — session_manager moved to kubelingo
+2.  **Modular Sessions (`kubelingo/modules/`)**:
+    - Each sub-directory represents a "study module" (e.g., `kubernetes`, `custom`).
+    - The `StudySession` class in `base/session.py` defines the interface for a quiz session (`initialize`, `run_exercises`, `cleanup`).
+    - `kubernetes/session.py` implements the logic for command quizzes, YAML exercises, and live cluster interactions.
 
-edit_questions/            # Sample shell-based edit questions
-logs/                      # Session logs & history
+3.  **Rust Core (`src/`)**:
+    - A compiled Rust binary provides performance-critical features.
+    - **Native Functions (`src/lib.rs`)**: Functions like `validate_yaml_structure` are exposed to Python via a `PyO3` native extension for speed.
+    - **PTY Shell (`src/cli.rs`, `src/main.rs`)**: Provides a robust, cross-platform PTY shell implementation, which is more reliable than Python's `pty.spawn`. This is invoked from Python via the bridge.
 
-docs/                      # Project documentation (API ref, architecture)
-```  
+4.  **Python-Rust Bridge (`kubelingo/bridge.py`)**:
+    - A simple layer responsible for finding the compiled Rust binary (`kubelingo` or `kubelingo-rust`).
+    - Provides Python functions (`run_pty_shell`) that execute the Rust binary as a subprocess. This avoids `PyO3` complexity for features that don't need shared memory.
 
-Key Principles:
-1. **Separation of Concerns**: Code, data, and scripts are in distinct directories.  
-2. **Modularization**: Core CLI, session management, and YAML editing are separate modules.  
-3. **Deprecation Plan**: `modules/` and `tools/` will be removed once all code is migrated.  
-4. **Documentation First**: Gaps in API and architecture are documented under `docs/`.  
+5.  **Sandboxes (`kubelingo/sandbox.py`)**:
+    - Provides isolated environments for exercises.
+    - Prioritizes the Rust PTY shell via the `bridge`, with a fallback to Python's `pty` module.
+    - Manages building and launching a Docker container for a fully isolated environment.
 
-**Next Steps**:  
-- Migrate legacy `cli_quiz.py` functionality into `kubelingo/cli.py`.  
-- Implement `cloud_env.py` for EKS cluster and cloud exercises.  
-- Add unit tests under a new `tests/` directory.  
-- Finalize removal of deprecated directories.  
+6.  **Centralized Configuration (`kubelingo/constants.py`, `kubelingo/utils/`)**:
+    - `constants.py`: A single source of truth for file paths, avoiding duplication.
+    - `utils/ui.py`: Shared UI elements like `colorama` setup and helper functions.
+
+## Data Flow for a Kubernetes Quiz
+
+1.  User runs `kubelingo`.
+2.  `kubelingo.cli.main` displays an interactive menu.
+3.  User selects "K8s" quiz.
+4.  `cli.py` loads the `kubernetes` module's `NewSession`.
+5.  `kubernetes.session.run_exercises` is called.
+6.  It loads questions from a JSON file specified in `kubelingo.constants`.
+7.  The user is prompted with a question. If it's a live exercise, `kubelingo.sandbox.spawn_pty_shell` is called.
+8.  `sandbox.py` calls `kubelingo.bridge.run_pty_shell`.
+9.  `bridge.py` executes the Rust binary with the `pty` command.
+10. The Rust process spawns a `bash` shell in a PTY.
+11. After the user exits the shell, control returns to the Python script for validation.

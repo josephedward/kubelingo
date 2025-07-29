@@ -3,34 +3,20 @@ import csv
 import os
 import random
 import shutil
-import shlex
 import subprocess
 import sys
 import tempfile
 from datetime import datetime
-import difflib
 import logging
 
-from kubelingo.utils.validation import commands_equivalent, validate_yaml_structure
-
-def _humanize_module(name: str) -> str:
-    """Turn a module filename into a human-friendly title."""
-    # If prefixed with order 'a.', drop prefix
-    if '.' in name:
-        disp = name.split('.', 1)[1]
-    else:
-        disp = name
-    return disp.replace('_', ' ').title()
-
-try:
-    import questionary
-except ImportError:
-    questionary = None
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
+from kubelingo.utils.validation import commands_equivalent
+from kubelingo.utils.ui import (
+    Fore, Style, questionary, yaml, _humanize_module
+)
+from kubelingo.constants import (
+    HISTORY_FILE, DEFAULT_DATA_FILE, VIM_QUESTIONS_FILE, YAML_QUESTIONS_FILE,
+    KILLERCODA_CSV_FILE, DATA_DIR, INPUT_HISTORY_FILE, VIM_HISTORY_FILE
+)
 
 try:
     from prompt_toolkit import PromptSession
@@ -41,33 +27,7 @@ except ImportError:
 
 from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
-from kubelingo.gosandbox_integration import GoSandboxIntegration
 from .vim_yaml_editor import VimYamlEditor
-
-try:
-    from colorama import Fore, Style
-except ImportError:
-    # Fallback if colorama is not available
-    class Fore:
-        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
-    class Style:
-        RESET_ALL = ""
-    
-# Disable ANSI color codes when not writing to a real terminal
-if not sys.stdout.isatty():
-    Fore.RED = Fore.GREEN = Fore.YELLOW = Fore.CYAN = Fore.MAGENTA = ""
-    Style.RESET_ALL = ""
-
-# Quiz data directory (project root 'question-data/' directory)
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
-DATA_DIR = os.path.join(ROOT, 'question-data')
-LOGS_DIR = os.path.join(ROOT, 'logs')
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
-YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
-VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim_quiz_data.json')
-KILLERCODA_CSV_FILE = os.path.join(DATA_DIR, 'csv', 'killercoda-ckad_072425.csv')
-# History file for storing past quiz performance
-HISTORY_FILE = os.path.join(LOGS_DIR, '.cli_quiz_history.json')
 
 def mark_question_for_review(data_file, category, prompt_text):
     """Adds 'review': True to the matching question in the JSON data file."""
@@ -404,8 +364,7 @@ class NewSession(StudySession):
                 
                 prompt_session = None
                 if PromptSession and FileHistory:
-                    history_path = os.path.join(LOGS_DIR, '.kubelingo_input_history')
-                    prompt_session = PromptSession(history=FileHistory(history_path))
+                    prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
                 
                 quiz_backed_out = False
                 current_question_index = 0
@@ -589,8 +548,7 @@ class NewSession(StudySession):
         
         prompt_session = None
         if PromptSession and FileHistory:
-            history_path = os.path.join(LOGS_DIR, '.kubelingo_input_history')
-            prompt_session = PromptSession(history=FileHistory(history_path))
+            prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
         
         current_question_index = 0
         while current_question_index < len(questions_to_ask):
@@ -872,8 +830,7 @@ class NewSession(StudySession):
 
         prompt_session = None
         if PromptSession and FileHistory:
-            history_path = os.path.join(LOGS_DIR, '.kubelingo_vim_history')
-            prompt_session = PromptSession(history=FileHistory(history_path))
+            prompt_session = PromptSession(history=FileHistory(VIM_HISTORY_FILE))
 
         for i, q in enumerate(questions_to_ask, 1):
             category = q.get('category', 'Vim')

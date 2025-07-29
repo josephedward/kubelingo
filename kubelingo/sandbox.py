@@ -4,16 +4,7 @@ import shutil
 import subprocess
 import sys
 
-try:
-    from colorama import Fore, Style
-    from colorama import init as _colorama_init
-    _colorama_init()
-except ImportError:
-    class Fore:
-        RED = GREEN = YELLOW = CYAN = MAGENTA = ""
-    class Style:
-        RESET_ALL = ""
-        DIM = ""
+from kubelingo.utils.ui import Fore, Style
 
 # Path to project root
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))

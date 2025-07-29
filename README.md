@@ -8,34 +8,31 @@ kubelingo is a modular CLI package for mastering `kubectl` commands, Kubernetes 
 
 - **Command Quiz Mode**: Categorized kubectl questions with randomized order
 - **YAML Editing Mode**: Interactive Vim-based YAML editing with semantic validation
-- **Vim Commands Quiz**: Master essential Vim commands for YAML editing
-- **CKAD Exam Prep**: Extensive exercises covering all CKAD exam topics
-- **Semantic Validation**: YAML answers graded by meaning, not text matching
-- **Performance Tracking**: Session history and progress statistics
-- **LLM Integration**: Optional detailed explanations (requires OpenAI API key)
+- **Vim Commands Quiz**: Master essential Vim commands for YAML editing.
+- **CKAD Exam Prep**: Extensive exercises covering all CKAD exam topics.
+- **Semantic Validation**: YAML answers are graded by meaning, not just text matching.
+- **Performance Tracking**: Session history and progress statistics are stored locally.
+- **Sandboxed Environments**: Practice in a safe PTY shell or an isolated Docker container.
+- **LLM Integration**: Get optional, detailed explanations for quiz questions (requires an OpenAI API key).
 
 ## YAML Editing Mode
 
-Practice real-world Kubernetes scenarios by editing YAML manifests in Vim with intelligent validation:
+Practice real-world Kubernetes scenarios by editing YAML manifests in your local editor (`$EDITOR`) with intelligent validation.
 
 ```bash
-# Run interactive YAML editing exercises
-kubelingo --yaml-exercises
-
-# Set your preferred editor (default: vim)
-export EDITOR=nano  # or vim, emacs, etc.
-kubelingo --yaml-exercises
+# Launch Kubelingo's interactive menu
+kubelingo
 ```
 
-For a pure Python alternative to Vim, consider installing [pyvim](https://github.com/prompt-toolkit/pyvim).
+From the menu, navigate to `K8s (preinstalled)` -> `YAML Editing Quiz`.
 
-### How YAML Editing Works
+### How It Works
 
-1. **Template Provided**: Start with a skeleton YAML file containing TODO comments
-2. **Edit in Your Editor**: File opens in Vim (or your preferred `$EDITOR`)
-3. **Semantic Validation**: Your YAML is validated by meaning, not exact text match
-4. **Immediate Feedback**: Get specific error messages and hints for corrections
-5. **Multiple Attempts**: Up to 3 tries per question with helpful guidance
+1.  **Template Provided**: You start with a skeleton YAML file.
+2.  **Edit in Your Editor**: The file automatically opens in Vim (or your configured `$EDITOR`).
+3.  **Semantic Validation**: After you save and exit, your solution is validated by its semantic structure, not by an exact text match. Key order and comments don't matter.
+4.  **Immediate Feedback**: Get specific error messages and hints for corrections.
+5.  **Multiple Attempts**: You get multiple tries per question with helpful guidance.
 
 ### Validation Features
 
@@ -52,20 +49,20 @@ For a pure Python alternative to Vim, consider installing [pyvim](https://github
 # List available categories
 kubelingo --list-categories
 
-# Standard kubectl command quiz
-kubelingo -n 10 -c "Pod Management"
+# Launch interactive menu (recommended)
+kubelingo
 
-# Interactive YAML editing exercises
-kubelingo kubernetes --yaml
+# Run a 10-question quiz on Pod Management
+kubelingo --k8s -n 10 -c "Pod Management"
 
-# Vim commands practice
-kubelingo kubernetes --vim
+# Run a quiz on only the questions you've flagged for review
+kubelingo --k8s --review-only
 
 # View performance history
 kubelingo --history
 ```
 
-See [docs/VIM_INTEGRATION.md](docs/VIM_INTEGRATION.md) for an in-depth guide on integrating Vim into the Kubelingo CLI.
+See `docs/ARCHITECTURE.md` for a high-level overview of the project structure.
 
 
 ## Question Types
@@ -153,23 +150,24 @@ For quick reference on multi-step Killercoda CKAD quiz tasks, see [Killercoda CK
 
 ## File Structure
 
+A high-level overview of the monorepo structure:
+
 ```
-. (project root)
-├── Cargo.toml            # Rust dependencies and workspace config
-├── pyproject.toml        # Python package metadata and build config
-├── requirements.txt      # Python dependencies for development
-├── README.md             # Project overview and usage
-├── src/                  # Rust source code
-│   ├── cli.rs
-│   ├── lib.rs
-│   └── main.rs
-└── kubelingo/            # Core Python application package
-    ├── __init__.py
-    ├── bridge.py         # Python-Rust bridge
-    ├── cli.py            # Main CLI implementation
-    ├── data/             # Bundled quiz data (JSON)
-    ├── modules/          # Quiz modules
-    └── utils/            # Utility functions
+.
+├── kubelingo/            # Core Python application package
+│   ├── cli.py            # Main CLI entrypoint with argparse/questionary
+│   ├── bridge.py         # Python-Rust bridge
+│   ├── sandbox.py        # PTY and Docker sandbox launchers
+│   ├── constants.py      # Shared file paths and constants
+│   ├── utils/            # Shared utilities (e.g., UI helpers)
+│   └── modules/          # Pluggable quiz modules (kubernetes, custom, etc.)
+├── src/                  # Rust source code for high-performance components
+│   ├── main.rs           # Rust CLI entrypoint
+│   ├── cli.rs            # clap-based CLI argument parsing
+│   └── lib.rs            # PyO3 native extension functions
+├── question-data/        # Quiz content in JSON, YAML, and Markdown
+├── tests/                # Pytest tests for Python code
+└── docs/                 # Project documentation
 ```
 
 ## Creating Custom Questions

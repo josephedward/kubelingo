@@ -1,34 +1,51 @@
 mod cli;
+use anyhow::Result;
 use clap::Parser;
-use crate::cli::{Commands, run_pty_shell};
+use crate::cli::{Cli, Commands, K8sExercise};
 
-fn main() {
-    let cli = cli::Cli::parse();
+fn main() -> Result<()> {
+    let cli = Cli::parse();
 
-    // The logic to handle commands would go here.
-    // For now, this is a skeleton.
-    if cli.command.is_none() {
-        // If no command-line arguments are given, it's assumed the Python wrapper
-        // is handling the interactive menu. This binary does nothing in that case.
-        return;
-    }
     if let Some(command) = cli.command {
         match command {
             Commands::Pty => {
-                if let Err(e) = run_pty_shell() {
-                    eprintln!("Error launching PTY shell: {}", e);
-                    std::process::exit(1);
-                }
+                cli::run_pty_shell()?;
             }
             Commands::K8s { exercise } => {
-                // Kubernetes exercises not yet implemented in Rust
-                println!("Kubernetes exercises not yet implemented in Rust CLI.");
+                run_k8s_exercise(exercise)?;
             }
-            Commands::Kustom { custom_file } => {
-                // Custom exercises not yet implemented in Rust
+            Commands::Kustom { .. } => {
                 println!("Custom exercises not yet implemented in Rust CLI.");
             }
         }
-        return;
+    } else {
+        // It's assumed the Python wrapper handles the interactive menu.
+        // This binary can print a help message or do nothing.
+        println!("Welcome to Kubelingo (Rust core). Use --help for commands.");
     }
+    Ok(())
+}
+
+fn run_k8s_exercise(exercise: K8sExercise) -> Result<()> {
+    match exercise {
+        K8sExercise::Quiz { num, category } => {
+            println!("Running K8s quiz...");
+            if let Some(n) = num {
+                println!("- Number of questions: {}", n);
+            }
+            if let Some(c) = category {
+                println!("- Category: {}", c);
+            }
+            // TODO: Implement quiz logic here
+        }
+        K8sExercise::Yaml => {
+            println!("Running K8s YAML exercise...");
+            // TODO: Implement YAML exercise logic here
+        }
+        K8sExercise::Vim => {
+            println!("Running Vim exercise...");
+            // TODO: Implement Vim exercise logic here
+        }
+    }
+    Ok(())
 }
