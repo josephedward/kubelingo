@@ -3,8 +3,10 @@
     "category": "Pod Management",
     "prompts": [
       {
-        "prompt": "Create a pod named nginx using the nginx image and expose port 80",
-        "response": "kubectl run nginx --image=nginx --port=80"
+        "type": "live_k8s",
+        "prompt": "Create a pod named nginx using the nginx image and expose port 80. You can use 'kubectl run' or create a YAML file.",
+        "assert_script": "#!/bin/bash\nset -e\nPOD_NAME=$(kubectl get pod nginx -o jsonpath='{.metadata.name}' 2>/dev/null)\nif [ \"$POD_NAME\" != \"nginx\" ]; then\n  echo \"Error: Pod 'nginx' not found.\"\n  exit 1\nfi\nIMAGE=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx'.\"\n  exit 1\nfi\nPORT=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].ports[0].containerPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Port is '$PORT', expected '80'.\"\n  exit 1\nfi\necho \"Pod 'nginx' with image 'nginx' and port 80 found.\"",
+        "explanation": "You can solve this with 'kubectl run nginx --image=nginx --port=80' or by creating a Pod manifest with the specified image and containerPort."
       },
       {
         "prompt": "Create a pod named busybox that runs the command 'sleep 3600'",
