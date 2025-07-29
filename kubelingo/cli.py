@@ -161,12 +161,9 @@ def main():
         parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
 
-        # Module-based exercises
-        parser.add_argument('module', nargs='?', default=None,
-                            help='Run exercises for a specific module (e.g., kubernetes, kustom, sandbox)')
-        # Positional sandbox subcommand for convenience: pty or docker
-        parser.add_argument('sandbox_submode', nargs='?', choices=['pty', 'docker'],
-                            help=argparse.SUPPRESS)
+        # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
+        parser.add_argument('command', nargs='*',
+                            help="Command to run (e.g. 'kubernetes' or 'sandbox pty')")
         parser.add_argument('--list-modules', action='store_true',
                             help='List available exercise modules and exit')
         parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -179,6 +176,18 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
+
+        # Process positional command
+        args.module = None
+        args.sandbox_submode = None
+        if args.command:
+            args.module = args.command[0]
+            if args.module == 'sandbox' and len(args.command) > 1:
+                subcommand = args.command[1]
+                if subcommand in ['pty', 'docker']:
+                    args.sandbox_submode = subcommand
+                else:
+                    parser.error(f"unrecognized arguments: {subcommand}")
         # Sandbox mode dispatch: if specified with other args, they are passed to the module.
         # If run alone, they launch a shell and exit.
         from .sandbox import spawn_pty_shell, launch_container_sandbox
@@ -357,16 +366,20 @@ def main():
         # Handle module-based execution.
         if args.module:
             module_name = args.module.lower()
-            # Attempt Rust-backed command quiz first (fallback to Python if it returns False)
+
+            # Special handling for kubernetes module to try Rust bridge first
             if module_name == 'kubernetes':
                 try:
                     from kubelingo.bridge import rust_bridge
-                    rust_bridge.run_command_quiz(args)
+                    if rust_bridge.is_available():
+                        if rust_bridge.run_command_quiz(args):
+                            break  # Rust quiz ran, exit module execution
                 except ImportError:
-                    pass
+                    pass  # Fall through to Python implementation
+
             if module_name == 'kustom':
                 module_name = 'custom'
-            
+
             # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
             if module_name == 'llm':
                 print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")

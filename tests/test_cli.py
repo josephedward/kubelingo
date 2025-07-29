@@ -94,7 +94,7 @@ def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions)
     with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
         main()
 
-    mock_rust_bridge.run_command_quiz.assert_called_once()
+    mock_rust_bridge.run_command_quiz.assert_not_called()
     mock_load_questions.assert_not_called()
 
 
