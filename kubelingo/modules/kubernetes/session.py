@@ -46,11 +46,12 @@ except ImportError:
 # Quiz data directory (project root 'question-data/' directory)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
 DATA_DIR = os.path.join(ROOT, 'question-data')
+LOGS_DIR = os.path.join(ROOT, 'logs')
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim_quiz_data.json')
 # History file for storing past quiz performance
-HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
+HISTORY_FILE = os.path.join(LOGS_DIR, '.cli_quiz_history.json')
 
 def mark_question_for_review(data_file, category, prompt_text):
     """Adds 'review': True to the matching question in the JSON data file."""
@@ -259,7 +260,7 @@ class NewSession(StudySession):
 
         prompt_session = None
         if PromptSession and FileHistory:
-            history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_input_history')
+            history_path = os.path.join(LOGS_DIR, '.kubelingo_input_history')
             prompt_session = PromptSession(history=FileHistory(history_path))
 
         for i, q in enumerate(questions_to_ask, 1):
@@ -516,7 +517,7 @@ class NewSession(StudySession):
 
         prompt_session = None
         if PromptSession and FileHistory:
-            history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_vim_history')
+            history_path = os.path.join(LOGS_DIR, '.kubelingo_vim_history')
             prompt_session = PromptSession(history=FileHistory(history_path))
 
         for i, q in enumerate(questions_to_ask, 1):
@@ -681,7 +682,7 @@ class NewSession(StudySession):
 
             prompt_session = None
             if PromptSession and FileHistory:
-                history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_sandbox_history')
+                history_path = os.path.join(LOGS_DIR, '.kubelingo_sandbox_history')
                 prompt_session = PromptSession(history=FileHistory(history_path))
 
             while True:

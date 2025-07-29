@@ -62,10 +62,11 @@ def print_banner():
 # Quiz data directory (project root 'question-data/' directory)
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 DATA_DIR = os.path.join(ROOT, 'question-data')
+LOGS_DIR = os.path.join(ROOT, 'logs')
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'yaml_edit_questions.json')
 # History file for storing past quiz performance
-HISTORY_FILE = os.path.join(os.path.expanduser('~'), '.cli_quiz_history.json')
+HISTORY_FILE = os.path.join(LOGS_DIR, '.cli_quiz_history.json')
 
 def show_history():
     """Display quiz history and aggregated statistics."""
@@ -121,6 +122,7 @@ def show_history():
     
 # Legacy alias for cloud-mode static branch
 def main():
+    os.makedirs(LOGS_DIR, exist_ok=True)
     while True:
         print_banner()
         print()
@@ -188,20 +190,14 @@ def main():
 
         # If no arguments provided, show an interactive menu of modules
         if len(sys.argv) == 1:
-            mods = discover_modules()
-            # Exclude internal-only and CSV quiz modules from root menu
-            modules = [m for m in mods if m not in ('llm', 'killercoda_ckad')]
-            # Stylize custom quiz as 'kustom' and ensure it appears after Kubernetes
-            ordered = []
-            if 'kubernetes' in modules:
-                ordered.append('kubernetes')
-            if 'custom' in modules:
-                ordered.append('kustom')
-            # append any other modules (if present)
-            for m in modules:
-                if m not in ('kubernetes', 'custom'):
-                    ordered.append(m)
-            modules = ordered
+            # Interactive: list each question-data file as its own module
+            modules = []
+            for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
+                for path in loader.discover():
+                    name = os.path.splitext(os.path.basename(path))[0]
+                    modules.append(name)
+            # Deduplicate and sort
+            modules = sorted(set(modules))
             if questionary:
                 try:
                     choices = []
@@ -332,7 +328,7 @@ def main():
                 break
 
             # Prepare logging for other modules
-            log_file = 'quiz_log.txt'
+            log_file = os.path.join(LOGS_DIR, 'quiz_log.txt')
             logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(message)s')
             logger = logging.getLogger()
 
