@@ -33,7 +33,7 @@ except ImportError:
     PromptSession = None
     FileHistory = None
 
-from kubelingo.modules.base.session import StudySession
+from kubelingo.modules.base.session import StudySession, SessionManager
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -210,6 +210,26 @@ def load_questions(data_file, exit_on_error=True):
     elif ext in ('.md', '.markdown'):
         loader = MDLoader()
     elif ext in ('.yaml', '.yml'):
+        # Special-case flat YAML list of questions with 'prompt' key
+        try:
+            raw_yaml = yaml.safe_load(open(data_file, encoding='utf-8')) or []
+        except Exception as e:
+            if exit_on_error:
+                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+                sys.exit(1)
+            return []
+        if isinstance(raw_yaml, list) and raw_yaml and isinstance(raw_yaml[0], dict) and 'prompt' in raw_yaml[0]:
+            questions = []
+            for item in raw_yaml:
+                questions.append({
+                    'category': item.get('category', 'General'),
+                    'prompt': item.get('prompt', ''),
+                    'explanation': item.get('explanation', ''),
+                    'type': item.get('type', 'command'),
+                    'response': item.get('response', '') or item.get('answer', ''),
+                    'review': item.get('review', False)
+                })
+            return questions
         loader = YAMLLoader()
     else:
         if exit_on_error:
@@ -229,8 +249,6 @@ def load_questions(data_file, exit_on_error=True):
             print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
             sys.exit(1)
         return []
-import logging
-from kubelingo.modules.base.session import SessionManager
 
 def mark_question_for_review(data_file, category, prompt_text):
     """Module-level helper to flag a question for review."""
