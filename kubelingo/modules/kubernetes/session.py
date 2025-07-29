@@ -366,13 +366,13 @@ class NewSession(StudySession):
                         print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                         continue
 
-                command_questions = [q for q in questions if q.get('type') == 'command']
-                if not command_questions:
-                    print(Fore.YELLOW + "No command questions available for this quiz." + Style.RESET_ALL)
+                runnable_questions = [q for q in questions if q.get('type') in ('command', 'live_k8s', 'live_k8s_edit')]
+                if not runnable_questions:
+                    print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
                     continue
 
-                num_to_ask = args.num if args.num > 0 else len(command_questions)
-                questions_to_ask = random.sample(command_questions, min(num_to_ask, len(command_questions)))
+                num_to_ask = args.num if args.num > 0 else len(runnable_questions)
+                questions_to_ask = random.sample(runnable_questions, min(num_to_ask, len(runnable_questions)))
 
                 if not questions_to_ask:
                     print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
@@ -551,13 +551,13 @@ class NewSession(StudySession):
                 print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                 return
 
-        command_questions = [q for q in questions if q.get('type') == 'command']
-        if not command_questions:
-            print(Fore.YELLOW + "No command questions available for this quiz." + Style.RESET_ALL)
+        runnable_questions = [q for q in questions if q.get('type') in ('command', 'live_k8s', 'live_k8s_edit')]
+        if not runnable_questions:
+            print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
             return
 
-        num_to_ask = args.num if args.num > 0 else len(command_questions)
-        questions_to_ask = random.sample(command_questions, min(num_to_ask, len(command_questions)))
+        num_to_ask = args.num if args.num > 0 else len(runnable_questions)
+        questions_to_ask = random.sample(runnable_questions, min(num_to_ask, len(runnable_questions)))
 
         if not questions_to_ask:
             print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
