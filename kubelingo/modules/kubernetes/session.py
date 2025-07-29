@@ -327,15 +327,15 @@ class NewSession(StudySession):
                         answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
 
                         choices = [
-                            questionary.Choice(answer_text, value="answer"),
-                            questionary.Choice("Check Answer", value="check"),
-                            questionary.Choice(flag_option_text, value="flag"),
-                            questionary.Choice("Skip", value="skip"),
-                            questionary.Choice("Back to Quiz Menu", value="back")
+                            questionary.Choice(f"1. {answer_text}", value="answer"),
+                            questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                            questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                            questionary.Choice("4. Skip", value="skip"),
+                            questionary.Choice("5. Back to Quiz Menu", value="back")
                         ]
                         
                         try:
-                            action = questionary.select("Action:", choices=choices, use_indicator=True).ask()
+                            action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
                             if action is None: raise KeyboardInterrupt
                         except (EOFError, KeyboardInterrupt):
                             print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
@@ -540,15 +540,15 @@ class NewSession(StudySession):
                 answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
                 
                 choices = [
-                    questionary.Choice(answer_text, value="answer"),
-                    questionary.Choice("Check Answer", value="check"),
-                    questionary.Choice(flag_option_text, value="flag"),
-                    questionary.Choice("Skip", value="skip"),
-                    questionary.Choice("Back to Quiz Menu", value="back")
+                    questionary.Choice(f"1. {answer_text}", value="answer"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                    questionary.Choice("4. Skip", value="skip"),
+                    questionary.Choice("5. Back to Quiz Menu", value="back")
                 ]
                 
                 try:
-                    action = questionary.select("Action:", choices=choices, use_indicator=True).ask()
+                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
