@@ -8,10 +8,8 @@ fn main() {
     // The logic to handle commands would go here.
     // For now, this is a skeleton.
     if cli.command.is_none() {
-        // If no command-line arguments are given, run the interactive menu.
-        if let Err(e) = cli::run_interactive_menu() {
-            eprintln!("Error in interactive menu: {}", e);
-        }
+        // If no command-line arguments are given, it's assumed the Python wrapper
+        // is handling the interactive menu. This binary does nothing in that case.
         return;
     }
     if let Some(command) = cli.command {
