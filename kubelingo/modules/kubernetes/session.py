@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import random
@@ -22,6 +23,7 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
+    KILLERCODA_CSV_FILE,
 )
 
 try:
