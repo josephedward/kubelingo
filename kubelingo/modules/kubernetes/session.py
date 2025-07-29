@@ -793,11 +793,11 @@ class NewSession(StudySession):
                     if action == "Next Question":
                         break
                     elif action.startswith("Flag for Review"):
-                        mark_question_for_review(data_file, q['category'], q['prompt'])
+                        self.session_manager.mark_question_for_review(data_file, q['category'], q['prompt'])
                         q['review'] = True
                         print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
                     elif action.startswith("Un-flag for Review"):
-                        unmark_question_for_review(data_file, q['category'], q['prompt'])
+                        self.session_manager.unmark_question_for_review(data_file, q['category'], q['prompt'])
                         q['review'] = False
                         print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                     elif action == "Get LLM Clarification":
