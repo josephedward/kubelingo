@@ -258,6 +258,36 @@ class NewSession(StudySession):
         """Basic initialization. Live session initialization is deferred."""
         return True
 
+    def _save_history(self, start_time, num_questions, num_correct, duration, args, per_category_stats):
+        """Saves a quiz session's results to the history file."""
+        new_history_entry = {
+            'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'num_questions': num_questions,
+            'num_correct': num_correct,
+            'duration': duration,
+            'data_file': os.path.basename(args.file) if args.file else "interactive_session",
+            'category_filter': args.category,
+            'per_category': per_category_stats
+        }
+
+        history = []
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, 'r') as f:
+                    history_data = json.load(f)
+                    if isinstance(history_data, list):
+                        history = history_data
+            except (json.JSONDecodeError, IOError):
+                pass  # Start with fresh history if file is corrupt or unreadable
+
+        history.insert(0, new_history_entry)
+
+        try:
+            with open(HISTORY_FILE, 'w') as f:
+                json.dump(history, f, indent=2)
+        except IOError as e:
+            print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
+
     def run_exercises(self, args):
         """
         Router for running exercises. It decides which quiz to run.
@@ -364,137 +394,145 @@ class NewSession(StudySession):
 
         correct_count = 0
         per_category_stats = {}
-        total_asked = len(questions_to_ask)
+        total_questions = len(questions_to_ask)
+        asked_count = 0
+        skipped_questions = []
 
         print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
-        print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_asked}{Style.RESET_ALL}")
+        print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
 
+        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+        
         prompt_session = None
         if PromptSession and FileHistory:
             history_path = os.path.join(LOGS_DIR, '.kubelingo_input_history')
             prompt_session = PromptSession(history=FileHistory(history_path))
+        
+        current_question_index = 0
+        while current_question_index < len(questions_to_ask):
+            q = questions_to_ask[current_question_index]
+            i = current_question_index + 1
 
-        for i, q in enumerate(questions_to_ask, 1):
             category = q.get('category', 'General')
             if category not in per_category_stats:
                 per_category_stats[category] = {'asked': 0, 'correct': 0}
-            per_category_stats[category]['asked'] += 1
 
-            print(f"\n{Fore.YELLOW}Question {i}/{total_asked} (Category: {category}){Style.RESET_ALL}")
-            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+            user_answer_content = None
+            was_answered = False
 
-            try:
-                if prompt_session:
-                    user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                else:
-                    user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-            except (EOFError, KeyboardInterrupt):
-                print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                break
-            
-            is_correct = commands_equivalent(user_answer, q.get('response', ''))
-            if is_correct:
-                correct_count += 1
-                per_category_stats[category]['correct'] += 1
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-
-            self.logger.info(f"Question {i}/{total_asked}: prompt=\"{q['prompt']}\" expected=\"{q.get('response', '')}\" answer=\"{user_answer}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-
-            if q.get('explanation'):
-                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-
-            # --- Post-question action menu ---
-            action_interrupted = False
+            # Inner loop for the in-quiz menu
             while True:
-                print() # Spacer
-                try:
-                    is_flagged = q.get('review', False)
-                    flag_option = "Un-flag for Review" if is_flagged else "Flag for Review"
-                    
-                    if questionary:
-                        choices = ["Next Question", flag_option, "Get LLM Clarification"]
-                        action = questionary.select("Choose an action:", choices=choices, use_indicator=True).ask()
-                        if action is None: raise KeyboardInterrupt
-                    else:
-                        # Fallback for no questionary
-                        print("Choose an action:")
-                        print("  1: Next Question")
-                        print(f"  2: {flag_option}")
-                        print("  3: Get LLM Clarification")
-                        choice = input("Enter choice [1]: ").strip()
-                        action_map = {'1': "Next Question", '2': flag_option, '3': "Get LLM Clarification"}
-                        action = action_map.get(choice, "Next Question")
+                print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-                    if action == "Next Question":
-                        break
-                    elif action.startswith("Flag for Review"):
-                        data_file_path = q.get('data_file', args.file)
-                        mark_question_for_review(data_file_path, q['category'], q['prompt'])
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                    elif action.startswith("Un-flag for Review"):
-                        data_file_path = q.get('data_file', args.file)
+                is_flagged = q.get('review', False)
+                flag_option_text = "Un-flag" if is_flagged else "Flag"
+                
+                q_type = q.get('type', 'command')
+                answer_text = "1. Answer (Enter Command)" if q_type == 'command' else "1. Answer (Open Terminal)"
+                
+                choices = [
+                    questionary.Choice(answer_text, value="answer"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                    questionary.Choice("4. Skip", value="skip"),
+                    questionary.Choice("5. Back to Quiz Menu", value="back")
+                ]
+                
+                try:
+                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                    if action is None: raise KeyboardInterrupt
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    self._save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
+                    return
+
+                if action == "back":
+                    end_time = datetime.now()
+                    duration = str(end_time - start_time).split('.')[0]
+                    self._save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
+                    return
+                
+                if action == "skip":
+                    if not was_answered:
+                        per_category_stats[category]['asked'] += 1
+                        asked_count += 1
+                    skipped_questions.append(q)
+                    self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
+                    current_question_index += 1
+                    break
+
+                if action == "flag":
+                    data_file_path = q.get('data_file', args.file)
+                    if is_flagged:
                         unmark_question_for_review(data_file_path, q['category'], q['prompt'])
                         q['review'] = False
                         print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
-                    elif action == "Get LLM Clarification":
-                        # Use internal LLM session for explanations
-                        try:
-                            session = load_session('llm', self.logger)
-                            if session.initialize():
-                                session.run_exercises(q)
-                                session.cleanup()
-                            else:
-                                print(Fore.RED + "LLM module failed to initialize." + Style.RESET_ALL)
-                        except Exception as e:
-                            print(Fore.RED + f"Error invoking LLM module: {e}" + Style.RESET_ALL)
+                    else:
+                        mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                        q['review'] = True
+                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                    continue
 
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    action_interrupted = True
-                    break
+                if action == "answer":
+                    if not was_answered:
+                        per_category_stats[category]['asked'] += 1
+                        asked_count += 1
+                    was_answered = True
 
-            if action_interrupted:
-                break
+                    if q_type == 'command':
+                        if prompt_session:
+                            user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                        else:
+                            user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                    else:
+                        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+                        sandbox_func()
+                        user_answer_content = "sandbox_session_completed"
+                    continue
 
+                if action == "check":
+                    if not was_answered:
+                        print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                        continue
+                    
+                    if q_type == 'command':
+                        is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
+                    elif q_type in ['live_k8s_edit', 'live_k8s']:
+                        is_correct = self._run_one_exercise(q, is_check_only=True)
+
+                    self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+                    if is_correct:
+                        correct_count += 1
+                        per_category_stats[category]['correct'] += 1
+                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                        if q.get('explanation'):
+                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                        current_question_index += 1
+                        break
+                    else:
+                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                        if q_type == 'command':
+                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        continue
+            
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
+        
+        if skipped_questions:
+            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
+            for q in skipped_questions:
+                print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Correct answer: {q.get('response', 'See explanation.')}{Style.RESET_ALL}")
+                if q.get('explanation'):
+                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
         print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-        score = (correct_count / total_asked * 100) if total_asked > 0 else 0
-        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_asked}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
+        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
         print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
-
-        new_history_entry = {
-            'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
-            'num_questions': total_asked,
-            'num_correct': correct_count,
-            'duration': duration,
-            'data_file': os.path.basename(args.file) if args.file else "interactive_session",
-            'category_filter': args.category,
-            'per_category': per_category_stats
-        }
-
-        history = []
-        if os.path.exists(HISTORY_FILE):
-            try:
-                with open(HISTORY_FILE, 'r') as f:
-                    history_data = json.load(f)
-                    if isinstance(history_data, list):
-                        history = history_data
-            except (json.JSONDecodeError, IOError):
-                pass  # Start with fresh history if file is corrupt or unreadable
-
-        history.insert(0, new_history_entry)
-
-        try:
-            with open(HISTORY_FILE, 'w') as f:
-                json.dump(history, f, indent=2)
-        except IOError as e:
-            print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
+        
+        self._save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
@@ -900,70 +938,15 @@ class NewSession(StudySession):
         self.cluster_name = "pre-configured"
         return True
     
-    def _run_one_exercise(self, q):
-        """Handles a single live Kubernetes question against the user's current context."""
+    def _run_one_exercise(self, q, is_check_only=False):
+        """
+        Handles a single live Kubernetes question. For this refactoring, it only
+        performs the validation step, since the interactive shell is now launched
+        directly from the quiz menu.
+        """
         is_correct = False
+        print("\nValidating your solution...")
         try:
-            # --- Interactive shell session ---
-            print(Fore.GREEN + "\nYou are in a sandboxed environment. Your commands will run against the current Kubernetes context." + Style.RESET_ALL)
-            print(Fore.GREEN + "Type 'done' or 'exit' when you have completed the task." + Style.RESET_ALL)
-
-            if q.get('type') == 'live_k8s_edit' and q.get('starting_yaml'):
-                with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp_yaml:
-                    tmp_yaml.write(q.get('starting_yaml'))
-                    print(f"A starting YAML file has been created for you at: {Fore.CYAN}{tmp_yaml.name}{Style.RESET_ALL}")
-
-            prompt_session = None
-            if PromptSession and FileHistory:
-                history_path = os.path.join(LOGS_DIR, '.kubelingo_sandbox_history')
-                prompt_session = PromptSession(history=FileHistory(history_path))
-
-            while True:
-                try:
-                    if prompt_session:
-                        command_str = prompt_session.prompt(f'{Fore.CYAN}(kubelingo-sandbox)$ {Style.RESET_ALL}')
-                    else:
-                        command_str = input(f'{Fore.CYAN}(kubelingo-sandbox)$ {Style.RESET_ALL}')
-                except (EOFError, KeyboardInterrupt):
-                    print()  # Newline after prompt
-                    command_str = 'done'
-
-                command_str = command_str.strip()
-
-                if not command_str:
-                    continue
-                if command_str.lower() in ('done', 'exit'):
-                    break
-
-                cmd_parts = shlex.split(command_str)
-
-                # Handle interactive editors separately to ensure they run in the foreground
-                editor_env = os.environ.get('EDITOR', 'vim')
-                # Get just the command name, in case it's a path
-                editor_name = editor_env.split('/')[-1]
-                interactive_commands = ['vim', 'vi', 'nano', 'emacs', editor_name]
-
-                if cmd_parts[0] in interactive_commands:
-                    try:
-                        # For editors, run directly and inherit stdio
-                        subprocess.run(cmd_parts, check=True)
-                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                        print(f"{Fore.RED}Error running editor: {e}{Style.RESET_ALL}")
-                else:
-                    try:
-                        # For other commands, capture and print output
-                        proc = subprocess.run(cmd_parts, capture_output=True, text=True, check=False)
-                        if proc.stdout:
-                            print(proc.stdout, end='')
-                        if proc.stderr:
-                            print(Fore.YELLOW + proc.stderr + Style.RESET_ALL, end='')
-                    except FileNotFoundError:
-                        print(f"{Fore.RED}Command not found: {cmd_parts[0]}{Style.RESET_ALL}")
-                    except Exception as e:
-                        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
-
-            # --- Validation ---
-            print("\nValidating your solution...")
             with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
                 tmp_assert.write(q.get('assert_script', 'exit 1'))
                 assert_path = tmp_assert.name
@@ -974,19 +957,15 @@ class NewSession(StudySession):
             os.remove(assert_path)
 
             if assert_proc.returncode == 0:
-                print(Fore.GREEN + "Correct!" + Style.RESET_ALL)
                 if assert_proc.stdout:
                     print(assert_proc.stdout)
                 is_correct = True
             else:
-                print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
                 print(assert_proc.stdout or assert_proc.stderr)
         except Exception as e:
-            print(Fore.RED + f"An unexpected error occurred during the exercise: {e}" + Style.RESET_ALL)
-        finally:
-            # No cloud resources to clean up in this mode.
-            pass
-        self.logger.info(f"Live exercise: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+            print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
+        
+        return is_correct
 
     def cleanup(self):
         """Deletes the EKS cluster if one was created for a live session."""

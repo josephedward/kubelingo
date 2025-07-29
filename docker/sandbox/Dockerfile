@@ -3,7 +3,7 @@ FROM alpine:latest
 LABEL description="Kubelingo sandbox environment with kubectl and other tools."
 
 # Define kubectl version and target architecture
-ARG KUBECTL_VERSION=v1.24.0
+ARG KUBECTL_VERSION=v1.30.2
 ARG TARGETARCH=amd64
 
 # Install dependencies
