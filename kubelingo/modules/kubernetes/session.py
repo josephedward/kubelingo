@@ -36,6 +36,10 @@ except ImportError:
 
 from kubelingo.modules.base.session import StudySession
 from kubelingo.modules.base.loader import load_session
+from kubelingo.modules.json_loader import JSONLoader
+from kubelingo.modules.md_loader import MDLoader
+from kubelingo.modules.yaml_loader import YAMLLoader
+from dataclasses import asdict
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
 # (AI integration is loaded dynamically to avoid import-time dependencies)
