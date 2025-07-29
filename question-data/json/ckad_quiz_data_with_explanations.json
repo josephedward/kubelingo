@@ -1,0 +1,893 @@
+[
+  {
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "prompts": [
+      {
+        "prompt": "Create an alias 'k' for 'kubectl'",
+        "response": "alias k=kubectl",
+        "explanation": "Defines a shell alias `k` so you can type `k get pods` instead of `kubectl get pods`, saving keystrokes on every invocation."
+      },
+      {
+        "prompt": "Create an alias 'kd' for 'kubectl describe'",
+        "response": "alias kd='kubectl describe'",
+        "explanation": "Defines a shell alias `kd` so you can type `kd pod nginx` instead of `kubectl describe pod nginx`, streamlining the describe command."
+      },
+      {
+        "prompt": "Create an alias 'kr' for 'kubectl run'",
+        "response": "alias kr='kubectl run'",
+        "explanation": "Defines a shell alias `kr` so you can type `kr nginx --image=nginx` instead of `kubectl run nginx --image=nginx`, speeding up pod creation."
+      },
+      {
+        "prompt": "Create an alias 'kc' for 'kubectl create'",
+        "response": "alias kc='kubectl create'",
+        "explanation": "Defines a shell alias `kc` so you can type `kc deployment webapp --image=nginx` instead of `kubectl create deployment webapp --image=nginx`, simplifying resource creation."
+      },
+      {
+        "prompt": "Create an alias 'ke' for 'kubectl explain'",
+        "response": "alias ke='kubectl explain'",
+        "explanation": "Defines a shell alias `ke` so you can type `ke pods` instead of `kubectl explain pods`, making API field lookup quicker."
+      },
+      {
+        "prompt": "Create an alias 'kgp' for 'kubectl get pods'",
+        "response": "alias kgp='kubectl get pods'",
+        "explanation": "Defines a shell alias `kgp` so you can list pods with just `kgp`, reducing typing for frequent pod listings."
+      },
+      {
+        "prompt": "Create an alias 'kgs' for 'kubectl get svc'",
+        "response": "alias kgs='kubectl get svc'",
+        "explanation": "Defines a shell alias `kgs` so you can list services with just `kgs`, making service inspection faster."
+      },
+      {
+        "prompt": "Enable kubectl autocomplete in your shell",
+        "response": "source <(kubectl completion bash)\ncomplete -F __start_kubectl k",
+        "explanation": "Loads the kubectl bash completion script and registers it for the `k` alias, providing real-time tab-completion of commands, flags, and resource names."
+      },
+      {
+        "prompt": "List pods using the 'kgp' alias",
+        "response": "kgp",
+        "explanation": "Runs `kubectl get pods` via the `kgp` alias to display all Pods in the current namespace."
+      },
+      {
+        "prompt": "List replicasets using the short alias",
+        "response": "k get rs",
+        "explanation": "Uses `rs` as the short resource name for ReplicaSets with the `k` alias for a quick listing."
+      },
+      {
+        "prompt": "List daemonsets using the short alias",
+        "response": "k get ds",
+        "explanation": "Uses `ds` as the short resource name for DaemonSets with the `k` alias to view all DaemonSets."
+      },
+      {
+        "prompt": "List services using the 'kgs' alias",
+        "response": "kgs",
+        "explanation": "Runs `kubectl get svc` via the `kgs` alias to display all Services in the current namespace."
+      },
+      {
+        "prompt": "List ConfigMaps using the short alias",
+        "response": "k get cm",
+        "explanation": "Uses `cm` as the short resource name for ConfigMaps with the `k` alias to quickly list ConfigMaps."
+      },
+      {
+        "prompt": "List secrets using the short alias",
+        "response": "k get secret",
+        "explanation": "Runs `kubectl get secret` with the `k` alias to display all Secrets."
+      },
+      {
+        "prompt": "List HorizontalPodAutoscalers using the short alias",
+        "response": "k get hpa",
+        "explanation": "Uses `hpa` as the short resource name for HorizontalPodAutoscalers with the `k` alias."
+      },
+      {
+        "prompt": "List Ingresses using the short alias",
+        "response": "k get ing",
+        "explanation": "Uses `ing` as the short resource name for Ingress resources with the `k` alias."
+      },
+      {
+        "prompt": "List NetworkPolicies using the short alias",
+        "response": "k get netpol",
+        "explanation": "Uses `netpol` as the short resource name for NetworkPolicy objects with the `k` alias."
+      },
+      {
+        "prompt": "List ServiceAccounts using the short alias",
+        "response": "k get sa",
+        "explanation": "Uses `sa` as the short resource name for ServiceAccounts with the `k` alias."
+      }
+    ]
+  },
+  {
+    "category": "Pod Management",
+    "prompts": [
+      {
+        "prompt": "Create a pod named nginx using the nginx image and expose port 80",
+        "response": "kubectl run nginx --image=nginx --port=80",
+        "explanation": "Invokes `kubectl run` to create a standalone Pod called `nginx`, pulling the official `nginx` image and annotating its container spec with port 80, so Services or `kubectl port-forward` can route traffic. Ideal for quick dev-mode tests before wrapping in a Deployment for production."
+      },
+      {
+        "prompt": "Create a pod named busybox that runs the command 'sleep 3600'",
+        "response": "kubectl run busybox --image=busybox -- sleep 3600",
+        "explanation": "Launches a Pod named `busybox` that executes `sleep 3600` as its entrypoint, using the minimal BusyBox image. Useful for ephemeral debug containers that remain alive long enough for exec- or log-based inspection."
+      },
+      {
+        "prompt": "Generate a YAML definition file for a pod named nginx without creating it",
+        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml",
+        "explanation": "Uses `--dry-run=client` with `-o yaml` to locally render the full Pod manifest for `nginx` without contacting the API server, saving it as `nginx.yaml`. You can then customize or version-control before applying.",
+        "review": true
+      },
+      {
+        "prompt": "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db",
+        "response": "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\"",
+        "explanation": "Spawns an `nginx` Pod with `DB_URL` injected into the container\u2019s environment, letting the process read database connection info at runtime; for sensitive data, prefer mounting Secrets or ConfigMaps instead of literals."
+      },
+      {
+        "prompt": "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace",
+        "response": "kubectl get pod webapp -n development -o yaml > webapp.yaml",
+        "explanation": "Retrieves the live Pod object `webapp` from namespace `development` and outputs its complete spec, metadata, and status as YAML into `webapp.yaml`, allowing diff-based debugging against source manifests."
+      },
+      {
+        "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
+        "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\"",
+        "explanation": "Tags the new `nginx` Pod with `app=web` and `tier=frontend` labels, enabling Services, ReplicaSets, and `kubectl get -l` selectors to group and manage it alongside related resources."
+      },
+      {
+        "prompt": "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues",
+        "response": "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash",
+        "explanation": "Starts a one-off `ubuntu` Pod named `my-shell` with an interactive Bash shell; flags `-i --tty` attach your terminal, and `--rm` auto-cleans the Pod on exit\u2014perfect for ad hoc network or volume tests."
+      },
+      {
+        "prompt": "Create a pod with resource requests of 100m CPU and 256Mi memory",
+        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # then add resource requests",
+        "explanation": "Dumps a Pod spec to `pod.yaml`, which you then enrich under `resources.requests` with `cpu: \"100m\"` and `memory: \"256Mi\"` so the scheduler reserves minimal compute and memory for the container."
+      },
+      {
+        "prompt": "Create a pod that runs curl against an internal service at 10.244.0.4",
+        "response": "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4",
+        "explanation": "Launches a disposable Pod named `curl1` to execute `curl 10.244.0.4` inside the cluster; `--rm` and `--restart=Never` ensure it doesn\u2019t persist, while `-i -t` streams output to your terminal."
+      },
+      {
+        "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
+        "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # add volume and volumeMount",
+        "explanation": "Outputs a BusyBox Pod manifest to `pod.yaml`; edit its `spec.volumes` to reference `configMap.name: app-config` and `spec.containers[0].volumeMounts` to mount it at `/etc/config`, injecting config files at runtime."
+      }
+    ]
+  },
+  {
+    "category": "Deployment Management",
+    "prompts": [
+      {
+        "prompt": "Create a deployment named webapp with image nginx:1.17 and 3 replicas",
+        "response": "kubectl create deployment webapp --image=nginx:1.17 --replicas=3",
+        "explanation": "Creates a Deployment object `webapp` running `nginx:1.17` across 3 Pods, ensuring declarative rolling updates, self-healing, and scaling capabilities under the hood."
+      },
+      {
+        "prompt": "Generate a YAML file for a deployment with nginx image without creating it",
+        "response": "kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml",
+        "explanation": "Renders the Deployment spec for `nginx` locally as `deploy.yaml` without persisting it, letting you review or tweak rollout strategy (e.g., `spec.strategy`) before `kubectl apply -f`."
+      },
+      {
+        "prompt": "Scale a deployment named 'frontend' to 5 replicas",
+        "response": "kubectl scale deployment frontend --replicas=5",
+        "explanation": "Adjusts the `frontend` Deployment\u2019s replica count to 5, prompting the ReplicaSet controller to create or remove Pods to match the desired state."
+      },
+      {
+        "prompt": "Update the image of a deployment named 'webapp' to nginx:1.18",
+        "response": "kubectl set image deployment/webapp webapp=nginx:1.18",
+        "explanation": "Patches the `webapp` Deployment to use `nginx:1.18`, triggering a rolling update that replaces old Pods with new ones in a controlled fashion."
+      },
+      {
+        "prompt": "Check the rollout status of a deployment named 'frontend'",
+        "response": "kubectl rollout status deployment/frontend",
+        "explanation": "Displays live progress of the `frontend` Deployment\u2019s rollout, reporting when all updated Pods are available or if any failures occur."
+      },
+      {
+        "prompt": "Roll back a deployment named 'webapp' to its previous version",
+        "response": "kubectl rollout undo deployment/webapp",
+        "explanation": "Reverts the `webapp` Deployment to its prior revision, restoring previous Pod templates and undoing the last `set image` or `apply` change."
+      },
+      {
+        "prompt": "Create a deployment with a record of the change-cause for future reference",
+        "response": "kubectl create deployment nginx --image=nginx --record",
+        "explanation": "Adds an annotation capturing the command that triggered this Deployment, letting you later inspect `kubectl rollout history` to trace change causes."
+      },
+      {
+        "prompt": "View the history of a deployment named 'webapp'",
+        "response": "kubectl rollout history deployment/webapp",
+        "explanation": "Lists all revisions of `webapp`, showing image versions and `change-cause` annotations to help audit past rollouts.",
+        "review": true
+      },
+      {
+        "prompt": "Pause the rollout of a deployment named 'frontend'",
+        "response": "kubectl rollout pause deployment/frontend",
+        "explanation": "Temporarily halts `frontend`\u2019s rolling update, giving you time to inspect or modify the Deployment spec before resuming."
+      },
+      {
+        "prompt": "Resume the rollout of a deployment named 'frontend'",
+        "response": "kubectl rollout resume deployment/frontend",
+        "explanation": "Continues a paused rollout for the `frontend` Deployment, applying any pending Pod template changes."
+      }
+    ]
+  },
+  {
+    "category": "Namespace Operations",
+    "prompts": [
+      {
+        "prompt": "Create a new namespace called 'development'",
+        "response": "kubectl create namespace development",
+        "explanation": "Provision a logical scope `development` in the cluster, isolating resources and RBAC policies under its own boundary."
+      },
+      {
+        "prompt": "Set the current context to use the 'production' namespace by default",
+        "response": "kubectl config set-context --current --namespace=production",
+        "explanation": "Mutates your active kubeconfig context so that subsequent `kubectl` commands default to `production` unless overridden with `-n`."
+      },
+      {
+        "prompt": "Verify which namespace is currently being used in your context",
+        "response": "kubectl config view --minify | grep namespace:",
+        "explanation": "Extracts the `namespace:` line from the minimized kubeconfig output, confirming the default target for your `kubectl` operations."
+      },
+      {
+        "prompt": "Create a new namespace called 'testing' and output its YAML definition",
+        "response": "kubectl create ns testing --dry-run=client -o yaml",
+        "explanation": "Renders the `testing` Namespace manifest without creating it, giving you a versioned YAML stub for review or customization."
+      },
+      {
+        "prompt": "List all resources across all namespaces",
+        "response": "kubectl get all -A",
+        "explanation": "Aggregates Pods, Services, Deployments, ReplicaSets, and more from every namespace, giving a cluster-wide resource snapshot."
+      },
+      {
+        "prompt": "List all pods in the 'kube-system' namespace",
+        "response": "kubectl get pods -n kube-system",
+        "explanation": "Shows core control-plane and system Pods managed by Kubernetes in the `kube-system` namespace, used for health checks or troubleshooting."
+      },
+      {
+        "prompt": "Create a pod in the 'development' namespace",
+        "response": "kubectl run nginx --image=nginx -n development",
+        "explanation": "Launches a Pod named `nginx` within `development`, isolating it from other namespaces and inheriting the namespace\u2019s resource quotas and policies."
+      },
+      {
+        "prompt": "Delete a namespace called 'testing' and all its resources",
+        "response": "kubectl delete namespace testing",
+        "explanation": "Removes the entire `testing` namespace object, cascading deletion to every resource contained within."
+      },
+      {
+        "prompt": "List all namespaces in the cluster",
+        "response": "kubectl get namespaces",
+        "explanation": "Displays every namespace, their statuses, and age\u2014useful for housekeeping or capacity planning."
+      },
+      {
+        "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
+        "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
+        "explanation": "Establishes a `ResourceQuota` named `ns-quota` in `development`, capping Pod creation at 10 to prevent resource exhaustion."
+      }
+    ]
+  },
+  {
+    "category": "ConfigMap Operations",
+    "prompts": [
+      {
+        "prompt": "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod",
+        "response": "kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod",
+        "explanation": "Builds a ConfigMap `app-config` injecting literals for `APP_COLOR` and `APP_MODE`, which Pods can consume as environment variables or files."
+      },
+      {
+        "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at '/configs/game.properties'",
+        "response": "kubectl create cm game-config --from-file=/configs/game.properties",
+        "explanation": "Loads the contents of `game.properties` into `game-config`, mapping the filename to a key so containers can mount it as a file."
+      },
+      {
+        "prompt": "View the contents of a ConfigMap named 'db-config'",
+        "response": "kubectl describe cm db-config",
+        "explanation": "Shows detailed key/value pairs, creation timestamp, and events related to `db-config`, aiding in verification and debugging."
+      },
+      {
+        "prompt": "Create a ConfigMap from all files in the '/configs' directory",
+        "response": "kubectl create cm app-settings --from-file=/configs",
+        "explanation": "Iterates over every file under `/configs`, creating corresponding keys in `app-settings`, great for grouping multiple configs."
+      },
+      {
+        "prompt": "Create a pod that uses a ConfigMap as environment variables",
+        "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # add envFrom with configMapRef",
+        "explanation": "Generates a Pod spec stub; you then add `envFrom.configMapRef.name: app-config` under the container to import all ConfigMap keys as env vars."
+      },
+      {
+        "prompt": "Extract a ConfigMap to YAML format",
+        "response": "kubectl get cm app-config -o yaml > config.yaml",
+        "explanation": "Dumps `app-config`\u2019s full manifest, including data entries, into `config.yaml` for backup or diff-based change tracking."
+      },
+      {
+        "prompt": "Update a value in an existing ConfigMap named 'app-config'",
+        "response": "kubectl edit cm app-config",
+        "explanation": "Opens the live ConfigMap in your default editor, letting you change keys inline; upon save, Kubernetes replaces the resource atomically."
+      },
+      {
+        "prompt": "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line",
+        "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true",
+        "explanation": "Bundles three literals into `multi-config`, showcasing how to supply multiple discrete settings in a single invocation."
+      },
+      {
+        "prompt": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions",
+        "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # then add volume with defaultMode",
+        "explanation": "Emits a Pod manifest to `pod.yaml`; edit its `spec.volumes` and `volumeMounts` to mount `app-config` at `/etc/config` with `defaultMode` for Unix file bits."
+      },
+      {
+        "prompt": "Create a ConfigMap from an env file",
+        "response": "kubectl create cm env-config --from-env-file=config.env",
+        "explanation": "Parses `config.env` (KEY=VALUE per line) into `env-config`, letting containers import it via `envFrom` without manual literal listing."
+      }
+    ]
+  },
+  {
+    "category": "Secret Management",
+    "prompts": [
+      {
+        "prompt": "Create a Secret named 'db-creds' with username=admin and password=password123",
+        "response": "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123",
+        "explanation": "Encodes `username` and `password` into a base64 Secret `db-creds`, which Pods can consume via `secretKeyRef` to keep credentials out of plaintext manifests."
+      },
+      {
+        "prompt": "Create a Secret named 'tls-cert' from a certificate file",
+        "response": "kubectl create secret generic tls-cert --from-file=/path/to/cert.pem",
+        "explanation": "Imports the raw bytes of `cert.pem` into `tls-cert`, ideal when you need to inject TLS assets into containers without baking them into images."
+      },
+      {
+        "prompt": "View the encoded values in a Secret named 'api-secrets'",
+        "response": "kubectl get secret api-secrets -o yaml",
+        "explanation": "Prints `api-secrets`\u2019s data fields in base64 form; decode locally via `echo '<value>' | base64 --decode` to inspect underlying values."
+      },
+      {
+        "prompt": "Encode a string for use in a Secret YAML definition",
+        "response": "echo -n 'string' | base64",
+        "explanation": "Pipes `string` through `base64` to produce the encoded representation required in Secret manifests under `data:`.",
+        "review": true
+      },
+      {
+        "prompt": "Decode a base64 encoded Secret value",
+        "response": "echo -n 'encoded string...' | base64 --decode",
+        "explanation": "Reverses the encoding, revealing the original plaintext\u2014handy for quick checks of Secret contents on the CLI."
+      },
+      {
+        "prompt": "Create a TLS Secret type from certificate and key files",
+        "response": "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key",
+        "explanation": "Bundles a cert/key pair into a `tls` Secret, which Ingress controllers and web servers natively understand for TLS termination."
+      },
+      {
+        "prompt": "Create a pod that uses a Secret value as an environment variable",
+        "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # add env.secretKeyRef",
+        "explanation": "Emits a Pod spec stub; modify `env` to reference `secretKeyRef.name: db-creds, key: password` so the container sees the secret at runtime without plaintext."
+      },
+      {
+        "prompt": "Create a Secret from a .env file",
+        "response": "kubectl create secret generic my-secrets --from-env-file=.env",
+        "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion.",
+        "review": true
+      },
+      {
+        "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
+        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
+        "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars.",
+        "review": true
+      },
+      {
+        "prompt": "Create a docker-registry type Secret for private registry authentication",
+        "response": "kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL",
+        "explanation": "Generates a `.dockerconfigjson`\u2013style Secret that Kubernetes uses to pull from private registries, embedding credentials securely."
+      }
+    ]
+  },
+  {
+    "category": "Service Account Operations",
+    "prompts": [
+      {
+        "prompt": "Create a Service Account named 'deployment-sa'",
+        "response": "kubectl create sa deployment-sa",
+        "explanation": "Provisions a ServiceAccount `deployment-sa`, which Pods can reference under `spec.serviceAccountName` to assume its RBAC permissions."
+      },
+      {
+        "prompt": "List all Service Accounts in the current namespace",
+        "response": "kubectl get sa",
+        "explanation": "Shows every ServiceAccount object in the active namespace, including defaults like `default` and any custom ones you\u2019ve created."
+      }
+    ]
+  },
+  {
+    "category": "Additional Commands",
+    "prompts": [
+      {
+        "prompt": "Create an alias 'k' for 'kubectl'",
+        "response": "alias k=kubectl",
+        "explanation": "Defines a shell alias `k`, letting you type `k get pods` instead of `kubectl get pods`, saving keystrokes in day-to-day operations."
+      },
+      {
+        "prompt": "Enable kubectl autocompletion for bash",
+        "response": "source <(kubectl completion bash)",
+        "explanation": "Activates real-time tab-completion for `kubectl` commands and flags in your current shell session, speeding up CLI usage."
+      },
+      {
+        "prompt": "Add kubectl autocompletion to ~/.bashrc",
+        "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc",
+        "explanation": "Appends the completion command to your startup file so every new shell session loads `kubectl` tab-completion automatically."
+      },
+      {
+        "prompt": "Set the KUBECONFIG environment variable to /home/user/config",
+        "response": "export KUBECONFIG=/home/user/config",
+        "explanation": "Points the `kubectl` client at a non-default kubeconfig file, useful when managing multiple clusters or contexts."
+      },
+      {
+        "prompt": "Check the kubectl client and server versions",
+        "response": "kubectl version",
+        "explanation": "Displays both client and API server versions, helping you verify compatibility and diagnose version-related issues."
+      },
+      {
+        "prompt": "Create a namespace named dev",
+        "response": "kubectl create namespace dev",
+        "explanation": "Bootstraps a new `dev` namespace for isolating development workloads from others."
+      },
+      {
+        "prompt": "List all namespaces",
+        "response": "kubectl get namespaces",
+        "explanation": "Enumerates every namespace, showing their current status (Active/Terminating) and age."
+      },
+      {
+        "prompt": "Describe namespace dev",
+        "response": "kubectl describe namespace dev",
+        "explanation": "Reveals details about `dev`\u2019s annotations, labels, and any events tied to its lifecycle."
+      },
+      {
+        "prompt": "Delete namespace dev",
+        "response": "kubectl delete namespace dev",
+        "explanation": "Tears down `dev` and all resources within\u2014use carefully to avoid data loss."
+      },
+      {
+        "prompt": "Create a deployment named frontend using image nginx:1.14",
+        "response": "kubectl create deployment frontend --image=nginx:1.14",
+        "explanation": "Sets up `frontend` Deployment running `nginx:1.14`, managing Pods declaratively with rolling updates."
+      },
+      {
+        "prompt": "List all deployments",
+        "response": "kubectl get deployments",
+        "explanation": "Shows each Deployment\u2019s name, desired vs. current replicas, and availability status."
+      },
+      {
+        "prompt": "Describe deployment frontend",
+        "response": "kubectl describe deployment frontend",
+        "explanation": "Provides full detail of `frontend`\u2019s spec, ReplicaSets, events, and rollout history."
+      },
+      {
+        "prompt": "Scale deployment frontend to 3 replicas",
+        "response": "kubectl scale deployment frontend --replicas=3",
+        "explanation": "Adjusts the target replica count for `frontend`, prompting creation or termination of Pods."
+      },
+      {
+        "prompt": "Roll back the deployment frontend to the previous version",
+        "response": "kubectl rollout undo deployment frontend",
+        "explanation": "Reverts `frontend` to its last successful revision, undoing the most recent spec change."
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment frontend",
+        "explanation": "Triggers a rolling restart of all Pods in `frontend`, useful for picking up new ConfigMaps or Secrets."
+      },
+      {
+        "prompt": "Delete deployment frontend",
+        "response": "kubectl delete deployment frontend",
+        "explanation": "Removes the `frontend` Deployment and its managed ReplicaSets and Pods."
+      },
+      {
+        "prompt": "Run a pod named busybox with image busybox that runs indefinitely",
+        "response": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\"",
+        "explanation": "Creates a Pod that sleeps for an hour, with `--restart=Never` so it won\u2019t loop\u2014handy for test or debug scenarios."
+      },
+      {
+        "prompt": "List all pods",
+        "response": "kubectl get pods",
+        "explanation": "Displays every Pod in the current namespace, their READY status, restarts, and age."
+      },
+      {
+        "prompt": "Describe pod busybox",
+        "response": "kubectl describe pod busybox",
+        "explanation": "Shows the full YAML spec, conditions, events, and container statuses for the `busybox` Pod."
+      },
+      {
+        "prompt": "Delete pod busybox",
+        "response": "kubectl delete pod busybox",
+        "explanation": "Immediately removes the `busybox` Pod from the cluster; if managed by a higher-level controller it may be recreated."
+      },
+      {
+        "prompt": "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc",
+        "response": "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc",
+        "explanation": "Creates a Service `frontend-svc` of type ClusterIP that load-balances traffic to the `frontend` Pods on port 80."
+      },
+      {
+        "prompt": "List all services",
+        "response": "kubectl get services",
+        "explanation": "Enumerates Services in the namespace, including ClusterIP, NodePort, and LoadBalancer types."
+      },
+      {
+        "prompt": "Describe service frontend-svc",
+        "response": "kubectl describe service frontend-svc",
+        "explanation": "Provides the Service\u2019s selectors, endpoints, port mappings, and any related events."
+      },
+      {
+        "prompt": "Delete service frontend-svc",
+        "response": "kubectl delete service frontend-svc",
+        "explanation": "Removes the `frontend-svc` Service; client traffic will no longer route to backend Pods."
+      },
+      {
+        "prompt": "Create a ConfigMap named app-config from file config.yaml",
+        "response": "kubectl create configmap app-config --from-file=config.yaml",
+        "explanation": "Loads `config.yaml` into key `config.yaml` in the ConfigMap, making it mountable or env-injectable for Pods."
+      },
+      {
+        "prompt": "List all ConfigMaps",
+        "response": "kubectl get configmaps",
+        "explanation": "Lists each ConfigMap name and age in the namespace."
+      },
+      {
+        "prompt": "Describe configmap app-config",
+        "response": "kubectl describe configmap app-config",
+        "explanation": "Reveals keys, data sizes, and events for `app-config` to help validate expected content."
+      },
+      {
+        "prompt": "Delete configmap app-config",
+        "response": "kubectl delete configmap app-config",
+        "explanation": "Removes the `app-config` resource; Pods mounting it will see no files or errors on next restart."
+      },
+      {
+        "prompt": "Create a generic secret named db-secret with literal username and password",
+        "response": "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret",
+        "explanation": "Builds `db-secret` with two data entries for secure credential distribution to Pods."
+      },
+      {
+        "prompt": "List all secrets",
+        "response": "kubectl get secrets",
+        "explanation": "Shows Secret names and types; data is hidden by default to protect sensitive values."
+      },
+      {
+        "prompt": "Describe secret db-secret",
+        "response": "kubectl describe secret db-secret",
+        "explanation": "Lists metadata and type of `db-secret`, but does not reveal values (use `-o yaml` to see base64-encoded data)."
+      },
+      {
+        "prompt": "Delete secret db-secret",
+        "response": "kubectl delete secret db-secret",
+        "explanation": "Purges the `db-secret` resource, revoking any Pod\u2019s access to its values."
+      },
+      {
+        "prompt": "Create a ServiceAccount named default-sa",
+        "response": "kubectl create serviceaccount default-sa",
+        "explanation": "Adds a custom ServiceAccount `default-sa`; Pods specifying it will inherit its token and RBAC scopes."
+      },
+      {
+        "prompt": "List all ServiceAccounts",
+        "response": "kubectl get serviceaccounts",
+        "explanation": "Lists each ServiceAccount object in the namespace, including the default one created automatically."
+      },
+      {
+        "prompt": "Describe serviceaccount default-sa",
+        "response": "kubectl describe serviceaccount default-sa",
+        "explanation": "Shows the linked Secret tokens and any associated image pull secrets for `default-sa`."
+      },
+      {
+        "prompt": "Delete serviceaccount default-sa",
+        "response": "kubectl delete serviceaccount default-sa",
+        "explanation": "Removes the `default-sa` object, invalidating its token Secret."
+      },
+      {
+        "prompt": "Label pod busybox with env=prod",
+        "response": "kubectl label pod busybox env=prod",
+        "explanation": "Attaches the label `env=prod` to the `busybox` Pod, which can drive Service selectors or monitoring filters."
+      },
+      {
+        "prompt": "Remove the label env from pod busybox",
+        "response": "kubectl label pod busybox env-",
+        "explanation": "Deletes the `env` label from `busybox`, updating its metadata in-place."
+      },
+      {
+        "prompt": "Annotate deployment frontend with description=test",
+        "response": "kubectl annotate deployment frontend description=test",
+        "explanation": "Adds or updates the annotation `description=test` on `frontend`, useful for non-selective metadata."
+      },
+      {
+        "prompt": "Remove the annotation description from deployment frontend",
+        "response": "kubectl annotate deployment frontend description-",
+        "explanation": "Removes the `description` annotation, cleaning up auxiliary metadata."
+      },
+      {
+        "prompt": "Apply the configuration in deployment.yaml",
+        "response": "kubectl apply -f deployment.yaml",
+        "explanation": "Applies changes from `deployment.yaml` declaratively, creating or patching resources to match the file\u2019s spec."
+      },
+      {
+        "prompt": "Replace configmap using file configmap.yaml",
+        "response": "kubectl replace -f configmap.yaml",
+        "explanation": "Atomically replaces the existing ConfigMap with the contents of `configmap.yaml`; fails if none exists."
+      },
+      {
+        "prompt": "Open the file app.yaml in Vim",
+        "response": "vim app.yaml",
+        "explanation": "Launches the `app.yaml` manifest in Vim, letting you edit Kubernetes specs directly in your terminal editor."
+      },
+      {
+        "prompt": "Use kubectl to edit deployment frontend",
+        "response": "kubectl edit deployment frontend",
+        "explanation": "Fetches the live `frontend` Deployment into an editor, then patches it on save, providing an in-place live edit workflow."
+      },
+      {
+        "prompt": "Open service.yaml in Vim",
+        "response": "vim service.yaml",
+        "explanation": "Edits the `service.yaml` manifest file locally to adjust port mappings, selectors, or Service types."
+      },
+      {
+        "prompt": "View logs of pod busybox",
+        "response": "kubectl logs busybox",
+        "explanation": "Streams the stdout/stderr logs from the `busybox` container, useful for simple log inspection when no sidecar is present."
+      },
+      {
+        "prompt": "Follow logs of pod busybox",
+        "response": "kubectl logs busybox -f",
+        "explanation": "Tails `busybox` logs in real time, keeping the stream open until you interrupt (Ctrl+C)."
+      },
+      {
+        "prompt": "View logs of container nginx in pod frontend-pod",
+        "response": "kubectl logs frontend-pod -c nginx",
+        "explanation": "Specifies `-c nginx` to select the `nginx` container when a Pod has multiple containers, isolating its logs."
+      },
+      {
+        "prompt": "Execute a shell in pod busybox",
+        "response": "kubectl exec -it busybox -- /bin/sh",
+        "explanation": "Spawns an interactive `/bin/sh` session into the running `busybox` Pod container for real-time debug commands."
+      },
+      {
+        "prompt": "Port-forward local port 8080 to port 80 on service frontend-svc",
+        "response": "kubectl port-forward service/frontend-svc 8080:80",
+        "explanation": "Tunnels traffic from your machine\u2019s port 8080 to the Service\u2019s clusterIP on port 80, enabling local access without exposing NodePorts."
+      },
+      {
+        "prompt": "Describe pod busybox for troubleshooting",
+        "response": "kubectl describe pod busybox",
+        "explanation": "Displays event history, container states, and resource details to pinpoint Pod startup or runtime issues."
+      },
+      {
+        "prompt": "List all events",
+        "response": "kubectl get events",
+        "explanation": "Shows recent cluster events (e.g., scheduling failures, restarts) in chronological order for debugging."
+      },
+      {
+        "prompt": "Get pod busybox in YAML format",
+        "response": "kubectl get pods busybox -o yaml",
+        "explanation": "Outputs the full Pod object as YAML so you can inspect computed fields, status, and metadata."
+      },
+      {
+        "prompt": "Get pod busybox in JSON format",
+        "response": "kubectl get pods busybox -o json",
+        "explanation": "Same as above but in JSON, useful for scripting via `jq` or other tooling."
+      },
+      {
+        "prompt": "Copy file /tmp/data from pod busybox to current directory",
+        "response": "kubectl cp busybox:/tmp/data ./",
+        "explanation": "Transfers `/tmp/data` from the `busybox` Pod into your local cwd, enabling retrieval of logs or test artifacts.",
+        "review": true
+      },
+      {
+        "prompt": "Show resource usage of pods",
+        "response": "kubectl top pods",
+        "explanation": "Displays CPU and memory metrics for each Pod (requires Metrics Server in the cluster)."
+      },
+      {
+        "prompt": "Show resource usage of nodes",
+        "response": "kubectl top nodes",
+        "explanation": "Lists CPU and memory utilization across nodes, helping identify saturation or under-utilization."
+      },
+      {
+        "prompt": "Describe node worker-node-1",
+        "response": "kubectl describe node worker-node-1",
+        "explanation": "Gives full node details\u2014capacity, allocatable resources, taints, conditions, and running Pods\u2014for cluster operations."
+      },
+      {
+        "prompt": "View the current kubectl context",
+        "response": "kubectl config current-context",
+        "explanation": "Prints the name of the active context from your kubeconfig, clarifying which cluster and namespace your commands target."
+      },
+      {
+        "prompt": "List all contexts",
+        "response": "kubectl config get-contexts",
+        "explanation": "Enumerates each context entry\u2014cluster, user, namespace combos\u2014available in your kubeconfig."
+      },
+      {
+        "prompt": "Switch kubectl context to minikube",
+        "response": "kubectl config use-context minikube",
+        "explanation": "Sets the active context to `minikube`, directing subsequent commands to your local Minikube cluster."
+      },
+      {
+        "prompt": "Set the namespace to dev in the current context",
+        "response": "kubectl config set-context --current --namespace=dev",
+        "explanation": "Alters your default namespace for the current context so that `kubectl get pods` goes to `dev` by default."
+      },
+      {
+        "prompt": "Display cluster info",
+        "response": "kubectl cluster-info",
+        "explanation": "Shows API server and DNS endpoints for the cluster, confirming connectivity."
+      },
+      {
+        "prompt": "Show available API resource types",
+        "response": "kubectl api-resources",
+        "explanation": "Lists every resource kind the API server supports, including short names and whether they\u2019re namespaced."
+      },
+      {
+        "prompt": "Explain the fields of pods",
+        "response": "kubectl explain pods",
+        "explanation": "Provides documentation on the `Pod` object\u2019s schema, walking you through each spec and status field."
+      },
+      {
+        "prompt": "Get pods with label app=frontend",
+        "response": "kubectl get pods -l app=frontend",
+        "explanation": "Filters Pods by the `app=frontend` label selector, returning only matching workloads."
+      },
+      {
+        "prompt": "Get pods with all labels",
+        "response": "kubectl get pods --show-labels",
+        "explanation": "Shows the full set of labels for each listed Pod in the table output."
+      },
+      {
+        "prompt": "Apply deployment.yaml without sending to server (dry run)",
+        "response": "kubectl apply -f deployment.yaml --dry-run=client",
+        "explanation": "Validates and prints the changes locally, ensuring your manifest is correct before touching live resources."
+      },
+      {
+        "prompt": "Generate YAML for deployment 'test' using the nginx image without creating it",
+        "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
+        "explanation": "Locally outputs the `test` Deployment spec as YAML for review, avoiding API server calls."
+      },
+      {
+        "prompt": "Continuously watch pods",
+        "response": "kubectl get pods -w",
+        "explanation": "Keeps the `kubectl get pods` table live, updating your terminal as Pods start, stop, or change status."
+      },
+      {
+        "prompt": "Get all resources in all namespaces",
+        "response": "kubectl get all -A",
+        "explanation": "Aggregates core resource types across every namespace for a cluster-wide overview."
+      },
+      {
+        "prompt": "List pods with status phase=Running",
+        "response": "kubectl get pods --field-selector=status.phase=Running",
+        "explanation": "Filters Pods based on their status field, showing only those in `Running` phase."
+      },
+      {
+        "prompt": "Watch the rollout status of deployment frontend",
+        "response": "kubectl rollout status deployment/frontend -w",
+        "explanation": "Streams updates on the `frontend` rollout, auto-refreshing until completion or error."
+      },
+      {
+        "prompt": "Restart the deployment frontend",
+        "response": "kubectl rollout restart deployment/frontend",
+        "explanation": "Schedules a rolling restart by bumping Pod template annotations, cycling all Pods even if spec didn\u2019t change."
+      },
+      {
+        "prompt": "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU",
+        "response": "kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80",
+        "explanation": "Creates an HPA targeting `frontend`, automatically adjusting replicas between 2 and 5 to maintain ~80% CPU utilization."
+      },
+      {
+        "prompt": "Check if you can create pods",
+        "response": "kubectl auth can-i create pods",
+        "explanation": "Tests your current user\u2019s RBAC permissions for the `create` verb on Pod resources in the active namespace."
+      },
+      {
+        "prompt": "Show only context names",
+        "response": "kubectl config get-contexts -o name",
+        "explanation": "Outputs just the context identifiers, ideal for scripting or building dynamic prompt menus."
+      },
+      {
+        "prompt": "Open or create the file app.yaml in Vim",
+        "response": "vim app.yaml",
+        "explanation": "Launches Vim for `app.yaml`, creating it if missing\u2014standard file-edit workflow."
+      },
+      {
+        "prompt": "Enter insert mode",
+        "response": "i",
+        "explanation": "Switches Vim into insert mode, letting you type text into the file."
+      },
+      {
+        "prompt": "Exit insert mode",
+        "response": "<Esc>",
+        "explanation": "Returns to command mode from insert mode in Vim."
+      },
+      {
+        "prompt": "Save and quit Vim",
+        "response": ":wq",
+        "explanation": "Writes buffer changes to disk and exits Vim."
+      },
+      {
+        "prompt": "Quit without saving",
+        "response": ":q!",
+        "explanation": "Exits Vim discarding any unsaved edits."
+      },
+      {
+        "prompt": "Delete the current line",
+        "response": "dd",
+        "explanation": "Removes the line under the cursor in Vim\u2019s normal mode."
+      },
+      {
+        "prompt": "Yank (copy) the current line",
+        "response": "yy",
+        "explanation": "Copies the entire line under the cursor into Vim\u2019s unnamed register."
+      },
+      {
+        "prompt": "Paste after the cursor",
+        "response": "p",
+        "explanation": "Inserts the contents of the unnamed register after the cursor\u2019s position."
+      },
+      {
+        "prompt": "Search forward for 'pattern'",
+        "response": "/pattern",
+        "explanation": "Initiates a forward search for `pattern` in the current buffer; press Enter to jump."
+      },
+      {
+        "prompt": "Go to line N",
+        "response": ":N",
+        "explanation": "Jumps directly to line number N in the file."
+      },
+      {
+        "prompt": "Undo the last change",
+        "response": "u",
+        "explanation": "Reverts the most recent edit in Vim\u2019s undo history."
+      },
+      {
+        "prompt": "Redo the last undone change",
+        "response": "<C-r>",
+        "explanation": "Re-applies the last undone change in Vim\u2019s redo stack."
+      },
+      {
+        "prompt": "Enter visual mode",
+        "response": "v",
+        "explanation": "Starts character-wise selection in Vim."
+      },
+      {
+        "prompt": "Enter visual line mode",
+        "response": "V",
+        "explanation": "Starts line-wise selection in Vim."
+      },
+      {
+        "prompt": "Enter visual block mode",
+        "response": "<C-v>",
+        "explanation": "Starts block-wise (column) selection in Vim."
+      },
+      {
+        "prompt": "Enter replace mode",
+        "response": "R",
+        "explanation": "Switches into replace mode where typed characters overwrite existing text."
+      },
+      {
+        "prompt": "Move to the next word",
+        "response": "w",
+        "explanation": "Jumps the cursor to the start of the next word."
+      },
+      {
+        "prompt": "Move to the previous word",
+        "response": "b",
+        "explanation": "Moves the cursor back to the beginning of the previous word."
+      },
+      {
+        "prompt": "Move to the end of the word",
+        "response": "e",
+        "explanation": "Advances the cursor to the end of the current or next word."
+      },
+      {
+        "prompt": "Move to the first character of the line",
+        "response": "0",
+        "explanation": "Places the cursor at column 0 of the current line."
+      },
+      {
+        "prompt": "Move to the end of the line",
+        "response": "$",
+        "explanation": "Jumps the cursor to the last character of the current line."
+      },
+      {
+        "prompt": "Jump to matching bracket",
+        "response": "%",
+        "explanation": "Toggles between matching `{}`, `[]`, or parentheses, useful in nested code blocks."
+      }
+    ]
+  }
+]
