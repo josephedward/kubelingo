@@ -28,6 +28,20 @@ class AIHelper:
     """Helper to generate explanations using llm or OpenAI SDK."""
     def __init__(self, api_key=None):
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
+        # Prompt for API key if not set
+        if not self.api_key:
+            try:
+                from kubelingo.utils.ui import questionary
+            except ImportError:
+                questionary = None
+            if questionary:
+                key = questionary.text("Enter your OpenAI API key:", mask="*").ask()
+            else:
+                key = input("Enter your OpenAI API key: ").strip()
+            if key:
+                self.api_key = key
+                os.environ['OPENAI_API_KEY'] = key
+                print("OpenAI API key set.")
         self.client = None
         # Try Simon Willison's llm client first
         if HAS_LLM:
