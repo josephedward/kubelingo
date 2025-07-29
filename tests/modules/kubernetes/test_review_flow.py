@@ -2,6 +2,7 @@ import pytest
 import json
 import os
 from unittest.mock import patch, mock_open, MagicMock
+from argparse import Namespace
 
 # The module to test
 from kubelingo.modules.kubernetes import session as k8s_session
@@ -104,10 +105,8 @@ def test_unmark_question_during_review(setup_quiz_files, k8s_session_instance):
     - Choose to un-flag it.
     - Verify the file is updated.
     """
-    args = MagicMock()
-    args.category = None
-    args.review_only = False
-    args.num = 0
+    # Use Namespace for args to prevent MagicMock's truthiness issues
+    args = Namespace(category=None, review_only=False, num=0, file=None)
 
     with patch('kubelingo.modules.kubernetes.session.questionary') as mock_questionary:
         # Simulate menu selections: 1. Choose review, 2. Choose to un-flag
@@ -137,4 +136,5 @@ def test_history_file_location_constants():
     expected_logs_dir = os.path.join(ROOT, 'logs')
     assert LOGS_DIR == expected_logs_dir
     assert HISTORY_FILE.startswith(expected_logs_dir)
-    assert not HISTORY_FILE.startswith(os.path.expanduser('~'))
+    # The project can be in the home directory, so check it's not directly in it.
+    assert os.path.dirname(HISTORY_FILE) != os.path.expanduser('~')
