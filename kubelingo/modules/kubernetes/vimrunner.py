@@ -42,6 +42,11 @@ class Server(object):
         """Starts the Vim server in the background."""
         # Use --nofork to keep gvim process in the foreground for Popen to manage
         cmd = self.executable + ['--servername', self.name]
+
+        # Configure vim for 2-space tabs
+        if 'vim' in os.path.basename(self.executable[0]):
+            cmd.extend(['-c', 'set tabstop=2 shiftwidth=2 expandtab'])
+
         # --nofork is a gvim-specific flag, not applicable to terminal vim
         if 'gvim' in self.executable[0] or 'mvim' in self.executable[0]:
             cmd.append('--nofork')
