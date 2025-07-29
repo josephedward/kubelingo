@@ -36,10 +36,92 @@ def test_cli_k8s_module_argument(mock_load_session):
     mock_load_session.return_value = mock_session
 
     with patch.object(sys, 'argv', ['kubelingo', '--k8s']):
-        try:
-            main()
-        except SystemExit:
-            pass
+        main()
 
     # Check that 'kubernetes' was passed to load_session
     mock_load_session.assert_called_with('kubernetes', pytest.anything())
+
+
+@patch('kubelingo.cli.spawn_pty_shell')
+def test_cli_sandbox_pty(mock_spawn_pty_shell):
+    """Test that `kubelingo sandbox pty` calls spawn_pty_shell()."""
+    with patch.object(sys, 'argv', ['kubelingo', 'sandbox', 'pty']):
+        main()
+    mock_spawn_pty_shell.assert_called_once()
+
+
+@patch('kubelingo.cli.launch_container_sandbox')
+def test_cli_sandbox_docker(mock_launch_container_sandbox):
+    """Test that `kubelingo sandbox docker` calls launch_container_sandbox()."""
+    with patch.object(sys, 'argv', ['kubelingo', 'sandbox', 'docker']):
+        main()
+    mock_launch_container_sandbox.assert_called_once()
+
+
+@patch('kubelingo.cli.spawn_pty_shell')
+def test_cli_sandbox_default_is_pty(mock_spawn_pty_shell):
+    """Test that `kubelingo sandbox` defaults to pty."""
+    with patch.object(sys, 'argv', ['kubelingo', 'sandbox']):
+        main()
+    mock_spawn_pty_shell.assert_called_once()
+
+
+@patch('kubelingo.cli.spawn_pty_shell')
+def test_cli_legacy_pty_flag(mock_spawn_pty_shell):
+    """Test that `kubelingo --pty` calls spawn_pty_shell()."""
+    with patch.object(sys, 'argv', ['kubelingo', '--pty']):
+        main()
+    mock_spawn_pty_shell.assert_called_once()
+
+
+@patch('kubelingo.cli.launch_container_sandbox')
+def test_cli_legacy_docker_flag(mock_launch_container_sandbox):
+    """Test that `kubelingo --docker` calls launch_container_sandbox()."""
+    with patch.object(sys, 'argv', ['kubelingo', '--docker']):
+        main()
+    mock_launch_container_sandbox.assert_called_once()
+
+
+@patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
+@patch('kubelingo.modules.kubernetes.session.rust_bridge')
+def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions):
+    """Test that if Rust bridge succeeds, Python quiz does not run."""
+    mock_rust_bridge.run_command_quiz.return_value = True
+
+    with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
+        main()
+
+    mock_rust_bridge.run_command_quiz.assert_called_once()
+    mock_load_questions.assert_not_called()
+
+
+@patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
+@patch('kubelingo.modules.kubernetes.session.rust_bridge')
+def test_cli_k8s_quiz_rust_bridge_fail_fallback(mock_rust_bridge, mock_load_questions, capsys):
+    """Test that if Rust bridge fails, Python quiz runs as a fallback."""
+    mock_rust_bridge.is_available.return_value = True
+    mock_rust_bridge.run_command_quiz.return_value = False
+
+    with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
+        main()
+
+    mock_rust_bridge.run_command_quiz.assert_called_once()
+    mock_load_questions.assert_called_once()
+    captured = capsys.readouterr()
+    assert "Rust command quiz execution failed" in captured.out
+
+
+@patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
+@patch('kubelingo.modules.kubernetes.session.rust_bridge')
+def test_cli_k8s_quiz_rust_bridge_unavailable_fallback(mock_rust_bridge, mock_load_questions, capsys):
+    """Test that if Rust bridge is unavailable, Python quiz runs."""
+    mock_rust_bridge.is_available.return_value = False
+    mock_rust_bridge.run_command_quiz.return_value = False
+
+    with patch.object(sys, 'argv', ['kubelingo', '--k8s', '-n', '1']):
+        main()
+
+    mock_rust_bridge.run_command_quiz.assert_called_once()
+    mock_load_questions.assert_called_once()
+    captured = capsys.readouterr()
+    assert "Rust command quiz execution failed" not in captured.out
