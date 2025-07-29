@@ -320,7 +320,7 @@ def main():
 
         if args.list_modules:
             show_modules()
-            sys.exit(0)
+            break
 
         if args.list_categories:
             # Category listing is a function of the kubernetes module.
