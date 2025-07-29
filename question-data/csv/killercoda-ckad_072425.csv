@@ -1,4 +1,4 @@
-,"In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.
+"Pods","In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.
 ","apiVersion: v1
 kind: Pod
 metadata:
@@ -16,7 +16,7 @@ spec:
         cpu: 300m
         memory: 30Mi
 "
-,"Create a ConfigMap named trauerweide with data tree=trauerweide.
+"ConfigMaps","Create a ConfigMap named trauerweide with data tree=trauerweide.
 ","apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -24,7 +24,7 @@ metadata:
 data:
   tree: trauerweide
 "
-,"Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke.
+"Pods","Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke.
 ","apiVersion: v1
 kind: Pod
 metadata:
@@ -47,7 +47,7 @@ spec:
     configMap:
       name: birke
 "
-,"Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5.
+"Deployments","Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5.
 ","apiVersion: apps/v1
 kind: Deployment
 metadata:
