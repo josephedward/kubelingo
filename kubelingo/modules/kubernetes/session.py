@@ -949,10 +949,7 @@ class NewSession(StudySession):
     def _run_killercoda_ckad(self, args):
         """Runs the Killercoda CKAD CSV-based quiz"""
         start_time = datetime.now()
-        default_csv = os.path.join(
-            ROOT, 'question-data', 'csv', 'killercoda-ckad_072425.csv'
-        )
-        csv_file = os.environ.get('KILLERCODA_CSV', default_csv)
+        csv_file = os.environ.get('KILLERCODA_CSV', KILLERCODA_CSV_FILE)
         if not os.path.exists(csv_file):
             print(f"{Fore.RED}CSV file not found at {csv_file}{Style.RESET_ALL}")
             return
