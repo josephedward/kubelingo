@@ -316,10 +316,9 @@ class NewSession(StudySession):
                     was_answered = False
 
                     # Inner loop for the in-quiz menu
+                    print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                    print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
                     while True:
-                        print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                        print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-
                         is_flagged = q.get('review', False)
                         flag_option_text = "Unflag" if is_flagged else "Flag"
                         
@@ -383,7 +382,6 @@ class NewSession(StudySession):
                                 sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
                                 sandbox_func()
                                 user_answer_content = "sandbox_session_completed"
-                            continue
 
                         if action == "check":
                             if q_type == 'command':
@@ -533,10 +531,9 @@ class NewSession(StudySession):
             was_answered = False
 
             # Inner loop for the in-quiz menu
+            print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
             while True:
-                print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
                 
@@ -601,7 +598,6 @@ class NewSession(StudySession):
                         sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
                         sandbox_func()
                         user_answer_content = "sandbox_session_completed"
-                    continue
 
                 if action == "check":
                     if not was_answered:
@@ -814,16 +810,16 @@ class NewSession(StudySession):
             was_answered = False
             user_answer_content = None # Will store path to vim script log
 
-            while True: # Inner loop for the in-quiz menu
-                print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
+            print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+            print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
 
+            while True: # Inner loop for the in-quiz menu
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
                 choices = [
                     questionary.Choice("1. Answer (Open Vim)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -880,7 +876,6 @@ class NewSession(StudySession):
                     finally:
                         if 'tmp_content_path' in locals() and os.path.exists(tmp_content_path):
                             os.unlink(tmp_content_path)
-                    continue
 
                 if action == "check":
                     if not was_answered:
@@ -1000,16 +995,15 @@ class NewSession(StudySession):
             was_answered = False
 
             # Inner loop for the in-quiz menu
+            print(f"\n{Fore.YELLOW}Question {i}/{total_to_ask} (Category: {category}){Style.RESET_ALL}")
+            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
             while True:
-                print(f"\n{Fore.YELLOW}Question {i}/{total_to_ask} (Category: {category}){Style.RESET_ALL}")
-                print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
                 choices = [
                     questionary.Choice("1. Answer (Open Editor)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
+                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -1067,7 +1061,6 @@ class NewSession(StudySession):
                         print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
                     finally:
                         os.unlink(tmp_path)
-                    continue
 
                 if action == "check":
                     if not was_answered:
