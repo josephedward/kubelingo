@@ -134,6 +134,24 @@ def _get_quiz_files():
     ])
 
 
+def get_all_flagged_questions():
+    """Returns a list of all questions from all files that are flagged for review."""
+    command_quiz_files = _get_quiz_files()
+
+    all_quiz_files = command_quiz_files[:]
+    if os.path.exists(VIM_QUESTIONS_FILE):
+        all_quiz_files.append(VIM_QUESTIONS_FILE)
+
+    all_flagged = []
+    for f in all_quiz_files:
+        qs = load_questions(f)
+        for q in qs:
+            if q.get('review'):
+                q['data_file'] = f  # Tag with origin file
+                all_flagged.append(q)
+    return all_flagged
+
+
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in all known JSON quiz files."""
     quiz_files = _get_quiz_files()
@@ -285,6 +303,7 @@ class NewSession(StudySession):
                 if selected == 'review':
                     args.review_only = True
                     questions = flagged_command_questions
+                    args.file = 'review_session'  # Set a placeholder for history
                 elif selected.endswith('.json'):
                     args.file = selected
                     questions = load_questions(args.file)
@@ -441,7 +460,7 @@ class NewSession(StudySession):
             'num_questions': total_asked,
             'num_correct': correct_count,
             'duration': duration,
-            'data_file': os.path.basename(args.file),
+            'data_file': os.path.basename(args.file) if args.file else "interactive_session",
             'category_filter': args.category,
             'per_category': per_category_stats
         }
@@ -468,18 +487,7 @@ class NewSession(StudySession):
         """Helper to construct the list of choices for the interactive menu."""
         command_quiz_files = _get_quiz_files()
 
-        # Find all flagged questions (both command and vim)
-        all_quiz_files = command_quiz_files[:]
-        if os.path.exists(VIM_QUESTIONS_FILE):
-            all_quiz_files.append(VIM_QUESTIONS_FILE)
-
-        all_flagged = []
-        for f in all_quiz_files:
-            qs = load_questions(f)
-            for q in qs:
-                if q.get('review'):
-                    q['data_file'] = f  # Tag with origin file
-                    all_flagged.append(q)
+        all_flagged = get_all_flagged_questions()
 
         # Separate flagged questions by type for different review modes
         flagged_command_questions = [

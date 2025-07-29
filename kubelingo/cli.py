@@ -17,6 +17,7 @@ import logging
 import shlex
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
+from kubelingo.modules.kubernetes.session import get_all_flagged_questions, _clear_all_review_flags
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -273,35 +274,49 @@ def main():
                     # JSON files
                     json_paths = JSONLoader().discover()
                     if json_paths:
-                        choices.append(questionary.Separator(Fore.CYAN + " JSON Files " + Style.RESET_ALL))
+                        choices.append(questionary.Separator(f"--- JSON Quizzes ({len(json_paths)}) ---"))
                         for path in sorted(json_paths):
                             base = os.path.basename(path)
                             name = os.path.splitext(base)[0]
                             subject = _humanize_module(name)
-                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            title = f"{Fore.GREEN}{subject:<30}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
                             choices.append(questionary.Choice(title=title, value=name))
                     # Markdown files
                     md_paths = MDLoader().discover()
                     if md_paths:
-                        choices.append(questionary.Separator(Fore.CYAN + " Markdown Files " + Style.RESET_ALL))
+                        choices.append(questionary.Separator(f"--- Markdown Guides ({len(md_paths)}) ---"))
                         for path in sorted(md_paths):
                             base = os.path.basename(path)
                             name = os.path.splitext(base)[0]
                             subject = _humanize_module(name)
-                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            title = f"{Fore.GREEN}{subject:<30}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
                             choices.append(questionary.Choice(title=title, value=name))
                     # YAML files
                     yaml_paths = YAMLLoader().discover()
                     if yaml_paths:
-                        choices.append(questionary.Separator(Fore.CYAN + " YAML Files " + Style.RESET_ALL))
+                        choices.append(questionary.Separator(f"--- YAML Quizzes ({len(yaml_paths)}) ---"))
                         for path in sorted(yaml_paths):
                             base = os.path.basename(path)
                             name = os.path.splitext(base)[0]
                             subject = _humanize_module(name)
-                            title = f"{Fore.GREEN}{subject}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
+                            title = f"{Fore.GREEN}{subject:<30}{Style.RESET_ALL} {Style.DIM}({base}){Style.RESET_ALL}"
                             choices.append(questionary.Choice(title=title, value=name))
+
+                    # K8s-specific actions (Review/Clear flags)
+                    flagged_questions = get_all_flagged_questions()
+                    if flagged_questions:
+                        choices.append(questionary.Separator("--- Review ---"))
+                        choices.append(questionary.Choice(
+                            title=f"{Fore.MAGENTA}Review {len(flagged_questions)} Flagged Kubernetes Questions{Style.RESET_ALL}",
+                            value='k8s_review'
+                        ))
+                        choices.append(questionary.Choice(
+                            title=f"{Fore.YELLOW}Clear All Review Flags{Style.RESET_ALL}",
+                            value='k8s_clear_flags'
+                        ))
+
                     # Help / Exit
-                    choices.append(questionary.Separator())
+                    choices.append(questionary.Separator("--- System ---"))
                     choices.append(questionary.Choice(title='Help', value='help'))
                     choices.append(questionary.Choice(title='Exit', value=None))
                     action = questionary.select(
@@ -311,10 +326,20 @@ def main():
                     if action is None:
                         print("\nExiting.")
                         break
-                    if action == 'help':
+
+                    if action == 'k8s_review':
+                        args.module = 'kubernetes'
+                        args.review_only = True
+                    elif action == 'k8s_clear_flags':
+                        _clear_all_review_flags(logging.getLogger())
+                        print()
+                        restart_loop = True
+                        continue
+                    elif action == 'help':
                         parser.print_help()
                         continue
-                    args.module = action
+                    else:
+                        args.module = action
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     break
