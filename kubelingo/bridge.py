@@ -2,6 +2,7 @@
 import subprocess
 import json
 import sys
+import os
 from pathlib import Path
 
 class RustBridge:
@@ -24,6 +25,9 @@ class RustBridge:
         return None
     
     def is_available(self):
+        # Allow disabling Rust integration via environment variable
+        if os.getenv("KUBELINGO_DISABLE_RUST", "").lower() in ("1", "true", "yes"):
+            return False
         return self.rust_binary is not None
     
     def run_command_quiz(self, args):
