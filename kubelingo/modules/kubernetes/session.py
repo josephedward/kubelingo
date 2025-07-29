@@ -702,7 +702,7 @@ class NewSession(StudySession):
             for file_path in command_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
-                subject = _humanize_module(name)
+                subject = humanize_module(name)
                 # Style.DIM was causing rendering issues with questionary
                 title = f"  {subject} ({base})"
                 choices.append(questionary.Choice(title=title, value=file_path))
