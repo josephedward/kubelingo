@@ -751,9 +751,9 @@ class NewSession(StudySession):
         # Other exercises
         choices.append(questionary.Separator("Other Exercises"))
         choices.append({'name': f"YAML Editing Quiz ({os.path.basename(YAML_QUESTIONS_FILE)})", 'value': "yaml_standard"})
-        choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
-        choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
-        choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
+        choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive", 'disabled': 'Coming soon'})
+        choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live", 'disabled': 'Coming soon'})
+        choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create", 'disabled': 'Coming soon'})
         choices.append(questionary.Separator())
         choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
 
