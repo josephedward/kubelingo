@@ -129,10 +129,10 @@ def main():
                             help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
         # Sandbox modes (deprecated flags) and new sandbox command support
-        parser.add_argument('--pty', action='store_true', help="[deprecated] Use an embedded PTY shell for exercises.")
-        parser.add_argument('--docker', action='store_true', help="[deprecated] Use a Docker container for exercises.")
-        parser.add_argument('--sandbox-mode', choices=['pty','docker'], dest='sandbox_mode',
-                            help='Sandbox mode to use when running the "sandbox" command (default: pty)')
+        parser.add_argument('--pty', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode pty' instead.")
+        parser.add_argument('--docker', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode docker' instead.")
+        parser.add_argument('--sandbox-mode', choices=['pty', 'docker', 'container'], dest='sandbox_mode',
+                            help='Sandbox mode to use: pty (default), docker, or container (alias for docker).')
 
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -173,6 +173,9 @@ def main():
                                         and args.module is None
                                         and not args.k8s_mode
                                         and not args.exercise_module):
+            if args.pty or args.docker:
+                print(f"{Fore.YELLOW}Warning: --pty and --docker flags are deprecated. Use 'kubelingo sandbox --sandbox-mode [pty|docker]' instead.{Style.RESET_ALL}", file=sys.stderr)
+
             # choose mode: explicit sandbox_mode > legacy flags > default 'pty'
             if args.sandbox_mode:
                 mode = args.sandbox_mode
@@ -182,7 +185,7 @@ def main():
                 mode = 'pty'
             if mode == 'pty':
                 spawn_pty_shell()
-            elif mode == 'docker':
+            elif mode in ('docker', 'container'):
                 launch_container_sandbox()
             else:
                 print(f"Unknown sandbox mode: {mode}")

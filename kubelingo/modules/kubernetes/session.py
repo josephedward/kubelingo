@@ -210,13 +210,6 @@ class NewSession(StudySession):
 
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
-        # Attempt to delegate to Rust CLI implementation if available
-        try:
-            from kubelingo.bridge import rust_bridge
-        except ImportError:
-            rust_bridge = None
-        if rust_bridge and rust_bridge.is_available() and rust_bridge.run_command_quiz(args):
-            return
         start_time = datetime.now()
         questions = []  # Defer loading until after menu
 
@@ -457,6 +450,19 @@ class NewSession(StudySession):
                 continue
         else:
             # Non-interactive mode
+            # For a simple, non-interactive command quiz, try the Rust version first.
+            if not args.review_only and not args.live and args.file == DEFAULT_DATA_FILE:
+                try:
+                    from kubelingo.bridge import rust_bridge
+                    if rust_bridge.is_available():
+                        if rust_bridge.run_command_quiz(args):
+                            return  # Success, we're done.
+                        else:
+                            # Rust bridge is available but failed to run the quiz.
+                            print(f"{Fore.YELLOW}Rust command quiz execution failed, falling back to Python implementation.{Style.RESET_ALL}")
+                except ImportError:
+                    pass  # No rust bridge, just fall through to Python.
+
             if args.review_only:
                 # Load all flagged questions from all command quiz files
                 all_files = _get_quiz_files()
