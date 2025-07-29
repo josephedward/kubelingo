@@ -18,7 +18,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
-    Fore, Style, questionary, print_banner
+    Fore, Style, questionary, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
 from kubelingo.constants import (
     LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
@@ -69,51 +69,6 @@ def show_history():
     else:
         print("No per-category stats to aggregate.")
 
-def show_session_type_help():
-    """Prints an explanation of the PTY and Docker sandbox environments."""
-    print(f"""
-{Fore.CYAN}--- Sandbox Environments Help ---{Style.RESET_ALL}
-
-Kubelingo offers two types of sandbox environments for exercises:
-
-{Fore.GREEN}1. PTY Shell (Embedded){Style.RESET_ALL}
-   - {Fore.YELLOW}How it works:{Style.RESET_ALL} Spawns a native shell process (like 'bash') directly on your system using a pseudo-terminal (PTY). This is the same technology terminal emulators use.
-   - {Fore.YELLOW}Pros:{Style.RESET_ALL} Very fast to start, uses your local environment and tools.
-   - {Fore.YELLOW}Cons:{Style.RESET_ALL} Not isolated. Commands run as your user with access to your file system and network. Accidental destructive commands can affect your machine.
-   - {Fore.YELLOW}Requirements:{Style.RESET_ALL} None. Works out-of-the-box on Linux and macOS.
-
-{Fore.GREEN}2. Docker Container{Style.RESET_ALL}
-   - {Fore.YELLOW}How it works:{Style.RESET_ALL} Launches a pre-built Docker container with a fixed set of tools (bash, vim, kubectl). Your current directory is mounted as a workspace.
-   - {Fore.YELLOW}Pros:{Style.RESET_ALL} Fully isolated. Cannot affect your host system. Provides a consistent, clean environment for every exercise.
-   - {Fore.YELLOW}Cons:{Style.RESET_ALL} Slower to start, especially the first time. Requires Docker to be installed and running.
-   - {Fore.YELLOW}Requirements:{Style.RESET_ALL} Docker must be installed and the Docker daemon must be running.
-
-{Fore.CYAN}Which one to choose?{Style.RESET_ALL}
-- For quick, simple command quizzes, {Fore.GREEN}PTY Shell{Style.RESET_ALL} is fine.
-- For complex YAML editing or live cluster exercises, {Fore.GREEN}Docker Container{Style.RESET_ALL} is recommended for safety and consistency.
-""")
-
-def show_quiz_type_help():
-    """Prints an explanation of the different quiz modes."""
-    print(f"""
-{Fore.CYAN}--- Quiz Types Help ---{Style.RESET_ALL}
-
-{Fore.GREEN}1. K8s (preinstalled){Style.RESET_ALL}
-   - This section contains quizzes and exercises that come bundled with Kubelingo.
-   - They are organized into different files based on the topic (e.g., Command Quizzes, YAML Editing, Vim Practice).
-   - You will be presented with a list of these files to choose from.
-
-{Fore.GREEN}2. Kustom (upload your own quiz){Style.RESET_ALL}
-   - This allows you to run a quiz from your own custom-made JSON file.
-   - The JSON file must follow the same format as the built-in quiz files. It should be a list of sections, where each section has a 'category' and a list of 'prompts'.
-   - You will be prompted for the path to your file when you select this option.
-
-{Fore.GREEN}3. Review{Style.RESET_ALL}
-   - This mode gathers all questions you have previously 'flagged' for review across all K8s quizzes.
-   - During a quiz, if you are unsure about a question, you can flag it.
-   - Use this mode for a focused session on topics you find difficult.
-   - You can clear all flags from the Kubernetes exercise menu.
-""")
 
 def show_modules():
     """Display available built-in and question-data modules."""
