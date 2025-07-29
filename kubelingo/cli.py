@@ -130,6 +130,8 @@ def main():
                             help='Path to quiz data JSON file for command quiz')
         parser.add_argument('-n', '--num', type=int, default=0,
                             help='Number of questions to ask (default: all)')
+        parser.add_argument('--randomize', action='store_true',
+                            help='Randomize question order (for modules that support it)')
         parser.add_argument('-c', '--category', type=str,
                             help='Limit quiz to a specific category')
         parser.add_argument('--list-categories', action='store_true',
@@ -166,6 +168,17 @@ def main():
             mods = discover_modules()
             # Exclude internal-only and CSV quiz modules from root menu
             modules = [m for m in mods if m not in ('llm', 'killercoda_ckad')]
+            # Stylize custom quiz as 'kustom' and ensure it appears after Kubernetes
+            ordered = []
+            if 'kubernetes' in modules:
+                ordered.append('kubernetes')
+            if 'custom' in modules:
+                ordered.append('kustom')
+            # append any other modules (if present)
+            for m in modules:
+                if m not in ('kubernetes', 'custom'):
+                    ordered.append(m)
+            modules = ordered
             if questionary:
                 try:
                     choices = []
