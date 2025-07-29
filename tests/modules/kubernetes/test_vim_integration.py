@@ -10,7 +10,7 @@ try:
 except ImportError:
     vimrunner = None
 
-from kubelingo.modules.kubernetes.session import VimYamlEditor
+from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 
 # Skip all tests in this file if vim is not available
 pytestmark = pytest.mark.skipif(
