@@ -18,3 +18,19 @@ def test_commands_not_equivalent():
     cmd1 = "kubectl get pods"
     cmd2 = "kubectl get services"
     assert not commands_equivalent(cmd1, cmd2)
+
+def test_commands_equivalent_case_insensitive():
+    """Test command equivalence is case-insensitive (Rust and Python fallback)."""
+    cmd1 = "kubectl get pods"
+    cmd2 = "KUBECTL GET PODS"
+    assert commands_equivalent(cmd1, cmd2)
+
+def test_commands_equivalent_arg_order():
+    """
+    Test command equivalence with different argument order.
+    NOTE: This is supported by the Python fallback but may not be by the Rust implementation.
+    This test helps ensure feature parity.
+    """
+    cmd1 = "kubectl get pods -n default"
+    cmd2 = "kubectl get -n default pods"
+    assert commands_equivalent(cmd1, cmd2)

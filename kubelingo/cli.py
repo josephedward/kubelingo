@@ -133,21 +133,21 @@ def show_modules():
         print(Fore.CYAN + "  JSON:" + Style.RESET_ALL)
         for p in json_paths:
             name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
     # Markdown modules
     md_paths = MDLoader().discover()
     if md_paths:
         print(Fore.CYAN + "  Markdown:" + Style.RESET_ALL)
         for p in md_paths:
             name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
     # YAML modules
     yaml_paths = YAMLLoader().discover()
     if yaml_paths:
         print(Fore.CYAN + "  YAML:" + Style.RESET_ALL)
         for p in yaml_paths:
             name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
     
 
 

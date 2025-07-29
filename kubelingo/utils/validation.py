@@ -5,20 +5,30 @@ except ImportError:
     yaml = None
 from typing import Dict, Any, List, Optional
 
+# Attempt to import high-performance extensions from the Rust library
+try:
+    from kubelingo._native import commands_equivalent as rust_commands_equivalent
+    from kubelingo._native import validate_yaml_structure as rust_validate_yaml_structure
+except ImportError:
+    rust_commands_equivalent = None
+    rust_validate_yaml_structure = None
+
+
 def commands_equivalent(cmd1: str, cmd2: str) -> bool:
     """
     Check if two kubectl commands are functionally equivalent.
-    This is a simplified version - the Rust implementation would be more comprehensive.
+    Uses a high-performance Rust implementation if available, otherwise falls back to Python.
     """
-    # Normalize whitespace and remove extra spaces
-    cmd1_norm = ' '.join(cmd1.strip().split())
-    cmd2_norm = ' '.join(cmd2.strip().split())
-    
-    # Direct match
+    if rust_commands_equivalent:
+        return rust_commands_equivalent(cmd1, cmd2)
+
+    # Fallback to Python implementation, matching Rust's behavior (case-insensitive)
+    cmd1_norm = ' '.join(cmd1.strip().split()).lower()
+    cmd2_norm = ' '.join(cmd2.strip().split()).lower()
+
     if cmd1_norm == cmd2_norm:
         return True
-    
-    # Parse kubectl commands for semantic comparison
+
     return _parse_and_compare_kubectl(cmd1_norm, cmd2_norm)
 
 def _parse_and_compare_kubectl(cmd1: str, cmd2: str) -> bool:
@@ -56,6 +66,7 @@ def _parse_and_compare_kubectl(cmd1: str, cmd2: str) -> bool:
 def validate_yaml_structure(yaml_content: str, expected_structure: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Validate YAML structure and return validation results.
+    Uses a high-performance Rust pre-validator if available.
     """
     result = {
         'valid': False,
@@ -63,7 +74,20 @@ def validate_yaml_structure(yaml_content: str, expected_structure: Optional[Dict
         'warnings': [],
         'parsed_yaml': None
     }
+
+    # Rust-based pre-validation for speed
+    if rust_validate_yaml_structure:
+        is_valid, message = rust_validate_yaml_structure(yaml_content)
+        if not is_valid:
+            result['errors'].append(f"Rust-based validation failed: {message}")
+            try:
+                # Still try to parse to provide the object back to the caller
+                result['parsed_yaml'] = yaml.safe_load(yaml_content)
+            except yaml.YAMLError:
+                pass  # The core error is from Rust
+            return result
     
+    # Full Python-based validation
     try:
         # Parse YAML
         parsed = yaml.safe_load(yaml_content)
