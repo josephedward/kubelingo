@@ -102,7 +102,7 @@ def get_all_flagged_questions():
         all_quiz_files.append(VIM_QUESTIONS_FILE)
 
     all_flagged = []
-    for f in all_flagged_files:
+    for f in all_quiz_files:
         # Load questions without exiting on error (e.g., missing dependencies)
         try:
             qs = load_questions(f, exit_on_error=False)
