@@ -385,14 +385,14 @@ class NewSession(StudySession):
                         print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                         is_flagged = q.get('review', False)
-                        flag_option_text = "Un-flag" if is_flagged else "Flag"
+                        flag_option_text = "Unflag" if is_flagged else "Flag"
                         
                         q_type = q.get('type', 'command')
                         answer_text = "1. Answer (Enter Command)" if q_type == 'command' else "1. Answer (Open Terminal)"
                         
                         choices = [
                             questionary.Choice(answer_text, value="answer"),
-                            questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                            questionary.Choice("Check Answer", value="check", disabled=not was_answered),
                             questionary.Choice(f"3. {flag_option_text}", value="flag"),
                             questionary.Choice("4. Skip", value="skip"),
                             questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -424,7 +424,7 @@ class NewSession(StudySession):
                             if is_flagged:
                                 unmark_question_for_review(data_file_path, q['category'], q['prompt'])
                                 q['review'] = False
-                                print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                                print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                             else:
                                 mark_question_for_review(data_file_path, q['category'], q['prompt'])
                                 q['review'] = True
@@ -568,14 +568,14 @@ class NewSession(StudySession):
                 print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                 is_flagged = q.get('review', False)
-                flag_option_text = "Un-flag" if is_flagged else "Flag"
+                flag_option_text = "Unflag" if is_flagged else "Flag"
                 
                 q_type = q.get('type', 'command')
                 answer_text = "1. Answer (Enter Command)" if q_type == 'command' else "1. Answer (Open Terminal)"
                 
                 choices = [
                     questionary.Choice(answer_text, value="answer"),
-                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -609,7 +609,7 @@ class NewSession(StudySession):
                     if is_flagged:
                         unmark_question_for_review(data_file_path, q['category'], q['prompt'])
                         q['review'] = False
-                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                        print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                     else:
                         mark_question_for_review(data_file_path, q['category'], q['prompt'])
                         q['review'] = True
@@ -888,7 +888,7 @@ class NewSession(StudySession):
                     elif action.startswith("Un-flag for Review"):
                         unmark_question_for_review(data_file, q['category'], q['prompt'])
                         q['review'] = False
-                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                        print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                     elif action == "Get LLM Clarification":
                         # Use internal LLM session for explanations
                         try:
@@ -989,11 +989,11 @@ class NewSession(StudySession):
                 print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                 is_flagged = q.get('review', False)
-                flag_option_text = "Un-flag" if is_flagged else "Flag"
+                flag_option_text = "Unflag" if is_flagged else "Flag"
 
                 choices = [
                     questionary.Choice("1. Answer (Open Editor)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Back to Quiz Menu", value="back")
@@ -1021,7 +1021,7 @@ class NewSession(StudySession):
                 if action == "flag":
                     if is_flagged:
                         q['review'] = False
-                        print(Fore.MAGENTA + "Question un-flagged (for this session only)." + Style.RESET_ALL)
+                        print(Fore.MAGENTA + "Question unflagged (for this session only)." + Style.RESET_ALL)
                     else:
                         q['review'] = True
                         print(Fore.MAGENTA + "Question flagged for review (for this session only)." + Style.RESET_ALL)
@@ -1124,11 +1124,11 @@ class NewSession(StudySession):
                 print(f"{Fore.MAGENTA}Q: {q['prompt']}{Style.RESET_ALL}")
 
                 is_flagged = q.get('review', False)
-                flag_option_text = "Un-flag for Review" if is_flagged else "Flag for Review"
+                flag_option_text = "Unflag for Review" if is_flagged else "Flag for Review"
 
                 choices = [
                     questionary.Choice("1. Open Sandbox Shell", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                    questionary.Choice("Check Answer", value="check", disabled=not was_answered),
                     questionary.Choice(f"3. {flag_option_text}", value="flag"),
                     questionary.Choice("4. Skip", value="skip"),
                     questionary.Choice("5. Exit Live Mode", value="back")
