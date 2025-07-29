@@ -2,6 +2,7 @@ import json
 import os
 import random
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -144,7 +145,7 @@ def load_questions(data_file):
                     continue
                 question['starting_yaml'] = item.get('starting_yaml', '')
                 question['correct_yaml'] = item.get('correct_yaml', '')
-            elif question_type == 'live_k8s_edit':
+            elif question_type in ('live_k8s_edit', 'live_k8s'):
                 question['starting_yaml'] = item.get('starting_yaml', '')
                 question['assert_script'] = item.get('assert_script', '')
             else:  # command
@@ -601,7 +602,7 @@ class NewSession(StudySession):
             return
         
         all_questions = load_questions(args.file)
-        live_qs = [q for q in all_questions if q.get('type') == 'live_k8s_edit']
+        live_qs = [q for q in all_questions if q.get('type') in ('live_k8s_edit', 'live_k8s')]
         if not live_qs:
             print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
             return
@@ -640,7 +641,6 @@ class NewSession(StudySession):
 
         cluster_name = f"kubelingo-quiz-{random.randint(1000, 9999)}"
         kubeconfig_path = os.path.join(tempfile.gettempdir(), f"{cluster_name}.kubeconfig")
-        user_yaml_str = ''
         try:
             # Acquire sandbox credentials
             print(Fore.YELLOW + "Acquiring AWS sandbox credentials via gosandbox..." + Style.RESET_ALL)
@@ -666,59 +666,84 @@ class NewSession(StudySession):
                 '--nodes', node_count
             ], check=True)
 
-            # Write kubeconfig
+            # Write kubeconfig and set environment variable for this session
             os.environ['KUBECONFIG'] = kubeconfig_path
             with open(kubeconfig_path, 'w') as kc:
                 subprocess.run(['kubectl', 'config', 'view', '--raw'], stdout=kc, check=True)
+            print(f"Kubeconfig for this session is at: {kubeconfig_path}")
 
-            editor = os.environ.get('EDITOR', 'vim')
-            # User edit loop
-            while True:
+            # --- Interactive shell session ---
+            print(Fore.GREEN + "\nYou are in a sandboxed environment. Use kubectl, vim, etc." + Style.RESET_ALL)
+            print(Fore.GREEN + "Type 'done' or 'exit' when you have completed the task." + Style.RESET_ALL)
+
+            if q.get('type') == 'live_k8s_edit' and q.get('starting_yaml'):
                 with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False, encoding='utf-8') as tmp_yaml:
-                    tmp_yaml.write(q.get('starting_yaml', ''))
-                    tmp_path = tmp_yaml.name
+                    tmp_yaml.write(q.get('starting_yaml'))
+                    print(f"A starting YAML file has been created for you at: {Fore.CYAN}{tmp_yaml.name}{Style.RESET_ALL}")
 
-                print(f"Opening a temp file in '{editor}' for you to edit...")
+            prompt_session = None
+            if PromptSession and FileHistory:
+                history_path = os.path.join(os.path.expanduser('~'), '.kubelingo_sandbox_history')
+                prompt_session = PromptSession(history=FileHistory(history_path))
+
+            while True:
                 try:
-                    subprocess.run([editor, tmp_path], check=True)
-                except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    print(Fore.RED + f"Error opening editor '{editor}': {e}. Skipping question." + Style.RESET_ALL)
-                    break
-
-                with open(tmp_path, 'r', encoding='utf-8') as f:
-                    user_yaml_str = f.read()
-                os.remove(tmp_path)
-
-                print("Applying your YAML to the cluster...")
-                apply_proc = subprocess.run([
-                    'kubectl', 'apply', '-f', '-'
-                ], input=user_yaml_str, text=True, capture_output=True)
-                if apply_proc.returncode != 0:
-                    print(Fore.RED + "Error applying YAML:" + Style.RESET_ALL)
-                    print(apply_proc.stderr)
-                else:
-                    print("Running validation script...")
-                    with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
-                        tmp_assert.write(q.get('assert_script', 'exit 1'))
-                        assert_path = tmp_assert.name
-                    os.chmod(assert_path, 0o755)
-                    assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
-                    os.remove(assert_path)
-                    if assert_proc.returncode == 0:
-                        print(Fore.GREEN + "Correct!" + Style.RESET_ALL)
-                        print(assert_proc.stdout)
-                        is_correct = True
-                        break
+                    if prompt_session:
+                        command_str = prompt_session.prompt(f'{Fore.CYAN}(kubelingo-sandbox)$ {Style.RESET_ALL}')
                     else:
-                        print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
-                        print(assert_proc.stdout or assert_proc.stderr)
+                        command_str = input(f'{Fore.CYAN}(kubelingo-sandbox)$ {Style.RESET_ALL}')
+                except (EOFError, KeyboardInterrupt):
+                    print()  # Newline after prompt
+                    command_str = 'done'
 
-                try:
-                    retry = input("Reopen editor to try again? [Y/n]: ").strip().lower()
-                except EOFError:
-                    retry = 'n'
-                if retry.startswith('n'):
+                command_str = command_str.strip()
+
+                if not command_str:
+                    continue
+                if command_str.lower() in ('done', 'exit'):
                     break
+
+                cmd_parts = shlex.split(command_str)
+                # KUBECONFIG is already set in the environment for the parent process
+
+                interactive_commands = ['vim', 'vi', 'nano', 'emacs', os.environ.get('EDITOR', '').split('/')[-1]]
+                if cmd_parts[0] in interactive_commands:
+                    try:
+                        subprocess.run(cmd_parts, check=True)  # Inherits stdio
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        print(f"{Fore.RED}Error running editor: {e}{Style.RESET_ALL}")
+                else:
+                    try:
+                        # For non-interactive commands, capture and print output
+                        proc = subprocess.run(cmd_parts, capture_output=True, text=True, check=False)
+                        if proc.stdout:
+                            print(proc.stdout, end='')
+                        if proc.stderr:
+                            print(Fore.YELLOW + proc.stderr + Style.RESET_ALL, end='')
+                    except FileNotFoundError:
+                        print(f"{Fore.RED}Command not found: {cmd_parts[0]}{Style.RESET_ALL}")
+                    except Exception as e:
+                        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
+
+            # --- Validation ---
+            print("\nValidating your solution...")
+            with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
+                tmp_assert.write(q.get('assert_script', 'exit 1'))
+                assert_path = tmp_assert.name
+            os.chmod(assert_path, 0o755)
+
+            # The validation script needs KUBECONFIG set
+            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
+            os.remove(assert_path)
+
+            if assert_proc.returncode == 0:
+                print(Fore.GREEN + "Correct!" + Style.RESET_ALL)
+                if assert_proc.stdout:
+                    print(assert_proc.stdout)
+                is_correct = True
+            else:
+                print(Fore.RED + "Incorrect. Validation failed:" + Style.RESET_ALL)
+                print(assert_proc.stdout or assert_proc.stderr)
         finally:
             # Delete cluster and cleanup
             print(Fore.YELLOW + f"Deleting EKS cluster '{cluster_name}'..." + Style.RESET_ALL)
