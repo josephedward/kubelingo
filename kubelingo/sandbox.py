@@ -1,6 +1,3 @@
-"""
-sandbox.py: Manages the creation of sandboxed environments (PTY shell, Docker container) for exercises.
-"""
 import os
 import pty
 import shutil
@@ -9,19 +6,20 @@ import sys
 
 try:
     from colorama import Fore, Style
+    from colorama import init as _colorama_init
+    _colorama_init()
 except ImportError:
-    # Fallback if colorama is not available
     class Fore:
         RED = GREEN = YELLOW = CYAN = MAGENTA = ""
     class Style:
         RESET_ALL = ""
         DIM = ""
 
-# Project root
+# Path to project root
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 def spawn_pty_shell():
-    """Spawn a real bash shell in a PTY sandbox, preferring Rust implementation if available."""
+    """Spawn an embedded PTY shell sandbox (bash) on the host."""
     try:
         from kubelingo.bridge import rust_bridge
     except ImportError:
@@ -32,39 +30,44 @@ def spawn_pty_shell():
             return
         else:
             print(f"{Fore.YELLOW}Rust PTY shell failed, falling back to Python implementation.{Style.RESET_ALL}")
-    # Fallback: Python pty.spawn
     if not sys.stdout.isatty():
         print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
         return
-    print(f"{Fore.CYAN}Starting PTY shell (native, no isolation)...{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}--- Starting Embedded PTY Shell ---{Style.RESET_ALL}")
+    print("This is a native shell on your machine. Type 'exit' or press Ctrl-D to end.")
     os.environ['PS1'] = '(kubelingo-sandbox)$ '
     try:
         pty.spawn(['bash', '--login'])
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}PTY shell session ended.{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}")
 
 def launch_container_sandbox():
     """Build and launch a Docker container sandbox for Kubelingo."""
     docker = shutil.which('docker')
     if not docker:
-        print("❌ Docker not found. Please install Docker to use container sandbox mode.")
+        print(f"❌ {Fore.RED}Docker not found.{Style.RESET_ALL} Please install Docker and ensure it is running.")
+        return
+    if subprocess.run(['docker','info'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+        print(f"❌ {Fore.RED}Cannot connect to Docker daemon.{Style.RESET_ALL}")
+        print("Please ensure the Docker daemon is running before launching the container sandbox.")
         return
     dockerfile = os.path.join(ROOT, 'docker', 'sandbox', 'Dockerfile')
     if not os.path.exists(dockerfile):
         print(f"❌ Dockerfile not found at {dockerfile}. Ensure docker/sandbox/Dockerfile exists.")
         return
     image = 'kubelingo/sandbox:latest'
-    # Check if image exists locally
+    # Build image if missing
     if subprocess.run(['docker','image','inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         print("🛠️  Building sandbox Docker image (this may take a minute)...")
-        if subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT]).returncode != 0:
-            print("❌ Failed to build sandbox image. Please run:")
-            print(f"    docker build -t kubelingo/sandbox:latest -f {dockerfile} {ROOT}")
+        build = subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT], capture_output=True, text=True)
+        if build.returncode != 0:
+            print(f"❌ {Fore.RED}Failed to build sandbox image.{Style.RESET_ALL}")
+            print(build.stderr)
             return
-    print("📦 Launching container sandbox environment. Press Ctrl-D or type 'exit' to exit.")
-    print("- Isolation: Full network isolation, fixed toolset (bash, vim, kubectl).")
-    print("- Requirements: Docker installed and running.")
+    print(f"\n📦 {Fore.CYAN}--- Launching Docker Container Sandbox ---{Style.RESET_ALL}")
+    print("This is an isolated container. Your current directory is mounted at /workspace.")
+    print("Type 'exit' or press Ctrl-D to end.")
     cwd = os.getcwd()
     try:
         subprocess.run([
@@ -72,7 +75,10 @@ def launch_container_sandbox():
             '-v', f'{cwd}:/workspace',
             '-w', '/workspace',
             image
-        ])
+        ], check=True)
+    except subprocess.CalledProcessError:
+        print(f"📦 {Fore.RED}Failed to start Docker container.{Style.RESET_ALL}")
     except KeyboardInterrupt:
         pass
-    return
+    finally:
+        print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}")
