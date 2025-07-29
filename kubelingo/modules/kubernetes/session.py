@@ -11,7 +11,7 @@ import logging
 
 from kubelingo.utils.validation import commands_equivalent
 from kubelingo.utils.ui import (
-    Fore, Style, questionary, yaml, _humanize_module
+    Fore, Style, questionary, yaml, humanize_module
 )
 from kubelingo.constants import (
     HISTORY_FILE, DEFAULT_DATA_FILE, VIM_QUESTIONS_FILE, YAML_QUESTIONS_FILE,
