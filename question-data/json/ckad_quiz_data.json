@@ -106,13 +106,11 @@
       },
       {
         "prompt": "Set the current context to use the 'production' namespace by default",
-        "response": "kubectl config set-context --current --namespace=production",
-        "review": true
+        "response": "kubectl config set-context --current --namespace=production"
       },
       {
         "prompt": "Verify which namespace is currently being used in your context",
-        "response": "kubectl config view --minify | grep namespace:",
-        "review": true
+        "response": "kubectl config view --minify | grep namespace:"
       },
       {
         "prompt": "Create a new namespace called 'testing' and output its YAML definition",
@@ -120,8 +118,7 @@
       },
       {
         "prompt": "List all resources across all namespaces",
-        "response": "kubectl get all -A",
-        "review": true
+        "response": "kubectl get all -A"
       },
       {
         "prompt": "List all pods in the 'kube-system' namespace",
@@ -129,8 +126,7 @@
       },
       {
         "prompt": "Create a pod in the 'development' namespace",
-        "response": "kubectl run nginx --image=nginx -n development",
-        "review": true
+        "response": "kubectl run nginx --image=nginx -n development"
       },
       {
         "prompt": "Delete a namespace called 'testing' and all its resources",
@@ -142,8 +138,7 @@
       },
       {
         "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
-        "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
-        "review": true
+        "response": "kubectl create quota ns-quota --hard=pods=10 -n development"
       }
     ]
   },
@@ -164,8 +159,7 @@
       },
       {
         "prompt": "Create a ConfigMap from all files in the '/configs' directory",
-        "response": "kubectl create cm app-settings --from-file=/configs",
-        "review": true
+        "response": "kubectl create cm app-settings --from-file=/configs"
       },
       {
         "prompt": "Create a pod that uses a ConfigMap as environment variables",
