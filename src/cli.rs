@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use dialoguer::{Select, theme::ColorfulTheme};
 use portable_pty::{CommandBuilder, native_pty_system, PtySize};
 use anyhow::Context;
 use std::io::{self, Read, Write};
@@ -43,31 +42,6 @@ pub enum K8sExercise {
     Vim,
 }
 
-pub fn run_interactive_menu() -> Result<Commands, Box<dyn std::error::Error>> {
-    let choices = vec!["k8s", "kustom", "help"];
-    
-    let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("What would you like to do?")
-        .items(&choices)
-        .default(0)
-        .interact()?;
-        
-    match choices[selection] {
-        "k8s" => {
-            let k8s_choices = vec!["Command Quiz", "YAML Exercises", "Vim Quiz"];
-            let k8s_selection = Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Select Kubernetes exercise:")
-                .items(&k8s_choices)
-                .interact()?;
-                
-            let exercise = match k8s_selection {
-                0 => K8sExercise::Quiz { num: None, category: None },
-                1 => K8sExercise::Yaml,
-                2 => K8sExercise::Vim,
-                _ => unreachable!(),
-            };
-            
-            Ok(Commands::K8s { exercise })
 /// Run a PTY-based shell with custom PS1 prompt.
 pub fn run_pty_shell() -> anyhow::Result<()> {
     let pty_system = native_pty_system();
@@ -89,9 +63,4 @@ pub fn run_pty_shell() -> anyhow::Result<()> {
     child.wait().context("PTY child process failed")?;
     input_thread.join().expect("Input thread panicked");
     Ok(())
-}
-        }
-        "kustom" => Ok(Commands::Kustom { custom_file: None }),
-        _ => std::process::exit(0),
-    }
 }

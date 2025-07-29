@@ -353,7 +353,176 @@ class NewSession(StudySession):
                 else:
                     print(f"{Fore.RED}Internal error: unhandled selection '{selected}'{Style.RESET_ALL}")
                     return
-                break  # Exit menu loop to start quiz
+                # --- Start Quiz ---
+                if args.review_only and not questions:
+                    print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
+                    continue
+
+                if args.category:
+                    questions = [q for q in questions if q.get('category') == args.category]
+                    if not questions:
+                        print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
+                        continue
+
+                command_questions = [q for q in questions if q.get('type') == 'command']
+                if not command_questions:
+                    print(Fore.YELLOW + "No command questions available for this quiz." + Style.RESET_ALL)
+                    continue
+
+                num_to_ask = args.num if args.num > 0 else len(command_questions)
+                questions_to_ask = random.sample(command_questions, min(num_to_ask, len(command_questions)))
+
+                if not questions_to_ask:
+                    print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
+                    continue
+
+                correct_count = 0
+                per_category_stats = {}
+                total_questions = len(questions_to_ask)
+                asked_count = 0
+                skipped_questions = []
+
+                print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
+                print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
+
+                from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+                
+                prompt_session = None
+                if PromptSession and FileHistory:
+                    history_path = os.path.join(LOGS_DIR, '.kubelingo_input_history')
+                    prompt_session = PromptSession(history=FileHistory(history_path))
+                
+                quiz_backed_out = False
+                current_question_index = 0
+                while current_question_index < len(questions_to_ask):
+                    q = questions_to_ask[current_question_index]
+                    i = current_question_index + 1
+
+                    category = q.get('category', 'General')
+                    if category not in per_category_stats:
+                        per_category_stats[category] = {'asked': 0, 'correct': 0}
+
+                    user_answer_content = None
+                    was_answered = False
+
+                    # Inner loop for the in-quiz menu
+                    while True:
+                        print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                        print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+
+                        is_flagged = q.get('review', False)
+                        flag_option_text = "Un-flag" if is_flagged else "Flag"
+                        
+                        q_type = q.get('type', 'command')
+                        answer_text = "1. Answer (Enter Command)" if q_type == 'command' else "1. Answer (Open Terminal)"
+                        
+                        choices = [
+                            questionary.Choice(answer_text, value="answer"),
+                            questionary.Choice("2. Check Answer", value="check", disabled=not was_answered),
+                            questionary.Choice(f"3. {flag_option_text}", value="flag"),
+                            questionary.Choice("4. Skip", value="skip"),
+                            questionary.Choice("5. Back to Quiz Menu", value="back")
+                        ]
+                        
+                        try:
+                            action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                            if action is None: raise KeyboardInterrupt
+                        except (EOFError, KeyboardInterrupt):
+                            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                            self._save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
+                            return
+
+                        if action == "back":
+                            quiz_backed_out = True
+                            break
+                        
+                        if action == "skip":
+                            if not was_answered:
+                                per_category_stats[category]['asked'] += 1
+                                asked_count += 1
+                            skipped_questions.append(q)
+                            self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
+                            current_question_index += 1
+                            break
+
+                        if action == "flag":
+                            data_file_path = q.get('data_file', args.file)
+                            if is_flagged:
+                                unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                                q['review'] = False
+                                print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
+                            else:
+                                mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                                q['review'] = True
+                                print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                            continue
+
+                        if action == "answer":
+                            if not was_answered:
+                                per_category_stats[category]['asked'] += 1
+                                asked_count += 1
+                            was_answered = True
+
+                            if q_type == 'command':
+                                if prompt_session:
+                                    user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                                else:
+                                    user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                            else:
+                                sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+                                sandbox_func()
+                                user_answer_content = "sandbox_session_completed"
+                            continue
+
+                        if action == "check":
+                            if not was_answered:
+                                print(f"{Fore.RED}You must select 'Answer' first.{Style.RESET_ALL}")
+                                continue
+                            
+                            if q_type == 'command':
+                                is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
+                            elif q_type in ['live_k8s_edit', 'live_k8s']:
+                                is_correct = self._run_one_exercise(q, is_check_only=True)
+
+                            self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+                            if is_correct:
+                                correct_count += 1
+                                per_category_stats[category]['correct'] += 1
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                if q.get('explanation'):
+                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                                current_question_index += 1
+                                break
+                            else:
+                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                                if q_type == 'command':
+                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                                continue
+                    if quiz_backed_out:
+                        break  # Exit question loop to go back to quiz menu
+                
+                if quiz_backed_out:
+                    continue  # Go back to quiz selection menu
+
+                end_time = datetime.now()
+                duration = str(end_time - start_time).split('.')[0]
+                
+                if skipped_questions:
+                    print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
+                    for q in skipped_questions:
+                        print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}Correct answer: {q.get('response', 'See explanation.')}{Style.RESET_ALL}")
+                        if q.get('explanation'):
+                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+                print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
+                score = (correct_count / asked_count * 100) if asked_count > 0 else 0
+                print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+                print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+                
+                self._save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
+                # After quiz completion, loop back to the menu
+                continue
         else:
             # Non-interactive mode
             if args.review_only:
