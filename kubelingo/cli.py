@@ -140,6 +140,52 @@ def show_history():
     else:
         print("No per-category stats to aggregate.")
 
+def show_session_type_help():
+    """Prints an explanation of the PTY and Docker sandbox environments."""
+    print(f"""
+{Fore.CYAN}--- Sandbox Environments Help ---{Style.RESET_ALL}
+
+Kubelingo offers two types of sandbox environments for exercises:
+
+{Fore.GREEN}1. PTY Shell (Embedded){Style.RESET_ALL}
+   - {Fore.YELLOW}How it works:{Style.RESET_ALL} Spawns a native shell process (like 'bash') directly on your system using a pseudo-terminal (PTY). This is the same technology terminal emulators use.
+   - {Fore.YELLOW}Pros:{Style.RESET_ALL} Very fast to start, uses your local environment and tools.
+   - {Fore.YELLOW}Cons:{Style.RESET_ALL} Not isolated. Commands run as your user with access to your file system and network. Accidental destructive commands can affect your machine.
+   - {Fore.YELLOW}Requirements:{Style.RESET_ALL} None. Works out-of-the-box on Linux and macOS.
+
+{Fore.GREEN}2. Docker Container{Style.RESET_ALL}
+   - {Fore.YELLOW}How it works:{Style.RESET_ALL} Launches a pre-built Docker container with a fixed set of tools (bash, vim, kubectl). Your current directory is mounted as a workspace.
+   - {Fore.YELLOW}Pros:{Style.RESET_ALL} Fully isolated. Cannot affect your host system. Provides a consistent, clean environment for every exercise.
+   - {Fore.YELLOW}Cons:{Style.RESET_ALL} Slower to start, especially the first time. Requires Docker to be installed and running.
+   - {Fore.YELLOW}Requirements:{Style.RESET_ALL} Docker must be installed and the Docker daemon must be running.
+
+{Fore.CYAN}Which one to choose?{Style.RESET_ALL}
+- For quick, simple command quizzes, {Fore.GREEN}PTY Shell{Style.RESET_ALL} is fine.
+- For complex YAML editing or live cluster exercises, {Fore.GREEN}Docker Container{Style.RESET_ALL} is recommended for safety and consistency.
+""")
+
+def show_quiz_type_help():
+    """Prints an explanation of the different quiz modes."""
+    print(f"""
+{Fore.CYAN}--- Quiz Types Help ---{Style.RESET_ALL}
+
+{Fore.GREEN}1. K8s (preinstalled){Style.RESET_ALL}
+   - This section contains quizzes and exercises that come bundled with Kubelingo.
+   - They are organized into different files based on the topic (e.g., Command Quizzes, YAML Editing, Vim Practice).
+   - You will be presented with a list of these files to choose from.
+
+{Fore.GREEN}2. Kustom (upload your own quiz){Style.RESET_ALL}
+   - This allows you to run a quiz from your own custom-made JSON file.
+   - The JSON file must follow the same format as the built-in quiz files. It should be a list of sections, where each section has a 'category' and a list of 'prompts'.
+   - You will be prompted for the path to your file when you select this option.
+
+{Fore.GREEN}3. Review{Style.RESET_ALL}
+   - This mode gathers all questions you have previously 'flagged' for review across all K8s quizzes.
+   - During a quiz, if you are unsure about a question, you can flag it.
+   - Use this mode for a focused session on topics you find difficult.
+   - You can clear all flags from the Kubernetes exercise menu.
+""")
+
 def show_modules():
     """Display available built-in and question-data modules."""
     # Built-in modules
@@ -174,62 +220,6 @@ def show_modules():
             name = os.path.splitext(os.path.basename(p))[0]
             print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
     
-def spawn_pty_shell():
-    """Spawn a real bash shell in a PTY sandbox, preferring Rust implementation if available."""
-    try:
-        from kubelingo.bridge import rust_bridge
-    except ImportError:
-        rust_bridge = None
-    # Use Rust PTY shell if available
-    if rust_bridge and rust_bridge.is_available():
-        if rust_bridge.run_pty_shell():
-            return
-        else:
-            print(f"{Fore.YELLOW}Rust PTY shell failed, falling back to Python implementation.{Style.RESET_ALL}")
-    # Fallback: Python pty.spawn
-    if not sys.stdout.isatty():
-        print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
-        return
-    print(f"{Fore.CYAN}Starting PTY shell (native, no isolation)...{Style.RESET_ALL}")
-    os.environ['PS1'] = '(kubelingo-sandbox)$ '
-    try:
-        pty.spawn(['bash', '--login'])
-    except Exception as e:
-        print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}PTY shell session ended.{Style.RESET_ALL}")
-
-def launch_container_sandbox():
-    """Build and launch a Docker container sandbox for Kubelingo."""
-    docker = shutil.which('docker')
-    if not docker:
-        print("❌ Docker not found. Please install Docker to use container sandbox mode.")
-        return
-    dockerfile = os.path.join(ROOT, 'docker', 'sandbox', 'Dockerfile')
-    if not os.path.exists(dockerfile):
-        print(f"❌ Dockerfile not found at {dockerfile}. Ensure docker/sandbox/Dockerfile exists.")
-        return
-    image = 'kubelingo/sandbox:latest'
-    # Check if image exists locally
-    if subprocess.run(['docker','image','inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-        print("🛠️  Building sandbox Docker image (this may take a minute)...")
-        if subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT]).returncode != 0:
-            print("❌ Failed to build sandbox image. Please run:")
-            print(f"    docker build -t kubelingo/sandbox:latest -f {dockerfile} {ROOT}")
-            return
-    print("📦 Launching container sandbox environment. Press Ctrl-D or type 'exit' to exit.")
-    print("- Isolation: Full network isolation, fixed toolset (bash, vim, kubectl).")
-    print("- Requirements: Docker installed and running.")
-    cwd = os.getcwd()
-    try:
-        subprocess.run([
-            'docker', 'run', '--rm', '-it', '--network', 'none',
-            '-v', f'{cwd}:/workspace',
-            '-w', '/workspace',
-            image
-        ])
-    except KeyboardInterrupt:
-        pass
-    return
 
 
 
@@ -254,8 +244,8 @@ def main():
                             help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
         # Sandbox modes
-        parser.add_argument('--pty', action='store_true', help="Launch an embedded PTY shell sandbox.")
-        parser.add_argument('--docker', action='store_true', help="Launch a Docker container sandbox.")
+        parser.add_argument('--pty', action='store_true', help="Use an embedded PTY shell for exercises.")
+        parser.add_argument('--docker', action='store_true', help="Use a Docker container for exercises.")
 
         # Core quiz options
         parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -288,12 +278,14 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
-        # Sandbox mode dispatch: if specified, run and exit
-        if args.pty:
-            spawn_pty_shell()
-            return
-        if args.docker:
-            launch_container_sandbox()
+        # Sandbox mode dispatch: if specified with other args, they are passed to the module.
+        # If run alone, they launch a shell and exit.
+        from .sandbox import spawn_pty_shell, launch_container_sandbox
+        if (args.pty or args.docker) and args.module is None and not args.k8s_mode and not args.exercise_module:
+            if args.pty:
+                spawn_pty_shell()
+            if args.docker:
+                launch_container_sandbox()
             return
 
         # If unified exercise requested, load and list questions
@@ -318,7 +310,7 @@ def main():
 
         restart_loop = False
 
-        # If no arguments provided, show an interactive menu of modules
+        # If no arguments provided, show an interactive menu
         if len(sys.argv) == 1:
             if not questionary:
                 print(f"{Fore.YELLOW}For a rich interactive menu, please install 'questionary' (`pip install questionary`){Style.RESET_ALL}")
@@ -326,85 +318,77 @@ def main():
                 args.module = 'kubernetes'
             else:
                 try:
-                    # Main interactive loop
-                    while True:
-                        action = questionary.select(
-                            "Welcome to Kubelingo!\nUse ↑/↓ to navigate and Enter to select.\nWhat would you like to do?",
-                            choices=[
-                                questionary.Choice(
-                                    title=f"{Fore.GREEN}Start Kubernetes Exercises{Style.RESET_ALL}",
-                                    value="k8s"
-                                ),
-                                questionary.Choice(
-                                    title=f"{Fore.CYAN}Launch Sandbox Environment{Style.RESET_ALL}",
-                                    value="sandbox"
-                                ),
-                                questionary.Separator(),
-                                questionary.Choice(
-                                    title="Show Quiz History",
-                                    value="history"
-                                ),
-                                questionary.Choice(
-                                    title="List Available Modules",
-                                    value="list_modules"
-                                ),
-                                questionary.Separator(),
-                                questionary.Choice(
-                                    title="Exit",
-                                    value="exit"
-                                )
-                            ],
-                            use_indicator=True
-                        ).ask()
-
-                        if action is None or action == 'exit':
-                            print("\nExiting.")
-                            return
-
-                        if action == 'k8s':
-                            args.module = 'kubernetes'
-                            break
-                        elif action == 'sandbox':
-                            sandbox_action = questionary.select(
-                                "Select a sandbox type (use ↑/↓ and Enter to choose):",
+                    session_type = None
+                    while True:  # Main interactive loop
+                        # Level 1 Menu: Session Type
+                        if session_type is None:
+                            choice = questionary.select(
+                                "Select a session type:",
                                 choices=[
-                                    questionary.Choice(
-                                        title=f"Embedded PTY {Style.DIM}(native shell, no isolation){Style.RESET_ALL}",
-                                        value="embedded"
-                                    ),
-                                    questionary.Choice(
-                                        title=f"Docker Container {Style.DIM}(isolated, requires Docker){Style.RESET_ALL}",
-                                        value="container"
-                                    ),
+                                    questionary.Choice("1. PTY Shell", value="pty"),
+                                    questionary.Choice("2. Docker Container", value="docker"),
                                     questionary.Separator(),
-                                    questionary.Choice(title="Back to Main Menu", value="back")
+                                    questionary.Choice("3. Help", value="help"),
+                                    questionary.Choice("4. Exit", value="exit")
                                 ],
                                 use_indicator=True
                             ).ask()
 
-                            if sandbox_action is None or sandbox_action == 'back':
+                            if choice == "exit" or choice is None:
+                                return
+                            elif choice == "help":
+                                show_session_type_help()
+                                input("\nPress Enter to return to the menu...")
                                 continue
-
-                            if sandbox_action == 'embedded':
-                                spawn_pty_shell()
                             else:
-                                launch_container_sandbox()
-                            print("\nPress Enter to return to the menu...")
-                            input()
-                            continue
+                                session_type = choice
+                        
+                        # Level 2 Menu: Quiz Type
+                        quiz_choice = questionary.select(
+                            f"Session: {session_type.upper()}. Select quiz type:",
+                            choices=[
+                                questionary.Choice("1. K8s (preinstalled)", value="k8s"),
+                                questionary.Choice("2. Kustom (upload your own quiz)", value="kustom"),
+                                questionary.Choice("3. Review flagged questions", value="review"),
+                                questionary.Separator(),
+                                questionary.Choice("4. Help", value="help"),
+                                questionary.Choice("5. Back", value="back")
+                            ],
+                            use_indicator=True
+                        ).ask()
 
-                        elif action == 'history':
-                            print()
-                            show_history()
-                            print("\nPress Enter to return to the menu...")
-                            input()
+                        if quiz_choice is None: # User pressed Ctrl+C
+                            return
+                        elif quiz_choice == "back":
+                            session_type = None
                             continue
-                        elif action == 'list_modules':
-                            print()
-                            show_modules()
-                            print("\nPress Enter to return to the menu...")
-                            input()
+                        elif quiz_choice == "help":
+                            show_quiz_type_help()
+                            input("\nPress Enter to return to the menu...")
                             continue
+                        
+                        # User has made a selection, set args and break to run the module
+                        if session_type == 'pty':
+                            args.pty = True
+                        elif session_type == 'docker':
+                            args.docker = True
+                        
+                        if quiz_choice == 'k8s':
+                            args.module = 'kubernetes'
+                        elif quiz_choice == 'kustom':
+                            args.module = 'custom'
+                            # In interactive mode, we need to prompt for the file
+                            custom_file = questionary.path("Enter path to your custom quiz JSON file:").ask()
+                            if not custom_file:
+                                print(f"{Fore.YELLOW}No file selected. Returning to menu.{Style.RESET_ALL}")
+                                session_type = None # Go back to the top menu
+                                continue
+                            args.custom_file = custom_file
+                        elif quiz_choice == 'review':
+                            args.module = 'kubernetes'
+                            args.review_only = True
+                        
+                        break # Exit interactive loop and proceed to run module
                 except (EOFError, KeyboardInterrupt):
                     print("\nExiting.")
                     return
