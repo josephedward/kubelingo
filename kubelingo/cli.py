@@ -14,7 +14,12 @@ import shutil
 import subprocess
 import logging
 import shlex
+# Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
+# Unified question-data loaders (question-data/{json,md,yaml})
+from kubelingo.modules.json_loader import JSONLoader
+from kubelingo.modules.md_loader import MDLoader
+from kubelingo.modules.yaml_loader import YAMLLoader
 
 # Interactive prompts library (optional for arrow-key selection)
 try:
@@ -120,6 +125,9 @@ def main():
         print_banner()
         print()
         parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
+        # Unified exercise mode: run questions from question-data modules
+        parser.add_argument('--exercise-module', type=str,
+                            help='Run unified live exercise for a question-data module')
         
         # Kubernetes module shortcut
         parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
@@ -156,6 +164,21 @@ def main():
                             help='For the kubernetes module: run live exercises instead of the command quiz.')
 
         args = parser.parse_args()
+        # If unified exercise requested, load and list questions
+        if args.exercise_module:
+            questions = []
+            for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
+                for path in loader.discover():
+                    name = os.path.splitext(os.path.basename(path))[0]
+                    if name == args.exercise_module:
+                        questions.extend(loader.load_file(path))
+            if not questions:
+                print(f"No questions found for module '{args.exercise_module}'")
+            else:
+                print(f"Loaded {len(questions)} questions from module '{args.exercise_module}':")
+                for q in questions:
+                    print(f"  [{q.id}] {q.prompt} (runner={q.runner})")
+            return
         
         # Handle --k8s shortcut
         if args.k8s_mode:
@@ -242,13 +265,37 @@ def main():
             break
 
         if args.list_modules:
+            # Built-in modules
             modules = discover_modules()
-            print(f"{Fore.CYAN}Available Modules:{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Built-in Modules:{Style.RESET_ALL}")
             if modules:
                 for mod in modules:
                     print(Fore.YELLOW + mod + Style.RESET_ALL)
             else:
-                print("No modules found.")
+                print("No built-in modules found.")
+            # Question-data modules by source file
+            print(f"\n{Fore.CYAN}Question-data Modules (by file):{Style.RESET_ALL}")
+            # JSON modules
+            json_paths = JSONLoader().discover()
+            if json_paths:
+                print(Fore.CYAN + "  JSON:" + Style.RESET_ALL)
+                for p in json_paths:
+                    name = os.path.splitext(os.path.basename(p))[0]
+                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            # Markdown modules
+            md_paths = MDLoader().discover()
+            if md_paths:
+                print(Fore.CYAN + "  Markdown:" + Style.RESET_ALL)
+                for p in md_paths:
+                    name = os.path.splitext(os.path.basename(p))[0]
+                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
+            # YAML modules
+            yaml_paths = YAMLLoader().discover()
+            if yaml_paths:
+                print(Fore.CYAN + "  YAML:" + Style.RESET_ALL)
+                for p in yaml_paths:
+                    name = os.path.splitext(os.path.basename(p))[0]
+                    print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL} -> {p}")
             return
 
         if args.list_categories:
