@@ -14,10 +14,14 @@ except ImportError:
     sys.exit(1)
 
 # Add project root to path to allow importing kubelingo modules
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-
-from kubelingo.modules.kubernetes.session import load_questions
+# This makes the script runnable as a standalone file, and also
+# allows it to be imported as a module from the main CLI.
+try:
+    from kubelingo.modules.kubernetes.session import load_questions
+except ImportError:
+    project_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(project_root))
+    from kubelingo.modules.kubernetes.session import load_questions
 
 # --- Constants ---
 QUESTION_DATA_DIR = project_root / 'question-data'
