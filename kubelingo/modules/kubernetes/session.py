@@ -470,10 +470,11 @@ class NewSession(StudySession):
                 choices = []
                 choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
                 choices.append({"name": "Check Answer", "value": "check"})
-                # Show the expected answer without launching shell
-                choices.append({"name": "Show Answer", "value": "show"})
+                # Show the expected answers derived from validation steps
+                choices.append({"name": "Show Expected Answer(s)", "value": "show"})
+                # Show the model's example response (if defined)
                 if q.get('response'):
-                    choices.append({"name": "Show Answer", "value": "show_answer"})
+                    choices.append({"name": "Show Model Answer", "value": "show_answer"})
                 # Toggle flag for review
                 choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                 choices.append({"name": "Next Question", "value": "next"})
@@ -566,6 +567,7 @@ class NewSession(StudySession):
                     question_obj = Question(
                         id=q.get('id', ''),
                         prompt=q.get('prompt', ''),
+                        type=q.get('type', ''),
                         pre_shell_cmds=q.get('pre_shell_cmds', []),
                         initial_files=q.get('initial_files', {}),
                         validation_steps=validation_steps,
