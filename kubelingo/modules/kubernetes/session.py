@@ -595,8 +595,8 @@ class NewSession(StudySession):
                 (q.get('type') == 'command' and q.get('response'))
             )
             if not has_validation_data:
-                print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
-                is_correct = False
+                print(f"{Fore.YELLOW}Warning: No validation steps found for this question. Cannot check answer.{Style.RESET_ALL}")
+                return
             else:
                 is_correct = result.success
 
