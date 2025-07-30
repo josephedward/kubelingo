@@ -392,6 +392,95 @@ def main():
             args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
         ):
             args.module = 'kubernetes'
+        args.module = None
+        # Early flags: history and list-modules
+        if args.history:
+            show_history()
+            return
+        if args.list_modules:
+            show_modules()
+            return
+
+        # Process positional command
+        args.sandbox_submode = None
+        if args.command:
+            args.module = args.command[0]
+            if args.module == 'sandbox' and len(args.command) > 1:
+                subcommand = args.command[1]
+                if subcommand in ['pty', 'docker']:
+                    args.sandbox_submode = subcommand
+                else:
+                    parser.error(f"unrecognized arguments: {subcommand}")
+        # Sandbox mode dispatch: if specified with other args, they are passed to the module.
+        # If run alone, they launch a shell and exit.
+        from .sandbox import spawn_pty_shell, launch_container_sandbox
+        # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
+        if args.module == 'sandbox' or ((args.pty or args.docker)
+                                        and args.module is None
+                                        and not args.k8s_mode
+                                        and not args.exercise_module):
+                # Deprecation warning for legacy flags
+                if args.pty or args.docker:
+                    print(f"{Fore.YELLOW}Warning: --pty and --docker flags are deprecated. Use 'kubelingo sandbox --sandbox-mode [pty|docker]' instead.{Style.RESET_ALL}", file=sys.stderr)
+                # determine mode: positional > explicit flag > legacy flags > default
+                if getattr(args, 'sandbox_submode', None):
+                    mode = args.sandbox_submode
+                elif args.sandbox_mode:
+                    mode = args.sandbox_mode
+                elif args.docker:
+                    mode = 'docker'
+                else:
+                    mode = 'pty'
+                if mode == 'pty':
+                    spawn_pty_shell()
+                elif mode in ('docker', 'container'):
+                    launch_container_sandbox()
+                else:
+                    print(f"Unknown sandbox mode: {mode}")
+                return
+
+        # If unified exercise requested, load and list questions
+        if args.exercise_module:
+            questions = []
+            for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
+                for path in loader.discover():
+                    name = os.path.splitext(os.path.basename(path))[0]
+                    if name == args.exercise_module:
+                        questions.extend(loader.load_file(path))
+            if not questions:
+                print(f"No questions found for module '{args.exercise_module}'")
+            else:
+                print(f"Loaded {len(questions)} questions from module '{args.exercise_module}':")
+                for q in questions:
+                    print(f"  [{q.id}] {q.prompt} (runner={q.runner})")
+            return
+
+        # Handle --k8s shortcut
+        if args.k8s_mode:
+            args.module = 'kubernetes'
+
+        # Global flags handling (note: history and list-modules are handled earlier)
+        if args.list_categories:
+            print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
+            try:
+                from kubelingo.modules.kubernetes.session import load_questions
+                questions = load_questions(args.file)
+                cats = sorted({q.get('category') for q in questions if q.get('category')})
+                print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
+                if cats:
+                    for cat in cats:
+                        print(Fore.YELLOW + cat + Style.RESET_ALL)
+                else:
+                    print("No categories found in quiz data.")
+            except Exception as e:
+                print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
+            return
+
+        # If certain flags are used without a module, default to kubernetes
+        if args.module is None and (
+            args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
+        ):
+            args.module = 'kubernetes'
 
     # Handle module-based execution.
     if args.module:
