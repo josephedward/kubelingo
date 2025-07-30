@@ -3,10 +3,13 @@
 Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.
 
 The core components of this architecture are:
-1.  **Extended `Question` Schema**: The `Question` model now includes:
-    - `pre_shell_cmds: List[str]` for setup commands (e.g. `kubectl apply -f …`).
-    - `initial_files: Dict[str, str]` to seed YAML or other starter files.
-    - `validation_steps: List[ValidationStep]` of post-shell commands with matchers.
+1.  **Extended `Question` Schema**: The `Question` model currently includes:
+   - `pre_shell_cmds` (via the legacy `initial_cmds` field) for setup commands (e.g. `kubectl apply -f …`).
+   - `initial_yaml` for simple YAML-based exercises.
+   - `validations` for single-step command checks.
+   Next, we will add:
+   - `initial_files: Dict[str, str]` to seed multiple starter files.
+   - `validation_steps: List[ValidationStep]` of post-shell commands with matchers for the full unified schema.
 2.  **Sandbox Helper**: The `run_shell_with_setup(...)` function:
     - Provisions an isolated workspace, writes `initial_files`, and runs `pre_shell_cmds`.
     - Spawns an interactive PTY shell (or Docker container) that records a full session transcript (including Vim edits).
@@ -17,9 +20,10 @@ The core components of this architecture are:
 5.  **Persistent Transcripts**: Session transcripts are saved to `logs/transcripts/...` and can be evaluated on-demand via the `Check Answer` feature, enabling replayable proof-of-execution.
 
 With this foundation, the next steps are to:
+With this foundation, the next steps are to:
 1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
 2.  Add unit/integration tests for `answer_checker` and the new UI flows.
-3.  Flesh out AI-based “second opinion” evaluation.
+3.  Flesh out AI-based “second opinion” evaluation (using Simon Willison’s [`llm`](https://github.com/simonw/llm) package to reduce transcripts to a deterministic yes/no verdict).
 
 ## Unified Terminal Quiz Refactor
 
@@ -98,10 +102,10 @@ Added new `answer_checker` module to:
 Updated interactive CLI quiz session to:
   * Include “Open Shell”, “Check Answer”, “Next Question”, “Previous Question”, and “Exit Quiz” options.
   * Maintain `transcripts_by_index`, `attempted_indices`, and `correct_indices` to track user progress.
-  * Use `ShellResult` from `run_shell_with_setup` to provide immediate pass/fail and detailed feedback.
-  
 - Refactored session menu to add navigation actions: Open Shell, Check Answer, Next, Previous, Flag/Unflag, Exit.
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
+- Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
+- Next steps: write unit/integration tests for matcher logic and the `answer_checker` module; flesh out AI-based evaluation integration.
 # Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation
