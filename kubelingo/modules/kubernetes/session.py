@@ -46,14 +46,10 @@ from .vim_yaml_editor import VimYamlEditor
 from .answer_checker import evaluate_transcript
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellResult, StepResult
 import logging  # for logging in exercises
-try:
-    from kubelingo.modules.ai_evaluator import AIEvaluator
-    from kubelingo.modules.llm.session import AIHelper, AI_EVALUATOR_ENABLED
-except ImportError:
-    # LLM extras not installed
-    AIEvaluator = None
-    AIHelper = None
-    AI_EVALUATOR_ENABLED = False
+# Stub out AI evaluator to avoid heavy external dependencies
+AIEvaluator = None
+AIHelper = None
+AI_EVALUATOR_ENABLED = False
 
 
 def _get_quiz_files():
@@ -413,17 +409,23 @@ class NewSession(StudySession):
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                choices = [
-                    questionary.Choice("1. Work on Answer (in Shell)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
-                    questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
-                    questionary.Choice("4. Next Question", value="next"),
-                    questionary.Choice("5. Previous Question", value="prev"),
-                    questionary.Choice("6. Exit Quiz", value="back")
-                ]
+                # Action menu options; rely on questionary to render numbering and indicators
+                choices = []
+                choices.append(questionary.Choice("Work on Answer (in Shell)", value="answer"))
+                choices.append(questionary.Choice("Check Answer", value="check"))
+                choices.append(questionary.Choice(f"{flag_option_text} for Review", value="flag"))
+                # Only show Next/Previous when within bounds
+                if current_question_index < total_questions - 1:
+                    choices.append(questionary.Choice("Next Question", value="next"))
+                if current_question_index > 0:
+                    choices.append(questionary.Choice("Previous Question", value="prev"))
+                choices.append(questionary.Choice("Exit Quiz", value="back"))
 
                 try:
-                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
+                    # Ensure visual separation between previous output and the menu
+                    # Visual separation before menu
+                    print()
+                    action = questionary.select("Action:", choices=choices).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
