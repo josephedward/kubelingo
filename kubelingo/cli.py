@@ -296,7 +296,25 @@ def main():
                     args.module = 'kubernetes'
                     args.review_only = True
 
-                break # Exit main menu loop and proceed to execution
+                # Dispatch selected module session
+                logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+                logger = logging.getLogger()
+                module_name = args.module.lower()
+                if module_name == 'custom':
+                    if not args.custom_file and not args.exercises:
+                        print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
+                        return
+                session = load_session(module_name, logger)
+                if session:
+                    init_ok = session.initialize()
+                    if not init_ok:
+                        print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
+                        return
+                    session.run_exercises(args)
+                    session.cleanup()
+                else:
+                    print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
+                return
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
             return
