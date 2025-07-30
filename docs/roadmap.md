@@ -57,6 +57,28 @@ _Labels: testing, docs_
 - Write unit and integration tests for the unified shell experience.
 - Update or add documentation under `docs/` to reflect the new flow.
 
+## Phase 2: Interactive Quiz Navigation & Check Answer
+
+### CLI Enhancements
+_Labels: enhancement, cli_
+- Add navigable menu actions: Open Shell, Check Answer, Next Question, Previous Question, Flag/Unflag, Exit.
+- Implement transcript-based “Check Answer” to evaluate existing session logs without relaunching the shell.
+
+### Session State Management
+_Labels: enhancement, state_
+- Persist per-question `ShellResult` transcripts in a `transcripts_by_index` mapping.
+- Track per-question `asked` and `correct` statuses, updating only on “Check Answer”.
+
+### Transcript-Based Evaluator
+_Labels: enhancement, validation_
+- Create `evaluate_transcript(transcript_path, validation_steps)` helper to replay the recorded session proof-of-execution.
+- Support deterministic (regex/command scan + cluster state checks) and AI-based evaluation modes.
+
+### Data Persistence
+_Labels: enhancement, logging_
+- Store transcripts under `logs/transcripts/<session_id>/<question_id>.log`.
+- Integrate with `SessionManager` to archive or clean up transcripts at session end.
+
 ## Test Coverage Improvements
 
 ### Comprehensive CLI Testing
