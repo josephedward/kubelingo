@@ -439,7 +439,7 @@ class NewSession(StudySession):
                         answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
 
                         choices = [
-                            questionary.Choice("1. Open Shell", value="answer"),
+                            questionary.Choice(f"1. {answer_text}", value="answer"),
                             questionary.Choice(f"2. {flag_option_text}", value="flag"),
                             questionary.Choice("3. Skip", value="skip"),
                             questionary.Choice("4. Back to Quiz Menu", value="back")
@@ -479,12 +479,21 @@ class NewSession(StudySession):
                             continue
 
                         if action == "answer":
-                            # Run unified shell exercise
                             if not was_answered:
                                 per_category_stats[category]['asked'] += 1
                                 asked_count += 1
                             was_answered = True
-                            is_correct = self._run_shell_question(q, args)
+
+                            is_correct = False
+                            if q_type == 'command':
+                                if prompt_session:
+                                    user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                                else:
+                                    user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                                is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
+                            else: # live_k8s, etc.
+                                is_correct = self._run_shell_question(q, args)
+
                             self.logger.info(
                                 f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\""
                             )
@@ -500,20 +509,19 @@ class NewSession(StudySession):
                                     ai_text = AIHelper().get_explanation(q)
                                     if ai_text:
                                         print(ai_text)
+                                current_question_index += 1
+                                break
                             else:
                                 print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                                # Show correct answer for command questions
-                                if q.get('type', 'command') == 'command':
-                                    print(f"{Fore.GREEN}Expected:\n{q.get('response', '')}{Style.RESET_ALL}")
+                                if q_type == 'command':
+                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                                # AI explanation if enabled
                                 from kubelingo.modules.llm.session import AIHelper
                                 if getattr(AIHelper, 'enabled', False):
                                     ai_text = AIHelper().get_explanation(q)
                                     if ai_text:
                                         print(ai_text)
-                            current_question_index += 1
-                            break
-                            # Automatically check answer after input
-                            action = "check"
+                                continue
 
                         if action == "check":
                             if not was_answered:
