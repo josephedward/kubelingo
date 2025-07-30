@@ -417,6 +417,11 @@ class NewSession(StudySession):
         num_to_ask = args.num if args.num > 0 else len(questions)
         questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
 
+        # If any questions require a live k8s environment, warn the user if --docker is not enabled.
+        if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
+            print(f"\n{Fore.YELLOW}Warning: This quiz contains questions requiring a Kubernetes cluster sandbox.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}If 'kubectl' commands fail, re-run with the --docker flag.{Style.RESET_ALL}")
+
         if not questions_to_ask:
             print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
             return
