@@ -475,6 +475,8 @@ class NewSession(StudySession):
         
         self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
 
+        self._cleanup_swap_files()
+
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
         all_quiz_files = sorted(
@@ -587,6 +589,27 @@ class NewSession(StudySession):
             print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
         
         return is_correct
+
+    def _cleanup_swap_files(self):
+        """
+        Scans the project directory for leftover Vim swap files (.swp, .swap)
+        and removes them. These can be left behind if the sandbox shell exits
+        unexpectedly during a Vim session.
+        """
+        cleaned_count = 0
+        for root_dir, _, filenames in os.walk(ROOT):
+            for filename in filenames:
+                if filename.endswith(('.swp', '.swap')):
+                    file_path = os.path.join(root_dir, filename)
+                    try:
+                        os.remove(file_path)
+                        self.logger.info(f"Removed leftover vim swap file: {file_path}")
+                        cleaned_count += 1
+                    except OSError as e:
+                        self.logger.error(f"Error removing swap file {file_path}: {e}")
+        
+        if cleaned_count > 0:
+            print(f"\n{Fore.GREEN}Cleaned up {cleaned_count} leftover Vim swap file(s).{Style.RESET_ALL}")
 
     def cleanup(self):
         """Deletes the EKS cluster if one was created for a live session."""
