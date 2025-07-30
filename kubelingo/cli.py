@@ -184,9 +184,6 @@ def main():
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
-    # For bare invocation (no flags or commands), force text-based menu fallback
-    if len(sys.argv) == 1:
-        globals()['questionary'] = None
     # Early flags: history and list-modules
     if args.history:
         show_history()
@@ -196,59 +193,113 @@ def main():
         return
     # For bare invocation (no flags or commands), present an interactive menu.
     if len(sys.argv) == 1:
-        # Fallback to simple text menu if not in a TTY or questionary is not available
-        # Session type selection
-        while True:
-            print()
-            print("Select a session type:")
-            print(" 1) PTY Shell")
-            print(" 2) Docker Container (requires Docker)")
-            print(" 3) Enter OpenAI API Key to enable AI features")
-            print(" 4) Exit")
-            choice = input("Choice [1-4]: ").strip()
-            if choice == '1':
-                args.pty = True
+        is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+        try:
+            session_type = None
+            while True:
+                # First menu: session type
+                if session_type is None:
+                    print()
+                    if is_interactive:
+                        choice = questionary.select(
+                            "Select a session type:",
+                            choices=[
+                                {"name": "PTY Shell", "value": "pty"},
+                                {"name": "Docker Container (requires Docker)", "value": "docker"},
+                                questionary.Separator(),
+                                {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
+                                {"name": "Exit", "value": "exit"},
+                            ],
+                            use_indicator=True
+                        ).ask()
+                        if choice in (None, "exit"): return
+                    else: # Text-based fallback
+                        print("Select a session type:")
+                        print(" 1) PTY Shell")
+                        print(" 2) Docker Container (requires Docker)")
+                        print(" 3) Enter OpenAI API Key to enable AI features")
+                        print(" 4) Exit")
+                        choice_map = {'1': 'pty', '2': 'docker', '3': 'api_key', '4': 'exit'}
+                        text_choice = input("Choice [1-4]: ").strip()
+                        choice = choice_map.get(text_choice)
+                        if choice == 'exit' or choice is None: return
+                        if not choice:
+                             print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+                             continue
+
+                    if choice == 'api_key':
+                        prompt_text = "Enter your OpenAI API Key (leave blank to cancel):"
+                        if is_interactive:
+                            key = questionary.password(prompt_text, qmark="🔑").ask()
+                        else:
+                            key = input(prompt_text + " ").strip()
+                        if key:
+                            os.environ['OPENAI_API_KEY'] = key
+                            print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
+                        else:
+                            print(f"{Fore.YELLOW}No API key provided. AI features remain disabled.{Style.RESET_ALL}")
+                        continue
+                    session_type = choice
+
+                # Second menu: quiz type
+                print()
+                if is_interactive:
+                    quiz_choice = questionary.select(
+                        f"Session: {session_type.upper()}. Select quiz type:",
+                        choices=[
+                            {"name": "K8s (preinstalled)", "value": "k8s"},
+                            {"name": "Kustom (upload your own quiz)", "value": "kustom"},
+                            {"name": "Review flagged questions", "value": "review"},
+                            questionary.Separator(),
+                            {"name": "Back to session selection", "value": "back"},
+                            {"name": "Exit", "value": "exit"},
+                        ],
+                        use_indicator=True
+                    ).ask()
+                    if quiz_choice in (None, "exit"): return
+                else: # Text fallback
+                    print(f"Session: {session_type.upper()}. Select quiz type:")
+                    print(" 1) K8s (preinstalled)")
+                    print(" 2) Kustom (upload your own quiz)")
+                    print(" 3) Review flagged questions")
+                    print(" 4) Back to session selection")
+                    print(" 5) Exit")
+                    choice_map = {'1': 'k8s', '2': 'kustom', '3': 'review', '4': 'back', '5': 'exit'}
+                    text_choice = input("Choice [1-5]: ").strip()
+                    quiz_choice = choice_map.get(text_choice)
+                    if quiz_choice == 'exit' or quiz_choice is None: return
+                    if not quiz_choice:
+                        print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+                        continue
+
+                if quiz_choice == 'back':
+                    session_type = None
+                    continue
+
+                if quiz_choice == 'k8s':
+                    args.module = 'kubernetes'
+                elif quiz_choice == 'kustom':
+                    args.module = 'custom'
+                    path = input("Enter path to your custom quiz JSON file: ").strip()
+                    if not path:
+                        print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
+                        session_type = None
+                        continue
+                    args.custom_file = path
+                elif quiz_choice == 'review':
+                    args.module = 'kubernetes'
+                    args.review_only = True
+
+                # Set session type and break from menu loop
+                args.pty = (session_type == 'pty')
+                args.docker = (session_type == 'docker')
                 break
-            if choice == '2':
-                args.docker = True
-                break
-            if choice == '3':
-                key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
-                if key:
-                    os.environ['OPENAI_API_KEY'] = key
-                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                continue
-            if choice == '4':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        # Quiz type selection
-        while True:
-            print()
-            print("Select quiz type:")
-            print(" 1) K8s (preinstalled)")
-            print(" 2) Kustom (upload your own quiz)")
-            print(" 3) Review flagged questions")
-            print(" 4) Help")
-            print(" 5) Exit")
-            sub = input("Choice [1-5]: ").strip()
-            if sub == '1':
-                args.module = 'kubernetes'; break
-            if sub == '2':
-                args.module = 'custom'
-                path = input("Enter path to your custom quiz JSON file: ").strip()
-                if not path:
-                    print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                    return
-                args.custom_file = path; break
-            if sub == '3':
-                args.module = 'kubernetes'; args.review_only = True; break
-            if sub == '4':
-                show_quiz_type_help(); input("Press Enter to continue..."); continue
-            if sub == '5':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        # Reset quiz file to allow default or custom file selection
-        args.file = None
+
+            # In interactive mode, let the quiz session handle file selection
+            args.file = None
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n{Fore.YELLOW}Exit selected.{Style.RESET_ALL}")
+            return
 
     # Process positional command
     args.module = None
