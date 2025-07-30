@@ -300,6 +300,29 @@ def main():
         spawn_pty_shell()
         return
 
+    # Global flags handling
+    if args.history:
+        show_history()
+        return
+    if args.list_modules:
+        show_modules()
+        return
+    if args.list_categories:
+        print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
+        try:
+            from kubelingo.modules.kubernetes.session import load_questions
+            questions = load_questions(args.file)
+            cats = sorted({q.get('category') for q in questions if q.get('category')})
+            print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
+            if cats:
+                for cat in cats:
+                    print(Fore.YELLOW + cat + Style.RESET_ALL)
+            else:
+                print("No categories found in quiz data.")
+        except Exception as e:
+            print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
+        return
+
 
     # If certain flags are used without a module, default to kubernetes
     if args.module is None and (
