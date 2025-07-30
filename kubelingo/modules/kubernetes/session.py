@@ -488,6 +488,11 @@ class NewSession(StudySession):
                     )
                     transcripts_by_index[current_question_index] = result
                     
+                    # Clear screen after shell and re-print question header.
+                    os.system('cls' if os.name == 'nt' else 'clear')
+                    print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                    print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+
                     # Immediately process the result
                     is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
