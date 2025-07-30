@@ -193,18 +193,29 @@ def enrich_and_dedupe(
     # Load target questions
     try:
         with open(target_path, 'r', encoding='utf-8') as f:
-            questions = json.load(f)
-        if not isinstance(questions, list):
-             logging.error(f"Target file {target_file} does not contain a JSON list of questions.")
+            data = json.load(f)
+        if not isinstance(data, list):
+             logging.error(f"Target file {target_file} does not contain a JSON list.")
              return
     except json.JSONDecodeError:
         logging.error(f"Failed to decode JSON from {target_file}")
         return
 
+    # The data can be a flat list of questions, or a list of categories with nested questions.
+    is_nested = isinstance(data[0], dict) and 'questions' in data[0] if data else False
+
     questions_to_update = []
     if generate_validations:
         logging.info("Scanning for questions missing 'validation_steps'...")
-        for q in questions:
+        
+        question_source = []
+        if is_nested:
+            for category in data:
+                question_source.extend(category.get('questions', []))
+        else: # flat list
+            question_source = data
+
+        for q in question_source:
             if not q.get('validation_steps'):
                 questions_to_update.append(q)
 
@@ -230,7 +241,7 @@ def enrich_and_dedupe(
         logging.info(f"Writing {updated_count} updated questions back to '{target_file}'")
         try:
             with open(target_path, 'w', encoding='utf-8') as f:
-                json.dump(questions, f, indent=2)
+                json.dump(data, f, indent=2)
         except Exception as e:
             logging.error(f"Failed to write updates to {target_file}: {e}")
 
