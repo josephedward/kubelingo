@@ -249,15 +249,15 @@ def main():
         # If no arguments provided, show an interactive menu
         if len(sys.argv) == 1:
             if not questionary:
-                print(f"{Fore.YELLOW}For a rich interactive menu, please install 'questionary' (`pip install questionary`){Style.RESET_ALL}")
-                print("Falling back to default Kubernetes quiz module.")
-                args.module = 'kubernetes'
+                print(f"{Fore.RED}Error: Interactive menu requires the 'questionary' library. Please install it with 'pip install questionary'{Style.RESET_ALL}")
+                return
             else:
                 try:
                     session_type = None
                     while True:  # Main interactive loop
                         # Level 1 Menu: Session Type
                         if session_type is None:
+                            print()
                             choice = questionary.select(
                                 "Select a session type:",
                                 choices=[
@@ -268,7 +268,8 @@ def main():
                                     {"name": "Help", "value": "help"},
                                     {"name": "Exit", "value": "exit"},
                                 ],
-                                use_indicator=True
+                                use_indicator=True,
+                                default="PTY Shell"
                             ).ask()
 
                             if choice == "exit" or choice is None:
@@ -295,6 +296,7 @@ def main():
                                 session_type = choice
                         
                         # Level 2 Menu: Quiz Type
+                        print()
                         quiz_choice = questionary.select(
                             f"Session: {session_type.upper()}. Select quiz type:",
                             choices=[
@@ -306,7 +308,8 @@ def main():
                                 {"name": "Back", "value": "back"},
                                 {"name": "Exit", "value": "exit"},
                             ],
-                            use_indicator=True
+                            use_indicator=True,
+                            default="K8s (preinstalled)"
                         ).ask()
 
                         if quiz_choice is None:  # User pressed Ctrl+C
