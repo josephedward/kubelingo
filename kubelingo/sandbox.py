@@ -1,25 +1,19 @@
 import os
 import pty
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import re
-
-from kubelingo.question import Question, ValidationStep
-from kubelingo.modules.kubernetes.answer_checker import save_transcript
-from kubelingo.utils.config import LOGS_DIR
-
-from kubelingo.utils.ui import Fore, Style
-
-# Project root imported from centralized config
-from kubelingo.utils.config import ROOT
-import tempfile
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Dict
 
+from kubelingo.modules.kubernetes.answer_checker import save_transcript
 from kubelingo.question import Question, ValidationStep
+from kubelingo.utils.config import LOGS_DIR, ROOT
+from kubelingo.utils.ui import Fore, Style
+
 
 @dataclass
 class StepResult:
@@ -28,6 +22,7 @@ class StepResult:
     success: bool
     stdout: str
     stderr: str
+
 
 @dataclass
 class ShellResult:
