@@ -223,7 +223,7 @@ def main():
     enrich_args, _ = parser.parse_known_args()
     if enrich_args.enrich:
         src, dst = enrich_args.enrich
-        script = repo_root / 'scripts' / 'organize_question_data.py'
+        script = repo_root / 'scripts' / 'enrich_and_dedup_questions.py'
         cmd = [sys.executable, str(script), src, dst]
         if enrich_args.dry_run_enrich:
             cmd.append('--dry-run')
