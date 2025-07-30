@@ -22,6 +22,8 @@ from kubelingo.modules.base.session import StudySession
 AI_ENABLED = bool(
     os.environ.get('OPENAI_API_KEY') and (HAS_LLM or HAS_OPENAI)
 )
+# Flag for command-based AI evaluation (distinct from transcript-based --ai-eval)
+AI_EVALUATOR_ENABLED = AI_ENABLED and os.environ.get('KUBELINGO_AI_EVALUATOR', '').lower() in ('1', 'true', 'yes')
 
 # Style settings copied from other modules for consistency
 class _AnsiFore:
@@ -104,6 +106,40 @@ class AIHelper:
                     f"{Style.RESET_ALL}"
                 )
             return f"{Fore.RED}An error occurred while contacting the AI assistant: {e}{Style.RESET_ALL}"
+
+    def evaluate_answer(self, question_data, user_answer):
+        """Return an AI-based evaluation of a user's command-line answer."""
+        if not self.client:
+            return False, "AI client not available."
+
+        prompt = question_data.get('prompt', '')
+        expected_answer = question_data.get('response', '')
+
+        system_prompt = (
+            "You are a Kubernetes certification exam evaluator. "
+            "Your task is to determine if the user's answer is a valid way to accomplish the task described in the question. "
+            "The user might use aliases (e.g., 'k' for 'kubectl') or different flag orders. "
+            "Your response must be a JSON object with two keys: 'correct' (a boolean) and 'reasoning' (a brief, one-sentence explanation)."
+        )
+        user_prompt = f"Question: {prompt}\nExpected Answer: {expected_answer}\nUser's Answer: {user_answer}"
+
+        try:
+            resp = self.client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.0,
+                max_tokens=150,
+            )
+
+            content = resp.choices[0].message.content.strip()
+            result = json.loads(content)
+            return result.get('correct', False), result.get('reasoning', 'No reasoning provided.')
+        except Exception as e:
+            return False, f"An error occurred during AI evaluation: {e}"
 
 class NewSession(StudySession):
     """A session to get LLM-based help for a quiz question."""
