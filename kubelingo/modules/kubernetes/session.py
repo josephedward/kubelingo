@@ -482,6 +482,7 @@ class NewSession(StudySession):
 
                     question_obj = Question(
                         id=q.get('id', ''),
+                        type=q.get('type'),
                         prompt=q.get('prompt', ''),
                         pre_shell_cmds=q.get('pre_shell_cmds', []),
                         initial_files=q.get('initial_files', {}),

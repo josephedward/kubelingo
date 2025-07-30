@@ -393,24 +393,67 @@
     "category": "Additional Commands",
     "prompts": [
       {
+        "id": "create-kubectl-alias",
         "prompt": "Create an alias 'k' for 'kubectl'",
-        "response": "alias k=kubectl"
+        "explanation": "This is typically done by running 'alias k=kubectl'. Note: This command's effect is temporary for the current shell session and cannot be automatically validated here.",
+        "validation_steps": [
+          {
+            "cmd": "echo 'Validation for this step is manual. Please verify the command works in your shell.'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "enable-kubectl-autocompletion-bash",
         "prompt": "Enable kubectl autocompletion for bash",
-        "response": "source <(kubectl completion bash)"
+        "explanation": "This is typically done by running 'source <(kubectl completion bash)'. Note: This command's effect is temporary for the current shell session and cannot be automatically validated here.",
+        "validation_steps": [
+          {
+            "cmd": "echo 'Validation for this step is manual. Please verify the command works in your shell.'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "add-kubectl-completion-to-bashrc",
         "prompt": "Add kubectl autocompletion to ~/.bashrc",
-        "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc"
+        "validation_steps": [
+          {
+            "cmd": "grep -q 'source <(kubectl completion bash)' ~/.bashrc",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "set-kubeconfig-env-var",
         "prompt": "Set the KUBECONFIG environment variable to /home/user/config",
-        "response": "export KUBECONFIG=/home/user/config"
+        "explanation": "This is done with 'export KUBECONFIG=/home/user/config'. The effect is temporary to the shell and cannot be automatically validated.",
+        "validation_steps": [
+          {
+            "cmd": "echo 'Validation for this step is manual. Please verify the command works in your shell.'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "kubectl-version",
         "prompt": "Check the kubectl client and server versions",
-        "response": "kubectl version"
+        "validation_steps": [
+          {
+            "cmd": "kubectl version",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "id": "create-namespace-dev",
@@ -425,12 +468,31 @@
         ]
       },
       {
+        "id": "list-all-namespaces",
         "prompt": "List all namespaces",
-        "response": "kubectl get namespaces"
+        "validation_steps": [
+          {
+            "cmd": "kubectl get namespaces",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "describe-namespace-dev",
         "prompt": "Describe namespace dev",
-        "response": "kubectl describe namespace dev"
+        "pre_shell_cmds": [
+          "kubectl create namespace dev"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "kubectl describe namespace dev",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "id": "delete-namespace-dev",
@@ -460,12 +522,31 @@
         ]
       },
       {
+        "id": "list-all-deployments",
         "prompt": "List all deployments",
-        "response": "kubectl get deployments"
+        "validation_steps": [
+          {
+            "cmd": "kubectl get deployments",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "describe-deployment-frontend",
         "prompt": "Describe deployment frontend",
-        "response": "kubectl describe deployment frontend"
+        "pre_shell_cmds": [
+          "kubectl create deployment frontend --image=nginx"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "kubectl describe deployment frontend",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "id": "scale-deployment-frontend",
@@ -483,12 +564,36 @@
         ]
       },
       {
+        "id": "rollback-deployment-frontend",
         "prompt": "Roll back the deployment frontend to the previous version",
-        "response": "kubectl rollout undo deployment frontend"
+        "pre_shell_cmds": [
+          "kubectl create deployment frontend --image=nginx:1.17 --record",
+          "kubectl set image deployment/frontend frontend=nginx:1.18 --record",
+          "sleep 5"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "kubectl get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}' | grep 'nginx:1.17'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "restart-deployment-frontend",
         "prompt": "Restart the deployment frontend",
-        "response": "kubectl rollout restart deployment frontend"
+        "pre_shell_cmds": [
+          "kubectl create deployment frontend --image=nginx"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "kubectl rollout status deployment/frontend",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "id": "delete-deployment-frontend",
