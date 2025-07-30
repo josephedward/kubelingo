@@ -82,6 +82,90 @@ def launch_container_sandbox():
         pass
     finally:
         print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}\n")
+
+def run_shell_with_setup(question: "Question", use_docker=False, ai_eval=False):
+    """
+    Runs a complete, isolated exercise in a temporary workspace.
+
+    - Sets up initial files and prerequisite commands.
+    - Spawns a shell (PTY or Docker).
+    - Runs validation steps upon exit.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        workspace = Path(tmpdir)
+        original_dir = os.getcwd()
+        os.chdir(workspace)
+
+        try:
+            # 1. Setup initial files (handles legacy 'initial_yaml' for compatibility)
+            initial_files = question.initial_files
+            if not initial_files and question.initial_yaml:
+                initial_files = {'exercise.yaml': question.initial_yaml}
+            
+            for filename, content in initial_files.items():
+                (workspace / filename).write_text(content)
+
+            # 2. Run pre-shell commands (handles legacy 'initial_cmds')
+            pre_shell_cmds = question.pre_shell_cmds or question.initial_cmds
+            for cmd in pre_shell_cmds:
+                subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+
+            # 3. Spawn shell for user interaction
+            sandbox_func = launch_container_sandbox if use_docker else spawn_pty_shell
+            
+            transcript_file = None
+            if ai_eval:
+                transcript_file = workspace / "transcript.log"
+                os.environ['KUBELINGO_TRANSCRIPT_FILE'] = str(transcript_file)
+
+            sandbox_func()
+            
+            if ai_eval and 'KUBELINGO_TRANSCRIPT_FILE' in os.environ:
+                del os.environ['KUBELINGO_TRANSCRIPT_FILE']
+
+            # 4. Run validation steps (handles legacy 'validations')
+            validation_steps = question.validation_steps or question.validations
+            if not validation_steps:
+                print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
+                return True
+
+            all_valid = True
+            for step in validation_steps:
+                proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
+                
+                expected_code = step.matcher.get('exit_code', 0)
+                if proc.returncode != expected_code:
+                    print(f"{Fore.RED}Validation failed for command: {step.cmd}{Style.RESET_ALL}")
+                    print(proc.stdout or proc.stderr)
+                    all_valid = False
+                    break
+            
+            # 5. AI Evaluation (if enabled and deterministic checks passed)
+            if all_valid and ai_eval:
+                from kubelingo.modules.ai_evaluator import AIEvaluator
+                if transcript_file and transcript_file.exists():
+                    transcript = transcript_file.read_text()
+                    evaluator = AIEvaluator()
+                    from dataclasses import asdict
+                    q_dict = asdict(question)
+                    result = evaluator.evaluate(q_dict, transcript)
+                    print(f"{Fore.CYAN}AI Evaluator says: {result.get('reasoning', 'No reasoning.')}{Style.RESET_ALL}")
+                    return result.get('correct', False)
+                else:
+                    print(f"{Fore.YELLOW}AI evaluation was requested but no transcript was found.{Style.RESET_ALL}")
+                    return False
+
+            return all_valid
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Fore.RED}A setup command failed: {e.cmd}{Style.RESET_ALL}")
+            print(e.stdout or e.stderr)
+            return False
+        except Exception as e:
+            print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
+            return False
+        finally:
+            os.chdir(original_dir)
 @dataclass
 class StepResult:
     step: ValidationStep
