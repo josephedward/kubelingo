@@ -193,139 +193,57 @@ def main():
         return
     # For bare invocation (no flags or commands), present an interactive menu.
     if len(sys.argv) == 1:
-        if questionary and sys.stdin.isatty() and sys.stdout.isatty():
-            # This block provides a robust questionary-based menu.
-            while True:  # Main loop to allow returning to the main menu
-                # Session type selection
-                choice = questionary.select(
-                    "Select a session type:",
-                    choices=[
-                        questionary.Choice("PTY Shell", value="pty"),
-                        questionary.Choice("Docker Container (requires Docker)", value="docker"),
-                        questionary.Separator(),
-                        questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
-                        questionary.Choice("Help", value="help"),
-                        questionary.Choice("Exit", value="exit"),
-                    ],
-                    use_indicator=True
-                ).ask()
-
-                if choice is None or choice == 'exit':
-                    return
-
-                if choice == 'help':
-                    show_session_type_help()
-                    input("Press Enter to continue...")
-                    continue  # Go back to session type selection
-
-                if choice == 'api_key':
-                    key = questionary.text("Enter your OpenAI API Key (leave blank to cancel):").ask()
-                    if key:
-                        os.environ['OPENAI_API_KEY'] = key
-                        print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                    continue  # Go back to session type selection
-
-                session_type = choice
-
-                # Quiz type selection
-                quiz_choice = questionary.select(
-                    f"Session: {session_type.upper()}. Select quiz type:",
-                    choices=[
-                        questionary.Choice("K8s (preinstalled)", value="k8s"),
-                        questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
-                        questionary.Choice("Review flagged questions", value="review"),
-                        questionary.Separator(),
-                        questionary.Choice("Help", value="help"),
-                        questionary.Choice("Back to main menu", value="back"),
-                        questionary.Choice("Exit", value="exit"),
-                    ],
-                    use_indicator=True
-                ).ask()
-
-                if quiz_choice is None or quiz_choice == 'exit':
-                    return
-
-                if quiz_choice == 'back':
-                    continue  # Restart the main loop
-
-                if quiz_choice == 'help':
-                    show_quiz_type_help()
-                    input("Press Enter to continue...")
-                    continue  # Restart the main loop to show quiz types again
-
-                if quiz_choice == 'k8s':
-                    args.module = 'kubernetes'
-                elif quiz_choice == 'kustom':
-                    args.module = 'custom'
-                    path = questionary.path("Enter path to your custom quiz JSON file:").ask()
-                    if not path:
-                        print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                        continue
-                    args.custom_file = path
-                elif quiz_choice == 'review':
-                    args.module = 'kubernetes'
-                    args.review_only = True
-
-                # Set sandbox mode from session type
-                if session_type == 'pty':
-                    args.pty = True
-                elif session_type == 'docker':
-                    args.docker = True
-
-                # We have a module and sandbox type, so we can break the loop and proceed.
+        # Fallback to simple text menu if not in a TTY or questionary is not available
+        # Session type selection
+        while True:
+            print()
+            print("Select a session type:")
+            print(" 1) PTY Shell")
+            print(" 2) Docker Container (requires Docker)")
+            print(" 3) Enter OpenAI API Key to enable AI features")
+            print(" 4) Exit")
+            choice = input("Choice [1-4]: ").strip()
+            if choice == '1':
+                args.pty = True
                 break
-        else:
-            # Fallback to simple text menu if not in a TTY or questionary is not available
-            # Session type selection
-            while True:
-                print()
-                print("Select a session type:")
-                print(" 1) PTY Shell")
-                print(" 2) Docker Container (requires Docker)")
-                print(" 3) Enter OpenAI API Key to enable AI features")
-                print(" 4) Exit")
-                choice = input("Choice [1-4]: ").strip()
-                if choice == '1':
-                    args.pty = True
-                    break
-                if choice == '2':
-                    args.docker = True
-                    break
-                if choice == '3':
-                    key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
-                    if key:
-                        os.environ['OPENAI_API_KEY'] = key
-                        print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                    continue
-                if choice == '4':
+            if choice == '2':
+                args.docker = True
+                break
+            if choice == '3':
+                key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
+                if key:
+                    os.environ['OPENAI_API_KEY'] = key
+                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
+                continue
+            if choice == '4':
+                return
+            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+        # Quiz type selection
+        while True:
+            print()
+            print("Select quiz type:")
+            print(" 1) K8s (preinstalled)")
+            print(" 2) Kustom (upload your own quiz)")
+            print(" 3) Review flagged questions")
+            print(" 4) Help")
+            print(" 5) Exit")
+            sub = input("Choice [1-5]: ").strip()
+            if sub == '1':
+                args.module = 'kubernetes'; break
+            if sub == '2':
+                args.module = 'custom'
+                path = input("Enter path to your custom quiz JSON file: ").strip()
+                if not path:
+                    print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
                     return
-                print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-            # Quiz type selection
-            while True:
-                print()
-                print("Select quiz type:")
-                print(" 1) K8s (preinstalled)")
-                print(" 2) Kustom (upload your own quiz)")
-                print(" 3) Review flagged questions")
-                print(" 4) Help")
-                print(" 5) Exit")
-                sub = input("Choice [1-5]: ").strip()
-                if sub == '1':
-                    args.module = 'kubernetes'; break
-                if sub == '2':
-                    args.module = 'custom'
-                    path = input("Enter path to your custom quiz JSON file: ").strip()
-                    if not path:
-                        print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                        return
-                    args.custom_file = path; break
-                if sub == '3':
-                    args.module = 'kubernetes'; args.review_only = True; break
-                if sub == '4':
-                    show_quiz_type_help(); input("Press Enter to continue..."); continue
-                if sub == '5':
-                    return
-                print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+                args.custom_file = path; break
+            if sub == '3':
+                args.module = 'kubernetes'; args.review_only = True; break
+            if sub == '4':
+                show_quiz_type_help(); input("Press Enter to continue..."); continue
+            if sub == '5':
+                return
+            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
         # Reset quiz file to allow default or custom file selection
         args.file = None
 
