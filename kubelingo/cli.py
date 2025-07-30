@@ -364,6 +364,22 @@ def main():
             show_modules()
             return
 
+        # Handle question-data enrichment and exit
+        if args.enrich:
+            src, dst = args.enrich
+            # The script was renamed and refactored; update the CLI to call it correctly.
+            script_path = repo_root / 'scripts' / 'organize_question_data.py'
+            cmd = [
+                sys.executable, str(script_path),
+                '--enrich-only',
+                '--enrich-file', dst,
+                '--dedupe-ref-file', src
+            ]
+            if args.dry_run_enrich:
+                cmd.append('--dry-run')
+            subprocess.run(cmd)
+            return
+
         # Process positional command
         args.sandbox_submode = None
         if args.command:
