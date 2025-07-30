@@ -474,351 +474,351 @@ class NewSession(StudySession):
                 else:
                     questions = load_questions(args.file)
 
-        # De-duplicate questions based on the prompt text to avoid redundancy.
-        # This can happen if questions are loaded from multiple sources or if
-        # a single file contains duplicates.
-        seen_prompts = set()
-        unique_questions = []
-        for q in questions:
-            prompt = q.get('prompt', '').strip()
-            if prompt and prompt not in seen_prompts:
-                unique_questions.append(q)
-                seen_prompts.add(prompt)
-        
-        if len(questions) != len(unique_questions):
-            self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
-        questions = unique_questions
+            # De-duplicate questions based on the prompt text to avoid redundancy.
+            # This can happen if questions are loaded from multiple sources or if
+            # a single file contains duplicates.
+            seen_prompts = set()
+            unique_questions = []
+            for q in questions:
+                prompt = q.get('prompt', '').strip()
+                if prompt and prompt not in seen_prompts:
+                    unique_questions.append(q)
+                    seen_prompts.add(prompt)
+            
+            if len(questions) != len(unique_questions):
+                self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
+            questions = unique_questions
 
-        if args.review_only and not questions:
-            print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
-            return
-
-        if args.category:
-            questions = [q for q in questions if q.get('category') == args.category]
-            if not questions:
-                print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
+            if args.review_only and not questions:
+                print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
                 return
 
-        # By default, present questions in order to respect dependencies.
-        # If a number of questions is specified, take a random sample.
-        if args.num and args.num > 0:
-            questions_to_ask = random.sample(questions, min(args.num, len(questions)))
-        else:
-            questions_to_ask = questions
+            if args.category:
+                questions = [q for q in questions if q.get('category') == args.category]
+                if not questions:
+                    print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
+                    return
 
-        # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
-        if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
-            print(f"\n{Fore.YELLOW}Info: This quiz has questions requiring a Kubernetes cluster.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Without the --docker flag, answers will be checked by AI instead of a live sandbox.{Style.RESET_ALL}")
+            # By default, present questions in order to respect dependencies.
+            # If a number of questions is specified, take a random sample.
+            if args.num and args.num > 0:
+                questions_to_ask = random.sample(questions, min(args.num, len(questions)))
+            else:
+                questions_to_ask = questions
 
-        if not questions_to_ask:
-            print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
-            return
+            # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
+            if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
+                print(f"\n{Fore.YELLOW}Info: This quiz has questions requiring a Kubernetes cluster.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Without the --docker flag, answers will be checked by AI instead of a live sandbox.{Style.RESET_ALL}")
 
-        total_questions = len(questions_to_ask)
-        attempted_indices = set()
-        correct_indices = set()
+            if not questions_to_ask:
+                print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
+                return
 
-        print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
-        print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
-        self._initialize_live_session(args, questions_to_ask)
+            total_questions = len(questions_to_ask)
+            attempted_indices = set()
+            correct_indices = set()
 
-        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+            print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
+            print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
+            self._initialize_live_session(args, questions_to_ask)
 
-        prompt_session = None
-        if PromptSession and FileHistory:
-            # Ensure the directory for the history file exists
-            os.makedirs(os.path.dirname(INPUT_HISTORY_FILE), exist_ok=True)
-            prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
+            from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+            sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
 
-        quiz_backed_out = False
-        current_question_index = 0
-        transcripts_by_index = {}
-        
-        while current_question_index < len(questions_to_ask):
-            # Clear the terminal for visual clarity between questions
-            try:
-                os.system('clear')
-            except Exception:
-                pass
-            q = questions_to_ask[current_question_index]
-            i = current_question_index + 1
-            category = q.get('category', 'General')
+            prompt_session = None
+            if PromptSession and FileHistory:
+                # Ensure the directory for the history file exists
+                os.makedirs(os.path.dirname(INPUT_HISTORY_FILE), exist_ok=True)
+                prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
+
+            quiz_backed_out = False
+            current_question_index = 0
+            transcripts_by_index = {}
             
-            # Determine question status for display
-            status_color = Fore.WHITE
-            if current_question_index in correct_indices:
-                status_color = Fore.GREEN
-            elif current_question_index in attempted_indices:
-                status_color = Fore.RED
-
-            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-
-            while True:
-                is_flagged = q.get('review', False)
-                flag_option_text = "Unflag" if is_flagged else "Flag"
-
-                # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
-                choices = []
+            while current_question_index < len(questions_to_ask):
+                # Clear the terminal for visual clarity between questions
+                try:
+                    os.system('clear')
+                except Exception:
+                    pass
+                q = questions_to_ask[current_question_index]
+                i = current_question_index + 1
+                category = q.get('category', 'General')
                 
-                is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                validator = q.get('validator')
-                is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                is_shell_mode = q.get('type', 'command') != 'command' and q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
-                
-                answer_option_text = "Work on Answer"
-                if is_shell_mode:
-                    answer_option_text += " (in Shell)"
-                choices.append({"name": answer_option_text, "value": "answer"})
-                choices.append({"name": "Check Answer", "value": "check"})
-                # Show the expected answers derived from validation steps
-                choices.append({"name": "Show Expected Answer(s)", "value": "show"})
-                # Show the model's example response (if defined)
-                if q.get('response'):
-                    choices.append({"name": "Show Model Answer", "value": "show_answer"})
-                # Toggle flag for review
-                choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
-                choices.append({"name": "Next Question", "value": "next"})
-                choices.append({"name": "Previous Question", "value": "prev"})
-                choices.append({"name": "Exit Quiz.", "value": "back"})
+                # Determine question status for display
+                status_color = Fore.WHITE
+                if current_question_index in correct_indices:
+                    status_color = Fore.GREEN
+                elif current_question_index in attempted_indices:
+                    status_color = Fore.RED
 
-                # Determine if interactive action selection is available
-                action_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
-                if not action_interactive:
-                    # Text fallback for action selection
-                    print("\nActions:")
-                    for idx, choice in enumerate(choices, start=1):
-                        print(f" {idx}) {choice['name']}")
-                    text_choice = input("Choice: ").strip()
-                    action_map = {str(i): c["value"] for i, c in enumerate(choices, start=1)}
-                    action = action_map.get(text_choice)
-                    if not action:
-                        continue
-                else:
-                    try:
-                        print()
-                        action = questionary.select(
-                            "Action:",
-                            choices=choices,
-                            use_indicator=True
-                        ).ask()
-                        if action is None:
-                            raise KeyboardInterrupt
-                    except (EOFError, KeyboardInterrupt):
-                        print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                        asked_count = len(attempted_indices)
-                        correct_count = len(correct_indices)
-                        per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
-                        self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
-                        return False
+                print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-                if action == "back":
-                    quiz_backed_out = True
-                    break
-                
-                if action == "next":
-                    current_question_index = min(current_question_index + 1, total_questions - 1)
-                    break
+                while True:
+                    is_flagged = q.get('review', False)
+                    flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                if action == "prev":
-                    current_question_index = max(current_question_index - 1, 0)
-                    break
-                
-                if action == "show_answer":
-                    answer = q.get('response')
-                    if answer:
-                        print(f"\n{Fore.GREEN}--- Model Answer ---{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}{answer.strip()}{Style.RESET_ALL}")
-                        print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
-                    continue
-
-                if action == "show":
-                    # Display expected commands or response for this question
-                    expected = []
-                    for vs in q.get('validation_steps', []):
-                        cmd = vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', None)
-                        if cmd:
-                            expected.append(cmd)
-                    if not expected and q.get('response'):
-                        expected = [q['response']]
-                    print(f"{Fore.CYAN}Expected answer(s):{Style.RESET_ALL}")
-                    for cmd in expected:
-                        print(f"  {cmd}")
-                    continue
-                if action == "flag":
-                    data_file_path = q.get('data_file', args.file)
-                    if is_flagged:
-                        self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
-                        q['review'] = False
-                        print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
-                    else:
-                        self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                    continue
-
-                if action == "answer":
+                    # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
+                    choices = []
+                    
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                    # Detect AI-based semantic validator
                     validator = q.get('validator')
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                    use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                    is_shell_mode = q.get('type', 'command') != 'command' and q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
+                    
+                    answer_option_text = "Work on Answer"
+                    if is_shell_mode:
+                        answer_option_text += " (in Shell)"
+                    choices.append({"name": answer_option_text, "value": "answer"})
+                    choices.append({"name": "Check Answer", "value": "check"})
+                    # Show the expected answers derived from validation steps
+                    choices.append({"name": "Show Expected Answer(s)", "value": "show"})
+                    # Show the model's example response (if defined)
+                    if q.get('response'):
+                        choices.append({"name": "Show Model Answer", "value": "show_answer"})
+                    # Toggle flag for review
+                    choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
+                    choices.append({"name": "Next Question", "value": "next"})
+                    choices.append({"name": "Previous Question", "value": "prev"})
+                    choices.append({"name": "Exit Quiz.", "value": "back"})
 
-                    if use_text_input:
-                        if is_mocked_k8s:
-                            print(f"{Fore.CYAN}No-cluster mode: Please type the command to solve the problem.{Style.RESET_ALL}")
-                        if is_ai_validator:
-                            print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
-
+                    # Determine if interactive action selection is available
+                    action_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+                    if not action_interactive:
+                        # Text fallback for action selection
+                        print("\nActions:")
+                        for idx, choice in enumerate(choices, start=1):
+                            print(f" {idx}) {choice['name']}")
+                        text_choice = input("Choice: ").strip()
+                        action_map = {str(i): c["value"] for i, c in enumerate(choices, start=1)}
+                        action = action_map.get(text_choice)
+                        if not action:
+                            continue
+                    else:
                         try:
-                            if prompt_session:
-                                user_input = prompt_session.prompt("Your answer: ")
-                            else:
-                                user_input = input("Your answer: ")
-                        except (KeyboardInterrupt, EOFError):
-                            print()  # New line after prompt
-                            continue  # Back to action menu
+                            print()
+                            action = questionary.select(
+                                "Action:",
+                                choices=choices,
+                                use_indicator=True
+                            ).ask()
+                            if action is None:
+                                raise KeyboardInterrupt
+                        except (EOFError, KeyboardInterrupt):
+                            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                            asked_count = len(attempted_indices)
+                            correct_count = len(correct_indices)
+                            per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
+                            self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
+                            return False
 
-                        if user_input is None:  # Handle another way of EOF from prompt_toolkit
-                            user_input = ""
+                    if action == "back":
+                        quiz_backed_out = True
+                        break
+                    
+                    if action == "next":
+                        current_question_index = min(current_question_index + 1, total_questions - 1)
+                        break
+
+                    if action == "prev":
+                        current_question_index = max(current_question_index - 1, 0)
+                        break
+                    
+                    if action == "show_answer":
+                        answer = q.get('response')
+                        if answer:
+                            print(f"\n{Fore.GREEN}--- Model Answer ---{Style.RESET_ALL}")
+                            print(f"{Fore.YELLOW}{answer.strip()}{Style.RESET_ALL}")
+                            print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
+                        continue
+
+                    if action == "show":
+                        # Display expected commands or response for this question
+                        expected = []
+                        for vs in q.get('validation_steps', []):
+                            cmd = vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', None)
+                            if cmd:
+                                expected.append(cmd)
+                        if not expected and q.get('response'):
+                            expected = [q['response']]
+                        print(f"{Fore.CYAN}Expected answer(s):{Style.RESET_ALL}")
+                        for cmd in expected:
+                            print(f"  {cmd}")
+                        continue
+                    if action == "flag":
+                        data_file_path = q.get('data_file', args.file)
+                        if is_flagged:
+                            self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            q['review'] = False
+                            print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
+                        else:
+                            self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            q['review'] = True
+                            print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                        continue
+
+                    if action == "answer":
+                        is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                        # Detect AI-based semantic validator
+                        validator = q.get('validator')
+                        is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+                        use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+
+                        if use_text_input:
+                            if is_mocked_k8s:
+                                print(f"{Fore.CYAN}No-cluster mode: Please type the command to solve the problem.{Style.RESET_ALL}")
+                            if is_ai_validator:
+                                print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
+
+                            try:
+                                if prompt_session:
+                                    user_input = prompt_session.prompt("Your answer: ")
+                                else:
+                                    user_input = input("Your answer: ")
+                            except (KeyboardInterrupt, EOFError):
+                                print()  # New line after prompt
+                                continue  # Back to action menu
+
+                            if user_input is None:  # Handle another way of EOF from prompt_toolkit
+                                user_input = ""
+                            
+                            transcripts_by_index[current_question_index] = user_input.strip()
+
+                            # Re-print question header after input.
+                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                            continue
+
+                        from kubelingo.sandbox import run_shell_with_setup
+                        from kubelingo.question import Question, ValidationStep
                         
-                        transcripts_by_index[current_question_index] = user_input.strip()
+                        validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', [])]
+                        if not validation_steps and q.get('type') == 'command' and q.get('response'):
+                            validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
-                        # Re-print question header after input.
+                        question_obj = Question(
+                            id=q.get('id', ''),
+                            prompt=q.get('prompt', ''),
+                            type=q.get('type', ''),
+                            pre_shell_cmds=q.get('pre_shell_cmds', []),
+                            initial_files=q.get('initial_files', {}),
+                            validation_steps=validation_steps,
+                            explanation=q.get('explanation'),
+                            categories=q.get('categories', [q.get('category', 'General')]),
+                            difficulty=q.get('difficulty'),
+                            metadata=q.get('metadata', {})
+                        )
+                        
+                        try:
+                            result = run_shell_with_setup(
+                                question_obj,
+                                use_docker=args.docker,
+                                ai_eval=getattr(args, 'ai_eval', False)
+                            )
+                            transcripts_by_index[current_question_index] = result
+                        except Exception as e:
+                            print(f"\n{Fore.RED}An error occurred while setting up the exercise environment.{Style.RESET_ALL}")
+                            print(f"{Fore.YELLOW}This might be due to a failed setup command in the question data (pre_shell_cmds).{Style.RESET_ALL}")
+                            print(f"{Fore.CYAN}Details: {e}{Style.RESET_ALL}")
+                            # Loop back to the action menu without proceeding.
+                            continue
+                        
+                        # Re-print question header after shell.
                         print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
                         print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-                        continue
 
-                    from kubelingo.sandbox import run_shell_with_setup
-                    from kubelingo.question import Question, ValidationStep
-                    
-                    validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', [])]
-                    if not validation_steps and q.get('type') == 'command' and q.get('response'):
-                        validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
-
-                    question_obj = Question(
-                        id=q.get('id', ''),
-                        prompt=q.get('prompt', ''),
-                        type=q.get('type', ''),
-                        pre_shell_cmds=q.get('pre_shell_cmds', []),
-                        initial_files=q.get('initial_files', {}),
-                        validation_steps=validation_steps,
-                        explanation=q.get('explanation'),
-                        categories=q.get('categories', [q.get('category', 'General')]),
-                        difficulty=q.get('difficulty'),
-                        metadata=q.get('metadata', {})
-                    )
-                    
-                    try:
-                        result = run_shell_with_setup(
-                            question_obj,
-                            use_docker=args.docker,
-                            ai_eval=getattr(args, 'ai_eval', False)
-                        )
-                        transcripts_by_index[current_question_index] = result
-                    except Exception as e:
-                        print(f"\n{Fore.RED}An error occurred while setting up the exercise environment.{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}This might be due to a failed setup command in the question data (pre_shell_cmds).{Style.RESET_ALL}")
-                        print(f"{Fore.CYAN}Details: {e}{Style.RESET_ALL}")
-                        # Loop back to the action menu without proceeding.
+                        # After returning from shell, just continue to show the action menu again.
+                        # The user can then explicitly select "Check Answer".
                         continue
                     
-                    # Re-print question header after shell.
-                    print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                    print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                    if action == "check":
+                        result = transcripts_by_index.get(current_question_index)
+                        if result is None:
+                            print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
+                            continue
 
-                    # After returning from shell, just continue to show the action menu again.
-                    # The user can then explicitly select "Check Answer".
-                    continue
+                        is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                        # Detect AI-based semantic validator
+                        # Detect AI-based semantic validator configuration
+                        validator = None
+                        if isinstance(q.get('metadata'), dict):
+                            validator = q['metadata'].get('validator')
+                        elif isinstance(q.get('validator'), dict):
+                            validator = q.get('validator')
+                        is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+
+                        # Vim command questions use AI evaluator
+                        if q.get('category') == 'Vim Commands':
+                            self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                            continue
+                        # AI-based semantic validation for command answers
+                        if is_ai_validator:
+                            attempted_indices.add(current_question_index)
+                            # Use the configured expected command from validator
+                            expected_cmd = validator.get('expected', '')
+                            try:
+                                is_correct = ai_validate_command(result, expected_cmd, q['prompt'])
+                                if is_correct:
+                                    correct_indices.add(current_question_index)
+                                    print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                    if q.get('explanation'):
+                                        print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                                else:
+                                    correct_indices.discard(current_question_index)
+                                    print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                            except Exception as e:
+                                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+                            continue
+                        # No-cluster mode for live k8s questions also uses AI evaluator
+                        if is_mocked_k8s:
+                            # AI-based k8s validation for live questions without a cluster
+                            # Use the question's expected response as the command to validate
+                            expected_cmd = q.get('response', '')
+                            self._check_k8s_command_with_ai(
+                                q,
+                                expected_cmd,
+                                current_question_index,
+                                attempted_indices,
+                                correct_indices
+                            )
+                            continue
+
+                        # The result object from run_shell_with_setup is complete.
+                        # We just need to pass it to the processing function.
+                        self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
+
+                        # After checking, just show the menu again. Let the user decide to move on.
+                        continue
                 
-                if action == "check":
-                    result = transcripts_by_index.get(current_question_index)
-                    if result is None:
-                        print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
-                        continue
-
-                    is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                    # Detect AI-based semantic validator
-                    # Detect AI-based semantic validator configuration
-                    validator = None
-                    if isinstance(q.get('metadata'), dict):
-                        validator = q['metadata'].get('validator')
-                    elif isinstance(q.get('validator'), dict):
-                        validator = q.get('validator')
-                    is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-
-                    # Vim command questions use AI evaluator
-                    if q.get('category') == 'Vim Commands':
-                        self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                        continue
-                    # AI-based semantic validation for command answers
-                    if is_ai_validator:
-                        attempted_indices.add(current_question_index)
-                        # Use the configured expected command from validator
-                        expected_cmd = validator.get('expected', '')
-                        try:
-                            is_correct = ai_validate_command(result, expected_cmd, q['prompt'])
-                            if is_correct:
-                                correct_indices.add(current_question_index)
-                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                                if q.get('explanation'):
-                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                            else:
-                                correct_indices.discard(current_question_index)
-                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                        except Exception as e:
-                            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
-                        continue
-                    # No-cluster mode for live k8s questions also uses AI evaluator
-                    if is_mocked_k8s:
-                        # AI-based k8s validation for live questions without a cluster
-                        # Use the question's expected response as the command to validate
-                        expected_cmd = q.get('response', '')
-                        self._check_k8s_command_with_ai(
-                            q,
-                            expected_cmd,
-                            current_question_index,
-                            attempted_indices,
-                            correct_indices
-                        )
-                        continue
-
-                    # The result object from run_shell_with_setup is complete.
-                    # We just need to pass it to the processing function.
-                    self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-
-                    # After checking, just show the menu again. Let the user decide to move on.
-                    continue
+                if quiz_backed_out:
+                    break
             
+            # If user exited the quiz early, return to quiz menu without summary.
             if quiz_backed_out:
+                print(f"{Fore.YELLOW}Exiting quiz and returning to menu.{Style.RESET_ALL}")
+                return
+            
+            end_time = datetime.now()
+            duration = str(end_time - start_time).split('.')[0]
+            
+            asked_count = len(attempted_indices)
+            correct_count = len(correct_indices)
+            per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
+
+            print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
+            score = (correct_count / asked_count * 100) if asked_count > 0 else 0
+            print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+            print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+            
+            self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
+
+            self._cleanup_swap_files()
+
+            # In non-interactive mode, break the loop to exit.
+            if not is_interactive:
                 break
-        
-        # If user exited the quiz early, return to quiz menu without summary.
-        if quiz_backed_out:
-            print(f"{Fore.YELLOW}Exiting quiz and returning to menu.{Style.RESET_ALL}")
-            return
-        
-        end_time = datetime.now()
-        duration = str(end_time - start_time).split('.')[0]
-        
-        asked_count = len(attempted_indices)
-        correct_count = len(correct_indices)
-        per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
-
-        print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
-        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
-        print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
-        
-        self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
-
-        self._cleanup_swap_files()
-
-        # In non-interactive mode, break the loop to exit.
-        if not is_interactive:
-            break
 
     def _recompute_stats(self, questions, attempted_indices, correct_indices):
         """Helper to calculate per-category stats from state sets."""
