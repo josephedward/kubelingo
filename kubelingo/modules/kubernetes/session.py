@@ -291,339 +291,42 @@ class NewSession(StudySession):
         # Refactored: all exercises now run through a unified quiz runner.
         self._run_unified_quiz(args)
     
-    def _run_shell_question(self, q: dict, args) -> bool:
+    def _run_unified_quiz(self, args):
         """
-        Unified shell-driven question:
-        1) Run any setup commands in q['initial_cmds'].
-        2) Launch a PTY or Docker shell for the user to work in.
-        3) After exit, execute each ValidationStep in q['validations'], returning
-           True if all pass, False otherwise.
+        Run a unified quiz session for all question types. Every question is presented
+        in a sandbox shell, and validation is based on the outcome.
         """
-        # 1) Setup
-        for cmd in q.get('initial_cmds', []):
-            subprocess.run(cmd, shell=True)
-
-        # 2) Shell
-        if args.docker:
-            launch_container_sandbox()
-        else:
-            spawn_pty_shell()
-
-        # 3) Validation
-        all_good = True
-        for v in q.get('validations', []):
-            cmd = v.get('cmd', '')
-            proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            expected = v.get('matcher', {}).get('exit_code', 0)
-            if proc.returncode != expected:
-                print(proc.stdout or proc.stderr)
-                all_good = False
-                break
-        return all_good
-
-    def _run_command_quiz(self, args):
-        """Run a quiz session for command-line questions."""
         start_time = datetime.now()
-        questions = []  # Defer loading until after menu
+        questions = []
 
-        # In interactive mode, prompt user for quiz type (flagged/category)
-        is_interactive = (
-            questionary and not args.category and not args.review_only and not args.num
-            and (args.file is None or args.file == DEFAULT_DATA_FILE or not os.path.exists(args.file))
-        )
+        is_interactive = questionary and not args.file and not args.category and not args.review_only
+
         if is_interactive:
-            while True:  # Loop to allow returning to menu after clearing flags
-                choices, flagged_command_questions, flagged_vim_questions = self._build_interactive_menu_choices()
+            choices, flagged_questions = self._build_interactive_menu_choices()
+            selected = questionary.select(
+                "Choose a Kubernetes exercise:",
+                choices=choices,
+                use_indicator=True
+            ).ask()
 
-                selected = questionary.select(
-                    "Choose a Kubernetes exercise:",
-                    choices=choices,
-                    use_indicator=True
-                ).ask()
+            if selected is None or selected == 'back':
+                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                return
 
-                if selected is None or selected == 'back':
-                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                    return
+            if selected == 'clear_flags':
+                _clear_all_review_flags(self.logger)
+                return self._run_unified_quiz(args)
 
-                if selected == 'clear_flags':
-                    _clear_all_review_flags(self.logger)
-                    continue  # Re-display menu
-
-                # Map menu selections to handler methods for cleaner dispatch
-                action_map = {
-                    'vim_review': self._run_vim_commands_quiz,
-                    'yaml_standard': self._run_yaml_editing_mode,
-                    'yaml_progressive': self._handle_yaml_progressive,
-                    'yaml_live': self._handle_yaml_live,
-                    'yaml_create': self._handle_yaml_create,
-                    'vim_quiz': self._run_vim_commands_quiz
-                }
-
-                if selected in action_map:
-                    args.review_only = (selected == 'vim_review')
-                    action_map[selected](args)
-                    continue
-
-                # Handle cases that populate the `questions` list and fall through
-                if selected == 'review':
-                    args.review_only = True
-                    questions = flagged_command_questions
-                    args.file = 'review_session'  # Set a placeholder for history
-                elif selected.endswith(('.json', '.md', '.markdown', '.yaml', '.yml')):
-                    args.file = selected
-                    questions = load_questions(args.file)
-                else:
-                    print(f"{Fore.RED}Internal error: unhandled selection '{selected}'{Style.RESET_ALL}")
-                    return
-                # --- Start Quiz ---
-                if args.review_only and not questions:
-                    print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
-                    continue
-
-                if args.category:
-                    questions = [q for q in questions if q.get('category') == args.category]
-                    if not questions:
-                        print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
-                        continue
-
-                runnable_questions = [q for q in questions if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit')]
-                if not runnable_questions:
-                    print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
-                    continue
-
-                num_to_ask = args.num if args.num > 0 else len(runnable_questions)
-                questions_to_ask = random.sample(runnable_questions, min(num_to_ask, len(runnable_questions)))
-
-                if not questions_to_ask:
-                    print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
-                    continue
-
-                correct_count = 0
-                per_category_stats = {}
-                total_questions = len(questions_to_ask)
-                asked_count = 0
-                skipped_questions = []
-
-                print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
-                print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
-
-                from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-                
-                prompt_session = None
-                if PromptSession and FileHistory:
-                    prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
-                
-                quiz_backed_out = False
-                current_question_index = 0
-                while current_question_index < len(questions_to_ask):
-                    q = questions_to_ask[current_question_index]
-                    i = current_question_index + 1
-
-                    category = q.get('category', 'General')
-                    if category not in per_category_stats:
-                        per_category_stats[category] = {'asked': 0, 'correct': 0}
-
-                    user_answer_content = None
-                    was_answered = False
-
-                    # Inner loop for the in-quiz menu
-                    print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                    print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-                    while True:
-                        is_flagged = q.get('review', False)
-                        flag_option_text = "Unflag" if is_flagged else "Flag"
-                        
-                        q_type = q.get('type', 'command')
-                        answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
-
-                        choices = [
-                            questionary.Choice(f"1. {answer_text}", value="answer"),
-                            questionary.Choice(f"2. {flag_option_text}", value="flag"),
-                            questionary.Choice("3. Skip", value="skip"),
-                            questionary.Choice("4. Back to Quiz Menu", value="back")
-                        ]
-                        
-                        try:
-                            action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
-                            if action is None: raise KeyboardInterrupt
-                        except (EOFError, KeyboardInterrupt):
-                            print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                            self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
-                            return
-
-                        if action == "back":
-                            quiz_backed_out = True
-                            break
-                        
-                        if action == "skip":
-                            if not was_answered:
-                                per_category_stats[category]['asked'] += 1
-                                asked_count += 1
-                            skipped_questions.append(q)
-                            self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
-                            current_question_index += 1
-                            break
-
-                        if action == "flag":
-                            data_file_path = q.get('data_file', args.file)
-                            if is_flagged:
-                                self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
-                                q['review'] = False
-                                print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
-                            else:
-                                self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
-                                q['review'] = True
-                                print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                            continue
-
-                        if action == "answer":
-                            if not was_answered:
-                                per_category_stats[category]['asked'] += 1
-                                asked_count += 1
-                            was_answered = True
-
-                            is_correct = False
-                            if q_type == 'command':
-                                if prompt_session:
-                                    user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                                else:
-                                    user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                                is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
-                            else: # live_k8s, etc.
-                                is_correct = self._run_shell_question(q, args)
-
-                            self.logger.info(
-                                f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\""
-                            )
-                            if is_correct:
-                                correct_count += 1
-                                per_category_stats[category]['correct'] += 1
-                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                                if q.get('explanation'):
-                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                                # AI explanation if enabled
-                                from kubelingo.modules.llm.session import AIHelper
-                                if getattr(AIHelper, 'enabled', False):
-                                    ai_text = AIHelper().get_explanation(q)
-                                    if ai_text:
-                                        print(ai_text)
-                                current_question_index += 1
-                                break
-                            else:
-                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                                if q_type == 'command':
-                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                                # AI explanation if enabled
-                                from kubelingo.modules.llm.session import AIHelper
-                                if getattr(AIHelper, 'enabled', False):
-                                    ai_text = AIHelper().get_explanation(q)
-                                    if ai_text:
-                                        print(ai_text)
-                                continue
-
-                        if action == "check":
-                            if not was_answered:
-                                if q_type == 'command':
-                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                                else:
-                                    print(f"{Fore.YELLOW}Answer cannot be shown directly for this question type. Please attempt a solution first.{Style.RESET_ALL}")
-                                continue
-
-                            if q_type == 'command':
-                                # Determine if comparing YAML manifest or command
-                                expected_resp = (q.get('response', '') or '').strip()
-                                if '\n' in expected_resp and yaml:
-                                    # Compare YAML structures
-                                    try:
-                                        expected_obj = yaml.safe_load(expected_resp)
-                                        answer_obj = yaml.safe_load(user_answer_content or '')
-                                        is_correct = (answer_obj == expected_obj)
-                                    except Exception:
-                                        is_correct = False
-                                else:
-                                    is_correct = commands_equivalent(user_answer_content, expected_resp)
-                            elif q_type in ['live_k8s_edit', 'live_k8s']:
-                                is_correct = self._run_one_exercise(q, is_check_only=True)
-
-                            self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-                            if is_correct:
-                                correct_count += 1
-                                per_category_stats[category]['correct'] += 1
-                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                                if q.get('explanation'):
-                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                                # AI-generated detailed explanation (if enabled)
-                                from kubelingo.modules.llm.session import AIHelper
-                                if getattr(AIHelper, 'enabled', False):
-                                    ai = AIHelper()
-                                    ai_text = ai.get_explanation(q)
-                                    if ai_text:
-                                        print(ai_text)
-                                current_question_index += 1
-                                break
-                            else:
-                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                                if q_type == 'command':
-                                    print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                                # AI-generated detailed explanation (if enabled)
-                                from kubelingo.modules.llm.session import AIHelper
-                                if getattr(AIHelper, 'enabled', False):
-                                    ai = AIHelper()
-                                    ai_text = ai.get_explanation(q)
-                                    if ai_text:
-                                        print(ai_text)
-                                continue
-                    if quiz_backed_out:
-                        break  # Exit question loop to go back to quiz menu
-                
-                if quiz_backed_out:
-                    continue  # Go back to quiz selection menu
-
-                end_time = datetime.now()
-                duration = str(end_time - start_time).split('.')[0]
-                
-                if skipped_questions:
-                    print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
-                    for q in skipped_questions:
-                        print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
-                        print(f"{Fore.GREEN}Correct answer: {q.get('response', 'See explanation.')}{Style.RESET_ALL}")
-                        if q.get('explanation'):
-                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-
-                print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-                score = (correct_count / asked_count * 100) if asked_count > 0 else 0
-                print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
-                print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
-                
-                self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
-                # After quiz completion, loop back to the menu
-                continue
+            if selected == 'review':
+                args.review_only = True
+                questions = flagged_questions
+                args.file = 'review_session'
+            else:
+                args.file = selected
+                questions = load_questions(args.file)
         else:
-            # Non-interactive mode
-            # For a simple, non-interactive command quiz, try the Rust version first.
-            if not args.review_only and not args.live and args.file == DEFAULT_DATA_FILE:
-                try:
-                    from kubelingo.bridge import rust_bridge
-                    if rust_bridge.is_available():
-                        if rust_bridge.run_command_quiz(args):
-                            return  # Success, we're done.
-                        else:
-                            # Rust bridge is available but failed to run the quiz.
-                            print(f"{Fore.YELLOW}Rust command quiz execution failed, falling back to Python implementation.{Style.RESET_ALL}")
-                except ImportError:
-                    pass  # No rust bridge, just fall through to Python.
-
             if args.review_only:
-                # Load all flagged questions from all command quiz files
-                all_files = _get_quiz_files()
-                all_flagged = []
-                for f in all_files:
-                    qs = load_questions(f)
-                    for q in qs:
-                        if q.get('review'):
-                            q['data_file'] = f  # Tag with origin file
-                            all_flagged.append(q)
-                questions = all_flagged
+                questions = get_all_flagged_questions()
             else:
                 questions = load_questions(args.file)
 
@@ -637,13 +340,8 @@ class NewSession(StudySession):
                 print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                 return
 
-        runnable_questions = [q for q in questions if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit')]
-        if not runnable_questions:
-            print(Fore.YELLOW + "No runnable questions available for this quiz." + Style.RESET_ALL)
-            return
-
-        num_to_ask = args.num if args.num > 0 else len(runnable_questions)
-        questions_to_ask = random.sample(runnable_questions, min(num_to_ask, len(runnable_questions)))
+        num_to_ask = args.num if args.num > 0 else len(questions)
+        questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
 
         if not questions_to_ask:
             print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
@@ -653,47 +351,37 @@ class NewSession(StudySession):
         per_category_stats = {}
         total_questions = len(questions_to_ask)
         asked_count = 0
-        skipped_questions = []
 
         print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
         print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
+        self._initialize_live_session()
 
         from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-        
-        prompt_session = None
-        if PromptSession and FileHistory:
-            prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
-        
+        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
+
+        quiz_backed_out = False
         current_question_index = 0
         while current_question_index < len(questions_to_ask):
             q = questions_to_ask[current_question_index]
             i = current_question_index + 1
-
             category = q.get('category', 'General')
             if category not in per_category_stats:
                 per_category_stats[category] = {'asked': 0, 'correct': 0}
 
-            user_answer_content = None
-            was_answered = False
-
-            # Inner loop for the in-quiz menu
             print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+
             while True:
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
-                
-                q_type = q.get('type', 'command')
-                answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
-                
+
                 choices = [
-                    questionary.Choice(f"1. {answer_text}", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
-                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
-                    questionary.Choice("4. Skip", value="skip"),
-                    questionary.Choice("5. Back to Quiz Menu", value="back")
+                    questionary.Choice("1. Start Exercise (Open Terminal)", value="answer"),
+                    questionary.Choice(f"2. {flag_option_text} for Review", value="flag"),
+                    questionary.Choice("3. Skip", value="skip"),
+                    questionary.Choice("4. Exit Quiz", value="back")
                 ]
-                
+
                 try:
                     action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
                     if action is None: raise KeyboardInterrupt
@@ -703,16 +391,12 @@ class NewSession(StudySession):
                     return
 
                 if action == "back":
-                    end_time = datetime.now()
-                    duration = str(end_time - start_time).split('.')[0]
-                    self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
-                    return
-                
+                    quiz_backed_out = True
+                    break
+
                 if action == "skip":
-                    if not was_answered:
-                        per_category_stats[category]['asked'] += 1
-                        asked_count += 1
-                    skipped_questions.append(q)
+                    asked_count += 1
+                    per_category_stats[category]['asked'] += 1
                     self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
                     current_question_index += 1
                     break
@@ -730,35 +414,18 @@ class NewSession(StudySession):
                     continue
 
                 if action == "answer":
-                    if not was_answered:
-                        per_category_stats[category]['asked'] += 1
-                        asked_count += 1
-                    was_answered = True
-
-                    if q_type == 'command':
-                        if prompt_session:
-                            user_answer_content = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                        else:
-                            user_answer_content = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                    else:
-                        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
-                        sandbox_func()
-                        user_answer_content = "sandbox_session_completed"
-
-                if action == "check":
-                    if not was_answered:
-                        if q_type == 'command':
-                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                        else:
-                            print(f"{Fore.YELLOW}Answer cannot be shown directly for this question type. Please attempt a solution first.{Style.RESET_ALL}")
-                        continue
+                    asked_count += 1
+                    per_category_stats[category]['asked'] += 1
                     
-                    if q_type == 'command':
-                        is_correct = commands_equivalent(user_answer_content, q.get('response', ''))
-                    elif q_type in ['live_k8s_edit', 'live_k8s']:
-                        is_correct = self._run_one_exercise(q, is_check_only=True)
-
+                    print(Fore.GREEN + "\nA sandbox shell will be opened. Perform the required actions." + Style.RESET_ALL)
+                    print(Fore.GREEN + "Type 'exit' or press Ctrl-D to finish and validate your answer." + Style.RESET_ALL)
+                    
+                    sandbox_func()
+                    
+                    print("\nValidating your solution...")
+                    is_correct = self._run_one_exercise(q)
                     self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+
                     if is_correct:
                         correct_count += 1
                         per_category_stats[category]['correct'] += 1
@@ -768,21 +435,14 @@ class NewSession(StudySession):
                         current_question_index += 1
                         break
                     else:
-                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                        if q_type == 'command':
-                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        print(f"{Fore.RED}Incorrect. Try again or skip.{Style.RESET_ALL}")
                         continue
             
+            if quiz_backed_out:
+                break
+        
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
-        
-        if skipped_questions:
-            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
-            for q in skipped_questions:
-                print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Correct answer: {q.get('response', 'See explanation.')}{Style.RESET_ALL}")
-                if q.get('explanation'):
-                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
         print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
         score = (correct_count / asked_count * 100) if asked_count > 0 else 0
