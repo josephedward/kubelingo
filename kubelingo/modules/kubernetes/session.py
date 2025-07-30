@@ -503,39 +503,22 @@ class NewSession(StudySession):
                     print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
                     print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-                    # Immediately process the result
-                    is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                    if is_correct is True:
-                        current_question_index += 1
-                        break # Move to next question
-                    else:
-                        # is_correct is False or None (no-op), so just stay on the current question
-                        continue # Stay on current question to retry
+                    # After returning from shell, just continue to show the action menu again.
+                    # The user can then explicitly select "Check Answer".
+                    continue
                 
                 if action == "check":
                     result = transcripts_by_index.get(current_question_index)
-                    if not result or not result.transcript_path:
+                    if not result:
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                         continue
 
-                    from kubelingo.question import ValidationStep
-                    validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', [])]
-                    if not validation_steps and q.get('type') == 'command' and q.get('response'):
-                        validation_steps.append(ValidationStep(cmd=q['response'], matcher={'contains': q['response']}))
+                    # The result object from run_shell_with_setup is complete.
+                    # We just need to pass it to the processing function.
+                    self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
 
-                    print(f"{Fore.CYAN}Re-evaluating answer from transcript...{Style.RESET_ALL}")
-                    is_correct_re_eval, details = evaluate_transcript(result.transcript_path, validation_steps)
-                    
-                    # Update the result, but since we don't have per-step results from this evaluator, just update success.
-                    result.success = is_correct_re_eval
-                    
-                    # This check is now just for displaying feedback and moving on
-                    is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                    if is_correct is True:
-                        current_question_index = min(current_question_index + 1, total_questions - 1)
-                        break
-                    else:
-                        continue
+                    # After checking, just show the menu again. Let the user decide to move on.
+                    continue
             
             if quiz_backed_out:
                 break
