@@ -413,8 +413,16 @@
         "response": "kubectl version"
       },
       {
+        "id": "create-namespace-dev",
         "prompt": "Create a namespace named dev",
-        "response": "kubectl create namespace dev"
+        "validation_steps": [
+          {
+            "cmd": "kubectl get namespace dev",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "prompt": "List all namespaces",
@@ -425,12 +433,31 @@
         "response": "kubectl describe namespace dev"
       },
       {
+        "id": "delete-namespace-dev",
         "prompt": "Delete namespace dev",
-        "response": "kubectl delete namespace dev"
+        "pre_shell_cmds": [
+          "kubectl create namespace dev"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "! kubectl get namespace dev",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
+        "id": "create-deployment-frontend",
         "prompt": "Create a deployment named frontend using image nginx:1.14",
-        "response": "kubectl create deployment frontend --image=nginx:1.14"
+        "validation_steps": [
+          {
+            "cmd": "kubectl get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}' | grep 'nginx:1.14'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "prompt": "List all deployments",
@@ -441,8 +468,19 @@
         "response": "kubectl describe deployment frontend"
       },
       {
+        "id": "scale-deployment-frontend",
         "prompt": "Scale deployment frontend to 3 replicas",
-        "response": "kubectl scale deployment frontend --replicas=3"
+        "pre_shell_cmds": [
+          "kubectl create deployment frontend --image=nginx"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "kubectl get deployment frontend -o jsonpath='{.spec.replicas}' | grep 3",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "prompt": "Roll back the deployment frontend to the previous version",
@@ -453,8 +491,19 @@
         "response": "kubectl rollout restart deployment frontend"
       },
       {
+        "id": "delete-deployment-frontend",
         "prompt": "Delete deployment frontend",
-        "response": "kubectl delete deployment frontend"
+        "pre_shell_cmds": [
+          "kubectl create deployment frontend --image=nginx"
+        ],
+        "validation_steps": [
+          {
+            "cmd": "! kubectl get deployment frontend",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "prompt": "Run a pod named busybox with image busybox that runs indefinitely",
@@ -489,8 +538,19 @@
         "response": "kubectl delete service frontend-svc"
       },
       {
+        "id": "create-configmap-from-file",
         "prompt": "Create a ConfigMap named app-config from file config.yaml",
-        "response": "kubectl create configmap app-config --from-file=config.yaml"
+        "initial_files": {
+          "config.yaml": "key: value"
+        },
+        "validation_steps": [
+          {
+            "cmd": "kubectl get configmap app-config -o jsonpath='{.data.config\\.yaml}' | grep 'key: value'",
+            "matcher": {
+              "exit_code": 0
+            }
+          }
+        ]
       },
       {
         "prompt": "List all ConfigMaps",
