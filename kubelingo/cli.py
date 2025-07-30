@@ -229,7 +229,7 @@ def main():
             cmd.append('--dry-run')
         if enrich_args.generate_validations:
             cmd.append('--generate-validations')
-        # Always forward model and format settings
+        # Forward model and format settings
         cmd.extend(['--model', enrich_args.enrich_model])
         cmd.extend(['--format', enrich_args.enrich_format])
         subprocess.run(cmd)
@@ -375,16 +375,15 @@ def main():
 
         if args.enrich:
             src, dst = args.enrich
-            # The script was renamed and refactored; update the CLI to call it correctly.
-            script_path = repo_root / 'scripts' / 'organize_question_data.py'
-            cmd = [
-                sys.executable, str(script_path),
-                '--enrich-only',
-                '--enrich-file', dst,
-                '--dedupe-ref-file', src
-            ]
+            script_path = repo_root / 'scripts' / 'enrich_and_dedup_questions.py'
+            cmd = [sys.executable, str(script_path), str(src), str(dst)]
             if args.dry_run_enrich:
                 cmd.append('--dry-run')
+            if args.generate_validations:
+                cmd.append('--generate-validations')
+            # Forward AI model and output format settings
+            cmd.extend(['--model', args.enrich_model])
+            cmd.extend(['--format', args.enrich_format])
             subprocess.run(cmd)
             return
 
