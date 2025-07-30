@@ -154,7 +154,8 @@ class VimYamlEditor:
             prompt = step.get('prompt', '')
             content = step.get('starting_yaml') if idx == 1 else previous
             filename = f"step-{idx}.yaml"
-            result = self.edit_yaml_with_vim(content, filename)
+            print(f"\n=== Step {idx}: {prompt} ===")
+            result = self.edit_yaml_with_vim(content, filename, prompt=prompt)
             if result is None:
                 return False
             # Validate
