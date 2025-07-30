@@ -123,13 +123,8 @@ def show_modules():
 # Legacy alias for cloud-mode static branch
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
-    # Warn once if AI explanations are disabled
-    try:
-        from kubelingo.modules.llm.session import AIHelper
-        if not getattr(AIHelper, 'enabled', False):
-            print(f"{Fore.YELLOW}AI explanations disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
-    except ImportError:
-        pass
+    # AI explanations are disabled by default; LLM integration is optional
+    print(f"{Fore.YELLOW}AI explanations disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
     while True:
         # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
         if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
@@ -334,6 +329,9 @@ def main():
                     print("\nExiting.")
                     return
         
+        # In interactive CLI mode, clear the default data file to enable in-quiz file selection
+        if len(sys.argv) == 1 and questionary:
+            args.file = None
         if restart_loop:
             sys.argv = [sys.argv[0]]
             continue
@@ -375,19 +373,16 @@ def main():
         if args.module:
             module_name = args.module.lower()
 
-            # Optional Rust-based command quiz (disabled by default)
-            if module_name == 'kubernetes' and os.environ.get('KUBELINGO_USE_RUST'):
+            # Optional Rust-based command quiz for non-interactive (--num) runs
+            if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
                 try:
                     from kubelingo.bridge import rust_bridge
                     if rust_bridge.is_available():
                         # Attempt Rust-backed command quiz
                         if rust_bridge.run_command_quiz(args):
                             return
-                        # Rust execution failed; notify and fallback to Python
+                        # Rust execution failed; fallback to Python quiz
                         print("Rust command quiz execution failed. Falling back to Python quiz.")
-                    else:
-                        # Rust bridge unavailable; still call to satisfy test mocks
-                        rust_bridge.run_command_quiz(args)
                 except (ImportError, AttributeError):
                     pass  # Fall through to Python implementation
 
