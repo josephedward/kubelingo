@@ -412,12 +412,15 @@ class NewSession(StudySession):
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                # Action menu options (simplified): Open Shell, Flag/Unflag, Skip, Back to Quiz Menu.
+                # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
                 choices = []
-                choices.append({"name": "Open Shell", "value": "answer"})
-                choices.append({"name": flag_option_text, "value": "flag"})
-                choices.append({"name": "Skip Question", "value": "next"})
-                choices.append({"name": "Back to Quiz Menu", "value": "back"})
+                choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
+                choices.append({"name": "Check Answer", "value": "check"})
+                # Toggle flag for review
+                choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
+                choices.append({"name": "Next Question", "value": "next"})
+                choices.append({"name": "Previous Question", "value": "prev"})
+                choices.append({"name": "Exit Quiz.", "value": "back"})
 
                 try:
                     # Ensure visual separation between previous output and the menu
