@@ -126,22 +126,7 @@ def spawn_pty_shell():
         shell_cmd = ['bash', '--login']
         if init_script_path:
             shell_cmd.extend(['--init-file', init_script_path])
-        # Attempt transcript capture with 'script'; fallback to PTY spawn on failure
-        transcript = os.environ.get('KUBELINGO_TRANSCRIPT_FILE')
-        if transcript and shutil.which('script'):
-            # Use BSD script invocation on macOS, GNU script elsewhere
-            if sys.platform == 'darwin':
-                cmd = ['script', '-q', transcript] + shell_cmd
-            else:
-                cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
-            try:
-                subprocess.run(cmd, check=False)
-                return
-            except Exception as e:
-                # This should now only catch errors if `script` itself fails to launch.
-                print(f"{Fore.YELLOW}script wrapper failed to start: {e}{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Falling back to embedded PTY shell.{Style.RESET_ALL}")
-        # Fallback: robustly spawn PTY by saving and restoring terminal attributes
+        # Spawn a native PTY shell session
         try:
             old_settings = termios.tcgetattr(sys.stdin)
         except Exception:
