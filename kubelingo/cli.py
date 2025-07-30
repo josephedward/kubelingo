@@ -197,6 +197,10 @@ def main():
     if args.list_modules:
         show_modules()
         return
+    # If no arguments are provided, show help and exit
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
     # For bare invocation (no flags or commands), present an interactive menu.
     if len(sys.argv) == 1:
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
