@@ -735,7 +735,21 @@ class NewSession(StudySession):
                         continue
                     # AI-based semantic validation for command answers
                     if is_ai_validator:
-                        self._check_k8s_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                        attempted_indices.add(current_question_index)
+                        validator = q.get('validator')
+                        expected_cmd = validator.get('expected', '')
+                        try:
+                            is_correct = ai_validate_command(result, expected_cmd, q['prompt'])
+                            if is_correct:
+                                correct_indices.add(current_question_index)
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                if q.get('explanation'):
+                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                            else:
+                                correct_indices.discard(current_question_index)
+                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                        except Exception as e:
+                            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
                         continue
                     # No-cluster mode for live k8s questions also uses AI evaluator
                     if is_mocked_k8s:
@@ -857,10 +871,8 @@ class NewSession(StudySession):
         if available and requested, otherwise falls back to deterministic checks.
         """
         attempted_indices.add(current_question_index)
-        # Explicit AI validator: if question.metadata.validator.type == 'ai', use LLM to compare
-        validator = None
-        if isinstance(q.get('metadata', {}), dict):
-            validator = q['metadata'].get('validator')
+        # Explicit AI validator: if question.validator.type == 'ai', use LLM to compare
+        validator = q.get('validator')
         if validator and validator.get('type') == 'ai':
             expected_cmd = validator.get('expected', '')
             # Read transcript if available
