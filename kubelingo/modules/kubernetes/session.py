@@ -432,7 +432,7 @@ class NewSession(StudySession):
                         "Action:",
                         choices=choices,
                         use_indicator=True,
-                        default="Work on Answer (in Shell)"
+                        default="answer"
                     ).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
