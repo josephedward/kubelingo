@@ -157,7 +157,7 @@ To provide the best experience for different types of questions, Kubelingo uses 
 3.  **AI Evaluator (using `llm` package)**:
     - To rapidly prototype and simplify AI integration, we will use Simon Willison's `llm` package.
     - This tool provides a convenient command-line and Python interface for interacting with various LLMs.
-    - The evaluation process will involve piping the session transcript to the `llm` tool with a prompt engineered to return a deterministic `yes/no` judgment and a brief explanation.
+    - The evaluation process involves sending the full context (question, validation steps, and transcript) to the LLM. The prompt is engineered to return a deterministic `yes/no` judgment and a brief explanation. By including the question's `validation_steps`, the AI gets explicit success criteria, improving the accuracy of its verdict.
     - This approach avoids direct integration with the `openai` package for now, allowing for a more flexible and straightforward implementation of the AI-based "second opinion" feature. It still requires an API key for the chosen model (e.g., `OPENAI_API_KEY`).
 
 #### Interactive API Key Prompt
