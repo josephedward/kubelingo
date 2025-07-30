@@ -126,7 +126,23 @@ def spawn_pty_shell():
         shell_cmd = ['bash', '--login']
         if init_script_path:
             shell_cmd.extend(['--init-file', init_script_path])
-        # Spawn a native PTY shell session
+        # If transcript capture is requested and 'script' is available, wrap in script utility.
+        # The BSD `script` on macOS has different flags and behavior, so we only use this
+        # on non-darwin platforms for now for more reliable transcripting.
+        transcript_file = os.environ.get('KUBELINGO_TRANSCRIPT_FILE')
+        if transcript_file and shutil.which('script') and sys.platform != 'darwin':
+            # GNU script syntax: `script -q -c <command>`
+            cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript_file]
+            try:
+                # Use subprocess.run and return, as `script` handles the full session.
+                # check=False because the shell exit code is not an error for us.
+                subprocess.run(cmd, check=False)
+                return
+            except Exception as e:
+                print(f"{Fore.YELLOW}script wrapper failed to start: {e}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Falling back to embedded pty.spawn().{Style.RESET_ALL}")
+
+        # Fallback to pty.spawn on macOS or if script is not available/fails
         try:
             old_settings = termios.tcgetattr(sys.stdin)
         except Exception:
@@ -177,8 +193,9 @@ def launch_container_sandbox():
         cwd = os.getcwd()
         try:
             subprocess.run([
-                'docker', 'run', '--rm', '-it', '--network', 'none',
+                'docker', 'run', '--rm', '-it', '--network', 'host',
                 '-v', f'{cwd}:/workspace',
+                '-v', '/var/run/docker.sock:/var/run/docker.sock',
                 '-w', '/workspace',
                 '-e', 'KUBELINGO_SANDBOX_ACTIVE=1',
                 image
@@ -206,6 +223,17 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
         os.chdir(workspace)
 
         try:
+            # Detect if this question needs a live Kubernetes cluster.
+            # This is a prerequisite for spinning up a temporary Kind cluster.
+            needs_k8s = question.type in ('live_k8s', 'live_k8s_edit') or \
+                        any('kubectl' in cmd for cmd in question.pre_shell_cmds) or \
+                        any(step.cmd and 'kubectl' in step.cmd for step in question.validation_steps)
+
+            if needs_k8s:
+                print(f"{Fore.CYAN}This question requires a Kubernetes cluster. Future versions will set one up for you.{Style.RESET_ALL}")
+                # Placeholder for spinning up a Kind cluster. For now, this will
+                # rely on an existing kubectl configuration context.
+
             # 1. Setup initial files
             for filename, content in question.initial_files.items():
                 (workspace / filename).write_text(content)
