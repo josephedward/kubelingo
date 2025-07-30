@@ -124,18 +124,17 @@ def show_modules():
 # Legacy alias for cloud-mode static branch
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
-    while True:
-        # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
-        if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
-            # rewrite to explicit sandbox-mode flag
-            sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
-        print_banner()
-        print()
-        # Warn prominently if no OpenAI API key is set
-        if not os.getenv('OPENAI_API_KEY'):
-            print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
-            print(f"{Fore.RED}To enable AI features, select 'Enter OpenAI API Key to enable AI features' from the menu, or install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
-        parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
+    # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
+    if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
+        # rewrite to explicit sandbox-mode flag
+        sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
+    print_banner()
+    print()
+    # Warn prominently if no OpenAI API key is set
+    if not os.getenv('OPENAI_API_KEY'):
+        print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
+        print(f"{Fore.RED}To enable AI features, select 'Enter OpenAI API Key to enable AI features' from the menu, or install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
+    parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
         # Unified exercise mode: run questions from question-data modules
         parser.add_argument('--exercise-module', type=str,
                             help='Run unified live exercise for a question-data module')
@@ -244,8 +243,6 @@ def main():
         if args.k8s_mode:
             args.module = 'kubernetes'
 
-        restart_loop = False
-
         # If no arguments provided, show an interactive menu
         if len(sys.argv) == 1:
             if not questionary:
@@ -353,9 +350,6 @@ def main():
         # In interactive CLI mode, clear the default data file to enable in-quiz file selection
         if len(sys.argv) == 1 and questionary:
             args.file = None
-        if restart_loop:
-            sys.argv = [sys.argv[0]]
-            continue
 
         # If certain flags are used without a module, default to kubernetes
         if args.module is None and (
@@ -366,12 +360,12 @@ def main():
 
         if args.history:
             show_history()
-            break
+            return
 
         if args.list_modules:
             show_modules()
             # Exit the main loop after listing modules
-            break
+            return
 
         if args.list_categories:
             print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
@@ -388,7 +382,7 @@ def main():
                     print("No categories found in quiz data.")
             except Exception as e:
                 print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
-            break
+            return
 
         # Handle module-based execution.
         if args.module:
@@ -413,7 +407,7 @@ def main():
             # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
             if module_name == 'llm':
                 print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
-                break
+                return
 
             # Prepare logging for other modules
             logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -430,17 +424,17 @@ def main():
                     init_ok = session.initialize()
                     if not init_ok:
                         print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
-                        break
+                        return
                     session.run_exercises(args)
                     session.cleanup()
                 else:
                     print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
             except (ImportError, AttributeError) as e:
                 print(Fore.RED + f"Error loading module '{module_name}': {e}" + Style.RESET_ALL)
-            break
+            return
 
-        # If no other action was taken, break the loop.
+        # If no other action was taken, just exit.
         if not args.module:
-            break
+            return
 if __name__ == '__main__':
     main()
