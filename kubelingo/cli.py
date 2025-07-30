@@ -124,6 +124,12 @@ def show_modules():
     
 # Legacy alias for cloud-mode static branch
 def main():
+    # Prevent re-entrant execution inside a sandbox shell.
+    if os.getenv('KUBELINGO_SANDBOX_ACTIVE') == '1':
+        # This guard prevents the CLI from re-launching itself inside a sandbox
+        # shell, which would cause a nested prompt and session cancellation.
+        return
+
     os.makedirs(LOGS_DIR, exist_ok=True)
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
