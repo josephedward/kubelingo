@@ -426,8 +426,7 @@ class NewSession(StudySession):
                     action = questionary.select(
                         "Action:",
                         choices=choices,
-                        use_indicator=True,
-                        default="answer"
+                        use_indicator=True
                     ).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
