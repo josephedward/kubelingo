@@ -100,7 +100,7 @@ Added new `answer_checker` module to:
 Updated interactive CLI quiz session to:
   * Include “Open Shell”, “Check Answer”, “Next Question”, “Previous Question”, and “Exit Quiz” options.
   * Maintain `transcripts_by_index`, `attempted_indices`, and `correct_indices` to track user progress.
-- Refactored session menu to add navigation actions: Open Shell, Check Answer, Next, Previous, Flag/Unflag, Exit.
+- Refactored session menu to dynamically build navigation actions (Open Shell, Check Answer, Flag/Unflag, Next/Previous only when valid, Exit).  
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
@@ -109,7 +109,7 @@ Updated interactive CLI quiz session to:
 ### Testing & Observations
 - Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
 - Transcript persistence via `save_transcript` works: logs saved under `logs/transcripts/...`.
-- CLI menu navigation (Open Shell, Check Answer, Next, Previous, Exit) functions without errors in interactive environments.
+- CLI menu navigation now inserts a blank line before rendering the next menu, preventing prompt text from merging with question output.
 - `evaluate_transcript` correctly evaluates exit_code, contains, and regex matchers; JSONPath and cluster-state matchers pending.
 - Loaders still populate only legacy `initial_yaml` and `validations`; new `initial_files`/`validation_steps` fields unpopulated.
 # Kubelingo Development Context
