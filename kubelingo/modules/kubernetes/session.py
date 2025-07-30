@@ -468,7 +468,10 @@ class NewSession(StudySession):
 
                 # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
                 choices = []
-                choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
+                answer_option_text = "Work on Answer"
+                if q.get('category') != 'Vim Commands':
+                    answer_option_text += " (in Shell)"
+                choices.append({"name": answer_option_text, "value": "answer"})
                 choices.append({"name": "Check Answer", "value": "check"})
                 # Show the expected answers derived from validation steps
                 choices.append({"name": "Show Expected Answer(s)", "value": "show"})
@@ -557,6 +560,26 @@ class NewSession(StudySession):
                     continue
 
                 if action == "answer":
+                    if q.get('category') == 'Vim Commands':
+                        try:
+                            if prompt_session:
+                                user_input = prompt_session.prompt("Your answer: ")
+                            else:
+                                user_input = input("Your answer: ")
+                        except (KeyboardInterrupt, EOFError):
+                            print()  # New line after prompt
+                            continue  # Back to action menu
+
+                        if user_input is None:  # Handle another way of EOF from prompt_toolkit
+                            user_input = ""
+                        
+                        transcripts_by_index[current_question_index] = user_input.strip()
+
+                        # Re-print question header after input.
+                        print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                        print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                        continue
+
                     from kubelingo.sandbox import run_shell_with_setup
                     from kubelingo.question import Question, ValidationStep
                     
@@ -601,8 +624,12 @@ class NewSession(StudySession):
                 
                 if action == "check":
                     result = transcripts_by_index.get(current_question_index)
-                    if not result:
+                    if result is None:
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
+                        continue
+
+                    if q.get('category') == 'Vim Commands':
+                        self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         continue
 
                     # The result object from run_shell_with_setup is complete.
@@ -649,6 +676,38 @@ class NewSession(StudySession):
                 stats[category] = {'asked': 1, 'correct': 0}
             stats[category]['correct'] += 1
         return stats
+
+    def _check_vim_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
+        """
+        Helper to evaluate a Vim command using the AI evaluator.
+        """
+        attempted_indices.add(current_question_index)
+
+        try:
+            from kubelingo.modules.ai_evaluator import AIEvaluator
+            evaluator = AIEvaluator()
+            result = evaluator.evaluate_vim_command(q, user_command)
+            is_correct = result.get('correct', False)
+            reasoning = result.get('reasoning', 'No reasoning provided.')
+            
+            status = 'Correct' if is_correct else 'Incorrect'
+            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+
+            if is_correct:
+                correct_indices.add(current_question_index)
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            else:
+                correct_indices.discard(current_question_index)
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            
+            # Show explanation if correct
+            if is_correct and q.get('explanation'):
+                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+        except ImportError:
+            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check Vim command.{Style.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
