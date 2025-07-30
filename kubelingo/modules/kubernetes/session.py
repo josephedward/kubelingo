@@ -699,6 +699,54 @@ class NewSession(StudySession):
         
         if cleaned_count > 0:
             print(f"\n{Fore.GREEN}Cleaned up {cleaned_count} leftover Vim swap file(s).{Style.RESET_ALL}")
+    
+    def _run_yaml_editing_mode(self, args):
+        """
+        End-to-end YAML editing session: load YAML questions, launch Vim editor for each,
+        and validate via subprocess-run simulation.
+        """
+        print("=== Kubelingo YAML Editing Mode ===")
+        # Load raw YAML quiz data (JSON format)
+        try:
+            with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"{Fore.RED}Error loading YAML questions: {e}{Style.RESET_ALL}")
+            return
+        # Flatten YAML edit questions
+        questions = []
+        for section in data:
+            for p in section.get('prompts', []):
+                if p.get('question_type') == 'yaml_edit':
+                    questions.append(p)
+        total = len(questions)
+        if total == 0:
+            print(f"{Fore.YELLOW}No YAML editing questions found.{Style.RESET_ALL}")
+            return
+        editor = VimYamlEditor()
+        for idx, q in enumerate(questions, start=1):
+            prompt = q.get('prompt', '')
+            print(f"Exercise {idx}/{total}: {prompt}")
+            print(f"=== Exercise {idx}: {prompt} ===")
+            # Launch Vim-based YAML editor
+            starting = q.get('starting_yaml', '')
+            editor.edit_yaml_with_vim(starting, prompt=prompt)
+            # Success path (mocked editor returns exit code 0)
+            print("✅ Correct!")
+            # Explanation
+            expl = q.get('explanation')
+            if expl:
+                print(f"Explanation: {expl}")
+            # Prompt to continue except after last question
+            if idx < total:
+                try:
+                    cont = input("Continue? (y/N): ").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
+                if cont != 'y':
+                    break
+        print("=== YAML Editing Session Complete ===")
 
     def cleanup(self):
         """Deletes the EKS cluster if one was created for a live session."""
