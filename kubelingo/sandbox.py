@@ -184,17 +184,12 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
         os.chdir(workspace)
 
         try:
-            # 1. Setup initial files (handles legacy 'initial_yaml' for compatibility)
-            initial_files = question.initial_files
-            if not initial_files and question.initial_yaml:
-                initial_files = {'exercise.yaml': question.initial_yaml}
-            
-            for filename, content in initial_files.items():
+            # 1. Setup initial files
+            for filename, content in question.initial_files.items():
                 (workspace / filename).write_text(content)
 
-            # 2. Run pre-shell commands (handles legacy 'initial_cmds')
-            pre_shell_cmds = question.pre_shell_cmds or question.initial_cmds
-            for cmd in pre_shell_cmds:
+            # 2. Run pre-shell commands
+            for cmd in question.pre_shell_cmds:
                 subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
 
             # 3. Spawn shell for user interaction
@@ -223,13 +218,12 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
             except Exception:
                 transcript_path = None
 
-            # 4. Run validation steps (handles legacy 'validations')
-            validation_steps = question.validation_steps or question.validations
+            # 4. Run validation steps
             step_results: List[StepResult] = []
-            if not validation_steps:
+            if not question.validation_steps:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
             else:
-                step_result_dicts = evaluate_transcript(validation_steps)
+                step_result_dicts = evaluate_transcript(question.validation_steps)
                 step_results = [StepResult(**d) for d in step_result_dicts]
 
             # Determine overall success by deterministic steps
