@@ -15,6 +15,8 @@ set -euo pipefail
 # 1) From your gitscaffold checkout, build the wheel
 cd ../gitscaffold
 pip install --upgrade build    # ensure latest build tooling
+# Clean dist dir to ensure we only install the newly built wheel
+rm -rf dist
 python3 -m build --wheel --outdir dist
 
 # 2) In the target “other” repo where you want to test
