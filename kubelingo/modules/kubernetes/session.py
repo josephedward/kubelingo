@@ -733,7 +733,13 @@ class NewSession(StudySession):
 
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
                     # Detect AI-based semantic validator
-                    is_ai_validator = isinstance(q.get('validator', {}), dict) and q.get('validator', {}).get('type') == 'ai'
+                    # Detect AI-based semantic validator configuration
+                    validator = None
+                    if isinstance(q.get('metadata'), dict):
+                        validator = q['metadata'].get('validator')
+                    elif isinstance(q.get('validator'), dict):
+                        validator = q.get('validator')
+                    is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
 
                     # Vim command questions use AI evaluator
                     if q.get('category') == 'Vim Commands':
@@ -742,7 +748,7 @@ class NewSession(StudySession):
                     # AI-based semantic validation for command answers
                     if is_ai_validator:
                         attempted_indices.add(current_question_index)
-                        validator = q.get('validator')
+                        # Use the configured expected command from validator
                         expected_cmd = validator.get('expected', '')
                         try:
                             is_correct = ai_validate_command(result, expected_cmd, q['prompt'])
