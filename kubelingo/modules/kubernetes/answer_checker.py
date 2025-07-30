@@ -205,10 +205,32 @@ def evaluate_transcript(validation_steps: List[ValidationStep]) -> List[Dict[str
     if not validation_steps:
         return []
 
+    # Internal helper to evaluate a single step matcher
+    def _evaluate_matcher(matcher: Dict[str, Any], stdout: str, stderr: str, exit_code: int) -> bool:
+        if not matcher:
+            return exit_code == 0
+        if 'exit_code' in matcher and exit_code != matcher['exit_code']:
+            return False
+        if 'contains' in matcher:
+            needles = matcher['contains']
+            if isinstance(needles, (list, tuple)):
+                for sub in needles:
+                    if sub not in stdout:
+                        return False
+            else:
+                if needles not in stdout:
+                    return False
+        if 'regex' in matcher:
+            try:
+                if not re.search(matcher['regex'], stdout):
+                    return False
+            except re.error:
+                return False
+        return True
+
     for step in validation_steps:
         proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
-        expected_code = step.matcher.get('exit_code', 0)
-        success = (proc.returncode == expected_code)
+        success = _evaluate_matcher(step.matcher, proc.stdout or '', proc.stderr or '', proc.returncode)
         step_results_dicts.append({
             "step": step,
             "success": success,
