@@ -27,7 +27,7 @@ This document outlines the vision, features, and enhancements planned for the Ku
 ### Question Schema Enhancements
 _Labels: enhancement, schema_
 - [x] Add `pre_shell_cmds`, `initial_files`, `validation_steps` to the Question model.
-- [ ] Extend content loaders (JSON/MD/YAML) to populate the new fields.
+- [x] Extend content loaders (JSON/MD/YAML) to populate the new fields.
 
 ### Sandbox Runner & Helper
 _Labels: enhancement, sandbox_
