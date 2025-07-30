@@ -33,24 +33,33 @@ class JSONLoader(BaseLoader):
         questions: List[Question] = []
         for idx, item in enumerate(raw.get('questions', [])):
             qid = f"{module}::{idx}"
-            # Parse validations
-            vals: List[ValidationStep] = []
-            for v in item.get('validations', []):
-                vals.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
+            # Populate new schema, falling back to legacy fields
+            steps_data = item.get('validation_steps') or item.get('validations', [])
+            validation_steps = [
+                ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
+                for v in steps_data
+            ]
+            initial_files = item.get('initial_files', {})
+            if not initial_files and 'initial_yaml' in item:
+                initial_files['exercise.yaml'] = item['initial_yaml']
+
             # Build Question
             questions.append(Question(
                 id=qid,
                 prompt=item.get('prompt', ''),
-                runner=item.get('runner', 'shell'),
-                initial_cmds=item.get('initial_cmds', []),
-                initial_yaml=item.get('initial_yaml'),
-                validations=vals,
+                pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
+                initial_files=initial_files,
+                validation_steps=validation_steps,
                 explanation=item.get('explanation'),
                 categories=item.get('categories', []),
                 difficulty=item.get('difficulty'),
-                metadata={k: v for k, v in item.items()
-                          if k not in ('prompt', 'runner', 'initial_cmds',
-                                       'initial_yaml', 'validations',
-                                       'explanation', 'categories', 'difficulty')}
+                metadata={
+                    k: v for k, v in item.items()
+                    if k not in (
+                        'prompt', 'runner', 'initial_cmds', 'initial_yaml',
+                        'validations', 'explanation', 'categories', 'difficulty',
+                        'pre_shell_cmds', 'initial_files', 'validation_steps'
+                    )
+                }
             ))
         return questions

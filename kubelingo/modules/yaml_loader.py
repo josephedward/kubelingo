@@ -39,47 +39,72 @@ class YAMLLoader(BaseLoader):
         if isinstance(raw, list) and raw and isinstance(raw[0], dict):
             for idx, item in enumerate(raw):
                 qid = f"{module}::{idx}"
-                vals: List[ValidationStep] = []
-                # Use 'answer' or 'response' field as command
-                cmd = item.get('answer') or item.get('response')
-                if cmd:
-                    vals.append(ValidationStep(cmd=cmd, matcher={}))
+                # Populate new schema, falling back to legacy fields
+                steps_data = item.get('validation_steps') or item.get('validations', [])
+                validation_steps = [
+                    ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
+                    for v in steps_data
+                ]
+                # Legacy: Use 'answer' or 'response' as a validation if others don't exist
+                if not validation_steps:
+                    cmd = item.get('answer') or item.get('response')
+                    if cmd:
+                        validation_steps.append(ValidationStep(cmd=cmd, matcher={}))
+
+                initial_files = item.get('initial_files', {})
+                if not initial_files and 'initial_yaml' in item:
+                    initial_files['exercise.yaml'] = item['initial_yaml']
+
                 questions.append(Question(
                     id=qid,
                     prompt=item.get('prompt', ''),
-                    runner=item.get('runner', 'shell'),
-                    initial_cmds=item.get('initial_cmds', []),
-                    initial_yaml=item.get('initial_yaml'),
-                    validations=vals,
+                    pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
+                    initial_files=initial_files,
+                    validation_steps=validation_steps,
                     explanation=item.get('explanation'),
                     categories=item.get('categories', []),
                     difficulty=item.get('difficulty'),
-                    metadata={k: v for k, v in item.items()
-                              if k not in ('prompt', 'runner', 'initial_cmds',
-                                           'initial_yaml', 'validations',
-                                           'explanation', 'categories', 'difficulty')}
+                    metadata={
+                        k: v for k, v in item.items()
+                        if k not in (
+                            'prompt', 'runner', 'initial_cmds', 'initial_yaml',
+                            'validations', 'explanation', 'categories', 'difficulty',
+                            'pre_shell_cmds', 'initial_files', 'validation_steps',
+                            'answer', 'response'
+                        )
+                    }
                 ))
             return questions
         # Fallback to standard 'questions' key in dict
         if isinstance(raw, dict) and 'questions' in raw:
             for idx, item in enumerate(raw.get('questions', [])):
                 qid = f"{module}::{idx}"
-                vals: List[ValidationStep] = []
-                for v in item.get('validations', []):
-                    vals.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
+                # Populate new schema, falling back to legacy fields
+                steps_data = item.get('validation_steps') or item.get('validations', [])
+                validation_steps = [
+                    ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
+                    for v in steps_data
+                ]
+                initial_files = item.get('initial_files', {})
+                if not initial_files and 'initial_yaml' in item:
+                    initial_files['exercise.yaml'] = item['initial_yaml']
+
                 questions.append(Question(
                     id=qid,
                     prompt=item.get('prompt', ''),
-                    runner=item.get('runner', 'shell'),
-                    initial_cmds=item.get('initial_cmds', []),
-                    initial_yaml=item.get('initial_yaml'),
-                    validations=vals,
+                    pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
+                    initial_files=initial_files,
+                    validation_steps=validation_steps,
                     explanation=item.get('explanation'),
                     categories=item.get('categories', []),
                     difficulty=item.get('difficulty'),
-                    metadata={k: v for k, v in item.items()
-                              if k not in ('prompt', 'runner', 'initial_cmds',
-                                           'initial_yaml', 'validations',
-                                           'explanation', 'categories', 'difficulty')}
+                    metadata={
+                        k: v for k, v in item.items()
+                        if k not in (
+                            'prompt', 'runner', 'initial_cmds', 'initial_yaml',
+                            'validations', 'explanation', 'categories', 'difficulty',
+                            'pre_shell_cmds', 'initial_files', 'validation_steps'
+                        )
+                    }
                 ))
         return questions

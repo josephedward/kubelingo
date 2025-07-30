@@ -43,23 +43,33 @@ class MDLoader(BaseLoader):
         # First, try front-matter defined questions
         for idx, item in enumerate(fm_data.get('questions', [])):
             qid = f"{module}::{idx}"
-            vals: List[ValidationStep] = []
-            for v in item.get('validations', []):
-                vals.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
+            # Populate new schema, falling back to legacy fields
+            steps_data = item.get('validation_steps') or item.get('validations', [])
+            validation_steps = [
+                ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
+                for v in steps_data
+            ]
+            initial_files = item.get('initial_files', {})
+            if not initial_files and 'initial_yaml' in item:
+                initial_files['exercise.yaml'] = item['initial_yaml']
+
             questions.append(Question(
                 id=qid,
                 prompt=item.get('prompt', ''),
-                runner=item.get('runner', 'shell'),
-                initial_cmds=item.get('initial_cmds', []),
-                initial_yaml=item.get('initial_yaml'),
-                validations=vals,
+                pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
+                initial_files=initial_files,
+                validation_steps=validation_steps,
                 explanation=item.get('explanation'),
                 categories=item.get('categories', []),
                 difficulty=item.get('difficulty'),
-                metadata={k: v for k, v in item.items()
-                          if k not in ('prompt', 'runner', 'initial_cmds',
-                                       'initial_yaml', 'validations',
-                                       'explanation', 'categories', 'difficulty')}
+                metadata={
+                    k: v for k, v in item.items()
+                    if k not in (
+                        'prompt', 'runner', 'initial_cmds', 'initial_yaml',
+                        'validations', 'explanation', 'categories', 'difficulty',
+                        'pre_shell_cmds', 'initial_files', 'validation_steps'
+                    )
+                }
             ))
         if questions:
             return questions
@@ -83,17 +93,10 @@ class MDLoader(BaseLoader):
                 if in_code:
                     code_lines.append(l)
             cmd = '\n'.join(code_lines).strip()
-            vals = [ValidationStep(cmd=cmd, matcher={})] if cmd else []
+            validation_steps = [ValidationStep(cmd=cmd, matcher={})] if cmd else []
             questions.append(Question(
                 id=f"{module}::{qidx}",
                 prompt=prompt,
-                runner='shell',
-                initial_cmds=[],
-                initial_yaml=None,
-                validations=vals,
-                explanation=None,
-                categories=[],
-                difficulty=None,
-                metadata={}
+                validation_steps=validation_steps
             ))
         return questions
