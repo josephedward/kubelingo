@@ -184,6 +184,7 @@ def main():
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
+    args.module = None
     # Early flags: history and list-modules
     if args.history:
         show_history()
