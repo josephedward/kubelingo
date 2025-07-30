@@ -19,6 +19,7 @@ class Question:
     Canonical question object for unified shell exercises and quizzes.
     """
     id: str                           # unique identifier, e.g. 'module::index'
+    type: str                         # question type, e.g. 'command', 'live_k8s', etc.
     prompt: str                       # text shown to the user
     
     # Unified shell experience fields
