@@ -588,50 +588,57 @@ class NewSession(StudySession):
         self.cluster_name = "pre-configured"
         return True
     
-    def _run_one_exercise(self, q, args, transcript=None, vim_log=None):
+    def _run_one_exercise(self, q):
         """
-        Handles validation for a single exercise by running its assertion script
-        or using the AI evaluator if enabled.
+        Unified exercise runner: handles live_k8s validations and assertion script checks.
         """
-        if args.ai_eval:
-            if transcript is None:
-                print(f"{Fore.RED}AI evaluation enabled, but no transcript was captured.{Style.RESET_ALL}")
-                return False
-            try:
-                evaluator = AIEvaluator()
-                result = evaluator.evaluate(q, transcript, vim_log)
-                reasoning = result.get('reasoning', 'No reasoning provided.')
-                print(f"{Fore.CYAN}AI Evaluator says: {reasoning}{Style.RESET_ALL}")
-                return result.get('correct', False)
-            except Exception as e:
-                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
-                return False
-
-        # Fallback to legacy script-based validation
         is_correct = False
+        # Interactive live_k8s shell loop
+        if q.get('type') == 'live_k8s':
+            prompt_session = PromptSession() if PromptSession else None
+            while True:
+                try:
+                    if prompt_session:
+                        cmd_line = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
+                    else:
+                        cmd_line = input('Your command: ').strip()
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
+                if cmd_line.lower() == 'done':
+                    break
+                parts = cmd_line.split()
+                try:
+                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
+                    if proc.stdout:
+                        print(proc.stdout, end='')
+                    if proc.stderr:
+                        print(proc.stderr, end='')
+                except Exception as e:
+                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
+        # Run assertion script if provided
         assertion = q.get('assert_script') or q.get('response')
         if not assertion:
             print(f"{Fore.YELLOW}Warning: No validation script found for this question.{Style.RESET_ALL}")
             return False
-
         try:
-            with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.sh', delete=False, encoding='utf-8') as tmp_assert:
                 tmp_assert.write(assertion)
                 assert_path = tmp_assert.name
             os.chmod(assert_path, 0o755)
-
-            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True, check=False)
+            proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
             os.remove(assert_path)
-
-            if assert_proc.returncode == 0:
-                if assert_proc.stdout:
-                    print(assert_proc.stdout)
+            if proc.returncode == 0:
+                if proc.stdout:
+                    print(proc.stdout)
                 is_correct = True
             else:
-                print(assert_proc.stdout or assert_proc.stderr)
+                print(proc.stdout or proc.stderr)
         except Exception as e:
-            print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
-        
+            print(f"{Fore.RED}An unexpected error occurred during validation: {e}{Style.RESET_ALL}")
+        # Log result
+        result = 'correct' if is_correct else 'incorrect'
+        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{result}\"")
         return is_correct
 
     def _cleanup_swap_files(self):
