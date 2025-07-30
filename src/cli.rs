@@ -45,16 +45,25 @@ pub fn run_pty_shell() -> anyhow::Result<()> {
     if let Ok(transcript_path) = env::var("KUBELINGO_TRANSCRIPT_FILE") {
         // Use `script` for robust transcripting. This captures everything, including
         // what happens inside editors like vim. It is more reliable than custom PTY handling.
-        // The command syntax is for GNU `script`.
-        let mut child = Command::new("script")
-            .args(["-q", &transcript_path, "-c", "bash --login"])
-            .spawn()
-            .context("Failed to start `script` for transcripting. Ensure it is installed on your system.")?;
-        child.wait()?;
-        return Ok(());
+        let mut command = Command::new("script");
+        if cfg!(target_os = "macos") {
+            // BSD `script` (macOS) syntax: `script -q <file> <command> <args...>`
+            command.args(["-q", &transcript_path, "bash", "--login"]);
+        } else {
+            // GNU `script` syntax: `script -q <file> -c <command>`
+            command.args(["-q", &transcript_path, "-c", "bash --login"]);
+        }
+
+        if let Ok(mut child) = command.spawn() {
+            if child.wait().is_ok() {
+                return Ok(());
+            }
+            // If `wait` fails, fall through.
+        }
+        // If `script` fails to spawn, fall through to direct PTY spawn.
     }
 
-    // Fallback to direct PTY spawn if transcripting is not requested.
+    // Fallback to direct PTY spawn if transcripting is not requested or `script` failed.
     let pty_system = native_pty_system();
     let pair = pty_system
         .openpty(PtySize {
