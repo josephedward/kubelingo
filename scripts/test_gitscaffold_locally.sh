@@ -35,10 +35,8 @@ pip install --force-reinstall --no-cache-dir ../gitscaffold/dist/gitscaffold-*.w
 which gitscaffold
 gitscaffold --version
 
-# 5) Run a dry‐run sync or diff to make sure it picks up your .env and AI fallback logic
-#    (Assuming you have a docs/roadmap.md in TEST_REPO)
-#    NOTE: Replace 'youruser/your-test-repo' with your actual GitHub username and repo.
-gitscaffold sync docs/roadmap.md --repo youruser/your-test-repo --dry-run
-gitscaffold diff  docs/roadmap.md --repo youruser/your-test-repo
+# 5) Sync local roadmap with GitHub: create missing issues and import existing ones.
+gitscaffold sync docs/roadmap.md
+gitscaffold import docs/roadmap.md
 
 echo "✅ Local test complete. If everything looks good, you’re ready to publish to PyPI!"
