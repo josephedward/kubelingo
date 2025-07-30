@@ -92,6 +92,12 @@ kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml | kubec
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create a busybox pod using the kubectl command that runs the command "env". Ensure the pod is named 'busybox' and it is created in the same namespace ('mynamespace') as the nginx pod specified in the previous task. Run the pod and see the output.
 
 <details><summary>show</summary>
@@ -108,6 +114,12 @@ kubectl logs busybox
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create a busybox pod using YAML that runs the command "env" and is placed in the 'mynamespace' namespace, similar to the nginx pod created in a previous task. Run the pod and see the output.
 
 <details><summary>show</summary>
@@ -149,6 +161,12 @@ kubectl logs busybox
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Get the YAML definition for a new namespace called 'myns' without actually creating the namespace. This follows a previous task where you created a busybox pod that runs the command "env" and is placed in the 'mynamespace' namespace using YAML.
 
 <details><summary>show</summary>
@@ -161,6 +179,12 @@ kubectl create namespace myns -o yaml --dry-run=client
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create the YAML definition for a new ResourceQuota called 'myrq' in the namespace 'myns', where you previously created a busybox pod that runs the command "env". The ResourceQuota should have hard limits of 1 CPU, 1G memory, and allow for a maximum of 2 pods, all without actually creating the ResourceQuota.
 
 <details><summary>show</summary>
@@ -173,6 +197,12 @@ kubectl create quota myrq --hard=cpu=1,memory=1G,pods=2 --dry-run=client -o yaml
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### List all pods across all namespaces in the Kubernetes cluster where you've been working with ResourceQuotas and pods, including the one running the busybox image.
 
 <details><summary>show</summary>
@@ -189,6 +219,12 @@ kubectl get po -A
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create a pod in the Kubernetes cluster with the image nginx, name the pod nginx, and expose it to receive traffic on port 80.
 
 <details><summary>show</summary>
@@ -201,6 +237,12 @@ kubectl run nginx --image=nginx --restart=Never --port=80
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### After creating a pod in the Kubernetes cluster with the image nginx, naming the pod nginx, and exposing it to receive traffic on port 80, change the pod's image to nginx:1.24.0. Observe that the container will be restarted as soon as the image gets pulled.
 
 <details><summary>show</summary>
@@ -238,6 +280,12 @@ kubectl get po nginx -o jsonpath='{.spec.containers[].image}{"\n"}'
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### After creating a pod in the Kubernetes cluster with the image nginx, naming the pod nginx, and exposing it to receive traffic on port 80, then changing the pod's image to nginx:1.24.0 and observing that the container restarts as soon as the image is pulled, get the nginx pod's IP and use a temporary busybox image to wget its root directory ('/').
 
 <details><summary>show</summary>
@@ -267,6 +315,12 @@ kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- $(kubec
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Retrieve the YAML configuration of the nginx pod, which was initially created with the nginx image, named nginx, exposed to receive traffic on port 80, and later had its image updated to nginx:1.24.0.
 
 <details><summary>show</summary>
@@ -285,6 +339,12 @@ kubectl get po nginx --output=yaml
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Get information about the nginx pod, which was initially created with the nginx image, named nginx, exposed to receive traffic on port 80, and later had its image updated to nginx:1.24.0, including details about potential issues (e.g., pod hasn't started).
 
 <details><summary>show</summary>
@@ -297,6 +357,12 @@ kubectl describe po nginx
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Get the logs of the nginx pod, named nginx, which was initially created with the nginx image, then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80.
 
 <details><summary>show</summary>
@@ -309,6 +375,12 @@ kubectl logs nginx
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### If the nginx pod, named nginx, which was initially created with the nginx image, then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80, crashed and restarted, get logs about the previous instance.
 
 <details><summary>show</summary>
@@ -323,6 +395,12 @@ kubectl logs nginx --previous
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Execute a simple shell command on the nginx pod, which was initially created with the nginx image and then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80.
 
 <details><summary>show</summary>
@@ -335,6 +413,12 @@ kubectl exec -it nginx -- /bin/sh
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create a busybox pod that echoes 'hello world' and then exits, ensuring it is separate from the nginx pod initially created with the nginx image and later updated to use the nginx:1.24.0 image, which is exposed to receive traffic on port 80.
 
 <details><summary>show</summary>
@@ -349,6 +433,12 @@ kubectl run busybox --image=busybox -it --restart=Never -- /bin/sh -c 'echo hell
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create a busybox pod that echoes 'hello world' and then exits, ensuring it is separate from an initially created nginx pod that was later updated to use the nginx:1.24.0 image and exposed to receive traffic on port 80. Additionally, configure the busybox pod to be deleted automatically once it has completed its task.
 
 <details><summary>show</summary>
@@ -362,6 +452,12 @@ kubectl get po # nowhere to be found :)
 </p>
 </details>
 
+---
+validation_steps:
+  - cmd: "true"
+    matcher:
+      exit_code: 0
+---
 ### Create an nginx pod, separate from the busybox pod that echoes 'hello world' and then exits. Ensure this nginx pod is set with an environment variable 'var1=val1' and verify the existence of this environment variable within the pod.
 
 <details><summary>show</summary>
