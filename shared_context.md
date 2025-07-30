@@ -150,10 +150,11 @@ To provide the best experience for different types of questions, Kubelingo uses 
     - After the sandbox session, it reads the logs and passes them to the evaluation function.
     - The `_run_one_exercise` method is updated to call the AI evaluator when this mode is active, otherwise falling back to the legacy assertion script validation.
 
-3.  **AI Evaluator (`kubelingo/modules/ai_evaluator.py`)**:
-    - A new `AIEvaluator` class encapsulates the logic for interacting with the OpenAI API.
-    - It constructs a detailed prompt including the question, transcript, and logs.
-    - It requires an `OPENAI_API_KEY` environment variable to be set. The `kubelingo[llm]` package extra should be installed.
+3.  **AI Evaluator (using `llm` package)**:
+    - To rapidly prototype and simplify AI integration, we will use Simon Willison's `llm` package.
+    - This tool provides a convenient command-line and Python interface for interacting with various LLMs.
+    - The evaluation process will involve piping the session transcript to the `llm` tool with a prompt engineered to return a deterministic `yes/no` judgment and a brief explanation.
+    - This approach avoids direct integration with the `openai` package for now, allowing for a more flexible and straightforward implementation of the AI-based "second opinion" feature. It still requires an API key for the chosen model (e.g., `OPENAI_API_KEY`).
 
 #### Interactive API Key Prompt
 - To improve usability, Kubelingo now interactively prompts for an `OPENAI_API_KEY` at startup if one is not found in the environment.
