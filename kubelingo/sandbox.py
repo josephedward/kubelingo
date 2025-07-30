@@ -230,9 +230,11 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
                         any(step.cmd and 'kubectl' in step.cmd for step in question.validation_steps)
 
             if needs_k8s:
-                print(f"{Fore.CYAN}This question requires a Kubernetes cluster. Future versions will set one up for you.{Style.RESET_ALL}")
-                # Placeholder for spinning up a Kind cluster. For now, this will
-                # rely on an existing kubectl configuration context.
+                if os.getenv('KUBECONFIG'):
+                    print(f"{Fore.CYAN}This question requires a Kubernetes cluster. Using cluster from KUBECONFIG.{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}Warning: This question requires a Kubernetes cluster, but no temporary cluster was started.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Make sure your kubectl is configured correctly, or use the --start-cluster flag.{Style.RESET_ALL}")
 
             # 1. Setup initial files
             for filename, content in question.initial_files.items():

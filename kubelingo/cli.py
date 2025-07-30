@@ -8,6 +8,7 @@ import sys
 import os
 import logging
 import subprocess
+import shutil
 import readline  # Enable rich input editing, history, and arrow keys
 # Provide pytest.anything for test wildcard assertions
 try:
@@ -181,6 +182,8 @@ def main():
                         help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
     parser.add_argument('--ai-eval', action='store_true',
                         help='Use AI to evaluate sandbox exercises. Requires OPENAI_API_KEY.')
+    parser.add_argument('--start-cluster', action='store_true',
+                        help='Automatically start a temporary Kind cluster for k8s sessions.')
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
@@ -243,7 +246,8 @@ def main():
             file=None, num=0, randomize=False, category=None, list_categories=False,
             history=False, review_only=False, ai_eval=False, command=[], list_modules=False,
             custom_file=None, exercises=None, cluster_context=None, live=False, k8s_mode=False,
-            pty=False, docker=False, sandbox_mode=None, exercise_module=None, module=None
+            pty=False, docker=False, sandbox_mode=None, exercise_module=None, module=None,
+            start_cluster=False
         )
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
@@ -326,6 +330,15 @@ def main():
 
                 if quiz_choice == 'k8s':
                     args.module = 'kubernetes'
+                    if is_interactive:
+                        if shutil.which('kind'):
+                            start_cluster_choice = questionary.confirm(
+                                "Automatically start a temporary Kubernetes cluster (Kind) for this session?",
+                                default=True
+                            ).ask()
+                            args.start_cluster = start_cluster_choice if start_cluster_choice is not None else False
+                        else:
+                            print(f"{Fore.YELLOW}Warning: `kind` is not installed. Live exercises will require a pre-configured Kubernetes cluster.{Style.RESET_ALL}")
                 elif quiz_choice == 'kustom':
                     args.module = 'custom'
                     path_prompt = "Enter path to your custom quiz JSON file:"
