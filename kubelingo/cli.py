@@ -308,59 +308,6 @@ def main():
     # Handle --k8s shortcut
     if args.k8s_mode:
         args.module = 'kubernetes'
-    # Bare invocation (no args): simple text-based menu
-    if len(sys.argv) == 1:
-        # Session type selection
-        while True:
-            print()
-            print("Select a session type:")
-            print(" 1) PTY Shell")
-            print(" 2) Docker Container (requires Docker)")
-            print(" 3) Enter OpenAI API Key to enable AI features")
-            print(" 4) Exit")
-            choice = input("Choice [1-4]: ").strip()
-            if choice == '1':
-                args.pty = True
-                break
-            if choice == '2':
-                args.docker = True
-                break
-            if choice == '3':
-                key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
-                if key:
-                    os.environ['OPENAI_API_KEY'] = key
-                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                continue
-            if choice == '4':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        # Quiz type selection
-        while True:
-            print()
-            print("Select quiz type:")
-            print(" 1) K8s (preinstalled)")
-            print(" 2) Kustom (upload your own quiz)")
-            print(" 3) Review flagged questions")
-            print(" 4) Help")
-            print(" 5) Exit")
-            sub = input("Choice [1-5]: ").strip()
-            if sub == '1':
-                args.module = 'kubernetes'; break
-            if sub == '2':
-                args.module = 'custom'
-                path = input("Enter path to your custom quiz JSON file: ").strip()
-                if not path:
-                    print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                    return
-                args.custom_file = path; break
-            if sub == '3':
-                args.module = 'kubernetes'; args.review_only = True; break
-            if sub == '4':
-                show_quiz_type_help(); input("Press Enter to continue..."); continue
-            if sub == '5':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        args.file = None
 
     # Global flags handling (note: history and list-modules are handled earlier)
     if args.list_categories:
