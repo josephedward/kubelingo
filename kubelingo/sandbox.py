@@ -149,8 +149,7 @@ def spawn_pty_shell():
         if init_script_path and os.path.exists(init_script_path):
             os.unlink(init_script_path)
     print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}\n")
-    finally:
-        os.environ.pop('KUBELINGO_SANDBOX_ACTIVE', None)
+    os.environ.pop('KUBELINGO_SANDBOX_ACTIVE', None)
 
 def launch_container_sandbox():
     """Build and launch a Docker container sandbox for Kubelingo."""
