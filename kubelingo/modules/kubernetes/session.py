@@ -475,16 +475,20 @@ class NewSession(StudySession):
                         metadata=q.get('metadata', {})
                     )
                     
-                    # Launch unified shell-based exercise and record transcript & validations
                     result = run_shell_with_setup(
                         question_obj,
                         use_docker=args.docker,
                         ai_eval=getattr(args, 'ai_eval', False)
                     )
                     transcripts_by_index[current_question_index] = result
-                    print(f"{Fore.GREEN}Attempt recorded. Transcript at: {result.transcript_path}{Style.RESET_ALL}")
-                    print("Use 'Check Answer' to evaluate your attempt.")
-                    continue
+                    
+                    # Immediately process the result
+                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
+                    if is_correct:
+                        current_question_index += 1
+                        break # Move to next question
+                    else:
+                        continue # Stay on current question to retry
                 
                 if action == "check":
                     result = transcripts_by_index.get(current_question_index)
@@ -492,34 +496,12 @@ class NewSession(StudySession):
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                         continue
                     
-                    attempted_indices.add(current_question_index)
-                    is_correct = result.success
-
-                    for step_res in result.step_results:
-                        if step_res.success:
-                            print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
-                        else:
-                            print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
-                    
+                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
-                        correct_indices.add(current_question_index)
-                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        if q.get('explanation'):
-                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                        if AIHelper:
-                            ai_helper = AIHelper()
-                            if ai_helper.enabled:
-                                print(ai_helper.get_explanation(q))
-                        current_question_index += 1 # Move to next question
-                        break
+                        current_question_index += 1
+                        break # Move to next question
                     else:
-                        correct_indices.discard(current_question_index)
-                        print(f"{Fore.RED}Incorrect. Please try again.{Style.RESET_ALL}")
-                        if AIHelper:
-                            ai_helper = AIHelper()
-                            if ai_helper.enabled:
-                                print(ai_helper.get_explanation(q))
-                        continue
+                        continue # Stay on current question
             
             if quiz_backed_out:
                 break
@@ -558,6 +540,40 @@ class NewSession(StudySession):
                 stats[category] = {'asked': 1, 'correct': 0}
             stats[category]['correct'] += 1
         return stats
+
+    def _check_and_process_answer(self, q, result, current_question_index, attempted_indices, correct_indices):
+        """Helper to process the result of an answer attempt."""
+        attempted_indices.add(current_question_index)
+        is_correct = result.success
+
+        # Display per-step feedback
+        for step_res in result.step_results:
+            if step_res.success:
+                print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
+            else:
+                print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
+                # Also print stdout/stderr for failed steps
+                if step_res.stdout or step_res.stderr:
+                    print(f"  {Fore.WHITE}{(step_res.stdout or step_res.stderr).strip()}{Style.RESET_ALL}")
+
+        if is_correct:
+            correct_indices.add(current_question_index)
+            print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            if q.get('explanation'):
+                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+            if AIHelper:
+                ai_helper = AIHelper()
+                if ai_helper.enabled:
+                    print(ai_helper.get_explanation(q))
+            return True # Indicates success, quiz can move to next question
+        else:
+            correct_indices.discard(current_question_index)
+            print(f"{Fore.RED}Incorrect. Please try again.{Style.RESET_ALL}")
+            if AIHelper:
+                ai_helper = AIHelper()
+                if ai_helper.enabled:
+                    print(ai_helper.get_explanation(q))
+            return False # Indicates failure, stay on question
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
