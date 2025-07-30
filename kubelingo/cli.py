@@ -298,6 +298,9 @@ def main():
                     args.review_only = True
 
                 # Dispatch selected module session
+                # If interactive Kubernetes, clear default file so the unified quiz prompts for a file
+                if args.module == 'kubernetes':
+                    args.file = None
                 # If interactive Kubernetes, clear file so session will prompt for module file
                 if args.module == 'kubernetes':
                     args.file = None
