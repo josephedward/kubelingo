@@ -43,12 +43,12 @@ _Labels: enhancement, sandbox_
 _Labels: enhancement, cli_
 - [x] Refactor `Session._run_unified_quiz` to invoke the sandbox helper.
 - [x] Simplify CLI menus to a single “Answer (opens shell)” flow.
-- [ ] Remove legacy YAML/Vim-specific branches.
+- [x] Remove legacy YAML/Vim-specific branches.
 
 ### Stateful Quiz Experience
 _Labels: enhancement, ux_
-- [ ] Implement stateful quiz loop with forward/backward navigation.
-- [ ] Decouple shell execution from answer validation ("Check Answer" option).
+- [x] Implement stateful quiz loop with forward/backward navigation.
+- [x] Decouple shell execution from answer validation ("Check Answer" option).
 - [ ] Persist quiz session state to allow resuming.
 - [ ] Enhance end-of-quiz summary with per-question status.
 
@@ -68,23 +68,23 @@ _Labels: testing, docs_
 
 ### CLI Enhancements
 _Labels: enhancement, cli_
-- Add navigable menu actions: Open Shell, Check Answer, Next Question, Previous Question, Flag/Unflag, Exit.
-- Implement transcript-based “Check Answer” to evaluate existing session logs without relaunching the shell.
+- [x] Add navigable menu actions: Open Shell, Check Answer, Next Question, Previous Question, Flag/Unflag, Exit.
+- [x] Implement transcript-based “Check Answer” to evaluate existing session logs without relaunching the shell.
 
 ### Session State Management
 _Labels: enhancement, state_
-- Persist per-question `ShellResult` transcripts in a `transcripts_by_index` mapping.
-- Track per-question `asked` and `correct` statuses, updating only on “Check Answer”.
+- [x] Persist per-question `ShellResult` transcripts in a `transcripts_by_index` mapping.
+- [x] Track per-question `asked` and `correct` statuses, updating only on “Check Answer”.
 
 ### Transcript-Based Evaluator
 _Labels: enhancement, validation_
-- Create `evaluate_transcript(transcript_path, validation_steps)` helper to replay the recorded session proof-of-execution.
-- Support deterministic (regex/command scan + cluster state checks) and AI-based evaluation modes.
+- [x] Create `evaluate_transcript` helper (via `answer_checker`) to replay recorded session proof-of-execution.
+- [ ] Support advanced deterministic validation (e.g., cluster state checks) and AI-based evaluation modes.
 
 ### Data Persistence
 _Labels: enhancement, logging_
-- Store transcripts under `logs/transcripts/<session_id>/<question_id>.log`.
-- Integrate with `SessionManager` to archive or clean up transcripts at session end.
+- [x] Store transcripts under `logs/transcripts/<question_id>.log`.
+- [ ] Integrate with `SessionManager` to archive or clean up transcripts at session end.
 
 ## Test Coverage Improvements
 
