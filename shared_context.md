@@ -52,4 +52,45 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
   
 ### Documentation & Roadmap Updates
 - Added a new Phase 1: Unified Shell Experience to `docs/roadmap.md`, covering schema enhancements, sandbox runner, CLI refactor, session transcript recording, evaluation pipelines, and testing/documentation.
-- Recorded these changes here to keep shared context in sync.
+- Recorded these changes here to keep shared context in sync.# Kubelingo Development Context
+
+## AI-Powered Exercise Evaluation
+
+### Overview
+
+This document outlines the implementation of an AI-powered evaluation system for sandbox exercises in Kubelingo. This feature enhances the learning experience by providing intelligent feedback on a user's performance beyond simple command matching or script-based validation.
+
+### Feature Description
+
+- **`--ai-eval` Flag**: A new command-line flag, `--ai-eval`, enables the AI evaluation mode. When active, Kubelingo records the user's entire terminal session within the sandbox.
+- **Full-Session Transcripting**: The system captures all user input and shell output, creating a comprehensive transcript of the exercise attempt. This includes `kubectl`, `helm`, and other shell commands.
+- **Vim Command Logging**: To provide insight into file editing tasks, commands executed within `vim` are also logged to a separate file. This is achieved by aliasing `vim` to `vim -W <logfile>`.
+- **AI Analysis**: After the user exits the sandbox, the transcript and Vim log are sent to an OpenAI model (e.g., GPT-4). The AI is prompted to act as a Kubernetes expert and evaluate whether the user's actions successfully fulfilled the requirements of the question.
+- **Feedback**: The AI's JSON-formatted response, containing a boolean `correct` status and a `reasoning` string, is presented to the user.
+
+### Implementation Details
+
+1.  **Rust PTY Shell (`src/cli.rs`)**:
+    - The `run_pty_shell` function is enhanced to support transcripting.
+    - It checks for two environment variables: `KUBELINGO_TRANSCRIPT_FILE` and `KUBELINGO_VIM_LOG`.
+    - If `KUBELINGO_TRANSCRIPT_FILE` is set, it tees all PTY input and output to the specified file.
+    - If `KUBELINGO_VIM_LOG` is set, it configures the `bash` shell to alias `vim` to log commands to the specified file.
+
+2.  **Python Session (`kubelingo/modules/kubernetes/session.py`)**:
+    - When `--ai-eval` is used, `_run_unified_quiz` creates temporary files for the transcript and Vim log.
+    - It sets the corresponding environment variables before launching the sandbox.
+    - After the sandbox session, it reads the logs and passes them to the evaluation function.
+    - The `_run_one_exercise` method is updated to call the AI evaluator when this mode is active, otherwise falling back to the legacy assertion script validation.
+
+3.  **AI Evaluator (`kubelingo/modules/ai_evaluator.py`)**:
+    - A new `AIEvaluator` class encapsulates the logic for interacting with the OpenAI API.
+    - It constructs a detailed prompt including the question, transcript, and logs.
+    - It requires an `OPENAI_API_KEY` environment variable to be set. The `kubelingo[llm]` package extra should be installed.
+
+### Usage
+
+To use this feature, run Kubelingo with the `--ai-eval` flag:
+```bash
+kubelingo --k8s --ai-eval
+```
+Ensure that `OPENAI_API_KEY` is set in your environment.

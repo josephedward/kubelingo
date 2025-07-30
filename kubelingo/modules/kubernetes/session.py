@@ -44,6 +44,7 @@ from kubelingo.utils.validation import commands_equivalent
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+from kubelingo.modules.ai_evaluator import AIEvaluator
 # (AI integration is loaded dynamically to avoid import-time dependencies)
 
 
@@ -439,10 +440,33 @@ class NewSession(StudySession):
                     print(Fore.GREEN + "\nA sandbox shell will be opened. Perform the required actions." + Style.RESET_ALL)
                     print(Fore.GREEN + "Type 'exit' or press Ctrl-D to finish and validate your answer." + Style.RESET_ALL)
                     
+                    transcript_content, vim_log_content = None, None
+                    if args.ai_eval:
+                        # Prepare for transcripting
+                        transcript_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
+                        vim_log_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
+                        os.environ['KUBELINGO_TRANSCRIPT_FILE'] = transcript_file.name
+                        os.environ['KUBELINGO_VIM_LOG'] = vim_log_file.name
+                    
                     sandbox_func()
                     
+                    if args.ai_eval:
+                        # Read transcripts
+                        transcript_file.seek(0)
+                        transcript_content = transcript_file.read()
+                        vim_log_file.seek(0)
+                        vim_log_content = vim_log_file.read()
+                        
+                        # Cleanup
+                        transcript_file.close()
+                        vim_log_file.close()
+                        os.unlink(transcript_file.name)
+                        os.unlink(vim_log_file.name)
+                        del os.environ['KUBELINGO_TRANSCRIPT_FILE']
+                        del os.environ['KUBELINGO_VIM_LOG']
+
                     print("\nValidating your solution...")
-                    is_correct = self._run_one_exercise(q)
+                    is_correct = self._run_one_exercise(q, args, transcript=transcript_content, vim_log=vim_log_content)
                     self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
                     if is_correct:
@@ -537,43 +561,29 @@ class NewSession(StudySession):
         self.cluster_name = "pre-configured"
         return True
     
-    def _run_one_exercise(self, q):
+    def _run_one_exercise(self, q, args, transcript=None, vim_log=None):
         """
-        Handles validation for a single exercise by running its assertion script.
+        Handles validation for a single exercise by running its assertion script
+        or using the AI evaluator if enabled.
         """
+        if args.ai_eval:
+            if transcript is None:
+                print(f"{Fore.RED}AI evaluation enabled, but no transcript was captured.{Style.RESET_ALL}")
+                return False
+            try:
+                evaluator = AIEvaluator()
+                result = evaluator.evaluate(q, transcript, vim_log)
+                reasoning = result.get('reasoning', 'No reasoning provided.')
+                print(f"{Fore.CYAN}AI Evaluator says: {reasoning}{Style.RESET_ALL}")
+                return result.get('correct', False)
+            except Exception as e:
+                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+                return False
+
+        # Fallback to legacy script-based validation
         is_correct = False
-        # The 'response' field in legacy questions can be treated as a simple shell assertion.
         assertion = q.get('assert_script') or q.get('response')
-        # For live Kubernetes exercises, allow user to run commands in an interactive prompt
-        if q.get('type') == 'live_k8s':
-            prompt_sess = None
-            if PromptSession:
-                prompt_sess = PromptSession()
-            # Loop until user signals completion
-            while True:
-                try:
-                    if prompt_sess:
-                        cmd_line = prompt_sess.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                    else:
-                        cmd_line = input('Your command: ').strip()
-                except (EOFError, KeyboardInterrupt):
-                    print()
-                    break
-                if cmd_line.lower() == 'done':
-                    break
-                parts = cmd_line.split()
-                try:
-                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
-                    if proc.stdout:
-                        print(proc.stdout, end='')
-                    if proc.stderr:
-                        print(proc.stderr, end='')
-                except Exception as e:
-                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
         if not assertion:
-            # If there's no way to validate, we can't determine correctness.
-            # This might be intended for questions that are purely informational.
-            # For now, we'll treat it as incorrect from a grading perspective.
             print(f"{Fore.YELLOW}Warning: No validation script found for this question.{Style.RESET_ALL}")
             return False
 
@@ -583,8 +593,7 @@ class NewSession(StudySession):
                 assert_path = tmp_assert.name
             os.chmod(assert_path, 0o755)
 
-            # The validation script will use the default KUBECONFIG from the environment
-            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
+            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True, check=False)
             os.remove(assert_path)
 
             if assert_proc.returncode == 0:
@@ -592,13 +601,10 @@ class NewSession(StudySession):
                     print(assert_proc.stdout)
                 is_correct = True
             else:
-                # Provide feedback from the script's output
                 print(assert_proc.stdout or assert_proc.stderr)
         except Exception as e:
             print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
-        # Log the outcome of the live exercise
-        result = 'correct' if is_correct else 'incorrect'
-        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{result}\"")
+        
         return is_correct
 
     def cleanup(self):
