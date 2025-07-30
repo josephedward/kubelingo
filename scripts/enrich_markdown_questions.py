@@ -1,8 +1,13 @@
 #!/usr/bin/env python
+import argparse
+import json
 import os
 import re
 import sys
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+
+import yaml
+from dotenv import load_dotenv
 
 try:
     import openai
@@ -13,166 +18,194 @@ except ImportError:
     )
     sys.exit(1)
 
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    print(
-        "Error: python-dotenv library not found. Please install it with 'pip install python-dotenv'",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
 
 def get_openai_client() -> openai.OpenAI:
-    """
-    Returns an OpenAI client.
-    It reads the API key from a .env file, environment variables, or prompts the user.
-    """
-    # This script is in scripts/, so the project root is one level up.
+    """Returns an OpenAI client, getting API key from .env, env var, or prompt."""
     dotenv_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     if os.path.exists(dotenv_path):
         load_dotenv(dotenv_path=dotenv_path)
-
     api_key = os.getenv("OPENAI_API_KEY")
-
-    if api_key:
-        api_key = api_key.strip()
-
     if not api_key:
-        print("OPENAI_API_KEY not found in environment or .env file.")
+        print("OPENAI_API_KEY not found.", file=sys.stderr)
         try:
             api_key = input("Please enter your OpenAI API key: ").strip()
         except (KeyboardInterrupt, EOFError):
-            print("\nOperation cancelled by user.", file=sys.stderr)
+            print("\nOperation cancelled.", file=sys.stderr)
             sys.exit(1)
-
     if not api_key:
         print("Error: No OpenAI API key provided.", file=sys.stderr)
         sys.exit(1)
-
     return openai.OpenAI(api_key=api_key)
 
 
-def enrich_question(
-    client: openai.OpenAI, previous_question: str, current_question: str
+def load_from_json(filepath: str) -> List[Dict[str, Any]]:
+    """Loads questions from a JSON file, handling nested structures."""
+    questions = []
+    with open(filepath, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list):
+        return []
+    for item in data:
+        if isinstance(item, dict):
+            if "prompts" in item and isinstance(item["prompts"], list):
+                category = item.get("category")
+                for prompt_data in item["prompts"]:
+                    if isinstance(prompt_data, dict):
+                        q = prompt_data.copy()
+                        if category:
+                            q["category"] = category
+                        questions.append(q)
+            elif "prompt" in item:
+                questions.append(item)
+    return questions
+
+
+def load_from_md(filepath: str) -> List[Dict[str, Any]]:
+    """Loads questions from a Markdown file with YAML frontmatter."""
+    questions = []
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f.read()
+    # Regex to find YAML blocks followed by a ### prompt
+    pattern = re.compile(r"^---\s*\n(.*?)\n^---\s*\n^###\s*(.*?)$", re.S | re.M)
+    for match in pattern.finditer(content):
+        yaml_str, prompt_str = match.groups()
+        try:
+            q_data = yaml.safe_load(yaml_str)
+            if isinstance(q_data, dict):
+                q_data["prompt"] = prompt_str.strip()
+                questions.append(q_data)
+        except yaml.YAMLError:
+            continue
+    return questions
+
+
+def load_all_questions(base_dir: str) -> List[Dict[str, Any]]:
+    """Loads all questions from json, md, and yaml files in a directory."""
+    all_questions = []
+    for root, _, files in os.walk(base_dir):
+        for file in files:
+            filepath = os.path.join(root, file)
+            ext = os.path.splitext(file)[1].lower()
+            loaded = []
+            if ext == ".json":
+                loaded = load_from_json(filepath)
+            elif ext == ".md":
+                loaded = load_from_md(filepath)
+            # Add yaml loader if needed in future
+            for q in loaded:
+                q["source_file"] = filepath
+                all_questions.append(q)
+    return all_questions
+
+
+def generate_explanation(
+    client: openai.OpenAI, question: Dict[str, Any]
 ) -> Optional[str]:
-    """Uses OpenAI to enrich a question with context from the previous one."""
-    prompt = f"""As a Kubernetes expert creating educational material, I have two quiz questions. The second question depends on the first. Please rewrite the second question to be self-contained by adding context from the first.
+    """Uses OpenAI to generate a concise explanation for a question."""
+    prompt_text = question.get("prompt")
+    # Determine the answer, preferring response, then validation command
+    answer_text = question.get("response")
+    if not answer_text and "validation_steps" in question and question["validation_steps"]:
+        answer_text = question["validation_steps"][0].get("cmd", "")
 
-First question: "{previous_question}"
+    if not prompt_text or not answer_text:
+        return None
 
-Second question: "{current_question}"
+    api_prompt = f"""As a Kubernetes expert creating educational material, I have a quiz question and its answer.
+Please write a concise, one-sentence explanation for a student. The explanation should clarify what the command does or why it's the correct approach, focusing on educational value.
 
-Rewrite the second question. Provide only the rewritten question text, without any introductory phrases or explanations. For example, if the rewritten question is "Create a pod named 'x'", output just that, not "The rewritten question is: Create a pod named 'x'".
+Question: "{prompt_text}"
+
+Answer: "{answer_text}"
+
+Provide only the explanation text, without any introductory phrases like "This command...".
 """
-
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant that rewrites quiz questions to be self-contained, based on context from a previous question.",
+                    "content": "You are a helpful assistant that writes concise, educational explanations for Kubernetes quiz questions.",
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": api_prompt},
             ],
+            temperature=0.2,
         )
-        enriched_question = response.choices[0].message.content.strip()
-        # Sometimes the model still adds quotes
-        enriched_question = enriched_question.strip('"')
-        return enriched_question
+        return response.choices[0].message.content.strip().strip('"')
     except Exception as e:
-        print(f"Error calling OpenAI: {e}", file=sys.stderr)
+        print(f"Error calling OpenAI for prompt '{prompt_text[:30]}...': {e}", file=sys.stderr)
         return None
 
 
-def process_markdown_file(filepath: str, client: openai.OpenAI):
-    """Processes a markdown file to enrich questions."""
-    print(f"Processing {filepath}...")
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-    except FileNotFoundError:
-        print(f"Error: File not found at {filepath}", file=sys.stderr)
-        return
-
-    # The pattern splits by '### ' but keeps the delimiter.
-    # We assume questions start with '### '.
-    parts = re.split(r"(^### .*$)", content, flags=re.MULTILINE)
-
-    header = parts[0]
-    questions_and_details: List[dict] = []
-
-    # After split, we get [header, question1, details1, question2, details2, ...]
-    for i in range(1, len(parts), 2):
-        question = parts[i].strip().lstrip("### ").strip()
-        details = parts[i + 1]
-        questions_and_details.append({"question": question, "details": details})
-
-    modified = False
-    # Start from the second question, as the first has no predecessor for context.
-    for i in range(1, len(questions_and_details)):
-        previous_q_text = questions_and_details[i - 1]["question"]
-        current_q_text = questions_and_details[i]["question"]
-
-        print(f"Enriching question: '{current_q_text}'")
-        enriched_q_text = enrich_question(client, previous_q_text, current_q_text)
-
-        if enriched_q_text and enriched_q_text != current_q_text:
-            questions_and_details[i]["question"] = enriched_q_text
-            print(f"  -> New question: '{enriched_q_text}'")
-            modified = True
-        elif not enriched_q_text:
-            print("  -> Failed to enrich.")
-        else:
-            print("  -> No change needed.")
-
-    if modified:
-        # Reconstruct the markdown file
-        new_content_parts = [header]
-        for q_d in questions_and_details:
-            new_content_parts.append(f"### {q_d['question']}")
-            new_content_parts.append(q_d["details"])
-
-        new_content = "".join(new_content_parts)
-
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        print(f"File {filepath} has been updated.")
-    else:
-        print(f"No changes needing to be made to {filepath}.")
-
-
 def main():
-    """Main function."""
-    # This script is in scripts/, so question-data/ is one level up.
+    """Main script logic."""
+    parser = argparse.ArgumentParser(
+        description="Enrich and deduplicate Kubelingo question files using AI."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate the process without calling OpenAI or writing files.",
+    )
+    args = parser.parse_args()
+
     script_dir = os.path.dirname(os.path.realpath(__file__))
     question_data_dir = os.path.join(script_dir, "..", "question-data")
+    output_file = os.path.join(question_data_dir, "json", "master_quiz_with_explanations.json")
 
-    if not os.path.isdir(question_data_dir):
-        print(
-            f"Error: question-data directory not found at {question_data_dir}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    print("Loading all questions from question-data/...")
+    all_questions = load_all_questions(question_data_dir)
+    print(f"Found {len(all_questions)} questions across all files.")
 
-    markdown_files = []
-    for root, _, files in os.walk(question_data_dir):
-        for file in files:
-            if file.endswith(".md"):
-                markdown_files.append(os.path.join(root, file))
+    # Deduplicate questions, prioritizing those that already have an explanation
+    unique_questions: Dict[str, Dict[str, Any]] = {}
+    for q in all_questions:
+        prompt = q.get("prompt", "").strip()
+        if not prompt:
+            continue
+        if prompt not in unique_questions or (not unique_questions[prompt].get("explanation") and q.get("explanation")):
+            unique_questions[prompt] = q
+    
+    print(f"Found {len(unique_questions)} unique questions after deduplication.")
 
-    if not markdown_files:
-        print(f"No markdown files found in {question_data_dir}", file=sys.stderr)
-        return
+    client = None
+    if not args.dry_run:
+        client = get_openai_client()
 
-    client = get_openai_client()
+    enriched_count = 0
+    final_questions = []
+    for prompt, q in unique_questions.items():
+        # We only need to generate an explanation if one doesn't exist and there is no simple 'response' field
+        # which is often self-explanatory for command-line tools like Vim.
+        if not q.get("explanation"):
+            # Don't generate explanations for simple response questions like vim commands
+            is_simple_response = q.get("type") == "command" and len(q.get("response", "").split()) < 3
+            if not is_simple_response:
+                if args.dry_run:
+                    print(f"[DRY-RUN] Would generate explanation for: {prompt[:70]}...")
+                    enriched_count += 1
+                else:
+                    print(f"Generating explanation for: {prompt[:70]}...")
+                    explanation = generate_explanation(client, q)
+                    if explanation:
+                        q["explanation"] = explanation
+                        enriched_count += 1
+        final_questions.append(q)
+    
+    # Sort for consistent output
+    final_questions.sort(key=lambda x: x.get('prompt', ''))
+    
+    print(f"\nEnriched {enriched_count} questions with new explanations.")
 
-    # Sort files to process them in a consistent order.
-    for file_path in sorted(markdown_files):
-        process_markdown_file(file_path, client)
-
-    print("\nDone.")
+    if args.dry_run:
+        print(f"[DRY-RUN] Would save {len(final_questions)} questions to {output_file}")
+    else:
+        print(f"Saving {len(final_questions)} unique, enriched questions to {output_file}...")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(final_questions, f, indent=2)
+        print("Done.")
 
 
 if __name__ == "__main__":
