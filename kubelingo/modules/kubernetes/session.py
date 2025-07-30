@@ -783,9 +783,10 @@ class NewSession(StudySession):
             if quiz_backed_out:
                 break
         
-        # If user exited quiz, go back to menu without summary.
+        # If user exited the quiz early, return to quiz menu without summary.
         if quiz_backed_out:
-            continue
+            print(f"{Fore.YELLOW}Exiting quiz and returning to menu.{Style.RESET_ALL}")
+            return
         
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
