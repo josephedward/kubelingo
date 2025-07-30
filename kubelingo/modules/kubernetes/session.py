@@ -282,6 +282,7 @@ class NewSession(StudySession):
         self.region = None
         self.creds_acquired = False
         self.live_session_active = False # To control cleanup logic
+        self.kind_cluster_created = False
     
     def _run_one_exercise(self, question: dict):
         """
@@ -432,7 +433,7 @@ class NewSession(StudySession):
 
         print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
         print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
-        self._initialize_live_session()
+        self._initialize_live_session(args, questions_to_ask)
 
         from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
         sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
@@ -810,9 +811,9 @@ class NewSession(StudySession):
 
         return choices, all_flagged
 
-    def _initialize_live_session(self):
+    def _initialize_live_session(self, args, questions):
         """
-        Checks for dependencies. This is now mostly handled by the sandbox runner.
+        Checks for dependencies and sets up a temporary Kind cluster if requested.
         """
         deps = check_dependencies('kubectl', 'docker')
         if 'docker' in deps:
@@ -820,6 +821,19 @@ class NewSession(StudySession):
         
         if 'kubectl' in deps:
             print(f"{Fore.YELLOW}Warning: kubectl not found. Cluster interactions will not be available.{Style.RESET_ALL}")
+
+        if getattr(args, 'start_cluster', False):
+            needs_k8s = False
+            for q in questions:
+                # Determine if any question in the session needs a live cluster
+                if q.get('type') in ('live_k8s', 'live_k8s_edit') or \
+                   any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', [])) or \
+                   any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', [])):
+                    needs_k8s = True
+                    break
+            
+            if needs_k8s:
+                self._setup_kind_cluster()
 
         self.live_session_active = True
         return True
@@ -845,6 +859,83 @@ class NewSession(StudySession):
         if cleaned_count > 0:
             print(f"\n{Fore.GREEN}Cleaned up {cleaned_count} leftover Vim swap file(s).{Style.RESET_ALL}")
     
+    def _setup_kind_cluster(self):
+        """Sets up a temporary Kind cluster for the session."""
+        if not shutil.which('kind'):
+            self.logger.error("`kind` command not found. Cannot create a temporary cluster.")
+            print(f"{Fore.RED}Error: `kind` is not installed or not in your PATH.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Please install Kind to use this feature: https://kind.sigs.k8s.io/docs/user/quick-start/#installation{Style.RESET_ALL}")
+            return False
+
+        session_id = datetime.now().strftime('%Y%m%d%H%M%S')
+        self.cluster_name = f"kubelingo-session-{session_id}"
+        print(f"\n{Fore.CYAN}🚀 Setting up temporary Kind cluster '{self.cluster_name}'... (this may take a minute){Style.RESET_ALL}")
+
+        try:
+            # Create cluster
+            cmd_create = ["kind", "create", "cluster", "--name", self.cluster_name, "--wait", "5m"]
+            process = subprocess.Popen(cmd_create, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8')
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    self.logger.info(f"kind create: {line.strip()}")
+            process.stdout.close()
+            return_code = process.wait()
+
+            if return_code != 0:
+                self.logger.error(f"Failed to create Kind cluster '{self.cluster_name}'.")
+                print(f"{Fore.RED}Failed to create Kind cluster. Check logs for details.{Style.RESET_ALL}")
+                return False
+
+            # Get kubeconfig
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as tf:
+                self.kubeconfig_path = tf.name
+            
+            cmd_kubeconfig = ["kind", "get", "kubeconfig", "--name", self.cluster_name]
+            kubeconfig_data = subprocess.check_output(cmd_kubeconfig, text=True)
+            with open(self.kubeconfig_path, 'w') as f:
+                f.write(kubeconfig_data)
+
+            os.environ['KUBECONFIG'] = self.kubeconfig_path
+            self.kind_cluster_created = True
+            self.logger.info(f"Kind cluster '{self.cluster_name}' created. Kubeconfig at {self.kubeconfig_path}")
+            print(f"{Fore.GREEN}✅ Kind cluster '{self.cluster_name}' is ready.{Style.RESET_ALL}")
+            return True
+
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            self.logger.error(f"An error occurred while setting up Kind cluster: {e}")
+            print(f"{Fore.RED}An error occurred during Kind cluster setup. Please check your Kind installation.{Style.RESET_ALL}")
+            self.cluster_name = None
+            return False
+
+    def _cleanup_kind_cluster(self):
+        """Deletes the temporary Kind cluster."""
+        if not self.cluster_name or not self.kind_cluster_created:
+            return
+
+        print(f"\n{Fore.YELLOW}🔥 Tearing down Kind cluster '{self.cluster_name}'...{Style.RESET_ALL}")
+        try:
+            cmd = ["kind", "delete", "cluster", "--name", self.cluster_name]
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8')
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    self.logger.info(f"kind delete: {line.strip()}")
+            process.stdout.close()
+            process.wait()
+
+            print(f"{Fore.GREEN}✅ Kind cluster '{self.cluster_name}' deleted.{Style.RESET_ALL}")
+        
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            self.logger.error(f"Failed to delete Kind cluster '{self.cluster_name}': {e}")
+            print(f"{Fore.RED}Failed to delete Kind cluster '{self.cluster_name}'. You may need to delete it manually with `kind delete cluster --name {self.cluster_name}`.{Style.RESET_ALL}")
+        finally:
+            if self.kubeconfig_path and os.path.exists(self.kubeconfig_path):
+                os.remove(self.kubeconfig_path)
+            if 'KUBECONFIG' in os.environ and os.environ.get('KUBECONFIG') == self.kubeconfig_path:
+                del os.environ['KUBECONFIG']
+            self.kind_cluster_created = False
+            self.cluster_name = None
+            self.kubeconfig_path = None
+
     def _run_yaml_editing_mode(self, args):
         """
         End-to-end YAML editing session: load YAML questions, launch Vim editor for each,
@@ -894,7 +985,11 @@ class NewSession(StudySession):
         print("=== YAML Editing Session Complete ===")
 
     def cleanup(self):
-        """Deletes the EKS cluster if one was created for a live session."""
+        """Deletes the EKS or Kind cluster if one was created for a live session."""
+        if self.kind_cluster_created:
+            self._cleanup_kind_cluster()
+            return
+
         if not self.live_session_active or not self.cluster_name or self.cluster_name == "pre-configured":
             return
 
