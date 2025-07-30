@@ -291,6 +291,13 @@ class NewSession(StudySession):
         """
         Router for running exercises. It decides which quiz to run.
         """
+        # When run without arguments, args.file may be defaulted.
+        # Force interactive quiz selection by clearing the file if no other
+        # filters like category, review-only, or number of questions are active.
+        if (args.file and os.path.basename(args.file) == os.path.basename(DEFAULT_DATA_FILE) and
+                not args.category and not args.review_only and not (args.num and args.num > 0)):
+            args.file = None
+
         # All exercises now run through the unified quiz runner.
         self._run_unified_quiz(args)
 
