@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use portable_pty::{CommandBuilder, native_pty_system, PtySize};
 use anyhow::Context;
-use std::io::{self, Read, Write};
+use std::io::{self};
 use std::env;
 use std::process::Command;
 
