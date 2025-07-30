@@ -179,8 +179,9 @@ def main():
                             help='Path to custom exercises JSON file for a module')
         parser.add_argument('--cluster-context', type=str,
                             help='Kubernetes cluster context to use for a module')
-        parser.add_argument('--live', action='store_true',
-                            help='For the kubernetes module: run live exercises instead of the command quiz.')
+        # --live is deprecated, as all k8s exercises are now sandbox-based.
+        # It is kept for backward compatibility but has no effect.
+        parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
         args = parser.parse_args()
 
@@ -334,7 +335,7 @@ def main():
 
         # If certain flags are used without a module, default to kubernetes
         if args.module is None and (
-            args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only or args.live
+            args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
         ):
             args.module = 'kubernetes'
 

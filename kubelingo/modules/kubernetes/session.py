@@ -10,7 +10,6 @@ import shlex
 from datetime import datetime
 import logging
 
-from kubelingo.utils.validation import commands_equivalent
 from kubelingo.utils.ui import (
     Fore, Style, questionary, yaml, humanize_module
 )
@@ -788,562 +787,38 @@ class NewSession(StudySession):
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
-        json_quiz_files = _get_quiz_files()
-        md_quiz_files = _get_md_quiz_files()
-        yaml_quiz_files = _get_yaml_quiz_files()
-
+        all_quiz_files = sorted(
+            _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files() +
+            ([VIM_QUESTIONS_FILE] if os.path.exists(VIM_QUESTIONS_FILE) else [])
+        )
         all_flagged = get_all_flagged_questions()
 
-        # Separate flagged questions by type for different review modes
-        flagged_command_questions = [
-            q for q in all_flagged if q.get('type', 'command') in ('command', 'live_k8s', 'live_k8s_edit') and q['data_file'] != VIM_QUESTIONS_FILE
-        ]
-        flagged_vim_questions = [q for q in all_flagged if q['data_file'] == VIM_QUESTIONS_FILE]
-
         choices = []
-
-        # Review options
-        if flagged_command_questions:
-            choices.append({'name': f"Review {len(flagged_command_questions)} Flagged Command Questions", 'value': "review"})
-        if flagged_vim_questions:
-            choices.append({'name': f"Review {len(flagged_vim_questions)} Flagged Vim Questions", 'value': "vim_review"})
-
-        def add_quiz_files_to_choices(file_list, category_name):
-            if file_list:
-                choices.append(questionary.Separator(category_name))
-                for file_path in file_list:
-                    base = os.path.basename(file_path)
-                    name = os.path.splitext(base)[0]
-                    subject = humanize_module(name)
-                    title = f"  {subject} ({base})"
-                    choices.append(questionary.Choice(title=title, value=file_path))
-
-        # Quizzes from files, grouped by file type
-        add_quiz_files_to_choices(json_quiz_files, "Command Quizzes")
-        add_quiz_files_to_choices(md_quiz_files, "Markdown Quizzes")
-        add_quiz_files_to_choices(yaml_quiz_files, "YAML Quizzes")
-
-        # Other exercises
-        choices.append(questionary.Separator("Other Exercises"))
-        choices.append({'name': f"YAML Editing Quiz ({os.path.basename(YAML_QUESTIONS_FILE)})", 'value': "yaml_standard"})
-        choices.append({'name': "YAML Progressive Scenarios", 'value': "yaml_progressive"})
-        choices.append({'name': "YAML Live Cluster Exercise", 'value': "yaml_live"})
-        choices.append({'name': "YAML Create Custom Exercise", 'value': "yaml_create"})
-        choices.append(questionary.Separator())
-        choices.append({'name': f"Vim Commands Quiz ({os.path.basename(VIM_QUESTIONS_FILE)})", 'value': "vim_quiz"})
-
-        # Admin options
+        if all_flagged:
+            choices.append({'name': f"Review {len(all_flagged)} Flagged Questions", 'value': "review"})
+        
+        if all_quiz_files:
+            choices.append(questionary.Separator("Standard Quizzes"))
+            for file_path in all_quiz_files:
+                base = os.path.basename(file_path)
+                name = os.path.splitext(base)[0]
+                subject = humanize_module(name)
+                title = f"  {subject} ({base})"
+                choices.append(questionary.Choice(title=title, value=file_path))
+        
         if all_flagged:
             choices.append(questionary.Separator())
-            # Fore.YELLOW was causing rendering issues with questionary
             choices.append({'name': f"Clear All {len(all_flagged)} Review Flags", 'value': "clear_flags"})
 
         choices.append(questionary.Separator())
         choices.append({'name': "Back to Main Menu", 'value': "back"})
 
-        return choices, flagged_command_questions, flagged_vim_questions
-
-    def _handle_yaml_progressive(self, args):
-        """Handler for 'YAML Progressive Scenarios' menu option."""
-        editor = VimYamlEditor()
-        file_path = input("Enter path to progressive scenarios JSON file: ").strip()
-        if not file_path: return
-        try:
-            with open(file_path, 'r') as f:
-                exercises = json.load(f)
-            editor.run_progressive_yaml_exercises(exercises)
-        except Exception as e:
-            print(f"Error loading exercises file {file_path}: {e}")
-
-    def _handle_yaml_live(self, args):
-        """Handler for 'YAML Live Cluster Exercise' menu option."""
-        editor = VimYamlEditor()
-        file_path = input("Enter path to live cluster exercise JSON file: ").strip()
-        if not file_path: return
-        try:
-            with open(file_path, 'r') as f:
-                exercise = json.load(f)
-            editor.run_live_cluster_exercise(exercise)
-        except Exception as e:
-            print(f"Error loading live exercise file {file_path}: {e}")
-
-    def _handle_yaml_create(self, args):
-        """Handler for 'YAML Create Custom Exercise' menu option."""
-        editor = VimYamlEditor()
-        editor.create_interactive_question()
-
-    def _run_yaml_editing_mode(self, args):
-        """Run semantic YAML editing exercises from JSON definitions."""
-        if yaml is None:
-            print(f"{Fore.RED}YAML library not installed. Please run 'pip install pyyaml'.{Style.RESET_ALL}")
-            return
-
-        try:
-            with open(YAML_QUESTIONS_FILE, 'r') as f:
-                sections = json.load(f)
-        except Exception as e:
-            print(f"Error loading YAML exercise data from {YAML_QUESTIONS_FILE}: {e}")
-            return
-
-        editor = VimYamlEditor()
-        yaml_exercises = []
-        for section in sections:
-            category = section.get('category', 'General')
-            for item in section.get('prompts', []):
-                if item.get('question_type') == 'yaml_edit':
-                    item['category'] = category
-                    yaml_exercises.append(item)
-
-        if not yaml_exercises:
-            print("No YAML exercises found in data file.")
-            return
-
-        print(f"\n{Fore.CYAN}=== Kubelingo YAML Editing Mode ==={Style.RESET_ALL}")
-        print(f"Found {len(yaml_exercises)} YAML editing exercises.")
-        print(f"Editor: {os.environ.get('EDITOR', 'vim')}")
-
-        for idx, question in enumerate(random.sample(yaml_exercises, len(yaml_exercises)), 1):
-            print(f"\n{Fore.YELLOW}Exercise {idx}/{len(yaml_exercises)}: {question.get('prompt')}{Style.RESET_ALL}")
-            success = editor.run_yaml_edit_question(question, index=idx)
-            if success and question.get('explanation'):
-                print(f"{Fore.GREEN}Explanation: {question['explanation']}{Style.RESET_ALL}")
-            if idx < len(yaml_exercises):
-                try:
-                    cont = input("Continue to next exercise? (y/N): ")
-                    if not cont.lower().startswith('y'):
-                        break
-                except (EOFError, KeyboardInterrupt):
-                    print("\nExiting exercise mode.")
-                    break
-        print(f"\n{Fore.CYAN}=== YAML Editing Session Complete ==={Style.RESET_ALL}")
-
-    def _run_vim_commands_quiz(self, args):
-        """Runs the Vim commands quiz with a standardized, interactive format."""
-        start_time = datetime.now()
-        data_file = VIM_QUESTIONS_FILE
-        if not os.path.exists(data_file):
-            print(f"{Fore.RED}Vim questions data file not found at {data_file}{Style.RESET_ALL}")
-            return
-
-        questions = load_questions(data_file)
-
-        if args.review_only:
-            questions = [q for q in questions if q.get('review')]
-            if not questions:
-                print(Fore.YELLOW + "No Vim questions flagged for review found." + Style.RESET_ALL)
-                return
-            print(Fore.MAGENTA + f"Starting review session for {len(questions)} flagged Vim questions." + Style.RESET_ALL)
-
-        questions_to_ask = random.sample(questions, len(questions))
-        
-        correct_count = 0
-        total_questions = len(questions_to_ask)
-        asked_count = 0
-        skipped_questions = []
-
-        print(f"\n{Fore.CYAN}=== Starting Vim Commands Quiz ==={Style.RESET_ALL}")
-        print(f"File: {Fore.CYAN}{os.path.basename(data_file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
-
-        quiz_backed_out = False
-        current_question_index = 0
-        while current_question_index < len(questions_to_ask):
-            q = questions_to_ask[current_question_index]
-            i = current_question_index + 1
-            category = q.get('category', 'Vim')
-
-            was_answered = False
-            user_answer_content = None # Will store path to vim script log
-
-            print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-            print(f"How do you: {Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}?")
-
-            while True: # Inner loop for the in-quiz menu
-                is_flagged = q.get('review', False)
-                flag_option_text = "Unflag" if is_flagged else "Flag"
-
-                choices = [
-                    questionary.Choice("1. Answer (Open Vim)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
-                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
-                    questionary.Choice("4. Skip", value="skip"),
-                    questionary.Choice("5. Back to Quiz Menu", value="back")
-                ]
-
-                try:
-                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
-                    if action is None: raise KeyboardInterrupt
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    return
-
-                if action == "back":
-                    quiz_backed_out = True
-                    break
-
-                if action == "skip":
-                    if not was_answered:
-                        asked_count += 1
-                    skipped_questions.append(q)
-                    self.logger.info(f"Vim Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
-                    current_question_index += 1
-                    break
-
-                if action == "flag":
-                    if is_flagged:
-                        self.session_manager.unmark_question_for_review(data_file, q['category'], q['prompt'])
-                        q['review'] = False
-                        print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
-                    else:
-                        self.session_manager.mark_question_for_review(data_file, q['category'], q['prompt'])
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                    continue
-
-                if action == "answer":
-                    if not was_answered:
-                        asked_count += 1
-                    was_answered = True
-                    
-                    try:
-                        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as tmp_content, \
-                             tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as tmp_script:
-                            tmp_content_path = tmp_content.name
-                            user_answer_content = tmp_script.name
-                            tmp_content.write("This is a test file for your vim exercise.\n")
-                        
-                        editor = os.environ.get('EDITOR', 'vim')
-                        print(f"\n{Fore.GREEN}Opening a temporary file in {editor}. Perform the action and then exit (e.g., with :q).{Style.RESET_ALL}")
-                        
-                        cmd = [editor, '-w', user_answer_content, tmp_content_path]
-                        subprocess.call(cmd)
-
-                    finally:
-                        if 'tmp_content_path' in locals() and os.path.exists(tmp_content_path):
-                            os.unlink(tmp_content_path)
-
-                if action == "check":
-                    if not was_answered:
-                        print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                        continue
-                    
-                    is_correct = False
-                    try:
-                        with open(user_answer_content, 'r') as f:
-                            script_log = f.read()
-                        
-                        expected_command = q.get('response', '')
-                        is_correct = expected_command in script_log
-                        self.logger.info(f"Vim Question {i}/{total_questions}: prompt=\"{q['prompt']}\" expected=\"{expected_command}\" log_file=\"{user_answer_content}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-                    except Exception as e:
-                        self.logger.error(f"Error checking vim script log: {e}")
-                    finally:
-                        if user_answer_content and os.path.exists(user_answer_content):
-                            os.unlink(user_answer_content)
-
-                    if is_correct:
-                        correct_count += 1
-                        print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        if q.get('explanation'):
-                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                        current_question_index += 1
-                        break
-                    else:
-                        print(f"\n{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                        print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                        continue
-            
-            if quiz_backed_out:
-                break
-        
-        if quiz_backed_out:
-            return
-
-        end_time = datetime.now()
-        duration = str(end_time - start_time).split('.')[0]
-
-        if skipped_questions:
-            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
-            for q in skipped_questions:
-                print(f"\n{Fore.YELLOW}Skipped: How do you: {q['prompt']}{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Correct answer: {q.get('response', 'Not available.')}{Style.RESET_ALL}")
-
-        print(f"\n{Fore.CYAN}--- Vim Quiz Complete ---{Style.RESET_ALL}")
-        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
-        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
-        print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
-
-    def _run_killercoda_ckad(self, args):
-        """Runs the Killercoda CKAD CSV-based quiz"""
-        start_time = datetime.now()
-        csv_file = os.environ.get('KILLERCODA_CSV', KILLERCODA_CSV_FILE)
-        if not os.path.exists(csv_file):
-            print(f"{Fore.RED}CSV file not found at {csv_file}{Style.RESET_ALL}")
-            return
-
-        # Parse CSV questions: [category, prompt, answer, ...]
-        questions = []
-        with open(csv_file, newline='', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            # Skip header if present
-            try:
-                first = next(reader)
-                if len(first) >= 2 and 'prompt' in first[1].lower():
-                    pass
-                else:
-                    reader = iter([first] + list(reader))
-            except StopIteration:
-                pass
-            for row in reader:
-                if len(row) < 3:
-                    continue
-                cat, prompt, answer = [r.strip() for r in row[:3]]
-                if prompt.startswith("'") and prompt.endswith("'"):
-                    prompt = prompt[1:-1].strip()
-                if answer.startswith("'") and answer.endswith("'"):
-                    answer = answer[1:-1].strip()
-                if not prompt or not answer:
-                    continue
-                questions.append({'category': cat or 'CKAD', 'prompt': prompt, 'answer': answer, 'review': False})
-        if not questions:
-            print(f"{Fore.YELLOW}No questions found in CSV file.{Style.RESET_ALL}")
-            return
-
-        # Filter by category if requested
-        if getattr(args, 'category', None):
-            questions = [q for q in questions if q['category'] == args.category]
-            if not questions:
-                print(f"{Fore.YELLOW}No CKAD questions in category '{args.category}'.{Style.RESET_ALL}")
-                return
-        # Determine number to ask
-        num = args.num if getattr(args, 'num', 0) > 0 else len(questions)
-        if getattr(args, 'randomize', False):
-            to_ask = random.sample(questions, min(num, len(questions)))
-        else:
-            to_ask = questions[:num]
-
-        total_to_ask = len(to_ask)
-        correct_count = 0
-        asked_count = 0
-        skipped_questions = []
-
-        print(f"\n{Fore.CYAN}=== Killercoda CKAD CSV Quiz ==={Style.RESET_ALL}")
-        print(f"Starting CKAD quiz with {Fore.CYAN}{total_to_ask}{Style.RESET_ALL} questions.")
-
-        quiz_backed_out = False
-        current_question_index = 0
-        while current_question_index < len(to_ask):
-            q = to_ask[current_question_index]
-            i = current_question_index + 1
-            category = q.get('category', 'CKAD')
-            user_answer_content = None
-            was_answered = False
-
-            # Inner loop for the in-quiz menu
-            print(f"\n{Fore.YELLOW}Question {i}/{total_to_ask} (Category: {category}){Style.RESET_ALL}")
-            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-            while True:
-                is_flagged = q.get('review', False)
-                flag_option_text = "Unflag" if is_flagged else "Flag"
-
-                choices = [
-                    questionary.Choice("1. Answer (Open Editor)", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
-                    questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
-                    questionary.Choice("4. Skip", value="skip"),
-                    questionary.Choice("5. Back to Quiz Menu", value="back")
-                ]
-                
-                try:
-                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
-                    if action is None: raise KeyboardInterrupt
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    return
-
-                if action == "back":
-                    quiz_backed_out = True
-                    break
-                
-                if action == "skip":
-                    if not was_answered:
-                        asked_count += 1
-                    skipped_questions.append(q)
-                    self.logger.info(f"CKAD CSV Question {i}/{total_to_ask}: SKIPPED prompt=\"{q['prompt']}\"")
-                    current_question_index += 1
-                    break
-
-                if action == "flag":
-                    if is_flagged:
-                        q['review'] = False
-                        print(Fore.MAGENTA + "Question unflagged (for this session only)." + Style.RESET_ALL)
-                    else:
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review (for this session only)." + Style.RESET_ALL)
-                    continue
-
-                if action == "answer":
-                    if not was_answered:
-                        asked_count += 1
-                    was_answered = True
-                    tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
-                    tmp_path = tmp.name
-                    tmp.close()
-                    try:
-                        with open(tmp_path, 'w', encoding='utf-8') as tf:
-                            tf.write("# Enter your YAML manifest below, without quotes.\n---\n")
-                        editor = os.environ.get('EDITOR', 'vim')
-                        cmd = [editor, '-c', 'set tabstop=2 shiftwidth=2 expandtab', '--noplugin', tmp_path]
-                        subprocess.call(cmd)
-                        lines = []
-                        with open(tmp_path, encoding='utf-8') as uf:
-                            for line in uf:
-                                if line.lstrip().startswith('#') or line.strip() == '---':
-                                    continue
-                                lines.append(line)
-                        user_answer_content = ''.join(lines).strip()
-                    except Exception as e:
-                        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
-                    finally:
-                        os.unlink(tmp_path)
-
-                if action == "check":
-                    if not was_answered:
-                        print(f"{Fore.GREEN}Expected answer:\n{q['answer'].strip()}{Style.RESET_ALL}")
-                        continue
-                    
-                    exp = q['answer'].strip()
-                    ans = user_answer_content.strip()
-                    is_correct = ans == exp or ans.replace("'", '').replace('"', '') == exp.replace("'", '').replace('"', '')
-                    
-                    self.logger.info(
-                        f"CKAD CSV {i}/{total_to_ask}: prompt=\"{q['prompt']}\" expected=\"{exp}\" "
-                        f"answer=\"{ans}\" result=\"{'correct' if is_correct else 'incorrect'}\""
-                    )
-
-                    if is_correct:
-                        correct_count += 1
-                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        current_question_index += 1
-                        break
-                    else:
-                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                        print(f"{Fore.GREEN}Expected answer:\n{exp}{Style.RESET_ALL}")
-                        continue
-
-            if quiz_backed_out:
-                break
-        
-        duration = str(datetime.now() - start_time).split('.')[0]
-        
-        if skipped_questions:
-            print(f"\n{Fore.CYAN}--- Reviewing {len(skipped_questions)} Skipped Questions ---{Style.RESET_ALL}")
-            for q in skipped_questions:
-                print(f"\n{Fore.YELLOW}Skipped: {q['prompt']}{Style.RESET_ALL}")
-                print(f"{Fore.GREEN}Correct answer: {q.get('answer', 'Not available.')}{Style.RESET_ALL}")
-
-        print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-        score = (correct_count / asked_count * 100) if asked_count > 0 else 0
-        print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
-        print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
+        return choices, all_flagged
 
     def _run_live_mode(self, args):
-        """Handles setup and execution of live Kubernetes exercises."""
-        if not self._initialize_live_session():
-            return
-
-        all_questions = load_questions(args.file)
-        live_qs = [q for q in all_questions if q.get('type') in ('live_k8s_edit', 'live_k8s')]
-        if not live_qs:
-            print(Fore.YELLOW + "No live Kubernetes exercises found in data file." + Style.RESET_ALL)
-            return
-
-        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-        sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
-
-        total_questions = len(live_qs)
-        questions_to_ask = random.sample(live_qs, total_questions)
-
-        quiz_backed_out = False
-        current_question_index = 0
-        while current_question_index < len(questions_to_ask):
-            q = questions_to_ask[current_question_index]
-            i = current_question_index + 1
-            was_answered = False
-
-            # Inner loop for the in-quiz menu
-            while True:
-                # We reprint the question each time to keep it visible
-                print(f"\n{Fore.YELLOW}Cloud Exercise {i}/{total_questions} (Category: {q.get('category', 'Live')}){Style.RESET_ALL}")
-                print(f"{Fore.MAGENTA}Q: {q['prompt']}{Style.RESET_ALL}")
-
-                is_flagged = q.get('review', False)
-                flag_option_text = "Unflag for Review" if is_flagged else "Flag for Review"
-
-                choices = [
-                    questionary.Choice("1. Open Sandbox Shell", value="answer"),
-                    questionary.Choice("2. Check Answer", value="check"),
-                    questionary.Choice(f"3. {flag_option_text}", value="flag"),
-                    questionary.Choice("4. Skip", value="skip"),
-                    questionary.Choice("5. Exit Live Mode", value="back")
-                ]
-
-                try:
-                    action = questionary.select("Action:", choices=choices, use_indicator=False).ask()
-                    if action is None: raise KeyboardInterrupt
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    return
-
-                if action == "back":
-                    quiz_backed_out = True
-                    break
-
-                if action == "skip":
-                    self.logger.info(f"Live Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
-                    # Could add to a skipped list to review at the end
-                    current_question_index += 1
-                    break
-
-                if action == "flag":
-                    data_file_path = q.get('data_file', args.file)
-                    if is_flagged:
-                        self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
-                        q['review'] = False
-                        print(Fore.MAGENTA + "Question un-flagged." + Style.RESET_ALL)
-                    else:
-                        self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
-                        q['review'] = True
-                        print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
-                    continue
-
-                if action == "answer":
-                    was_answered = True
-                    print(Fore.GREEN + "\nA sandbox shell will be opened for you to complete the exercise." + Style.RESET_ALL)
-                    print(Fore.GREEN + "Type 'exit' or press Ctrl-D to return to this menu and check your answer." + Style.RESET_ALL)
-                    sandbox_func()
-                    continue
-
-                if action == "check":
-                    if not was_answered:
-                        print(f"{Fore.YELLOW}You must open the sandbox shell first. The answer can only be validated, not shown.{Style.RESET_ALL}")
-                        continue
-
-                    is_correct = self._run_one_exercise(q)
-                    self.logger.info(f"Live Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-
-                    if is_correct:
-                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        if q.get('explanation'):
-                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                        current_question_index += 1
-                        break # to next question
-                    else:
-                        print(f"{Fore.RED}Incorrect. Try again, skip, or exit.{Style.RESET_ALL}")
-                        continue # back to menu for this question
-
-            if quiz_backed_out:
-                print(f"\n{Fore.YELLOW}Exiting live exercise mode.{Style.RESET_ALL}")
-                break
+        """DEPRECATED: Handles setup and execution of live Kubernetes exercises."""
+        # This method is no longer used by the unified quiz runner.
+        pass
 
     def _initialize_live_session(self):
         """Checks for dependencies and prepares for a live session."""
@@ -1377,42 +852,28 @@ class NewSession(StudySession):
         self.cluster_name = "pre-configured"
         return True
     
-    def _run_one_exercise(self, q, is_check_only=False):
+    def _run_one_exercise(self, q):
         """
-        Handles a single live Kubernetes question. For this refactoring, it only
-        performs the validation step, since the interactive shell is now launched
-        directly from the quiz menu.
+        Handles validation for a single exercise by running its assertion script.
         """
         is_correct = False
-        # Interactive input of kubectl commands before validation
-        if not is_check_only:
-            # Prompt user for commands until they enter 'done'
-            if PromptSession:
-                prompt_session = PromptSession()
-            else:
-                prompt_session = None
-            while True:
-                if prompt_session:
-                    user_cmd = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                else:
-                    user_cmd = input(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                if user_cmd.lower() == 'done':
-                    break
-                if not user_cmd:
-                    continue
-                try:
-                    subprocess.run(user_cmd.split(), capture_output=True, text=True, check=False)
-                except Exception as e:
-                    print(f"{Fore.RED}Error running command '{user_cmd}': {e}{Style.RESET_ALL}")
-        print("\nValidating your solution...")
+        # The 'response' field in legacy questions can be treated as a simple shell assertion.
+        assertion = q.get('assert_script') or q.get('response')
+        if not assertion:
+            # If there's no way to validate, we can't determine correctness.
+            # This might be intended for questions that are purely informational.
+            # For now, we'll treat it as incorrect from a grading perspective.
+            print(f"{Fore.YELLOW}Warning: No validation script found for this question.{Style.RESET_ALL}")
+            return False
+
         try:
             with tempfile.NamedTemporaryFile(mode='w+', suffix=".sh", delete=False, encoding='utf-8') as tmp_assert:
-                tmp_assert.write(q.get('assert_script', 'exit 1'))
+                tmp_assert.write(assertion)
                 assert_path = tmp_assert.name
             os.chmod(assert_path, 0o755)
 
             # The validation script will use the default KUBECONFIG from the environment
-            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
+            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True, check=False)
             os.remove(assert_path)
 
             if assert_proc.returncode == 0:
@@ -1420,15 +881,11 @@ class NewSession(StudySession):
                     print(assert_proc.stdout)
                 is_correct = True
             else:
+                # Provide feedback from the script's output
                 print(assert_proc.stdout or assert_proc.stderr)
         except Exception as e:
             print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
-        # Record result in logger
-        try:
-            result_str = 'correct' if is_correct else 'incorrect'
-            self.logger.info(f'Live exercise: prompt="{q.get("prompt","")}" result="{result_str}"')
-        except Exception:
-            pass
+        
         return is_correct
 
     def cleanup(self):
