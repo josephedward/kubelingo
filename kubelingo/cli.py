@@ -387,160 +387,59 @@ def main():
     # Handle --k8s shortcut
     if args.k8s_mode:
         args.module = 'kubernetes'
-    # Interactive entry for bare 'kubelingo' invocation
+    # Bare invocation (no args): simple text-based menu
     if len(sys.argv) == 1:
-        # If questionary is available and running in a TTY, show interactive menus
-        if questionary and sys.stdin.isatty() and sys.stdout.isatty():
-            try:
-                session_type = None
-                # Level 1: Session type selection
-                while True:
-                    print()
-                    choice = questionary.select(
-                        "Select a session type:",
-                        choices=[
-                            questionary.Choice("PTY Shell", value="pty"),
-                            questionary.Choice("Docker Container (requires Docker)", value="docker"),
-                            questionary.Separator(),
-                            questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
-                            questionary.Choice("Help", value="help"),
-                            questionary.Choice("Exit", value="exit"),
-                        ],
-                        use_indicator=True,
-                        default="PTY Shell"
-                    ).ask()
-                    if choice in (None, "exit"):
-                        return
-                    if choice == "help":
-                        show_session_type_help()
-                        input("\nPress Enter to return to the menu...")
-                        continue
-                    if choice == "api_key":
-                        api_key = questionary.password(
-                            "Enter your OpenAI API Key (leave blank to cancel):", qmark="🔑"
-                        ).ask()
-                        if api_key:
-                            os.environ['OPENAI_API_KEY'] = api_key
-                            print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                        else:
-                            print(f"{Fore.YELLOW}No API key provided. AI features remain disabled.{Style.RESET_ALL}")
-                        continue
-                    session_type = choice
-                    break
-                # Level 2: Quiz type selection
-                while True:
-                    quiz_choice = questionary.select(
-                        f"Session: {session_type.upper()}. Select quiz type:",
-                        choices=[
-                            questionary.Choice("K8s (preinstalled)", value="k8s"),
-                            questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
-                            questionary.Choice("Review flagged questions", value="review"),
-                            questionary.Separator(),
-                            questionary.Choice("Help", value="help"),
-                            questionary.Choice("Back", value="back"),
-                            questionary.Choice("Exit", value="exit"),
-                        ],
-                        use_indicator=True,
-                        default="K8s (preinstalled)"
-                    ).ask()
-                    if quiz_choice in (None, "exit"):
-                        return
-                    if quiz_choice == "help":
-                        show_quiz_type_help()
-                        input("\nPress Enter to return to the menu...")
-                        continue
-                    if quiz_choice == "back":
-                        return main()
-                    args.pty = (session_type == "pty")
-                    args.docker = (session_type == "docker")
-                    if quiz_choice == "k8s":
-                        args.module = 'kubernetes'
-                    elif quiz_choice == "kustom":
-                        args.module = 'custom'
-                        custom_file = questionary.path("Enter path to your custom quiz JSON file:").ask()
-                        if not custom_file:
-                            print(f"{Fore.YELLOW}No file selected. Returning to menu.{Style.RESET_ALL}")
-                            return main()
-                        args.custom_file = custom_file
-                    elif quiz_choice == "review":
-                        args.module = 'kubernetes'
-                        args.review_only = True
-                    break
-                args.file = None
-            except (EOFError, KeyboardInterrupt):
-                print("\nExiting.")
+        # Session type selection
+        while True:
+            print()
+            print("Select a session type:")
+            print(" 1) PTY Shell")
+            print(" 2) Docker Container (requires Docker)")
+            print(" 3) Enter OpenAI API Key to enable AI features")
+            print(" 4) Exit")
+            choice = input("Choice [1-4]: ").strip()
+            if choice == '1':
+                args.pty = True
+                break
+            if choice == '2':
+                args.docker = True
+                break
+            if choice == '3':
+                key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
+                if key:
+                    os.environ['OPENAI_API_KEY'] = key
+                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
+                continue
+            if choice == '4':
                 return
-        else:
-            # Fallback to simple text-based prompts
-            session_type = None
-            # Session type selection (use number keys and Enter)
-            print("(Type the number of your choice and press Enter)")
-            while True:
-                print()
-                print("Select a session type:")
-                print(" 1) PTY Shell")
-                print(" 2) Docker Container (requires Docker)")
-                print(" 3) Enter OpenAI API Key to enable AI features")
-                print(" 4) Help")
-                print(" 5) Exit")
-                choice = input("Choice [1-5]: ").strip()
-                if choice in ('1', 'pty'):
-                    session_type = 'pty'
-                elif choice in ('2', 'docker'):
-                    session_type = 'docker'
-                elif choice == '3':
-                    key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
-                    if key:
-                        os.environ['OPENAI_API_KEY'] = key
-                        print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                    continue
-                elif choice == '4':
-                    show_session_type_help()
-                    input("\nPress Enter to return to the menu...")
-                    continue
-                elif choice == '5':
+            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+        # Quiz type selection
+        while True:
+            print()
+            print("Select quiz type:")
+            print(" 1) K8s (preinstalled)")
+            print(" 2) Kustom (upload your own quiz)")
+            print(" 3) Review flagged questions")
+            print(" 4) Help")
+            print(" 5) Exit")
+            sub = input("Choice [1-5]: ").strip()
+            if sub == '1':
+                args.module = 'kubernetes'; break
+            if sub == '2':
+                args.module = 'custom'
+                path = input("Enter path to your custom quiz JSON file: ").strip()
+                if not path:
+                    print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
                     return
-                else:
-                    continue
-                break
-            # Quiz type selection (use number keys and Enter)
-            print("(Type the number of your choice and press Enter)")
-            while True:
-                print()
-                print(f"Session: {session_type.upper()}. Select quiz type:")
-                print(" 1) K8s (preinstalled)")
-                print(" 2) Kustom (upload your own quiz)")
-                print(" 3) Review flagged questions")
-                print(" 4) Help")
-                print(" 5) Back")
-                print(" 6) Exit")
-                sub = input("Choice [1-6]: ").strip()
-                if sub == '1':
-                    args.module = 'kubernetes'
-                elif sub == '2':
-                    args.module = 'custom'
-                    path = input("Enter path to your custom quiz JSON file: ").strip()
-                    if not path:
-                        session_type = None
-                        continue
-                    args.custom_file = path
-                elif sub == '3':
-                    args.module = 'kubernetes'
-                    args.review_only = True
-                elif sub == '4':
-                    show_quiz_type_help()
-                    input("\nPress Enter to return to the menu...")
-                    continue
-                elif sub == '5':
-                    return main()
-                elif sub == '6':
-                    return
-                else:
-                    continue
-                args.pty = (session_type == 'pty')
-                args.docker = (session_type == 'docker')
-                break
-            args.file = None
+                args.custom_file = path; break
+            if sub == '3':
+                args.module = 'kubernetes'; args.review_only = True; break
+            if sub == '4':
+                show_quiz_type_help(); input("Press Enter to continue..."); continue
+            if sub == '5':
+                return
+            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+        args.file = None
 
     # Global flags handling (note: history and list-modules are handled earlier)
     if args.list_categories:
