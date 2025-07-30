@@ -369,10 +369,9 @@ class NewSession(StudySession):
             print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
             return
 
-        correct_count = 0
-        per_category_stats = {}
         total_questions = len(questions_to_ask)
-        asked_count = 0
+        attempted_indices = set()
+        correct_indices = set()
 
         print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
         print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
@@ -389,26 +388,29 @@ class NewSession(StudySession):
 
         quiz_backed_out = False
         current_question_index = 0
-        # Store the last ShellResult per question index for 'Check Answer'
         transcripts_by_index = {}
+        
         while current_question_index < len(questions_to_ask):
             q = questions_to_ask[current_question_index]
             i = current_question_index + 1
             category = q.get('category', 'General')
-            if category not in per_category_stats:
-                per_category_stats[category] = {'asked': 0, 'correct': 0}
+            
+            # Determine question status for display
+            status_color = Fore.WHITE
+            if current_question_index in correct_indices:
+                status_color = Fore.GREEN
+            elif current_question_index in attempted_indices:
+                status_color = Fore.RED
 
-            print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-            was_answered = False
             while True:
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                # Unified interface for all questions
                 choices = [
-                    questionary.Choice("1. Open Shell", value="answer"),
+                    questionary.Choice("1. Work on Answer (in Shell)", value="answer"),
                     questionary.Choice("2. Check Answer", value="check"),
                     questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("4. Next Question", value="next"),
@@ -421,55 +423,25 @@ class NewSession(StudySession):
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                    # Recompute stats before saving history on interrupt
+                    asked_count = len(attempted_indices)
+                    correct_count = len(correct_indices)
+                    per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
                     self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
                     return
 
                 if action == "back":
                     quiz_backed_out = True
                     break
-
-                if action == "check":
-                    # Attempt to judge the last transcript for this question
-                    result = transcripts_by_index.get(current_question_index)
-                    if not result:
-                        print(f"{Fore.YELLOW}No transcript found. Please open the shell first.{Style.RESET_ALL}")
-                        continue
-                    # Show per-step feedback
-                    for step_res in result.step_results:
-                        if step_res.success:
-                            print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
-                        else:
-                            print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
-                            if step_res.stdout:
-                                print(step_res.stdout)
-                            if step_res.stderr:
-                                print(step_res.stderr)
-                    # Update stats on first check
-                    if not was_answered:
-                        asked_count += 1
-                        per_category_stats[category]['asked'] += 1
-                        was_answered = True
-                    if result.success:
-                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        correct_count += 1
-                        per_category_stats[category]['correct'] += 1
-                        current_question_index += 1
-                        break
-                    else:
-                        print(f"{Fore.RED}Incorrect. Try again or open shell to retry.{Style.RESET_ALL}")
-                        continue
-
+                
                 if action == "next":
-                    # Move to next question without answering
                     current_question_index = min(current_question_index + 1, total_questions - 1)
                     break
 
                 if action == "prev":
-                    # Move to previous question
                     current_question_index = max(current_question_index - 1, 0)
                     break
-
-
+                
                 if action == "flag":
                     data_file_path = q.get('data_file', args.file)
                     if is_flagged:
@@ -483,21 +455,13 @@ class NewSession(StudySession):
                     continue
 
                 if action == "answer":
-                    if not was_answered:
-                        asked_count += 1
-                        per_category_stats[category]['asked'] += 1
-                        was_answered = True
-                    
-                    # Unified shell experience for all question types
                     from kubelingo.sandbox import run_shell_with_setup
                     from kubelingo.question import Question, ValidationStep
-
-                    # Build validation steps (including legacy fallbacks)
+                    
                     validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', []) or q.get('validations', [])]
                     if not validation_steps and q.get('type') == 'command' and q.get('response'):
                         validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
-                    # Construct unified Question object
                     question_obj = Question(
                         id=q.get('id', ''),
                         prompt=q.get('prompt', ''),
@@ -510,48 +474,47 @@ class NewSession(StudySession):
                         difficulty=q.get('difficulty'),
                         metadata=q.get('metadata', {})
                     )
-
-                    # Execute sandbox workflow
+                    
                     result = run_shell_with_setup(
                         question_obj.pre_shell_cmds,
                         question_obj.initial_files,
                         question_obj.validation_steps,
                         use_container=args.docker
                     )
-                    # Store transcript for later "Check Answer"
                     transcripts_by_index[current_question_index] = result
+                    print(f"{Fore.GREEN}Attempt recorded. Transcript at: {result.transcript_path}{Style.RESET_ALL}")
+                    print("Use 'Check Answer' to evaluate your attempt.")
+                    continue
+                
+                if action == "check":
+                    result = transcripts_by_index.get(current_question_index)
+                    if not result:
+                        print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
+                        continue
+                    
+                    attempted_indices.add(current_question_index)
+                    is_correct = result.success
 
-                    # Show per-step feedback
                     for step_res in result.step_results:
                         if step_res.success:
                             print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
                         else:
                             print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
-                            if step_res.stdout:
-                                print(step_res.stdout)
-                            if step_res.stderr:
-                                print(step_res.stderr)
-                    print(f"Transcript saved to: {result.transcript_path}")
-
-                    is_correct = result.success
-
-                    self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-
+                    
                     if is_correct:
-                        correct_count += 1
-                        per_category_stats[category]['correct'] += 1
+                        correct_indices.add(current_question_index)
                         print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        if question_obj.explanation:
-                            print(f"{Fore.CYAN}Explanation: {question_obj.explanation}{Style.RESET_ALL}")
-                        
+                        if q.get('explanation'):
+                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
                         if AIHelper:
                             ai_helper = AIHelper()
                             if ai_helper.enabled:
                                 print(ai_helper.get_explanation(q))
-                        current_question_index += 1
+                        current_question_index += 1 # Move to next question
                         break
                     else:
-                        print(f"{Fore.RED}Incorrect. Try again or skip.{Style.RESET_ALL}")
+                        correct_indices.discard(current_question_index)
+                        print(f"{Fore.RED}Incorrect. Please try again.{Style.RESET_ALL}")
                         if AIHelper:
                             ai_helper = AIHelper()
                             if ai_helper.enabled:
@@ -563,6 +526,10 @@ class NewSession(StudySession):
         
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
+        
+        asked_count = len(attempted_indices)
+        correct_count = len(correct_indices)
+        per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
 
         print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
         score = (correct_count / asked_count * 100) if asked_count > 0 else 0
@@ -572,6 +539,25 @@ class NewSession(StudySession):
         self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
 
         self._cleanup_swap_files()
+
+    def _recompute_stats(self, questions, attempted_indices, correct_indices):
+        """Helper to calculate per-category stats from state sets."""
+        stats = {}
+        for idx in attempted_indices:
+            q = questions[idx]
+            category = q.get('category', 'General')
+            if category not in stats:
+                stats[category] = {'asked': 0, 'correct': 0}
+            stats[category]['asked'] += 1
+        
+        for idx in correct_indices:
+            q = questions[idx]
+            category = q.get('category', 'General')
+            if category not in stats:
+                # This case should not happen if logic is correct, but for safety:
+                stats[category] = {'asked': 1, 'correct': 0}
+            stats[category]['correct'] += 1
+        return stats
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""

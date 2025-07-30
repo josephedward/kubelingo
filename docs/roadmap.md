@@ -45,6 +45,13 @@ _Labels: enhancement, cli_
 - [x] Simplify CLI menus to a single “Answer (opens shell)” flow.
 - [ ] Remove legacy YAML/Vim-specific branches.
 
+### Stateful Quiz Experience
+_Labels: enhancement, ux_
+- [ ] Implement stateful quiz loop with forward/backward navigation.
+- [ ] Decouple shell execution from answer validation ("Check Answer" option).
+- [ ] Persist quiz session state to allow resuming.
+- [ ] Enhance end-of-quiz summary with per-question status.
+
 ### Session Transcript & AI-Based Evaluation
 _Labels: enhancement, logging, ai_
 - Record full terminal session using `script` or PTY logging (captures Vim keystrokes and shell commands).
