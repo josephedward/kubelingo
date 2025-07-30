@@ -62,8 +62,13 @@ def generate_explanation(client, question):
         # Clean up the explanation
         explanation = explanation.replace('"', '').strip()
         return explanation
+    except openai.APIConnectionError as e:
+        logging.error(f"Failed to connect to OpenAI API for prompt '{prompt}'. This is likely a network issue.")
+        logging.warning("Please check your internet connection, firewall, or proxy settings.")
+        logging.debug(f"Details: {e}")
+        return None
     except Exception as e:
-        logging.error(f"Error generating explanation for prompt '{prompt}': {e}")
+        logging.error(f"An unexpected error occurred generating explanation for prompt '{prompt}': {e}")
         return None
 
 # --- File Operations ---
