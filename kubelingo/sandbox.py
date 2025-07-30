@@ -29,10 +29,26 @@ from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.config import ROOT
 import tempfile
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Dict
 
 from kubelingo.question import Question, ValidationStep
+
+@dataclass
+class StepResult:
+    """Holds the result of a single validation step."""
+    step: ValidationStep
+    success: bool
+    stdout: str
+    stderr: str
+
+@dataclass
+class ShellResult:
+    """Encapsulates all outcomes of a shell-based exercise."""
+    success: bool
+    step_results: List[StepResult] = field(default_factory=list)
+    transcript_path: Path = None
+
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
