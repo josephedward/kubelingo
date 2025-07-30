@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any
 
-from kubelingo.modules.kubernetes.answer_checker import save_transcript
 from kubelingo.modules.kubernetes.answer_checker import save_transcript, evaluate_transcript
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.config import LOGS_DIR, ROOT
