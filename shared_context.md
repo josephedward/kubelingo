@@ -56,12 +56,13 @@ Use PTY for quick local quizzes, Docker for safe, reproducible environments.
 
 ### Session Transcript Logging & AI-Based Evaluation
 To support full-session auditing and optional AI judgment, we can record everything the user does in the sandbox:
-1. **Wrap the shell in the UNIX `script` utility**:
-   ```bash
-   # Inside spawn_pty_shell or launch_container_sandbox:
-   script -q -c "bash --login" "$TRANSCRIPT_PATH"
-   ```
-   - Records all input/output (including `vim` commands) to `TRANSCRIPT_PATH`.
+1. **Robust PTY shell launch with `script`**:
+   - When a transcript file is requested (`KUBELINGO_TRANSCRIPT_FILE` env var) and the `script` utility exists, the shell is launched under:
+     ```bash
+     script -q -c "bash --login --init-file <init-script>" "$KUBELINGO_TRANSCRIPT_FILE"
+     ```
+     This ensures full-session recording (including `vim` edits) and properly restores terminal modes on exit, avoiding nested prompt failures.
+   - Otherwise, falls back to Python’s `pty.spawn(['bash','--login', '--init-file', <init-script>])`, maintaining the custom sandbox prompt and environment.
 2. **Parse and sanitize the transcript**:
    - Strip ANSI escape codes.
    - Extract user keystrokes and commands.
@@ -105,10 +106,16 @@ Updated interactive CLI quiz session to:
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
-- **Fixed**: Cleared the terminal at the start of each question to separate contexts and prevent UI overlap.
-- **Fixed**: Removed manual numeric prefixes from all menus; questionary auto-numbering now renders cleanly.
-- **Fixed**: Inserted blank lines before rendering menus to ensure clear visual separation from prior content.
-- **Fixed**: A UI bug causing nested prompts was resolved by ensuring all questions use the unified PTY shell. Placeholder `validation_steps` were added to markdown-based questions that lacked them, forcing consistent processing through the modern, robust answer interface. This also enables transcript-based AI evaluation for all exercises.
+ - **Fixed**: Cleared the terminal at the start of each question to separate contexts and prevent UI overlap.
+ - **Fixed**: Removed manual numeric prefixes from all menus; questionary auto-numbering now renders cleanly.
+ - **Fixed**: Inserted blank lines before rendering menus to ensure clear visual separation from prior content.
+ - **Fixed**: Removed the top-level `import llm` (and heavy pandas/numpy/sqlite_utils deps) from `ai_evaluator.py`, deferring the `llm` import to runtime inside `_check_and_process_answer`. This prevents startup segmentation faults and restores the full ASCII-art banner and interactive menus.
+ - **Fixed**: Consolidated all question flows through the unified `spawn_pty_shell` runner so that, upon shell exit, control returns cleanly to the main quiz loop. This avoids nested Questionary prompts inside the sandbox and eliminates unintended cancellations.
+  - **Fixed**: A UI bug causing nested prompts was resolved by ensuring all questions use the unified PTY shell. Placeholder `validation_steps` were added to markdown-based questions that lacked them, forcing consistent processing through the modern, robust answer interface. This also enables transcript-based AI evaluation for all exercises.
+  - **Fixed (attempted)**: The interactive CLI menu for bare `kubelingo` had been disabled by a mis-indentation/guard. Although the guard was removed, the block remains incorrectly nested under the `--k8s` shortcut, so it still does not fire on an empty invocation. A full refactor is needed to move the menu logic before any module dispatch.
+  - **Fixed**: Corrected a critical syntax/indentation error in `kubelingo/cli.py` by removing a malformed, duplicated interactive block and restoring a minimal bare-`kubelingo` fallback menu (PTY Shell, Docker Container, Enter OpenAI API Key, Exit).
+  - **Fixed**: Addressed a UI regression in `kubelingo/modules/kubernetes/session.py` by standardizing menu choice definitions as simple `{"name": ..., "value": ...}` dict literals (instead of mixed `questionary.Choice`), restoring clean layout and correct numbering.
+  - **Fixed**: Wrapped the PTY shell under `script` when recording transcripts, fixing terminal state corruption and preventing nested Questionary prompts from auto-cancelling after exit.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations
