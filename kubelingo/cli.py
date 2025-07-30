@@ -7,6 +7,7 @@ import argparse
 import sys
 import os
 import logging
+import readline  # Enable rich input editing, history, and arrow keys
 # Provide pytest.anything for test wildcard assertions
 try:
     import pytest
@@ -26,7 +27,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
-    Fore, Style, questionary, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
+    Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
 import os
 from kubelingo.utils.config import (
