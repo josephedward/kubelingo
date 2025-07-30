@@ -34,6 +34,7 @@ except ImportError:
     FileHistory = None
 
 from kubelingo.modules.base.session import StudySession, SessionManager
+from pathlib import Path
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -47,9 +48,6 @@ from .answer_checker import evaluate_transcript
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellResult, StepResult
 import logging  # for logging in exercises
 # Stub out AI evaluator to avoid heavy external dependencies
-AIEvaluator = None
-AIHelper = None
-AI_EVALUATOR_ENABLED = False
 
 
 def _get_quiz_files():
@@ -430,7 +428,12 @@ class NewSession(StudySession):
                     # Ensure visual separation between previous output and the menu
                     # Visual separation before menu
                     print()
-                    action = questionary.select("Action:", choices=choices, use_indicator=True).ask()
+                    action = questionary.select(
+                        "Action:",
+                        choices=choices,
+                        use_indicator=True,
+                        default="Work on Answer (in Shell)"
+                    ).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
@@ -582,24 +585,40 @@ class NewSession(StudySession):
                 if step_res.stdout or step_res.stderr:
                     print(f"  {Fore.WHITE}{(step_res.stdout or step_res.stderr).strip()}{Style.RESET_ALL}")
 
+        # Report deterministic result
         if is_correct:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            if q.get('explanation'):
-                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-            if AIHelper:
-                ai_helper = AIHelper()
-                if ai_helper.enabled:
-                    print(ai_helper.get_explanation(q))
-            return True # Indicates success, quiz can move to next question
         else:
             correct_indices.discard(current_question_index)
-            print(f"{Fore.RED}Incorrect. Please try again.{Style.RESET_ALL}")
-            if AIHelper:
-                ai_helper = AIHelper()
-                if ai_helper.enabled:
-                    print(ai_helper.get_explanation(q))
-            return False # Indicates failure, stay on question
+            print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+        # Invoke AI evaluation on the transcript if the user has provided an API key
+        if os.getenv('OPENAI_API_KEY') and result.transcript_path:
+            try:
+                from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
+                evaluator = _AIEvaluator()
+                transcript = Path(result.transcript_path).read_text(encoding='utf-8')
+                ai_result = evaluator.evaluate(q, transcript)
+                ai_correct = ai_result.get('correct', False)
+                reasoning = ai_result.get('reasoning', '')
+                status = 'Correct' if ai_correct else 'Incorrect'
+                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+                # Override deterministic result if AI disagrees
+                is_correct = ai_correct
+                if is_correct:
+                    correct_indices.add(current_question_index)
+                else:
+                    correct_indices.discard(current_question_index)
+            except ImportError:
+                # AI evaluator not installed or failed to import
+                pass
+            except Exception:
+                # Any errors during AI evaluation should not crash the quiz
+                pass
+        # Show explanation if correct
+        if is_correct and q.get('explanation'):
+            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+        return is_correct
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
