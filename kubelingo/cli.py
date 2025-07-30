@@ -206,19 +206,12 @@ def main():
         help='Dry run enrichment (no file writes or API calls)'
     )
 
-    # Handle question-data enrichment and exit
-    # We use parse_known_args here to detect --enrich early without requiring full parse
+    # Handle question-data enrichment early and exit
     enrich_args, _ = parser.parse_known_args()
     if enrich_args.enrich:
         src, dst = enrich_args.enrich
-        # The script was renamed and refactored; update the CLI to call it correctly.
-        script_path = repo_root / 'scripts' / 'organize_question_data.py'
-        cmd = [
-            sys.executable, str(script_path),
-            '--enrich-only',
-            '--enrich-file', dst,
-            '--dedupe-ref-file', src
-        ]
+        script = repo_root / 'scripts' / 'enrich_and_dedup_questions.py'
+        cmd = [sys.executable, str(script), src, dst]
         if enrich_args.dry_run_enrich:
             cmd.append('--dry-run')
         subprocess.run(cmd)
