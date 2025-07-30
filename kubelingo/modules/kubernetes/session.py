@@ -496,8 +496,12 @@ class NewSession(StudySession):
                 print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                 return
 
-        num_to_ask = args.num if args.num > 0 else len(questions)
-        questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
+        # By default, present questions in order to respect dependencies.
+        # If a number of questions is specified, take a random sample.
+        if args.num and args.num > 0:
+            questions_to_ask = random.sample(questions, min(args.num, len(questions)))
+        else:
+            questions_to_ask = questions
 
         # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
         if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
