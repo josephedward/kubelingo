@@ -580,6 +580,11 @@ class NewSession(StudySession):
         if available and requested, otherwise falls back to deterministic checks.
         """
         attempted_indices.add(current_question_index)
+        # Validation steps are mandatory: cannot mark correct without any steps
+        if not q.get('validation_steps'):
+            correct_indices.discard(current_question_index)
+            print(f"{Fore.RED}Error: No validation steps defined for this question. Cannot validate answer.{Style.RESET_ALL}")
+            return False
         is_correct = False  # Default to incorrect
         ai_eval_used = False
         ai_eval_active = getattr(args, 'ai_eval', False)
