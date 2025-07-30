@@ -261,12 +261,12 @@ def main():
                             choice = questionary.select(
                                 "Select a session type:",
                                 choices=[
-                                    questionary.Choice("PTY Shell", value="pty"),
-                                    questionary.Choice("Docker Container (requires Docker)", value="docker"),
+                                    {"name": "PTY Shell", "value": "pty"},
+                                    {"name": "Docker Container (requires Docker)", "value": "docker"},
                                     questionary.Separator(),
-                                    questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
-                                    questionary.Choice("Help", value="help"),
-                                    questionary.Choice("Exit", value="exit"),
+                                    {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
+                                    {"name": "Help", "value": "help"},
+                                    {"name": "Exit", "value": "exit"},
                                 ],
                                 use_indicator=True
                             ).ask()
@@ -298,13 +298,13 @@ def main():
                         quiz_choice = questionary.select(
                             f"Session: {session_type.upper()}. Select quiz type:",
                             choices=[
-                                questionary.Choice("K8s (preinstalled)", value="k8s"),
-                                questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
-                                questionary.Choice("Review flagged questions", value="review"),
+                                {"name": "K8s (preinstalled)", "value": "k8s"},
+                                {"name": "Kustom (upload your own quiz)", "value": "kustom"},
+                                {"name": "Review flagged questions", "value": "review"},
                                 questionary.Separator(),
-                                questionary.Choice("Help", value="help"),
-                                questionary.Choice("Back", value="back"),
-                                questionary.Choice("Exit", value="exit"),
+                                {"name": "Help", "value": "help"},
+                                {"name": "Back", "value": "back"},
+                                {"name": "Exit", "value": "exit"},
                             ],
                             use_indicator=True
                         ).ask()
