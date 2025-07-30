@@ -290,12 +290,15 @@ def main():
                                 questionary.Choice("3. Review flagged questions", value="review"),
                                 questionary.Separator(),
                                 questionary.Choice("4. Help", value="help"),
-                                questionary.Choice("5. Back", value="back")
+                                questionary.Choice("5. Back", value="back"),
+                                questionary.Choice("6. Exit", value="exit")
                             ],
                             use_indicator=True
                         ).ask()
 
-                        if quiz_choice is None: # User pressed Ctrl+C
+                        if quiz_choice is None:  # User pressed Ctrl+C
+                            return
+                        elif quiz_choice == "exit":
                             return
                         elif quiz_choice == "back":
                             session_type = None
