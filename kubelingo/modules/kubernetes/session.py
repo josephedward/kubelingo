@@ -391,6 +391,11 @@ class NewSession(StudySession):
         transcripts_by_index = {}
         
         while current_question_index < len(questions_to_ask):
+            # Clear the terminal for visual clarity between questions
+            try:
+                os.system('clear')
+            except Exception:
+                pass
             q = questions_to_ask[current_question_index]
             i = current_question_index + 1
             category = q.get('category', 'General')
