@@ -212,10 +212,18 @@ def enrich_and_dedupe(
         logging.info("Scanning for questions missing 'validation_steps'...")
         
         question_source = []
-        if is_nested:
+        # Support both 'questions' and 'prompts' as keys for nested lists
+        nested_key = None
+        if data and isinstance(data[0], dict):
+            if 'questions' in data[0]:
+                nested_key = 'questions'
+            elif 'prompts' in data[0]:
+                nested_key = 'prompts'
+
+        if nested_key:
             for category in data:
-                question_source.extend(category.get('questions', []))
-        else: # flat list
+                question_source.extend(category.get(nested_key, []))
+        else:  # flat list
             question_source = data
 
         for q in question_source:
