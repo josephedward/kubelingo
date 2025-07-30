@@ -869,6 +869,29 @@ class NewSession(StudySession):
 
         return choices, all_flagged
 
+    def _check_cluster_connectivity(self):
+        """Checks if kubectl can connect to a cluster and provides helpful error messages."""
+        # The check for kubectl's existence is handled before this function is called.
+        try:
+            # Use a short timeout to avoid long waits on network issues.
+            result = subprocess.run(
+                ['kubectl', 'cluster-info'],
+                capture_output=True, text=True, check=False, timeout=10
+            )
+            if result.returncode != 0:
+                print(f"\n{Fore.RED}Error: kubectl cannot connect to a Kubernetes cluster.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Please ensure a cluster is running and your KUBECONFIG is correct.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}You can start a local test cluster with 'minikube start' or 'kind create cluster'.{Style.RESET_ALL}")
+                if result.stderr:
+                    print(f"\n--- kubectl output ---\n{result.stderr.strip()}\n----------------------")
+                return False
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            print(f"\n{Fore.RED}Error: `kubectl cluster-info` command failed or timed out.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Please ensure kubectl is installed and accessible in your PATH.{Style.RESET_ALL}")
+            return False
+        
+        return True
+
     def _initialize_live_session(self, args, questions):
         """
         Checks for dependencies and sets up a temporary Kind cluster if requested.
@@ -880,18 +903,26 @@ class NewSession(StudySession):
         if 'kubectl' in deps:
             print(f"{Fore.YELLOW}Warning: kubectl not found. Cluster interactions will not be available.{Style.RESET_ALL}")
 
-        if getattr(args, 'start_cluster', False):
-            needs_k8s = False
-            for q in questions:
-                # Determine if any question in the session needs a live cluster
-                if q.get('type') in ('live_k8s', 'live_k8s_edit') or \
-                   any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', [])) or \
-                   any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', [])):
-                    needs_k8s = True
-                    break
-            
-            if needs_k8s:
-                self._setup_kind_cluster()
+        needs_k8s = False
+        for q in questions:
+            # Determine if any question in the session needs a live cluster
+            if q.get('type') in ('live_k8s', 'live_k8s_edit') or \
+               any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', [])) or \
+               any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', [])):
+                needs_k8s = True
+                break
+        
+        if needs_k8s:
+            if 'kubectl' in deps:
+                print(f"\n{Fore.RED}Error: This quiz contains questions that require 'kubectl', which was not found in your PATH.{Style.RESET_ALL}")
+                sys.exit(1)
+
+            if getattr(args, 'start_cluster', False):
+                if not self._setup_kind_cluster():
+                    sys.exit(1)
+            else:
+                if not self._check_cluster_connectivity():
+                    sys.exit(1)
 
         self.live_session_active = True
         return True
