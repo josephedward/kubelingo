@@ -130,6 +130,7 @@ Updated interactive CLI quiz session to:
 
 ### CLI Readability & Regression Tests
 To guard against mangled output and UI regressions, we recommend:
+Options are now: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
 1.  Smoke-test static CLI outputs:
     -  Use pytest’s `capsys` or a subprocess to run `kubelingo --help`, `--history`, `--list-modules`, etc.
     -  Assert exit code 0, presence of key banner lines and option names (e.g. `Select a session type:`), and absence of control chars (`\x00`).
