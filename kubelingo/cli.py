@@ -192,6 +192,27 @@ def main():
     if args.list_modules:
         show_modules()
         return
+    # Bare invocation (no flags or commands): simple text menu
+    if len(sys.argv) == 1:
+        print()
+        print("Select a session type:")
+        print(" 1) PTY Shell")
+        print(" 2) Docker Container (requires Docker)")
+        print(" 3) Enter OpenAI API Key to enable AI features")
+        print(" 4) Exit")
+        choice = input("Choice [1-4]: ").strip()
+        if choice == '4':
+            return
+        if choice == '1':
+            args.pty = True
+        elif choice == '2':
+            args.docker = True
+        elif choice == '3':
+            key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
+            if key:
+                os.environ['OPENAI_API_KEY'] = key
+                print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
+        return
     # For bare invocation (no flags or commands), present an interactive menu.
     if len(sys.argv) == 1:
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
@@ -208,25 +229,33 @@ def main():
                                 {"name": "PTY Shell", "value": "pty"},
                                 {"name": "Docker Container (requires Docker)", "value": "docker"},
                                 questionary.Separator(),
+                                {"name": "Help", "value": "help"},
                                 {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
                                 {"name": "Exit", "value": "exit"},
                             ],
                             use_indicator=True
                         ).ask()
                         if choice in (None, "exit"): return
+                        if choice == "help":
+                            show_session_type_help()
+                            continue
                     else: # Text-based fallback
                         print("Select a session type:")
                         print(" 1) PTY Shell")
                         print(" 2) Docker Container (requires Docker)")
-                        print(" 3) Enter OpenAI API Key to enable AI features")
-                        print(" 4) Exit")
-                        choice_map = {'1': 'pty', '2': 'docker', '3': 'api_key', '4': 'exit'}
-                        text_choice = input("Choice [1-4]: ").strip()
+                        print(" 3) Help")
+                        print(" 4) Enter OpenAI API Key to enable AI features")
+                        print(" 5) Exit")
+                        choice_map = {'1': 'pty', '2': 'docker', '3': 'help', '4': 'api_key', '5': 'exit'}
+                        text_choice = input("Choice [1-5]: ").strip()
                         choice = choice_map.get(text_choice)
+                        if choice == 'help':
+                            show_session_type_help()
+                            continue
                         if choice == 'exit' or choice is None: return
                         if not choice:
-                             print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-                             continue
+                            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
+                            continue
 
                     if choice == 'api_key':
                         prompt_text = "Enter your OpenAI API Key (leave blank to cancel):"
