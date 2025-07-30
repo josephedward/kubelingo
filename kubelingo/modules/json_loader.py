@@ -24,8 +24,11 @@ class JSONLoader(BaseLoader):
 
     def load_file(self, path: str) -> List[Question]:
         # Load and normalize JSON file into Question objects
+        # Load JSON content; if top-level is a list, wrap it under a 'questions' key
         with open(path, encoding='utf-8') as f:
             raw = json.load(f)
+        if isinstance(raw, list):
+            raw = {'questions': raw}
         module = raw.get('module') or os.path.splitext(os.path.basename(path))[0]
         questions: List[Question] = []
         for idx, item in enumerate(raw.get('questions', [])):
