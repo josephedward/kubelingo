@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import argparse
 import os
 import re
 import sys
@@ -13,20 +12,6 @@ except ImportError:
         file=sys.stderr,
     )
     sys.exit(1)
-
-
-# Heuristics to identify questions that likely need context from a previous question.
-# These are case-insensitive.
-VAGUE_QUESTION_STARTS = [
-    "create the pod that was just described",
-    "do the same",
-    "change pod's image",
-    "get nginx pod's ip",
-    "get pod's yaml",
-    "get information about the pod",
-    "get pod logs",
-    "if pod crashed and restarted",
-]
 
 
 def get_openai_client() -> openai.OpenAI:
@@ -71,9 +56,7 @@ Rewrite the second question. Provide only the rewritten question text, without a
         return None
 
 
-def process_markdown_file(
-    filepath: str, client: openai.OpenAI, all_questions: bool = False
-):
+def process_markdown_file(filepath: str, client: openai.OpenAI):
     """Processes a markdown file to enrich questions."""
     print(f"Processing {filepath}...")
     try:
@@ -97,30 +80,22 @@ def process_markdown_file(
         questions_and_details.append({"question": question, "details": details})
 
     modified = False
-    for i in range(len(questions_and_details)):
+    # Start from the second question, as the first has no predecessor for context.
+    for i in range(1, len(questions_and_details)):
+        previous_q_text = questions_and_details[i - 1]["question"]
         current_q_text = questions_and_details[i]["question"]
 
-        # Decide if question needs enrichment
-        needs_enrichment = all_questions
-        if not needs_enrichment:
-            for start in VAGUE_QUESTION_STARTS:
-                if current_q_text.lower().startswith(start):
-                    needs_enrichment = True
-                    break
+        print(f"Enriching question: '{current_q_text}'")
+        enriched_q_text = enrich_question(client, previous_q_text, current_q_text)
 
-        if needs_enrichment and i > 0:
-            previous_q_text = questions_and_details[i - 1]["question"]
-            print(f"Enriching question: '{current_q_text}'")
-            enriched_q_text = enrich_question(client, previous_q_text, current_q_text)
-
-            if enriched_q_text and enriched_q_text != current_q_text:
-                questions_and_details[i]["question"] = enriched_q_text
-                print(f"  -> New question: '{enriched_q_text}'")
-                modified = True
-            elif not enriched_q_text:
-                print("  -> Failed to enrich.")
-            else:
-                print("  -> No change needed.")
+        if enriched_q_text and enriched_q_text != current_q_text:
+            questions_and_details[i]["question"] = enriched_q_text
+            print(f"  -> New question: '{enriched_q_text}'")
+            modified = True
+        elif not enriched_q_text:
+            print("  -> Failed to enrich.")
+        else:
+            print("  -> No change needed.")
 
     if modified:
         # Reconstruct the markdown file
@@ -140,24 +115,32 @@ def process_markdown_file(
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Enrich markdown quiz questions using AI to make them self-contained."
-    )
-    parser.add_argument(
-        "files", nargs="+", help="Path(s) to the markdown file(s) to process."
-    )
-    parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Attempt to enrich all questions, not just ones matching heuristics.",
-    )
+    # This script is in scripts/, so questions-data/ is one level up.
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    questions_data_dir = os.path.join(script_dir, "..", "questions-data")
 
-    args = parser.parse_args()
+    if not os.path.isdir(questions_data_dir):
+        print(
+            f"Error: questions-data directory not found at {questions_data_dir}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    markdown_files = []
+    for root, _, files in os.walk(questions_data_dir):
+        for file in files:
+            if file.endswith(".md"):
+                markdown_files.append(os.path.join(root, file))
+
+    if not markdown_files:
+        print(f"No markdown files found in {questions_data_dir}", file=sys.stderr)
+        return
 
     client = get_openai_client()
 
-    for file in args.files:
-        process_markdown_file(file, client, args.all)
+    # Sort files to process them in a consistent order.
+    for file_path in sorted(markdown_files):
+        process_markdown_file(file_path, client)
 
     print("\nDone.")
 
