@@ -198,12 +198,12 @@ def organize_files(dry_run=False):
 
     logging.info("--- File organization complete ---")
 
-def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
+def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False, do_dedupe=True, do_explanations=True, do_validations=True):
     """Enriches questions with AI explanations and de-duplicates them."""
     logging.info("--- Starting question enrichment and de-duplication ---")
 
     client = get_openai_client()
-    if not client:
+    if not client and (do_explanations or do_validations):
         logging.warning("Skipping enrichment as OpenAI client is not available.")
         return
 
@@ -212,12 +212,13 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
         return
 
     explained_prompts = set()
-    if ref_file_path and ref_file_path.exists():
-        ref_questions = load_questions(str(ref_file_path))
-        explained_prompts = {q.get('prompt', '').strip() for q in ref_questions if q.get('explanation')}
-        logging.info(f"Loaded {len(explained_prompts)} prompts with existing explanations from '{ref_file_path.name}'")
-    else:
-        logging.warning(f"Reference file '{ref_file_path}' not found. Skipping de-duplication.")
+    if do_dedupe:
+        if ref_file_path and ref_file_path.exists():
+            ref_questions = load_questions(str(ref_file_path))
+            explained_prompts = {q.get('prompt', '').strip() for q in ref_questions if q.get('explanation')}
+            logging.info(f"Loaded {len(explained_prompts)} prompts with existing explanations from '{ref_file_path.name}'")
+        else:
+            logging.warning(f"Reference file '{ref_file_path}' not found. Skipping de-duplication.")
 
     with open(target_file_path, 'r', encoding='utf-8') as f:
         target_data_raw = json.load(f)
@@ -234,11 +235,11 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
             prompts_to_keep = []
             for question in category_group.get('prompts', []):
                 prompt_text = question.get('prompt', '').strip()
-                if prompt_text in explained_prompts:
+                if do_dedupe and prompt_text in explained_prompts:
                     deduplicated_count += 1
                     logging.info(f"De-duplicating question (already has explanation): \"{prompt_text[:50]}...\"")
                     continue
-                if not question.get('explanation'):
+                if do_explanations and not question.get('explanation'):
                     logging.info(f"Generating explanation for: \"{prompt_text[:50]}...\"")
                     if not dry_run:
                         explanation = generate_explanation(client, question)
@@ -248,7 +249,7 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
                     else:
                         enriched_explanation_count += 1
                 
-                if not question.get('validation_steps'):
+                if do_validations and not question.get('validation_steps'):
                     logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
                     if not dry_run:
                         steps = generate_validation_steps(client, question)
@@ -265,11 +266,11 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
         final_data = []
         for question in target_data_raw:
             prompt_text = question.get('prompt', '').strip()
-            if prompt_text in explained_prompts:
+            if do_dedupe and prompt_text in explained_prompts:
                 deduplicated_count += 1
                 logging.info(f"De-duplicating question (already has explanation): \"{prompt_text[:50]}...\"")
                 continue
-            if not question.get('explanation'):
+            if do_explanations and not question.get('explanation'):
                 logging.info(f"Generating explanation for: \"{prompt_text[:50]}...\"")
                 if not dry_run:
                     explanation = generate_explanation(client, question)
@@ -279,7 +280,7 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
                 else:
                     enriched_explanation_count += 1
 
-            if not question.get('validation_steps'):
+            if do_validations and not question.get('validation_steps'):
                 logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
                 if not dry_run:
                     steps = generate_validation_steps(client, question)
@@ -290,9 +291,12 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
                     enriched_steps_count += 1
             final_data.append(question)
 
-    logging.info(f"Enriched {enriched_explanation_count} questions with new explanations.")
-    logging.info(f"Enriched {enriched_steps_count} questions with new validation steps.")
-    logging.info(f"Removed {deduplicated_count} duplicate questions.")
+    if do_explanations:
+        logging.info(f"Enriched {enriched_explanation_count} questions with new explanations.")
+    if do_validations:
+        logging.info(f"Enriched {enriched_steps_count} questions with new validation steps.")
+    if do_dedupe:
+        logging.info(f"Removed {deduplicated_count} duplicate questions.")
 
     if not dry_run:
         with open(target_file_path, 'w', encoding='utf-8') as f:
@@ -306,9 +310,26 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help="Show what would be done, but don't make changes.")
     parser.add_argument('--organize-only', action='store_true', help="Only perform file organization.")
     parser.add_argument('--enrich-only', action='store_true', help="Only perform AI enrichment and de-duplication.")
+    parser.add_argument('--generate-validations', action='store_true', help="Only generate validation steps for questions, skipping all other operations.")
     parser.add_argument('--enrich-file', type=Path, help="Path to a specific JSON question file to enrich.")
     parser.add_argument('--dedupe-ref-file', type=Path, help="Reference file with explanations for de-duplication.")
     args = parser.parse_args()
+
+    if args.generate_validations:
+        logging.info("--- Running in validation generation only mode. ---")
+        json_dir = QUESTION_DATA_DIR / "json"
+        target_file = args.enrich_file if args.enrich_file else json_dir / "kubernetes.json"
+        ref_file = args.dedupe_ref_file if args.dedupe_ref_file else json_dir / "kubernetes_with_explanations.json"
+
+        enrich_and_deduplicate(
+            target_file,
+            ref_file,
+            dry_run=args.dry_run,
+            do_dedupe=False,
+            do_explanations=False,
+            do_validations=True
+        )
+        return
 
     run_organize = not args.enrich_only
     run_enrich = not args.organize_only
