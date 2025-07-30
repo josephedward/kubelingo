@@ -393,32 +393,6 @@ def main():
                     else:
                         continue
                     break
-                        
-                        # User has made a selection, set args and break to run the module
-                        if session_type == 'pty':
-                            args.pty = True
-                        elif session_type == 'docker':
-                            args.docker = True
-                        
-                        if quiz_choice == 'k8s':
-                            args.module = 'kubernetes'
-                        elif quiz_choice == 'kustom':
-                            args.module = 'custom'
-                            # In interactive mode, we need to prompt for the file
-                            custom_file = questionary.path("Enter path to your custom quiz JSON file:").ask()
-                            if not custom_file:
-                                print(f"{Fore.YELLOW}No file selected. Returning to menu.{Style.RESET_ALL}")
-                                session_type = None # Go back to the top menu
-                                continue
-                            args.custom_file = custom_file
-                        elif quiz_choice == 'review':
-                            args.module = 'kubernetes'
-                            args.review_only = True
-                        
-                        break # Exit interactive loop and proceed to run module
-                except (EOFError, KeyboardInterrupt):
-                    print("\nExiting.")
-                    return
         
         # In interactive CLI mode, clear the default data file to enable in-quiz file selection
         if len(sys.argv) == 1 and questionary:
