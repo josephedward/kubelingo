@@ -475,11 +475,11 @@ class NewSession(StudySession):
                         metadata=q.get('metadata', {})
                     )
                     
+                    # Launch unified shell-based exercise and record transcript & validations
                     result = run_shell_with_setup(
-                        question_obj.pre_shell_cmds,
-                        question_obj.initial_files,
-                        question_obj.validation_steps,
-                        use_container=args.docker
+                        question_obj,
+                        use_docker=args.docker,
+                        ai_eval=getattr(args, 'ai_eval', False)
                     )
                     transcripts_by_index[current_question_index] = result
                     print(f"{Fore.GREEN}Attempt recorded. Transcript at: {result.transcript_path}{Style.RESET_ALL}")

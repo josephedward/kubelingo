@@ -3,6 +3,25 @@ import pty
 import shutil
 import subprocess
 import sys
+import tempfile
+import re
+
+from kubelingo.question import Question, ValidationStep
+from kubelingo.modules.kubernetes.answer_checker import save_transcript
+from kubelingo.utils.config import LOGS_DIR
+
+@dataclass
+class StepResult:
+    step: ValidationStep
+    success: bool
+    stdout: str
+    stderr: str
+
+@dataclass
+class ShellResult:
+    success: bool
+    step_results: List[StepResult]
+    transcript_path: str
 
 from kubelingo.utils.ui import Fore, Style
 
@@ -112,57 +131,63 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
 
             # 3. Spawn shell for user interaction
             sandbox_func = launch_container_sandbox if use_docker else spawn_pty_shell
-            
-            transcript_file = None
-            if ai_eval:
-                transcript_file = workspace / "transcript.log"
-                os.environ['KUBELINGO_TRANSCRIPT_FILE'] = str(transcript_file)
+            # Always capture full terminal transcript and Vim commands log
+            transcript_file = workspace / "transcript.log"
+            os.environ['KUBELINGO_TRANSCRIPT_FILE'] = str(transcript_file)
+            vim_log_file = workspace / "vim.log"
+            os.environ['KUBELINGO_VIM_LOG'] = str(vim_log_file)
 
+            # Launch the sandbox shell
             sandbox_func()
-            
-            if ai_eval and 'KUBELINGO_TRANSCRIPT_FILE' in os.environ:
+            # Clear sandbox logging env vars
+            if 'KUBELINGO_TRANSCRIPT_FILE' in os.environ:
                 del os.environ['KUBELINGO_TRANSCRIPT_FILE']
+            if 'KUBELINGO_VIM_LOG' in os.environ:
+                del os.environ['KUBELINGO_VIM_LOG']
+            # Persist the transcript for this question
+            transcript_path = ''
+            try:
+                if transcript_file.exists():
+                    content = transcript_file.read_text(encoding='utf-8')
+                    transcript_path = save_transcript(question.id, content) or ''
+                    print(f"{Fore.CYAN}Transcript saved to {transcript_path}{Style.RESET_ALL}")
+            except Exception:
+                transcript_path = ''
 
             # 4. Run validation steps (handles legacy 'validations')
             validation_steps = question.validation_steps or question.validations
+            step_results: List[StepResult] = []
             if not validation_steps:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
-                return True
+            else:
+                for step in validation_steps:
+                    proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
+                    expected_code = step.matcher.get('exit_code', 0)
+                    success = (proc.returncode == expected_code)
+                    step_results.append(StepResult(step=step, success=success, stdout=proc.stdout or '', stderr=proc.stderr or ''))
 
-            all_valid = True
-            for step in validation_steps:
-                proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
-                
-                expected_code = step.matcher.get('exit_code', 0)
-                if proc.returncode != expected_code:
-                    print(f"{Fore.RED}Validation failed for command: {step.cmd}{Style.RESET_ALL}")
-                    print(proc.stdout or proc.stderr)
-                    all_valid = False
-                    break
-            
-            # 5. AI Evaluation (if enabled and deterministic checks passed)
-            if all_valid and ai_eval:
+            # 5. AI Evaluation (optional, if enabled and deterministic checks passed)
+            if ai_eval and transcript_file.exists():
                 from kubelingo.modules.ai_evaluator import AIEvaluator
-                if transcript_file and transcript_file.exists():
-                    transcript = transcript_file.read_text()
-                    evaluator = AIEvaluator()
-                    from dataclasses import asdict
-                    q_dict = asdict(question)
-                    result = evaluator.evaluate(q_dict, transcript)
-                    print(f"{Fore.CYAN}AI Evaluator says: {result.get('reasoning', 'No reasoning.')}{Style.RESET_ALL}")
-                    return result.get('correct', False)
-                else:
-                    print(f"{Fore.YELLOW}AI evaluation was requested but no transcript was found.{Style.RESET_ALL}")
-                    return False
+                transcript = transcript_file.read_text(encoding='utf-8')
+                evaluator = AIEvaluator()
+                from dataclasses import asdict
+                q_dict = asdict(question)
+                ai_result = evaluator.evaluate(q_dict, transcript)
+                print(f"{Fore.CYAN}AI Evaluator says: {ai_result.get('reasoning', 'No reasoning.')}{Style.RESET_ALL}")
+                success = ai_result.get('correct', False)
+                return ShellResult(success=success, step_results=step_results, transcript_path=transcript_path)
 
-            return all_valid
+            # Determine overall success by deterministic steps
+            overall_success = all(r.success for r in step_results) if step_results else True
+            return ShellResult(success=overall_success, step_results=step_results, transcript_path=transcript_path)
 
         except subprocess.CalledProcessError as e:
             print(f"{Fore.RED}A setup command failed: {e.cmd}{Style.RESET_ALL}")
             print(e.stdout or e.stderr)
-            return False
+            return ShellResult(success=False, step_results=[], transcript_path='')
         except Exception as e:
             print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
-            return False
+            return ShellResult(success=False, step_results=[], transcript_path='')
         finally:
             os.chdir(original_dir)
