@@ -11,16 +11,13 @@ import re
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
+from kubelingo.modules.kubernetes.session import load_questions
+
 try:
     import openai
 except ImportError:
     print("OpenAI Python client is not installed. Please run 'pip install openai'")
     sys.exit(1)
-
-# Determine project root and add to PYTHONPATH for local imports
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-from kubelingo.modules.kubernetes.session import load_questions
 
 # --- Constants ---
 QUESTION_DATA_DIR = project_root / 'question-data'
