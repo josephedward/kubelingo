@@ -13,6 +13,14 @@ sys.path.insert(0, str(project_root))
 
 from kubelingo.modules.kubernetes.session import load_questions
 
+# Load shared context from project root
+try:
+    with open(project_root / 'shared_context.md', 'r', encoding='utf-8') as f:
+        SHARED_CONTEXT = f.read()
+except FileNotFoundError:
+    logging.warning("shared_context.md not found. AI prompts will be less detailed.")
+    SHARED_CONTEXT = ""
+
 try:
     import openai
 except ImportError:
@@ -47,7 +55,7 @@ def generate_explanation(client, question):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a Kubernetes expert who provides concise, one-sentence explanations for `kubectl` commands. The explanation should describe what the command does and why it's useful in a real-world scenario."
+                    "content": f"{SHARED_CONTEXT}\n\nYou are a Kubernetes expert who provides concise, one-sentence explanations for `kubectl` commands. The explanation should describe what the command does and why it's useful in a real-world scenario."
                 },
                 {
                     "role": "user",
@@ -84,12 +92,12 @@ def generate_validation_steps(client, question):
             messages=[
                 {
                     "role": "system",
-                    "content": """You are a Kubernetes expert that generates validation steps for exercises.
+                    "content": f"""{SHARED_CONTEXT}\n\nYou are a Kubernetes expert that generates validation steps for exercises.
 Given a question prompt and the correct command, generate a JSON object containing a 'validation_steps' key with a JSON array of validation steps.
 Each step must be a `kubectl` command using `jsonpath` to verify a key attribute of the created resource.
 The output MUST be only a valid JSON object.
 Example for a question about creating a deployment with 1 replica:
-{"validation_steps": [{"cmd": "kubectl get deployment my-deployment -o jsonpath='{.spec.replicas}'", "matcher": {"value": 1}}]}"""
+{{"validation_steps": [{{"cmd": "kubectl get deployment my-deployment -o jsonpath='{{.spec.replicas}}'", "matcher": {{"value": 1}}}}]}}"""
                 },
                 {
                     "role": "user",
