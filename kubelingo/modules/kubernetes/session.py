@@ -662,11 +662,6 @@ class NewSession(StudySession):
 
         return choices, all_flagged
 
-    def _run_live_mode(self, args):
-        """DEPRECATED: Handles setup and execution of live Kubernetes exercises."""
-        # This method is no longer used by the unified quiz runner.
-        pass
-
     def _initialize_live_session(self):
         """
         Checks for dependencies. This is now mostly handled by the sandbox runner.
@@ -681,52 +676,6 @@ class NewSession(StudySession):
         self.live_session_active = True
         return True
 
-    def _run_one_exercise(self, q):
-        """
-        Handles validation for a single live Kubernetes exercise.
-        Prompts user for commands until 'done' and then runs an assertion script.
-        """
-        prompt_session = PromptSession() if PromptSession else None
-        while True:
-            try:
-                if prompt_session:
-                    cmd = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                else:
-                    cmd = input("Your command: ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print()
-                break
-            if cmd.lower() == "done":
-                break
-            parts = cmd.split()
-            try:
-                proc = subprocess.run(parts, capture_output=True, text=True, check=False)
-                if proc.stdout:
-                    print(proc.stdout, end="")
-                if proc.stderr:
-                    print(proc.stderr, end="")
-            except Exception as e:
-                print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
-        # Assertion script
-        script = q.get('assert_script') or q.get('response')
-        if not script:
-            self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"incorrect\"")
-            return
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.sh') as f:
-            f.write(script)
-            script_path = f.name
-        os.chmod(script_path, 0o755)
-        try:
-            result = subprocess.run(["bash", script_path], capture_output=True, text=True)
-            success = (result.returncode == 0)
-            self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{'correct' if success else 'incorrect'}\"")
-        except Exception as e:
-            print(f"{Fore.RED}Error executing assertion script: {e}{Style.RESET_ALL}")
-        finally:
-            os.remove(script_path)
-        return
-
-    
     def _cleanup_swap_files(self):
         """
         Scans the project directory for leftover Vim swap files (.swp, .swap)
