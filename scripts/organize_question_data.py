@@ -125,12 +125,15 @@ def generate_validation_steps(question, model="gpt-4-turbo", dry_run=False):
     if not client:
         return None
 
+    # Extract prompt and answer from the question dict
     prompt = question.get('prompt')
-    # Use 'response' if available, fallback to 'answer'
-    answer = question.get('metadata', {}).get('response') or question.get('metadata', {}).get('answer')
+    # Top-level 'response' or 'answer' fields
+    answer = question.get('response') or question.get('answer')
 
     if not prompt or not answer:
-        logging.warning(f"Skipping validation generation for question without prompt/answer: {question.get('id', 'N/A')}")
+        logging.warning(
+            f"Skipping validation generation for question without prompt or answer: id={question.get('id', 'N/A')}, prompt={prompt}"
+        )
         return None
 
     system_prompt = (
