@@ -30,6 +30,13 @@ from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help, questionary
 )
+from pathlib import Path
+import subprocess
+
+# Repository root for scripts
+repo_root = Path(__file__).resolve().parent.parent
+from pathlib import Path
+import subprocess
 import os
 from kubelingo.utils.config import (
     LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
@@ -189,7 +196,27 @@ def main():
     # --live is deprecated, as all k8s exercises are now sandbox-based.
     # It is kept for backward compatibility but has no effect.
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
+    # Question-data enrichment: dedupe & AI-enrich explanations
+    parser.add_argument(
+        '--enrich', nargs=2, metavar=('SRC_DIR', 'DEST_FILE'),
+        help='Enrich and dedupe question-data from SRC_DIR to DEST_FILE'
+    )
+    parser.add_argument(
+        '--dry-run-enrich', action='store_true',
+        help='Dry run enrichment (no file writes or API calls)'
+    )
 
+    # Handle question-data enrichment and exit
+    # We use parse_known_args here to detect --enrich early without requiring full parse
+    enrich_args, _ = parser.parse_known_args()
+    if enrich_args.enrich:
+        src, dst = enrich_args.enrich
+        script = repo_root / 'scripts' / 'enrich_and_dedup_questions.py'
+        cmd = [sys.executable, str(script), src, dst]
+        if enrich_args.dry_run_enrich:
+            cmd.append('--dry-run')
+        subprocess.run(cmd)
+        return
     # For bare invocation (no flags or commands), present an interactive menu.
     # Otherwise, parse arguments from command line.
     if len(sys.argv) == 1:
@@ -394,6 +421,12 @@ def main():
         # Handle --k8s shortcut
         if args.k8s_mode:
             args.module = 'kubernetes'
+            # For direct --k8s invocation without other flags, just load the module and exit
+            if args.num == 0 and not args.category and not args.review_only and not args.list_categories and not args.exercise_module:
+                logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+                logger = logging.getLogger()
+                load_session('kubernetes', logger)
+                return
 
         # Global flags handling (note: history and list-modules are handled earlier)
         if args.list_categories:
