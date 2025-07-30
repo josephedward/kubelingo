@@ -10,6 +10,10 @@ try:
     import openai
 except ImportError:
     openai = None
+try:
+    import questionary
+except ImportError:
+    questionary = None
 from kubelingo.modules.base.session import StudySession
 
 # Style settings copied from other modules for consistency
@@ -28,7 +32,21 @@ class AIHelper:
     """Helper to generate explanations using llm or OpenAI SDK."""
     def __init__(self, api_key=None):
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
-        # Require OPENAI_API_KEY in environment; do not prompt interactively
+        if not self.api_key:
+            key = None
+            try:
+                if questionary:
+                    # Use password prompt if available to mask input
+                    if hasattr(questionary, 'password'):
+                        key = questionary.password("Enter your OpenAI API key:").ask()
+                    else:
+                        key = questionary.text("Enter your OpenAI API key:").ask()
+                else:
+                    key = input("Enter your OpenAI API key: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                key = None
+            self.api_key = key
+
         if not self.api_key:
             print(f"{Fore.YELLOW}OPENAI_API_KEY not set; skipping AI explanations.{Style.RESET_ALL}")
         self.client = None
