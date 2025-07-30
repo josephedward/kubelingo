@@ -1009,15 +1009,10 @@ class NewSession(StudySession):
                 capture_output=True, text=True, check=False, timeout=10
             )
             if result.returncode != 0:
-                print(f"\n{Fore.RED}Error: kubectl cannot connect to a Kubernetes cluster.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}This quiz requires a live cluster connection for validation.{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}For setup instructions, please see: {os.path.join(ROOT, 'docs', 'cluster-setup.md')}{Style.RESET_ALL}")
-                if result.stderr:
-                    print(f"\n--- kubectl output ---\n{result.stderr.strip()}\n----------------------")
+                print(f"\n{Fore.YELLOW}Warning: kubectl cannot connect to a Kubernetes cluster. AI-based validation will be used instead.{Style.RESET_ALL}")
                 return False
         except (subprocess.TimeoutExpired, FileNotFoundError):
-            print(f"\n{Fore.RED}Error: `kubectl cluster-info` command failed or timed out.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Please ensure kubectl is installed and accessible in your PATH.{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}Warning: `kubectl cluster-info` failed or timed out. AI-based validation will be used instead.{Style.RESET_ALL}")
             return False
         
         return True
