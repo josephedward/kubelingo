@@ -28,6 +28,7 @@ from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
     Fore, Style, questionary, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
+import os
 from kubelingo.utils.config import (
     LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
 )
@@ -123,29 +124,6 @@ def show_modules():
 # Legacy alias for cloud-mode static branch
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
-    # Check for AI prerequisites and prompt for API key if needed.
-    try:
-        import llm
-        # LLM package is installed, now check for API key.
-        if not os.getenv('OPENAI_API_KEY'):
-            if questionary:
-                api_key = questionary.password(
-                    "OpenAI API key not found. Enter it to enable AI features, or press Enter to skip:",
-                    qmark="🔑"
-                ).ask()
-
-                if api_key:
-                    os.environ['OPENAI_API_KEY'] = api_key
-                    print(f"{Fore.GREEN}OpenAI API key set for this session.{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.YELLOW}AI features disabled. To enable them, set the OPENAI_API_KEY environment variable.{Style.RESET_ALL}")
-            else:
-                # Cannot prompt without questionary.
-                print(f"{Fore.YELLOW}AI features disabled. To enable, set OPENAI_API_KEY. For an interactive prompt, please install 'questionary'.{Style.RESET_ALL}")
-
-    except ImportError:
-        # LLM package not found, so AI features are unavailable.
-        print(f"{Fore.YELLOW}AI features disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
     while True:
         # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
         if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
@@ -153,6 +131,10 @@ def main():
             sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
         print_banner()
         print()
+        # Warn prominently if no OpenAI API key is set
+        if not os.getenv('OPENAI_API_KEY'):
+            print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
+            print(f"{Fore.RED}To enable AI features, select 'Enter OpenAI API Key to enable AI features' from the menu, or install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
         parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
         # Unified exercise mode: run questions from question-data modules
         parser.add_argument('--exercise-module', type=str,
@@ -279,11 +261,12 @@ def main():
                             choice = questionary.select(
                                 "Select a session type:",
                                 choices=[
-                                    questionary.Choice("1. PTY Shell", value="pty"),
-                                    questionary.Choice("2. Docker Container (requires Docker)", value="docker"),
+                                    questionary.Choice("PTY Shell", value="pty"),
+                                    questionary.Choice("Docker Container (requires Docker)", value="docker"),
                                     questionary.Separator(),
-                                    questionary.Choice("3. Help", value="help"),
-                                    questionary.Choice("4. Exit", value="exit")
+                                    questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
+                                    questionary.Choice("Help", value="help"),
+                                    questionary.Choice("Exit", value="exit"),
                                 ],
                                 use_indicator=True
                             ).ask()
@@ -294,6 +277,20 @@ def main():
                                 show_session_type_help()
                                 input("\nPress Enter to return to the menu...")
                                 continue
+                            elif choice == "api_key":
+                                # Prompt user to enter OpenAI API key
+                                if not questionary:
+                                    print(f"{Fore.RED}Interactive prompt unavailable. Please set OPENAI_API_KEY manually.{Style.RESET_ALL}")
+                                else:
+                                    api_key = questionary.password(
+                                        "Enter your OpenAI API Key (leave blank to cancel):", qmark="🔑"
+                                    ).ask()
+                                    if api_key:
+                                        os.environ['OPENAI_API_KEY'] = api_key
+                                        print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
+                                    else:
+                                        print(f"{Fore.YELLOW}No API key provided. AI features remain disabled.{Style.RESET_ALL}")
+                                continue
                             else:
                                 session_type = choice
                         
@@ -301,13 +298,13 @@ def main():
                         quiz_choice = questionary.select(
                             f"Session: {session_type.upper()}. Select quiz type:",
                             choices=[
-                                questionary.Choice("1. K8s (preinstalled)", value="k8s"),
-                                questionary.Choice("2. Kustom (upload your own quiz)", value="kustom"),
-                                questionary.Choice("3. Review flagged questions", value="review"),
+                                questionary.Choice("K8s (preinstalled)", value="k8s"),
+                                questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
+                                questionary.Choice("Review flagged questions", value="review"),
                                 questionary.Separator(),
-                                questionary.Choice("4. Help", value="help"),
-                                questionary.Choice("5. Back", value="back"),
-                                questionary.Choice("6. Exit", value="exit")
+                                questionary.Choice("Help", value="help"),
+                                questionary.Choice("Back", value="back"),
+                                questionary.Choice("Exit", value="exit"),
                             ],
                             use_indicator=True
                         ).ask()
