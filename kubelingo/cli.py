@@ -302,7 +302,6 @@ def main():
             return
 
     # Process positional command
-    args.module = None
     args.sandbox_submode = None
     if args.command:
         args.module = args.command[0]
