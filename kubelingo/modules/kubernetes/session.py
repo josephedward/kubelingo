@@ -553,7 +553,7 @@ class NewSession(StudySession):
                 is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
                 validator = q.get('validator')
                 is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                is_shell_mode = q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
+                is_shell_mode = q.get('type', 'command') != 'command' and q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
                 
                 answer_option_text = "Work on Answer"
                 if is_shell_mode:
@@ -650,7 +650,7 @@ class NewSession(StudySession):
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
                     # Use text input for Vim commands, no-cluster mode, or AI-based semantic validation
                     is_ai_validator = isinstance(q.get('validator', {}), dict) and q['validator'].get('type') == 'ai'
-                    use_text_input = q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                    use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
                     if use_text_input:
                         if is_mocked_k8s:
@@ -1030,10 +1030,11 @@ class NewSession(StudySession):
 
         needs_k8s = False
         for q in questions:
+            question_type = q.get('type', 'command')
             # Determine if any question in the session needs a live cluster
-            if q.get('type') in ('live_k8s', 'live_k8s_edit') or \
+            if question_type in ('live_k8s', 'live_k8s_edit') or \
                any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', [])) or \
-               any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', [])):
+               (question_type != 'command' and any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', []))):
                 needs_k8s = True
                 break
         
