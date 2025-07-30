@@ -430,7 +430,7 @@ class NewSession(StudySession):
                     # Ensure visual separation between previous output and the menu
                     # Visual separation before menu
                     print()
-                    action = questionary.select("Action:", choices=choices).ask()
+                    action = questionary.select("Action:", choices=choices, use_indicator=True).ask()
                     if action is None: raise KeyboardInterrupt
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
@@ -492,8 +492,7 @@ class NewSession(StudySession):
                     )
                     transcripts_by_index[current_question_index] = result
                     
-                    # Clear screen after shell and re-print question header.
-                    os.system('cls' if os.name == 'nt' else 'clear')
+                    # Re-print question header after shell.
                     print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
                     print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
@@ -612,7 +611,7 @@ class NewSession(StudySession):
 
         choices = []
         if all_flagged:
-            choices.append({'name': f"Review {len(all_flagged)} Flagged Questions", 'value': "review"})
+            choices.append(questionary.Choice(f"Review {len(all_flagged)} Flagged Questions", value="review"))
         
         if all_quiz_files:
             choices.append(questionary.Separator("Standard Quizzes"))
@@ -625,10 +624,10 @@ class NewSession(StudySession):
         
         if all_flagged:
             choices.append(questionary.Separator())
-            choices.append({'name': f"Clear All {len(all_flagged)} Review Flags", 'value': "clear_flags"})
+            choices.append(questionary.Choice(f"Clear All {len(all_flagged)} Review Flags", value="clear_flags"))
 
         choices.append(questionary.Separator())
-        choices.append({'name': "Back to Main Menu", 'value': "back"})
+        choices.append(questionary.Choice("Back to Main Menu", value="back"))
 
         return choices, all_flagged
 
