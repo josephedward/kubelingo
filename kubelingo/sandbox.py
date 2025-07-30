@@ -217,9 +217,14 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
             for filename, content in question.initial_files.items():
                 (workspace / filename).write_text(content)
 
-            # 2. Run pre-shell commands
+            # 2. Run pre-shell commands (warn on failure but continue)
             for cmd in question.pre_shell_cmds:
-                subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+                try:
+                    subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"{Fore.YELLOW}Warning: setup command failed: {e.cmd}{Style.RESET_ALL}")
+                    if e.stdout or e.stderr:
+                        print((e.stdout or e.stderr).strip())
 
             # 3. Spawn shell for user interaction
             sandbox_func = launch_container_sandbox if use_docker else spawn_pty_shell
@@ -261,8 +266,11 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
                 step_result_dicts = evaluate_transcript(question.validation_steps)
                 step_results = [StepResult(**d) for d in step_result_dicts]
 
-            # Determine overall success by deterministic steps
-            overall_success = all(r.success for r in step_results) if step_results else True
+            # Determine overall success by deterministic steps; questions without validation steps are always incorrect
+            if step_results:
+                overall_success = all(r.success for r in step_results)
+            else:
+                overall_success = False
 
             # 5. AI Evaluation (optional, as a "second opinion" if deterministic checks fail)
             if ai_eval and not overall_success and transcript_file.exists():
