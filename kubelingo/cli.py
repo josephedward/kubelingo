@@ -373,20 +373,6 @@ def main():
         # Non-interactive mode
         args = parser.parse_args()
 
-        if args.enrich:
-            src, dst = args.enrich
-            script_path = repo_root / 'scripts' / 'enrich_and_dedup_questions.py'
-            cmd = [sys.executable, str(script_path), str(src), str(dst)]
-            if args.dry_run_enrich:
-                cmd.append('--dry-run')
-            if args.generate_validations:
-                cmd.append('--generate-validations')
-            # Forward AI model and output format settings
-            cmd.extend(['--model', args.enrich_model])
-            cmd.extend(['--format', args.enrich_format])
-            subprocess.run(cmd)
-            return
-
         args.module = None
         # Early flags: history and list-modules
         if args.history:
