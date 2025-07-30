@@ -291,6 +291,20 @@ class NewSession(StudySession):
         """
         # All exercises now run through the unified quiz runner.
         self._run_unified_quiz(args)
+
+    def _run_command_quiz(self, args):
+        """Attempt Rust bridge execution first; fallback to Python if unavailable or fails."""
+        try:
+            from kubelingo.bridge import rust_bridge
+            # Always invoke rust bridge; tests patch this call
+            success = rust_bridge.run_command_quiz(args)
+            if success:
+                return
+        except ImportError:
+            pass
+        # Fallback: load questions via Python
+        load_questions(args.file)
+        return
     
     def _run_unified_quiz(self, args):
         """

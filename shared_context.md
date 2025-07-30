@@ -52,7 +52,9 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
   
 ### Documentation & Roadmap Updates
 - Added a new Phase 1: Unified Shell Experience to `docs/roadmap.md`, covering schema enhancements, sandbox runner, CLI refactor, session transcript recording, evaluation pipelines, and testing/documentation.
-- Recorded these changes here to keep shared context in sync.# Kubelingo Development Context
+- Recorded these changes here to keep shared context in sync.
+- Interactive CLI quiz type selection now includes an explicit 'Exit' option to allow quitting without starting a quiz.
+# Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation
 
