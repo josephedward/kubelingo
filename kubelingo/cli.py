@@ -183,6 +183,58 @@ def main():
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
+    # Interactive bare invocation: choose session and quiz type before dispatch
+    if len(sys.argv) == 1 and questionary and sys.stdin.isatty() and sys.stdout.isatty():
+        # Session type
+        sess = questionary.select(
+            "Select a session type:",
+            choices=[
+                {"name": "PTY Shell", "value": "pty"},
+                {"name": "Docker Container (requires Docker)", "value": "docker"},
+                questionary.Separator(),
+                {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
+                {"name": "Exit", "value": None},
+            ],
+            use_indicator=True,
+            default="pty"
+        ).ask()
+        if not sess:
+            return
+        if sess == 'api_key':
+            key = questionary.password("Enter your OpenAI API Key (leave blank to cancel):").ask()
+            if key:
+                os.environ['OPENAI_API_KEY'] = key
+                print(f"{Fore.GREEN}OpenAI API key set for this session.{Style.RESET_ALL}")
+            return
+        args.pty = (sess == 'pty')
+        args.docker = (sess == 'docker')
+        # Quiz type
+        quiz = questionary.select(
+            "Select quiz type:",
+            choices=[
+                {"name": "K8s (preinstalled)", "value": "k8s"},
+                {"name": "Kustom (upload your own quiz)", "value": "kustom"},
+                {"name": "Review flagged questions", "value": "review"},
+                questionary.Separator(),
+                {"name": "Exit", "value": None},
+            ],
+            use_indicator=True,
+            default="k8s"
+        ).ask()
+        if not quiz:
+            return
+        if quiz == 'review':
+            args.k8s_mode = True
+            args.review_only = True
+        elif quiz == 'kustom':
+            args.module = 'custom'
+            path = questionary.path("Enter path to your custom quiz JSON file:").ask()
+            if not path:
+                return
+            args.custom_file = path
+        else:
+            args.k8s_mode = True
+            args.module = 'kubernetes'
 
     # Process positional command
     args.module = None
@@ -242,61 +294,12 @@ def main():
     # Handle --k8s shortcut
     if args.k8s_mode:
         args.module = 'kubernetes'
-
-    # For bare invocation (no flags or commands), present a simple text-based menu
+    # Bare invocation (no args): default to embedded PTY shell
     if len(sys.argv) == 1:
-        # Session type selection
-        while True:
-            print()
-            print("Select a session type:")
-            print(" 1) PTY Shell")
-            print(" 2) Docker Container (requires Docker)")
-            print(" 3) Enter OpenAI API Key to enable AI features")
-            print(" 4) Exit")
-            choice = input("Choice [1-4]: ").strip()
-            if choice == '1':
-                args.pty = True
-                break
-            if choice == '2':
-                args.docker = True
-                break
-            if choice == '3':
-                key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
-                if key:
-                    os.environ['OPENAI_API_KEY'] = key
-                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                continue
-            if choice == '4':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        # Quiz type selection
-        while True:
-            print()
-            print("Select quiz type:")
-            print(" 1) K8s (preinstalled)")
-            print(" 2) Kustom (upload your own quiz)")
-            print(" 3) Review flagged questions")
-            print(" 4) Help")
-            print(" 5) Exit")
-            sub = input("Choice [1-5]: ").strip()
-            if sub == '1':
-                args.module = 'kubernetes'; break
-            if sub == '2':
-                args.module = 'custom'
-                path = input("Enter path to your custom quiz JSON file: ").strip()
-                if not path:
-                    print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                    return
-                args.custom_file = path; break
-            if sub == '3':
-                args.module = 'kubernetes'; args.review_only = True; break
-            if sub == '4':
-                show_quiz_type_help(); input("Press Enter to continue..."); continue
-            if sub == '5':
-                return
-            print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
-        # Reset quiz file to allow default or custom file selection
-        args.file = None
+        from .sandbox import spawn_pty_shell
+        spawn_pty_shell()
+        return
+
 
     # If certain flags are used without a module, default to kubernetes
     if args.module is None and (
