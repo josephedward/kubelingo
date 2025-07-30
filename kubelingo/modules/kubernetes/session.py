@@ -289,26 +289,7 @@ class NewSession(StudySession):
         """
         Router for running exercises. It decides which quiz to run.
         """
-        # Dispatch for command quizzes via Rust bridge or Python fallback
-        self._run_command_quiz(args)
-    
-    def _run_command_quiz(self, args):
-        """Attempt Rust-based quiz first; fallback to Python implementation."""
-        try:
-            from kubelingo.bridge import rust_bridge
-
-            is_interactive = not args.file and not args.category and not args.review_only
-
-            # The Rust version is for non-interactive, non-file, non-review quizzes.
-            if not is_interactive and not args.file and not args.review_only:
-                if rust_bridge.is_available():
-                    # If rust quiz runs and succeeds, we're done.
-                    if rust_bridge.run_command_quiz(args):
-                        return
-        except ImportError:
-            pass  # Fall through to Python version
-
-        # Fallback to the rich Python quiz implementation for all other cases.
+        # All exercises now run through the unified quiz runner.
         self._run_unified_quiz(args)
     
     def _run_unified_quiz(self, args):
