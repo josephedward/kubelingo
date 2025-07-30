@@ -392,7 +392,6 @@ class NewSession(StudySession):
             if category not in per_category_stats:
                 per_category_stats[category] = {'asked': 0, 'correct': 0}
 
-            q_type = q.get('type', 'command')
             print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
@@ -401,12 +400,8 @@ class NewSession(StudySession):
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                answer_text = "Start Exercise (Open Terminal)"
-                if q_type == 'command':
-                    answer_text = "Answer (Enter Command)"
-
                 choices = [
-                    questionary.Choice(f"1. {answer_text}", value="answer"),
+                    questionary.Choice("1. Start Exercise (Open Terminal)", value="answer"),
                     questionary.Choice(f"2. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("3. Skip", value="skip"),
                     questionary.Choice("4. Exit Quiz", value="back")
@@ -449,44 +444,30 @@ class NewSession(StudySession):
                         asked_count += 1
                         per_category_stats[category]['asked'] += 1
                         was_answered = True
+                    
+                    from kubelingo.sandbox import run_shell_with_setup
+                    from kubelingo.question import Question, ValidationStep
 
-                    is_correct = False
-                    ai_helper = AIHelper()
+                    # Convert dict to Question object to pass to the sandbox runner
+                    validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', []) or q.get('validations', [])]
+                    
+                    # For legacy command questions, create a validation step from the 'response'
+                    if not validation_steps and q.get('type') == 'command' and q.get('response'):
+                        validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
-                    if q_type == 'command':
-                        user_answer = ""
-                        if prompt_session:
-                            user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-                        else:
-                            user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
-
-                        if AI_EVALUATOR_ENABLED:
-                            is_correct, reason = ai_helper.evaluate_answer(q, user_answer)
-                            print(f"{Fore.CYAN}AI Eval: {reason}{Style.RESET_ALL}")
-                        else:
-                            is_correct = commands_equivalent(user_answer, q.get('response', ''))
-                    else: # live_k8s, etc.
-                        print(Fore.GREEN + "\nA sandbox shell will be opened. Perform the required actions." + Style.RESET_ALL)
-                        print(Fore.GREEN + "Type 'exit' or press Ctrl-D to finish and validate your answer." + Style.RESET_ALL)
-
-                        transcript_content, vim_log_content = None, None
-                        if args.ai_eval:
-                            transcript_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
-                            vim_log_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
-                            os.environ['KUBELINGO_TRANSCRIPT_FILE'] = transcript_file.name
-                            os.environ['KUBELINGO_VIM_LOG'] = vim_log_file.name
-
-                        sandbox_func()
-
-                        if args.ai_eval:
-                            transcript_file.seek(0); transcript_content = transcript_file.read()
-                            vim_log_file.seek(0); vim_log_content = vim_log_file.read()
-                            transcript_file.close(); vim_log_file.close()
-                            os.unlink(transcript_file.name); os.unlink(vim_log_file.name)
-                            del os.environ['KUBELINGO_TRANSCRIPT_FILE']; del os.environ['KUBELINGO_VIM_LOG']
-
-                        print("\nValidating your solution...")
-                        is_correct = self._run_one_exercise(q, args, transcript=transcript_content, vim_log=vim_log_content)
+                    question_obj = Question(
+                        id=q.get('id', ''),
+                        prompt=q.get('prompt', ''),
+                        pre_shell_cmds=q.get('pre_shell_cmds', []) or q.get('initial_cmds', []),
+                        initial_files=q.get('initial_files', {}) or ({'exercise.yaml': q['initial_yaml']} if q.get('initial_yaml') else {}),
+                        validation_steps=validation_steps,
+                        explanation=q.get('explanation'),
+                        categories=q.get('categories', [q.get('category', 'General')]),
+                        difficulty=q.get('difficulty'),
+                        metadata=q.get('metadata', {})
+                    )
+                    
+                    is_correct = run_shell_with_setup(question_obj, use_docker=args.docker, ai_eval=args.ai_eval)
 
                     self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
@@ -494,16 +475,17 @@ class NewSession(StudySession):
                         correct_count += 1
                         per_category_stats[category]['correct'] += 1
                         print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                        if q.get('explanation'):
-                            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                        if question_obj.explanation:
+                            print(f"{Fore.CYAN}Explanation: {question_obj.explanation}{Style.RESET_ALL}")
+                        
+                        ai_helper = AIHelper()
                         if ai_helper.enabled:
                             print(ai_helper.get_explanation(q))
                         current_question_index += 1
                         break
                     else:
                         print(f"{Fore.RED}Incorrect. Try again or skip.{Style.RESET_ALL}")
-                        if q_type == 'command' and not AI_EVALUATOR_ENABLED:
-                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        ai_helper = AIHelper()
                         if ai_helper.enabled:
                             print(ai_helper.get_explanation(q))
                         continue
@@ -559,89 +541,18 @@ class NewSession(StudySession):
         pass
 
     def _initialize_live_session(self):
-        """Checks for dependencies and prepares for a live session."""
-        deps = check_dependencies('kubectl')
-        if deps:
-            print(Fore.RED + f"Missing dependency for live questions: {', '.join(deps)}. Aborting." + Style.RESET_ALL)
-            print(Fore.YELLOW + "Please ensure you have a Kubernetes cluster configured (e.g., minikube, Docker Desktop)." + Style.RESET_ALL)
-            return False
+        """
+        Checks for dependencies. This is now mostly handled by the sandbox runner.
+        """
+        deps = check_dependencies('kubectl', 'docker')
+        if 'docker' in deps:
+            print(f"{Fore.YELLOW}Warning: Docker not found. Containerized sandboxes will not be available.{Style.RESET_ALL}")
+        
+        if 'kubectl' in deps:
+            print(f"{Fore.YELLOW}Warning: kubectl not found. Cluster interactions will not be available.{Style.RESET_ALL}")
 
         self.live_session_active = True
-        print(Fore.YELLOW + "Live mode enabled. Using your pre-configured Kubernetes context." + Style.RESET_ALL)
-        try:
-            proc = subprocess.run(['kubectl', 'config', 'current-context'], capture_output=True, text=True, check=False)
-            if proc.returncode == 0:
-                context = proc.stdout.strip()
-                if context:
-                    print(f"{Fore.CYAN}Current context: {context}{Style.RESET_ALL}")
-                else:
-                    # A zero exit code with empty output can also mean no context is set.
-                    print(Fore.YELLOW + "Warning: No active Kubernetes context found. "
-                                       "You may need to set one with 'kubectl config use-context <name>'." + Style.RESET_ALL)
-            else:
-                # This handles 'current-context is not set' gracefully.
-                print(Fore.YELLOW + "Warning: No active Kubernetes context found. "
-                                   "You may need to set one with 'kubectl config use-context <name>'." + Style.RESET_ALL)
-        except FileNotFoundError:
-            # This is already handled by check_dependencies, but for safety:
-            print(Fore.RED + "kubectl command not found. Please ensure it is installed and in your PATH." + Style.RESET_ALL)
-            return False
-
-        self.cluster_name = "pre-configured"
         return True
-    
-    def _run_one_exercise(self, q):
-        """
-        Unified exercise runner: handles live_k8s validations and assertion script checks.
-        """
-        is_correct = False
-        # Interactive live_k8s shell loop
-        if q.get('type') == 'live_k8s':
-            prompt_session = PromptSession() if PromptSession else None
-            while True:
-                try:
-                    if prompt_session:
-                        cmd_line = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                    else:
-                        cmd_line = input('Your command: ').strip()
-                except (EOFError, KeyboardInterrupt):
-                    print()
-                    break
-                if cmd_line.lower() == 'done':
-                    break
-                parts = cmd_line.split()
-                try:
-                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
-                    if proc.stdout:
-                        print(proc.stdout, end='')
-                    if proc.stderr:
-                        print(proc.stderr, end='')
-                except Exception as e:
-                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
-        # Run assertion script if provided
-        assertion = q.get('assert_script') or q.get('response')
-        if not assertion:
-            print(f"{Fore.YELLOW}Warning: No validation script found for this question.{Style.RESET_ALL}")
-            return False
-        try:
-            with tempfile.NamedTemporaryFile(mode='w+', suffix='.sh', delete=False, encoding='utf-8') as tmp_assert:
-                tmp_assert.write(assertion)
-                assert_path = tmp_assert.name
-            os.chmod(assert_path, 0o755)
-            proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
-            os.remove(assert_path)
-            if proc.returncode == 0:
-                if proc.stdout:
-                    print(proc.stdout)
-                is_correct = True
-            else:
-                print(proc.stdout or proc.stderr)
-        except Exception as e:
-            print(f"{Fore.RED}An unexpected error occurred during validation: {e}{Style.RESET_ALL}")
-        # Log result
-        result = 'correct' if is_correct else 'incorrect'
-        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{result}\"")
-        return is_correct
 
     def _cleanup_swap_files(self):
         """

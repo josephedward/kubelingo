@@ -5,13 +5,13 @@
 - A single terminal interface reduces context switching and unifies all question types behind one workflow.
 
 ### Design Overview
-1. Single Shell Runner (`_run_shell_question`)
-   - Step 1: Execute `initial_cmds` and provision `initial_files` (e.g. YAML manifests) to set up prerequisites.
-   - Step 2: Launch a PTY or Docker container shell for the user to work in.
-     * Users run commands directly (e.g. `kubectl get pods`, `kubectl apply -f pod.yaml`, or open Vim).
-     * For Vim-based exercises, `vim` is launched inside the shell; upon exit, the edited files are retained for validation.
-   - Step 3: Upon shell exit, run validation commands (`ValidationStep.cmd`) to verify results.
-     * For manifest-based exercises, run `kubectl get -f <file>.yaml` or `kubectl get <resource>` to ensure resources were created.
+1. **Single Shell Runner (`run_shell_with_setup` in `kubelingo/sandbox.py`)** - Implemented
+   - Step 1: Execute `pre_shell_cmds` and provision `initial_files` to set up prerequisites in a temporary workspace.
+   - Step 2: Launch a shell for the user.
+     * The Rust bridge now uses the `script` utility for robust transcripting when `--ai-eval` is enabled.
+   - Step 3: Upon shell exit, run `validation_steps` to verify results.
+     * Deterministic validation checks the exit code of validation commands.
+     * This new runner is now integrated into the main quiz loop.
 2. Simplified Interactive Menu
    - Removed separate “Check Answer” and inline editor paths.
    - Options are now: Open Shell, Flag/Unflag, Skip, Back to Quiz Menu.
