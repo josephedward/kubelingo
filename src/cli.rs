@@ -36,10 +36,6 @@ pub enum K8sExercise {
         #[arg(short, long)]
         category: Option<String>,
     },
-    /// YAML editing exercises
-    Yaml,
-    /// Vim commands quiz
-    Vim,
 }
 
 /// Run a PTY-based shell with custom PS1 prompt.

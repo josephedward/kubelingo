@@ -38,14 +38,6 @@ fn run_k8s_exercise(exercise: K8sExercise) -> Result<()> {
             }
             // TODO: Implement quiz logic here
         }
-        K8sExercise::Yaml => {
-            println!("Running K8s YAML exercise...");
-            // TODO: Implement YAML exercise logic here
-        }
-        K8sExercise::Vim => {
-            println!("Running Vim exercise...");
-            // TODO: Implement Vim exercise logic here
-        }
     }
     Ok(())
 }
