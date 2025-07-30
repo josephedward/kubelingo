@@ -17,7 +17,6 @@ The core components of this architecture are:
 5.  **Persistent Transcripts**: Session transcripts are saved to `logs/transcripts/...` and can be evaluated on-demand via the `Check Answer` feature, enabling replayable proof-of-execution.
 
 With this foundation, the next steps are to:
-With this foundation, the next steps are to:
 1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
 2.  Add unit/integration tests for `answer_checker` and the new UI flows.
 3.  Flesh out AI-based “second opinion” evaluation (using Simon Willison’s [`llm`](https://github.com/simonw/llm) package to reduce transcripts to a deterministic yes/no verdict).
@@ -103,7 +102,8 @@ Updated interactive CLI quiz session to:
 - Refactored session menu to add navigation actions: Open Shell, Check Answer, Next, Previous, Flag/Unflag, Exit.
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
-- Next steps: write unit/integration tests for matcher logic and the `answer_checker` module; flesh out AI-based evaluation integration.
+- Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
+- Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations
 - Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.

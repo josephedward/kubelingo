@@ -215,20 +215,26 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
                 step_result_dicts = evaluate_transcript(validation_steps)
                 step_results = [StepResult(**d) for d in step_result_dicts]
 
-            # 5. AI Evaluation (optional, if enabled and deterministic checks passed)
-            if ai_eval and transcript_file.exists():
+            # Determine overall success by deterministic steps
+            overall_success = all(r.success for r in step_results) if step_results else True
+
+            # 5. AI Evaluation (optional, as a "second opinion" if deterministic checks fail)
+            if ai_eval and not overall_success and transcript_file.exists():
+                print(f"{Fore.YELLOW}Deterministic checks failed. Getting a second opinion from AI...{Style.RESET_ALL}")
                 from kubelingo.modules.ai_evaluator import AIEvaluator
                 transcript = transcript_file.read_text(encoding='utf-8')
+                vim_log = vim_log_file.read_text(encoding='utf-8') if vim_log_file.exists() else None
+
                 evaluator = AIEvaluator()
                 from dataclasses import asdict
                 q_dict = asdict(question)
-                ai_result = evaluator.evaluate(q_dict, transcript)
+                ai_result = evaluator.evaluate(q_dict, transcript, vim_log)
                 print(f"{Fore.CYAN}AI Evaluator says: {ai_result.get('reasoning', 'No reasoning.')}{Style.RESET_ALL}")
-                success = ai_result.get('correct', False)
-                return ShellResult(success=success, step_results=step_results, transcript_path=transcript_path)
+                
+                # AI result can override the deterministic failure.
+                if ai_result.get('correct', False):
+                    overall_success = True
 
-            # Determine overall success by deterministic steps
-            overall_success = all(r.success for r in step_results) if step_results else True
             return ShellResult(success=overall_success, step_results=step_results, transcript_path=transcript_path)
 
         except subprocess.CalledProcessError as e:
