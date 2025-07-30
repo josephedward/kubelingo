@@ -245,81 +245,152 @@ def main():
 
         # If no arguments provided, show an interactive menu
         if len(sys.argv) == 1:
-            if not questionary:
-                print(f"{Fore.RED}Error: Interactive menu requires the 'questionary' library. Please install it with 'pip install questionary'{Style.RESET_ALL}")
-                return
-            else:
+            # Interactive entry: use questionary if available, else fallback to text prompts
+            if questionary:
                 try:
                     session_type = None
-                    while True:  # Main interactive loop
-                        # Level 1 Menu: Session Type
+                    while True:
                         if session_type is None:
-                            print()
+                            print()  # space before menu
                             choice = questionary.select(
                                 "Select a session type:",
                                 choices=[
-                                    {"name": "PTY Shell", "value": "pty"},
-                                    {"name": "Docker Container (requires Docker)", "value": "docker"},
+                                    questionary.Choice("PTY Shell", value="pty"),
+                                    questionary.Choice("Docker Container (requires Docker)", value="docker"),
                                     questionary.Separator(),
-                                    {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
-                                    {"name": "Help", "value": "help"},
-                                    {"name": "Exit", "value": "exit"},
+                                    questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
+                                    questionary.Choice("Help", value="help"),
+                                    questionary.Choice("Exit", value="exit"),
                                 ],
-                                use_indicator=True,
-                                default="PTY Shell"
+                                use_indicator=True
                             ).ask()
-
-                            if choice == "exit" or choice is None:
+                            if choice in (None, "exit"):
                                 return
-                            elif choice == "help":
+                            if choice == "help":
                                 show_session_type_help()
                                 input("\nPress Enter to return to the menu...")
                                 continue
-                            elif choice == "api_key":
-                                # Prompt user to enter OpenAI API key
-                                if not questionary:
-                                    print(f"{Fore.RED}Interactive prompt unavailable. Please set OPENAI_API_KEY manually.{Style.RESET_ALL}")
+                            if choice == "api_key":
+                                api_key = questionary.password("Enter your OpenAI API Key (leave blank to cancel):", qmark="🔑").ask()
+                                if api_key:
+                                    os.environ['OPENAI_API_KEY'] = api_key
+                                    print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
                                 else:
-                                    api_key = questionary.password(
-                                        "Enter your OpenAI API Key (leave blank to cancel):", qmark="🔑"
-                                    ).ask()
-                                    if api_key:
-                                        os.environ['OPENAI_API_KEY'] = api_key
-                                        print(f"{Fore.GREEN}OpenAI API key set for this session. AI features enabled.{Style.RESET_ALL}")
-                                    else:
-                                        print(f"{Fore.YELLOW}No API key provided. AI features remain disabled.{Style.RESET_ALL}")
+                                    print(f"{Fore.YELLOW}No API key provided. AI features remain disabled.{Style.RESET_ALL}")
                                 continue
-                            else:
-                                session_type = choice
-                        
-                        # Level 2 Menu: Quiz Type
+                            session_type = choice
                         print()
                         quiz_choice = questionary.select(
                             f"Session: {session_type.upper()}. Select quiz type:",
                             choices=[
-                                {"name": "K8s (preinstalled)", "value": "k8s"},
-                                {"name": "Kustom (upload your own quiz)", "value": "kustom"},
-                                {"name": "Review flagged questions", "value": "review"},
+                                questionary.Choice("K8s (preinstalled)", value="k8s"),
+                                questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
+                                questionary.Choice("Review flagged questions", value="review"),
                                 questionary.Separator(),
-                                {"name": "Help", "value": "help"},
-                                {"name": "Back", "value": "back"},
-                                {"name": "Exit", "value": "exit"},
+                                questionary.Choice("Help", value="help"),
+                                questionary.Choice("Back", value="back"),
+                                questionary.Choice("Exit", value="exit"),
                             ],
-                            use_indicator=True,
-                            default="K8s (preinstalled)"
+                            use_indicator=True
                         ).ask()
-
-                        if quiz_choice is None:  # User pressed Ctrl+C
+                        if quiz_choice in (None, "exit"):
                             return
-                        elif quiz_choice == "exit":
-                            return
-                        elif quiz_choice == "back":
+                        if quiz_choice == "back":
                             session_type = None
                             continue
-                        elif quiz_choice == "help":
+                        if quiz_choice == "help":
                             show_quiz_type_help()
                             input("\nPress Enter to return to the menu...")
                             continue
+                        # Map choices to args
+                        args.pty = (session_type == 'pty')
+                        args.docker = (session_type == 'docker')
+                        if quiz_choice == 'k8s':
+                            args.module = 'kubernetes'
+                        elif quiz_choice == 'kustom':
+                            args.module = 'custom'
+                            path = input("Enter path to your custom quiz JSON file: ").strip()
+                            if not path:
+                                print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
+                                session_type = None
+                                continue
+                            args.custom_file = path
+                        elif quiz_choice == 'review':
+                            args.module = 'kubernetes'
+                            args.review_only = True
+                        break
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}Exit selected.{Style.RESET_ALL}")
+                    return
+            else:
+                # Text-based fallback menu
+                session_type = None
+                while True:
+                    print()  
+                    print("Select a session type:")
+                    print(" 1) PTY Shell")
+                    print(" 2) Docker Container (requires Docker)")
+                    print(" 3) Enter OpenAI API Key to enable AI features")
+                    print(" 4) Help")
+                    print(" 5) Exit")
+                    choice = input("Choice [1-5]: ").strip()
+                    if choice == '5':
+                        return
+                    if choice == '4':
+                        show_session_type_help()
+                        input("Press Enter to continue...")
+                        continue
+                    if choice == '3':
+                        api_key = input("Enter your OpenAI API Key (leave blank to cancel): ").strip()
+                        if api_key:
+                            os.environ['OPENAI_API_KEY'] = api_key
+                            print(f"{Fore.GREEN}OpenAI API key set.{Style.RESET_ALL}")
+                        continue
+                    if choice in ('1', 'pty'):
+                        session_type = 'pty'
+                    elif choice in ('2', 'docker'):
+                        session_type = 'docker'
+                    else:
+                        continue
+                    break
+                # Quiz type selection
+                while True:
+                    print()
+                    print(f"Session: {session_type.upper()}. Select quiz type:")
+                    print(" 1) K8s (preinstalled)")
+                    print(" 2) Kustom (upload your own quiz)")
+                    print(" 3) Review flagged questions")
+                    print(" 4) Help")
+                    print(" 5) Back")
+                    print(" 6) Exit")
+                    choice = input("Choice [1-6]: ").strip()
+                    if choice == '6':
+                        return
+                    if choice == '4':
+                        show_quiz_type_help()
+                        input("Press Enter to continue...")
+                        continue
+                    if choice == '5':
+                        # back to session type
+                        return
+                    args.pty = (session_type == 'pty')
+                    args.docker = (session_type == 'docker')
+                    if choice == '1':
+                        args.module = 'kubernetes'
+                    elif choice == '2':
+                        args.module = 'custom'
+                        path = input("Enter path to your custom quiz JSON file: ").strip()
+                        if path:
+                            args.custom_file = path
+                        else:
+                            print(f"{Fore.YELLOW}No file provided, returning to previous menu.{Style.RESET_ALL}")
+                            return
+                    elif choice == '3':
+                        args.module = 'kubernetes'
+                        args.review_only = True
+                    else:
+                        continue
+                    break
                         
                         # User has made a selection, set args and break to run the module
                         if session_type == 'pty':
