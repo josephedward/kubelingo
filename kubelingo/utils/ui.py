@@ -50,14 +50,10 @@ K   K  UUU   BBBB  EEEEE LLLLL III N   N  GGGG   OOO
 """
 
 def print_banner():
-    """Prints the Kubelingo ASCII banner with a border."""
+    """Prints the Kubelingo ASCII banner."""
     lines = ASCII_ART.strip('\n').splitlines()
-    width = max(len(line) for line in lines)
-    border = '+' + '-'*(width + 2) + '+'
-    print(Fore.MAGENTA + border + Style.RESET_ALL)
     for line in lines:
-        print(Fore.MAGENTA + f"| {line.ljust(width)} |" + Style.RESET_ALL)
-    print(Fore.MAGENTA + border + Style.RESET_ALL)
+        print(Fore.MAGENTA + line + Style.RESET_ALL)
 
 
 def show_session_type_help():

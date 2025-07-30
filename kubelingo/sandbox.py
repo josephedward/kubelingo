@@ -202,6 +202,12 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
 
             # Launch the sandbox shell
             sandbox_func()
+
+            # Clear screen after shell exits to fix terminal corruption. This is crucial
+            # as the PTY can leave the terminal in a messy state.
+            if sys.stdout.isatty():
+                os.system('cls' if os.name == 'nt' else 'clear')
+
             # Clear sandbox logging env vars
             if 'KUBELINGO_TRANSCRIPT_FILE' in os.environ:
                 del os.environ['KUBELINGO_TRANSCRIPT_FILE']
