@@ -435,6 +435,26 @@ def main():
     if args.module:
         module_name = args.module.lower()
 
+        if module_name == 'kubernetes':
+            try:
+                # Use a timeout to prevent long hangs
+                res = subprocess.run(
+                    ['kubectl', 'cluster-info'],
+                    capture_output=True, text=True, timeout=5
+                )
+                if res.returncode != 0:
+                    print(f"{Fore.RED}Kubernetes cluster is not responding. Please ensure your cluster is running and kubectl is configured correctly.{Style.RESET_ALL}")
+                    # print details from stderr if available
+                    if res.stderr:
+                        print(f"{Fore.YELLOW}{res.stderr.strip()}{Style.RESET_ALL}")
+                    return
+            except FileNotFoundError:
+                print(f"{Fore.RED}'kubectl' command not found. Please ensure it is installed and in your PATH.{Style.RESET_ALL}")
+                return
+            except subprocess.TimeoutExpired:
+                print(f"{Fore.RED}'kubectl cluster-info' command timed out. Your cluster may be unresponsive.{Style.RESET_ALL}")
+                return
+
         # Optional Rust-based command quiz for non-interactive (--num) runs
         if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
             try:
