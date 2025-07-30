@@ -126,19 +126,19 @@ This document outlines the implementation of an AI-powered evaluation system for
 
 ### Feature Description
 
-- **`--ai-eval` Flag**: A new command-line flag, `--ai-eval`, enables the AI evaluation mode. When active, Kubelingo records the user's entire terminal session within the sandbox.
+- **AI-by-default Sandbox Evaluation**: For any sandbox exercise, AI evaluation is the default. Kubelingo records the user's entire terminal session. If an `OPENAI_API_KEY` is present, it uses an LLM to evaluate the transcript. The `--ai-eval` flag is deprecated but retained for backward compatibility.
 - **Full-Session Transcripting**: The system captures all user input and shell output, creating a comprehensive transcript of the exercise attempt. This includes `kubectl`, `helm`, and other shell commands.
 - **Vim Command Logging**: To provide insight into file editing tasks, commands executed within `vim` are also logged to a separate file. This is achieved by aliasing `vim` to `vim -W <logfile>`.
 - **AI Analysis**: After the user exits the sandbox, the transcript and Vim log are sent to an OpenAI model (e.g., GPT-4). The AI is prompted to act as a Kubernetes expert and evaluate whether the user's actions successfully fulfilled the requirements of the question.
 - **Feedback**: The AI's JSON-formatted response, containing a boolean `correct` status and a `reasoning` string, is presented to the user.
 
-#### Hybrid Evaluation Strategy
+#### Evaluation Strategy
 
-To provide the best experience for different types of questions, Kubelingo uses a hybrid evaluation approach:
+Kubelingo uses the following evaluation approach:
 
 1.  **Transcript-Based Evaluation (for Sandbox Exercises)**:
-    -   **Trigger**: Enabled with the `--ai-eval` flag for `live_k8s` and `live_k8s_edit` question types.
-    -   **Mechanism**: Captures the entire user session in the sandbox (via Rust PTY integration) into a transcript. This transcript is sent to the AI for a holistic review of the user's actions.
+    -   **Trigger**: Enabled by default for all sandbox-based question types whenever an `OPENAI_API_KEY` is available.
+    -   **Mechanism**: Captures the entire user session in the sandbox (via Rust PTY integration) into a transcript. This transcript is sent to the AI for a holistic review of the user's actions. If AI evaluation is not available, the system falls back to deterministic validation against `validation_steps`.
     -   **Use Case**: Ideal for complex, multi-step exercises where the final state of the cluster or files determines success.
 
 2.  **Command-Based Evaluation (for Command Questions)**:
@@ -164,7 +164,7 @@ To provide the best experience for different types of questions, Kubelingo uses 
     - To rapidly prototype and simplify AI integration, we will use Simon Willison's `llm` package.
     - This tool provides a convenient command-line and Python interface for interacting with various LLMs.
     - The evaluation process involves sending the full context (question, validation steps, and transcript) to the LLM. The prompt is engineered to return a deterministic `yes/no` judgment and a brief explanation. By including the question's `validation_steps`, the AI gets explicit success criteria, improving the accuracy of its verdict.
-    - This approach avoids direct integration with the `openai` package for now, allowing for a more flexible and straightforward implementation of the AI-based "second opinion" feature. It still requires an API key for the chosen model (e.g., `OPENAI_API_KEY`).
+    - This approach avoids direct integration with the `openai` package for now, allowing for a more flexible and straightforward implementation of the AI-based evaluation feature. It still requires an API key for the chosen model (e.g., `OPENAI_API_KEY`).
 
 ### Usage
 
