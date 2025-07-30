@@ -418,18 +418,6 @@ def main():
         ):
             args.module = 'kubernetes'
 
-    # Pre-flight check for kubernetes module to ensure cluster connectivity.
-    if args.module == 'kubernetes':
-        # This check prevents exercises from failing on setup commands due to
-        # a misconfigured environment (e.g., no running cluster).
-        check = subprocess.run(['kubectl', 'cluster-info'], capture_output=True, text=True, check=False)
-        if check.returncode != 0:
-            print(f"\n{Fore.RED}Kubernetes cluster check failed.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Please ensure kubectl is installed and configured to connect to a running cluster.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}You can start one with 'minikube start' or by enabling Kubernetes in Docker Desktop.{Style.RESET_ALL}")
-            if check.stderr:
-                print(f"\n{Fore.CYAN}--- kubectl error ---{Style.RESET_ALL}\n{check.stderr.strip()}")
-            return
 
     # Handle module-based execution.
     if args.module:
