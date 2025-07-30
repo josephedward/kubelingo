@@ -500,7 +500,7 @@ class NewSession(StudySession):
                     print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                     # Immediately process the result
-                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
+                    is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
                         current_question_index += 1
                         break # Move to next question
@@ -525,7 +525,7 @@ class NewSession(StudySession):
                     result.success = is_correct_re_eval
                     
                     # This check is now just for displaying feedback and moving on
-                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
+                    is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
                         current_question_index = min(current_question_index + 1, total_questions - 1)
                         break
@@ -570,54 +570,61 @@ class NewSession(StudySession):
             stats[category]['correct'] += 1
         return stats
 
-    def _check_and_process_answer(self, q, result, current_question_index, attempted_indices, correct_indices):
-        """Helper to process the result of an answer attempt."""
+    def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
+        """
+        Helper to process the result of an answer attempt. It uses AI evaluation
+        if available and requested, otherwise falls back to deterministic checks.
+        """
         attempted_indices.add(current_question_index)
-        is_correct = result.success
+        is_correct = False  # Default to incorrect
+        ai_eval_used = False
+        ai_eval_active = getattr(args, 'ai_eval', False)
 
-        # Display per-step feedback
-        for step_res in result.step_results:
-            if step_res.success:
-                print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
-            else:
-                print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
-                # Also print stdout/stderr for failed steps
-                if step_res.stdout or step_res.stderr:
-                    print(f"  {Fore.WHITE}{(step_res.stdout or step_res.stderr).strip()}{Style.RESET_ALL}")
+        # AI-First Evaluation: if --ai-eval is on, use transcript with LLM.
+        if ai_eval_active and os.getenv('OPENAI_API_KEY') and result.transcript_path:
+            try:
+                from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
+                evaluator = _AIEvaluator()
+                transcript = Path(result.transcript_path).read_text(encoding='utf-8')
+                ai_result = evaluator.evaluate(q, transcript)
+                is_correct = ai_result.get('correct', False)
+                reasoning = ai_result.get('reasoning', '')
+                status = 'Correct' if is_correct else 'Incorrect'
+                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+                ai_eval_used = True
+            except ImportError:
+                print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Falling back to deterministic checks.{Style.RESET_ALL}")
+                is_correct = result.success  # Fallback
+            except Exception as e:
+                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Falling back to deterministic checks.{Style.RESET_ALL}")
+                is_correct = result.success  # Fallback
+        else:
+            # Fallback to deterministic validation
+            is_correct = result.success
 
-        # Report deterministic result
+        # If AI evaluation was not performed, show deterministic step-by-step results.
+        if not ai_eval_used:
+            for step_res in result.step_results:
+                if step_res.success:
+                    print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
+                else:
+                    print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
+                    if step_res.stdout or step_res.stderr:
+                        print(f"  {Fore.WHITE}{(step_res.stdout or step_res.stderr).strip()}{Style.RESET_ALL}")
+        
+        # Report final result
         if is_correct:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-        # Invoke AI evaluation on the transcript if the user has provided an API key
-        if os.getenv('OPENAI_API_KEY') and result.transcript_path:
-            try:
-                from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
-                evaluator = _AIEvaluator()
-                transcript = Path(result.transcript_path).read_text(encoding='utf-8')
-                ai_result = evaluator.evaluate(q, transcript)
-                ai_correct = ai_result.get('correct', False)
-                reasoning = ai_result.get('reasoning', '')
-                status = 'Correct' if ai_correct else 'Incorrect'
-                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-                # Override deterministic result if AI disagrees
-                is_correct = ai_correct
-                if is_correct:
-                    correct_indices.add(current_question_index)
-                else:
-                    correct_indices.discard(current_question_index)
-            except ImportError:
-                # AI evaluator not installed or failed to import
-                pass
-            except Exception:
-                # Any errors during AI evaluation should not crash the quiz
-                pass
+
         # Show explanation if correct
         if is_correct and q.get('explanation'):
             print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+        
         return is_correct
 
     def _build_interactive_menu_choices(self):
