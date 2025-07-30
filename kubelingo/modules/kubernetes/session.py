@@ -399,20 +399,8 @@ class NewSession(StudySession):
         """
         Router for running exercises. It decides which quiz to run.
         """
-        # When run without arguments, args.file may be defaulted.
-        # Force interactive quiz selection by clearing the file if no other
-        # filters like category, review-only, or number of questions are active.
-        if (args.file and os.path.basename(args.file) == os.path.basename(DEFAULT_DATA_FILE) and
-                not args.category and not args.review_only and not (args.num and args.num > 0)):
-            args.file = None
-
         # All exercises now run through the unified quiz runner.
-        # Loop to allow returning to the quiz menu.
-        while self._run_unified_quiz(args):
-            # After a quiz, reset args to ensure the next iteration is interactive.
-            args.file = None
-            args.category = None
-            args.review_only = False
+        self._run_unified_quiz(args)
 
     def _run_command_quiz(self, args):
         """Attempt Rust bridge execution first; fallback to Python if unavailable or fails."""
@@ -433,29 +421,42 @@ class NewSession(StudySession):
         Run a unified quiz session for all question types. Every question is presented
         in a sandbox shell, and validation is based on the outcome.
         """
-        start_time = datetime.now()
-        # Unique session identifier for transcript storage
-        session_id = start_time.strftime('%Y%m%dT%H%M%S')
-        os.environ['KUBELINGO_SESSION_ID'] = session_id
-        questions = []
+        import copy
+        initial_args = copy.deepcopy(args)
 
-        is_interactive = questionary and not args.file and not args.category and not args.review_only
+        while True:
+            # For each quiz, use a fresh copy of args.
+            args = copy.deepcopy(initial_args)
+            # When run without arguments, args.file may be defaulted.
+            # Force interactive quiz selection by clearing the file if no other
+            # filters like category, review-only, or number of questions are active.
+            if (args.file and os.path.basename(args.file) == os.path.basename(DEFAULT_DATA_FILE) and
+                    not args.category and not args.review_only and not (args.num and args.num > 0)):
+                args.file = None
 
-        if is_interactive:
-            choices, flagged_questions = self._build_interactive_menu_choices()
-            selected = questionary.select(
-                "Choose a Kubernetes exercise:",
-                choices=choices,
-                use_indicator=True
-            ).ask()
+            start_time = datetime.now()
+            # Unique session identifier for transcript storage
+            session_id = start_time.strftime('%Y%m%dT%H%M%S')
+            os.environ['KUBELINGO_SESSION_ID'] = session_id
+            questions = []
 
-            if selected is None or selected == 'back':
-                print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                return False
+            is_interactive = questionary and not args.file and not args.category and not args.review_only
 
-            if selected == 'clear_flags':
-                _clear_all_review_flags(self.logger)
-                return self._run_unified_quiz(args)
+            if is_interactive:
+                choices, flagged_questions = self._build_interactive_menu_choices()
+                selected = questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
+
+                if selected is None or selected == 'back':
+                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
+                    return
+
+                if selected == 'clear_flags':
+                    _clear_all_review_flags(self.logger)
+                    continue
 
             if selected == 'review':
                 args.review_only = True
@@ -780,7 +781,7 @@ class NewSession(StudySession):
         
         # If user exited quiz, go back to menu without summary.
         if quiz_backed_out:
-            return is_interactive
+            continue
         
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
@@ -798,9 +799,9 @@ class NewSession(StudySession):
 
         self._cleanup_swap_files()
 
-        # In interactive mode, returning True will loop back to the quiz menu.
-        # In non-interactive mode, returning False will exit.
-        return is_interactive
+        # In non-interactive mode, break the loop to exit.
+        if not is_interactive:
+            break
 
     def _recompute_stats(self, questions, attempted_indices, correct_indices):
         """Helper to calculate per-category stats from state sets."""
