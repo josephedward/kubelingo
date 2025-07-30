@@ -3,13 +3,10 @@
 Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.
 
 The core components of this architecture are:
-1.  **Extended `Question` Schema**: The `Question` model currently includes:
-   - `pre_shell_cmds` (via the legacy `initial_cmds` field) for setup commands (e.g. `kubectl apply -f …`).
-   - `initial_yaml` for simple YAML-based exercises.
-   - `validations` for single-step command checks.
-   Next, we will add:
-   - `initial_files: Dict[str, str]` to seed multiple starter files.
-   - `validation_steps: List[ValidationStep]` of post-shell commands with matchers for the full unified schema.
+1.  **Extended `Question` Schema**: The `Question` model now includes:
+    - `pre_shell_cmds: List[str]` for setup commands (e.g. `kubectl apply -f …`).
+    - `initial_files: Dict[str, str]` to seed YAML or other starter files.
+    - `validation_steps: List[ValidationStep]` of post-shell commands with matchers.
 2.  **Sandbox Helper**: The `run_shell_with_setup(...)` function:
     - Provisions an isolated workspace, writes `initial_files`, and runs `pre_shell_cmds`.
     - Spawns an interactive PTY shell (or Docker container) that records a full session transcript (including Vim edits).
