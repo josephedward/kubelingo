@@ -19,8 +19,8 @@ class Question:
     Canonical question object for unified shell exercises and quizzes.
     """
     id: str                           # unique identifier, e.g. 'module::index'
-    type: str                         # question type, e.g. 'command', 'live_k8s', etc.
     prompt: str                       # text shown to the user
+    type: str = 'command'             # question type, e.g. 'command', 'live_k8s', etc.
     
     # Unified shell experience fields
     pre_shell_cmds: List[str] = field(default_factory=list)   # commands to prepare sandbox
