@@ -13,13 +13,43 @@ except ImportError:
     )
     sys.exit(1)
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    print(
+        "Error: python-dotenv library not found. Please install it with 'pip install python-dotenv'",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 
 def get_openai_client() -> openai.OpenAI:
-    """Returns an OpenAI client, expecting API key from environment."""
+    """
+    Returns an OpenAI client.
+    It reads the API key from a .env file, environment variables, or prompts the user.
+    """
+    # This script is in scripts/, so the project root is one level up.
+    dotenv_path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path=dotenv_path)
+
     api_key = os.getenv("OPENAI_API_KEY")
+
+    if api_key:
+        api_key = api_key.strip()
+
     if not api_key:
-        print("Error: OPENAI_API_KEY environment variable not set.", file=sys.stderr)
+        print("OPENAI_API_KEY not found in environment or .env file.")
+        try:
+            api_key = input("Please enter your OpenAI API key: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperation cancelled by user.", file=sys.stderr)
+            sys.exit(1)
+
+    if not api_key:
+        print("Error: No OpenAI API key provided.", file=sys.stderr)
         sys.exit(1)
+
     return openai.OpenAI(api_key=api_key)
 
 
