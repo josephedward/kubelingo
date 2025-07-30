@@ -129,7 +129,11 @@ def spawn_pty_shell():
         # If transcript capture is requested and 'script' is available, wrap in script utility
         transcript = os.environ.get('KUBELINGO_TRANSCRIPT_FILE')
         if transcript and shutil.which('script'):
-            cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
+            # Accommodate differences between GNU script (Linux) and BSD script (macOS)
+            if sys.platform == 'darwin':  # BSD script
+                cmd = ['script', '-q', transcript] + shell_cmd
+            else:  # GNU script
+                cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
             subprocess.run(cmd, check=False)
         else:
             # Robustly spawn PTY by saving and restoring terminal attributes.
