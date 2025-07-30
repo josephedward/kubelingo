@@ -100,7 +100,8 @@ Added new `answer_checker` module to:
 Updated interactive CLI quiz session to:
   * Include “Open Shell”, “Check Answer”, “Next Question”, “Previous Question”, and “Exit Quiz” options.
   * Maintain `transcripts_by_index`, `attempted_indices`, and `correct_indices` to track user progress.
-- Refactored session menu to dynamically build navigation actions (Open Shell, Check Answer, Flag/Unflag, Next/Previous only when valid, Exit).  
+- Refactored session menu to dynamically build navigation actions (Work on Answer, Check Answer, Flag/Unflag; Next/Previous only when valid; Exit).
+- Removed all manual numeric prefixes from CLI and session menu labels; questionary’s auto-numbering now provides consistent labeling.
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
