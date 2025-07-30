@@ -54,6 +54,7 @@ def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
     if not api_key:
         raise RuntimeError('OPENAI_API_KEY environment variable not set')
     openai.api_key = api_key
+" + transcript + "```\n"
     messages = [
         {"role": "system", "content": (
             "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
@@ -62,9 +63,11 @@ def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
         {"role": "user", "content": (
             f"Question: \"{question_text}\"\n"
             f"Expected Command: `{expected_cmd}`\n"
-            "Student Transcript:\n```
-" + transcript + "```\n"
-            "Are these equivalent?"
+            "Student Transcript:\n"
+            "```\n"
+            f"{transcript}\n"
+            "```\n"
+            "Are these equivalent? Reply 'yes' or 'no'."
         )}
     ]
     resp = openai.ChatCompletion.create(
@@ -610,11 +613,15 @@ class NewSession(StudySession):
 
                 if action == "answer":
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                    use_text_input = q.get('category') == 'Vim Commands' or is_mocked_k8s
+                    # Use text input for Vim commands, no-cluster mode, or AI-based semantic validation
+                    is_ai_validator = isinstance(q.get('validator', {}), dict) and q['validator'].get('type') == 'ai'
+                    use_text_input = q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
                     if use_text_input:
                         if is_mocked_k8s:
                             print(f"{Fore.CYAN}No-cluster mode: Please type the command to solve the problem.{Style.RESET_ALL}")
+                        if is_ai_validator:
+                            print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
 
                         try:
                             if prompt_session:
@@ -684,11 +691,18 @@ class NewSession(StudySession):
                         continue
 
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                    # Detect AI-based semantic validator
+                    is_ai_validator = isinstance(q.get('validator', {}), dict) and q['validator'].get('type') == 'ai'
 
+                    # Vim command questions use AI evaluator
                     if q.get('category') == 'Vim Commands':
                         self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         continue
-
+                    # AI-based semantic validation for command answers
+                    if is_ai_validator:
+                        self._check_k8s_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                        continue
+                    # No-cluster mode for live k8s questions also uses AI evaluator
                     if is_mocked_k8s:
                         self._check_k8s_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         continue
@@ -808,32 +822,33 @@ class NewSession(StudySession):
         if available and requested, otherwise falls back to deterministic checks.
         """
         attempted_indices.add(current_question_index)
-        # AI validator override if configured in question metadata
+        # Explicit AI validator: if question.metadata.validator.type == 'ai', use LLM to compare
         validator = None
-        if isinstance(q.metadata, dict):
-            validator = q.metadata.get('validator')
+        if isinstance(q.get('metadata', {}), dict):
+            validator = q['metadata'].get('validator')
         if validator and validator.get('type') == 'ai':
             expected_cmd = validator.get('expected', '')
-            # Collect the student's session transcript
+            # Read transcript if available
             transcript = ''
             try:
                 if result.transcript_path:
                     transcript = Path(result.transcript_path).read_text(encoding='utf-8')
             except Exception:
                 pass
-            # Run AI-based validation
+            # Ask AI to validate equivalence
             try:
-                ok = ai_validate(transcript, expected_cmd, q.prompt)
+                ok = ai_validate(transcript, expected_cmd, q.get('prompt', ''))
             except Exception as e:
                 print(f"{Fore.YELLOW}AI validator error: {e}{Style.RESET_ALL}")
                 return False
-            # Display result
+            # Report and mark answer
+            symbol = '[✓]' if ok else '[✗]'
+            color = Fore.GREEN if ok else Fore.RED
+            print(f"{color}{symbol}{Style.RESET_ALL} Expected: {expected_cmd}")
             if ok:
-                print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} Expected: {expected_cmd}")
                 correct_indices.add(current_question_index)
                 print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
             else:
-                print(f"{Fore.RED}[✗]{Style.RESET_ALL} Expected: {expected_cmd}")
                 correct_indices.discard(current_question_index)
                 print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
             return ok
