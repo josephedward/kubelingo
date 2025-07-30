@@ -21,6 +21,7 @@ With this foundation, the next steps are to:
 1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
 2.  Add unit/integration tests for `answer_checker` and the new UI flows.
 3.  Flesh out AI-based “second opinion” evaluation (using Simon Willison’s [`llm`](https://github.com/simonw/llm) package to reduce transcripts to a deterministic yes/no verdict).
+4.  Implement an interactive prompt for the `OPENAI_API_KEY` if it is not found, to improve usability.
 
 ## Unified Terminal Quiz Refactor
 
@@ -159,13 +160,6 @@ To provide the best experience for different types of questions, Kubelingo uses 
     - This tool provides a convenient command-line and Python interface for interacting with various LLMs.
     - The evaluation process involves sending the full context (question, validation steps, and transcript) to the LLM. The prompt is engineered to return a deterministic `yes/no` judgment and a brief explanation. By including the question's `validation_steps`, the AI gets explicit success criteria, improving the accuracy of its verdict.
     - This approach avoids direct integration with the `openai` package for now, allowing for a more flexible and straightforward implementation of the AI-based "second opinion" feature. It still requires an API key for the chosen model (e.g., `OPENAI_API_KEY`).
-
-#### Interactive API Key Prompt
-- To improve usability, Kubelingo now interactively prompts for an `OPENAI_API_KEY` at startup if one is not found in the environment.
-- This feature requires the `questionary` library.
-- If the user provides a key, it is set as an environment variable for the duration of the session, enabling AI-powered explanations and evaluations.
-- If the user declines or aborts, AI features remain disabled.
-- This removes the hard requirement of pre-configuring the environment, allowing for more flexible use of AI assistance.
 
 ### Usage
 
