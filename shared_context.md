@@ -104,6 +104,7 @@ Updated interactive CLI quiz session to:
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
+- **Fixed**: Corrected a regression in the Kubernetes session runner that was causing an unconfigured PTY shell and UI corruption. The quiz loop now correctly uses the unified sandbox for all question types.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations
