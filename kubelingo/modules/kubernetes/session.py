@@ -443,33 +443,36 @@ class NewSession(StudySession):
             is_interactive = questionary and not args.file and not args.category and not args.review_only
 
             if is_interactive:
-                choices, flagged_questions = self._build_interactive_menu_choices()
-                selected = questionary.select(
-                    "Choose a Kubernetes exercise:",
-                    choices=choices,
-                    use_indicator=True
-                ).ask()
-
-                if selected is None or selected == 'back':
-                    print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                    return
-
-                if selected == 'clear_flags':
-                    _clear_all_review_flags(self.logger)
-                    continue
-
-            if selected == 'review':
-                args.review_only = True
-                questions = flagged_questions
-                args.file = 'review_session'
+                # Interactive file-selection loop for k8s quizzes
+                while True:
+                    choices, flagged_questions = self._build_interactive_menu_choices()
+                    selected = questionary.select(
+                        "Choose a Kubernetes exercise:",
+                        choices=choices,
+                        use_indicator=True
+                    ).ask()
+                    # Back to file menu
+                    if selected is None or selected == 'back':
+                        print(f"\n{Fore.YELLOW}Returning to quiz selection...{Style.RESET_ALL}")
+                        continue
+                    # Clear all review flags and re-list files
+                    if selected == 'clear_flags':
+                        _clear_all_review_flags(self.logger)
+                        continue
+                    # Review flagged questions
+                    if selected == 'review':
+                        args.review_only = True
+                        questions = flagged_questions
+                        args.file = 'review_session'
+                    else:
+                        args.file = selected
+                        questions = load_questions(args.file)
+                    break
             else:
-                args.file = selected
-                questions = load_questions(args.file)
-        else:
-            if args.review_only:
-                questions = get_all_flagged_questions()
-            else:
-                questions = load_questions(args.file)
+                if args.review_only:
+                    questions = get_all_flagged_questions()
+                else:
+                    questions = load_questions(args.file)
 
         # De-duplicate questions based on the prompt text to avoid redundancy.
         # This can happen if questions are loaded from multiple sources or if
@@ -770,7 +773,16 @@ class NewSession(StudySession):
                         continue
                     # No-cluster mode for live k8s questions also uses AI evaluator
                     if is_mocked_k8s:
-                        self._check_k8s_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                        # AI-based k8s validation for live questions without a cluster
+                        # Use the question's expected response as the command to validate
+                        expected_cmd = q.get('response', '')
+                        self._check_k8s_command_with_ai(
+                            q,
+                            expected_cmd,
+                            current_question_index,
+                            attempted_indices,
+                            correct_indices
+                        )
                         continue
 
                     # The result object from run_shell_with_setup is complete.
@@ -827,7 +839,7 @@ class NewSession(StudySession):
             stats[category]['correct'] += 1
         return stats
 
-    def _check_k8s_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
+def _check_k8s_command_with_ai(self, q, expected_command: str, current_question_index, attempted_indices, correct_indices):
         """
         Helper to evaluate a k8s command using the AI evaluator, for use when no live cluster is available.
         """
@@ -836,9 +848,10 @@ class NewSession(StudySession):
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
             evaluator = AIEvaluator()
-            result = evaluator.evaluate_k8s_command(q, user_command)
-            is_correct = result.get('correct', False)
-            reasoning = result.get('reasoning', 'No reasoning provided.')
+            # Provide the expected command for AI comparison
+            ai_result = evaluator.evaluate_k8s_command(q, expected_command)
+            is_correct = ai_result.get('correct', False)
+            reasoning = ai_result.get('reasoning', 'No reasoning provided.')
             
             status = 'Correct' if is_correct else 'Incorrect'
             print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
