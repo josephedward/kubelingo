@@ -122,33 +122,45 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Questions without validation steps are no longer erroneously marked as correct. The answer-checking logic now requires at least one validation step to have been executed and passed; otherwise, the answer is considered incorrect, preventing false positives for malformed questions.
   - **Fixed**: Decoupled "Work on Answer" from "Check Answer" in the quiz loop. Previously, the answer was checked immediately after exiting the shell, which could cause premature 'Incorrect' messages and prevent the user from working on questions. Now, the user must explicitly select "Check Answer" to trigger evaluation.
   - **Fixed**: Restored the interactive `questionary`-based menus for bare `kubelingo` invocations. A UI regression had replaced them with a plain text-based menu. The fix re-implements the rich menu with `use_indicator=True` and dict-based choices, while retaining the text menu as a fallback for non-TTY environments. This resolves the `F821 undefined name 'questionary'` errors.
+  - **Fixed**: Removed deprecated live exercise logic to prevent hangs when working on an answer.
+  - **Fixed**: Errors during `pre_shell_cmds` are now handled gracefully, preventing quiz crashes.
+  - **Fixed**: The `TypeError` on `Question.__init__` was resolved by removing an invalid `type` argument.
+  - **Feature**: Questions are now de-duplicated by prompt text after loading to ensure a clean study session.
+  - **Feature**: Added a "Show Answer" option to the in-quiz menu for questions that have a model answer.
+  - **Feature**: The Vim/YAML editor now displays the exercise prompt before opening the editor and uses a temporary `.vimrc` file to ensure consistent 2-space tabbing.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
 
-### `scripts/enrich_and_dedup_questions.py`
+### `scripts/organize_question_data.py`
 
-This script provides a unified way to process, de-duplicate, and enhance question data for Kubelingo.
+This script is a powerful, multi-purpose tool for maintaining the question database. It can organize files, de-duplicate questions, and use AI to generate missing explanations and validation steps.
 
 **Functionality**:
-- **Loads from Multiple Formats**: Scans a directory for question files in JSON, Markdown (`.md`), and YAML (`.yml`, `.yaml`) formats.
-- **De-duplicates**: Removes duplicate questions based on the exact text of the `prompt` field, ensuring each question is unique.
-- **AI-Powered Explanations**: For questions that are missing an `explanation`, it uses the OpenAI API to generate a concise, one-sentence explanation of the command. This requires the `OPENAI_API_KEY` environment variable to be set.
-- **Unified Output**: Writes the cleaned, de-duplicated, and enriched list of questions to a single JSON file.
+- **File Organization**: Cleans up the `question-data` directory by archiving legacy files, renaming core quiz files to a consistent standard, and removing empty directories.
+- **AI-Powered Enrichment**: For any question missing an `explanation` or `validation_steps`, it uses the OpenAI API (`gpt-3.5-turbo` for explanations, `gpt-4-turbo` for validation steps) to generate them. This is key to ensuring all questions are self-grading.
+- **De-duplication**: Before enrichment, it can check against a reference file (e.g., a master list of questions with explanations) and remove any duplicates from the target file.
+- **Flexible & General-Purpose**: The script can operate on different file structures (flat lists or nested categories) and can be targeted at specific files.
 
 **Usage**:
-```bash
-python3 scripts/enrich_and_dedup_questions.py <input_dir> <output_file>
-```
-- `input_dir`: Directory containing the question data files. The script can automatically find `question-data` if a shorthand is provided (e.g., `json`).
-- `output_file`: Path for the unified JSON output.
+The script is highly configurable via command-line flags.
 
-**Example**:
-To process all questions in the `question-data` directory and save them to `unified_questions.json`:
-```bash
-python3 scripts/enrich_and_dedup_questions.py question-data unified_questions.json
-```
-A `--dry-run` flag is available to preview the changes without writing any files or calling the AI API.
+- To preview all changes without modifying files:
+  ```bash
+  python3 scripts/organize_question_data.py --dry-run
+  ```
+- To run only the file organization tasks:
+  ```bash
+  python3 scripts/organize_question_data.py --organize-only
+  ```
+- To enrich a specific file (e.g., a new question set) and de-duplicate it against a master file:
+  ```bash
+  python3 scripts/organize_question_data.py --enrich-only \
+    --enrich-file question-data/json/new_questions.json \
+    --dedupe-ref-file question-data/json/kubernetes_with_explanations.json
+  ```
+- Improved error handling for OpenAI API connection issues has been added to provide clearer feedback on network problems.
+- The script's import logic is now robust, allowing it to be run as a standalone file or imported as a module within the `kubelingo` package.
   
 ### Testing & Observations
 - Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
