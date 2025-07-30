@@ -115,6 +115,7 @@ Updated interactive CLI quiz session to:
   - **Fixed (attempted)**: The interactive CLI menu for bare `kubelingo` had been disabled by a mis-indentation/guard. Although the guard was removed, the block remains incorrectly nested under the `--k8s` shortcut, so it still does not fire on an empty invocation. A full refactor is needed to move the menu logic before any module dispatch.
   - **Fixed**: Corrected a critical syntax/indentation error in `kubelingo/cli.py` by removing a malformed, duplicated interactive block and restoring a minimal bare-`kubelingo` fallback menu (PTY Shell, Docker Container, Enter OpenAI API Key, Exit).
   - **Fixed**: Addressed a UI regression in `kubelingo/modules/kubernetes/session.py` by standardizing menu choice definitions as simple `{"name": ..., "value": ...}` dict literals (instead of mixed `questionary.Choice`), restoring clean layout and correct numbering.
+  - **Fixed**: Corrected the `default` argument for the per-question action menu in `kubelingo/modules/kubernetes/session.py`. It now correctly uses the choice `value` ('answer') instead of its `name`, restoring the default selection indicator (`»`) and fixing the UI regression.
   - **Fixed**: Wrapped the PTY shell under `script` when recording transcripts, fixing terminal state corruption and preventing nested Questionary prompts from auto-cancelling after exit.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
