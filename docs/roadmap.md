@@ -83,8 +83,20 @@ _Labels: enhancement, validation_
 
 ### Data Persistence
 _Labels: enhancement, logging_
-- [x] Store transcripts under `logs/transcripts/<question_id>.log`.
+- [x] Store transcripts under `logs/transcripts/<session_id>/<question_id>.log`.
 - [ ] Integrate with `SessionManager` to archive or clean up transcripts at session end.
+
+## Phase 3: Matcher & Evaluation Enhancements
+
+### Matcher Support
+_Labels: enhancement, validation_
+- [ ] Implement support for exit_code, contains, regex, and JSONPath matchers in `answer_checker.evaluate_transcript` and the sandbox helper.
+- [ ] Add cluster-state validation steps (e.g., `kubectl get` checks, JSON/YAML structure diff).
+
+### Testing & AI Evaluation
+_Labels: testing, ai_
+- [ ] Write unit tests for matcher logic and `evaluate_transcript` functions.
+- [ ] Integrate AI-based evaluator as an optional `--ai-eval` second-pass for freeform workflows.
 
 ## Test Coverage Improvements
 
