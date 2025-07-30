@@ -173,3 +173,15 @@ To use this feature, run Kubelingo with the `--ai-eval` flag:
 kubelingo --k8s --ai-eval
 ```
 Ensure that `OPENAI_API_KEY` is set in your environment.
+
+### UI Regression Analysis
+
+The interactive command-line interface has experienced a significant regression, causing a return to a less polished user experience. Previously, menus were clean, using indicators (`»`) for selection. Now, they have reverted to using numeric prefixes (e.g., `1. PTY Shell`), and exhibit alignment issues, as seen in the recent output logs.
+
+**Root Cause**: The regression was likely introduced during recent feature updates. It appears that earlier commits, which had refactored the `questionary` library calls to use a dictionary-based format for choices and enabled the `use_indicator=True` option, were inadvertently overwritten. This change was crucial for achieving the clean, numberless menu style.
+
+**Affected Areas**: The regression impacts all interactive menus, including:
+- The main session selection (`kubelingo/cli.py`).
+- The per-question action menu (`kubelingo/modules/kubernetes/session.py`).
+
+**Path to Resolution**: To fix this, the application's interactive prompts must be systematically updated to once again use the dictionary-based choice format and `use_indicator=True` flag. This will restore the consistent, user-friendly interface that was previously achieved.
