@@ -35,6 +35,45 @@ except ImportError:
 
 from kubelingo.modules.base.session import StudySession, SessionManager
 from pathlib import Path
+import os
+
+# AI-based validator for command equivalence
+try:
+    import openai
+except ImportError:
+    openai = None
+
+def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
+    """
+    Use OpenAI to semantically compare a student's kubectl transcript
+    against the expected command. Returns True if equivalent.
+    """
+    if openai is None:
+        raise RuntimeError('openai package not installed; install with pip install openai')
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise RuntimeError('OPENAI_API_KEY environment variable not set')
+    openai.api_key = api_key
+    messages = [
+        {"role": "system", "content": (
+            "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
+            "to the expected kubectl command. Reply with only 'yes' or 'no'."
+        )},
+        {"role": "user", "content": (
+            f"Question: \"{question_text}\"\n"
+            f"Expected Command: `{expected_cmd}`\n"
+            "Student Transcript:\n```
+" + transcript + "```\n"
+            "Are these equivalent?"
+        )}
+    ]
+    resp = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        temperature=0
+    )
+    reply = resp.choices[0].message.content.strip().lower()
+    return reply.startswith('yes')
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -769,6 +808,35 @@ class NewSession(StudySession):
         if available and requested, otherwise falls back to deterministic checks.
         """
         attempted_indices.add(current_question_index)
+        # AI validator override if configured in question metadata
+        validator = None
+        if isinstance(q.metadata, dict):
+            validator = q.metadata.get('validator')
+        if validator and validator.get('type') == 'ai':
+            expected_cmd = validator.get('expected', '')
+            # Collect the student's session transcript
+            transcript = ''
+            try:
+                if result.transcript_path:
+                    transcript = Path(result.transcript_path).read_text(encoding='utf-8')
+            except Exception:
+                pass
+            # Run AI-based validation
+            try:
+                ok = ai_validate(transcript, expected_cmd, q.prompt)
+            except Exception as e:
+                print(f"{Fore.YELLOW}AI validator error: {e}{Style.RESET_ALL}")
+                return False
+            # Display result
+            if ok:
+                print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} Expected: {expected_cmd}")
+                correct_indices.add(current_question_index)
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}[✗]{Style.RESET_ALL} Expected: {expected_cmd}")
+                correct_indices.discard(current_question_index)
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            return ok
         is_correct = False  # Default to incorrect
         ai_eval_used = False
         ai_eval_active = getattr(args, 'ai_eval', False)
@@ -924,6 +992,8 @@ class NewSession(StudySession):
                 if not self._check_cluster_connectivity():
                     sys.exit(1)
 
+        # Inform the user of future roadmap for embedded cluster provisioning
+        print(f"{Fore.YELLOW}Note: Embedded Kubernetes cluster provisioning (Kind/Minikube) is on our roadmap; for now, use --docker or provide a live cluster.{Style.RESET_ALL}")
         self.live_session_active = True
         return True
 
