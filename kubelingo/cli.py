@@ -135,54 +135,54 @@ def main():
         print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
         print(f"{Fore.RED}To enable AI features, select 'Enter OpenAI API Key to enable AI features' from the menu, or install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
-        # Unified exercise mode: run questions from question-data modules
-        parser.add_argument('--exercise-module', type=str,
-                            help='Run unified live exercise for a question-data module')
-        
-        # Kubernetes module shortcut
-        parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
-                            help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
+    # Unified exercise mode: run questions from question-data modules
+    parser.add_argument('--exercise-module', type=str,
+                        help='Run unified live exercise for a question-data module')
+    
+    # Kubernetes module shortcut
+    parser.add_argument('--k8s', action='store_true', dest='k8s_mode',
+                        help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
-        # Sandbox modes (deprecated flags) and new sandbox command support
-        parser.add_argument('--pty', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode pty' instead.")
-        parser.add_argument('--docker', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode docker' instead.")
-        parser.add_argument('--sandbox-mode', choices=['pty', 'docker', 'container'], dest='sandbox_mode',
-                            help='Sandbox mode to use: pty (default), docker, or container (alias for docker).')
+    # Sandbox modes (deprecated flags) and new sandbox command support
+    parser.add_argument('--pty', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode pty' instead.")
+    parser.add_argument('--docker', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode docker' instead.")
+    parser.add_argument('--sandbox-mode', choices=['pty', 'docker', 'container'], dest='sandbox_mode',
+                        help='Sandbox mode to use: pty (default), docker, or container (alias for docker).')
 
-        # Core quiz options
-        parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
-                            help='Path to quiz data JSON file for command quiz')
-        parser.add_argument('-n', '--num', type=int, default=0,
-                            help='Number of questions to ask (default: all)')
-        parser.add_argument('--randomize', action='store_true',
-                            help='Randomize question order (for modules that support it)')
-        parser.add_argument('-c', '--category', type=str,
-                            help='Limit quiz to a specific category')
-        parser.add_argument('--list-categories', action='store_true',
-                            help='List available categories and exit')
-        parser.add_argument('--history', action='store_true',
-                            help='Show quiz history and statistics')
-        parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
-                            help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
-        parser.add_argument('--ai-eval', action='store_true',
-                            help='Use AI to evaluate sandbox exercises. Requires OPENAI_API_KEY.')
+    # Core quiz options
+    parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
+                        help='Path to quiz data JSON file for command quiz')
+    parser.add_argument('-n', '--num', type=int, default=0,
+                        help='Number of questions to ask (default: all)')
+    parser.add_argument('--randomize', action='store_true',
+                        help='Randomize question order (for modules that support it)')
+    parser.add_argument('-c', '--category', type=str,
+                        help='Limit quiz to a specific category')
+    parser.add_argument('--list-categories', action='store_true',
+                        help='List available categories and exit')
+    parser.add_argument('--history', action='store_true',
+                        help='Show quiz history and statistics')
+    parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
+                        help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
+    parser.add_argument('--ai-eval', action='store_true',
+                        help='Use AI to evaluate sandbox exercises. Requires OPENAI_API_KEY.')
 
-        # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
-        parser.add_argument('command', nargs='*',
-                            help="Command to run (e.g. 'kubernetes' or 'sandbox pty')")
-        parser.add_argument('--list-modules', action='store_true',
-                            help='List available exercise modules and exit')
-        parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
-                            help='Path to custom quiz JSON file for kustom module')
-        parser.add_argument('--exercises', type=str,
-                            help='Path to custom exercises JSON file for a module')
-        parser.add_argument('--cluster-context', type=str,
-                            help='Kubernetes cluster context to use for a module')
-        # --live is deprecated, as all k8s exercises are now sandbox-based.
-        # It is kept for backward compatibility but has no effect.
-        parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
+    # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
+    parser.add_argument('command', nargs='*',
+                        help="Command to run (e.g. 'kubernetes' or 'sandbox pty')")
+    parser.add_argument('--list-modules', action='store_true',
+                        help='List available exercise modules and exit')
+    parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
+                        help='Path to custom quiz JSON file for kustom module')
+    parser.add_argument('--exercises', type=str,
+                        help='Path to custom exercises JSON file for a module')
+    parser.add_argument('--cluster-context', type=str,
+                        help='Kubernetes cluster context to use for a module')
+    # --live is deprecated, as all k8s exercises are now sandbox-based.
+    # It is kept for backward compatibility but has no effect.
+    parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
         # Process positional command
         args.module = None
