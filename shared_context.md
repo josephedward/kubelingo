@@ -38,7 +38,7 @@ With this foundation, the next steps are to:
      * This new runner is now integrated into the main quiz loop.
 2. Simplified Interactive Menu
    - Removed separate “Check Answer” and inline editor paths.
-   - Options are now: Open Shell, Flag/Unflag, Skip, Back to Quiz Menu.
+   - Options are now: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
 3. Outcome-Based Validation
    - Success is determined by inspecting cluster or file state after user actions, not command text matching.
    - Manifest-based questions use `kubectl get` checks; Vim-based questions may validate file contents or applied results.
