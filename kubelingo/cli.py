@@ -205,6 +205,19 @@ def main():
         '--dry-run-enrich', action='store_true',
         help='Dry run enrichment (no file writes or API calls)'
     )
+    # Enrichment feature flags
+    parser.add_argument(
+        '--generate-validations', action='store_true',
+        help='Generate validation_steps via AI for questions missing them'
+    )
+    parser.add_argument(
+        '--enrich-model', type=str, default='gpt-3.5-turbo',
+        help='AI model to use for explanations and validation generation'
+    )
+    parser.add_argument(
+        '--enrich-format', choices=['json','yaml'], default='json',
+        help='Output format for enriched question-data (json or yaml)'
+    )
 
     # Handle question-data enrichment early and exit
     enrich_args, _ = parser.parse_known_args()
@@ -214,6 +227,11 @@ def main():
         cmd = [sys.executable, str(script), src, dst]
         if enrich_args.dry_run_enrich:
             cmd.append('--dry-run')
+        if enrich_args.generate_validations:
+            cmd.append('--generate-validations')
+        # Always forward model and format settings
+        cmd.extend(['--model', enrich_args.enrich_model])
+        cmd.extend(['--format', enrich_args.enrich_format])
         subprocess.run(cmd)
         return
     # For bare invocation (no flags or commands), present an interactive menu.
