@@ -131,10 +131,10 @@ def main():
         sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
     print_banner()
     print()
-    # Warn prominently if no OpenAI API key is set
-    if not os.getenv('OPENAI_API_KEY'):
+    # Warn prominently if no OpenAI API key is set (skip when showing help)
+    if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('OPENAI_API_KEY'):
         print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
-        print(f"{Fore.RED}To enable AI features, select 'Enter OpenAI API Key to enable AI features' from the menu, or install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
+        print(f"{Fore.RED}To enable AI features, set OPENAI_API_KEY or install 'kubelingo[llm]'.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
     # Unified exercise mode: run questions from question-data modules
     parser.add_argument('--exercise-module', type=str,
@@ -183,7 +183,7 @@ def main():
     # It is kept for backward compatibility but has no effect.
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
-    # Bare invocation (no args) should show help.
+    # For bare invocation (no flags or commands), show help and exit
     if len(sys.argv) == 1:
         parser.print_help()
         return
@@ -196,10 +196,6 @@ def main():
         return
     if args.list_modules:
         show_modules()
-        return
-    # If no arguments are provided, show help and exit
-    if len(sys.argv) == 1:
-        parser.print_help()
         return
 
     # Process positional command
