@@ -288,11 +288,8 @@ class NewSession(StudySession):
         """
         Router for running exercises. It decides which quiz to run.
         """
-        if args.live:
-            return self._run_live_mode(args)
-
-        # For non-live exercises, present all quizzes in a unified shell menu.
-        self._run_command_quiz(args)
+        # Refactored: all exercises now run through a unified quiz runner.
+        self._run_unified_quiz(args)
     
     def _run_shell_question(self, q: dict, args) -> bool:
         """
