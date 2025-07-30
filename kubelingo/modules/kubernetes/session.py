@@ -658,8 +658,8 @@ class NewSession(StudySession):
 
                 if action == "answer":
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                    # Detect AI validator configured in question metadata
-                    validator = q.get('metadata', {}).get('validator') if isinstance(q.get('metadata'), dict) else None
+                    # Detect AI-based semantic validator
+                    validator = q.get('validator')
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
                     use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
