@@ -473,7 +473,8 @@ def main():
         else:
             # Fallback to simple text-based prompts
             session_type = None
-            # Session type selection
+            # Session type selection (use number keys and Enter)
+            print("(Type the number of your choice and press Enter)")
             while True:
                 print()
                 print("Select a session type:")
@@ -502,7 +503,8 @@ def main():
                 else:
                     continue
                 break
-            # Quiz type selection
+            # Quiz type selection (use number keys and Enter)
+            print("(Type the number of your choice and press Enter)")
             while True:
                 print()
                 print(f"Session: {session_type.upper()}. Select quiz type:")
