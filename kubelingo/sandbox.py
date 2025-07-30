@@ -88,6 +88,8 @@ def _evaluate_matcher(matcher: Dict[str, Any], stdout: str, stderr: str, exit_co
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
+    # Clear any residual transcript env so we don't accidentally use `script` fallback in direct calls
+    os.environ.pop('KUBELINGO_TRANSCRIPT_FILE', None)
     try:
         from kubelingo.bridge import rust_bridge
     except ImportError:
@@ -132,11 +134,15 @@ def spawn_pty_shell():
         else:
             # Robustly spawn PTY by saving and restoring terminal attributes.
             # This prevents the terminal from being left in a bad state.
-            old_settings = termios.tcgetattr(sys.stdin)
+            try:
+                old_settings = termios.tcgetattr(sys.stdin)
+            except Exception:
+                old_settings = None
             try:
                 pty.spawn(shell_cmd)
             finally:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                if old_settings is not None:
+                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
     finally:
