@@ -26,6 +26,7 @@ class Question:
     pre_shell_cmds: List[str] = field(default_factory=list)   # commands to prepare sandbox
     initial_files: Dict[str, str] = field(default_factory=dict)  # file path → content to seed workspace
     validation_steps: List[ValidationStep] = field(default_factory=list)  # steps to run after shell exit
+    validator: Optional[Dict[str, Any]] = None  # For AI-based validation
 
     # Metadata
     explanation: Optional[str] = None
