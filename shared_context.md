@@ -81,7 +81,8 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
   * Provision an isolated workspace and write `initial_files` (including legacy `initial_yaml`).
   * Execute `pre_shell_cmds` (legacy `initial_cmds`) in the workspace.
   * Spawn a PTY or Docker sandbox shell, always capturing a full terminal transcript and Vim log.
-  * Persist transcripts to `logs/transcripts/<question_id>.log` via a new `answer_checker` module.
+  * Persist transcripts to `logs/transcripts/<session_id>/<question_id>.log` via a new `answer_checker` module (using `KUBELINGO_SESSION_ID`).
+  * Added `evaluate_transcript(transcript_path, validation_steps)` in `answer_checker` for reusable transcript-based validation.
   * Run each `ValidationStep` post-shell, aggregating `StepResult` entries for deterministic checks.
   * Return a `ShellResult(success, step_results, transcript_path)` for downstream UI checks.
 - Migrated all questions in `ckad_quiz_data.json` to the new unified schema (`validation_steps`, `pre_shell_cmds`, `initial_files`).
