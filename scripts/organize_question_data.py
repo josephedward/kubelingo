@@ -75,6 +75,61 @@ def generate_explanation(client, question):
         logging.error(f"An unexpected error occurred generating explanation for prompt '{prompt}': {e}")
         return None
 
+def generate_validation_steps(client, question):
+    """Generates validation steps for a given question using an AI model."""
+    prompt = question.get('prompt', '')
+    response = question.get('response', '') or question.get('answer', '')
+
+    if not prompt or not response:
+        return None
+
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": """You are a Kubernetes expert that generates validation steps for exercises.
+Given a question prompt and the correct command, generate a JSON object containing a 'validation_steps' key with a JSON array of validation steps.
+Each step must be a `kubectl` command using `jsonpath` to verify a key attribute of the created resource.
+The output MUST be only a valid JSON object.
+Example for a question about creating a deployment with 1 replica:
+{"validation_steps": [{"cmd": "kubectl get deployment my-deployment -o jsonpath='{.spec.replicas}'", "matcher": {"value": 1}}]}"""
+                },
+                {
+                    "role": "user",
+                    "content": f"Question: \"{prompt}\"\nCorrect Command: `{response}`\n\nJSON validation_steps object:"
+                }
+            ],
+            model="gpt-4-turbo",
+            response_format={"type": "json_object"},
+            temperature=0.2,
+        )
+        steps_json = chat_completion.choices[0].message.content.strip()
+        try:
+            data = json.loads(steps_json)
+            steps = data.get("validation_steps")
+            
+            if not isinstance(steps, list):
+                logging.warning(f"AI did not return a list for validation steps for prompt: {prompt}")
+                return None
+            for step in steps:
+                if not all(k in step for k in ['cmd', 'matcher']):
+                    logging.warning(f"Invalid step structure in validation steps for prompt: {prompt}")
+                    return None # Invalid structure
+            return steps
+        except (json.JSONDecodeError, AttributeError) as e:
+            logging.warning(f"Failed to decode or parse validation steps JSON for prompt '{prompt}': {e}")
+            logging.debug(f"Received from AI: {steps_json}")
+            return None
+    except openai.APIConnectionError as e:
+        logging.error(f"Failed to connect to OpenAI API for prompt '{prompt}'. This is likely a network issue.")
+        logging.warning("Please check your internet connection, firewall, or proxy settings.")
+        logging.debug(f"Details: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"An unexpected error occurred generating validation steps for prompt '{prompt}': {e}")
+        return None
+
 # --- File Operations ---
 
 def _move_to_archive(src_path, dry_run=False):
@@ -169,7 +224,8 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
 
     is_nested = isinstance(target_data_raw, list) and target_data_raw and isinstance(target_data_raw[0], dict) and 'prompts' in target_data_raw[0]
 
-    enriched_count = 0
+    enriched_explanation_count = 0
+    enriched_steps_count = 0
     deduplicated_count = 0
 
     if is_nested:
@@ -188,9 +244,19 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
                         explanation = generate_explanation(client, question)
                         if explanation:
                             question['explanation'] = explanation
-                            enriched_count += 1
+                            enriched_explanation_count += 1
                     else:
-                        enriched_count += 1
+                        enriched_explanation_count += 1
+                
+                if not question.get('validation_steps'):
+                    logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
+                    if not dry_run:
+                        steps = generate_validation_steps(client, question)
+                        if steps:
+                            question['validation_steps'] = steps
+                            enriched_steps_count += 1
+                    else:
+                        enriched_steps_count += 1
                 prompts_to_keep.append(question)
             category_group['prompts'] = prompts_to_keep
             if prompts_to_keep:
@@ -209,12 +275,23 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False):
                     explanation = generate_explanation(client, question)
                     if explanation:
                         question['explanation'] = explanation
-                        enriched_count += 1
+                        enriched_explanation_count += 1
                 else:
-                    enriched_count += 1
+                    enriched_explanation_count += 1
+
+            if not question.get('validation_steps'):
+                logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
+                if not dry_run:
+                    steps = generate_validation_steps(client, question)
+                    if steps:
+                        question['validation_steps'] = steps
+                        enriched_steps_count += 1
+                else:
+                    enriched_steps_count += 1
             final_data.append(question)
 
-    logging.info(f"Enriched {enriched_count} questions with new explanations.")
+    logging.info(f"Enriched {enriched_explanation_count} questions with new explanations.")
+    logging.info(f"Enriched {enriched_steps_count} questions with new validation steps.")
     logging.info(f"Removed {deduplicated_count} duplicate questions.")
 
     if not dry_run:
