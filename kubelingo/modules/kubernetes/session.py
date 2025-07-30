@@ -505,10 +505,11 @@ class NewSession(StudySession):
 
                     # Immediately process the result
                     is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                    if is_correct:
+                    if is_correct is True:
                         current_question_index += 1
                         break # Move to next question
                     else:
+                        # is_correct is False or None (no-op), so just stay on the current question
                         continue # Stay on current question to retry
                 
                 if action == "check":
@@ -530,7 +531,7 @@ class NewSession(StudySession):
                     
                     # This check is now just for displaying feedback and moving on
                     is_correct = self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                    if is_correct:
+                    if is_correct is True:
                         current_question_index = min(current_question_index + 1, total_questions - 1)
                         break
                     else:
