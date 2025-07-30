@@ -13,7 +13,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Dict
 
-from kubelingo.question import ValidationStep
+from kubelingo.question import Question, ValidationStep
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
@@ -83,7 +83,7 @@ def launch_container_sandbox():
     finally:
         print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}\n")
 
-def run_shell_with_setup(question: "Question", use_docker=False, ai_eval=False):
+def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
     """
     Runs a complete, isolated exercise in a temporary workspace.
 
@@ -166,61 +166,3 @@ def run_shell_with_setup(question: "Question", use_docker=False, ai_eval=False):
             return False
         finally:
             os.chdir(original_dir)
-@dataclass
-class StepResult:
-    step: ValidationStep
-    success: bool
-    stdout: str
-    stderr: str
-
-@dataclass
-class ShellResult:
-    success: bool
-    step_results: List[StepResult]
-    transcript_path: str
-
-def run_shell_with_setup(
-    pre_shell_cmds: List[str],
-    initial_files: Dict[str, str],
-    validation_steps: List[ValidationStep],
-    use_container: bool = False,
-) -> ShellResult:
-    """
-    Provision a workspace, run pre-shell commands, launch an interactive shell (PTY or container),
-    record the session transcript, execute validation steps, and cleanup.
-    Returns a ShellResult indicating overall success and per-step details.
-    """
-    # Create isolated workspace
-    workspace = Path(tempfile.mkdtemp(prefix="kubelingo-sandbox-"))
-    try:
-        # Seed initial files
-        for rel_path, content in initial_files.items():
-            file_path = workspace / rel_path
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(content)
-        # Execute pre-shell commands
-        for cmd in pre_shell_cmds:
-            proc = subprocess.run(cmd, shell=True, cwd=workspace,
-                                  capture_output=True, text=True)
-            if proc.returncode != 0:
-                return ShellResult(False, [], "")
-        # Prepare transcript
-        transcript = workspace / "session.log"
-        # Launch shell session
-        if use_container:
-            launch_container_sandbox()
-        else:
-            script_cmd = f'script -q -c "bash --login" {transcript}'
-            subprocess.run(script_cmd, shell=True, cwd=workspace)
-        # Run validation steps
-        results: List[StepResult] = []
-        for step in validation_steps:
-            res = subprocess.run(step.cmd, shell=True, cwd=workspace,
-                                 capture_output=True, text=True)
-            ok = res.returncode == 0
-            results.append(StepResult(step=step, success=ok,
-                                       stdout=res.stdout, stderr=res.stderr))
-        overall = all(r.success for r in results)
-        return ShellResult(overall, results, str(transcript))
-    finally:
-        shutil.rmtree(workspace)
