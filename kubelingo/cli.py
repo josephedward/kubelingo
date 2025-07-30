@@ -183,6 +183,11 @@ def main():
     # It is kept for backward compatibility but has no effect.
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
+    # Bare invocation (no args) should show help.
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
+
     args = parser.parse_args()
     args.module = None
     # Early flags: history and list-modules
