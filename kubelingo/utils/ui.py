@@ -42,18 +42,20 @@ def humanize_module(name: str) -> str:
 
 
 ASCII_ART = r"""
-K   K U   U  BBBB  EEEEE L     III N   N  GGGG   OOO 
-K  K  U   U  B   B E     L      I  NN  N G   G O   O
-KK    U   U  BBBB  EEEE  L      I  N N N G  GG O   O
-K  K  U   U  B   B E     L      I  N  NN G   G O   O
-K   K  UUU   BBBB  EEEEE LLLLL III N   N  GGGG   OOO 
+#    # ##### #   # ##### ##### #      ###  # ###  ####   ###  
+#   #  #     #   # #     #     #       #  ##   #  #     #   # 
+####   ###   #   # ###   ###   #       #  # #  #  ###   #   # 
+#  #   #     #   # #     #     #       #  #  # #  #     #   # 
+#   #  #####  ###  ##### ##### #####  ###  #   ## #      ###  
 """
+
 
 def print_banner():
     """Prints the Kubelingo ASCII banner."""
     lines = ASCII_ART.strip('\n').splitlines()
     for line in lines:
-        print(Fore.MAGENTA + line + Style.RESET_ALL)
+        # Split between KUBE and LINGO for different colors
+        print(f"{Fore.CYAN}{line[:29]}{Fore.MAGENTA}{line[29:]}{Style.RESET_ALL}")
 
 
 def show_session_type_help():
