@@ -27,7 +27,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
-    Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
+    Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help, questionary
 )
 import os
 from kubelingo.utils.config import (
