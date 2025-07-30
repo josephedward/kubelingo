@@ -772,9 +772,12 @@ class NewSession(StudySession):
         is_correct = False  # Default to incorrect
         ai_eval_used = False
         ai_eval_active = getattr(args, 'ai_eval', False)
+        is_live_question = q.get('type') in ('live_k8s', 'live_k8s_edit')
+        use_ai_for_mocking = not args.docker and is_live_question
+        openai_key_present = bool(os.getenv('OPENAI_API_KEY'))
 
-        # AI-First Evaluation: if --ai-eval is on, use transcript with LLM.
-        if ai_eval_active and os.getenv('OPENAI_API_KEY') and result.transcript_path:
+        # AI-First Evaluation: if --ai-eval is on, or for live questions without docker, use transcript with LLM.
+        if (ai_eval_active or use_ai_for_mocking) and openai_key_present and result.transcript_path:
             try:
                 from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
                 evaluator = _AIEvaluator()
@@ -783,6 +786,8 @@ class NewSession(StudySession):
                 is_correct = ai_result.get('correct', False)
                 reasoning = ai_result.get('reasoning', '')
                 status = 'Correct' if is_correct else 'Incorrect'
+                if use_ai_for_mocking and not ai_eval_active:
+                    print(f"{Fore.CYAN}Using AI to evaluate transcript since no cluster is running.{Style.RESET_ALL}")
                 print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
                 ai_eval_used = True
             except ImportError:
@@ -793,6 +798,11 @@ class NewSession(StudySession):
                 print(f"{Fore.YELLOW}Falling back to deterministic checks.{Style.RESET_ALL}")
                 is_correct = result.success  # Fallback
         else:
+            if use_ai_for_mocking and not openai_key_present:
+                print(f"{Fore.YELLOW}Cannot check answer: This question requires a live cluster, and --docker was not used.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}AI-based checking is available as a fallback, but 'OPENAI_API_KEY' environment variable is not set.{Style.RESET_ALL}")
+                return
+
             # Fallback to deterministic validation.
             # An answer cannot be correct if there are no validation steps defined in the question data.
             has_validation_data = bool(
