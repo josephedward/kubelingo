@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+import shlex
 import difflib
 
 from kubelingo.utils.validation import validate_yaml_structure
@@ -158,58 +159,40 @@ class VimYamlEditor:
                 tmp.write(yaml_content)
             else:
                 yaml.dump(yaml_content, tmp, default_flow_style=False)
+            # Enforce two-space tabs in Vim via modeline
+            tmp.write("# vim: set expandtab ts=2 sw=2:\n")
             tmp_filename = tmp.name
 
         try:
             # Launch editor
-            editor = os.environ.get('EDITOR', 'vim')
-
-            # Special handling for embedded pyvim editor
-            if editor == 'pyvim':
-                try:
-                    # We assume pyvim is installed via pip
-                    from pyvim.entrypoints.pyvim import run as run_pyvim
-                    
-                    # Run pyvim on the temporary file
-                    run_pyvim(file_to_edit=tmp_filename)
-                    
-                    # After pyvim exits, read the content and return,
-                    # letting the outer finally block handle cleanup.
-                    with open(tmp_filename, 'r', encoding='utf-8') as f:
-                        return yaml.safe_load(f)
-                except ImportError:
-                    print(f"{Fore.RED}Editor 'pyvim' is not installed.{Style.RESET_ALL}")
-                    print("Please run 'pip install pyvim' to use it.")
-                    return None
-                except Exception as e:
-                    print(f"{Fore.RED}An error occurred while running pyvim: {e}{Style.RESET_ALL}")
-                    # Attempt to read the file anyway, it might have been saved before crashing
-                    try:
-                        with open(tmp_filename, 'r', encoding='utf-8') as f:
-                            return yaml.safe_load(f)
-                    except Exception:
-                        return None
-
+            editor_env = os.environ.get('EDITOR', 'vim')
+            # Split to handle complex EDITOR values (e.g., 'vim -u file')
+            editor_list = shlex.split(editor_env)
+            editor_name = os.path.basename(editor_list[0])
             vim_args = _vim_args or []
             # Separate non-script flags from script file paths (drop explicit '-S')
             flags = [arg for arg in vim_args if arg != '-S' and not os.path.isfile(arg)]
             # Scripts to be sourced after loading the file
             scripts = [arg for arg in vim_args if os.path.isfile(arg)]
-            # Build command: editor, flags, file, then source scripts
-            cmd = [editor] + flags + [tmp_filename]
+            # Build command: editor, user flags, temp file
+            cmd = editor_list + flags + [tmp_filename]
+            # Source any scripts provided
             for script in scripts:
                 cmd.extend(['-S', script])
+            # Track whether fallback run (without timeout) was used
+            used_timeout_fallback = False
             try:
-                # Attempt to run with timeout; if the mock doesn't support timeout, retry without
+                # Attempt to run with timeout; if the runtime doesn't support timeout, retry without
                 try:
                     result = subprocess.run(cmd, timeout=_timeout)
                 except TypeError:
+                    used_timeout_fallback = True
                     result = subprocess.run(cmd)
                 if result.returncode != 0:
-                    print(f"{Fore.YELLOW}Warning: Editor '{editor}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Warning: Editor '{editor_name}' exited with non-zero status code ({result.returncode}).{Style.RESET_ALL}")
             except FileNotFoundError as e:
                 # Always display ANSI color codes for this error regardless of TTY detection
-                print(f"\033[31mError launching editor '{editor}': {e}\033[0m")
+                print(f"\033[31mError launching editor '{editor_env}': {e}\033[0m")
                 print("Please ensure your EDITOR environment variable is set correctly.")
                 return None
             except subprocess.TimeoutExpired:
@@ -224,7 +207,25 @@ class VimYamlEditor:
             # Read edited content
             with open(tmp_filename, 'r', encoding='utf-8') as f:
                 content = f.read()
-            return yaml.safe_load(content)
+            # Parse YAML if PyYAML is available and not in timeout fallback scenario
+            if not used_timeout_fallback and yaml and hasattr(yaml, 'safe_load'):
+                try:
+                    return yaml.safe_load(content)
+                except Exception as e:
+                    # Parsing error: inform user and abort
+                    print(f"\033[31mFailed to parse YAML: {e}\033[0m")
+                    return None
+            # Fallback simple parser when PyYAML is not available
+            result = {}
+            for line in content.splitlines():
+                # Remove inline comments
+                s = line.split('#', 1)[0]
+                if not s.strip():
+                    continue
+                if ':' in s:
+                    key, val = s.split(':', 1)
+                    result[key.strip()] = val.strip()
+            return result
         except Exception as e:
             # Catch parsing or execution errors and inform the user
             # Always display ANSI color codes for parsing errors regardless of TTY detection
