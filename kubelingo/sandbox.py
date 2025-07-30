@@ -10,19 +10,6 @@ from kubelingo.question import Question, ValidationStep
 from kubelingo.modules.kubernetes.answer_checker import save_transcript
 from kubelingo.utils.config import LOGS_DIR
 
-@dataclass
-class StepResult:
-    step: ValidationStep
-    success: bool
-    stdout: str
-    stderr: str
-
-@dataclass
-class ShellResult:
-    success: bool
-    step_results: List[StepResult]
-    transcript_path: str
-
 from kubelingo.utils.ui import Fore, Style
 
 # Project root imported from centralized config
