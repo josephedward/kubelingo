@@ -948,8 +948,8 @@ class NewSession(StudySession):
             )
             if result.returncode != 0:
                 print(f"\n{Fore.RED}Error: kubectl cannot connect to a Kubernetes cluster.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Please ensure a cluster is running and your KUBECONFIG is correct.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}You can start a local test cluster with 'minikube start' or 'kind create cluster'.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}This quiz requires a live cluster connection for validation.{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}For setup instructions, please see: {os.path.join(ROOT, 'docs', 'cluster-setup.md')}{Style.RESET_ALL}")
                 if result.stderr:
                     print(f"\n--- kubectl output ---\n{result.stderr.strip()}\n----------------------")
                 return False
