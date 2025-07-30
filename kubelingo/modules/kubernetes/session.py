@@ -389,6 +389,21 @@ class NewSession(StudySession):
             else:
                 questions = load_questions(args.file)
 
+        # De-duplicate questions based on the prompt text to avoid redundancy.
+        # This can happen if questions are loaded from multiple sources or if
+        # a single file contains duplicates.
+        seen_prompts = set()
+        unique_questions = []
+        for q in questions:
+            prompt = q.get('prompt', '').strip()
+            if prompt and prompt not in seen_prompts:
+                unique_questions.append(q)
+                seen_prompts.add(prompt)
+        
+        if len(questions) != len(unique_questions):
+            self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
+        questions = unique_questions
+
         if args.review_only and not questions:
             print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
             return
