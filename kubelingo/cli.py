@@ -123,6 +123,13 @@ def show_modules():
 # Legacy alias for cloud-mode static branch
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
+    # Warn once if AI explanations are disabled
+    try:
+        from kubelingo.modules.llm.session import AIHelper
+        if not getattr(AIHelper, 'enabled', False):
+            print(f"{Fore.YELLOW}AI explanations disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
+    except ImportError:
+        pass
     while True:
         # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
         if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):

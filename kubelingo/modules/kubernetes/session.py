@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import shlex
 from datetime import datetime
 import logging
 
@@ -40,7 +41,9 @@ from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from dataclasses import asdict
 # Existing import
+# Existing import
 from .vim_yaml_editor import VimYamlEditor
+from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 # (AI integration is loaded dynamically to avoid import-time dependencies)
 
 
@@ -133,10 +136,18 @@ def _clear_all_review_flags(logger):
 
         changed_in_file = False
         for item in data:
+            # Clear top-level review flags
             if 'review' in item:
                 del item['review']
                 changed_in_file = True
                 cleared_count += 1
+            # Clear nested review flags in prompts (for Markdown/YAML quizzes)
+            if isinstance(item, dict) and 'prompts' in item and isinstance(item['prompts'], list):
+                for prompt in item['prompts']:
+                    if isinstance(prompt, dict) and 'review' in prompt:
+                        del prompt['review']
+                        changed_in_file = True
+                        cleared_count += 1
 
         if changed_in_file:
             try:
@@ -163,9 +174,45 @@ def check_dependencies(*commands):
 def load_questions(data_file, exit_on_error=True):
     """Loads questions from JSON, YAML, or Markdown files using dedicated loaders."""
     ext = os.path.splitext(data_file)[1].lower()
-    loader = None
-
+    # Handle raw JSON list-of-modules questions format (from Markdown/YAML quizzes)
     if ext == '.json':
+        try:
+            with open(data_file, 'r', encoding='utf-8') as f:
+                raw_data = json.load(f)
+        except Exception as e:
+            if exit_on_error:
+                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
+                sys.exit(1)
+            return []
+        # If JSON file is a list, detect format:
+        if isinstance(raw_data, list):
+            # Case: list of modules with nested prompts (e.g., CKAD exercises)
+            if raw_data and isinstance(raw_data[0], dict) and 'prompts' in raw_data[0]:
+                questions = []
+                for module in raw_data:
+                    if not isinstance(module, dict):
+                        continue
+                    category = module.get('category')
+                    for prompt in module.get('prompts', []):
+                        if not isinstance(prompt, dict):
+                            continue
+                        q = prompt.copy()
+                        if category is not None:
+                            q['category'] = category
+                        questions.append(q)
+                return questions
+            # Case: list of simple questions (e.g., Killercoda CKAD)
+            if raw_data and isinstance(raw_data[0], dict) and 'prompt' in raw_data[0]:
+                questions = []
+                for item in raw_data:
+                    if not isinstance(item, dict):
+                        continue
+                    q = item.copy()
+                    # Normalize 'answer' key to 'response'
+                    if 'answer' in q:
+                        q['response'] = q.pop('answer')
+                    questions.append(q)
+                return questions
         loader = JSONLoader()
     elif ext in ('.md', '.markdown'):
         loader = MDLoader()
@@ -244,8 +291,38 @@ class NewSession(StudySession):
         if args.live:
             return self._run_live_mode(args)
 
-        # For non-live exercises, all quiz types are presented in one menu.
+        # For non-live exercises, present all quizzes in a unified shell menu.
         self._run_command_quiz(args)
+    
+    def _run_shell_question(self, q: dict, args) -> bool:
+        """
+        Unified shell-driven question:
+        1) Run any setup commands in q['initial_cmds'].
+        2) Launch a PTY or Docker shell for the user to work in.
+        3) After exit, execute each ValidationStep in q['validations'], returning
+           True if all pass, False otherwise.
+        """
+        # 1) Setup
+        for cmd in q.get('initial_cmds', []):
+            subprocess.run(cmd, shell=True)
+
+        # 2) Shell
+        if args.docker:
+            launch_container_sandbox()
+        else:
+            spawn_pty_shell()
+
+        # 3) Validation
+        all_good = True
+        for v in q.get('validations', []):
+            cmd = v.get('cmd', '')
+            proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            expected = v.get('matcher', {}).get('exit_code', 0)
+            if proc.returncode != expected:
+                print(proc.stdout or proc.stderr)
+                all_good = False
+                break
+        return all_good
 
     def _run_command_quiz(self, args):
         """Run a quiz session for command-line questions."""
@@ -363,11 +440,10 @@ class NewSession(StudySession):
                         answer_text = "Answer (Enter Command)" if q_type == 'command' else "Answer (Open Terminal)"
 
                         choices = [
-                            questionary.Choice(f"1. {answer_text}", value="answer"),
-                            questionary.Choice("2. Check Answer", value="check"),
-                            questionary.Choice(f"3. {flag_option_text}", value="flag"),
-                            questionary.Choice("4. Skip", value="skip"),
-                            questionary.Choice("5. Back to Quiz Menu", value="back")
+                            questionary.Choice("1. Open Shell", value="answer"),
+                            questionary.Choice(f"2. {flag_option_text}", value="flag"),
+                            questionary.Choice("3. Skip", value="skip"),
+                            questionary.Choice("4. Back to Quiz Menu", value="back")
                         ]
                         
                         try:
@@ -404,46 +480,41 @@ class NewSession(StudySession):
                             continue
 
                         if action == "answer":
+                            # Run unified shell exercise
                             if not was_answered:
                                 per_category_stats[category]['asked'] += 1
                                 asked_count += 1
                             was_answered = True
-
-                            if q_type == 'command':
-                                # Determine if this is a YAML manifest (multi-line) or a simple command
-                                expected_resp = q.get('response', '') or ''
-                                # If expected answer is YAML, open editor for input
-                                if '\n' in expected_resp and yaml:
-                                    # Launch editor to create/edit YAML
-                                    tmp = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml')
-                                    tmp_path = tmp.name
-                                    tmp.close()
-                                    try:
-                                        # Include prompt as comment header
-                                        with open(tmp_path, 'w', encoding='utf-8') as tf:
-                                            tf.write(f"# {q['prompt']}\n# Enter or modify YAML below\n---\n")
-                                        editor = os.environ.get('EDITOR', 'vim')
-                                        subprocess.call([editor, tmp_path])
-                                        # Read back YAML, skip comments and separators
-                                        with open(tmp_path, 'r', encoding='utf-8') as uf:
-                                            lines = [ln for ln in uf if not ln.lstrip().startswith('#') and ln.strip() != '---']
-                                        user_answer_content = ''.join(lines).strip()
-                                    except Exception as e:
-                                        print(f"{Fore.RED}Error launching editor: {e}{Style.RESET_ALL}")
-                                        user_answer_content = ''
-                                    finally:
-                                        try: os.unlink(tmp_path)
-                                        except: pass
-                                else:
-                                    if prompt_session:
-                                        # Use plain prompt to avoid ANSI codes in answers
-                                        user_answer_content = prompt_session.prompt('Your answer: ').strip()
-                                    else:
-                                        user_answer_content = input('Your answer: ').strip()
+                            is_correct = self._run_shell_question(q, args)
+                            self.logger.info(
+                                f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\""
+                            )
+                            if is_correct:
+                                correct_count += 1
+                                per_category_stats[category]['correct'] += 1
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                if q.get('explanation'):
+                                    print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                                # AI explanation if enabled
+                                from kubelingo.modules.llm.session import AIHelper
+                                if getattr(AIHelper, 'enabled', False):
+                                    ai_text = AIHelper().get_explanation(q)
+                                    if ai_text:
+                                        print(ai_text)
                             else:
-                                sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
-                                sandbox_func()
-                                user_answer_content = "sandbox_session_completed"
+                                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                                # Show correct answer for command questions
+                                if q.get('type', 'command') == 'command':
+                                    print(f"{Fore.GREEN}Expected:\n{q.get('response', '')}{Style.RESET_ALL}")
+                                from kubelingo.modules.llm.session import AIHelper
+                                if getattr(AIHelper, 'enabled', False):
+                                    ai_text = AIHelper().get_explanation(q)
+                                    if ai_text:
+                                        print(ai_text)
+                            current_question_index += 1
+                            break
+                            # Automatically check answer after input
+                            action = "check"
 
                         if action == "check":
                             if not was_answered:
@@ -476,28 +547,26 @@ class NewSession(StudySession):
                                 print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
                                 if q.get('explanation'):
                                     print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                                # AI-generated detailed explanation
-                                try:
-                                    from kubelingo.modules.llm.session import AIHelper
+                                # AI-generated detailed explanation (if enabled)
+                                from kubelingo.modules.llm.session import AIHelper
+                                if getattr(AIHelper, 'enabled', False):
                                     ai = AIHelper()
                                     ai_text = ai.get_explanation(q)
-                                    print(ai_text)
-                                except ImportError:
-                                    pass
+                                    if ai_text:
+                                        print(ai_text)
                                 current_question_index += 1
                                 break
                             else:
                                 print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
                                 if q_type == 'command':
                                     print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
-                                # AI-generated detailed explanation
-                                try:
-                                    from kubelingo.modules.llm.session import AIHelper
+                                # AI-generated detailed explanation (if enabled)
+                                from kubelingo.modules.llm.session import AIHelper
+                                if getattr(AIHelper, 'enabled', False):
                                     ai = AIHelper()
                                     ai_text = ai.get_explanation(q)
-                                    print(ai_text)
-                                except ImportError:
-                                    pass
+                                    if ai_text:
+                                        print(ai_text)
                                 continue
                     if quiz_backed_out:
                         break  # Exit question loop to go back to quiz menu
