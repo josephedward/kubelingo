@@ -119,8 +119,17 @@ def spawn_pty_shell():
                 f.write(f"source {bash_profile}\n")
             init_script_path = f.name
         
-        # Use --init-file to load our custom config for the login shell.
-        pty.spawn(['bash', '--login', '--init-file', init_script_path])
+        # Prepare base shell command
+        shell_cmd = ['bash', '--login']
+        if init_script_path:
+            shell_cmd.extend(['--init-file', init_script_path])
+        # If transcript capture is requested and 'script' is available, wrap in script utility
+        transcript = os.environ.get('KUBELINGO_TRANSCRIPT_FILE')
+        if transcript and shutil.which('script'):
+            cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
+            subprocess.run(cmd, check=False)
+        else:
+            pty.spawn(shell_cmd)
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
     finally:
