@@ -492,12 +492,19 @@ class NewSession(StudySession):
                         metadata=q.get('metadata', {})
                     )
                     
-                    result = run_shell_with_setup(
-                        question_obj,
-                        use_docker=args.docker,
-                        ai_eval=getattr(args, 'ai_eval', False)
-                    )
-                    transcripts_by_index[current_question_index] = result
+                    try:
+                        result = run_shell_with_setup(
+                            question_obj,
+                            use_docker=args.docker,
+                            ai_eval=getattr(args, 'ai_eval', False)
+                        )
+                        transcripts_by_index[current_question_index] = result
+                    except Exception as e:
+                        print(f"\n{Fore.RED}An error occurred while setting up the exercise environment.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}This might be due to a failed setup command in the question data (pre_shell_cmds).{Style.RESET_ALL}")
+                        print(f"{Fore.CYAN}Details: {e}{Style.RESET_ALL}")
+                        # Loop back to the action menu without proceeding.
+                        continue
                     
                     # Re-print question header after shell.
                     print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
