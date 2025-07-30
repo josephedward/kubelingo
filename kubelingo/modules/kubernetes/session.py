@@ -319,6 +319,9 @@ class NewSession(StudySession):
         in a sandbox shell, and validation is based on the outcome.
         """
         start_time = datetime.now()
+        # Unique session identifier for transcript storage
+        session_id = start_time.strftime('%Y%m%dT%H%M%S')
+        os.environ['KUBELINGO_SESSION_ID'] = session_id
         questions = []
 
         is_interactive = questionary and not args.file and not args.category and not args.review_only

@@ -1,3 +1,23 @@
+## Overall Goal & High-Level Plan
+
+Our objective is to deliver every Kubelingo quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow.  
+High-level plan:
+1.  Extend the `Question` schema with:
+    - `pre_shell_cmds: List[str]` for setup commands (e.g. `kubectl apply -f …`).
+    - `initial_files: Dict[str, str]` to seed YAML or other starter files.
+    - `validation_steps: List[ValidationStep]` of post-shell commands with matchers.
+2.  Implement a sandbox helper `run_shell_with_setup(...)` to:
+    - Provision an isolated workspace, write `initial_files`, and run `pre_shell_cmds`.
+    - Spawn an interactive PTY shell (or Docker container) that records a full session transcript (including Vim edits).
+    - After shell exit, execute each `ValidationStep.cmd`, apply matchers (exit code, regex, contains, JSONPath), and aggregate results.
+    - Teardown the workspace and return structured `ShellResult` data.
+3.  Refactor the Kubernetes session flow (`Session._run_shell_question` / legacy runners) to call the new sandbox helper for all question types.
+4.  Simplify the CLI and menu: always use the shell runner (with Rust-bridge fallback), remove per-type branches, and unify under “Open Shell → Exit → Validation”.
+5.  Add stateful navigation and on-demand checking: Next, Previous, Open Shell, Check Answer, Flag, Exit; track per-question status.
+6.  Persist and manage transcripts under `logs/transcripts/...`, build `evaluate_transcript(...)` for replayable proof-of-execution.
+7.  Layer in optional AI-based evaluation as a “second opinion” after deterministic matching is solid.
+8.  Write integration tests, unit tests for the sandbox runner and evaluation logic, and update documentation.
+
 ## Unified Terminal Quiz Refactor
 
 ### Motivation
@@ -57,8 +77,25 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
 
 ### Implementation Progress
 - Added `pre_shell_cmds`, `initial_files`, and `validation_steps` fields to `Question` model in `kubelingo/question.py`.
-- Defined `StepResult` and `ShellResult` dataclasses and stubbed `run_shell_with_setup` in `kubelingo/sandbox.py`.
-- Implemented workspace provisioning, pre-shell command execution, session transcript recording, skeleton validation loop, and cleanup.
+- Fully implemented `run_shell_with_setup` in `kubelingo/sandbox.py` to:
+  * Provision an isolated workspace and write `initial_files` (including legacy `initial_yaml`).
+  * Execute `pre_shell_cmds` (legacy `initial_cmds`) in the workspace.
+  * Spawn a PTY or Docker sandbox shell, always capturing a full terminal transcript and Vim log.
+  * Persist transcripts to `logs/transcripts/<question_id>.log` via a new `answer_checker` module.
+  * Run each `ValidationStep` post-shell, aggregating `StepResult` entries for deterministic checks.
+  * Return a `ShellResult(success, step_results, transcript_path)` for downstream UI checks.
+
+Added new `answer_checker` module to:
+  * Save and load per-question transcripts.
+  * Provide `check_answer(q)` function to inspect saved transcripts against validation matchers.
+
+Updated interactive CLI quiz session to:
+  * Include “Open Shell”, “Check Answer”, “Next Question”, “Previous Question”, and “Exit Quiz” options.
+  * Maintain `transcripts_by_index`, `attempted_indices`, and `correct_indices` to track user progress.
+  * Use `ShellResult` from `run_shell_with_setup` to provide immediate pass/fail and detailed feedback.
+  
+- Refactored session menu to add navigation actions: Open Shell, Check Answer, Next, Previous, Flag/Unflag, Exit.
+- Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 # Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation
@@ -107,6 +144,13 @@ To provide the best experience for different types of questions, Kubelingo uses 
     - A new `AIEvaluator` class encapsulates the logic for interacting with the OpenAI API.
     - It constructs a detailed prompt including the question, transcript, and logs.
     - It requires an `OPENAI_API_KEY` environment variable to be set. The `kubelingo[llm]` package extra should be installed.
+
+#### Interactive API Key Prompt
+- To improve usability, Kubelingo now interactively prompts for an `OPENAI_API_KEY` at startup if one is not found in the environment.
+- This feature requires the `questionary` library.
+- If the user provides a key, it is set as an environment variable for the duration of the session, enabling AI-powered explanations and evaluations.
+- If the user declines or aborts, AI features remain disabled.
+- This removes the hard requirement of pre-configuring the environment, allowing for more flexible use of AI assistance.
 
 ### Usage
 
