@@ -57,12 +57,13 @@ Use PTY for quick local quizzes, Docker for safe, reproducible environments.
 ### Session Transcript Logging & AI-Based Evaluation
 To support full-session auditing and optional AI judgment, we can record everything the user does in the sandbox:
 1. **Robust PTY shell launch with `script`**:
-   - When a transcript file is requested (`KUBELINGO_TRANSCRIPT_FILE` env var) and the `script` utility exists, the shell is launched under:
-     ```bash
-     script -q -c "bash --login --init-file <init-script>" "$KUBELINGO_TRANSCRIPT_FILE"
-     ```
-     This ensures full-session recording (including `vim` edits) and properly restores terminal modes on exit, avoiding nested prompt failures.
-   - Otherwise, falls back to Python’s `pty.spawn(['bash','--login', '--init-file', <init-script>])`, maintaining the custom sandbox prompt and environment.
+   - When a transcript file is requested (`KUBELINGO_TRANSCRIPT_FILE` env var), the shell launch behavior depends on the platform:
+     - On Linux, if the `script` utility exists, the shell is launched under:
+       ```bash
+       script -q -c "bash --login --init-file <init-script>" "$KUBELINGO_TRANSCRIPT_FILE"
+       ```
+       This ensures full-session recording (including `vim` edits) and properly restores terminal modes on exit.
+     - On macOS (Darwin) or if `script` is unavailable, it falls back to Python’s `pty.spawn(...)` to prevent compatibility issues with BSD `script`.
 2. **Parse and sanitize the transcript**:
    - Strip ANSI escape codes.
    - Extract user keystrokes and commands.
