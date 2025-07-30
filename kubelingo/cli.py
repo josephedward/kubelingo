@@ -184,6 +184,9 @@ def main():
     parser.add_argument('--live', action='store_true', help=argparse.SUPPRESS)
 
     args = parser.parse_args()
+    # For bare invocation (no flags or commands), force text-based menu fallback
+    if len(sys.argv) == 1:
+        globals()['questionary'] = None
     # Early flags: history and list-modules
     if args.history:
         show_history()
