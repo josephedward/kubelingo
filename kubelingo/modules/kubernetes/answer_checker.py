@@ -154,4 +154,64 @@ def check_answer(q: dict) -> (bool, list):
         else:
             details.append(f"FAIL: {cmd} -> {reason}")
             all_pass = False
-    return all_pass, details
+    return all_pass, detailsimport os
+import subprocess
+from pathlib import Path
+from typing import List, Optional, Dict, Any
+
+from kubelingo.question import ValidationStep
+from kubelingo.utils.config import LOGS_DIR
+
+
+def save_transcript(question_id: str, content: str) -> Optional[Path]:
+    """
+    Saves a session transcript to a structured directory.
+    logs/transcripts/<session_id>/<question_id>.log
+    """
+    session_id = os.environ.get('KUBELINGO_SESSION_ID')
+    if not session_id:
+        return None  # Cannot save without a session ID
+
+    # Sanitize question_id to be a valid filename
+    safe_question_id = "".join(c for c in question_id if c.isalnum() or c in ('-', '_')).rstrip()
+    if not safe_question_id:
+        safe_question_id = "unidentified_question"
+
+    filename = f"{safe_question_id}.log"
+
+    transcript_dir = Path(LOGS_DIR) / "transcripts" / session_id
+    transcript_dir.mkdir(parents=True, exist_ok=True)
+    transcript_path = transcript_dir / filename
+
+    try:
+        transcript_path.write_text(content, encoding='utf-8')
+        return transcript_path
+    except IOError:
+        # Consider logging this error
+        return None
+
+
+def evaluate_transcript(validation_steps: List[ValidationStep]) -> List[Dict[str, Any]]:
+    """
+    Runs deterministic validation steps and returns results as dicts.
+
+    NOTE: This function currently executes the validation commands in the current
+    working directory. It does NOT parse a transcript file. The name is
+    set for future compatibility with a true transcript-parsing evaluator.
+    """
+    step_results_dicts: List[Dict[str, Any]] = []
+    if not validation_steps:
+        return []
+
+    for step in validation_steps:
+        proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
+        expected_code = step.matcher.get('exit_code', 0)
+        success = (proc.returncode == expected_code)
+        step_results_dicts.append({
+            "step": step,
+            "success": success,
+            "stdout": proc.stdout or '',
+            "stderr": proc.stderr or ''
+        })
+
+    return step_results_dicts
