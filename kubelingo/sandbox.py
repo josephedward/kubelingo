@@ -135,10 +135,12 @@ def spawn_pty_shell():
             else:
                 cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
             try:
-                subprocess.run(cmd, check=True)
+                subprocess.run(cmd, check=False)
                 return
-            except Exception:
-                print(f"{Fore.YELLOW}script wrapper failed; falling back to embedded PTY shell{Style.RESET_ALL}")
+            except Exception as e:
+                # This should now only catch errors if `script` itself fails to launch.
+                print(f"{Fore.YELLOW}script wrapper failed to start: {e}{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Falling back to embedded PTY shell.{Style.RESET_ALL}")
         # Fallback: robustly spawn PTY by saving and restoring terminal attributes
         try:
             old_settings = termios.tcgetattr(sys.stdin)
