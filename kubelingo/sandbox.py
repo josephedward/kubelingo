@@ -88,6 +88,8 @@ def _evaluate_matcher(matcher: Dict[str, Any], stdout: str, stderr: str, exit_co
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
+    # Set sandbox active flag to prevent re-entrant execution of the CLI.
+    os.environ['KUBELINGO_SANDBOX_ACTIVE'] = '1'
     try:
         from kubelingo.bridge import rust_bridge
     except ImportError:
@@ -147,48 +149,56 @@ def spawn_pty_shell():
         if init_script_path and os.path.exists(init_script_path):
             os.unlink(init_script_path)
     print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}\n")
+    finally:
+        os.environ.pop('KUBELINGO_SANDBOX_ACTIVE', None)
 
 def launch_container_sandbox():
     """Build and launch a Docker container sandbox for Kubelingo."""
-    docker = shutil.which('docker')
-    if not docker:
-        print(f"❌ {Fore.RED}Docker not found.{Style.RESET_ALL} Please install Docker and ensure it is running.")
-        return
-    if subprocess.run(['docker','info'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-        print(f"❌ {Fore.RED}Cannot connect to Docker daemon.{Style.RESET_ALL}")
-        print("Please ensure the Docker daemon is running before launching the container sandbox.")
-        return
-    dockerfile = os.path.join(ROOT, 'docker', 'sandbox', 'Dockerfile')
-    if not os.path.exists(dockerfile):
-        print(f"❌ Dockerfile not found at {dockerfile}. Ensure docker/sandbox/Dockerfile exists.")
-        return
-    image = 'kubelingo/sandbox:latest'
-    # Build image if missing
-    if subprocess.run(['docker','image','inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
-        print("🛠️  Building sandbox Docker image (this may take a minute)...")
-        build = subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT], capture_output=True, text=True)
-        if build.returncode != 0:
-            print(f"❌ {Fore.RED}Failed to build sandbox image.{Style.RESET_ALL}")
-            print(build.stderr)
-            return
-    print(f"\n📦 {Fore.CYAN}--- Launching Docker Container Sandbox ---{Style.RESET_ALL}")
-    print(f"{Fore.YELLOW}This is an isolated container. Your current directory is mounted at /workspace.{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}Type 'exit' or press Ctrl-D to end.{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}Inside the container, use '-h' or '--help' (e.g. 'kubectl get pods -h') for command help.{Style.RESET_ALL}")
-    cwd = os.getcwd()
+    # Set sandbox active flag to prevent re-entrant execution of the CLI.
+    os.environ['KUBELINGO_SANDBOX_ACTIVE'] = '1'
     try:
-        subprocess.run([
-            'docker', 'run', '--rm', '-it', '--network', 'none',
-            '-v', f'{cwd}:/workspace',
-            '-w', '/workspace',
-            image
-        ], check=True)
-    except subprocess.CalledProcessError:
-        print(f"📦 {Fore.RED}Failed to start Docker container.{Style.RESET_ALL}")
-    except KeyboardInterrupt:
-        pass
+        docker = shutil.which('docker')
+        if not docker:
+            print(f"❌ {Fore.RED}Docker not found.{Style.RESET_ALL} Please install Docker and ensure it is running.")
+            return
+        if subprocess.run(['docker','info'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+            print(f"❌ {Fore.RED}Cannot connect to Docker daemon.{Style.RESET_ALL}")
+            print("Please ensure the Docker daemon is running before launching the container sandbox.")
+            return
+        dockerfile = os.path.join(ROOT, 'docker', 'sandbox', 'Dockerfile')
+        if not os.path.exists(dockerfile):
+            print(f"❌ Dockerfile not found at {dockerfile}. Ensure docker/sandbox/Dockerfile exists.")
+            return
+        image = 'kubelingo/sandbox:latest'
+        # Build image if missing
+        if subprocess.run(['docker','image','inspect', image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+            print("🛠️  Building sandbox Docker image (this may take a minute)...")
+            build = subprocess.run(['docker','build','-t', image, '-f', dockerfile, ROOT], capture_output=True, text=True)
+            if build.returncode != 0:
+                print(f"❌ {Fore.RED}Failed to build sandbox image.{Style.RESET_ALL}")
+                print(build.stderr)
+                return
+        print(f"\n📦 {Fore.CYAN}--- Launching Docker Container Sandbox ---{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}This is an isolated container. Your current directory is mounted at /workspace.{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Type 'exit' or press Ctrl-D to end.{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Inside the container, use '-h' or '--help' (e.g. 'kubectl get pods -h') for command help.{Style.RESET_ALL}")
+        cwd = os.getcwd()
+        try:
+            subprocess.run([
+                'docker', 'run', '--rm', '-it', '--network', 'none',
+                '-v', f'{cwd}:/workspace',
+                '-w', '/workspace',
+                '-e', 'KUBELINGO_SANDBOX_ACTIVE=1',
+                image
+            ], check=True)
+        except subprocess.CalledProcessError:
+            print(f"📦 {Fore.RED}Failed to start Docker container.{Style.RESET_ALL}")
+        except KeyboardInterrupt:
+            pass
+        finally:
+            print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}\n")
     finally:
-        print(f"\n📦 {Fore.CYAN}--- Docker Container Session Ended ---{Style.RESET_ALL}\n")
+        os.environ.pop('KUBELINGO_SANDBOX_ACTIVE', None)
 
 def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
     """
