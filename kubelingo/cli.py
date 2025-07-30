@@ -123,8 +123,29 @@ def show_modules():
 # Legacy alias for cloud-mode static branch
 def main():
     os.makedirs(LOGS_DIR, exist_ok=True)
-    # AI explanations are disabled by default; LLM integration is optional
-    print(f"{Fore.YELLOW}AI explanations disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
+    # Check for AI prerequisites and prompt for API key if needed.
+    try:
+        import llm
+        # LLM package is installed, now check for API key.
+        if not os.getenv('OPENAI_API_KEY'):
+            if questionary:
+                api_key = questionary.password(
+                    "OpenAI API key not found. Enter it to enable AI features, or press Enter to skip:",
+                    qmark="🔑"
+                ).ask()
+
+                if api_key:
+                    os.environ['OPENAI_API_KEY'] = api_key
+                    print(f"{Fore.GREEN}OpenAI API key set for this session.{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}AI features disabled. To enable them, set the OPENAI_API_KEY environment variable.{Style.RESET_ALL}")
+            else:
+                # Cannot prompt without questionary.
+                print(f"{Fore.YELLOW}AI features disabled. To enable, set OPENAI_API_KEY. For an interactive prompt, please install 'questionary'.{Style.RESET_ALL}")
+
+    except ImportError:
+        # LLM package not found, so AI features are unavailable.
+        print(f"{Fore.YELLOW}AI features disabled. To enable, install 'kubelingo[llm]' and set OPENAI_API_KEY.{Style.RESET_ALL}")
     while True:
         # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
         if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
