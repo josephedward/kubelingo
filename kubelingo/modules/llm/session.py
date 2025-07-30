@@ -8,13 +8,20 @@ except ImportError:
     HAS_LLM = False
 try:
     import openai
+    HAS_OPENAI = True
 except ImportError:
     openai = None
+    HAS_OPENAI = False
 try:
     import questionary
 except ImportError:
     questionary = None
 from kubelingo.modules.base.session import StudySession
+
+# Global flag: AI explanations enabled only if API key present and backend installed
+AI_ENABLED = bool(
+    os.environ.get('OPENAI_API_KEY') and (HAS_LLM or HAS_OPENAI)
+)
 
 # Style settings copied from other modules for consistency
 class _AnsiFore:
@@ -30,39 +37,26 @@ Style = _AnsiStyle()
 
 class AIHelper:
     """Helper to generate explanations using llm or OpenAI SDK."""
+    # Whether AI explanations are globally enabled (API key and backend present)
+    enabled = AI_ENABLED
     def __init__(self, api_key=None):
+        # Initialize API key and LLM client if enabled
         self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
-        if not self.api_key:
-            key = None
-            try:
-                if questionary:
-                    # Use password prompt if available to mask input
-                    if hasattr(questionary, 'password'):
-                        key = questionary.password("Enter your OpenAI API key:").ask()
-                    else:
-                        key = questionary.text("Enter your OpenAI API key:").ask()
-                else:
-                    key = input("Enter your OpenAI API key: ").strip()
-            except (EOFError, KeyboardInterrupt):
-                key = None
-            self.api_key = key
-
-        if not self.api_key:
-            print(f"{Fore.YELLOW}OPENAI_API_KEY not set; skipping AI explanations.{Style.RESET_ALL}")
         self.client = None
+        if not AI_ENABLED:
+            return
         # Try Simon Willison's llm client first
-        if HAS_LLM:
+        if HAS_LLM and self.api_key:
             try:
                 self.client = llm.Client()
-                # Some llm clients allow setting key attribute
-                if self.api_key and hasattr(self.client, 'key'):
+                if hasattr(self.client, 'key'):
                     self.client.key = self.api_key
             except Exception:
                 self.client = None
         # Fallback to OpenAI SDK
-        if self.client is None and openai and self.api_key:
-            openai.api_key = self.api_key
+        if self.client is None and HAS_OPENAI and self.api_key:
             try:
+                openai.api_key = self.api_key
                 self.client = openai.OpenAI(api_key=self.api_key)
             except Exception:
                 self.client = None
@@ -73,11 +67,7 @@ class AIHelper:
         answer = question_data.get('response', '')
         # No AI client available
         if not self.client:
-            return (
-                f"{Fore.YELLOW}Could not get explanation. "
-                "Install LLM dependencies (pip install -e '.[llm]') and ensure OPENAI_API_KEY is set. "
-                f"{Style.RESET_ALL}"
-            )
+            return ''
         # Default message for YAML exercises
         if not answer:
             answer = "(The answer involves editing a YAML file; see exercise instructions.)"
