@@ -67,12 +67,15 @@ class VimYamlEditor:
 
             # If using Vim, provide a temp vimrc for consistent settings.
             if 'vim' in editor_name:
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.vimrc') as f:
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.vimrc', encoding='utf-8') as f:
                     f.write("set expandtab\n")
                     f.write("set tabstop=2\n")
                     f.write("set shiftwidth=2\n")
+                    f.write("filetype plugin indent on\n")
+                    f.write("syntax on\n")
                     vimrc_file = f.name
-                cmd.extend(['-u', vimrc_file])
+                # More robustly construct command to ensure -u is in the right place
+                cmd = [editor_list[0], '-u', vimrc_file] + editor_list[1:] + flags
 
             cmd.append(tmp_filename)
 
