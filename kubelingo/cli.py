@@ -243,10 +243,10 @@ def main():
     if args.k8s_mode:
         args.module = 'kubernetes'
 
-    # Disabled interactive menu until fallback UI is implemented
-    if False:  # original: if len(sys.argv) == 1:
+    # Interactive menu for bare 'kubelingo' invocation
+    if len(sys.argv) == 1 and questionary and sys.stdin.isatty() and sys.stdout.isatty():
             # Interactive entry: use questionary in a TTY; else fallback to text prompts
-            if questionary and sys.stdin.isatty() and sys.stdout.isatty():
+        if questionary and sys.stdin.isatty() and sys.stdout.isatty():
                 try:
                     session_type = None
                     while True:
@@ -402,7 +402,7 @@ def main():
         if args.module is None and (
             args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
         ):
-            args.module = 'kubernetes'
+        args.module = 'kubernetes'
 
 
         if args.history:
