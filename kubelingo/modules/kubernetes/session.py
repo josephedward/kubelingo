@@ -43,7 +43,8 @@ from kubelingo.utils.validation import commands_equivalent
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
-from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+from .answer_checker import evaluate_transcript
+from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellResult, StepResult
 import logging  # for logging in exercises
 try:
     from kubelingo.modules.ai_evaluator import AIEvaluator
@@ -498,8 +499,26 @@ class NewSession(StudySession):
                     if not result:
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                         continue
-                    
-                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
+
+                    from kubelingo.question import ValidationStep
+                    validation_steps_raw = q.get('validation_steps', []) or q.get('validations', [])
+                    validation_steps = [ValidationStep(**vs) for vs in validation_steps_raw]
+
+                    print(f"{Fore.CYAN}Re-evaluating answer...{Style.RESET_ALL}")
+                    step_result_dicts = evaluate_transcript(validation_steps)
+                    new_step_results = [StepResult(**d) for d in step_result_dicts]
+
+                    is_correct_re_eval = all(r.success for r in new_step_results) if new_step_results else True
+
+                    # Create a new result object to reflect the re-evaluation
+                    new_result = ShellResult(
+                        success=is_correct_re_eval,
+                        step_results=new_step_results,
+                        transcript_path=result.transcript_path
+                    )
+                    transcripts_by_index[current_question_index] = new_result
+
+                    is_correct = self._check_and_process_answer(q, new_result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
                         current_question_index += 1
                         break # Move to next question

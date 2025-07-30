@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Dict
 
 from kubelingo.modules.kubernetes.answer_checker import save_transcript
+from kubelingo.modules.kubernetes.answer_checker import save_transcript, evaluate_transcript
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.config import LOGS_DIR, ROOT
 from kubelingo.utils.ui import Fore, Style
@@ -143,14 +144,15 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
             if 'KUBELINGO_VIM_LOG' in os.environ:
                 del os.environ['KUBELINGO_VIM_LOG']
             # Persist the transcript for this question
-            transcript_path = ''
+            transcript_path = None
             try:
                 if transcript_file.exists():
                     content = transcript_file.read_text(encoding='utf-8')
-                    transcript_path = save_transcript(question.id, content) or ''
-                    print(f"{Fore.CYAN}Transcript saved to {transcript_path}{Style.RESET_ALL}")
+                    transcript_path = save_transcript(question.id, content)
+                    if transcript_path:
+                        print(f"{Fore.CYAN}Transcript saved to {transcript_path}{Style.RESET_ALL}")
             except Exception:
-                transcript_path = ''
+                transcript_path = None
 
             # 4. Run validation steps (handles legacy 'validations')
             validation_steps = question.validation_steps or question.validations
@@ -158,11 +160,8 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
             if not validation_steps:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
             else:
-                for step in validation_steps:
-                    proc = subprocess.run(step.cmd, shell=True, check=False, capture_output=True, text=True)
-                    expected_code = step.matcher.get('exit_code', 0)
-                    success = (proc.returncode == expected_code)
-                    step_results.append(StepResult(step=step, success=success, stdout=proc.stdout or '', stderr=proc.stderr or ''))
+                step_result_dicts = evaluate_transcript(validation_steps)
+                step_results = [StepResult(**d) for d in step_result_dicts]
 
             # 5. AI Evaluation (optional, if enabled and deterministic checks passed)
             if ai_eval and transcript_file.exists():
@@ -183,9 +182,9 @@ def run_shell_with_setup(question: Question, use_docker=False, ai_eval=False):
         except subprocess.CalledProcessError as e:
             print(f"{Fore.RED}A setup command failed: {e.cmd}{Style.RESET_ALL}")
             print(e.stdout or e.stderr)
-            return ShellResult(success=False, step_results=[], transcript_path='')
+            return ShellResult(success=False, step_results=[], transcript_path=None)
         except Exception as e:
             print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
-            return ShellResult(success=False, step_results=[], transcript_path='')
+            return ShellResult(success=False, step_results=[], transcript_path=None)
         finally:
             os.chdir(original_dir)
