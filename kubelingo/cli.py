@@ -297,6 +297,9 @@ def main():
                     args.review_only = True
 
                 # Dispatch selected module session
+                # If interactive Kubernetes, clear file so session will prompt for module file
+                if args.module == 'kubernetes':
+                    args.file = None
                 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
                 logger = logging.getLogger()
                 module_name = args.module.lower()
