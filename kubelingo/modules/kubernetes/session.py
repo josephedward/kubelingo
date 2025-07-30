@@ -1031,16 +1031,19 @@ class NewSession(StudySession):
                 break
         
         if needs_k8s:
+            # K8s commands expected; handle missing kubectl or cluster connectivity gracefully
             if 'kubectl' in deps:
-                print(f"\n{Fore.RED}Error: This quiz contains questions that require 'kubectl', which was not found in your PATH.{Style.RESET_ALL}")
-                sys.exit(1)
-
+                print(f"{Fore.YELLOW}Warning: 'kubectl' not found in PATH. AI-based validation will be used instead of live cluster checks.{Style.RESET_ALL}")
+            # If user requested to spin up a Kind cluster, attempt it
             if getattr(args, 'start_cluster', False):
-                if not self._setup_kind_cluster():
-                    sys.exit(1)
+                ok = self._setup_kind_cluster()
+                if not ok:
+                    print(f"{Fore.YELLOW}Warning: Failed to provision Kind cluster. Falling back to AI-based validation.{Style.RESET_ALL}")
             else:
-                if not self._check_cluster_connectivity():
-                    sys.exit(1)
+                # Check live cluster connectivity; use AI fallback on failure
+                live_ok = self._check_cluster_connectivity()
+                if not live_ok:
+                    print(f"{Fore.YELLOW}Warning: Cannot connect to a Kubernetes cluster. Falling back to AI-based validation.{Style.RESET_ALL}")
 
         # Inform the user of future roadmap for embedded cluster provisioning
         print(f"{Fore.YELLOW}Note: Embedded Kubernetes cluster provisioning (Kind/Minikube) is on our roadmap; for now, use --docker or provide a live cluster.{Style.RESET_ALL}")
