@@ -186,14 +186,14 @@ kubectl run nginx --image=nginx --restart=Never --port=80
 <details><summary>show</summary>
 <p>
 
-*Note*: The `RESTARTS` column should contain 0 initially (ideally - it could be any number)
-
 ```bash
 # kubectl set image POD/POD_NAME CONTAINER_NAME=IMAGE_NAME:TAG
 kubectl set image pod/nginx nginx=nginx:1.24.0
 kubectl describe po nginx # you will see an event 'Container will be killed and recreated'
 kubectl get po nginx -w # watch it
 ```
+
+*Note*: The `RESTARTS` column should contain 0 initially (ideally - it could be any number)
 
 *Note*: some time after changing the image, you should see that the value in the `RESTARTS` column has been increased by 1, because the container has been restarted, as stated in the events shown at the bottom of the `kubectl describe pod` command:
 
