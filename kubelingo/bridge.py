@@ -41,5 +41,26 @@ class RustBridge:
         except Exception:
             return False
 
+    def run_command_quiz(self, args) -> bool:
+        """Delegate command quiz to Rust CLI if available."""
+        if not self.is_available():
+            return False
+
+        cmd = [self.rust_binary, "k8s", "quiz"]
+
+        if hasattr(args, 'num') and args.num is not None and args.num > 0:
+            cmd.extend(["--num", str(args.num)])
+
+        if hasattr(args, 'category') and args.category:
+            cmd.extend(["--category", args.category])
+
+        try:
+            # The Rust app will take over the terminal
+            result = subprocess.run(cmd)
+            return result.returncode == 0
+        except Exception:
+            return False
+
+
 # Global bridge instance
 rust_bridge = RustBridge()

@@ -292,17 +292,23 @@ class NewSession(StudySession):
         self._run_command_quiz(args)
     
     def _run_command_quiz(self, args):
-        """Attempt Rust-based quiz first; fallback to Python loader if unavailable or failed."""
+        """Attempt Rust-based quiz first; fallback to Python implementation."""
         try:
             from kubelingo.bridge import rust_bridge
-            if rust_bridge.is_available():
-                if rust_bridge.run_command_quiz(args):
-                    return
+
+            is_interactive = not args.file and not args.category and not args.review_only
+
+            # The Rust version is for non-interactive, non-file, non-review quizzes.
+            if not is_interactive and not args.file and not args.review_only:
+                if rust_bridge.is_available():
+                    # If rust quiz runs and succeeds, we're done.
+                    if rust_bridge.run_command_quiz(args):
+                        return
         except ImportError:
-            pass
-        # Fallback: load questions in Python
-        load_questions(args.file)
-        return
+            pass  # Fall through to Python version
+
+        # Fallback to the rich Python quiz implementation for all other cases.
+        self._run_unified_quiz(args)
     
     def _run_unified_quiz(self, args):
         """
