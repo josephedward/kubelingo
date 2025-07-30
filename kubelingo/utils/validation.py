@@ -1,4 +1,5 @@
 import re
+import shlex
 try:
     import yaml
 except ImportError:
@@ -20,19 +21,63 @@ RUST_VALIDATOR_ENABLED = os.getenv("KUBELINGO_DISABLE_RUST", "").lower() not in 
 
 def commands_equivalent(cmd1: str, cmd2: str) -> bool:
     """
-    Check if two kubectl commands are functionally equivalent using the Rust implementation.
-    This function normalizes whitespace and is case-insensitive.
+    Check if two kubectl commands are functionally equivalent.
+    This function normalizes whitespace, handles aliases, is case-insensitive,
+    and ignores the order of flags.
     """
     if rust_commands_equivalent and RUST_VALIDATOR_ENABLED:
         return rust_commands_equivalent(cmd1, cmd2)
 
-    # This fallback should ideally not be reached if the Rust extension is built correctly.
-    # It provides a basic, less robust implementation for environments where the
-    # native extension might be missing.
-    print("Warning: Rust extension not found or disabled. Falling back to basic Python command comparison.")
-    cmd1_norm = ' '.join(cmd1.strip().split()).lower()
-    cmd2_norm = ' '.join(cmd2.strip().split()).lower()
-    return cmd1_norm == cmd2_norm
+    # Fallback to a more robust Python-based comparison if the Rust extension is not available.
+    print("Warning: Rust extension not found or disabled. Falling back to enhanced Python command comparison.")
+
+    def _normalize_command(cmd_str: str) -> (list, list):
+        # 1. Lowercase and remove shell redirection
+        cmd_str = cmd_str.lower().split(' > ')[0].strip()
+
+        # 2. Handle common concatenated flags like -oyaml
+        cmd_str = re.sub(r'(-o|-n)([a-z0-9-]+)', r'\1 \2', cmd_str)
+
+        # 3. Tokenize using shlex to handle quotes
+        try:
+            parts = shlex.split(cmd_str)
+        except ValueError:
+            parts = cmd_str.split()  # Fallback for malformed commands
+
+        # 4. Handle 'k' alias
+        if parts and parts[0] == 'k':
+            parts[0] = 'kubectl'
+
+        # 5. Separate positional args from flags
+        positional_args = []
+        flags = []
+        i = 0
+        while i < len(parts):
+            part = parts[i]
+            if part.startswith('-'):
+                # Handle --flag=value
+                if '=' in part:
+                    flags.append(part)
+                    i += 1
+                # Handle --flag value
+                elif i + 1 < len(parts) and not parts[i+1].startswith('-'):
+                    flags.append(f"{part} {parts[i+1]}")
+                    i += 2
+                # Handle boolean flag --flag
+                else:
+                    flags.append(part)
+                    i += 1
+            else:
+                positional_args.append(part)
+                i += 1
+
+        flags.sort()
+        return positional_args, flags
+
+    cmd1_pos, cmd1_flags = _normalize_command(cmd1)
+    cmd2_pos, cmd2_flags = _normalize_command(cmd2)
+
+    return cmd1_pos == cmd2_pos and cmd1_flags == cmd2_flags
 
 def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
     """
