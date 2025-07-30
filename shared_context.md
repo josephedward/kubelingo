@@ -106,6 +106,13 @@ Updated interactive CLI quiz session to:
 - Implemented per-question `transcripts_by_index` mapping and “Check Answer” action in `kubelingo/modules/kubernetes/session.py` to evaluate stored transcripts without relaunch.
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module; flesh out AI-based evaluation integration.
+  
+### Testing & Observations
+- Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
+- Transcript persistence via `save_transcript` works: logs saved under `logs/transcripts/...`.
+- CLI menu navigation (Open Shell, Check Answer, Next, Previous, Exit) functions without errors in interactive environments.
+- `evaluate_transcript` correctly evaluates exit_code, contains, and regex matchers; JSONPath and cluster-state matchers pending.
+- Loaders still populate only legacy `initial_yaml` and `validations`; new `initial_files`/`validation_steps` fields unpopulated.
 # Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation
