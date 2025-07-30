@@ -117,6 +117,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Addressed a UI regression in `kubelingo/modules/kubernetes/session.py` by standardizing menu choice definitions as simple `{"name": ..., "value": ...}` dict literals (instead of mixed `questionary.Choice`), restoring clean layout and correct numbering.
   - **Fixed**: Corrected the `default` argument for the per-question action menu in `kubelingo/modules/kubernetes/session.py`. It now correctly uses the choice `value` ('answer') instead of its `name`, restoring the default selection indicator (`»`) and fixing the UI regression.
   - **Fixed**: Wrapped the PTY shell under `script` when recording transcripts, fixing terminal state corruption and preventing nested Questionary prompts from auto-cancelling after exit.
+  - **Fixed**: Repaired a critical dispatch logic error in `kubelingo/cli.py` that caused invocations with flags (e.g., `--k8s`) to exit prematurely. A large block of code containing the module execution logic was incorrectly indented within a conditional, preventing it from running. The fix involved removing duplicated code and correcting indentation, restoring quiz functionality for all non-interactive invocations.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations
