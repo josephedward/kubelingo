@@ -423,6 +423,8 @@ class NewSession(StudySession):
                 choices = []
                 choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
                 choices.append({"name": "Check Answer", "value": "check"})
+                if q.get('response'):
+                    choices.append({"name": "Show Answer", "value": "show_answer"})
                 # Toggle flag for review
                 choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                 choices.append({"name": "Next Question", "value": "next"})
@@ -460,6 +462,14 @@ class NewSession(StudySession):
                     current_question_index = max(current_question_index - 1, 0)
                     break
                 
+                if action == "show_answer":
+                    answer = q.get('response')
+                    if answer:
+                        print(f"\n{Fore.GREEN}--- Model Answer ---{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}{answer.strip()}{Style.RESET_ALL}")
+                        print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
+                    continue
+
                 if action == "flag":
                     data_file_path = q.get('data_file', args.file)
                     if is_flagged:
