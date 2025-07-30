@@ -407,7 +407,12 @@ class NewSession(StudySession):
             args.file = None
 
         # All exercises now run through the unified quiz runner.
-        self._run_unified_quiz(args)
+        # Loop to allow returning to the quiz menu.
+        while self._run_unified_quiz(args):
+            # After a quiz, reset args to ensure the next iteration is interactive.
+            args.file = None
+            args.category = None
+            args.review_only = False
 
     def _run_command_quiz(self, args):
         """Attempt Rust bridge execution first; fallback to Python if unavailable or fails."""
@@ -446,7 +451,7 @@ class NewSession(StudySession):
 
             if selected is None or selected == 'back':
                 print(f"\n{Fore.YELLOW}Quiz cancelled.{Style.RESET_ALL}")
-                return
+                return False
 
             if selected == 'clear_flags':
                 _clear_all_review_flags(self.logger)
@@ -599,7 +604,7 @@ class NewSession(StudySession):
                         correct_count = len(correct_indices)
                         per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
                         self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
-                        return
+                        return False
 
                 if action == "back":
                     quiz_backed_out = True
@@ -767,6 +772,10 @@ class NewSession(StudySession):
             if quiz_backed_out:
                 break
         
+        # If user exited quiz, go back to menu without summary.
+        if quiz_backed_out:
+            return is_interactive
+        
         end_time = datetime.now()
         duration = str(end_time - start_time).split('.')[0]
         
@@ -782,6 +791,10 @@ class NewSession(StudySession):
         self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
 
         self._cleanup_swap_files()
+
+        # In interactive mode, returning True will loop back to the quiz menu.
+        # In non-interactive mode, returning False will exit.
+        return is_interactive
 
     def _recompute_stats(self, questions, attempted_indices, correct_indices):
         """Helper to calculate per-category stats from state sets."""
