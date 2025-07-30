@@ -389,6 +389,8 @@ class NewSession(StudySession):
 
         quiz_backed_out = False
         current_question_index = 0
+        # Store the last ShellResult per question index for 'Check Answer'
+        transcripts_by_index = {}
         while current_question_index < len(questions_to_ask):
             q = questions_to_ask[current_question_index]
             i = current_question_index + 1
@@ -406,10 +408,12 @@ class NewSession(StudySession):
 
                 # Unified interface for all questions
                 choices = [
-                    questionary.Choice("1. Start Exercise (Open Terminal)", value="answer"),
-                    questionary.Choice(f"2. {flag_option_text} for Review", value="flag"),
-                    questionary.Choice("3. Skip", value="skip"),
-                    questionary.Choice("4. Exit Quiz", value="back")
+                    questionary.Choice("1. Open Shell", value="answer"),
+                    questionary.Choice("2. Check Answer", value="check"),
+                    questionary.Choice(f"3. {flag_option_text} for Review", value="flag"),
+                    questionary.Choice("4. Next Question", value="next"),
+                    questionary.Choice("5. Previous Question", value="prev"),
+                    questionary.Choice("6. Exit Quiz", value="back")
                 ]
 
                 try:
@@ -424,13 +428,47 @@ class NewSession(StudySession):
                     quiz_backed_out = True
                     break
 
-                if action == "skip":
+                if action == "check":
+                    # Attempt to judge the last transcript for this question
+                    result = transcripts_by_index.get(current_question_index)
+                    if not result:
+                        print(f"{Fore.YELLOW}No transcript found. Please open the shell first.{Style.RESET_ALL}")
+                        continue
+                    # Show per-step feedback
+                    for step_res in result.step_results:
+                        if step_res.success:
+                            print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
+                        else:
+                            print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
+                            if step_res.stdout:
+                                print(step_res.stdout)
+                            if step_res.stderr:
+                                print(step_res.stderr)
+                    # Update stats on first check
                     if not was_answered:
                         asked_count += 1
                         per_category_stats[category]['asked'] += 1
-                    self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
-                    current_question_index += 1
+                        was_answered = True
+                    if result.success:
+                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                        correct_count += 1
+                        per_category_stats[category]['correct'] += 1
+                        current_question_index += 1
+                        break
+                    else:
+                        print(f"{Fore.RED}Incorrect. Try again or open shell to retry.{Style.RESET_ALL}")
+                        continue
+
+                if action == "next":
+                    # Move to next question without answering
+                    current_question_index = min(current_question_index + 1, total_questions - 1)
                     break
+
+                if action == "prev":
+                    # Move to previous question
+                    current_question_index = max(current_question_index - 1, 0)
+                    break
+
 
                 if action == "flag":
                     data_file_path = q.get('data_file', args.file)
@@ -450,29 +488,52 @@ class NewSession(StudySession):
                         per_category_stats[category]['asked'] += 1
                         was_answered = True
                     
+                    # Unified shell experience for all question types
                     from kubelingo.sandbox import run_shell_with_setup
                     from kubelingo.question import Question, ValidationStep
 
-                    # Convert dict to Question object to pass to the sandbox runner
+                    # Build validation steps (including legacy fallbacks)
                     validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', []) or q.get('validations', [])]
-                    
-                    # For legacy command questions, create a validation step from the 'response'
                     if not validation_steps and q.get('type') == 'command' and q.get('response'):
                         validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
+                    # Construct unified Question object
                     question_obj = Question(
                         id=q.get('id', ''),
                         prompt=q.get('prompt', ''),
+                        runner='shell',
                         pre_shell_cmds=q.get('pre_shell_cmds', []) or q.get('initial_cmds', []),
-                        initial_files=q.get('initial_files', {}) or ({'exercise.yaml': q['initial_yaml']} if q.get('initial_yaml') else {}),
+                        initial_files=q.get('initial_files', {}) or ({'exercise.yaml': q.get('initial_yaml')} if q.get('initial_yaml') else {}),
                         validation_steps=validation_steps,
                         explanation=q.get('explanation'),
                         categories=q.get('categories', [q.get('category', 'General')]),
                         difficulty=q.get('difficulty'),
                         metadata=q.get('metadata', {})
                     )
-                    
-                    is_correct = run_shell_with_setup(question_obj, use_docker=args.docker, ai_eval=args.ai_eval)
+
+                    # Execute sandbox workflow
+                    result = run_shell_with_setup(
+                        question_obj.pre_shell_cmds,
+                        question_obj.initial_files,
+                        question_obj.validation_steps,
+                        use_container=args.docker
+                    )
+                    # Store transcript for later "Check Answer"
+                    transcripts_by_index[current_question_index] = result
+
+                    # Show per-step feedback
+                    for step_res in result.step_results:
+                        if step_res.success:
+                            print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
+                        else:
+                            print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
+                            if step_res.stdout:
+                                print(step_res.stdout)
+                            if step_res.stderr:
+                                print(step_res.stderr)
+                    print(f"Transcript saved to: {result.transcript_path}")
+
+                    is_correct = result.success
 
                     self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
@@ -561,6 +622,58 @@ class NewSession(StudySession):
         self.live_session_active = True
         return True
 
+    def _run_one_exercise(self, q):
+        """
+        Handles validation for a single exercise by running its assertion script.
+        """
+        is_correct = False
+        # Live Kubernetes exercise: run user commands until 'done'
+        if q.get('type') == 'live_k8s':
+            prompt_session = PromptSession() if PromptSession else None
+            while True:
+                try:
+                    if prompt_session:
+                        cmd = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
+                    else:
+                        cmd = input('Your command: ').strip()
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
+                if cmd.lower() == 'done':
+                    break
+                parts = cmd.split()
+                try:
+                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
+                    if proc.stdout:
+                        print(proc.stdout, end='')
+                    if proc.stderr:
+                        print(proc.stderr, end='')
+                except Exception as e:
+                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
+        # Assertion script
+        assertion = q.get('assert_script') or q.get('response')
+        if not assertion:
+            print(f"{Fore.YELLOW}Warning: No validation script found.{Style.RESET_ALL}")
+            return False
+        try:
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.sh', delete=False, encoding='utf-8') as tmp:
+                tmp.write(assertion)
+                path = tmp.name
+            os.chmod(path, 0o755)
+            proc = subprocess.run(['bash', path], capture_output=True, text=True)
+            os.remove(path)
+            if proc.returncode == 0:
+                if proc.stdout:
+                    print(proc.stdout)
+                is_correct = True
+            else:
+                print(proc.stdout or proc.stderr)
+        except Exception as e:
+            print(f"{Fore.RED}Error during assertion: {e}{Style.RESET_ALL}")
+        # Log
+        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
+        return is_correct
+    
     def _cleanup_swap_files(self):
         """
         Scans the project directory for leftover Vim swap files (.swp, .swap)
