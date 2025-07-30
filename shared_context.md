@@ -123,6 +123,32 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Decoupled "Work on Answer" from "Check Answer" in the quiz loop. Previously, the answer was checked immediately after exiting the shell, which could cause premature 'Incorrect' messages and prevent the user from working on questions. Now, the user must explicitly select "Check Answer" to trigger evaluation.
   - **Fixed**: Restored the interactive `questionary`-based menus for bare `kubelingo` invocations. A UI regression had replaced them with a plain text-based menu. The fix re-implements the rich menu with `use_indicator=True` and dict-based choices, while retaining the text menu as a fallback for non-TTY environments. This resolves the `F821 undefined name 'questionary'` errors.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
+
+## Data Management Scripts
+
+### `scripts/enrich_and_dedup_questions.py`
+
+This script provides a unified way to process, de-duplicate, and enhance question data for Kubelingo.
+
+**Functionality**:
+- **Loads from Multiple Formats**: Scans a directory for question files in JSON, Markdown (`.md`), and YAML (`.yml`, `.yaml`) formats.
+- **De-duplicates**: Removes duplicate questions based on the exact text of the `prompt` field, ensuring each question is unique.
+- **AI-Powered Explanations**: For questions that are missing an `explanation`, it uses the OpenAI API to generate a concise, one-sentence explanation of the command. This requires the `OPENAI_API_KEY` environment variable to be set.
+- **Unified Output**: Writes the cleaned, de-duplicated, and enriched list of questions to a single JSON file.
+
+**Usage**:
+```bash
+python3 scripts/enrich_and_dedup_questions.py <input_dir> <output_file>
+```
+- `input_dir`: Directory containing the question data files. The script can automatically find `question-data` if a shorthand is provided (e.g., `json`).
+- `output_file`: Path for the unified JSON output.
+
+**Example**:
+To process all questions in the `question-data` directory and save them to `unified_questions.json`:
+```bash
+python3 scripts/enrich_and_dedup_questions.py question-data unified_questions.json
+```
+A `--dry-run` flag is available to preview the changes without writing any files or calling the AI API.
   
 ### Testing & Observations
 - Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
