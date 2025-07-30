@@ -180,6 +180,12 @@ def load_questions(data_file, exit_on_error=True):
     try:
         # Loaders return a list of Question objects. The quiz logic expects dicts.
         questions_obj = loader.load_file(data_file)
+
+        # If a loader returns a list containing a single list of questions (a common
+        # scenario for flat JSON files), flatten it to a simple list of questions.
+        if questions_obj and len(questions_obj) == 1 and isinstance(questions_obj[0], list):
+            questions_obj = questions_obj[0]
+
         # The fields of the Question dataclass need to be compatible with what the
         # rest of this module expects. We convert them to dicts.
         questions = []
