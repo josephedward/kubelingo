@@ -108,6 +108,7 @@ Updated interactive CLI quiz session to:
 - **Fixed**: Cleared the terminal at the start of each question to separate contexts and prevent UI overlap.
 - **Fixed**: Removed manual numeric prefixes from all menus; questionary auto-numbering now renders cleanly.
 - **Fixed**: Inserted blank lines before rendering menus to ensure clear visual separation from prior content.
+- **Fixed**: A UI bug causing nested prompts was resolved by ensuring all questions use the unified PTY shell. Placeholder `validation_steps` were added to markdown-based questions that lacked them, forcing consistent processing through the modern, robust answer interface. This also enables transcript-based AI evaluation for all exercises.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations
