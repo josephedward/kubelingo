@@ -542,13 +542,7 @@ def main():
                 break
             args.file = None
 
-    # Global flags handling
-    if args.history:
-        show_history()
-        return
-    if args.list_modules:
-        show_modules()
-        return
+    # Global flags handling (note: history and list-modules are handled earlier)
     if args.list_categories:
         print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
         try:
@@ -565,91 +559,63 @@ def main():
             print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
         return
 
-
     # If certain flags are used without a module, default to kubernetes
     if args.module is None and (
         args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
     ):
         args.module = 'kubernetes'
 
+    # Handle module-based execution.
+    if args.module:
+        module_name = args.module.lower()
 
-        if args.history:
-            show_history()
-            return
-
-        if args.list_modules:
-            show_modules()
-            # Exit the main loop after listing modules
-            return
-
-        if args.list_categories:
-            print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
+        # Optional Rust-based command quiz for non-interactive (--num) runs
+        if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
             try:
-                # Use the same loader as the kubernetes session to normalize questions
-                from kubelingo.modules.kubernetes.session import load_questions
-                questions = load_questions(args.file)
-                cats = sorted({q.get('category') for q in questions if q.get('category')})
-                print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
-                if cats:
-                    for cat in cats:
-                        print(Fore.YELLOW + cat + Style.RESET_ALL)
-                else:
-                    print("No categories found in quiz data.")
-            except Exception as e:
-                print(f"{Fore.RED}Error loading quiz data from {args.file}: {e}{Style.RESET_ALL}")
-            return
-
-        # Handle module-based execution.
-        if args.module:
-            module_name = args.module.lower()
-
-            # Optional Rust-based command quiz for non-interactive (--num) runs
-            if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
-                try:
-                    from kubelingo.bridge import rust_bridge
-                    if rust_bridge.is_available():
-                        # Attempt Rust-backed command quiz
-                        if rust_bridge.run_command_quiz(args):
-                            return
-                        # Rust execution failed; fallback to Python quiz
-                        print("Rust command quiz execution failed. Falling back to Python quiz.")
-                except (ImportError, AttributeError):
-                    pass  # Fall through to Python implementation
-
-            if module_name == 'kustom':
-                module_name = 'custom'
-
-            # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
-            if module_name == 'llm':
-                print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
-                return
-
-            # Prepare logging for other modules
-            logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-            logger = logging.getLogger()
-
-            if module_name == 'custom':
-                if not args.custom_file and not args.exercises:
-                    print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
-                    return
-            # Load and run the specified module's session
-            try:
-                session = load_session(module_name, logger)
-                if session:
-                    init_ok = session.initialize()
-                    if not init_ok:
-                        print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
+                from kubelingo.bridge import rust_bridge
+                if rust_bridge.is_available():
+                    # Attempt Rust-backed command quiz
+                    if rust_bridge.run_command_quiz(args):
                         return
-                    session.run_exercises(args)
-                    session.cleanup()
-                else:
-                    print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
-            except (ImportError, AttributeError) as e:
-                print(Fore.RED + f"Error loading module '{module_name}': {e}" + Style.RESET_ALL)
+                    # Rust execution failed; fallback to Python quiz
+                    print("Rust command quiz execution failed. Falling back to Python quiz.")
+            except (ImportError, AttributeError):
+                pass  # Fall through to Python implementation
+
+        if module_name == 'kustom':
+            module_name = 'custom'
+
+        # 'llm' is not a standalone module from the CLI, but an in-quiz helper.
+        if module_name == 'llm':
+            print(f"{Fore.RED}The 'llm' feature is available as a command during a quiz, not as a standalone module.{Style.RESET_ALL}")
             return
 
-        # If no other action was taken, just exit.
-        if not args.module:
-            return
+        # Prepare logging for other modules
+        logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+        logger = logging.getLogger()
+
+        if module_name == 'custom':
+            if not args.custom_file and not args.exercises:
+                print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
+                return
+        # Load and run the specified module's session
+        try:
+            session = load_session(module_name, logger)
+            if session:
+                init_ok = session.initialize()
+                if not init_ok:
+                    print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
+                    return
+                session.run_exercises(args)
+                session.cleanup()
+            else:
+                print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
+        except (ImportError, AttributeError) as e:
+            print(Fore.RED + f"Error loading module '{module_name}': {e}" + Style.RESET_ALL)
+        return
+
+    # If no other action was taken, just exit.
+    if not args.module:
+        return
 if __name__ == '__main__':
     main()
