@@ -106,6 +106,8 @@ Updated interactive CLI quiz session to:
 - Extended matcher support in `answer_checker.evaluate_transcript` and the sandbox helper to cover `exit_code`, `contains`, and `regex` matchers.
 - Implemented "second opinion" AI evaluation: if deterministic checks fail and `--ai-eval` is enabled, the transcript is sent to an LLM to potentially override the result.
 - **Fixed**: Corrected a regression in the Kubernetes session runner that was causing an unconfigured PTY shell and UI corruption. The quiz loop now correctly uses the unified sandbox for all question types.
+- **Fixed**: Resolved UI corruption by clearing the screen before displaying each question and its menu.
+- **Fixed**: Re-instated the PTY shell initialization to provide a consistent prompt, `k=kubectl` alias, and environment for the user.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
   
 ### Testing & Observations

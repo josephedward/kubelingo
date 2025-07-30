@@ -646,57 +646,6 @@ class NewSession(StudySession):
         self.live_session_active = True
         return True
 
-    def _run_one_exercise(self, q):
-        """
-        Handles validation for a single exercise by running its assertion script.
-        """
-        is_correct = False
-        # Live Kubernetes exercise: run user commands until 'done'
-        if q.get('type') == 'live_k8s':
-            prompt_session = PromptSession() if PromptSession else None
-            while True:
-                try:
-                    if prompt_session:
-                        cmd = prompt_session.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
-                    else:
-                        cmd = input('Your command: ').strip()
-                except (EOFError, KeyboardInterrupt):
-                    print()
-                    break
-                if cmd.lower() == 'done':
-                    break
-                parts = cmd.split()
-                try:
-                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
-                    if proc.stdout:
-                        print(proc.stdout, end='')
-                    if proc.stderr:
-                        print(proc.stderr, end='')
-                except Exception as e:
-                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
-        # Assertion script
-        assertion = q.get('assert_script') or q.get('response')
-        if not assertion:
-            print(f"{Fore.YELLOW}Warning: No validation script found.{Style.RESET_ALL}")
-            return False
-        try:
-            with tempfile.NamedTemporaryFile(mode='w+', suffix='.sh', delete=False, encoding='utf-8') as tmp:
-                tmp.write(assertion)
-                path = tmp.name
-            os.chmod(path, 0o755)
-            proc = subprocess.run(['bash', path], capture_output=True, text=True)
-            os.remove(path)
-            if proc.returncode == 0:
-                if proc.stdout:
-                    print(proc.stdout)
-                is_correct = True
-            else:
-                print(proc.stdout or proc.stderr)
-        except Exception as e:
-            print(f"{Fore.RED}Error during assertion: {e}{Style.RESET_ALL}")
-        # Log
-        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
-        return is_correct
     
     def _cleanup_swap_files(self):
         """
