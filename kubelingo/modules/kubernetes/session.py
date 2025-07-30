@@ -45,10 +45,14 @@ from kubelingo.utils.validation import commands_equivalent
 from .vim_yaml_editor import VimYamlEditor
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 import logging  # for logging in exercises
-# AI integration disabled in unified runner to avoid heavyweight imports
-AIEvaluator = None
-AIHelper = None
-AI_EVALUATOR_ENABLED = False
+try:
+    from kubelingo.modules.ai_evaluator import AIEvaluator
+    from kubelingo.modules.llm.session import AIHelper, AI_EVALUATOR_ENABLED
+except ImportError:
+    # LLM extras not installed
+    AIEvaluator = None
+    AIHelper = None
+    AI_EVALUATOR_ENABLED = False
 
 
 def _get_quiz_files():
@@ -400,6 +404,7 @@ class NewSession(StudySession):
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
+                # Unified interface for all questions
                 choices = [
                     questionary.Choice("1. Start Exercise (Open Terminal)", value="answer"),
                     questionary.Choice(f"2. {flag_option_text} for Review", value="flag"),
@@ -478,16 +483,18 @@ class NewSession(StudySession):
                         if question_obj.explanation:
                             print(f"{Fore.CYAN}Explanation: {question_obj.explanation}{Style.RESET_ALL}")
                         
-                        ai_helper = AIHelper()
-                        if ai_helper.enabled:
-                            print(ai_helper.get_explanation(q))
+                        if AIHelper:
+                            ai_helper = AIHelper()
+                            if ai_helper.enabled:
+                                print(ai_helper.get_explanation(q))
                         current_question_index += 1
                         break
                     else:
                         print(f"{Fore.RED}Incorrect. Try again or skip.{Style.RESET_ALL}")
-                        ai_helper = AIHelper()
-                        if ai_helper.enabled:
-                            print(ai_helper.get_explanation(q))
+                        if AIHelper:
+                            ai_helper = AIHelper()
+                            if ai_helper.enabled:
+                                print(ai_helper.get_explanation(q))
                         continue
             
             if quiz_backed_out:
