@@ -605,12 +605,14 @@ class NewSession(StudySession):
                 is_correct = result.success  # Fallback
         else:
             # Fallback to deterministic validation.
-            # An answer cannot be correct if there are no validation steps.
-            if not result.step_results:
+            is_correct = result.success
+
+            # An answer cannot be correct if there are no validation steps defined in the question data.
+            # This prevents questions from being marked correct just because a shell was exited cleanly.
+            has_validation_data = bool(q.get('validation_steps') or (q.get('type') == 'command' and q.get('response')))
+            if not has_validation_data:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question.{Style.RESET_ALL}")
                 is_correct = False
-            else:
-                is_correct = result.success
 
         # If AI evaluation was not performed, show deterministic step-by-step results.
         if not ai_eval_used:
