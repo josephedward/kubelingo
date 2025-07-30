@@ -383,7 +383,7 @@ def main():
                     else:
                         # Rust bridge unavailable; still call to satisfy test mocks
                         rust_bridge.run_command_quiz(args)
-                except ImportError:
+                except (ImportError, AttributeError):
                     pass  # Fall through to Python implementation
 
             if module_name == 'kustom':
