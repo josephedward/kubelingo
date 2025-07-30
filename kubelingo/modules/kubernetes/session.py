@@ -859,6 +859,32 @@ class NewSession(StudySession):
         is_correct = False
         # The 'response' field in legacy questions can be treated as a simple shell assertion.
         assertion = q.get('assert_script') or q.get('response')
+        # For live Kubernetes exercises, allow user to run commands in an interactive prompt
+        if q.get('type') == 'live_k8s':
+            prompt_sess = None
+            if PromptSession:
+                prompt_sess = PromptSession()
+            # Loop until user signals completion
+            while True:
+                try:
+                    if prompt_sess:
+                        cmd_line = prompt_sess.prompt(f"{Fore.CYAN}Your command: {Style.RESET_ALL}").strip()
+                    else:
+                        cmd_line = input('Your command: ').strip()
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    break
+                if cmd_line.lower() == 'done':
+                    break
+                parts = cmd_line.split()
+                try:
+                    proc = subprocess.run(parts, capture_output=True, text=True, check=False)
+                    if proc.stdout:
+                        print(proc.stdout, end='')
+                    if proc.stderr:
+                        print(proc.stderr, end='')
+                except Exception as e:
+                    print(f"{Fore.RED}Error running command: {e}{Style.RESET_ALL}")
         if not assertion:
             # If there's no way to validate, we can't determine correctness.
             # This might be intended for questions that are purely informational.
@@ -873,7 +899,7 @@ class NewSession(StudySession):
             os.chmod(assert_path, 0o755)
 
             # The validation script will use the default KUBECONFIG from the environment
-            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True, check=False)
+            assert_proc = subprocess.run(['bash', assert_path], capture_output=True, text=True)
             os.remove(assert_path)
 
             if assert_proc.returncode == 0:
@@ -885,7 +911,9 @@ class NewSession(StudySession):
                 print(assert_proc.stdout or assert_proc.stderr)
         except Exception as e:
             print(Fore.RED + f"An unexpected error occurred during validation: {e}" + Style.RESET_ALL)
-        
+        # Log the outcome of the live exercise
+        result = 'correct' if is_correct else 'incorrect'
+        self.logger.info(f"Live exercise: prompt=\"{q.get('prompt')}\" result=\"{result}\"")
         return is_correct
 
     def cleanup(self):
