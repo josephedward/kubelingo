@@ -25,16 +25,25 @@ class AIEvaluator:
             dict: A dictionary with 'correct' (bool) and 'reasoning' (str).
         """
         prompt = question_data.get('prompt', '')
+        validation_steps = question_data.get('validation_steps', [])
 
         system_prompt = """
 You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to solve a problem in a sandboxed terminal environment.
-Based on the provided question, the terminal transcript, and any associated logs (like vim commands), determine if the user successfully completed the task.
+Based on the provided question, the expected validation steps, the terminal transcript, and any associated logs (like vim commands), determine if the user successfully completed the task.
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's solution is correct, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
 """
 
         user_content = f"Question: {prompt}\n\n"
+
+        if validation_steps:
+            user_content += "A correct solution is expected to pass these validation checks:\n"
+            for i, step in enumerate(validation_steps):
+                cmd = step.get('cmd', 'No command specified')
+                user_content += f"- Step {i+1}: `{cmd}`\n"
+            user_content += "\n"
+
         user_content += f"Terminal Transcript:\n---\n{transcript}\n---\n"
         if vim_log and vim_log.strip():
             user_content += f"Vim Command Log:\n---\n{vim_log}\n---\n"
