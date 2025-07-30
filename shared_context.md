@@ -160,8 +160,17 @@ The script is highly configurable via command-line flags.
     --enrich-file question-data/json/new_questions.json \
     --dedupe-ref-file question-data/json/kubernetes_with_explanations.json
   ```
+- To generate AI-scaffolded `validation_steps` for questions missing them (use `--dry-run` to preview):
+  ```bash
+  python3 scripts/organize_question_data.py --generate-validations --dry-run
+  ```
+- To target a specific file for validation generation (if not using the default `kubernetes.json`):
+  ```bash
+  python3 scripts/organize_question_data.py --generate-validations \
+    --enrich-file question-data/json/ckad_quiz_data.json
+  ```
 - Improved error handling for OpenAI API connection issues has been added to provide clearer feedback on network problems.
-- The script's import logic is now robust, allowing it to be run as a standalone file or imported as a module within the `kubelingo` package.
+- The script's import logic is now robust, allowing it to be run as a standalone file. It unconditionally defines `project_root` at the top and inserts it into `sys.path`, fixing previous import errors.
   
 ### Testing & Observations
 - Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
