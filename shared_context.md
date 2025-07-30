@@ -13,7 +13,7 @@ The core components of this architecture are:
     - After the shell exits, it executes each `ValidationStep.cmd`, applies matchers (e.g., exit code, regex), and aggregates results.
     - Returns structured `ShellResult` data and cleans up the workspace.
 3.  **Unified Session Flow**: The main Kubernetes session now uses the sandbox helper for all question types, removing legacy branching for different quiz formats.
-4.  **Stateful Navigation**: The interactive quiz menu supports `Next`, `Previous`, `Open Shell`, and `Check Answer`, tracking per-question status and transcripts.
+4.  **Stateful Navigation**: The interactive quiz menu supports `Work on Answer (in Shell)`, `Check Answer`, `Show Expected Answer(s)`, `Show Model Answer` (when available), `Flag for Review`/`Unflag`, `Next Question`, `Previous Question`, and `Exit Quiz`, tracking per-question status and transcripts.
 5.  **Persistent Transcripts**: Session transcripts are saved to `logs/transcripts/...` and can be evaluated on-demand via the `Check Answer` feature, enabling replayable proof-of-execution.
 
 With this foundation, the next steps are to:
@@ -127,7 +127,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Errors during `pre_shell_cmds` are now handled gracefully, preventing quiz crashes.
   - **Fixed**: The `TypeError` on `Question.__init__` was resolved by removing an invalid `type` argument.
   - **Feature**: Questions are now de-duplicated by prompt text after loading to ensure a clean study session.
-  - **Feature**: Added a "Show Answer" option to the in-quiz menu for questions that have a model answer.
+  - **Feature**: Added a "Show Model Answer" option to the in-quiz menu for questions that have a model response defined.
   - **Feature**: The Vim/YAML editor now displays the exercise prompt before opening the editor and uses a temporary `.vimrc` file to ensure consistent 2-space tabbing.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
