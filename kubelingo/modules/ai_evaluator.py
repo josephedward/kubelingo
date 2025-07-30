@@ -1,5 +1,6 @@
 import json
-import llm
+# Avoid importing llm at top-level to prevent segmentation faults when llm is installed but improperly configured.
+llm = None
 
 
 class AIEvaluator:
