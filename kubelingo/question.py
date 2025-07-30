@@ -20,7 +20,7 @@ class Question:
     """
     id: str                           # unique identifier, e.g. 'module::index'
     prompt: str                       # text shown to the user
-    type: str = 'command'             # question type, e.g. 'command', 'live_k8s', etc.
+    type: str = ''                   # question type, e.g. 'command', 'live_k8s', etc.
     
     # Unified shell experience fields
     pre_shell_cmds: List[str] = field(default_factory=list)   # commands to prepare sandbox
