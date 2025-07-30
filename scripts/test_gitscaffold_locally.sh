@@ -26,8 +26,11 @@ cd "$TEST_REPO"
 # (Optional) create and activate a fresh venv
 python3 -m venv .venv && source .venv/bin/activate
 
-# 3) Install the newly built wheel (force-reinstall to override any existing gitscaffold)
-pip install --force-reinstall ../gitscaffold/dist/gitscaffold-*.whl
+# 3) Install the newly built wheel.
+# First, uninstall any existing version to ensure a clean test.
+pip uninstall -y gitscaffold || true
+# Now, install the wheel we just built. The glob should only match one file.
+pip install ../gitscaffold/dist/gitscaffold-*.whl
 
 # 4) Verify it’s on your PATH
 which gitscaffold
