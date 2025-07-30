@@ -22,6 +22,41 @@ This document outlines the vision, features, and enhancements planned for the Ku
 - [x] **CI/CD Pipeline**: GitHub Actions with multi-Python version testing
 - [x] **Modular Design**: Separate modules for different quiz types
 
+## Phase 1: Unified Shell Experience
+
+### Question Schema Enhancements
+_Labels: enhancement, schema_
+- Add `pre_shell_cmds`, `initial_files`, `validation_steps` to the Question model.
+- Extend content loaders (JSON/MD/YAML) to populate the new fields.
+
+### Sandbox Runner & Helper
+_Labels: enhancement, sandbox_
+- Implement `run_shell_with_setup(pre_shell_cmds, initial_files, validation_steps)` in `sandbox.py`:
+  - Creates a temporary workspace and writes initial files.
+  - Executes `pre_shell_cmds` (e.g., `kubectl apply -f …`).
+  - Spawns an interactive shell (PTY or container) and logs the session transcript.
+  - Runs validation steps (`step.cmd`) and applies matchers.
+  - Cleans up (teardown and workspace removal).
+- Ensure deterministic evaluation of `kubectl`/`helm` commands and cluster state.
+
+### CLI & Session Refactor
+_Labels: enhancement, cli_
+- Refactor `Session._run_shell_question` to invoke the sandbox helper.
+- Simplify CLI menus to a single “Answer (opens shell)” flow.
+- Remove legacy YAML/Vim-specific branches.
+
+### Session Transcript & AI-Based Evaluation
+_Labels: enhancement, logging, ai_
+- Record full terminal session using `script` or PTY logging (captures Vim keystrokes and shell commands).
+- Sanitize and store transcripts for audit and replay.
+- Implement deterministic evaluation pipeline based on transcript parsing and sanity checks.
+- (Optional) Integrate AI-based evaluator to grade freeform workflows via LLM.
+
+### Testing & Documentation
+_Labels: testing, docs_
+- Write unit and integration tests for the unified shell experience.
+- Update or add documentation under `docs/` to reflect the new flow.
+
 ## Test Coverage Improvements
 
 ### Comprehensive CLI Testing

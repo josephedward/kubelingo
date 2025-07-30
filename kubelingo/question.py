@@ -21,9 +21,15 @@ class Question:
     id: str                           # unique identifier, e.g. 'module::index'
     prompt: str                       # text shown to the user
     runner: str                       # 'shell' or 'vim', selects interaction style
+    # Legacy setup commands and validations (deprecated in favor of shell-based fields)
     initial_cmds: List[str] = field(default_factory=list)
     initial_yaml: Optional[str] = None
     validations: List[ValidationStep] = field(default_factory=list)
+    
+    # New unified shell experience fields
+    pre_shell_cmds: List[str] = field(default_factory=list)   # commands to prepare sandbox
+    initial_files: Dict[str, str] = field(default_factory=dict)  # file path → content to seed workspace
+    validation_steps: List[ValidationStep] = field(default_factory=list)  # steps to run after shell exit
     explanation: Optional[str] = None
     categories: List[str] = field(default_factory=list)
     difficulty: Optional[str] = None

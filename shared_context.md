@@ -54,6 +54,11 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
 - Added a new Phase 1: Unified Shell Experience to `docs/roadmap.md`, covering schema enhancements, sandbox runner, CLI refactor, session transcript recording, evaluation pipelines, and testing/documentation.
 - Recorded these changes here to keep shared context in sync.
 - Interactive CLI quiz type selection now includes an explicit 'Exit' option to allow quitting without starting a quiz.
+
+### Implementation Progress
+- Added `pre_shell_cmds`, `initial_files`, and `validation_steps` fields to `Question` model in `kubelingo/question.py`.
+- Defined `StepResult` and `ShellResult` dataclasses and stubbed `run_shell_with_setup` in `kubelingo/sandbox.py`.
+- Implemented workspace provisioning, pre-shell command execution, session transcript recording, skeleton validation loop, and cleanup.
 # Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation

@@ -44,9 +44,11 @@ from kubelingo.utils.validation import commands_equivalent
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-from kubelingo.modules.ai_evaluator import AIEvaluator
-from kubelingo.modules.llm.session import AIHelper, AI_EVALUATOR_ENABLED
-# (AI integration is loaded dynamically to avoid import-time dependencies)
+import logging  # for logging in exercises
+# AI integration disabled in unified runner to avoid heavyweight imports
+AIEvaluator = None
+AIHelper = None
+AI_EVALUATOR_ENABLED = False
 
 
 def _get_quiz_files():
