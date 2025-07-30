@@ -618,9 +618,9 @@ class NewSession(StudySession):
             for file_path in all_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
-                subject = humanize_module(name)
+                subject = humanize_module(name).strip()
                 title = f"{subject} ({base})"
-                choices.append(questionary.Choice(title=title, value=file_path))
+                choices.append({"name": title, "value": file_path})
         
         if all_flagged:
             choices.append(questionary.Separator())
