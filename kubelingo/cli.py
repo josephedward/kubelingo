@@ -195,7 +195,7 @@ def main():
         # Interactive mode. We'll build up `args` manually.
         # Initialize args with defaults.
         args = argparse.Namespace(
-            file=DEFAULT_DATA_FILE, num=0, randomize=False, category=None, list_categories=False,
+            file=None, num=0, randomize=False, category=None, list_categories=False,
             history=False, review_only=False, ai_eval=False, command=[], list_modules=False,
             custom_file=None, exercises=None, cluster_context=None, live=False, k8s_mode=False,
             pty=False, docker=False, sandbox_mode=None, exercise_module=None, module=None
