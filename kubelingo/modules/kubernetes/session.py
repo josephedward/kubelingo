@@ -190,6 +190,12 @@ def load_questions(data_file, exit_on_error=True):
                 q_dict['type'] = 'command'
             # Ensure response is populated from answer if present, for compatibility
             q_dict['response'] = q_dict.get('response', '') or q_dict.get('answer', '')
+            # Populate response from validation command if no explicit response provided
+            if not q_dict['response'] and q_dict.get('validations'):
+                first_val = q_dict['validations'][0]
+                cmd = first_val.get('cmd') if isinstance(first_val, dict) else getattr(first_val, 'cmd', '')
+                if cmd:
+                    q_dict['response'] = cmd.strip()
             questions.append(q_dict)
         return questions
     except Exception as e:
