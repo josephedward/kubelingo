@@ -288,8 +288,21 @@ class NewSession(StudySession):
         """
         Router for running exercises. It decides which quiz to run.
         """
-        # Refactored: all exercises now run through a unified quiz runner.
-        self._run_unified_quiz(args)
+        # Dispatch for command quizzes via Rust bridge or Python fallback
+        self._run_command_quiz(args)
+    
+    def _run_command_quiz(self, args):
+        """Attempt Rust-based quiz first; fallback to Python loader if unavailable or failed."""
+        try:
+            from kubelingo.bridge import rust_bridge
+            if rust_bridge.is_available():
+                if rust_bridge.run_command_quiz(args):
+                    return
+        except ImportError:
+            pass
+        # Fallback: load questions in Python
+        load_questions(args.file)
+        return
     
     def _run_unified_quiz(self, args):
         """
