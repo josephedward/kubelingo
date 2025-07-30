@@ -503,34 +503,28 @@ class NewSession(StudySession):
                 
                 if action == "check":
                     result = transcripts_by_index.get(current_question_index)
-                    if not result:
+                    if not result or not result.transcript_path:
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                         continue
 
                     from kubelingo.question import ValidationStep
-                    validation_steps_raw = q.get('validation_steps', []) or q.get('validations', [])
-                    validation_steps = [ValidationStep(**vs) for vs in validation_steps_raw]
+                    validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', []) or q.get('validations', [])]
+                    if not validation_steps and q.get('type') == 'command' and q.get('response'):
+                        validation_steps.append(ValidationStep(cmd=q['response'], matcher={'contains': q['response']}))
 
-                    print(f"{Fore.CYAN}Re-evaluating answer...{Style.RESET_ALL}")
-                    step_result_dicts = evaluate_transcript(validation_steps)
-                    new_step_results = [StepResult(**d) for d in step_result_dicts]
-
-                    is_correct_re_eval = all(r.success for r in new_step_results) if new_step_results else True
-
-                    # Create a new result object to reflect the re-evaluation
-                    new_result = ShellResult(
-                        success=is_correct_re_eval,
-                        step_results=new_step_results,
-                        transcript_path=result.transcript_path
-                    )
-                    transcripts_by_index[current_question_index] = new_result
-
-                    is_correct = self._check_and_process_answer(q, new_result, current_question_index, attempted_indices, correct_indices)
+                    print(f"{Fore.CYAN}Re-evaluating answer from transcript...{Style.RESET_ALL}")
+                    is_correct_re_eval, details = evaluate_transcript(result.transcript_path, validation_steps)
+                    
+                    # Update the result, but since we don't have per-step results from this evaluator, just update success.
+                    result.success = is_correct_re_eval
+                    
+                    # This check is now just for displaying feedback and moving on
+                    is_correct = self._check_and_process_answer(q, result, current_question_index, attempted_indices, correct_indices)
                     if is_correct:
-                        current_question_index += 1
-                        break # Move to next question
+                        current_question_index = min(current_question_index + 1, total_questions - 1)
+                        break
                     else:
-                        continue # Stay on current question
+                        continue
             
             if quiz_backed_out:
                 break
