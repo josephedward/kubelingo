@@ -129,6 +129,43 @@ Example for a question about creating a deployment with 1 replica:
         logging.error(f"An unexpected error occurred generating validation steps for prompt '{prompt}': {e}")
         return None
 
+def _process_question(question, client, explained_prompts, dry_run, do_dedupe, do_explanations, do_validations):
+    """
+    Processes a single question for de-duplication and enrichment.
+    Returns a tuple: (processed_question | None, was_deduplicated, explanation_added, steps_added)
+    """
+    prompt_text = question.get('prompt', '').strip()
+    was_deduplicated = False
+    explanation_added = False
+    steps_added = False
+
+    if do_dedupe and prompt_text in explained_prompts:
+        was_deduplicated = True
+        logging.info(f"De-duplicating question (already has explanation): \"{prompt_text[:50]}...\"")
+        return None, was_deduplicated, explanation_added, steps_added
+
+    if do_explanations and not question.get('explanation'):
+        logging.info(f"Generating explanation for: \"{prompt_text[:50]}...\"")
+        if not dry_run:
+            explanation = generate_explanation(client, question)
+            if explanation:
+                question['explanation'] = explanation
+                explanation_added = True
+        else:
+            explanation_added = True
+
+    if do_validations and not question.get('validation_steps'):
+        logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
+        if not dry_run:
+            steps = generate_validation_steps(client, question)
+            if steps:
+                question['validation_steps'] = steps
+                steps_added = True
+        else:
+            steps_added = True
+
+    return question, was_deduplicated, explanation_added, steps_added
+
 # --- File Operations ---
 
 def _move_to_archive(src_path, dry_run=False):
@@ -228,67 +265,40 @@ def enrich_and_deduplicate(target_file_path, ref_file_path, dry_run=False, do_de
     enriched_steps_count = 0
     deduplicated_count = 0
 
+    process_args = (client, explained_prompts, dry_run, do_dedupe, do_explanations, do_validations)
+
     if is_nested:
         final_data = []
         for category_group in target_data_raw:
             prompts_to_keep = []
             for question in category_group.get('prompts', []):
-                prompt_text = question.get('prompt', '').strip()
-                if do_dedupe and prompt_text in explained_prompts:
+                processed_q, was_deduped, exp_added, steps_added = _process_question(question, *process_args)
+                if was_deduped:
                     deduplicated_count += 1
-                    logging.info(f"De-duplicating question (already has explanation): \"{prompt_text[:50]}...\"")
                     continue
-                if do_explanations and not question.get('explanation'):
-                    logging.info(f"Generating explanation for: \"{prompt_text[:50]}...\"")
-                    if not dry_run:
-                        explanation = generate_explanation(client, question)
-                        if explanation:
-                            question['explanation'] = explanation
-                            enriched_explanation_count += 1
-                    else:
-                        enriched_explanation_count += 1
-                
-                if do_validations and not question.get('validation_steps'):
-                    logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
-                    if not dry_run:
-                        steps = generate_validation_steps(client, question)
-                        if steps:
-                            question['validation_steps'] = steps
-                            enriched_steps_count += 1
-                    else:
-                        enriched_steps_count += 1
-                prompts_to_keep.append(question)
-            category_group['prompts'] = prompts_to_keep
+                if exp_added:
+                    enriched_explanation_count += 1
+                if steps_added:
+                    enriched_steps_count += 1
+                if processed_q:
+                    prompts_to_keep.append(processed_q)
+            
             if prompts_to_keep:
+                category_group['prompts'] = prompts_to_keep
                 final_data.append(category_group)
-    else: # Flat structure
+    else:  # Flat structure
         final_data = []
         for question in target_data_raw:
-            prompt_text = question.get('prompt', '').strip()
-            if do_dedupe and prompt_text in explained_prompts:
+            processed_q, was_deduped, exp_added, steps_added = _process_question(question, *process_args)
+            if was_deduped:
                 deduplicated_count += 1
-                logging.info(f"De-duplicating question (already has explanation): \"{prompt_text[:50]}...\"")
                 continue
-            if do_explanations and not question.get('explanation'):
-                logging.info(f"Generating explanation for: \"{prompt_text[:50]}...\"")
-                if not dry_run:
-                    explanation = generate_explanation(client, question)
-                    if explanation:
-                        question['explanation'] = explanation
-                        enriched_explanation_count += 1
-                else:
-                    enriched_explanation_count += 1
-
-            if do_validations and not question.get('validation_steps'):
-                logging.info(f"Generating validation steps for: \"{prompt_text[:50]}...\"")
-                if not dry_run:
-                    steps = generate_validation_steps(client, question)
-                    if steps:
-                        question['validation_steps'] = steps
-                        enriched_steps_count += 1
-                else:
-                    enriched_steps_count += 1
-            final_data.append(question)
+            if exp_added:
+                enriched_explanation_count += 1
+            if steps_added:
+                enriched_steps_count += 1
+            if processed_q:
+                final_data.append(processed_q)
 
     if do_explanations:
         logging.info(f"Enriched {enriched_explanation_count} questions with new explanations.")
