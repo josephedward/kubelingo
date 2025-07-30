@@ -46,7 +46,8 @@ With this foundation, the next steps are to:
 ### PTY Shell vs Docker Container
 - PTY Shell
   - Pros: Fast start, uses host environment, minimal overhead.
-  - Cons: No sandboxing—commands run on host.
+  - Cons: No sandboxing—commands run on host. This means tools like `kubectl` must be installed and configured on your local machine.
+  - **Note**: The PTY shell is configured to provide a consistent experience. It sets a `(kubelingo-sandbox)$` prompt, silences macOS `bash` deprecation warnings, and provides a `k=kubectl` alias. It also attempts to source your existing `~/.bash_profile` to preserve your environment.
 - Docker Container
   - Pros: Full isolation, consistent environment, safe for destructive commands.
   - Cons: Slower startup, requires Docker.

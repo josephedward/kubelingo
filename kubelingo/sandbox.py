@@ -104,11 +104,28 @@ def spawn_pty_shell():
     print(f"{Fore.YELLOW}This is a native shell on your machine.{Style.RESET_ALL}")
     print(f"{Fore.GREEN}Type 'exit' or press Ctrl-D to end.{Style.RESET_ALL}")
     print(f"{Fore.GREEN}Inside the shell, use '-h' or '--help' (e.g. 'kubectl get pods -h') to view usage tips.{Style.RESET_ALL}")
-    os.environ['PS1'] = '(kubelingo-sandbox)$ '
+    init_script_path = None
     try:
-        pty.spawn(['bash', '--login'])
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix=".sh") as f:
+            # Silence the zsh deprecation warning on macOS
+            f.write("export BASH_SILENCE_DEPRECATION_WARNING=1\n")
+            # Set the custom prompt
+            f.write("export PS1='(kubelingo-sandbox)$ '\n")
+            # Add common aliases
+            f.write("alias k='kubectl'\n")
+            # Source user's .bash_profile if it exists, to not break their setup.
+            bash_profile = Path.home() / ".bash_profile"
+            if bash_profile.exists():
+                f.write(f"source {bash_profile}\n")
+            init_script_path = f.name
+        
+        # Use --init-file to load our custom config for the login shell.
+        pty.spawn(['bash', '--login', '--init-file', init_script_path])
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
+    finally:
+        if init_script_path and os.path.exists(init_script_path):
+            os.unlink(init_script_path)
     print(f"\n{Fore.CYAN}--- PTY Shell Session Ended ---{Style.RESET_ALL}\n")
 
 def launch_container_sandbox():
