@@ -88,8 +88,6 @@ def _evaluate_matcher(matcher: Dict[str, Any], stdout: str, stderr: str, exit_co
 
 def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
-    # Clear any residual transcript env so we don't accidentally use `script` fallback in direct calls
-    os.environ.pop('KUBELINGO_TRANSCRIPT_FILE', None)
     try:
         from kubelingo.bridge import rust_bridge
     except ImportError:
