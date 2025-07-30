@@ -45,6 +45,7 @@ from kubelingo.utils.validation import commands_equivalent
 from .vim_yaml_editor import VimYamlEditor
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.modules.ai_evaluator import AIEvaluator
+from kubelingo.modules.llm.session import AIHelper, AI_EVALUATOR_ENABLED
 # (AI integration is loaded dynamically to avoid import-time dependencies)
 
 
@@ -374,6 +375,12 @@ class NewSession(StudySession):
         from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
         sandbox_func = launch_container_sandbox if args.docker else spawn_pty_shell
 
+        prompt_session = None
+        if PromptSession and FileHistory:
+            # Ensure the directory for the history file exists
+            os.makedirs(os.path.dirname(INPUT_HISTORY_FILE), exist_ok=True)
+            prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
+
         quiz_backed_out = False
         current_question_index = 0
         while current_question_index < len(questions_to_ask):
@@ -383,15 +390,21 @@ class NewSession(StudySession):
             if category not in per_category_stats:
                 per_category_stats[category] = {'asked': 0, 'correct': 0}
 
+            q_type = q.get('type', 'command')
             print(f"\n{Fore.YELLOW}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
+            was_answered = False
             while True:
                 is_flagged = q.get('review', False)
                 flag_option_text = "Unflag" if is_flagged else "Flag"
 
+                answer_text = "Start Exercise (Open Terminal)"
+                if q_type == 'command':
+                    answer_text = "Answer (Enter Command)"
+
                 choices = [
-                    questionary.Choice("1. Start Exercise (Open Terminal)", value="answer"),
+                    questionary.Choice(f"1. {answer_text}", value="answer"),
                     questionary.Choice(f"2. {flag_option_text} for Review", value="flag"),
                     questionary.Choice("3. Skip", value="skip"),
                     questionary.Choice("4. Exit Quiz", value="back")
@@ -410,8 +423,9 @@ class NewSession(StudySession):
                     break
 
                 if action == "skip":
-                    asked_count += 1
-                    per_category_stats[category]['asked'] += 1
+                    if not was_answered:
+                        asked_count += 1
+                        per_category_stats[category]['asked'] += 1
                     self.logger.info(f"Question {i}/{total_questions}: SKIPPED prompt=\"{q['prompt']}\"")
                     current_question_index += 1
                     break
@@ -429,39 +443,49 @@ class NewSession(StudySession):
                     continue
 
                 if action == "answer":
-                    asked_count += 1
-                    per_category_stats[category]['asked'] += 1
-                    
-                    print(Fore.GREEN + "\nA sandbox shell will be opened. Perform the required actions." + Style.RESET_ALL)
-                    print(Fore.GREEN + "Type 'exit' or press Ctrl-D to finish and validate your answer." + Style.RESET_ALL)
-                    
-                    transcript_content, vim_log_content = None, None
-                    if args.ai_eval:
-                        # Prepare for transcripting
-                        transcript_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
-                        vim_log_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
-                        os.environ['KUBELINGO_TRANSCRIPT_FILE'] = transcript_file.name
-                        os.environ['KUBELINGO_VIM_LOG'] = vim_log_file.name
-                    
-                    sandbox_func()
-                    
-                    if args.ai_eval:
-                        # Read transcripts
-                        transcript_file.seek(0)
-                        transcript_content = transcript_file.read()
-                        vim_log_file.seek(0)
-                        vim_log_content = vim_log_file.read()
-                        
-                        # Cleanup
-                        transcript_file.close()
-                        vim_log_file.close()
-                        os.unlink(transcript_file.name)
-                        os.unlink(vim_log_file.name)
-                        del os.environ['KUBELINGO_TRANSCRIPT_FILE']
-                        del os.environ['KUBELINGO_VIM_LOG']
+                    if not was_answered:
+                        asked_count += 1
+                        per_category_stats[category]['asked'] += 1
+                        was_answered = True
 
-                    print("\nValidating your solution...")
-                    is_correct = self._run_one_exercise(q, args, transcript=transcript_content, vim_log=vim_log_content)
+                    is_correct = False
+                    ai_helper = AIHelper()
+
+                    if q_type == 'command':
+                        user_answer = ""
+                        if prompt_session:
+                            user_answer = prompt_session.prompt(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+                        else:
+                            user_answer = input(f'{Fore.CYAN}Your answer: {Style.RESET_ALL}').strip()
+
+                        if AI_EVALUATOR_ENABLED:
+                            is_correct, reason = ai_helper.evaluate_answer(q, user_answer)
+                            print(f"{Fore.CYAN}AI Eval: {reason}{Style.RESET_ALL}")
+                        else:
+                            is_correct = commands_equivalent(user_answer, q.get('response', ''))
+                    else: # live_k8s, etc.
+                        print(Fore.GREEN + "\nA sandbox shell will be opened. Perform the required actions." + Style.RESET_ALL)
+                        print(Fore.GREEN + "Type 'exit' or press Ctrl-D to finish and validate your answer." + Style.RESET_ALL)
+
+                        transcript_content, vim_log_content = None, None
+                        if args.ai_eval:
+                            transcript_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
+                            vim_log_file = tempfile.NamedTemporaryFile(mode='r+', delete=False, suffix=".log")
+                            os.environ['KUBELINGO_TRANSCRIPT_FILE'] = transcript_file.name
+                            os.environ['KUBELINGO_VIM_LOG'] = vim_log_file.name
+
+                        sandbox_func()
+
+                        if args.ai_eval:
+                            transcript_file.seek(0); transcript_content = transcript_file.read()
+                            vim_log_file.seek(0); vim_log_content = vim_log_file.read()
+                            transcript_file.close(); vim_log_file.close()
+                            os.unlink(transcript_file.name); os.unlink(vim_log_file.name)
+                            del os.environ['KUBELINGO_TRANSCRIPT_FILE']; del os.environ['KUBELINGO_VIM_LOG']
+
+                        print("\nValidating your solution...")
+                        is_correct = self._run_one_exercise(q, args, transcript=transcript_content, vim_log=vim_log_content)
+
                     self.logger.info(f"Question {i}/{total_questions}: prompt=\"{q['prompt']}\" result=\"{'correct' if is_correct else 'incorrect'}\"")
 
                     if is_correct:
@@ -470,10 +494,16 @@ class NewSession(StudySession):
                         print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
                         if q.get('explanation'):
                             print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                        if ai_helper.enabled:
+                            print(ai_helper.get_explanation(q))
                         current_question_index += 1
                         break
                     else:
                         print(f"{Fore.RED}Incorrect. Try again or skip.{Style.RESET_ALL}")
+                        if q_type == 'command' and not AI_EVALUATOR_ENABLED:
+                            print(f"{Fore.GREEN}Correct answer: {q.get('response', '')}{Style.RESET_ALL}")
+                        if ai_helper.enabled:
+                            print(ai_helper.get_explanation(q))
                         continue
             
             if quiz_backed_out:

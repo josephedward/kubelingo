@@ -70,6 +70,20 @@ This document outlines the implementation of an AI-powered evaluation system for
 - **AI Analysis**: After the user exits the sandbox, the transcript and Vim log are sent to an OpenAI model (e.g., GPT-4). The AI is prompted to act as a Kubernetes expert and evaluate whether the user's actions successfully fulfilled the requirements of the question.
 - **Feedback**: The AI's JSON-formatted response, containing a boolean `correct` status and a `reasoning` string, is presented to the user.
 
+#### Hybrid Evaluation Strategy
+
+To provide the best experience for different types of questions, Kubelingo uses a hybrid evaluation approach:
+
+1.  **Transcript-Based Evaluation (for Sandbox Exercises)**:
+    -   **Trigger**: Enabled with the `--ai-eval` flag for `live_k8s` and `live_k8s_edit` question types.
+    -   **Mechanism**: Captures the entire user session in the sandbox (via Rust PTY integration) into a transcript. This transcript is sent to the AI for a holistic review of the user's actions.
+    -   **Use Case**: Ideal for complex, multi-step exercises where the final state of the cluster or files determines success.
+
+2.  **Command-Based Evaluation (for Command Questions)**:
+    -   **Trigger**: Enabled by setting the `KUBELINGO_AI_EVALUATOR=1` environment variable for `command` question types.
+    -   **Mechanism**: Sends only the user's single-line command answer to the AI for semantic validation. It's a lightweight check that understands aliases, flag order, and functional equivalence.
+    -   **Use Case**: Perfect for knowledge-check questions where a quick, intelligent validation of a single command is needed without the overhead of a sandbox.
+
 ### Implementation Details
 
 1.  **Rust PTY Shell (`src/cli.rs`)**:
