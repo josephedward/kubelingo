@@ -1,22 +1,25 @@
-## Overall Goal & High-Level Plan
+## Current Architecture: The Unified Shell Experience
 
-Our objective is to deliver every Kubelingo quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow.  
-High-level plan:
-1.  Extend the `Question` schema with:
+Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.
+
+The core components of this architecture are:
+1.  **Extended `Question` Schema**: The `Question` model now includes:
     - `pre_shell_cmds: List[str]` for setup commands (e.g. `kubectl apply -f …`).
     - `initial_files: Dict[str, str]` to seed YAML or other starter files.
     - `validation_steps: List[ValidationStep]` of post-shell commands with matchers.
-2.  Implement a sandbox helper `run_shell_with_setup(...)` to:
-    - Provision an isolated workspace, write `initial_files`, and run `pre_shell_cmds`.
-    - Spawn an interactive PTY shell (or Docker container) that records a full session transcript (including Vim edits).
-    - After shell exit, execute each `ValidationStep.cmd`, apply matchers (exit code, regex, contains, JSONPath), and aggregate results.
-    - Teardown the workspace and return structured `ShellResult` data.
-3.  Refactor the Kubernetes session flow (`Session._run_shell_question` / legacy runners) to call the new sandbox helper for all question types.
-4.  Simplify the CLI and menu: always use the shell runner (with Rust-bridge fallback), remove per-type branches, and unify under “Open Shell → Exit → Validation”.
-5.  Add stateful navigation and on-demand checking: Next, Previous, Open Shell, Check Answer, Flag, Exit; track per-question status.
-6.  Persist and manage transcripts under `logs/transcripts/...`, build `evaluate_transcript(...)` for replayable proof-of-execution.
-7.  Layer in optional AI-based evaluation as a “second opinion” after deterministic matching is solid.
-8.  Write integration tests, unit tests for the sandbox runner and evaluation logic, and update documentation.
+2.  **Sandbox Helper**: The `run_shell_with_setup(...)` function:
+    - Provisions an isolated workspace, writes `initial_files`, and runs `pre_shell_cmds`.
+    - Spawns an interactive PTY shell (or Docker container) that records a full session transcript (including Vim edits).
+    - After the shell exits, it executes each `ValidationStep.cmd`, applies matchers (e.g., exit code, regex), and aggregates results.
+    - Returns structured `ShellResult` data and cleans up the workspace.
+3.  **Unified Session Flow**: The main Kubernetes session now uses the sandbox helper for all question types, removing legacy branching for different quiz formats.
+4.  **Stateful Navigation**: The interactive quiz menu supports `Next`, `Previous`, `Open Shell`, and `Check Answer`, tracking per-question status and transcripts.
+5.  **Persistent Transcripts**: Session transcripts are saved to `logs/transcripts/...` and can be evaluated on-demand via the `Check Answer` feature, enabling replayable proof-of-execution.
+
+With this foundation, the next steps are to:
+1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
+2.  Add unit/integration tests for `answer_checker` and the new UI flows.
+3.  Flesh out AI-based “second opinion” evaluation.
 
 ## Unified Terminal Quiz Refactor
 
