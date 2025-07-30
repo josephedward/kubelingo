@@ -184,25 +184,25 @@ def main():
 
     args = parser.parse_args()
 
-        # Process positional command
-        args.module = None
-        args.sandbox_submode = None
-        if args.command:
-            args.module = args.command[0]
-            if args.module == 'sandbox' and len(args.command) > 1:
-                subcommand = args.command[1]
-                if subcommand in ['pty', 'docker']:
-                    args.sandbox_submode = subcommand
-                else:
-                    parser.error(f"unrecognized arguments: {subcommand}")
-        # Sandbox mode dispatch: if specified with other args, they are passed to the module.
-        # If run alone, they launch a shell and exit.
-        from .sandbox import spawn_pty_shell, launch_container_sandbox
-        # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
-        if args.module == 'sandbox' or ((args.pty or args.docker)
-                                        and args.module is None
-                                        and not args.k8s_mode
-                                        and not args.exercise_module):
+    # Process positional command
+    args.module = None
+    args.sandbox_submode = None
+    if args.command:
+        args.module = args.command[0]
+        if args.module == 'sandbox' and len(args.command) > 1:
+            subcommand = args.command[1]
+            if subcommand in ['pty', 'docker']:
+                args.sandbox_submode = subcommand
+            else:
+                parser.error(f"unrecognized arguments: {subcommand}")
+    # Sandbox mode dispatch: if specified with other args, they are passed to the module.
+    # If run alone, they launch a shell and exit.
+    from .sandbox import spawn_pty_shell, launch_container_sandbox
+    # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
+    if args.module == 'sandbox' or ((args.pty or args.docker)
+                                    and args.module is None
+                                    and not args.k8s_mode
+                                    and not args.exercise_module):
             # Deprecation warning for legacy flags
             if args.pty or args.docker:
                 print(f"{Fore.YELLOW}Warning: --pty and --docker flags are deprecated. Use 'kubelingo sandbox --sandbox-mode [pty|docker]' instead.{Style.RESET_ALL}", file=sys.stderr)
@@ -223,30 +223,30 @@ def main():
                 print(f"Unknown sandbox mode: {mode}")
             return
 
-        # If unified exercise requested, load and list questions
-        if args.exercise_module:
-            questions = []
-            for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
-                for path in loader.discover():
-                    name = os.path.splitext(os.path.basename(path))[0]
-                    if name == args.exercise_module:
-                        questions.extend(loader.load_file(path))
-            if not questions:
-                print(f"No questions found for module '{args.exercise_module}'")
-            else:
-                print(f"Loaded {len(questions)} questions from module '{args.exercise_module}':")
-                for q in questions:
-                    print(f"  [{q.id}] {q.prompt} (runner={q.runner})")
-            return
-        
-        # Handle --k8s shortcut
-        if args.k8s_mode:
-            args.module = 'kubernetes'
+    # If unified exercise requested, load and list questions
+    if args.exercise_module:
+        questions = []
+        for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
+            for path in loader.discover():
+                name = os.path.splitext(os.path.basename(path))[0]
+                if name == args.exercise_module:
+                    questions.extend(loader.load_file(path))
+        if not questions:
+            print(f"No questions found for module '{args.exercise_module}'")
+        else:
+            print(f"Loaded {len(questions)} questions from module '{args.exercise_module}':")
+            for q in questions:
+                print(f"  [{q.id}] {q.prompt} (runner={q.runner})")
+        return
 
-        # If no arguments provided, show an interactive menu
-        if len(sys.argv) == 1:
-            # Interactive entry: use questionary if available, else fallback to text prompts
-            if questionary:
+    # Handle --k8s shortcut
+    if args.k8s_mode:
+        args.module = 'kubernetes'
+
+    # Disabled interactive menu until fallback UI is implemented
+    if False:  # original: if len(sys.argv) == 1:
+            # Interactive entry: use questionary in a TTY; else fallback to text prompts
+            if questionary and sys.stdin.isatty() and sys.stdout.isatty():
                 try:
                     session_type = None
                     while True:
@@ -255,14 +255,15 @@ def main():
                             choice = questionary.select(
                                 "Select a session type:",
                                 choices=[
-                                    questionary.Choice("PTY Shell", value="pty"),
-                                    questionary.Choice("Docker Container (requires Docker)", value="docker"),
+                                    {"name": "PTY Shell", "value": "pty"},
+                                    {"name": "Docker Container (requires Docker)", "value": "docker"},
                                     questionary.Separator(),
-                                    questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
-                                    questionary.Choice("Help", value="help"),
-                                    questionary.Choice("Exit", value="exit"),
+                                    {"name": "Enter OpenAI API Key to enable AI features", "value": "api_key"},
+                                    {"name": "Help", "value": "help"},
+                                    {"name": "Exit", "value": "exit"},
                                 ],
-                                use_indicator=True
+                                use_indicator=True,
+                                default="PTY Shell"
                             ).ask()
                             if choice in (None, "exit"):
                                 return
@@ -283,15 +284,16 @@ def main():
                         quiz_choice = questionary.select(
                             f"Session: {session_type.upper()}. Select quiz type:",
                             choices=[
-                                questionary.Choice("K8s (preinstalled)", value="k8s"),
-                                questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
-                                questionary.Choice("Review flagged questions", value="review"),
+                                {"name": "K8s (preinstalled)", "value": "k8s"},
+                                {"name": "Kustom (upload your own quiz)", "value": "kustom"},
+                                {"name": "Review flagged questions", "value": "review"},
                                 questionary.Separator(),
-                                questionary.Choice("Help", value="help"),
-                                questionary.Choice("Back", value="back"),
-                                questionary.Choice("Exit", value="exit"),
+                                {"name": "Help", "value": "help"},
+                                {"name": "Back", "value": "back"},
+                                {"name": "Exit", "value": "exit"},
                             ],
-                            use_indicator=True
+                            use_indicator=True,
+                            default="K8s (preinstalled)"
                         ).ask()
                         if quiz_choice in (None, "exit"):
                             return
