@@ -3,52 +3,79 @@
     "category": "Pod Management",
     "prompts": [
       {
-        "type": "live_k8s",
         "prompt": "Create a pod named nginx using the nginx image and expose port 80. You can use 'kubectl run' or create a YAML file.",
-        "assert_script": "#!/bin/bash\nset -e\nPOD_NAME=$(kubectl get pod nginx -o jsonpath='{.metadata.name}' 2>/dev/null)\nif [ \"$POD_NAME\" != \"nginx\" ]; then\n  echo \"Error: Pod 'nginx' not found.\"\n  exit 1\nfi\nIMAGE=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx'.\"\n  exit 1\nfi\nPORT=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].ports[0].containerPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Port is '$PORT', expected '80'.\"\n  exit 1\nfi\necho \"Pod 'nginx' with image 'nginx' and port 80 found.\"",
+        "validation_steps": [
+          {
+            "cmd": "#!/bin/bash\nset -e\nPOD_NAME=$(kubectl get pod nginx -o jsonpath='{.metadata.name}' 2>/dev/null)\nif [ \"$POD_NAME\" != \"nginx\" ]; then\n  echo \"Error: Pod 'nginx' not found.\"\n  exit 1\nfi\nIMAGE=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx'.\"\n  exit 1\nfi\nPORT=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].ports[0].containerPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Port is '$PORT', expected '80'.\"\n  exit 1\nfi\necho \"Pod 'nginx' with image 'nginx' and port 80 found.\"",
+            "matcher": {"exit_code": 0}
+          }
+        ],
         "explanation": "You can solve this with 'kubectl run nginx --image=nginx --port=80' or by creating a Pod manifest with the specified image and containerPort."
       },
       {
         "prompt": "Create a pod named busybox that runs the command 'sleep 3600'",
-        "response": "kubectl run busybox --image=busybox -- sleep 3600"
+        "validation_steps": [
+          {"cmd": "kubectl get pod busybox", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Generate a YAML definition file for a pod named nginx without creating it",
-        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml"
+        "validation_steps": [
+          {"cmd": "[ -f nginx.yaml ] && grep -q 'kind: Pod' nginx.yaml && grep -q 'name: nginx' nginx.yaml", "matcher": {"exit_code": 0}}
+        ],
+        "explanation": "The key is using `--dry-run=client -o yaml` and redirecting the output to a file."
       },
       {
         "prompt": "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db",
-        "response": "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\""
+        "validation_steps": [
+          {"cmd": "kubectl get pod nginx -o jsonpath='{.spec.containers[0].env[0].value}' | grep 'postgresql://db'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace",
-        "response": "kubectl get pod webapp -n development -o yaml > webapp.yaml"
+        "pre_shell_cmds": ["kubectl create ns development", "kubectl run webapp -n development --image=nginx"],
+        "validation_steps": [
+          {"cmd": "[ -f webapp.yaml ] && grep -q 'kind: Pod' webapp.yaml && grep -q 'name: webapp' webapp.yaml", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
-        "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\""
+        "validation_steps": [
+          {"cmd": "kubectl get pod nginx --show-labels | grep 'app=web,tier=frontend'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues",
-        "response": "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash"
+        "explanation": "The command 'kubectl run my-shell --rm -i --tty --image=ubuntu -- bash' launches an interactive shell in a new pod and automatically cleans it up on exit.",
+        "validation_steps": [
+          {"cmd": "echo 'This question is validated by observing user runs the correct command interactively.'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod with resource requests of 100m CPU and 256Mi memory",
-        "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # Then add requests specification",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Create a pod with resource requests of 100m CPU and 256Mi memory"
+        "initial_files": {
+          "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: nginx\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n"
+        },
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.cpu}' | grep '100m' && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.memory}' | grep '256Mi'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod that runs curl against an internal service at 10.244.0.4",
-        "response": "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4"
+        "explanation": "This requires creating a temporary, interactive pod to run a network command within the cluster.",
+        "validation_steps": [
+          {"cmd": "echo 'This is validated by the user running the command and observing the output.'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
-        "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
-        "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # Then add volume mount configuration",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`"
+        "prompt": "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
+        "pre_shell_cmds": ["kubectl create configmap app-config --from-literal=key=value"],
+        "initial_files": {
+          "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: config-pod\nspec:\n  containers:\n  - name: busybox\n    image: busybox\n    command: ['sleep', '3600']\n"
+        },
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}' | grep 'app-config' && kubectl get pod config-pod -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}' | grep '/etc/config'", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -57,43 +84,70 @@
     "prompts": [
       {
         "prompt": "Create a deployment named webapp with image nginx:1.17 and 3 replicas",
-        "response": "kubectl create deployment webapp --image=nginx:1.17 --replicas=3"
+        "validation_steps": [
+          {"cmd": "kubectl get deployment webapp -o jsonpath='{.spec.replicas}' | grep 3 && kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}' | grep 'nginx:1.17'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Generate a YAML file for a deployment with nginx image without creating it",
-        "response": "kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml"
+        "validation_steps": [
+          {"cmd": "[ -f deploy.yaml ] && grep -q 'kind: Deployment' deploy.yaml && grep -q 'name: nginx' deploy.yaml", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Scale a deployment named 'frontend' to 5 replicas",
-        "response": "kubectl scale deployment frontend --replicas=5"
+        "pre_shell_cmds": ["kubectl create deployment frontend --image=nginx"],
+        "validation_steps": [
+          {"cmd": "kubectl get deployment frontend -o jsonpath='{.spec.replicas}' | grep 5", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Update the image of a deployment named 'webapp' to nginx:1.18",
-        "response": "kubectl set image deployment/webapp webapp=nginx:1.18"
+        "pre_shell_cmds": ["kubectl create deployment webapp --image=nginx:1.17"],
+        "validation_steps": [
+          {"cmd": "kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}' | grep 'nginx:1.18'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Check the rollout status of a deployment named 'frontend'",
-        "response": "kubectl rollout status deployment/frontend"
+        "pre_shell_cmds": ["kubectl create deployment frontend --image=nginx"],
+        "validation_steps": [
+          {"cmd": "kubectl rollout status deployment/frontend", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Roll back a deployment named 'webapp' to its previous version",
-        "response": "kubectl rollout undo deployment/webapp"
+        "pre_shell_cmds": ["kubectl create deployment webapp --image=nginx:1.17", "kubectl set image deployment/webapp webapp=nginx:1.18 --record", "sleep 5"],
+        "validation_steps": [
+          {"cmd": "kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}' | grep 'nginx:1.17'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a deployment with a record of the change-cause for future reference",
-        "response": "kubectl create deployment nginx --image=nginx --record"
+        "validation_steps": [
+          {"cmd": "kubectl get deployment nginx -o jsonpath='{.metadata.annotations.kubernetes\\.io/change-cause}' | grep 'kubectl create'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "View the history of a deployment named 'webapp'",
-        "response": "kubectl rollout history deployment/webapp"
+        "pre_shell_cmds": ["kubectl create deployment webapp --image=nginx"],
+        "validation_steps": [
+          {"cmd": "kubectl rollout history deployment/webapp", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Pause the rollout of a deployment named 'frontend'",
-        "response": "kubectl rollout pause deployment/frontend"
+        "pre_shell_cmds": ["kubectl create deployment frontend --image=nginx"],
+        "validation_steps": [
+          {"cmd": "kubectl get deployment frontend -o jsonpath='{.spec.paused}' | grep true", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Resume the rollout of a deployment named 'frontend'",
-        "response": "kubectl rollout resume deployment/frontend"
+        "pre_shell_cmds": ["kubectl create deployment frontend --image=nginx", "kubectl rollout pause deployment/frontend"],
+        "validation_steps": [
+          {"cmd": "test $(kubectl get deployment frontend -o jsonpath='{.spec.paused}') != 'true'", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -102,43 +156,67 @@
     "prompts": [
       {
         "prompt": "Create a new namespace called 'development'",
-        "response": "kubectl create namespace development"
+        "validation_steps": [
+          {"cmd": "kubectl get namespace development", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Set the current context to use the 'production' namespace by default",
-        "response": "kubectl config set-context --current --namespace=production"
+        "pre_shell_cmds": ["kubectl create ns production"],
+        "validation_steps": [
+          {"cmd": "kubectl config view --minify | grep 'namespace: production'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Verify which namespace is currently being used in your context",
-        "response": "kubectl config view --minify | grep namespace:"
+        "validation_steps": [
+          {"cmd": "kubectl config view --minify | grep namespace:", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a new namespace called 'testing' and output its YAML definition",
-        "response": "kubectl create ns testing --dry-run=client -o yaml"
+        "validation_steps": [
+          {"cmd": "kubectl get ns testing --dry-run=client -o yaml", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "List all resources across all namespaces",
-        "response": "kubectl get all -A"
+        "validation_steps": [
+          {"cmd": "kubectl get all -A", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "List all pods in the 'kube-system' namespace",
-        "response": "kubectl get pods -n kube-system"
+        "validation_steps": [
+          {"cmd": "kubectl get pods -n kube-system", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod in the 'development' namespace",
-        "response": "kubectl run nginx --image=nginx -n development"
+        "pre_shell_cmds": ["kubectl create ns development"],
+        "validation_steps": [
+          {"cmd": "kubectl get pod nginx -n development", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Delete a namespace called 'testing' and all its resources",
-        "response": "kubectl delete namespace testing"
+        "pre_shell_cmds": ["kubectl create ns testing"],
+        "validation_steps": [
+          {"cmd": "! kubectl get ns testing", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "List all namespaces in the cluster",
-        "response": "kubectl get namespaces"
+        "validation_steps": [
+          {"cmd": "kubectl get namespaces", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
-        "response": "kubectl create quota ns-quota --hard=pods=10 -n development"
+        "pre_shell_cmds": ["kubectl create ns development"],
+        "validation_steps": [
+          {"cmd": "kubectl get quota ns-quota -n development", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -147,49 +225,77 @@
     "prompts": [
       {
         "prompt": "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod",
-        "response": "kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod"
+        "validation_steps": [
+          {"cmd": "kubectl get cm app-config -o yaml | grep 'APP_COLOR: blue' && kubectl get cm app-config -o yaml | grep 'APP_MODE: prod'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
-        "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at '/configs/game.properties'",
-        "response": "kubectl create cm game-config --from-file=/configs/game.properties"
+        "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at 'game.properties'",
+        "initial_files": {"game.properties": "level=1\nworld=dungeon\n"},
+        "validation_steps": [
+          {"cmd": "kubectl get cm game-config", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "View the contents of a ConfigMap named 'db-config'",
-        "response": "kubectl describe cm db-config"
+        "pre_shell_cmds": ["kubectl create cm db-config --from-literal=url=mydb"],
+        "validation_steps": [
+          {"cmd": "kubectl describe cm db-config", "matcher": {"exit_code": 0}}
+        ]
       },
       {
-        "prompt": "Create a ConfigMap from all files in the '/configs' directory",
-        "response": "kubectl create cm app-settings --from-file=/configs"
+        "prompt": "Create a ConfigMap from all files in the 'configs' directory",
+        "initial_files": {"configs/conf1": "val1", "configs/conf2": "val2"},
+        "validation_steps": [
+          {"cmd": "kubectl get cm app-settings", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod that uses a ConfigMap as environment variables",
-        "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add envFrom with configMapRef",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Create a pod that uses a ConfigMap as environment variables"
+        "pre_shell_cmds": ["kubectl create cm my-cm --from-literal=mykey=myval"],
+        "initial_files": {
+          "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - name: my-container\n    image: busybox\n    command: ['sleep', '3600']\n"
+        },
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod my-pod -o yaml | grep 'configMapKeyRef'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Extract a ConfigMap to YAML format",
-        "response": "kubectl get cm app-config -o yaml > config.yaml"
+        "pre_shell_cmds": ["kubectl create cm app-config --from-literal=key=val"],
+        "validation_steps": [
+          {"cmd": "[ -f config.yaml ] && grep -q 'kind: ConfigMap' config.yaml", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Update a value in an existing ConfigMap named 'app-config'",
-        "response": "kubectl edit cm app-config"
+        "pre_shell_cmds": ["kubectl create cm app-config --from-literal=key=val"],
+        "validation_steps": [
+          {"cmd": "kubectl edit cm app-config", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line",
-        "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true"
+        "validation_steps": [
+          {"cmd": "kubectl get cm multi-config", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions",
-        "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # Then add volume with ConfigMap and defaultMode",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions"
+        "pre_shell_cmds": ["kubectl create cm my-cm --from-literal=mykey=myval"],
+        "initial_files": {
+          "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: config-pod\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n"
+        },
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}' | grep 'my-cm'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a ConfigMap from an env file",
-        "response": "kubectl create cm env-config --from-env-file=config.env"
+        "initial_files": {"config.env": "KEY1=VAL1\nKEY2=VAL2\n"},
+        "validation_steps": [
+          {"cmd": "kubectl get cm env-config", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -198,49 +304,71 @@
     "prompts": [
       {
         "prompt": "Create a Secret named 'db-creds' with username=admin and password=password123",
-        "response": "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123"
+        "validation_steps": [
+          {"cmd": "kubectl get secret db-creds", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a Secret named 'tls-cert' from a certificate file",
-        "response": "kubectl create secret generic tls-cert --from-file=/path/to/cert.pem"
+        "initial_files": {"cert.pem": "my-fake-cert"},
+        "validation_steps": [
+          {"cmd": "kubectl get secret tls-cert", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "View the encoded values in a Secret named 'api-secrets'",
-        "response": "kubectl get secret api-secrets -o yaml"
+        "pre_shell_cmds": ["kubectl create secret generic api-secrets --from-literal=key=val"],
+        "validation_steps": [
+          {"cmd": "kubectl get secret api-secrets -o yaml", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Encode a string for use in a Secret YAML definition",
-        "response": "echo -n 'string' | base64"
+        "validation_steps": [
+          {"cmd": "echo 'This is validated by user running the command.'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Decode a base64 encoded Secret value",
-        "response": "echo -n 'encoded string...' | base64 --decode"
+        "validation_steps": [
+          {"cmd": "echo 'This is validated by user running the command.'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a TLS Secret type from certificate and key files",
-        "response": "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key"
+        "initial_files": {"cert.crt": "fake-cert", "key.key": "fake-key"},
+        "validation_steps": [
+          {"cmd": "kubectl get secret my-tls --type=kubernetes.io/tls", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod that uses a Secret value as an environment variable",
-        "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # Then add env with secretKeyRef",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Create a pod that uses a Secret value as an environment variable"
+        "pre_shell_cmds": ["kubectl create secret generic my-secret --from-literal=API_KEY=123"],
+        "initial_files": {"pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secure-app\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n"},
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod secure-app -o yaml | grep 'secretKeyRef'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a Secret from a .env file",
-        "response": "kubectl create secret generic my-secrets --from-env-file=.env"
+        "initial_files": {".env": "API_KEY=123\n"},
+        "validation_steps": [
+          {"cmd": "kubectl get secret my-secrets", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
-        "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
-        "yaml_exercise": true,
-        "exercise_type": "pod",
-        "requirements": "Create a pod that mounts a Secret as a volume using the nginx image"
+        "pre_shell_cmds": ["kubectl create secret generic my-secret --from-literal=file.txt=content"],
+        "initial_files": {"pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secret-pod\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n"},
+        "validation_steps": [
+          {"cmd": "kubectl apply -f pod.yaml && kubectl get pod secret-pod -o jsonpath='{.spec.volumes[0].secret.secretName}' | grep 'my-secret'", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "Create a docker-registry type Secret for private registry authentication",
-        "response": "kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL"
+        "validation_steps": [
+          {"cmd": "kubectl get secret regcred --type=kubernetes.io/dockerconfigjson", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -249,11 +377,15 @@
     "prompts": [
       {
         "prompt": "Create a Service Account named 'deployment-sa'",
-        "response": "kubectl create sa deployment-sa"
+        "validation_steps": [
+          {"cmd": "kubectl get sa deployment-sa", "matcher": {"exit_code": 0}}
+        ]
       },
       {
         "prompt": "List all Service Accounts in the current namespace",
-        "response": "kubectl get sa"
+        "validation_steps": [
+          {"cmd": "kubectl get sa", "matcher": {"exit_code": 0}}
+        ]
       }
     ]
   },
@@ -662,24 +794,42 @@
     "category": "Live Kubernetes Questions",
     "prompts": [
       {
-        "type": "live_k8s_edit",
         "prompt": "The provided YAML is for a basic pod. Modify it to create a pod named 'nginx-live' that uses the 'nginx:stable' image.",
-        "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]",
-        "assert_script": "#!/bin/bash\nset -e\n# Check pod name\nPOD_NAME=$(kubectl get pods -o jsonpath='{.items[0].metadata.name}')\nif [ \"$POD_NAME\" != \"nginx-live\" ]; then\n  echo \"Error: Pod name is '$POD_NAME', expected 'nginx-live'\"\n  exit 1\nfi\n# Check image\nIMAGE=$(kubectl get pod nginx-live -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx:stable\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx:stable'\"\n  exit 1\nfi\necho \"Pod 'nginx-live' with image 'nginx:stable' found.\"",
+        "initial_files": {
+          "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]"
+        },
+        "validation_steps": [
+          {
+            "cmd": "#!/bin/bash\nset -e\nkubectl apply -f pod.yaml\n# Check pod name\nPOD_NAME=$(kubectl get pods -o jsonpath='{.items[0].metadata.name}')\nif [ \"$POD_NAME\" != \"nginx-live\" ]; then\n  echo \"Error: Pod name is '$POD_NAME', expected 'nginx-live'\"\n  exit 1\nfi\n# Check image\nIMAGE=$(kubectl get pod nginx-live -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx:stable\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx:stable'\"\n  exit 1\nfi\necho \"Pod 'nginx-live' with image 'nginx:stable' found.\"",
+            "matcher": {"exit_code": 0}
+          }
+        ],
         "explanation": "To solve this, you need to change the `metadata.name` to 'nginx-live' and the `spec.containers[0].image` to 'nginx:stable'."
       },
       {
-        "type": "live_k8s_edit",
         "prompt": "A 'webapp' deployment is defined in the file. Add a new NodePort service named 'webapp-svc' that exposes the deployment on port 80. The service should target port 8080 on the pods.",
-        "starting_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: webapp\n  labels:\n    app: webapp\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: webapp\n  template:\n    metadata:\n      labels:\n        app: webapp\n    spec:\n      containers:\n      - name: webapp\n        image: httpd\n        ports:\n        - containerPort: 8080\n---\n# Add your Service definition below",
-        "assert_script": "#!/bin/bash\nset -e\nkubectl wait --for=condition=available deployment/webapp --timeout=60s > /dev/null\n# Check service exists and is NodePort\nTYPE=$(kubectl get svc webapp-svc -o jsonpath='{.spec.type}')\nif [ \"$TYPE\" != \"NodePort\" ]; then\n  echo \"Error: Service 'webapp-svc' is type '$TYPE', expected 'NodePort'\"\n  exit 1\nfi\n# Check service port and targetPort\nPORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].port}')\nTARGET_PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].targetPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Service port is '$PORT', expected '80'\"\n  exit 1\nfi\nif [ \"$TARGET_PORT\" != \"8080\" ]; then\n  echo \"Error: Service targetPort is '$TARGET_PORT', expected '8080'\"\n  exit 1\nfi\necho \"Service 'webapp-svc' correctly configured as a NodePort.\"",
+        "initial_files": {
+          "service.yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: webapp\n  labels:\n    app: webapp\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: webapp\n  template:\n    metadata:\n      labels:\n        app: webapp\n    spec:\n      containers:\n      - name: webapp\n        image: httpd\n        ports:\n        - containerPort: 8080\n---\n# Add your Service definition below"
+        },
+        "validation_steps": [
+          {
+            "cmd": "#!/bin/bash\nset -e\nkubectl apply -f service.yaml\nkubectl wait --for=condition=available deployment/webapp --timeout=60s > /dev/null\n# Check service exists and is NodePort\nTYPE=$(kubectl get svc webapp-svc -o jsonpath='{.spec.type}')\nif [ \"$TYPE\" != \"NodePort\" ]; then\n  echo \"Error: Service 'webapp-svc' is type '$TYPE', expected 'NodePort'\"\n  exit 1\nfi\n# Check service port and targetPort\nPORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].port}')\nTARGET_PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].targetPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Service port is '$PORT', expected '80'\"\n  exit 1\nfi\nif [ \"$TARGET_PORT\" != \"8080\" ]; then\n  echo \"Error: Service targetPort is '$TARGET_PORT', expected '8080'\"\n  exit 1\nfi\necho \"Service 'webapp-svc' correctly configured as a NodePort.\"",
+            "matcher": {"exit_code": 0}
+          }
+        ],
         "explanation": "You need to add a second resource definition for the Service, setting `spec.type` to `NodePort`, `spec.ports[0].port` to 80, `spec.ports[0].targetPort` to 8080, and `spec.selector` to match the deployment's labels (`app: webapp`)."
       },
       {
-        "type": "live_k8s_edit",
         "prompt": "Create two resources: 1. A ConfigMap named 'app-config' with data 'index.html: <h1>Hello World</h1>'. 2. A Pod named 'web-server' using the 'nginx' image that mounts the ConfigMap as a volume at '/usr/share/nginx/html', replacing the default nginx page.",
-        "starting_yaml": "# Add your ConfigMap and Pod definitions here",
-        "assert_script": "#!/bin/bash\nset -e\n# Check ConfigMap data\nDATA=$(kubectl get cm app-config -o jsonpath='{.data.index\\.html}')\nif ! echo \"$DATA\" | grep -q 'Hello World'; then\n  echo \"Error: ConfigMap 'app-config' does not have the correct data.\"\n  exit 1\nfi\n# Wait for pod to be ready\nkubectl wait --for=condition=Ready pod/web-server --timeout=120s > /dev/null\n# Check that the mounted file contains the correct content\nCONTENT=$(kubectl exec web-server -- curl -s localhost)\nif ! echo \"$CONTENT\" | grep -q 'Hello World'; then\n  echo \"Error: The web server did not return the expected content from the ConfigMap.\"\n  echo \"Received: $CONTENT\"\n  exit 1\nfi\necho \"Pod is serving content from the mounted ConfigMap correctly.\"",
+        "initial_files": {
+          "resources.yaml": "# Add your ConfigMap and Pod definitions here"
+        },
+        "validation_steps": [
+          {
+            "cmd": "#!/bin/bash\nset -e\nkubectl apply -f resources.yaml\n# Check ConfigMap data\nDATA=$(kubectl get cm app-config -o jsonpath='{.data.index\\.html}')\nif ! echo \"$DATA\" | grep -q 'Hello World'; then\n  echo \"Error: ConfigMap 'app-config' does not have the correct data.\"\n  exit 1\nfi\n# Wait for pod to be ready\nkubectl wait --for=condition=Ready pod/web-server --timeout=120s > /dev/null\n# Check that the mounted file contains the correct content\nCONTENT=$(kubectl exec web-server -- curl -s localhost)\nif ! echo \"$CONTENT\" | grep -q 'Hello World'; then\n  echo \"Error: The web server did not return the expected content from the ConfigMap.\"\n  echo \"Received: $CONTENT\"\n  exit 1\nfi\necho \"Pod is serving content from the mounted ConfigMap correctly.\"",
+            "matcher": {"exit_code": 0}
+          }
+        ],
         "explanation": "You need to define a ConfigMap with the specified data. Then, define a Pod that references this ConfigMap in `spec.volumes` and mounts it into the container at the correct path using `spec.containers[0].volumeMounts`."
       }
     ]

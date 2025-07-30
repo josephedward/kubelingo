@@ -89,7 +89,7 @@ Leveraging this transcript + AI pipeline allows us to unify all question types (
   * Run each `ValidationStep` post-shell, aggregating `StepResult` entries for deterministic checks.
   * Return a `ShellResult(success, step_results, transcript_path)` for downstream UI checks.
 - Migrated all questions in `ckad_quiz_data.json` to the new unified schema (`validation_steps`, `pre_shell_cmds`, `initial_files`).
-- Refactored session runner to remove legacy command-based quiz logic and use the sandbox for all question types.
+- Refactored session runner and sandbox helper to remove legacy compatibility code and use the new schema exclusively.
 
 Added new `answer_checker` module to:
   * Save and load per-question transcripts.
