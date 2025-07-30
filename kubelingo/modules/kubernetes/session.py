@@ -416,15 +416,15 @@ class NewSession(StudySession):
 
                 # Action menu options; rely on questionary to render numbering and indicators
                 choices = []
-                choices.append(questionary.Choice("Work on Answer (in Shell)", value="answer"))
-                choices.append(questionary.Choice("Check Answer", value="check"))
-                choices.append(questionary.Choice(f"{flag_option_text} for Review", value="flag"))
+                choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
+                choices.append({"name": "Check Answer", "value": "check"})
+                choices.append({"name": f"{flag_option_text} for Review", "value": "flag"})
                 # Only show Next/Previous when within bounds
                 if current_question_index < total_questions - 1:
-                    choices.append(questionary.Choice("Next Question", value="next"))
+                    choices.append({"name": "Next Question", "value": "next"})
                 if current_question_index > 0:
-                    choices.append(questionary.Choice("Previous Question", value="prev"))
-                choices.append(questionary.Choice("Exit Quiz", value="back"))
+                    choices.append({"name": "Previous Question", "value": "prev"})
+                choices.append({"name": "Exit Quiz", "value": "back"})
 
                 try:
                     # Ensure visual separation between previous output and the menu
