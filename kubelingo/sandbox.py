@@ -126,27 +126,29 @@ def spawn_pty_shell():
         shell_cmd = ['bash', '--login']
         if init_script_path:
             shell_cmd.extend(['--init-file', init_script_path])
-        # If transcript capture is requested and 'script' is available, wrap in script utility
+        # Attempt transcript capture with 'script'; fallback to PTY spawn on failure
         transcript = os.environ.get('KUBELINGO_TRANSCRIPT_FILE')
         if transcript and shutil.which('script'):
-            # Accommodate differences between GNU script (Linux) and BSD script (macOS)
-            if sys.platform == 'darwin':  # BSD script
+            # Use BSD script invocation on macOS, GNU script elsewhere
+            if sys.platform == 'darwin':
                 cmd = ['script', '-q', transcript] + shell_cmd
-            else:  # GNU script
+            else:
                 cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
-            subprocess.run(cmd, check=False)
-        else:
-            # Robustly spawn PTY by saving and restoring terminal attributes.
-            # This prevents the terminal from being left in a bad state.
             try:
-                old_settings = termios.tcgetattr(sys.stdin)
+                subprocess.run(cmd, check=True)
+                return
             except Exception:
-                old_settings = None
-            try:
-                pty.spawn(shell_cmd)
-            finally:
-                if old_settings is not None:
-                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                print(f"{Fore.YELLOW}script wrapper failed; falling back to embedded PTY shell{Style.RESET_ALL}")
+        # Fallback: robustly spawn PTY by saving and restoring terminal attributes
+        try:
+            old_settings = termios.tcgetattr(sys.stdin)
+        except Exception:
+            old_settings = None
+        try:
+            pty.spawn(shell_cmd)
+        finally:
+            if old_settings is not None:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
     finally:
