@@ -1,5 +1,6 @@
 import os
 import pty
+import termios
 import re
 import json
 import shutil
@@ -129,7 +130,13 @@ def spawn_pty_shell():
             cmd = ['script', '-q', '-c', ' '.join(shell_cmd), transcript]
             subprocess.run(cmd, check=False)
         else:
-            pty.spawn(shell_cmd)
+            # Robustly spawn PTY by saving and restoring terminal attributes.
+            # This prevents the terminal from being left in a bad state.
+            old_settings = termios.tcgetattr(sys.stdin)
+            try:
+                pty.spawn(shell_cmd)
+            finally:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
     except Exception as e:
         print(f"{Fore.RED}Error launching PTY shell: {e}{Style.RESET_ALL}")
     finally:
