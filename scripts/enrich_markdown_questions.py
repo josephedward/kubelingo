@@ -115,25 +115,25 @@ def process_markdown_file(filepath: str, client: openai.OpenAI):
 
 def main():
     """Main function."""
-    # This script is in scripts/, so questions-data/ is one level up.
+    # This script is in scripts/, so question-data/ is one level up.
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    questions_data_dir = os.path.join(script_dir, "..", "questions-data")
+    question_data_dir = os.path.join(script_dir, "..", "question-data")
 
-    if not os.path.isdir(questions_data_dir):
+    if not os.path.isdir(question_data_dir):
         print(
-            f"Error: questions-data directory not found at {questions_data_dir}",
+            f"Error: question-data directory not found at {question_data_dir}",
             file=sys.stderr,
         )
         sys.exit(1)
 
     markdown_files = []
-    for root, _, files in os.walk(questions_data_dir):
+    for root, _, files in os.walk(question_data_dir):
         for file in files:
             if file.endswith(".md"):
                 markdown_files.append(os.path.join(root, file))
 
     if not markdown_files:
-        print(f"No markdown files found in {questions_data_dir}", file=sys.stderr)
+        print(f"No markdown files found in {question_data_dir}", file=sys.stderr)
         return
 
     client = get_openai_client()
