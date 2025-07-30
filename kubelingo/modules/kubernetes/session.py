@@ -282,6 +282,38 @@ class NewSession(StudySession):
         self.region = None
         self.creds_acquired = False
         self.live_session_active = False # To control cleanup logic
+    
+    def _run_one_exercise(self, question: dict):
+        """
+        Run a single live_k8s exercise by prompting for commands and running an assertion script.
+        This supports unit tests for live mode.
+        """
+        # Prepare the assert script
+        import tempfile, os, shlex, subprocess
+        # Write the assert script to a temp file using context manager (for mocks)
+        path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.sh') as tf:
+                tf.write(question.get('assert_script', ''))
+                path = tf.name
+            os.chmod(path, 0o700)
+            # Prompt user for commands until 'done'
+            sess = PromptSession(history=None)
+            while True:
+                cmd = sess.prompt()
+                if cmd is None or cmd.strip().lower() == 'done':
+                    break
+                subprocess.run(shlex.split(cmd), capture_output=True, text=True, check=False)
+            # Run the assertion script
+            result = subprocess.run(['bash', path], capture_output=True, text=True)
+            status = 'correct' if result.returncode == 0 else 'incorrect'
+            self.logger.info(f"Live exercise: prompt=\"{question.get('prompt')}\" result=\"{status}\"")
+        finally:
+            if path:
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
 
     def initialize(self):
         """Basic initialization. Live session initialization is deferred."""
@@ -423,6 +455,8 @@ class NewSession(StudySession):
                 choices = []
                 choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
                 choices.append({"name": "Check Answer", "value": "check"})
+                # Show the expected answer without launching shell
+                choices.append({"name": "Show Answer", "value": "show"})
                 if q.get('response'):
                     choices.append({"name": "Show Answer", "value": "show_answer"})
                 # Toggle flag for review
@@ -431,24 +465,35 @@ class NewSession(StudySession):
                 choices.append({"name": "Previous Question", "value": "prev"})
                 choices.append({"name": "Exit Quiz.", "value": "back"})
 
-                try:
-                    # Ensure visual separation between previous output and the menu
-                    # Visual separation before menu
-                    print()
-                    action = questionary.select(
-                        "Action:",
-                        choices=choices,
-                        use_indicator=True
-                    ).ask()
-                    if action is None: raise KeyboardInterrupt
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
-                    # Recompute stats before saving history on interrupt
-                    asked_count = len(attempted_indices)
-                    correct_count = len(correct_indices)
-                    per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
-                    self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
-                    return
+                # Determine if interactive action selection is available
+                action_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+                if not action_interactive:
+                    # Text fallback for action selection
+                    print("\nActions:")
+                    for idx, choice in enumerate(choices, start=1):
+                        print(f" {idx}) {choice['name']}")
+                    text_choice = input("Choice: ").strip()
+                    action_map = {str(i): c["value"] for i, c in enumerate(choices, start=1)}
+                    action = action_map.get(text_choice)
+                    if not action:
+                        continue
+                else:
+                    try:
+                        print()
+                        action = questionary.select(
+                            "Action:",
+                            choices=choices,
+                            use_indicator=True
+                        ).ask()
+                        if action is None:
+                            raise KeyboardInterrupt
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                        asked_count = len(attempted_indices)
+                        correct_count = len(correct_indices)
+                        per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
+                        self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
+                        return
 
                 if action == "back":
                     quiz_backed_out = True
@@ -470,6 +515,19 @@ class NewSession(StudySession):
                         print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
                     continue
 
+                if action == "show":
+                    # Display expected commands or response for this question
+                    expected = []
+                    for vs in q.get('validation_steps', []):
+                        cmd = vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', None)
+                        if cmd:
+                            expected.append(cmd)
+                    if not expected and q.get('response'):
+                        expected = [q['response']]
+                    print(f"{Fore.CYAN}Expected answer(s):{Style.RESET_ALL}")
+                    for cmd in expected:
+                        print(f"  {cmd}")
+                    continue
                 if action == "flag":
                     data_file_path = q.get('data_file', args.file)
                     if is_flagged:
