@@ -38,7 +38,7 @@ With this foundation, the next steps are to:
      * This new runner is now integrated into the main quiz loop.
 2. Simplified Interactive Menu
    - Removed separate “Check Answer” and inline editor paths.
-   - Options are now: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
+   - Options are now: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
 3. Outcome-Based Validation
    - Success is determined by inspecting cluster or file state after user actions, not command text matching.
    - Manifest-based questions use `kubectl get` checks; Vim-based questions may validate file contents or applied results.
@@ -171,7 +171,7 @@ The script is highly configurable via command-line flags.
 
 ### CLI Readability & Regression Tests
 To guard against mangled output and UI regressions, we recommend:
-Options are now: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
+Options are now: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
 1.  Smoke-test static CLI outputs:
     -  Use pytest’s `capsys` or a subprocess to run `kubelingo --help`, `--history`, `--list-modules`, etc.
     -  Assert exit code 0, presence of key banner lines and option names (e.g. `Select a session type:`), and absence of control chars (`\x00`).
