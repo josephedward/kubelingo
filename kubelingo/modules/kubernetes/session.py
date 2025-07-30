@@ -54,7 +54,6 @@ def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
     if not api_key:
         raise RuntimeError('OPENAI_API_KEY environment variable not set')
     openai.api_key = api_key
-" + transcript + "```\n"
     messages = [
         {"role": "system", "content": (
             "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
