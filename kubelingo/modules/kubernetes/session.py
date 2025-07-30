@@ -39,6 +39,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from dataclasses import asdict
+from kubelingo.utils.validation import commands_equivalent
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
