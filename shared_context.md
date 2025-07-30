@@ -65,9 +65,9 @@ To support full-session auditing and optional AI judgment, we can record everyth
 2. **Parse and sanitize the transcript**:
    - Strip ANSI escape codes.
    - Extract user keystrokes and commands.
-3. **Deterministic or AI-based evaluation**:
-   - **Deterministic**: scan the transcript for required `kubectl`/`helm` invocations, then validate cluster state via `kubectl get ...` or diff stored manifests.
-   - **AI-based**: send the transcript, the question prompt, and expected outcomes (YAML spec or resource assertions) to the LLM, asking it to return a pass/fail judgement.
+3. **Post-Shell Evaluation**:
+   - **Deterministic Checks**: Upon shell exit, each `ValidationStep` is executed and matched against the recorded transcript (exit code, substring contains, regex, JSONPath, etc.).
+   - **AI Second Opinion**: If an `OPENAI_API_KEY` is present and the transcript was saved, the AI evaluator is dynamically imported at runtime (no heavy `llm` imports at load time). It invokes `evaluate(question, transcript)` to get a JSON response with `correct` (bool) and `reasoning` (str), printed in cyan below the deterministic feedback. If the AI verdict disagrees with the deterministic result, AI overrides it. All import or invocation errors are caught so that AI evaluation failures do not crash the quiz.
 
 **Tradeoffs**:
 - Deterministic validation is fast, offline, and predictable but rigid (only matches known commands).
