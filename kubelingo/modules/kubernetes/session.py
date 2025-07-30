@@ -76,6 +76,40 @@ def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
     )
     reply = resp.choices[0].message.content.strip().lower()
     return reply.startswith('yes')
+
+
+def ai_validate_command(user_cmd: str, expected_cmd: str, question_text: str) -> bool:
+    """
+    Use OpenAI to semantically compare a student's kubectl command
+    against the expected command. Returns True if equivalent.
+    """
+    if openai is None:
+        raise RuntimeError('openai package not installed; install with pip install openai')
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise RuntimeError('OPENAI_API_KEY environment variable not set')
+    openai.api_key = api_key
+    messages = [
+        {"role": "system", "content": (
+            "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
+            "to the expected kubectl command for the given exercise. Reply with only 'yes' or 'no'."
+        )},
+        {"role": "user", "content": (
+            f"Question: \"{question_text}\"\n"
+            f"Expected Command: `{expected_cmd}`\n"
+            f"Student Submitted: `{user_cmd}`\n"
+            "Are these semantically equivalent?"
+        )}
+    ]
+    resp = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        temperature=0
+    )
+    reply = resp.choices[0].message.content.strip().lower()
+    return reply.startswith('yes')
+
+
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -517,7 +551,9 @@ class NewSession(StudySession):
                 choices = []
                 
                 is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                is_shell_mode = q.get('category') != 'Vim Commands' and not is_mocked_k8s
+                validator = q.get('validator')
+                is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+                is_shell_mode = q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
                 
                 answer_option_text = "Work on Answer"
                 if is_shell_mode:
