@@ -126,6 +126,51 @@ Updated interactive CLI quiz session to:
 - CLI menu navigation now inserts a blank line before rendering the next menu, preventing prompt text from merging with question output.
 - `evaluate_transcript` correctly evaluates exit_code, contains, and regex matchers; JSONPath and cluster-state matchers pending.
 - Loaders still populate only legacy `initial_yaml` and `validations`; new `initial_files`/`validation_steps` fields unpopulated.
+
+### CLI Readability & Regression Tests
+To guard against mangled output and UI regressions, we recommend:
+1.  Smoke-test static CLI outputs:
+    -  Use pytest’s `capsys` or a subprocess to run `kubelingo --help`, `--history`, `--list-modules`, etc.
+    -  Assert exit code 0, presence of key banner lines and option names (e.g. `Select a session type:`), and absence of control chars (`\x00`).
+    -  Strip ANSI codes (`re.sub(r'\x1b\[[0-9;]*m', '', line)`) and ensure no overlong lines (>80 chars).
+2.  Snapshot tests for visual regression:
+    -  Capture the desired `--help` (or menu) output and store in `tests/expected/help.txt`.
+    -  In pytest, compare current output to the snapshot. Any unintended changes will fail CI until explicitly updated.
+3.  Doc-driven menu consistency:
+    -  Extract bullet points from `shared_context.md` (e.g. `• Open Shell`, `• Check Answer`, `• Next Question`, `• Previous Question`).
+    -  Assert those exact strings appear in code (`kubelingo/cli.py` or `modules/kubernetes/session.py`), ensuring docs and code stay in sync.
+4.  Minimal example test (in `tests/test_cli_readability.py`):
+    ```python
+    import sys, re, subprocess, pytest
+    ANSI = re.compile(r'\x1b\[[0-9;]*m')
+    BIN = [sys.executable, '-m', 'kubelingo']
+
+    def run_cli(args):
+        return subprocess.run(BIN + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def test_help_readable():
+        r = run_cli(['--help'])
+        assert r.returncode == 0
+        out = r.stdout
+        assert 'Kubelingo:' in out
+        for line in out.splitlines():
+            clean = ANSI.sub('', line)
+            assert len(clean) <= 80
+            assert '\x00' not in clean
+
+    def test_menu_readable(monkeypatch, capsys):
+        import builtins
+        monkeypatch.setattr(sys, 'argv', ['kubelingo'])
+        monkeypatch.setattr(builtins, 'input', lambda _: '4')  # select Exit
+        monkeypatch.setattr(sys.stdin, 'isatty', lambda: True)
+        monkeypatch.setattr(sys.stdout, 'isatty', lambda: True)
+        from kubelingo.cli import main
+        main()
+        out = capsys.readouterr().out
+        assert 'Select a session type:' in out
+        assert '1) PTY Shell' in out and '4) Exit' in out
+
+These tests will flag any stray ANSI codes, missing menu items, or misaligned text, keeping the CLI consistently legible and aligned with the documentation.
 # Kubelingo Development Context
 
 ## AI-Powered Exercise Evaluation
