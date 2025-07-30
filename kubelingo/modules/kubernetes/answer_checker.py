@@ -154,7 +154,9 @@ def check_answer(q: dict) -> (bool, list):
         else:
             details.append(f"FAIL: {cmd} -> {reason}")
             all_pass = False
-    return all_pass, detailsimport os
+    return all_pass, details
+
+import os
 import subprocess
 from pathlib import Path
 from typing import List, Optional, Dict, Any
