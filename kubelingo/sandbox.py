@@ -1,13 +1,14 @@
 import os
 import pty
 import re
+import json
 import shutil
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from kubelingo.modules.kubernetes.answer_checker import save_transcript
 from kubelingo.modules.kubernetes.answer_checker import save_transcript, evaluate_transcript
@@ -31,6 +32,58 @@ class ShellResult:
     success: bool
     step_results: List[StepResult] = field(default_factory=list)
     transcript_path: Path = None
+ 
+# Matcher evaluation helper
+def _evaluate_matcher(matcher: Dict[str, Any], stdout: str, stderr: str, exit_code: int) -> bool:
+    """
+    Evaluate a matcher dict against process output.
+    Supported matcher keys: exit_code, contains (str or list), regex (str), regex_flags (list), jsonpath (dot.notation), value.
+    Returns True if all specified criteria are met.
+    """
+    # Default to exit code success if no matcher specified
+    if not matcher:
+        return exit_code == 0
+    # exit_code
+    if 'exit_code' in matcher and exit_code != matcher['exit_code']:
+        return False
+    # contains
+    if 'contains' in matcher:
+        needles = matcher['contains']
+        if isinstance(needles, (list, tuple)):
+            for sub in needles:
+                if sub not in stdout:
+                    return False
+        else:
+            if needles not in stdout:
+                return False
+    # regex
+    if 'regex' in matcher:
+        flags = 0
+        for flag in matcher.get('regex_flags', []):
+            if flag.upper() == 'IGNORECASE':
+                flags |= re.IGNORECASE
+        if not re.search(matcher['regex'], stdout, flags):
+            return False
+    # simple JSONPath-like support
+    if 'jsonpath' in matcher:
+        try:
+            data = json.loads(stdout)
+            expr = matcher['jsonpath'].lstrip('.')
+            val = data
+            for part in expr.split('.'):
+                if isinstance(val, list):
+                    val = val[int(part)]
+                else:
+                    val = val.get(part)
+            if 'value' in matcher:
+                if val != matcher['value']:
+                    return False
+            else:
+                if val is None:
+                    return False
+        except Exception:
+            return False
+    return True
 
 
 def spawn_pty_shell():
