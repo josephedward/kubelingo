@@ -666,7 +666,42 @@ class NewSession(StudySession):
         """Deletes the EKS cluster if one was created for a live session."""
         if not self.live_session_active or not self.cluster_name or self.cluster_name == "pre-configured":
             return
-        # ... cleanup logic from the original file ...
+
+        print(f"\n{Fore.YELLOW}Cleaning up live session resources for cluster: {self.cluster_name}{Style.RESET_ALL}")
+
+        if not shutil.which('eksctl'):
+            self.logger.error("eksctl command not found. Cannot clean up EKS cluster.")
+            print(f"{Fore.RED}Error: 'eksctl' is not installed. Please manually delete cluster '{self.cluster_name}' in region '{self.region}'.{Style.RESET_ALL}")
+            return
+
+        try:
+            cmd = ["eksctl", "delete", "cluster", "--name", self.cluster_name, "--wait"]
+            if self.region:
+                cmd.extend(["--region", self.region])
+
+            print(f"{Fore.CYAN}Running cleanup command: {' '.join(cmd)}{Style.RESET_ALL}")
+            
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8')
+            
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    print(line.strip())
+            
+            process.stdout.close()
+            return_code = process.wait()
+
+            if return_code == 0:
+                print(f"{Fore.GREEN}EKS cluster '{self.cluster_name}' deleted successfully.{Style.RESET_ALL}")
+                if self.kubeconfig_path and os.path.exists(self.kubeconfig_path):
+                    os.remove(self.kubeconfig_path)
+                    self.logger.info(f"Removed kubeconfig file: {self.kubeconfig_path}")
+            else:
+                self.logger.error(f"Failed to delete EKS cluster '{self.cluster_name}'. Exit code: {return_code}")
+                print(f"{Fore.RED}Failed to delete EKS cluster '{self.cluster_name}'. Please check logs and delete it manually.{Style.RESET_ALL}")
+
+        except Exception as e:
+            self.logger.error(f"An error occurred during EKS cluster cleanup: {e}")
+            print(f"{Fore.RED}An unexpected error occurred. Please manually delete cluster '{self.cluster_name}' in region '{self.region}'.{Style.RESET_ALL}")
 
 
 
