@@ -167,6 +167,8 @@ def main():
                             help='Show quiz history and statistics')
         parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
                             help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
+        parser.add_argument('--ai-eval', action='store_true',
+                            help='Use AI to evaluate sandbox exercises. Requires OPENAI_API_KEY.')
 
         # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
         parser.add_argument('command', nargs='*',
