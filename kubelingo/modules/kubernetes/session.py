@@ -418,10 +418,10 @@ class NewSession(StudySession):
         num_to_ask = args.num if args.num > 0 else len(questions)
         questions_to_ask = random.sample(questions, min(num_to_ask, len(questions)))
 
-        # If any questions require a live k8s environment, warn the user if --docker is not enabled.
+        # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
         if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
-            print(f"\n{Fore.YELLOW}Warning: This quiz contains questions requiring a Kubernetes cluster sandbox.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}If 'kubectl' commands fail, re-run with the --docker flag.{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}Info: This quiz has questions requiring a Kubernetes cluster.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Without the --docker flag, answers will be checked by AI instead of a live sandbox.{Style.RESET_ALL}")
 
         if not questions_to_ask:
             print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
@@ -474,8 +474,12 @@ class NewSession(StudySession):
 
                 # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
                 choices = []
+                
+                is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                is_shell_mode = q.get('category') != 'Vim Commands' and not is_mocked_k8s
+                
                 answer_option_text = "Work on Answer"
-                if q.get('category') != 'Vim Commands':
+                if is_shell_mode:
                     answer_option_text += " (in Shell)"
                 choices.append({"name": answer_option_text, "value": "answer"})
                 choices.append({"name": "Check Answer", "value": "check"})
@@ -566,7 +570,13 @@ class NewSession(StudySession):
                     continue
 
                 if action == "answer":
-                    if q.get('category') == 'Vim Commands':
+                    is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                    use_text_input = q.get('category') == 'Vim Commands' or is_mocked_k8s
+
+                    if use_text_input:
+                        if is_mocked_k8s:
+                            print(f"{Fore.CYAN}No-cluster mode: Please type the command to solve the problem.{Style.RESET_ALL}")
+
                         try:
                             if prompt_session:
                                 user_input = prompt_session.prompt("Your answer: ")
@@ -634,8 +644,14 @@ class NewSession(StudySession):
                         print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                         continue
 
+                    is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+
                     if q.get('category') == 'Vim Commands':
                         self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                        continue
+
+                    if is_mocked_k8s:
+                        self._check_k8s_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         continue
 
                     # The result object from run_shell_with_setup is complete.
@@ -682,6 +698,38 @@ class NewSession(StudySession):
                 stats[category] = {'asked': 1, 'correct': 0}
             stats[category]['correct'] += 1
         return stats
+
+    def _check_k8s_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
+        """
+        Helper to evaluate a k8s command using the AI evaluator, for use when no live cluster is available.
+        """
+        attempted_indices.add(current_question_index)
+
+        try:
+            from kubelingo.modules.ai_evaluator import AIEvaluator
+            evaluator = AIEvaluator()
+            result = evaluator.evaluate_k8s_command(q, user_command)
+            is_correct = result.get('correct', False)
+            reasoning = result.get('reasoning', 'No reasoning provided.')
+            
+            status = 'Correct' if is_correct else 'Incorrect'
+            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+
+            if is_correct:
+                correct_indices.add(current_question_index)
+                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            else:
+                correct_indices.discard(current_question_index)
+                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            
+            # Show explanation if correct
+            if is_correct and q.get('explanation'):
+                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+        except ImportError:
+            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
 
     def _check_vim_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
         """
