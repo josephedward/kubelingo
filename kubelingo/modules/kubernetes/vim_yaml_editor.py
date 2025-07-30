@@ -35,39 +35,57 @@ class VimYamlEditor:
         Opens YAML content in Vim for interactive editing.
         After editing, parses and returns the YAML as a Python dict, or None on error.
         """
+        if prompt:
+            print(f"\n{Fore.CYAN}--- Task ---{Style.RESET_ALL}")
+            print(prompt)
+            print(f"{Fore.CYAN}------------{Style.RESET_ALL}")
+            try:
+                input("Press Enter to open the editor...")
+            except (EOFError, KeyboardInterrupt):
+                print("\nEditor launch cancelled.")
+                return None
+
         # Write to temp file
         with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode='w', encoding='utf-8') as tmp:
-            if prompt:
-                for line in str(prompt).splitlines():
-                    tmp.write(f"# {line}\n")
-                tmp.write("\n")
             if isinstance(yaml_content, str):
                 tmp.write(yaml_content)
             else:
                 yaml.dump(yaml_content, tmp, default_flow_style=False)
-            # Enforce two-space indentation in Vim via modeline on its own line
-            tmp.write("\n# vim: set expandtab ts=2 sw=2:\n")
             tmp_filename = tmp.name
+        vimrc_file = None
         try:
             editor_env = os.environ.get('EDITOR', 'vim')
             editor_list = shlex.split(editor_env)
             editor_name = os.path.basename(editor_list[0])
+
             vim_args = _vim_args or []
             flags = [arg for arg in vim_args if arg != '-S' and not os.path.isfile(arg)]
             scripts = [arg for arg in vim_args if os.path.isfile(arg)]
-            cmd = editor_list + flags + [tmp_filename]
-            # Prepare environment to enforce two-space tabs in Vim
-            env = os.environ.copy()
-            env['VIMINIT'] = 'set expandtab ts=2 sw=2'
+
+            # Base command
+            cmd = editor_list + flags
+
+            # If using Vim, provide a temp vimrc for consistent settings.
+            if 'vim' in editor_name:
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.vimrc') as f:
+                    f.write("set expandtab\n")
+                    f.write("set tabstop=2\n")
+                    f.write("set shiftwidth=2\n")
+                    vimrc_file = f.name
+                cmd.extend(['-u', vimrc_file])
+
+            cmd.append(tmp_filename)
+
             for script in scripts:
                 cmd.extend(['-S', script])
+
             used_fallback = False
             try:
-                # Launch Vim with custom env to set tabs to two spaces
-                result = subprocess.run(cmd, timeout=_timeout, env=env)
+                # Launch editor
+                result = subprocess.run(cmd, timeout=_timeout)
             except TypeError:
                 used_fallback = True
-                result = subprocess.run(cmd, env=env)
+                result = subprocess.run(cmd)
             except FileNotFoundError as e:
                 print(f"\033[31mError launching editor '{editor_env}': {e}\033[0m")
                 return None
@@ -114,6 +132,11 @@ class VimYamlEditor:
                     data[k.strip()] = v.strip()
             return data
         finally:
+            if vimrc_file:
+                try:
+                    os.unlink(vimrc_file)
+                except Exception:
+                    pass
             try:
                 os.unlink(tmp_filename)
             except Exception:
