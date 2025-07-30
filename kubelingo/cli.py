@@ -354,6 +354,22 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
+
+        if args.enrich:
+            src, dst = args.enrich
+            # The script was renamed and refactored; update the CLI to call it correctly.
+            script_path = repo_root / 'scripts' / 'organize_question_data.py'
+            cmd = [
+                sys.executable, str(script_path),
+                '--enrich-only',
+                '--enrich-file', dst,
+                '--dedupe-ref-file', src
+            ]
+            if args.dry_run_enrich:
+                cmd.append('--dry-run')
+            subprocess.run(cmd)
+            return
+
         args.module = None
         # Early flags: history and list-modules
         if args.history:
