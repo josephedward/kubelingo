@@ -1,14 +1,16 @@
-import os
 import json
-import openai
+import llm
+
 
 class AIEvaluator:
     """Uses an AI model to evaluate a user's exercise transcript."""
     def __init__(self):
-        self.api_key = os.environ.get('OPENAI_API_KEY')
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set. It is required for AI evaluation.")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        """
+        Initializes the AIEvaluator.
+        It relies on the `llm` package to be configured with an API key
+        (e.g., via `llm keys set openai`).
+        """
+        pass
 
     def evaluate(self, question_data, transcript, vim_log=None):
         """
@@ -40,15 +42,11 @@ Your response MUST be a JSON object with two keys:
         user_content += "\nBased on the above, please evaluate the user's solution and respond only with the required JSON object."
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content}
-                ],
-                response_format={"type": "json_object"}
-            )
-            result_str = response.choices[0].message.content
-            return json.loads(result_str)
+            model = llm.get_model("gpt-4-turbo-preview")
+            response = model.prompt(
+                user_content,
+                system=system_prompt
+            ).text()
+            return json.loads(response)
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
