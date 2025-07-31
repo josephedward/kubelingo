@@ -6,15 +6,6 @@ import pytest
 from kubelingo.cli import main
 
 
-@pytest.fixture(autouse=True)
-def mock_getpass():
-    """
-    Mock getpass to prevent interactive prompts for OpenAI API key during tests.
-    """
-    with patch('kubelingo.cli.getpass.getpass', return_value='dummy-key') as mock:
-        yield mock
-
-
 @patch('kubelingo.cli.show_history')
 def test_cli_history_argument(mock_show_history):
     """Test that `kubelingo --history` calls show_history()."""
