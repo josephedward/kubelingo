@@ -425,6 +425,7 @@ class NewSession(StudySession):
         while True:
             # For each quiz, use a fresh copy of args.
             args = copy.deepcopy(initial_args)
+            is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
             start_time = datetime.now()
             # Unique session identifier for transcript storage
