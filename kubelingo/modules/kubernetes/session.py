@@ -399,20 +399,17 @@ class NewSession(StudySession):
         all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
         
         # Explicitly remove the main vim quiz file from the "other" list to avoid duplication.
-        # This is needed because _get_quiz_files excludes it, but other loaders might not.
-        vim_quiz_basename = os.path.basename(VIM_QUESTIONS_FILE)
-        all_quiz_files = [p for p in all_quiz_files if os.path.basename(p) != vim_quiz_basename]
+        # We compare file stems to catch vim_quiz.json, vim_quiz.md, etc., robustly.
+        vim_quiz_stem = Path(VIM_QUESTIONS_FILE).stem
+        all_quiz_files = [p for p in all_quiz_files if Path(p).stem != vim_quiz_stem]
         all_quiz_files = sorted(list(set(all_quiz_files)))
 
         all_flagged = get_all_flagged_questions()
         
         choices = []
 
-        # 1. Vim Quiz - enabled only if file exists
-        if os.path.exists(VIM_QUESTIONS_FILE):
-            choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
-        else:
-            choices.append({"name": "Vim Quiz", "value": "vim_quiz_disabled", "disabled": "Not available"})
+        # 1. Vim Quiz - now always enabled. If file is missing, load will fail.
+        choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -434,13 +431,17 @@ class NewSession(StudySession):
         # 6. Custom Quiz (disabled)
         choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
         
-        choices.append(questionary.Separator())
-
+        choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
+        
         if all_quiz_files:
+            seen_subjects = set()
             for file_path in all_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
                 subject = humanize_module(name).strip()
+                if subject in seen_subjects:
+                    continue
+                seen_subjects.add(subject)
                 choices.append({
                     "name": subject,
                     "value": file_path,
@@ -531,8 +532,12 @@ class NewSession(StudySession):
                     _clear_all_review_flags(self.logger)
                     continue # Show menu again
 
-                if "disabled" in selected:
-                    continue # Do nothing if a disabled item is somehow selected
+                # Find the choice dictionary that corresponds to the selected value.
+                selected_choice = next((c for c in choices if isinstance(c, dict) and c.get('value') == selected), None)
+
+                if selected_choice and selected_choice.get('disabled'):
+                    # This option was disabled, so loop back to the menu.
+                    continue
 
                 if selected == 'review':
                     initial_args.review_only = True
