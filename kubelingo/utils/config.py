@@ -12,8 +12,10 @@ LOGS_DIR = os.path.join(ROOT, 'logs')
 # JSON files
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
+# Built-in YAML-edit quiz data (JSON form)
 YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_edit_questions.json')
-VIM_QUESTIONS_FILE = os.path.join(JSON_DIR, 'vim_quiz_data.json')
+# Built-in Vim quiz data file (YAML-based quiz)
+VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'vim_quiz.yaml')
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
