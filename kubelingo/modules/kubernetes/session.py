@@ -946,7 +946,6 @@ class NewSession(StudySession):
         # Explicit AI validator: if question.validator.type == 'ai', use LLM to compare
         validator = q.get('validator')
         if validator and validator.get('type') == 'ai':
-            expected_cmd = validator.get('expected', '')
             # Read transcript if available
             transcript = ''
             try:
@@ -956,14 +955,19 @@ class NewSession(StudySession):
                 pass
             # Ask AI to validate equivalence
             try:
-                            ok = ai_validate(transcript, expected_cmd, q.get('prompt', ''))
+                from kubelingo.modules.ai_evaluator import AIEvaluator
+                evaluator = AIEvaluator()
+                ai_result = evaluator.evaluate(q, transcript)
+                ok = ai_result.get('correct', False)
+                reasoning = ai_result.get('reasoning', 'No reasoning provided.')
+
+                status = 'Correct' if ok else 'Incorrect'
+                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+
             except Exception as e:
                 print(f"{Fore.YELLOW}AI validator error: {e}{Style.RESET_ALL}")
                 return False
-            # Report and mark answer
-            symbol = '[✓]' if ok else '[✗]'
-            color = Fore.GREEN if ok else Fore.RED
-            print(f"{color}{symbol}{Style.RESET_ALL} Expected: {expected_cmd}")
+
             if ok:
                 correct_indices.add(current_question_index)
                 print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
