@@ -197,3 +197,34 @@ A high-level overview of the monorepo structure:
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Scripts Consolidation
+
+All standalone scripts in the `scripts/` directory are now accessible through the consolidated `toolbox.py` entrypoint.
+
+```bash
+# List available commands
+scripts/toolbox.py
+
+# Run a specific script, for example:
+scripts/toolbox.py generate_kubectl_ops --output question-data/yaml/kubectl_operations.yaml
+```
+
+Available commands:
+- ckad
+- cli_quiz
+- generate_kubectl_ops
+- generate_resource_ref
+- generate_manifests
+- generate_validation
+- manage_questions
+- organize_question_data
+- enrich_questions
+- ai_enrich
+- install_kubelingo   Install kubelingo from PyPI and configure OpenAI key
+
+For help on a specific command, run:
+
+```bash
+scripts/toolbox.py <command> --help
+```
