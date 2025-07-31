@@ -296,20 +296,17 @@ The interactive command-line interface has experienced a significant regression,
 
 ## Interactive CLI Flow
 
-When `kubelingo` is run without any arguments, it enters an interactive mode to guide the user. This flow is designed to be intuitive and provide access to all major features without requiring knowledge of command-line flags.
+> For now, skip the very first screen - we are only evaluating single commands so the distinction between pty and docker does not matter. Disable the 'kustom' option too. Leave it grayed out and unselectable to indicate it will be build later on. What we really want, is a screen that comes up listing quiz modules ('vim' is the only one we have implemented correctly, the rest should be greyed out and disabled, but visible) and it should look like: 1. Vim Quiz 2. Review Flagged 3. Help (just shows all the parser args and menu options etc) 4. Exit App 5. Session Type (visible but disabled) 6. Custom Quiz (visible but disabled) ...(then you can list all other disabled quiz options that were there previously, killercoda, core_concepts, CRDs, pods etc - make sure they are visible but greyed out and disabled)
 
-The flow consists of a series of menus:
+When `kubelingo` is run without any arguments, it enters a simplified interactive mode. The initial session type selection (PTY/Docker) is skipped, and the user is taken directly to the main quiz selection menu.
 
-1.  **Session Type Selection**: The user first chooses the execution environment for the exercises.
-    -   `PTY Shell`: Runs commands directly on the user's host machine. This is fast but not sandboxed.
-    -   `Docker Container`: Runs commands inside an isolated Docker container, providing a consistent and safe environment.
-    -   `Enter OpenAI API Key`: Allows the user to provide an API key to enable AI-powered features for the session.
+This menu displays:
+1.  **Vim Quiz**: The primary, active quiz module.
+2.  **Review Flagged Questions**: A session with all questions the user has marked for review.
+3.  **Help**: Displays help information about command-line arguments and options.
+4.  **Exit App**: Quits the application.
 
-2.  **Quiz Type Selection**: After selecting a session type, the user chooses what to study.
-    -   `CKAD Exercises`: Starts the main quiz, currently focused on the Vim command module as part of a simplification effort.
-    -   `Review flagged questions`: Starts a quiz session with only the questions the user has previously flagged for review.
-
-This multi-step menu structure allows for future expansion, such as adding more session types or quiz modules, while keeping the entry point for users simple and clear.
+Other options like `Session Type`, `Custom Quiz`, and other quiz modules (`killercoda`, `core_concepts`, etc.) are displayed but are disabled and unselectable, indicating they are planned for future implementation.
 
 ## AI System Prompts
 
