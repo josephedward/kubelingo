@@ -1,79 +1,20 @@
+#
+# CKAD Questions Manifest (generated from ckad_questions.json)
+#
 ---
-- prompt: "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory:30Mi; limits: cpu=300m, memory:30Mi."
-  answer: |
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: resource-checker
-      namespace: limit
-    spec:
-      containers:
-      - name: my-container
-        image: httpd:alpine
-        resources:
-          requests:
-            cpu: 30m
-            memory: 30Mi
-          limits:
-            cpu: 300m
-            memory: 30Mi
-
-- prompt: "Create a ConfigMap named trauerweide with data tree=trauerweide."
-  answer: |
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: trauerweide
-    data:
-      tree: trauerweide
-
-- prompt: "Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke."
-  answer: |
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: pod1
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:alpine
-        env:
-        - name: TREE1
-          valueFrom:
-            configMapKeyRef:
-              name: trauerweide
-              key: tree
-        volumeMounts:
-        - name: birke-volume
-          mountPath: /etc/birke
-      volumes:
-      - name: birke-volume
-        configMap:
-          name: birke
-
-- prompt: "Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5."
-  answer: |
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: space-alien-welcome-message-generator
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          app: space-alien-welcome-message-generator
-      template:
-        metadata:
-          labels:
-            app: space-alien-welcome-message-generator
-        spec:
-          containers:
-          - name: httpd
-            image: httpd:alpine
-            readinessProbe:
-              exec:
-                command:
-                - stat
-                - /tmp/ready
-              initialDelaySeconds: 10
-              periodSeconds: 5
+- id: ckad_questions::0
+  question: "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi."
+  solution_file: "question-data/yaml/solutions/ckad_questions/0.yaml"
+  citation: "https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/#specify-a-memory-request-and-a-memory-limit"
+- id: ckad_questions::1
+  question: "Create a ConfigMap named trauerweide with data tree=trauerweide."
+  solution_file: "question-data/yaml/solutions/ckad_questions/1.yaml"
+  citation: "https://kubernetes.io/docs/concepts/configuration/configmap/"
+- id: ckad_questions::2
+  question: "Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke."
+  solution_file: "question-data/yaml/solutions/ckad_questions/2.yaml"
+  citation: "https://kubernetes.io/docs/concepts/configuration/configmap/#configmaps-and-pods"
+- id: ckad_questions::3
+  question: "Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5."
+  solution_file: "question-data/yaml/solutions/ckad_questions/3.yaml"
+  citation: "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/"
