@@ -839,7 +839,7 @@ class NewSession(StudySession):
             stats[category]['correct'] += 1
         return stats
 
-def _check_k8s_command_with_ai(self, q, expected_command: str, current_question_index, attempted_indices, correct_indices):
+    def _check_k8s_command_with_ai(self, q, expected_command: str, current_question_index, attempted_indices, correct_indices):
         """
         Helper to evaluate a k8s command using the AI evaluator, for use when no live cluster is available.
         """
