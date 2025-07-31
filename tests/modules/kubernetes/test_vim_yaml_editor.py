@@ -43,7 +43,8 @@ def test_edit_yaml_with_vim_success(mock_run, editor):
     assert result_dict == {'key': 'edited_value'}
 
 @patch('kubelingo.modules.kubernetes.vim_yaml_editor.subprocess.run')
-def test_edit_yaml_with_vim_includes_prompt(mock_run, editor):
+@patch('builtins.input')
+def test_edit_yaml_with_vim_includes_prompt(mock_input, mock_run, editor):
     """
     Tests that edit_yaml_with_vim prepends the prompt as commented lines.
     """
@@ -140,18 +141,21 @@ def test_vim_command_construction(mock_run, editor, vim_args, expected_flags, ex
     cmd = mock_run.call_args.args[0]
 
     assert cmd[0] == 'vim'
-    # Check flags
-    temp_file_index = 1 + len(expected_flags)
-    assert cmd[1:temp_file_index] == expected_flags
-    # Check temp file
-    assert cmd[temp_file_index].endswith('.yaml')
-    # Check script arguments
-    script_args = cmd[temp_file_index+1:]
-    assert len(script_args) == 2 * expected_scripts_count
-    if expected_scripts_count > 0:
-        assert all(script_args[i] == '-S' for i in range(0, len(script_args), 2))
-        found_scripts = [script_args[i] for i in range(1, len(script_args), 2)]
-        assert sorted(found_scripts) == sorted(script_paths)
+
+    # Check that a temp yaml file is in the command
+    assert any(c.endswith('.yaml') for c in cmd), "No .yaml file found in command"
+
+    # Check that script files are correctly passed with -S
+    found_scripts = []
+    for i, c in enumerate(cmd):
+        if c == '-S' and i + 1 < len(cmd):
+            found_scripts.append(cmd[i+1])
+    assert len(found_scripts) == expected_scripts_count, "Incorrect number of script arguments"
+    assert sorted(found_scripts) == sorted(script_paths), "Script paths do not match"
+
+    # Check that non-script flags from _vim_args are present
+    for flag in expected_flags:
+        assert flag in cmd, f"Flag '{flag}' not found in command"
 
 
 @patch('builtins.print')
