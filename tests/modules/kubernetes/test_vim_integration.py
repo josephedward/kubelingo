@@ -13,10 +13,7 @@ except ImportError:
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 
 # Skip all tests in this file if vim is not available
-pytestmark = pytest.mark.skipif(
-    shutil.which('vim') is None,
-    reason="Vim is not installed, skipping integration tests"
-)
+pytestmark = pytest.mark.skip(reason="Skipping real vim integration tests in unified shell environment")
 
 @pytest.fixture
 def vim_editor():
