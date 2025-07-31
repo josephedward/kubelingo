@@ -900,16 +900,9 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
-                        # Handle plain text answers (e.g., Vim, Kubectl command quizzes) with direct comparison
+                        # Handle plain text answers (e.g., Vim, Kubectl command quizzes) with AI evaluation.
                         if isinstance(result, str):
-                            expected = q.get('response', '') or ''
-                            attempted_indices.add(current_question_index)
-                            if result.strip() == expected:
-                                correct_indices.add(current_question_index)
-                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                            else:
-                                correct_indices.discard(current_question_index)
-                                print(f"{Fore.RED}Incorrect. Expected: {expected}{Style.RESET_ALL}")
+                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                             continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
