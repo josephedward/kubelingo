@@ -17,12 +17,17 @@ YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_edit_questions.json')
 # Built-in Vim quiz data file (JSON-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim.json')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
+KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_resource_types.yaml')
+KUBECTL_SYNTAX_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_syntax_quiz.yaml')
+
 
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
     "Vim Quiz": VIM_QUESTIONS_FILE,
-    "Kubectl Commands": KUBECTL_OPERATIONS_QUIZ_FILE,
+    "Kubectl Syntax": KUBECTL_SYNTAX_QUIZ_FILE,
+    "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
+    "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
 }
 
 # CSV files

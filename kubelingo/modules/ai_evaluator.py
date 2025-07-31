@@ -70,16 +70,36 @@ Your response MUST be a JSON object with two keys:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
 
 
+    def _get_system_prompt_for_command_eval(self, quiz_type: str) -> str:
+        """Returns a tailored system prompt based on the quiz type."""
+        base_prompt = """
+You are an expert instructor. Your task is to evaluate a user's attempt to answer a question.
+You will be given the question, the user's submitted answer, and a list of expected correct answers.
+Your response MUST be a JSON object with two keys:
+1. "correct": a boolean value (true if the user's answer is valid and correct, false otherwise).
+2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+"""
+        if quiz_type == 'k8s':
+            return base_prompt + """
+You are a Kubernetes expert. The user is answering a question about `kubectl`.
+Consider variations, like short resource names (`po` for `pods`) and equivalent flags.
+A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
+It is also common to omit `kubectl` or `k` entirely. If the user provides just a subcommand like `get pods` or `alpha`, you should treat it as if `kubectl` was prepended.
+"""
+        elif quiz_type == 'vim':
+            return base_prompt + """
+You are a Vim expert. The user is answering a question about a Vim command.
+Consider variations and equivalent commands. For example, if the answer is `:w`, `:write` should also be correct.
+"""
+        else: # general
+            return base_prompt + """
+Be lenient with whitespace and case unless the question implies sensitivity.
+"""
+
     def evaluate_command(self, question_data, user_command):
         """
-        Evaluates a user's command against the question using an AI model.
-
-        Args:
-            question_data (dict): The question, including prompt, expected answers, and source.
-            user_command (str): The command entered by the user.
-
-        Returns:
-            dict: A dictionary with 'correct' (bool) and 'reasoning' (str).
+        Evaluates a user's text-based command/answer against a question using an AI model.
+        This is a unified method for all text-based quizzes (k8s, vim, general).
         """
         global llm
         if llm is None:
@@ -90,6 +110,18 @@ Your response MUST be a JSON object with two keys:
                 return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
 
         prompt = question_data.get('prompt', '')
+        category = question_data.get('category', '').lower()
+        source_url = question_data.get('source')
+
+        # Determine quiz type for system prompt
+        if 'vim' in category:
+            quiz_type = 'vim'
+        elif any(k in category for k in ['kubectl', 'kubernetes', 'resource types']):
+            quiz_type = 'k8s'
+        else:
+            quiz_type = 'general'
+
+        # Get expected answers
         expected_answers = []
         if question_data.get('response'):
             expected_answers.append(question_data['response'])
@@ -97,33 +129,23 @@ Your response MUST be a JSON object with two keys:
             cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
             if cmd:
                 expected_answers.append(cmd)
-
-        system_prompt = """
-You are an expert instructor preparing a student for the Certified Kubernetes Application Developer (CKAD) exam.
-Your task is to evaluate a user's attempt to answer a question by providing a single command.
-You will be given the question, the user's submitted command, a list of expected correct commands, and sometimes a source URL for documentation.
-Your response MUST be a JSON object with two keys:
-1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
-2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
-Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
-A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
-It is also common to omit `kubectl` or `k` entirely. If the user provides just a subcommand like `get pods` or `alpha`, you should treat it as if `kubectl` was prepended.
-If a source URL is provided, please cite it in your reasoning.
-"""
+        
+        system_prompt = self._get_system_prompt_for_command_eval(quiz_type)
+        if source_url:
+            system_prompt += f"\nIf a source URL is provided, please cite it in your reasoning."
 
         user_content = f"Question: {prompt}\n\n"
-        user_content += f"User's command: `{user_command}`\n\n"
+        user_content += f"User's answer: `{user_command}`\n\n"
         if expected_answers:
             user_content += "Expected answer(s) (for reference):\n"
             for ans in expected_answers:
                 user_content += f"- `{ans}`\n"
             user_content += "\n"
         
-        source_url = question_data.get('source')
         if source_url:
-            user_content += f"Please cite this documentation source in your reasoning: {source_url}\n\n"
+            user_content += f"Source URL: {source_url}\n\n"
 
-        user_content += "Based on the above, please evaluate the user's command and respond only with the required JSON object."
+        user_content += "\nBased on the above, please evaluate the user's answer and respond only with the required JSON object."
 
         try:
             model = llm.get_model("gpt-4-turbo-preview")
