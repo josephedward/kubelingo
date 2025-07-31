@@ -16,6 +16,7 @@ DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_edit_questions.json')
 # Built-in Vim quiz data file (YAML-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'vim_quiz.yaml')
+KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
