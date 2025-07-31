@@ -531,11 +531,10 @@ class NewSession(StudySession):
                     continue # Do nothing if a disabled item is somehow selected
 
                 if selected == 'review':
-                    args.review_only = True
+                    initial_args.review_only = True
                 else:
-                    args.file = selected
-                
-                # With args set, restart the main loop to load questions and run the quiz.
+                    initial_args.file = selected
+                # Selection recorded; restart loop to load the chosen quiz
                 continue
 
             # De-duplicate questions based on the prompt text to avoid redundancy.
