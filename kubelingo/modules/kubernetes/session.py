@@ -393,6 +393,62 @@ class NewSession(StudySession):
         """Basic initialization. Live session initialization is deferred."""
         return True
 
+    def _build_interactive_menu_choices(self):
+        """Helper to construct the list of choices for the interactive menu."""
+        # Discover all quiz files from JSON, MD, and YAML sources.
+        all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
+        
+        # Explicitly remove the main vim quiz file from the "other" list to avoid duplication.
+        # This is needed because _get_quiz_files excludes it, but other loaders might not.
+        vim_quiz_basename = os.path.basename(VIM_QUESTIONS_FILE)
+        all_quiz_files = [p for p in all_quiz_files if os.path.basename(p) != vim_quiz_basename]
+        all_quiz_files = sorted(list(set(all_quiz_files)))
+
+        all_flagged = get_all_flagged_questions()
+        
+        choices = []
+
+        # 1. Vim Quiz - now always enabled. If file is missing, load will fail.
+        choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
+
+        # 2. Review Flagged
+        review_text = "Review Flagged Questions"
+        if all_flagged:
+            review_text = f"Review {len(all_flagged)} Flagged Questions"
+        choices.append({"name": review_text, "value": "review"})
+        
+        # 3. Help
+        choices.append({"name": "Help", "value": "help"})
+        
+        # 4. Exit App
+        choices.append({"name": "Exit App", "value": "exit_app"})
+        
+        choices.append(questionary.Separator())
+
+        # 5. Session Type (disabled)
+        choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
+        
+        # 6. Custom Quiz (disabled)
+        choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
+        
+        if all_quiz_files:
+            choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
+            for file_path in all_quiz_files:
+                base = os.path.basename(file_path)
+                name = os.path.splitext(base)[0]
+                subject = humanize_module(name).strip()
+                choices.append({
+                    "name": subject,
+                    "value": file_path,
+                    "disabled": "Not yet implemented"
+                })
+        
+        if all_flagged:
+            choices.append(questionary.Separator())
+            choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
+        
+        return choices, all_flagged
+
     def run_exercises(self, args):
         """
         Router for running exercises. It decides which quiz to run.
@@ -422,6 +478,8 @@ class NewSession(StudySession):
         import copy
         initial_args = copy.deepcopy(args)
 
+        is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+
         while True:
             # For each quiz, use a fresh copy of args.
             args = copy.deepcopy(initial_args)
@@ -438,11 +496,47 @@ class NewSession(StudySession):
             elif args.file:
                 questions = load_questions(args.file)
             else:
-                # This case should not be reached if called from the interactive CLI,
-                # as the CLI sets args.file or args.review_only.
-                # If another part of the code calls this without args, we should exit gracefully.
-                print(f"{Fore.YELLOW}No quiz file specified. Returning to main menu.{Style.RESET_ALL}")
-                return
+                # Interactive mode: show menu to select quiz.
+                if not is_interactive:
+                    print(f"{Fore.RED}Non-interactive mode requires a quiz file (--file) or --review-only.{Style.RESET_ALL}")
+                    return
+
+                choices, flagged_questions = self._build_interactive_menu_choices()
+                
+                print() # Add a blank line for spacing before the menu
+                selected = questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
+
+                if selected is None:
+                    return # User cancelled (e.g., Ctrl+C)
+
+                if selected == "exit_app":
+                    print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                    sys.exit(0)
+
+                if selected == "help":
+                    from kubelingo.utils.ui import show_quiz_type_help
+                    show_quiz_type_help()
+                    input("\nPress Enter to return to the menu...")
+                    continue
+
+                if selected == "clear_flags":
+                    _clear_all_review_flags(self.logger)
+                    continue # Show menu again
+
+                if "disabled" in selected:
+                    continue # Do nothing if a disabled item is somehow selected
+
+                if selected == 'review':
+                    args.review_only = True
+                else:
+                    args.file = selected
+                
+                # With args set, restart the main loop to load questions and run the quiz.
+                continue
 
             # De-duplicate questions based on the prompt text to avoid redundancy.
             # This can happen if questions are loaded from multiple sources or if
