@@ -463,13 +463,16 @@ class NewSession(StudySession):
         
         return choices, all_flagged
 
-    def _show_help(self):
-        """Displays a contextual help menu for the main quiz selection screen."""
+    def _show_static_help(self):
+        """Displays a static, hardcoded help menu as a fallback."""
         print(f"\n{Fore.CYAN}--- Kubelingo Help ---{Style.RESET_ALL}\n")
         print("This screen provides access to all quiz modules and application features.\n")
 
         print(f"{Fore.GREEN}Vim Quiz{Style.RESET_ALL}")
         print("  The primary, active quiz module for practicing Vim commands.\n")
+
+        print(f"{Fore.GREEN}Kubectl Commands{Style.RESET_ALL}")
+        print("  Test your knowledge of kubectl operations.\n")
 
         print(f"{Fore.GREEN}Review Flagged Questions{Style.RESET_ALL}")
         print("  Starts a quiz session with only the questions you have previously flagged for review.")
@@ -477,18 +480,78 @@ class NewSession(StudySession):
 
         print(f"{Fore.GREEN}View Session History{Style.RESET_ALL}")
         print("  Displays a summary of your past quiz sessions, including scores and timings.\n")
-        
+
         print(f"{Fore.GREEN}Help{Style.RESET_ALL}")
         print("  Shows this help screen.\n")
-        
+
         print(f"{Fore.GREEN}Exit App{Style.RESET_ALL}")
         print("  Quits the application.\n")
-        
+
         print(f"{Fore.YELLOW}Other Options (Not yet implemented){Style.RESET_ALL}")
         print(f"  - {Style.DIM}Session Type (PTY/Docker){Style.RESET_ALL}")
         print(f"  - {Style.DIM}Custom Quiz{Style.RESET_ALL}")
         print(f"  - {Style.DIM}Other Quizzes...{Style.RESET_ALL}")
         print(f"  - {Style.DIM}Clear All Review Flags{Style.RESET_ALL} (appears when questions are flagged)")
+
+    def _show_help(self):
+        """
+        Displays a dynamically generated help menu using an AI model to summarize
+        the available quizzes and features.
+        """
+        # This approach ensures the help text stays up-to-date with the application's
+        # capabilities without requiring manual updates to hardcoded strings.
+
+        if not os.getenv('OPENAI_API_KEY'):
+            print(f"\n{Fore.YELLOW}AI-powered help requires an OpenAI API key.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Falling back to static help text.{Style.RESET_ALL}")
+            self._show_static_help()
+            return
+
+        try:
+            import llm
+
+            # Discover available quizzes by building the menu choices.
+            choices, _ = self._build_interactive_menu_choices()
+            
+            # Separate choices into enabled quizzes and other features.
+            enabled_quizzes = [
+                c['name'] for c in choices 
+                if isinstance(c, dict) and 'disabled' not in c 
+                and Path(str(c.get('value', ''))).exists()
+            ]
+            
+            disabled_features = [c['name'] for c in choices if isinstance(c, dict) and 'disabled' in c]
+
+            prompt = (
+                "You are the friendly help system for a command-line learning tool called 'kubelingo'.\n"
+                "Your task is to generate a concise, user-friendly help screen based on the following available features.\n"
+                "Present the information clearly, using simple Markdown for formatting.\n\n"
+                "Active, usable quizzes:\n"
+                f"- {', '.join(enabled_quizzes)}\n\n"
+                "Standard features:\n"
+                "- Review Flagged Questions: For focused study on difficult topics.\n"
+                "- View Session History: To see past performance.\n"
+                "- Help: To show this screen.\n"
+                "- Exit App: To quit the application.\n\n"
+                "Features that are listed in the menu but are not yet implemented (disabled):\n"
+                f"- {', '.join(disabled_features)}\n\n"
+                "Generate a help text that explains these options to the user."
+            )
+
+            print(f"\n{Fore.CYAN}--- Kubelingo Help (AI Generated) ---{Style.RESET_ALL}\n")
+            print(f"{Fore.YELLOW}Generating dynamic help with AI...{Style.RESET_ALL}")
+
+            # Get the default model, which should be configured via `llm` CLI or env vars.
+            model = llm.get_model()
+            response = model.prompt(prompt, system="You are a helpful assistant for a CLI tool.")
+            
+            print(f"\n{response.text}")
+
+        except (ImportError, Exception) as e:
+            print(f"\n{Fore.RED}AI-powered help generation failed: {e}{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Falling back to static help text.{Style.RESET_ALL}")
+            self._show_static_help()
 
     def run_exercises(self, args):
         """
