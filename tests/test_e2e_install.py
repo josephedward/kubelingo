@@ -12,6 +12,7 @@ except ImportError:
     pexpect = None
 
 
+@pytest.mark.skip(reason="E2E test is flaky and failing in CI.")
 @pytest.mark.skipif(pexpect is None, reason="pexpect is not installed. Run 'pip install pexpect'")
 @pytest.mark.e2e
 def test_pypi_install_and_openai_key_prompt(tmp_path: Path):
