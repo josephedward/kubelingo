@@ -1,14 +1,5 @@
-# Application dependencies from pyproject.toml
-boto3>=1.26.0
-click>=8.0.0
-colorama>=0.4.4
-kubernetes>=25.0.0
-PyYAML>=6.0
-python-dotenv>=0.21.0
-questionary>=1.10.0
+# Install package in editable mode with test dependencies from pyproject.toml
+-e .[test]
 
-# For testing
-pytest>=6.0
-
-# For build
+# For building the Rust extension
 maturin>=1.0,<2.0
