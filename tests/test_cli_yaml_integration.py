@@ -9,12 +9,16 @@ import os
 # This makes the test robust against changes in file locations.
 from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
 
+# Skip all tests in this file if the data file is not found.
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(YAML_QUESTIONS_FILE),
+    reason=f"YAML questions data file not found: {YAML_QUESTIONS_FILE}"
+)
+
 @pytest.fixture
 def yaml_test_data():
-    """Load YAML test data, skipping if the file doesn't exist."""
-    if not os.path.exists(YAML_QUESTIONS_FILE):
-        pytest.skip(f"YAML questions file not found: {YAML_QUESTIONS_FILE}")
-
+    """Load YAML test data."""
+    # The file existence is already checked by pytestmark, so we can assume it exists.
     with open(YAML_QUESTIONS_FILE, 'r') as f:
         yaml_questions_data = json.load(f)
 
