@@ -1,6 +1,8 @@
 import sys
 import os
 
-# Add the project root to the Python path to allow tests to import the 'kubelingo' package.
-# This is a common pattern for running tests without having to install the package first.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Make sure the project root (one level up) is on the Python path so that
+# the 'kubelingo' package can be imported by test modules.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
