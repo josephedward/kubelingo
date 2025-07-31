@@ -133,8 +133,10 @@ def _get_quiz_files():
     if not os.path.isdir(json_dir):
         return []
 
-    # Exclude special files that have their own quiz modes
-    excluded_files = [os.path.basename(f) for f in [YAML_QUESTIONS_FILE, VIM_QUESTIONS_FILE] if f]
+    # Exclude special files that have their own quiz modes or are enabled in the main menu
+    excluded_files = {os.path.basename(f) for f in ENABLED_QUIZZES.values() if f}
+    if YAML_QUESTIONS_FILE:
+        excluded_files.add(os.path.basename(YAML_QUESTIONS_FILE))
 
     return sorted([
         os.path.join(json_dir, f)
@@ -790,6 +792,13 @@ class NewSession(StudySession):
                     if action == "exit_app":
                         print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
                         sys.exit(0)
+
+                    if action == "source":
+                        source_url = q.get('source')
+                        if source_url:
+                            print(f"Opening {source_url} in your browser...")
+                            webbrowser.open(source_url)
+                        continue
 
                     if action == "back":
                         quiz_backed_out = True
