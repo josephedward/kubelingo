@@ -1,0 +1,1 @@
+alias kr='kubectl run'

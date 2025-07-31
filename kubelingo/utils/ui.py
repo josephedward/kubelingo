@@ -46,17 +46,26 @@ ASCII_ART = r"""
 #  #  #   # #   # #     #      #   ##  # #     #   #  
 ###   #   # ####  ###   #      #   # # # # ### #   #  
 #  #  #   # #   # #     #      #   #  ## #   # #   #  
-#   #  ###  ####  ##### #####  ###  #   #  ####  ### 
+#   #  ###  ####  ##### #####  ###  #   #  ####  ###  
 """
 
 
 def print_banner():
     """Prints the Kubelingo ASCII banner."""
     lines = ASCII_ART.strip('\n').splitlines()
+    center_width = len(lines[0]) if lines else 0
+
     for line in lines:
         # Split between KUBE and LINGO for different colors
         # KUBE part is 23 characters wide.
         print(f"{Fore.CYAN}{line[:23]}{Fore.MAGENTA}{line[23:]}{Style.RESET_ALL}")
+
+    subheader = "Kubernetes Studying Tool"
+    # Center the subheader based on the banner width
+    if center_width > 0:
+        print(f"{Fore.YELLOW}{subheader.center(center_width)}{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.YELLOW}{subheader}{Style.RESET_ALL}")
 
 
 def show_session_type_help():

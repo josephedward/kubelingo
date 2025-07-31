@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import shlex
+import webbrowser
 from datetime import datetime
 import logging
 
@@ -18,12 +19,13 @@ from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
     DEFAULT_DATA_FILE,
-    VIM_QUESTIONS_FILE,
     YAML_QUESTIONS_FILE,
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
     KILLERCODA_CSV_FILE,
+    ENABLED_QUIZZES,
+    VIM_QUESTIONS_FILE,
 )
 
 try:
@@ -174,13 +176,10 @@ def _get_yaml_quiz_files():
 
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    all_quiz_files = \
-        _get_quiz_files() + \
-        _get_md_quiz_files() + \
-        _get_yaml_quiz_files()
-
+    all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
     if os.path.exists(VIM_QUESTIONS_FILE):
         all_quiz_files.append(VIM_QUESTIONS_FILE)
+    all_quiz_files = sorted(list(set(all_quiz_files)))
 
     all_flagged = []
     for f in all_quiz_files:
@@ -395,6 +394,163 @@ class NewSession(StudySession):
         """Basic initialization. Live session initialization is deferred."""
         return True
 
+    def _build_interactive_menu_choices(self):
+        """Helper to construct the list of choices for the interactive menu."""
+        # Discover all quiz files from JSON, MD, and YAML sources.
+        all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
+        
+        # Explicitly remove enabled quizzes from the "other" list to avoid duplication.
+        enabled_quiz_stems = {Path(p).stem for p in ENABLED_QUIZZES.values()}
+        all_quiz_files = [p for p in all_quiz_files if Path(p).stem not in enabled_quiz_stems]
+        all_quiz_files = sorted(list(set(all_quiz_files)))
+
+        all_flagged = get_all_flagged_questions()
+        
+        choices = []
+
+        # 1. Add enabled quizzes from config
+        for name, path in ENABLED_QUIZZES.items():
+            if os.path.exists(path):
+                choices.append({"name": name, "value": path})
+            else:
+                choices.append({"name": name, "value": f"{path}_disabled", "disabled": "Not available"})
+
+        # 2. Review Flagged
+        review_text = "Review Flagged Questions"
+        if all_flagged:
+            review_text = f"Review {len(all_flagged)} Flagged Questions"
+        choices.append({"name": review_text, "value": "review"})
+
+        # 3. View Session History
+        choices.append({"name": "View Session History", "value": "view_history"})
+        
+        # 4. Help
+        choices.append({"name": "Help", "value": "help"})
+
+        # 5. Exit App
+        choices.append({"name": "Exit App", "value": "exit_app"})
+        
+        choices.append(questionary.Separator())
+
+        # 5. Session Type (disabled)
+        choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
+        
+        # 6. Custom Quiz (disabled)
+        choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
+        
+        choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
+        
+        if all_quiz_files:
+            seen_subjects = set()
+            for file_path in all_quiz_files:
+                base = os.path.basename(file_path)
+                name = os.path.splitext(base)[0]
+                subject = humanize_module(name).strip()
+                if subject in seen_subjects:
+                    continue
+                seen_subjects.add(subject)
+                choices.append({
+                    "name": subject,
+                    "value": file_path,
+                    "disabled": "Not yet implemented"
+                })
+        
+        if all_flagged:
+            choices.append(questionary.Separator())
+            choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
+        
+        return choices, all_flagged
+
+    def _show_static_help(self):
+        """Displays a static, hardcoded help menu as a fallback."""
+        print(f"\n{Fore.CYAN}--- Kubelingo Help ---{Style.RESET_ALL}\n")
+        print("This screen provides access to all quiz modules and application features.\n")
+
+        print(f"{Fore.GREEN}Vim Quiz{Style.RESET_ALL}")
+        print("  The primary, active quiz module for practicing Vim commands.\n")
+
+        print(f"{Fore.GREEN}Kubectl Commands{Style.RESET_ALL}")
+        print("  Test your knowledge of kubectl operations.\n")
+
+        print(f"{Fore.GREEN}Review Flagged Questions{Style.RESET_ALL}")
+        print("  Starts a quiz session with only the questions you have previously flagged for review.")
+        print("  Use this for focused study on topics you find difficult.\n")
+
+        print(f"{Fore.GREEN}View Session History{Style.RESET_ALL}")
+        print("  Displays a summary of your past quiz sessions, including scores and timings.\n")
+
+        print(f"{Fore.GREEN}Help{Style.RESET_ALL}")
+        print("  Shows this help screen.\n")
+
+        print(f"{Fore.GREEN}Exit App{Style.RESET_ALL}")
+        print("  Quits the application.\n")
+
+        print(f"{Fore.YELLOW}Other Options (Not yet implemented){Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Session Type (PTY/Docker){Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Custom Quiz{Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Other Quizzes...{Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Clear All Review Flags{Style.RESET_ALL} (appears when questions are flagged)")
+
+    def _show_help(self):
+        """
+        Displays a dynamically generated help menu using an AI model to summarize
+        the available quizzes and features.
+        """
+        # This approach ensures the help text stays up-to-date with the application's
+        # capabilities without requiring manual updates to hardcoded strings.
+
+        if not os.getenv('OPENAI_API_KEY'):
+            print(f"\n{Fore.YELLOW}AI-powered help requires an OpenAI API key.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Falling back to static help text.{Style.RESET_ALL}")
+            self._show_static_help()
+            return
+
+        try:
+            import llm
+
+            # Discover available quizzes by building the menu choices.
+            choices, _ = self._build_interactive_menu_choices()
+            
+            # Separate choices into enabled quizzes and other features.
+            enabled_quizzes = [
+                c['name'] for c in choices 
+                if isinstance(c, dict) and 'disabled' not in c 
+                and Path(str(c.get('value', ''))).exists()
+            ]
+            
+            disabled_features = [c['name'] for c in choices if isinstance(c, dict) and 'disabled' in c]
+
+            prompt = (
+                "You are the friendly help system for a command-line learning tool called 'kubelingo'.\n"
+                "Your task is to generate a concise, user-friendly help screen based on the following available features.\n"
+                "Present the information clearly, using simple Markdown for formatting.\n\n"
+                "Active, usable quizzes:\n"
+                f"- {', '.join(enabled_quizzes)}\n\n"
+                "Standard features:\n"
+                "- Review Flagged Questions: For focused study on difficult topics.\n"
+                "- View Session History: To see past performance.\n"
+                "- Help: To show this screen.\n"
+                "- Exit App: To quit the application.\n\n"
+                "Features that are listed in the menu but are not yet implemented (disabled):\n"
+                f"- {', '.join(disabled_features)}\n\n"
+                "Generate a help text that explains these options to the user."
+            )
+
+            print(f"\n{Fore.CYAN}--- Kubelingo Help (AI Generated) ---{Style.RESET_ALL}\n")
+            print(f"{Fore.YELLOW}Generating dynamic help with AI...{Style.RESET_ALL}")
+
+            # Get the default model, which should be configured via `llm` CLI or env vars.
+            model = llm.get_model()
+            response = model.prompt(prompt, system="You are a helpful assistant for a CLI tool.")
+            
+            print(f"\n{response.text}")
+
+        except (ImportError, Exception) as e:
+            print(f"\n{Fore.RED}AI-powered help generation failed: {e}{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}Falling back to static help text.{Style.RESET_ALL}")
+            self._show_static_help()
+
     def run_exercises(self, args):
         """
         Router for running exercises. It decides which quiz to run.
@@ -424,15 +580,12 @@ class NewSession(StudySession):
         import copy
         initial_args = copy.deepcopy(args)
 
+        is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+
         while True:
             # For each quiz, use a fresh copy of args.
             args = copy.deepcopy(initial_args)
-            # When run without arguments, args.file may be defaulted.
-            # Force interactive quiz selection by clearing the file if no other
-            # filters like category, review-only, or number of questions are active.
-            if (args.file and os.path.basename(args.file) == os.path.basename(DEFAULT_DATA_FILE) and
-                    not args.category and not args.review_only and not (args.num and args.num > 0)):
-                args.file = None
+            is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
             start_time = datetime.now()
             # Unique session identifier for transcript storage
@@ -440,45 +593,60 @@ class NewSession(StudySession):
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
 
-            is_interactive = questionary and not args.file and not args.category and not args.review_only
-
-            if is_interactive:
-                # Interactive file-selection loop for k8s quizzes
-                while True:
-                    choices, flagged_questions = self._build_interactive_menu_choices()
-                    selected = questionary.select(
-                        "Choose a Kubernetes exercise:",
-                        choices=choices,
-                        use_indicator=True
-                    ).ask()
-                    # Back to file menu
-                    if selected is None:
-                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        sys.exit(0)
-                    if selected == 'back':
-                        print(f"\n{Fore.YELLOW}Returning to main menu...{Style.RESET_ALL}")
-                        return
-                    if selected == 'exit_app':
-                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        sys.exit(0)
-                    # Clear all review flags and re-list files
-                    if selected == 'clear_flags':
-                        _clear_all_review_flags(self.logger)
-                        continue
-                    # Review flagged questions
-                    if selected == 'review':
-                        args.review_only = True
-                        questions = flagged_questions
-                        args.file = 'review_session'
-                    else:
-                        args.file = selected
-                        questions = load_questions(args.file)
-                    break
+            if args.review_only:
+                questions = get_all_flagged_questions()
+            elif args.file:
+                questions = load_questions(args.file)
             else:
-                if args.review_only:
-                    questions = get_all_flagged_questions()
+                # Interactive mode: show menu to select quiz.
+                if not is_interactive:
+                    print(f"{Fore.RED}Non-interactive mode requires a quiz file (--file) or --review-only.{Style.RESET_ALL}")
+                    return
+
+                choices, flagged_questions = self._build_interactive_menu_choices()
+                
+                print() # Add a blank line for spacing before the menu
+                selected = questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
+
+                if selected is None:
+                    return # User cancelled (e.g., Ctrl+C)
+
+                if selected == "exit_app":
+                    print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                    sys.exit(0)
+
+                if selected == "help":
+                    self._show_help()
+                    input("\nPress Enter to return to the menu...")
+                    continue
+                # View past session history
+                if selected == "view_history":
+                    from kubelingo.cli import show_history
+                    show_history()
+                    input("\nPress Enter to return to the menu...")
+                    continue
+
+                if selected == "clear_flags":
+                    _clear_all_review_flags(self.logger)
+                    continue # Show menu again
+
+                # Find the choice dictionary that corresponds to the selected value.
+                selected_choice = next((c for c in choices if isinstance(c, dict) and c.get('value') == selected), None)
+
+                if selected_choice and selected_choice.get('disabled'):
+                    # This option was disabled, so loop back to the menu.
+                    continue
+
+                if selected == 'review':
+                    initial_args.review_only = True
                 else:
-                    questions = load_questions(args.file)
+                    initial_args.file = selected
+                # Selection recorded; restart loop to load the chosen quiz
+                continue
 
             # De-duplicate questions based on the prompt text to avoid redundancy.
             # This can happen if questions are loaded from multiple sources or if
@@ -579,11 +747,9 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
-                    # Show the expected answers derived from validation steps
-                    choices.append({"name": "Show Expected Answer(s)", "value": "show"})
-                    # Show the model's example response (if defined)
-                    if q.get('response'):
-                        choices.append({"name": "Show Model Answer", "value": "show_answer"})
+                    # Show Visit Source if a citation or source URL is provided
+                    if q.get('citation') or q.get('source'):
+                        choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Next Question", "value": "next"})
@@ -637,26 +803,14 @@ class NewSession(StudySession):
                         current_question_index = max(current_question_index - 1, 0)
                         break
                     
-                    if action == "show_answer":
-                        answer = q.get('response')
-                        if answer:
-                            print(f"\n{Fore.GREEN}--- Model Answer ---{Style.RESET_ALL}")
-                            print(f"{Fore.YELLOW}{answer.strip()}{Style.RESET_ALL}")
-                            print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
-                        continue
-
-                    if action == "show":
-                        # Display expected commands or response for this question
-                        expected = []
-                        for vs in q.get('validation_steps', []):
-                            cmd = vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', None)
-                            if cmd:
-                                expected.append(cmd)
-                        if not expected and q.get('response'):
-                            expected = [q['response']]
-                        print(f"{Fore.CYAN}Expected answer(s):{Style.RESET_ALL}")
-                        for cmd in expected:
-                            print(f"  {cmd}")
+                    if action == "visit_source":
+                        # Use citation if provided, fallback to source for URL
+                        url = q.get('citation') or q.get('source')
+                        if url:
+                            print(f"Opening documentation at {url} ...")
+                            webbrowser.open(url)
+                        else:
+                            print(f"{Fore.YELLOW}No source URL defined for this question.{Style.RESET_ALL}")
                         continue
                     if action == "flag":
                         data_file_path = q.get('data_file', args.file)
@@ -746,6 +900,10 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
+                        # Handle plain text answers (e.g., Vim, Kubectl command quizzes) with AI evaluation.
+                        if isinstance(result, str):
+                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                            continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
@@ -760,10 +918,6 @@ class NewSession(StudySession):
                             validator = q.get('validator')
                         is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
 
-                        # Vim command questions use AI evaluator
-                        if q.get('category') == 'Vim Commands':
-                            self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                            continue
                         # AI-based semantic validation for command answers
                         if is_ai_validator:
                             attempted_indices.add(current_question_index)
@@ -785,11 +939,10 @@ class NewSession(StudySession):
                         # No-cluster mode for live k8s questions also uses AI evaluator
                         if is_mocked_k8s:
                             # AI-based k8s validation for live questions without a cluster
-                            # Use the question's expected response as the command to validate
-                            expected_cmd = q.get('response', '')
-                            self._check_k8s_command_with_ai(
+                            # Use the user's answer to validate.
+                            self._check_command_with_ai(
                                 q,
-                                expected_cmd,
+                                result,
                                 current_question_index,
                                 attempted_indices,
                                 correct_indices
@@ -809,6 +962,9 @@ class NewSession(StudySession):
             # If user exited the quiz early, return to quiz menu without summary.
             if quiz_backed_out:
                 print(f"\n{Fore.YELLOW}Returning to quiz selection menu.{Style.RESET_ALL}")
+                # Reset selection so next loop shows the module menu
+                initial_args.file = None
+                initial_args.review_only = False
                 continue
             
             end_time = datetime.now()
@@ -850,49 +1006,17 @@ class NewSession(StudySession):
             stats[category]['correct'] += 1
         return stats
 
-    def _check_k8s_command_with_ai(self, q, expected_command: str, current_question_index, attempted_indices, correct_indices):
+
+    def _check_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
         """
-        Helper to evaluate a k8s command using the AI evaluator, for use when no live cluster is available.
-        """
-        attempted_indices.add(current_question_index)
-
-        try:
-            from kubelingo.modules.ai_evaluator import AIEvaluator
-            evaluator = AIEvaluator()
-            # Provide the expected command for AI comparison
-            ai_result = evaluator.evaluate_k8s_command(q, expected_command)
-            is_correct = ai_result.get('correct', False)
-            reasoning = ai_result.get('reasoning', 'No reasoning provided.')
-            
-            status = 'Correct' if is_correct else 'Incorrect'
-            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-
-            if is_correct:
-                correct_indices.add(current_question_index)
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                correct_indices.discard(current_question_index)
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-            
-            # Show explanation if correct
-            if is_correct and q.get('explanation'):
-                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-
-        except ImportError:
-            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
-        except Exception as e:
-            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
-
-    def _check_vim_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
-        """
-        Helper to evaluate a Vim command using the AI evaluator.
+        Helper to evaluate a command-based answer using the AI evaluator.
         """
         attempted_indices.add(current_question_index)
 
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
             evaluator = AIEvaluator()
-            result = evaluator.evaluate_vim_command(q, user_command)
+            result = evaluator.evaluate_command(q, user_command)
             is_correct = result.get('correct', False)
             reasoning = result.get('reasoning', 'No reasoning provided.')
             
@@ -911,7 +1035,7 @@ class NewSession(StudySession):
                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
         except ImportError:
-            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check Vim command.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
         except Exception as e:
             print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
 
@@ -1019,36 +1143,6 @@ class NewSession(StudySession):
         
         return is_correct
 
-    def _build_interactive_menu_choices(self):
-        """Helper to construct the list of choices for the interactive menu."""
-        all_quiz_files = sorted(
-            _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files() +
-            ([VIM_QUESTIONS_FILE] if os.path.exists(VIM_QUESTIONS_FILE) else [])
-        )
-        all_flagged = get_all_flagged_questions()
-
-        choices = []
-        if all_flagged:
-            choices.append({"name": f"Review {len(all_flagged)} Flagged Questions", "value": "review"})
-        
-        if all_quiz_files:
-            choices.append(questionary.Separator("Standard Quizzes"))
-            for file_path in all_quiz_files:
-                base = os.path.basename(file_path)
-                name = os.path.splitext(base)[0]
-                subject = humanize_module(name).strip()
-                title = f"{subject} ({base})"
-                choices.append({"name": title, "value": file_path})
-        
-        if all_flagged:
-            choices.append(questionary.Separator())
-            choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
-
-        choices.append(questionary.Separator())
-        choices.append({"name": "Back to Main Menu", "value": "back"})
-        choices.append({"name": "Exit App", "value": "exit_app"})
-
-        return choices, all_flagged
 
     def _check_cluster_connectivity(self):
         """Checks if kubectl can connect to a cluster and provides helpful error messages."""

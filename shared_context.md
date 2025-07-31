@@ -293,3 +293,48 @@ The interactive command-line interface has experienced a significant regression,
 - The per-question action menu (`kubelingo/modules/kubernetes/session.py`).
 
 **Path to Resolution**: To fix this, the application's interactive prompts must be systematically updated to once again use the dictionary-based choice format and `use_indicator=True` flag. This will restore the consistent, user-friendly interface that was previously achieved.
+
+## Interactive CLI Flow
+
+> For now, skip the very first screen - we are only evaluating single commands so the distinction between pty and docker does not matter. Disable the 'kustom' option too. Leave it grayed out and unselectable to indicate it will be build later on. What we really want, is a screen that comes up listing quiz modules ('vim' is the only one we have implemented correctly, the rest should be greyed out and disabled, but visible) and it should look like: 1. Vim Quiz 2. Review Flagged 3. Help (just shows all the parser args and menu options etc) 4. Exit App 5. Session Type (visible but disabled) 6. Custom Quiz (visible but disabled) ...(then you can list all other disabled quiz options that were there previously, killercoda, core_concepts, CRDs, pods etc - make sure they are visible but greyed out and disabled)
+
+When `kubelingo` is run without any arguments, it enters a simplified interactive mode. The initial session type selection (PTY/Docker) is skipped, and the user is taken directly to the main quiz selection menu.
+
+This menu displays:
+1.  **Vim Quiz**: The primary, active quiz module.
+2.  **Review Flagged Questions**: A session with all questions the user has marked for review.
+3.  **Help**: Displays help information about command-line arguments and options.
+4.  **Exit App**: Quits the application.
+
+Other options like `Session Type`, `Custom Quiz`, and other quiz modules (`killercoda`, `core_concepts`, etc.) are displayed but are disabled and unselectable, indicating they are planned for future implementation.
+
+## AI System Prompts
+
+To ensure consistent and accurate evaluations, Kubelingo uses carefully crafted system prompts to instruct the AI model.
+
+#### For Full-Transcript Evaluation
+
+This prompt is used by the `AIEvaluator.evaluate` method, which assesses a user's entire sandbox session. It provides a holistic view of the user's problem-solving approach.
+
+```
+You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to solve a problem in a sandboxed terminal environment.
+Based on the provided question, the expected validation steps, the terminal transcript, and any associated logs (like vim commands), determine if the user successfully completed the task.
+Your response MUST be a JSON object with two keys:
+1. "correct": a boolean value (true if the user's solution is correct, false otherwise).
+2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+```
+
+#### For Single-Command Evaluation
+
+This prompt is used by the `AIEvaluator.evaluate_command` method, which provides quick, semantic validation for single-line command questions. It is designed to be lightweight and suitable for knowledge checks.
+
+```
+You are an expert instructor preparing a student for the Certified Kubernetes Application Developer (CKAD) exam.
+Your task is to evaluate a user's attempt to answer a question by providing a single command.
+You will be given the question, the user's submitted command, a list of expected correct commands, and sometimes a source URL for documentation.
+Your response MUST be a JSON object with two keys:
+1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
+2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
+If a source URL is provided, please cite it in your reasoning.
+```

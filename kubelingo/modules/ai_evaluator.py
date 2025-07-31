@@ -69,79 +69,13 @@ Your response MUST be a JSON object with two keys:
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
 
-    def evaluate_k8s_command(self, question_data, user_command):
+
+    def evaluate_command(self, question_data, user_command):
         """
-        Evaluates a user's kubectl command against the question using an AI model.
+        Evaluates a user's command against the question using an AI model.
 
         Args:
-            question_data (dict): The question, including prompt and expected answers.
-            user_command (str): The command entered by the user.
-
-        Returns:
-            dict: A dictionary with 'correct' (bool) and 'reasoning' (str).
-        """
-        global llm
-        if llm is None:
-            try:
-                import llm as llm_module
-                llm = llm_module
-            except ImportError:
-                return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
-
-        prompt = question_data.get('prompt', '')
-        expected_answers = []
-        # If an AI-based validator is specified, use its expected command(s)
-        validator = question_data.get('validator', {}) or {}
-        if validator.get('type') == 'ai':
-            exp = validator.get('expected')
-            if isinstance(exp, (list, tuple)):
-                expected_answers = list(exp)
-            elif isinstance(exp, str):
-                expected_answers = [exp]
-        else:
-            # Fallback to question response or validation steps
-            if question_data.get('response'):
-                expected_answers.append(question_data['response'])
-            for step in question_data.get('validation_steps', []):
-                cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
-                if cmd:
-                    expected_answers.append(cmd)
-
-        system_prompt = """
-You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to answer a question by providing a single `kubectl` command.
-You will be given the question, the user's submitted command, and a list of expected correct commands.
-Your response MUST be a JSON object with two keys:
-1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
-2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
-Consider variations, like short resource names (`po` for `pods`) and equivalent flags.
-"""
-
-        user_content = f"Question: {prompt}\n\n"
-        user_content += f"User's command: `{user_command}`\n\n"
-        if expected_answers:
-            user_content += "Expected answer(s) (for reference):\n"
-            for ans in expected_answers:
-                user_content += f"- `{ans}`\n"
-            user_content += "\n"
-
-        user_content += "\nBased on the above, please evaluate the user's command and respond only with the required JSON object."
-
-        try:
-            model = llm.get_model("gpt-4-turbo-preview")
-            response = model.prompt(
-                user_content,
-                system=system_prompt
-            ).text()
-            return json.loads(response)
-        except Exception as e:
-            return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
-
-    def evaluate_vim_command(self, question_data, user_command):
-        """
-        Evaluates a user's vim command against the question using an AI model.
-
-        Args:
-            question_data (dict): The question, including prompt and expected answers.
+            question_data (dict): The question, including prompt, expected answers, and source.
             user_command (str): The command entered by the user.
 
         Returns:
@@ -165,12 +99,15 @@ Consider variations, like short resource names (`po` for `pods`) and equivalent 
                 expected_answers.append(cmd)
 
         system_prompt = """
-You are an expert Vim user and trainer. Your task is to evaluate a user's attempt to answer a question about a Vim command.
-You will be given the question, the user's submitted command, and a list of expected correct commands.
+You are an expert instructor preparing a student for the Certified Kubernetes Application Developer (CKAD) exam.
+Your task is to evaluate a user's attempt to answer a question by providing a single command.
+You will be given the question, the user's submitted command, a list of expected correct commands, and sometimes a source URL for documentation.
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
-Consider variations and equivalent commands. For example, if the answer is `:w`, `:write` should also be correct.
+Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
+A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
+If a source URL is provided, please cite it in your reasoning.
 """
 
         user_content = f"Question: {prompt}\n\n"
@@ -180,8 +117,12 @@ Consider variations and equivalent commands. For example, if the answer is `:w`,
             for ans in expected_answers:
                 user_content += f"- `{ans}`\n"
             user_content += "\n"
+        
+        source_url = question_data.get('source')
+        if source_url:
+            user_content += f"Please cite this documentation source in your reasoning: {source_url}\n\n"
 
-        user_content += "\nBased on the above, please evaluate the user's command and respond only with the required JSON object."
+        user_content += "Based on the above, please evaluate the user's command and respond only with the required JSON object."
 
         try:
             model = llm.get_model("gpt-4-turbo-preview")

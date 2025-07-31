@@ -12,8 +12,18 @@ LOGS_DIR = os.path.join(ROOT, 'logs')
 # JSON files
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
+# Built-in YAML-edit quiz data (JSON form)
 YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_edit_questions.json')
-VIM_QUESTIONS_FILE = os.path.join(JSON_DIR, 'vim_quiz_data.json')
+# Built-in Vim quiz data file (JSON-based quiz)
+VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim.json')
+KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
+
+# --- Enabled Quizzes ---
+# Quizzes that appear as primary options in the interactive menu.
+ENABLED_QUIZZES = {
+    "Vim Quiz": VIM_QUESTIONS_FILE,
+    "Kubectl Commands": KUBECTL_OPERATIONS_QUIZ_FILE,
+}
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
