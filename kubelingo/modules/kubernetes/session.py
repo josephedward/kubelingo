@@ -24,12 +24,9 @@ from kubelingo.utils.config import (
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
     KILLERCODA_CSV_FILE,
-    KUBECTL_OPERATIONS_QUIZ_FILE,
+    ENABLED_QUIZZES,
+    VIM_QUESTIONS_FILE,
 )
-
-# The VIM_QUESTIONS_FILE in config points to a .yaml file which causes a parsing error.
-# The correct data is in `question-data/json/vim.json`. We define the path here to fix it.
-VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim.json')
 
 try:
     from prompt_toolkit import PromptSession
@@ -402,20 +399,21 @@ class NewSession(StudySession):
         # Discover all quiz files from JSON, MD, and YAML sources.
         all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
         
-        # Explicitly remove the main vim quiz file from the "other" list to avoid duplication.
-        # We compare file stems to catch vim_quiz.json, vim_quiz.md, etc., robustly.
-        vim_quiz_stem = Path(VIM_QUESTIONS_FILE).stem
-        kubectl_ops_quiz_stem = Path(KUBECTL_OPERATIONS_QUIZ_FILE).stem
-        all_quiz_files = [p for p in all_quiz_files if Path(p).stem not in (vim_quiz_stem, kubectl_ops_quiz_stem)]
+        # Explicitly remove enabled quizzes from the "other" list to avoid duplication.
+        enabled_quiz_stems = {Path(p).stem for p in ENABLED_QUIZZES.values()}
+        all_quiz_files = [p for p in all_quiz_files if Path(p).stem not in enabled_quiz_stems]
         all_quiz_files = sorted(list(set(all_quiz_files)))
 
         all_flagged = get_all_flagged_questions()
         
         choices = []
 
-        # 1. Vim Quiz - now always enabled. If file is missing, load will fail.
-        choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
-        choices.append({"name": "Kubectl Commands", "value": KUBECTL_OPERATIONS_QUIZ_FILE})
+        # 1. Add enabled quizzes from config
+        for name, path in ENABLED_QUIZZES.items():
+            if os.path.exists(path):
+                choices.append({"name": name, "value": path})
+            else:
+                choices.append({"name": name, "value": f"{path}_disabled", "disabled": "Not available"})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -900,16 +898,9 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
-                        # Handle plain text answers (e.g., Vim command quiz) with direct comparison
+                        # Handle plain text answers (e.g., Vim, Kubectl commands) with AI evaluation.
                         if isinstance(result, str):
-                            expected = q.get('response', '')
-                            attempted_indices.add(current_question_index)
-                            if result.strip() == expected:
-                                correct_indices.add(current_question_index)
-                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                            else:
-                                correct_indices.discard(current_question_index)
-                                print(f"{Fore.RED}Incorrect. Expected: {expected}{Style.RESET_ALL}")
+                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                             continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
@@ -925,10 +916,6 @@ class NewSession(StudySession):
                             validator = q.get('validator')
                         is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
 
-                        # Vim command questions use AI evaluator
-                        if q.get('category') == 'Vim Commands':
-                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                            continue
                         # AI-based semantic validation for command answers
                         if is_ai_validator:
                             attempted_indices.add(current_question_index)
