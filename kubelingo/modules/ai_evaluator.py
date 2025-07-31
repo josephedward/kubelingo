@@ -90,12 +90,22 @@ Your response MUST be a JSON object with two keys:
 
         prompt = question_data.get('prompt', '')
         expected_answers = []
-        if question_data.get('response'):
-            expected_answers.append(question_data['response'])
-        for step in question_data.get('validation_steps', []):
-            cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
-            if cmd:
-                expected_answers.append(cmd)
+        # If an AI-based validator is specified, use its expected command(s)
+        validator = question_data.get('validator', {}) or {}
+        if validator.get('type') == 'ai':
+            exp = validator.get('expected')
+            if isinstance(exp, (list, tuple)):
+                expected_answers = list(exp)
+            elif isinstance(exp, str):
+                expected_answers = [exp]
+        else:
+            # Fallback to question response or validation steps
+            if question_data.get('response'):
+                expected_answers.append(question_data['response'])
+            for step in question_data.get('validation_steps', []):
+                cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
+                if cmd:
+                    expected_answers.append(cmd)
 
         system_prompt = """
 You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to answer a question by providing a single `kubectl` command.

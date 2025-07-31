@@ -146,10 +146,34 @@ def main():
         sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
     print_banner()
     print()
-    # Warn prominently if no OpenAI API key is set (skip when showing help)
+    # Attempt to load OpenAI API key from user config if not set
+    import getpass
+    from pathlib import Path
+    if not os.getenv('OPENAI_API_KEY'):
+        cfg_dir = Path.home() / '.kubelingo'
+        key_file = cfg_dir / 'api_key'
+        if key_file.exists():
+            try:
+                key = key_file.read_text(encoding='utf-8').strip()
+                if key:
+                    os.environ['OPENAI_API_KEY'] = key
+            except Exception:
+                pass
+    # Prompt for key if still missing and not requesting help
+    if not os.getenv('OPENAI_API_KEY') and '--help' not in sys.argv and '-h' not in sys.argv:
+        prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
+        if prompt:
+            try:
+                cfg_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+                key_file.write_text(prompt.strip(), encoding='utf-8')
+                os.chmod(str(key_file), 0o600)
+                os.environ['OPENAI_API_KEY'] = prompt.strip()
+                print(f"{Fore.GREEN}OpenAI API key saved to {key_file}{Style.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.RED}Failed to save API key: {e}{Style.RESET_ALL}")
+    # Warn prominently if no OpenAI API key is available (skip when showing help)
     if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('OPENAI_API_KEY'):
-        print(f"{Fore.RED}AI explanations are disabled: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
-        print(f"{Fore.RED}To enable AI features, set OPENAI_API_KEY or install 'kubelingo[llm]'.{Style.RESET_ALL}")
+        print(f"{Fore.RED}AI explanations are disabled: no OpenAI API key provided.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
     # Unified exercise mode: run questions from question-data modules
     parser.add_argument('--exercise-module', type=str,
@@ -323,8 +347,9 @@ def main():
                     elif text_choice == '5': quiz_choice = 'exit'
 
 
+                # Exit quiz type selection: return to session-type menu
                 if quiz_choice is None or quiz_choice == 'exit':
-                    return
+                    break
                 if quiz_choice == 'back':
                     continue
 
@@ -367,18 +392,18 @@ def main():
                 if module_name == 'custom':
                     if not args.custom_file and not args.exercises:
                         print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
-                        return
+                        continue
                 session = load_session(module_name, logger)
                 if session:
                     init_ok = session.initialize()
                     if not init_ok:
-                        print(Fore.RED + f"Module '{module_name}' initialization failed. Exiting." + Style.RESET_ALL)
-                        return
+                        print(Fore.RED + f"Module '{module_name}' initialization failed. Returning to menu." + Style.RESET_ALL)
+                        continue
                     session.run_exercises(args)
                     session.cleanup()
                 else:
                     print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
-                return
+                    continue
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
             return

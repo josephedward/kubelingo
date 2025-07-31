@@ -55,6 +55,7 @@ class MDLoader(BaseLoader):
 
             questions.append(Question(
                 id=qid,
+                type=item.get('type') or 'command',
                 prompt=item.get('prompt', ''),
                 pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                 initial_files=initial_files,
@@ -96,6 +97,7 @@ class MDLoader(BaseLoader):
             validation_steps = [ValidationStep(cmd=cmd, matcher={})] if cmd else []
             questions.append(Question(
                 id=f"{module}::{qidx}",
+                type='command',
                 prompt=prompt,
                 validation_steps=validation_steps
             ))
