@@ -327,7 +327,7 @@ def main():
                     quiz_choice = questionary.select(
                         f"Session: {session_choice.upper()}. Select quiz type:",
                         choices=[
-                            questionary.Choice("Vim Command Quiz", value="k8s"),
+                            questionary.Choice("CKAD Exercises", value="k8s"),
                             questionary.Choice("Review flagged questions", value="review"),
                             questionary.Separator(),
                             questionary.Choice("Back to session selection", value="back"),
@@ -337,7 +337,7 @@ def main():
                     ).ask()
                 else:
                     # Text fallback
-                    print(f"\nSession: {session_choice.upper()}. Select quiz type:\n 1) Vim Command Quiz\n 2) Review flagged questions\n 3) Back\n 4) Exit")
+                    print(f"\nSession: {session_choice.upper()}. Select quiz type:\n 1) CKAD Exercises\n 2) Review flagged questions\n 3) Back\n 4) Exit")
                     text_choice = input("Choice: ").strip()
                     if text_choice == '1': quiz_choice = 'k8s'
                     elif text_choice == '2': quiz_choice = 'review'
