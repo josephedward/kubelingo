@@ -129,6 +129,7 @@ Updated interactive CLI quiz session to:
   - **Feature**: Questions are now de-duplicated by prompt text after loading to ensure a clean study session.
   - **Feature**: Added a "Show Model Answer" option to the in-quiz menu for questions that have a model response defined.
   - **Feature**: The Vim/YAML editor now displays the exercise prompt before opening the editor and uses a temporary `.vimrc` file to ensure consistent 2-space tabbing.
+  - **Feature**: Added `kubectl_common_operations.yaml`, a new quiz based on the official Kubernetes documentation examples. The questions cover common `kubectl` commands and are intended for AI-based evaluation, allowing for flexibility with aliases and command variations.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
