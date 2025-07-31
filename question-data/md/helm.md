@@ -16,7 +16,7 @@ helm create chart-test ## this would create a helm
 </p>
 </details>
 
-### Running a Helm chart
+### What are the steps to deploy an application using a Helm chart, assuming you have already created a basic Helm chart?
 
 <details><summary>show</summary>
 <p>
@@ -28,7 +28,7 @@ helm install -f myvalues.yaml myredis ./redis
 </p>
 </details>
 
-### Find pending Helm deployments on all namespaces
+### After deploying an application using a Helm chart, how can you find all pending Helm deployments across all namespaces?
 
 <details><summary>show</summary>
 <p>
@@ -40,7 +40,7 @@ helm list --pending -A
 </p>
 </details>
 
-### Uninstall a Helm release
+### How can you uninstall a Helm release after identifying pending Helm deployments across all namespaces?
 
 <details><summary>show</summary>
 <p>
@@ -52,7 +52,7 @@ helm uninstall -n namespace release_name
 </p>
 </details>
 
-### Upgrading a Helm chart
+### What is the command to upgrade a Helm chart after uninstalling a Helm release, a process used for managing applications in Kubernetes?
 
 <details><summary>show</summary>
 <p>
@@ -64,7 +64,7 @@ helm upgrade -f myvalues.yaml -f override.yaml redis ./redis
 </p>
 </details>
 
-### Using Helm repo
+### What is the command to add or update a Helm chart repository before upgrading a Helm chart, a necessary step when managing applications in Kubernetes?
 
 <details><summary>show</summary>
 <p>
@@ -88,7 +88,7 @@ helm repo index [DIR] [flags]
 </p>
 </details>
 
-### Download a Helm chart from a repository 
+### What is the command to download a Helm chart from a repository after adding or updating the Helm chart repository, a step necessary when managing applications in Kubernetes?
 
 <details><summary>show</summary>
 <p>
@@ -101,7 +101,7 @@ helm pull --untar [rep/chartname] # untar the chart after downloading it
 </p>
 </details>
 
-### Add the Bitnami repo at https://charts.bitnami.com/bitnami to Helm
+### What is the command to add the Bitnami repo located at https://charts.bitnami.com/bitnami to Helm, a step necessary before downloading Helm charts from this repository when managing applications in Kubernetes?
 <details><summary>show</summary>
 <p>
     
@@ -112,7 +112,7 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 </p>
 </details>
 
-### Write the contents of the values.yaml file of the `bitnami/node` chart to standard output
+### After adding the Bitnami repo to Helm, a necessary step before downloading Helm charts for managing applications in Kubernetes, write the contents of the values.yaml file of the `bitnami/node` chart to standard output.
 <details><summary>show</summary>
 <p>
     
@@ -123,7 +123,7 @@ helm show values bitnami/node
 </p>
 </details>
 
-### Install the `bitnami/node` chart setting the number of replicas to 5
+### Install the `bitnami/node` chart using Helm, which is necessary for managing applications in Kubernetes after adding the Bitnami repo to Helm, setting the number of replicas to 5.
 <details><summary>show</summary>
 <p>
 

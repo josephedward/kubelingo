@@ -91,7 +91,7 @@ kubectl delete po busybox
 </details>
 
 
-### Create a PersistentVolume of 10Gi, called 'myvolume'. Make it have accessMode of 'ReadWriteOnce' and 'ReadWriteMany', storageClassName 'normal', mounted on hostPath '/etc/foo'. Save it on pv.yaml, add it to the cluster. Show the PersistentVolumes that exist on the cluster
+### Create a PersistentVolume named 'myvolume' with a size of 10Gi, supporting access modes 'ReadWriteOnce' and 'ReadWriteMany', and using the storageClassName 'normal'. This PersistentVolume should be configured to mount on hostPath '/etc/foo', replicating the setup from a previous task where a busybox pod with two containers was created to share an emptyDir volume at '/etc/foo'. Write the PersistentVolume configuration to a file named pv.yaml and apply it to your Kubernetes cluster. Afterward, display the list of PersistentVolumes currently available in the cluster.
 
 <details><summary>show</summary>
 <p>
@@ -127,7 +127,7 @@ kubectl get pv
 </p>
 </details>
 
-### Create a PersistentVolumeClaim for this PersistentVolume, called 'mypvc', a request of 4Gi and an accessMode of ReadWriteOnce, with the storageClassName of normal, and save it on pvc.yaml. Create it on the cluster. Show the PersistentVolumeClaims of the cluster. Show the PersistentVolumes of the cluster
+### Create a PersistentVolumeClaim named 'mypvc' to use with the existing PersistentVolume 'myvolume'. The 'myvolume' PersistentVolume was previously created with a size of 10Gi, supports access modes 'ReadWriteOnce' and 'ReadWriteMany', and uses the storageClassName 'normal'. Configure 'mypvc' with a request for 4Gi, an access mode of ReadWriteOnce, and the same storageClassName 'normal'. Write the PersistentVolumeClaim configuration to a file named pvc.yaml and apply it to your Kubernetes cluster. Afterward, display the list of PersistentVolumeClaims and the list of PersistentVolumes currently available in the cluster.
 
 <details><summary>show</summary>
 <p>
@@ -166,7 +166,7 @@ kubectl get pv # will show as 'Bound' as well
 </p>
 </details>
 
-### Create a busybox pod with command 'sleep 3600', save it on pod.yaml. Mount the PersistentVolumeClaim to '/etc/foo'. Connect to the 'busybox' pod, and copy the '/etc/passwd' file to '/etc/foo/passwd'
+### Create a busybox pod with the command 'sleep 3600' and save the configuration to a file named pod.yaml. Mount the PersistentVolumeClaim 'mypvc', which was configured with a request for 4Gi, an access mode of ReadWriteOnce, and with the storageClassName 'normal', to the directory '/etc/foo' within the pod. After the pod is running, connect to the 'busybox' pod and copy the '/etc/passwd' file to '/etc/foo/passwd'.
 
 <details><summary>show</summary>
 <p>
@@ -225,7 +225,7 @@ kubectl exec busybox -it -- cp /etc/passwd /etc/foo/passwd
 </p>
 </details>
 
-### Create a second pod which is identical with the one you just created (you can easily do it by changing the 'name' property on pod.yaml). Connect to it and verify that '/etc/foo' contains the 'passwd' file. Delete pods to cleanup. Note: If you can't see the file from the second pod, can you figure out why? What would you do to fix that?
+### Create a second busybox pod with the command 'sleep 3600,' ensuring it mounts the PersistentVolumeClaim 'mypvc'—which is configured with a request for 4Gi, an access mode of ReadWriteOnce, and with the storageClassName 'normal'—to the directory '/etc/foo,' similarly to the first pod you created as described. Save the configuration to a file with a different name, ensuring you change only the 'name' property of the pod in your YAML file. After the pod is running, connect to this new busybox pod and verify that '/etc/foo' contains the 'passwd' file, which was previously copied to this location in the first pod. Delete both pods to clean up after the verification. If you cannot see the 'passwd' file from the second pod, identify the reason why it might not be visible and propose a solution to fix this issue.
 
 
 
@@ -260,7 +260,7 @@ There are lots of different types per cloud provider [(see here)](https://kubern
 </p>
 </details>
 
-### Create a busybox pod with 'sleep 3600' as arguments. Copy '/etc/passwd' from the pod to your local folder
+### Create a busybox pod with the command 'sleep 3600,' ensuring it mounts the same PersistentVolumeClaim 'mypvc'—configured with a request for 4Gi, an access mode of ReadWriteOnce, and with the storageClassName 'normal'—to the directory '/etc/foo'. After the pod is running, copy '/etc/passwd' to '/etc/foo' within the pod, and then copy '/etc/foo/passwd' from the pod to your local folder.
 
 <details><summary>show</summary>
 <p>

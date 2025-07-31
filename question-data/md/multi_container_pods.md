@@ -50,7 +50,7 @@ kubectl delete po busybox
 </p>
 </details>
 
-### Create a pod with an nginx container exposed on port 80. Add a busybox init container which downloads a page using 'echo "Test" > /work-dir/index.html'. Make a volume of type emptyDir and mount it in both containers. For the nginx container, mount it on "/usr/share/nginx/html" and for the initcontainer, mount it on "/work-dir". When done, get the IP of the created pod and create a busybox pod and run "wget -O- IP"
+### Create a pod with an nginx container exposed on port 80 and add a busybox init container that performs the command "echo 'Test' > /work-dir/index.html". To share data between the init container and the nginx container, use a volume of type emptyDir. Mount this volume at "/work-dir" in the init container and at "/usr/share/nginx/html" in the nginx container to replace the default nginx webpage. After setting up the pod, determine its IP address. Then, create a separate pod with a busybox container and execute the command "wget -O- [IP of the first pod]" to download and display the content served by the nginx container.
 
 <details><summary>show</summary>
 <p>
