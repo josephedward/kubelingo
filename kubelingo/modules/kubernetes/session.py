@@ -24,6 +24,7 @@ from kubelingo.utils.config import (
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
     KILLERCODA_CSV_FILE,
+    KUBECTL_OPERATIONS_QUIZ_FILE,
 )
 
 # The VIM_QUESTIONS_FILE in config points to a .yaml file which causes a parsing error.
@@ -404,7 +405,8 @@ class NewSession(StudySession):
         # Explicitly remove the main vim quiz file from the "other" list to avoid duplication.
         # We compare file stems to catch vim_quiz.json, vim_quiz.md, etc., robustly.
         vim_quiz_stem = Path(VIM_QUESTIONS_FILE).stem
-        all_quiz_files = [p for p in all_quiz_files if Path(p).stem != vim_quiz_stem]
+        kubectl_ops_quiz_stem = Path(KUBECTL_OPERATIONS_QUIZ_FILE).stem
+        all_quiz_files = [p for p in all_quiz_files if Path(p).stem not in (vim_quiz_stem, kubectl_ops_quiz_stem)]
         all_quiz_files = sorted(list(set(all_quiz_files)))
 
         all_flagged = get_all_flagged_questions()
@@ -413,6 +415,7 @@ class NewSession(StudySession):
 
         # 1. Vim Quiz - now always enabled. If file is missing, load will fail.
         choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
+        choices.append({"name": "Kubectl Commands", "value": KUBECTL_OPERATIONS_QUIZ_FILE})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
