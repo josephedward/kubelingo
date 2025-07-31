@@ -408,8 +408,11 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Vim Quiz - now always enabled. If file is missing, load will fail.
-        choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
+        # 1. Vim Quiz - enabled only if file exists
+        if os.path.exists(VIM_QUESTIONS_FILE):
+            choices.append({"name": "Vim Quiz", "value": VIM_QUESTIONS_FILE})
+        else:
+            choices.append({"name": "Vim Quiz", "value": "vim_quiz_disabled", "disabled": "Not available"})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -431,8 +434,9 @@ class NewSession(StudySession):
         # 6. Custom Quiz (disabled)
         choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
         
+        choices.append(questionary.Separator())
+
         if all_quiz_files:
-            choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
             for file_path in all_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
