@@ -3,6 +3,7 @@ import json
 from unittest.mock import patch, Mock
 import yaml
 import os
+import os
 
 # Import the function to be tested and the path to the data file from the CLI module.
 # This makes the test robust against changes in file locations.
