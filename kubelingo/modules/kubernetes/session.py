@@ -425,12 +425,6 @@ class NewSession(StudySession):
         while True:
             # For each quiz, use a fresh copy of args.
             args = copy.deepcopy(initial_args)
-            # When run without arguments, args.file may be defaulted.
-            # Force interactive quiz selection by clearing the file if no other
-            # filters like category, review-only, or number of questions are active.
-            if (args.file and os.path.basename(args.file) == os.path.basename(DEFAULT_DATA_FILE) and
-                    not args.category and not args.review_only and not (args.num and args.num > 0)):
-                args.file = None
 
             start_time = datetime.now()
             # Unique session identifier for transcript storage
