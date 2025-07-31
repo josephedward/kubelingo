@@ -293,3 +293,51 @@ The interactive command-line interface has experienced a significant regression,
 - The per-question action menu (`kubelingo/modules/kubernetes/session.py`).
 
 **Path to Resolution**: To fix this, the application's interactive prompts must be systematically updated to once again use the dictionary-based choice format and `use_indicator=True` flag. This will restore the consistent, user-friendly interface that was previously achieved.
+
+## Interactive CLI Flow
+
+When `kubelingo` is run without any arguments, it enters an interactive mode to guide the user. This flow is designed to be intuitive and provide access to all major features without requiring knowledge of command-line flags.
+
+The flow consists of a series of menus:
+
+1.  **Session Type Selection**: The user first chooses the execution environment for the exercises.
+    -   `PTY Shell`: Runs commands directly on the user's host machine. This is fast but not sandboxed.
+    -   `Docker Container`: Runs commands inside an isolated Docker container, providing a consistent and safe environment.
+    -   `Enter OpenAI API Key`: Allows the user to provide an API key to enable AI-powered features for the session.
+
+2.  **Quiz Type Selection**: After selecting a session type, the user chooses what to study.
+    -   `CKAD Exercises`: Starts the main quiz, currently focused on the Vim command module as part of a simplification effort.
+    -   `Review flagged questions`: Starts a quiz session with only the questions the user has previously flagged for review.
+
+This multi-step menu structure allows for future expansion, such as adding more session types or quiz modules, while keeping the entry point for users simple and clear.
+
+## AI System Prompts
+
+To ensure consistent and accurate evaluations, Kubelingo uses carefully crafted system prompts to instruct the AI model.
+
+#### For Full-Transcript Evaluation
+
+This prompt is used by the `AIEvaluator.evaluate` method, which assesses a user's entire sandbox session. It provides a holistic view of the user's problem-solving approach.
+
+```
+You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to solve a problem in a sandboxed terminal environment.
+Based on the provided question, the expected validation steps, the terminal transcript, and any associated logs (like vim commands), determine if the user successfully completed the task.
+Your response MUST be a JSON object with two keys:
+1. "correct": a boolean value (true if the user's solution is correct, false otherwise).
+2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+```
+
+#### For Single-Command Evaluation
+
+This prompt is used by the `AIEvaluator.evaluate_command` method, which provides quick, semantic validation for single-line command questions. It is designed to be lightweight and suitable for knowledge checks.
+
+```
+You are an expert instructor preparing a student for the Certified Kubernetes Application Developer (CKAD) exam.
+Your task is to evaluate a user's attempt to answer a question by providing a single command.
+You will be given the question, the user's submitted command, a list of expected correct commands, and sometimes a source URL for documentation.
+Your response MUST be a JSON object with two keys:
+1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
+2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
+If a source URL is provided, please cite it in your reasoning.
+```
