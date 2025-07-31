@@ -87,6 +87,8 @@ def show_history():
             print(f"{cat}: {correct}/{asked} ({pct:.1f}%)")
     else:
         print("No per-category stats to aggregate.")
+    # Reset terminal colors after history display
+    print(Style.RESET_ALL)
 
 
 def show_modules():
