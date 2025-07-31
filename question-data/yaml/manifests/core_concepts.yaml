@@ -1,0 +1,12 @@
+"""
+Core Concepts Quiz Manifest
+
+Citation sources:
+- kubectl cheat sheet: https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+- Get a Shell to a Running Container: https://kubernetes.io/docs/tasks/debug-application-cluster/get-shell-running-container/
+- Configure Access to Multiple Clusters: https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/
+- Accessing Clusters: https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/
+- Port Forwarding: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
+"""
+---
+entries: []

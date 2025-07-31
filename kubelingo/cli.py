@@ -22,7 +22,7 @@ except ImportError:
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
-    _get_quiz_files,
+    _get_quiz_files, _get_md_quiz_files, _get_yaml_quiz_files, get_all_flagged_questions
 )
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
@@ -40,7 +40,7 @@ from pathlib import Path
 import subprocess
 import os
 from kubelingo.utils.config import (
-    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE
+    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE, VIM_QUESTIONS_FILE
 )
 
 def show_history():
@@ -276,134 +276,29 @@ def main():
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
         try:
-            while True: # Main menu loop
-                session_choice = None
-                if is_interactive:
-                    session_choice = questionary.select(
-                        "Select a session type:",
-                        choices=[
-                            questionary.Choice("PTY Shell", value="pty"),
-                            questionary.Choice("Docker Container (requires Docker)", value="docker"),
-                            questionary.Separator(),
-                            questionary.Choice("Help", value="help"),
-                            questionary.Choice("Enter OpenAI API Key to enable AI features", value="api_key"),
-                            questionary.Choice("Exit", value="exit"),
-                        ],
-                        use_indicator=True
-                    ).ask()
-                else:
-                    # Text fallback
-                    print("\nSelect a session type:\n 1) PTY Shell\n 2) Docker Container\n 3) Set API Key\n 4) Help\n 5) Exit")
-                    text_choice = input("Choice: ").strip()
-                    if text_choice == '1': session_choice = 'pty'
-                    elif text_choice == '2': session_choice = 'docker'
-                    elif text_choice == '3': session_choice = 'api_key'
-                    elif text_choice == '4': session_choice = 'help'
-                    elif text_choice == '5': session_choice = 'exit'
+            # For interactive mode, we skip session/quiz type selection and go
+            # directly to the unified Kubernetes quiz menu.
+            # We default to PTY mode as the distinction is not currently relevant.
+            args.pty = True
+            args.docker = False
+            args.module = 'kubernetes'
+            # Clear file to trigger interactive selection within the module.
+            args.file = None
 
-                if session_choice is None or session_choice == 'exit':
+            logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+            logger = logging.getLogger()
+
+            session = load_session(args.module, logger)
+            if session:
+                init_ok = session.initialize()
+                if not init_ok:
+                    print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
                     return
-                if session_choice == 'help':
-                    show_session_type_help()
-                    if is_interactive: input("\nPress Enter to return to the menu...")
-                    continue
-                if session_choice == 'api_key':
-                    api_key_prompt = "Enter your OpenAI API Key (leave blank to cancel):"
-                    if is_interactive:
-                        key = questionary.password(api_key_prompt, qmark="🔑").ask()
-                    else:
-                        key = input(api_key_prompt + " ").strip()
-                    if key:
-                        os.environ['OPENAI_API_KEY'] = key
-                        print(f"{Fore.GREEN}OpenAI API key set for this session.{Style.RESET_ALL}")
-                    continue
-
-                args.pty = (session_choice == 'pty')
-                args.docker = (session_choice == 'docker')
-
-                # Quiz type menu
-                quiz_choice = None
-                if is_interactive:
-                    quiz_choice = questionary.select(
-                        f"Session: {session_choice.upper()}. Select quiz type:",
-                        choices=[
-                            questionary.Choice("K8s (preinstalled)", value="k8s"),
-                            questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
-                            questionary.Choice("Review flagged questions", value="review"),
-                            questionary.Separator(),
-                            questionary.Choice("Back to session selection", value="back"),
-                            questionary.Choice("Exit", value="exit"),
-                        ],
-                        use_indicator=True
-                    ).ask()
-                else:
-                    # Text fallback
-                    print(f"\nSession: {session_choice.upper()}. Select quiz type:\n 1) K8s (preinstalled)\n 2) Kustom\n 3) Review\n 4) Back\n 5) Exit")
-                    text_choice = input("Choice: ").strip()
-                    if text_choice == '1': quiz_choice = 'k8s'
-                    elif text_choice == '2': quiz_choice = 'kustom'
-                    elif text_choice == '3': quiz_choice = 'review'
-                    elif text_choice == '4': quiz_choice = 'back'
-                    elif text_choice == '5': quiz_choice = 'exit'
-
-
-                # Exit quiz type selection: return to session-type menu
-                if quiz_choice is None or quiz_choice == 'exit':
-                    break
-                if quiz_choice == 'back':
-                    continue
-
-                if quiz_choice == 'k8s':
-                    args.module = 'kubernetes'
-                    if is_interactive:
-                        if shutil.which('kind'):
-                            start_cluster_choice = questionary.confirm(
-                                "Automatically start a temporary Kubernetes cluster (Kind) for this session?",
-                                default=True
-                            ).ask()
-                            args.start_cluster = start_cluster_choice if start_cluster_choice is not None else False
-                        else:
-                            print(f"{Fore.YELLOW}Warning: `kind` is not installed. Live exercises will require a pre-configured Kubernetes cluster.{Style.RESET_ALL}")
-                elif quiz_choice == 'kustom':
-                    args.module = 'custom'
-                    path_prompt = "Enter path to your custom quiz JSON file:"
-                    if is_interactive:
-                        path = questionary.path(path_prompt).ask()
-                    else:
-                        path = input(path_prompt + " ").strip()
-                    if not path:
-                        print(f"{Fore.YELLOW}No file provided. Returning to main menu.{Style.RESET_ALL}")
-                        continue
-                    args.custom_file = path
-                elif quiz_choice == 'review':
-                    args.module = 'kubernetes'
-                    args.review_only = True
-
-                # Dispatch selected module session
-                # If interactive Kubernetes, clear default file so the unified quiz prompts for a file
-                if args.module == 'kubernetes':
-                    args.file = None
-                # If interactive Kubernetes, clear file so session will prompt for module file
-                if args.module == 'kubernetes':
-                    args.file = None
-                logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-                logger = logging.getLogger()
-                module_name = args.module.lower()
-                if module_name == 'custom':
-                    if not args.custom_file and not args.exercises:
-                        print(Fore.RED + "For the 'kustom' module, you must provide a quiz file with --custom-file or --exercises." + Style.RESET_ALL)
-                        continue
-                session = load_session(module_name, logger)
-                if session:
-                    init_ok = session.initialize()
-                    if not init_ok:
-                        print(Fore.RED + f"Module '{module_name}' initialization failed. Returning to menu." + Style.RESET_ALL)
-                        continue
-                    session.run_exercises(args)
-                    session.cleanup()
-                else:
-                    print(Fore.RED + f"Failed to load module '{module_name}'." + Style.RESET_ALL)
-                    continue
+                # run_exercises will now show the main menu and loop internally.
+                session.run_exercises(args)
+                session.cleanup()
+            else:
+                print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
             return

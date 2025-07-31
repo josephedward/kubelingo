@@ -1,0 +1,49 @@
+# ---
+# Vim Commands Quiz Manifest
+# Each entry contains a question (prompt) and the source material for the answer.
+---
+- id: vim_quiz_data::0
+  question: "Enter insert mode at cursor"
+  citation: "https://vimhelp.org/usr_02.txt.html#02.2"
+- id: vim_quiz_data::1
+  question: "Append text after cursor"
+  citation: "https://vimhelp.org/insert.txt.html#a"
+- id: vim_quiz_data::2
+  question: "Open a new line below the current line"
+  citation: "https://vimhelp.org/insert.txt.html#o"
+- id: vim_quiz_data::3
+  question: "Save file and quit"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_wq"
+- id: vim_quiz_data::4
+  question: "Exit without saving changes"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_wq"
+- id: vim_quiz_data::5
+  question: "Save file without exiting"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_wq"
+- id: vim_quiz_data::6
+  question: "Delete current line"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_de"
+- id: vim_quiz_data::7
+  question: "Copy current line (yank)"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_cm"
+- id: vim_quiz_data::8
+  question: "Paste after cursor"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_cm"
+- id: vim_quiz_data::9
+  question: "Undo last change"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_ur"
+- id: vim_quiz_data::10
+  question: "Search forward for 'pattern'"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::11
+  question: "Find next search occurrence"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_pa"
+- id: vim_quiz_data::12
+  question: "Go to top of file"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_ud"
+- id: vim_quiz_data::13
+  question: "Go to end of file"
+  citation: "https://vimhelp.org/quickref.txt.html#Q_ud"
+- id: vim_quiz_data::14
+  question: "Go to line 10"
+  citation: "https://superuser.com/questions/523819/how-can-i-go-to-particular-line-in-vim"

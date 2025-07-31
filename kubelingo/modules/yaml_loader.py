@@ -9,6 +9,8 @@ except ImportError:
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
+import json
+from kubelingo.utils.config import JSON_DIR
 
 class YAMLLoader(BaseLoader):
     """Discovers and parses YAML question modules."""
@@ -29,14 +31,35 @@ class YAMLLoader(BaseLoader):
         # Load and normalize YAML file into Question objects
         if yaml is None:
             # Cannot process YAML files without PyYAML
+            # Fallback for Vim quiz: load JSON counterpart if available
+            if os.path.basename(path).startswith('vim_quiz'):
+                try:
+                    from kubelingo.modules.json_loader import JSONLoader
+                    json_path = os.path.join(JSON_DIR, 'vim.json')
+                    return JSONLoader().load_file(json_path)
+                except Exception:
+                    pass
             return []
+        # Load all YAML documents (skip leading docstring sections)
         with open(path, encoding='utf-8') as f:
-            raw = yaml.safe_load(f) or {}
+            docs = list(yaml.safe_load_all(f))
+        raw = docs[0] if docs else {}
+        # If first document is not question data (e.g., a docstring), use next
+        if not isinstance(raw, (list, dict)) and len(docs) > 1:
+            raw = docs[1] or {}
         module = raw.get('module') if isinstance(raw, dict) else None
         module = module or os.path.splitext(os.path.basename(path))[0]
         questions: List[Question] = []
         # Flat list of question dicts
         if isinstance(raw, list) and raw and isinstance(raw[0], dict):
+            # Detect Vim quiz to merge expected responses from JSON
+            is_vim = os.path.basename(path).startswith('vim_quiz')
+            vim_json = []
+            if is_vim:
+                try:
+                    vim_json = json.load(open(os.path.join(JSON_DIR, 'vim.json'), encoding='utf-8'))
+                except Exception:
+                    vim_json = []
             for idx, item in enumerate(raw):
                 qid = f"{module}::{idx}"
                 # Populate new schema, falling back to legacy fields
@@ -50,6 +73,11 @@ class YAMLLoader(BaseLoader):
                     cmd = item.get('answer') or item.get('response')
                     if cmd:
                         validation_steps.append(ValidationStep(cmd=cmd, matcher={}))
+                # For Vim quiz, override from JSON responses
+                if is_vim and not validation_steps and idx < len(vim_json):
+                    cmd = vim_json[idx].get('response')
+                    if cmd:
+                        validation_steps = [ValidationStep(cmd=cmd, matcher={})]
 
                 initial_files = item.get('initial_files', {})
                 if not initial_files and 'initial_yaml' in item:
@@ -58,7 +86,7 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
-                    prompt=item.get('prompt', ''),
+                    prompt=(item.get('prompt') or item.get('question', '')),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
                     validation_steps=validation_steps,
@@ -93,7 +121,7 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
-                    prompt=item.get('prompt', ''),
+                    prompt=(item.get('prompt') or item.get('question', '')),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
                     validation_steps=validation_steps,
