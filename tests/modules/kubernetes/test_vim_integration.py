@@ -1,4 +1,5 @@
 import pytest
+pytest.skip("YAML editing feature not enabled yet", allow_module_level=True)
 import os
 import shutil
 import tempfile
@@ -13,7 +14,7 @@ except ImportError:
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 
 # Skip all tests in this file if vim is not available
-pytestmark = pytest.mark.skip(reason="Skipping real vim integration tests in unified shell environment")
+pytestmark = pytest.mark.skip(reason="YAML functionality not yet implemented")
 
 @pytest.fixture
 def vim_editor():

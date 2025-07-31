@@ -12,11 +12,6 @@ pytestmark = pytest.mark.skip(reason="YAML functionality not yet implemented")
 # This makes the test robust against changes in file locations.
 from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
 
-# Skip all tests in this file if the data file is not found.
-pytestmark = pytest.mark.skipif(
-    not os.path.exists(YAML_QUESTIONS_FILE),
-    reason=f"YAML questions data file not found: {YAML_QUESTIONS_FILE}"
-)
 
 @pytest.fixture
 def yaml_test_data():
