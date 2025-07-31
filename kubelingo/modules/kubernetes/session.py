@@ -419,11 +419,14 @@ class NewSession(StudySession):
         if all_flagged:
             review_text = f"Review {len(all_flagged)} Flagged Questions"
         choices.append({"name": review_text, "value": "review"})
+
+        # 3. View Session History
+        choices.append({"name": "View Session History", "value": "view_history"})
         
-        # 3. Help
+        # 4. Help
         choices.append({"name": "Help", "value": "help"})
-        
-        # 4. Exit App
+
+        # 5. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
         
         choices.append(questionary.Separator())
@@ -528,6 +531,12 @@ class NewSession(StudySession):
                 if selected == "help":
                     from kubelingo.utils.ui import show_quiz_type_help
                     show_quiz_type_help()
+                    input("\nPress Enter to return to the menu...")
+                    continue
+                # View past session history
+                if selected == "view_history":
+                    from kubelingo.cli import show_history
+                    show_history()
                     input("\nPress Enter to return to the menu...")
                     continue
 
@@ -799,6 +808,17 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
+                        # Handle plain text answers (e.g., Vim command quiz) with direct comparison
+                        if isinstance(result, str):
+                            expected = q.get('response', '')
+                            attempted_indices.add(current_question_index)
+                            if result.strip() == expected:
+                                correct_indices.add(current_question_index)
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                            else:
+                                correct_indices.discard(current_question_index)
+                                print(f"{Fore.RED}Incorrect. Expected: {expected}{Style.RESET_ALL}")
+                            continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
