@@ -26,6 +26,9 @@ from kubelingo.utils.config import (
     KILLERCODA_CSV_FILE,
     ENABLED_QUIZZES,
     VIM_QUESTIONS_FILE,
+    KUBECTL_SYNTAX_QUIZ_FILE,
+    KUBECTL_OPERATIONS_QUIZ_FILE,
+    KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
 )
 
 try:
@@ -40,76 +43,6 @@ from pathlib import Path
 import os
 
 # AI-based validator for command equivalence
-try:
-    import openai
-except ImportError:
-    openai = None
-
-def ai_validate(transcript: str, expected_cmd: str, question_text: str) -> bool:
-    """
-    Use OpenAI to semantically compare a student's kubectl transcript
-    against the expected command. Returns True if equivalent.
-    """
-    if openai is None:
-        raise RuntimeError('openai package not installed; install with pip install openai')
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise RuntimeError('OPENAI_API_KEY environment variable not set')
-    openai.api_key = api_key
-    messages = [
-        {"role": "system", "content": (
-            "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
-            "to the expected kubectl command. Reply with only 'yes' or 'no'."
-        )},
-        {"role": "user", "content": (
-            f"Question: \"{question_text}\"\n"
-            f"Expected Command: `{expected_cmd}`\n"
-            "Student Transcript:\n"
-            "```\n"
-            f"{transcript}\n"
-            "```\n"
-            "Are these equivalent? Reply 'yes' or 'no'."
-        )}
-    ]
-    resp = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0
-    )
-    reply = resp.choices[0].message.content.strip().lower()
-    return reply.startswith('yes')
-
-
-def ai_validate_command(user_cmd: str, expected_cmd: str, question_text: str) -> bool:
-    """
-    Use OpenAI to semantically compare a student's kubectl command
-    against the expected command. Returns True if equivalent.
-    """
-    if openai is None:
-        raise RuntimeError('openai package not installed; install with pip install openai')
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise RuntimeError('OPENAI_API_KEY environment variable not set')
-    openai.api_key = api_key
-    messages = [
-        {"role": "system", "content": (
-            "You are a Kubernetes expert. Determine if the student's kubectl command is semantically equivalent "
-            "to the expected kubectl command for the given exercise. Reply with only 'yes' or 'no'."
-        )},
-        {"role": "user", "content": (
-            f"Question: \"{question_text}\"\n"
-            f"Expected Command: `{expected_cmd}`\n"
-            f"Student Submitted: `{user_cmd}`\n"
-            "Are these semantically equivalent?"
-        )}
-    ]
-    resp = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0
-    )
-    reply = resp.choices[0].message.content.strip().lower()
-    return reply.startswith('yes')
 
 
 from kubelingo.modules.base.loader import load_session
@@ -133,8 +66,10 @@ def _get_quiz_files():
     if not os.path.isdir(json_dir):
         return []
 
-    # Exclude special files that have their own quiz modes
-    excluded_files = [os.path.basename(f) for f in [YAML_QUESTIONS_FILE, VIM_QUESTIONS_FILE] if f]
+    # Exclude special files that have their own quiz modes or are enabled in the main menu
+    excluded_files = {os.path.basename(f) for f in ENABLED_QUIZZES.values() if f}
+    if YAML_QUESTIONS_FILE:
+        excluded_files.add(os.path.basename(YAML_QUESTIONS_FILE))
 
     return sorted([
         os.path.join(json_dir, f)
@@ -429,8 +364,7 @@ class NewSession(StudySession):
 
         # 5. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
-        
-        choices.append(questionary.Separator())
+        return choices, all_flagged
 
         # 5. Session Type (disabled)
         choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
@@ -442,6 +376,8 @@ class NewSession(StudySession):
         
         if all_quiz_files:
             seen_subjects = set()
+            # List additional quizzes; enable selected ones by default
+            enabled_files = {"kubectl_common_operations.yaml", "resource_reference.yaml"}
             for file_path in all_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
@@ -449,11 +385,15 @@ class NewSession(StudySession):
                 if subject in seen_subjects:
                     continue
                 seen_subjects.add(subject)
-                choices.append({
-                    "name": subject,
-                    "value": file_path,
-                    "disabled": "Not yet implemented"
-                })
+                # Enable certain YAML quizzes, others are coming soon
+                if base in enabled_files:
+                    choices.append({"name": subject, "value": file_path})
+                else:
+                    choices.append({
+                        "name": subject,
+                        "value": file_path,
+                        "disabled": "Not yet implemented"
+                    })
         
         if all_flagged:
             choices.append(questionary.Separator())
@@ -673,12 +613,12 @@ class NewSession(StudySession):
                     print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                     return
 
-            # By default, present questions in order to respect dependencies.
-            # If a number of questions is specified, take a random sample.
-            if args.num and args.num > 0:
-                questions_to_ask = random.sample(questions, min(args.num, len(questions)))
-            else:
-                questions_to_ask = questions
+            # Randomize question order and select the desired number of questions
+            total = len(questions)
+            # Determine how many to ask: either args.num or all questions
+            count = args.num if args.num and args.num > 0 else total
+            # random.sample returns items in random order without replacement
+            questions_to_ask = random.sample(questions, min(count, total))
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
@@ -900,60 +840,18 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
-                        # Handle plain text answers (e.g., Vim, Kubectl command quizzes) with AI evaluation.
-                        if isinstance(result, str):
-                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                            continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
 
-                        is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
-                        # Detect AI-based semantic validator
-                        # Detect AI-based semantic validator configuration
-                        validator = None
-                        if isinstance(q.get('metadata'), dict):
-                            validator = q['metadata'].get('validator')
-                        elif isinstance(q.get('validator'), dict):
-                            validator = q.get('validator')
-                        is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-
-                        # AI-based semantic validation for command answers
-                        if is_ai_validator:
-                            attempted_indices.add(current_question_index)
-                            # Use the configured expected command from validator
-                            expected_cmd = validator.get('expected', '')
-                            try:
-                                is_correct = ai_validate_command(result, expected_cmd, q['prompt'])
-                                if is_correct:
-                                    correct_indices.add(current_question_index)
-                                    print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                                    if q.get('explanation'):
-                                        print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-                                else:
-                                    correct_indices.discard(current_question_index)
-                                    print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                            except Exception as e:
-                                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+                        # If result is a string, it's a text-based answer that needs AI evaluation.
+                        if isinstance(result, str):
+                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                             continue
-                        # No-cluster mode for live k8s questions also uses AI evaluator
-                        if is_mocked_k8s:
-                            # AI-based k8s validation for live questions without a cluster
-                            # Use the user's answer to validate.
-                            self._check_command_with_ai(
-                                q,
-                                result,
-                                current_question_index,
-                                attempted_indices,
-                                correct_indices
-                            )
-                            continue
-
-                        # The result object from run_shell_with_setup is complete.
-                        # We just need to pass it to the processing function.
+                        
+                        # Otherwise, it's a ShellResult from a live exercise.
+                        # This keeps the logic for live k8s exercises.
                         self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-
-                        # After checking, just show the menu again. Let the user decide to move on.
                         continue
                 
                 if quiz_backed_out:
@@ -1048,7 +946,6 @@ class NewSession(StudySession):
         # Explicit AI validator: if question.validator.type == 'ai', use LLM to compare
         validator = q.get('validator')
         if validator and validator.get('type') == 'ai':
-            expected_cmd = validator.get('expected', '')
             # Read transcript if available
             transcript = ''
             try:
@@ -1058,14 +955,19 @@ class NewSession(StudySession):
                 pass
             # Ask AI to validate equivalence
             try:
-                            ok = ai_validate(transcript, expected_cmd, q.get('prompt', ''))
+                from kubelingo.modules.ai_evaluator import AIEvaluator
+                evaluator = AIEvaluator()
+                ai_result = evaluator.evaluate(q, transcript)
+                ok = ai_result.get('correct', False)
+                reasoning = ai_result.get('reasoning', 'No reasoning provided.')
+
+                status = 'Correct' if ok else 'Incorrect'
+                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+
             except Exception as e:
                 print(f"{Fore.YELLOW}AI validator error: {e}{Style.RESET_ALL}")
                 return False
-            # Report and mark answer
-            symbol = '[✓]' if ok else '[✗]'
-            color = Fore.GREEN if ok else Fore.RED
-            print(f"{color}{symbol}{Style.RESET_ALL} Expected: {expected_cmd}")
+
             if ok:
                 correct_indices.add(current_question_index)
                 print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")

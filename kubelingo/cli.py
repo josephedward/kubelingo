@@ -57,6 +57,17 @@ def show_history():
     if not isinstance(history, list) or not history:
         print("No quiz history available.")
         return
+    # Filter to only quizzes currently enabled
+    enabled = set()
+    from kubelingo.utils.config import ENABLED_QUIZZES
+    for path in ENABLED_QUIZZES.values():
+        enabled.add(os.path.basename(path))
+    # Include legacy JSON default if used
+    # Filter history entries
+    history = [h for h in history if h.get('data_file') in enabled]
+    if not history:
+        print("No quiz history for current modules.")
+        return
     print("Quiz History:")
     for entry in history:
         ts = entry.get('timestamp')
@@ -87,6 +98,8 @@ def show_history():
             print(f"{cat}: {correct}/{asked} ({pct:.1f}%)")
     else:
         print("No per-category stats to aggregate.")
+    # Reset terminal colors after history display
+    print(Style.RESET_ALL)
 
 
 def show_modules():
