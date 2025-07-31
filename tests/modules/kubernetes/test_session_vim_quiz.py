@@ -42,19 +42,17 @@ def mock_args():
 
 @patch('kubelingo.modules.kubernetes.session.load_questions')
 @patch('kubelingo.modules.ai_evaluator.AIEvaluator')
-@patch('kubelingo.modules.kubernetes.session.questionary')
+@patch('builtins.input')
 @patch('kubelingo.modules.kubernetes.session.PromptSession')
-def test_vim_quiz_correct_answer(mock_prompt_session, mock_questionary, mock_ai_evaluator, mock_load_questions, session, mock_args, capsys):
+def test_vim_quiz_correct_answer(mock_prompt_session, mock_input, mock_ai_evaluator, mock_load_questions, session, mock_args, capsys):
     """
     Test a Vim quiz flow with a correct answer.
     """
     mock_load_questions.return_value = MOCK_VIM_QUESTIONS
 
-    mock_questionary.select.side_effect = [
-        MagicMock(ask=lambda: "answer"),
-        MagicMock(ask=lambda: "check"),
-        MagicMock(ask=lambda: "back"),
-    ]
+    # Simulate user choosing: 1) Work on Answer, 2) Check Answer, 6) Return to menu
+    mock_input.side_effect = ["1", "2", "6"]
+
     mock_prompt_instance = mock_prompt_session.return_value
     mock_prompt_instance.prompt.return_value = ":wq"
 
@@ -79,19 +77,17 @@ def test_vim_quiz_correct_answer(mock_prompt_session, mock_questionary, mock_ai_
 
 @patch('kubelingo.modules.kubernetes.session.load_questions')
 @patch('kubelingo.modules.ai_evaluator.AIEvaluator')
-@patch('kubelingo.modules.kubernetes.session.questionary')
+@patch('builtins.input')
 @patch('kubelingo.modules.kubernetes.session.PromptSession')
-def test_vim_quiz_incorrect_answer(mock_prompt_session, mock_questionary, mock_ai_evaluator, mock_load_questions, session, mock_args, capsys):
+def test_vim_quiz_incorrect_answer(mock_prompt_session, mock_input, mock_ai_evaluator, mock_load_questions, session, mock_args, capsys):
     """
     Test a Vim quiz flow with an incorrect answer.
     """
     mock_load_questions.return_value = MOCK_VIM_QUESTIONS
 
-    mock_questionary.select.side_effect = [
-        MagicMock(ask=lambda: "answer"),
-        MagicMock(ask=lambda: "check"),
-        MagicMock(ask=lambda: "back"),
-    ]
+    # Simulate user choosing: 1) Work on Answer, 2) Check Answer, 6) Return to menu
+    mock_input.side_effect = ["1", "2", "6"]
+
     mock_prompt_instance = mock_prompt_session.return_value
     mock_prompt_instance.prompt.return_value = ":q!"
 
@@ -114,17 +110,15 @@ def test_vim_quiz_incorrect_answer(mock_prompt_session, mock_questionary, mock_a
     mock_load_questions.assert_called_with("vim_quiz.json")
 
 @patch('kubelingo.modules.kubernetes.session.load_questions')
-@patch('kubelingo.modules.kubernetes.session.questionary')
-def test_vim_quiz_flag_question(mock_questionary, mock_load_questions, session, mock_args, capsys):
+@patch('builtins.input')
+def test_vim_quiz_flag_question(mock_input, mock_load_questions, session, mock_args, capsys):
     """
     Test flagging a question for review in the Vim quiz.
     """
     mock_load_questions.return_value = MOCK_VIM_QUESTIONS
 
-    mock_questionary.select.side_effect = [
-        MagicMock(ask=lambda: "flag"),
-        MagicMock(ask=lambda: "back"),
-    ]
+    # Simulate user choosing: 3) Flag for Review, 6) Return to menu
+    mock_input.side_effect = ["3", "6"]
     
     session.run_exercises(mock_args)
     
