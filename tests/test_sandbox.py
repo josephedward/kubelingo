@@ -16,7 +16,17 @@ def test_spawn_pty_shell_python_fallback(mock_rust_bridge, mock_pty_spawn, mock_
     spawn_pty_shell()
 
     mock_rust_bridge.run_pty_shell.assert_called_once()
-    mock_pty_spawn.assert_called_once_with(['bash', '--login'])
+    # Ensure Python pty.spawn fallback is invoked with bash login and custom init-file
+    mock_pty_spawn.assert_called_once()
+    # Extract the command list passed to pty.spawn
+    args, _ = mock_pty_spawn.call_args
+    cmd = args[0]
+    assert isinstance(cmd, list)
+    # Must invoke bash with --login
+    assert cmd[0] == 'bash'
+    assert '--login' in cmd
+    # Must include a custom init-file flag
+    assert '--init-file' in cmd
 
 
 @patch('shutil.which', return_value='/usr/bin/docker')
