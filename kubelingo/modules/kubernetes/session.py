@@ -452,9 +452,15 @@ class NewSession(StudySession):
                         use_indicator=True
                     ).ask()
                     # Back to file menu
-                    if selected is None or selected == 'back':
-                        print(f"\n{Fore.YELLOW}Returning to quiz selection...{Style.RESET_ALL}")
-                        continue
+                    if selected is None:
+                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                        sys.exit(0)
+                    if selected == 'back':
+                        print(f"\n{Fore.YELLOW}Returning to main menu...{Style.RESET_ALL}")
+                        return
+                    if selected == 'exit_app':
+                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                        sys.exit(0)
                     # Clear all review flags and re-list files
                     if selected == 'clear_flags':
                         _clear_all_review_flags(self.logger)
@@ -582,7 +588,8 @@ class NewSession(StudySession):
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Next Question", "value": "next"})
                     choices.append({"name": "Previous Question", "value": "prev"})
-                    choices.append({"name": "Exit Quiz.", "value": "back"})
+                    choices.append({"name": "Return to Quiz Menu", "value": "back"})
+                    choices.append({"name": "Exit App", "value": "exit_app"})
 
                     # Determine if interactive action selection is available
                     action_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
@@ -613,6 +620,10 @@ class NewSession(StudySession):
                             per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
                             self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
                             return False
+
+                    if action == "exit_app":
+                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                        sys.exit(0)
 
                     if action == "back":
                         quiz_backed_out = True
@@ -797,8 +808,8 @@ class NewSession(StudySession):
             
             # If user exited the quiz early, return to quiz menu without summary.
             if quiz_backed_out:
-                print(f"{Fore.YELLOW}Exiting quiz and returning to menu.{Style.RESET_ALL}")
-                return
+                print(f"\n{Fore.YELLOW}Returning to quiz selection menu.{Style.RESET_ALL}")
+                continue
             
             end_time = datetime.now()
             duration = str(end_time - start_time).split('.')[0]
@@ -1035,6 +1046,7 @@ class NewSession(StudySession):
 
         choices.append(questionary.Separator())
         choices.append({"name": "Back to Main Menu", "value": "back"})
+        choices.append({"name": "Exit App", "value": "exit_app"})
 
         return choices, all_flagged
 
