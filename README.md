@@ -114,6 +114,22 @@ If you want to contribute to the project, follow these steps to set up a develop
     ```
     This command compiles the Rust extension and installs `kubelingo` in editable mode.
 
+## Releasing to PyPI
+
+To publish a new version to PyPI, you first need to [generate an API token](https://pypi.org/help/#apitoken) from your PyPI account settings.
+
+The recommended way to provide credentials for publishing is through environment variables. `maturin` uses `twine` for uploading, which expects the API token to be provided as the password with the username `__token__`.
+
+```bash
+# Set credentials in your shell
+export TWINE_USERNAME="__token__"
+export TWINE_PASSWORD="pypi-your-api-token-goes-here"
+
+# Build and publish the package
+maturin build --release
+maturin publish
+```
+
 ## Requirements
 
 - Python 3.8+
