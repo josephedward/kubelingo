@@ -7,6 +7,7 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import yaml
+from pathlib import Path
 from dotenv import load_dotenv
 
 try:
@@ -17,6 +18,14 @@ except ImportError:
         file=sys.stderr,
     )
     sys.exit(1)
+
+# Load shared AI prompt context from root shared_context.md
+repo_root = Path(__file__).resolve().parent.parent
+shared_context_path = repo_root / 'shared_context.md'
+if shared_context_path.exists():
+    SHARED_CONTEXT = shared_context_path.read_text(encoding='utf-8')
+else:
+    SHARED_CONTEXT = ''
 
 
 def get_openai_client() -> openai.OpenAI:
@@ -120,14 +129,13 @@ Answer: "{answer_text}"
 
 Provide only the explanation text, without any introductory phrases like "This command...".
 """
+    # Build system message with shared context
+    system_message = SHARED_CONTEXT + "\n\nYou are a helpful assistant that writes concise, educational explanations for Kubernetes quiz questions."
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo-preview",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant that writes concise, educational explanations for Kubernetes quiz questions.",
-                },
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": api_prompt},
             ],
             temperature=0.2,
