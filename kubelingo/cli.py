@@ -276,101 +276,29 @@ def main():
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
         try:
-            while True: # Main menu loop
-                # Initialize args with defaults for each loop iteration.
-                args = argparse.Namespace(
-                    file=None, num=0, randomize=False, category=None, list_categories=False,
-                    history=False, review_only=False, ai_eval=False, command=[], list_modules=False,
-                    custom_file=None, exercises=None, cluster_context=None, live=False, k8s_mode=False,
-                    pty=False, docker=False, sandbox_mode=None, exercise_module=None, module=None,
-                    start_cluster=False
-                )
+            # For interactive mode, we skip session/quiz type selection and go
+            # directly to the unified Kubernetes quiz menu.
+            # We default to PTY mode as the distinction is not currently relevant.
+            args.pty = True
+            args.docker = False
+            args.module = 'kubernetes'
+            # Clear file to trigger interactive selection within the module.
+            args.file = None
 
-                # Since we are focusing on single-command evaluation, default to PTY mode.
-                args.pty = True
-                args.docker = False
-                
-                flagged_questions = get_all_flagged_questions()
-                review_choice_text = "Review Flagged Questions"
-                review_disabled_reason = None
-                if flagged_questions:
-                    review_choice_text = f"Review {len(flagged_questions)} Flagged Questions"
-                else:
-                    review_disabled_reason = "(No questions flagged)"
+            logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+            logger = logging.getLogger()
 
-                choices = [
-                    questionary.Choice("Vim Quiz", value="vim"),
-                    questionary.Choice(review_choice_text, value="review", disabled=review_disabled_reason),
-                    questionary.Separator(),
-                    questionary.Choice("Help", value="help"),
-                    questionary.Choice("Exit App", value="exit"),
-                    questionary.Separator("Coming Soon"),
-                    questionary.Choice("Session Type (PTY/Docker)", disabled="(Feature disabled)"),
-                    questionary.Choice("Custom Quiz (Kustom)", disabled="(Feature disabled)"),
-                ]
-
-                # Add other quiz files as disabled options
-                all_other_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
-                if all_other_files:
-                    choices.append(questionary.Separator("Other Modules"))
-                    for file_path in all_other_files:
-                        base = os.path.basename(file_path)
-                        name = os.path.splitext(base)[0]
-                        subject = humanize_module(name).strip()
-                        choices.append(questionary.Choice(subject, value=file_path, disabled="(Module not implemented yet)"))
-                
-                quiz_choice = None
-                if is_interactive:
-                    print() # Add a blank line for spacing
-                    quiz_choice = questionary.select(
-                        "Select an option:",
-                        choices=choices,
-                        use_indicator=True
-                    ).ask()
-                else:
-                    # Text fallback
-                    print("\nSelect an option:")
-                    text_choices = { "1": "vim", "2": "review", "3": "help", "4": "exit" }
-                    print(" 1) Vim Quiz")
-                    print(f" 2) Review Flagged Questions {'(Disabled)' if not flagged_questions else f'({len(flagged_questions)} questions)'}")
-                    print(" 3) Help")
-                    print(" 4) Exit App")
-                    text_choice = input("Choice: ").strip()
-                    quiz_choice = text_choices.get(text_choice)
-                    if quiz_choice == 'review' and not flagged_questions:
-                        quiz_choice = None # Can't select disabled option
-
-                if quiz_choice is None or quiz_choice == 'exit':
+            session = load_session(args.module, logger)
+            if session:
+                init_ok = session.initialize()
+                if not init_ok:
+                    print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
                     return
-                if quiz_choice == 'help':
-                    parser.print_help()
-                    if is_interactive: input("\nPress Enter to return to the menu...")
-                    continue
-                
-                if quiz_choice == 'vim':
-                    args.module = 'kubernetes'
-                    args.file = VIM_QUESTIONS_FILE
-                elif quiz_choice == 'review':
-                    args.module = 'kubernetes'
-                    args.review_only = True
-                else: # A disabled option was selected (should not happen with questionary)
-                    print(f"{Fore.YELLOW}This option is not yet available.{Style.RESET_ALL}")
-                    if is_interactive: input("\nPress Enter to return to the menu...")
-                    continue
-
-                # Dispatch to session runner
-                logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-                logger = logging.getLogger()
-                session = load_session('kubernetes', logger)
-                if session:
-                    init_ok = session.initialize()
-                    if not init_ok:
-                        print(Fore.RED + f"Module 'kubernetes' initialization failed. Returning to menu." + Style.RESET_ALL)
-                        continue
-                    session.run_exercises(args)
-                    session.cleanup()
-                else:
-                    print(Fore.RED + f"Failed to load module 'kubernetes'." + Style.RESET_ALL)
+                # run_exercises will now show the main menu and loop internally.
+                session.run_exercises(args)
+                session.cleanup()
+            else:
+                print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
             return
