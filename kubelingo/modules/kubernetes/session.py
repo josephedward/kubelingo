@@ -363,8 +363,7 @@ class NewSession(StudySession):
 
         # 5. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
-        
-        choices.append(questionary.Separator())
+        return choices, all_flagged
 
         # 5. Session Type (disabled)
         choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
