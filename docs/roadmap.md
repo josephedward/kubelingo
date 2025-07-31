@@ -130,6 +130,10 @@ _Status: Planned. See [Vim Integration Analysis](vim_integration_analysis.md) fo
 - [ ] **Azure AKS Integration**: Azure sandbox environments  [#41]
 - [ ] **Multi-Cloud Scenarios**: Practice migrating workloads between providers [#42]
 - [ ] **Cloud-Native Tools**: Integration with Helm, Kustomize, ArgoCD [#43]
+  
+### Third-Party CKAD Content Integration
+- [ ] **bmuschko/ckad-crash-course Integration**: Import and run exercises from https://github.com/bmuschko/ckad-crash-course
+- [ ] **Sailor CKAD Integration**: Import and run exercises from https://sailor.sh/ckad/
 
 ### Enterprise Features
 - [ ] **Team Management**: Multi-user environments with progress tracking [#44]
