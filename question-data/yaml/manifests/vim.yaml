@@ -1,0 +1,64 @@
+"""
+Generated from vim.json
+"""
+---
+- id: vim::0
+  question: "Enter insert mode at cursor"
+  solution_file: "question-data/yaml/solutions/vim/0.sh"
+  source: "Vim quick reference: 'i' enters Insert mode before the cursor (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::1
+  question: "Append text after cursor"
+  solution_file: "question-data/yaml/solutions/vim/1.sh"
+  source: "Vim quick reference: 'a' appends text after the cursor (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::2
+  question: "Open a new line below the current line"
+  solution_file: "question-data/yaml/solutions/vim/2.sh"
+  source: "Vim quick reference: 'o' opens a new line below and enters Insert mode (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::3
+  question: "Save file and quit"
+  solution_file: "question-data/yaml/solutions/vim/3.sh"
+  source: "Vim documentation: ':wq' writes file and exits (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::4
+  question: "Exit without saving changes"
+  solution_file: "question-data/yaml/solutions/vim/4.sh"
+  source: "Vim documentation: ':q!' quits without saving changes (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::5
+  question: "Save file without exiting"
+  solution_file: "question-data/yaml/solutions/vim/5.sh"
+  source: "Vim quick reference: ':w' writes the file without exiting (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::6
+  question: "Delete current line"
+  solution_file: "question-data/yaml/solutions/vim/6.sh"
+  source: "Vim quick reference: 'dd' deletes the current line (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::7
+  question: "Copy current line (yank)"
+  solution_file: "question-data/yaml/solutions/vim/7.sh"
+  source: "Vim quick reference: 'yy' yanks (copies) the current line (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::8
+  question: "Paste after cursor"
+  solution_file: "question-data/yaml/solutions/vim/8.sh"
+  source: "Vim quick reference: 'p' pastes after the cursor (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::9
+  question: "Undo last change"
+  solution_file: "question-data/yaml/solutions/vim/9.sh"
+  source: "Vim quick reference: 'u' undoes the last change (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::10
+  question: "Search forward for 'pattern'"
+  solution_file: "question-data/yaml/solutions/vim/10.sh"
+  source: "Vim quick reference: '/' searches forward for a pattern (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::11
+  question: "Find next search occurrence"
+  solution_file: "question-data/yaml/solutions/vim/11.sh"
+  source: "Vim quick reference: 'n' jumps to the next search occurrence (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::12
+  question: "Go to top of file"
+  solution_file: "question-data/yaml/solutions/vim/12.sh"
+  source: "Vim quick reference: 'gg' moves cursor to the first line (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::13
+  question: "Go to end of file"
+  solution_file: "question-data/yaml/solutions/vim/13.sh"
+  source: "Vim quick reference: 'G' moves cursor to the last line (https://www.vim.page/vim-commands-cheat-sheet)"
+- id: vim::14
+  question: "Go to line 10"
+  solution_file: "question-data/yaml/solutions/vim/14.sh"
+  source: "Vim quick reference: ':10' jumps to line 10 (https://www.vim.page/vim-commands-cheat-sheet)"

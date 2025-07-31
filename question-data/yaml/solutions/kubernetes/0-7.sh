@@ -1,0 +1,1 @@
+kubectl apply -f pod.yaml && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.cpu}' | grep '100m' && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.memory}' | grep '256Mi'

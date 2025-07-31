@@ -1,0 +1,1 @@
+alias ke='kubectl explain'

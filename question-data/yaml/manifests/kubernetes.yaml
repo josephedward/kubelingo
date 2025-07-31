@@ -1,0 +1,757 @@
+"""
+Generated from kubernetes.json
+"""
+---
+- id: kubernetes::0-0
+  question: "Create a pod named nginx using the nginx image and expose port 80. You can use 'kubectl run' or create a YAML file."
+  solution_file: "question-data/yaml/solutions/kubernetes/0-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-1
+  question: "Create a pod named busybox that runs the command 'sleep 3600'"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-2
+  question: "Generate a YAML definition file for a pod named nginx without creating it"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-3
+  question: "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-4
+  question: "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-5
+  question: "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-6
+  question: "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-7
+  question: "Create a pod with resource requests of 100m CPU and 256Mi memory"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-8
+  question: "Create a pod that runs curl against an internal service at 10.244.0.4"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::0-9
+  question: "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`"
+  solution_file: "question-data/yaml/solutions/kubernetes/0-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-0
+  question: "Create a deployment named webapp with image nginx:1.17 and 3 replicas"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-1
+  question: "Generate a YAML file for a deployment with nginx image without creating it"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-2
+  question: "Scale a deployment named 'frontend' to 5 replicas"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-3
+  question: "Update the image of a deployment named 'webapp' to nginx:1.18"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-4
+  question: "Check the rollout status of a deployment named 'frontend'"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-5
+  question: "Roll back a deployment named 'webapp' to its previous version"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-6
+  question: "Create a deployment with a record of the change-cause for future reference"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-7
+  question: "View the history of a deployment named 'webapp'"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-8
+  question: "Pause the rollout of a deployment named 'frontend'"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::1-9
+  question: "Resume the rollout of a deployment named 'frontend'"
+  solution_file: "question-data/yaml/solutions/kubernetes/1-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-0
+  question: "Create a new namespace called 'development'"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-1
+  question: "Set the current context to use the 'production' namespace by default"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-2
+  question: "Verify which namespace is currently being used in your context"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-3
+  question: "Create a new namespace called 'testing' and output its YAML definition"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-4
+  question: "List all resources across all namespaces"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-5
+  question: "List all pods in the 'kube-system' namespace"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-6
+  question: "Create a pod in the 'development' namespace"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-7
+  question: "Delete a namespace called 'testing' and all its resources"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-8
+  question: "List all namespaces in the cluster"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::2-9
+  question: "Create a resource quota for a namespace limiting it to 10 pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/2-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-0
+  question: "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-1
+  question: "Create a ConfigMap named 'game-config' from a configuration file located at 'game.properties'"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-2
+  question: "View the contents of a ConfigMap named 'db-config'"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-3
+  question: "Create a ConfigMap from all files in the 'configs' directory"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-4
+  question: "Create a pod that uses a ConfigMap as environment variables"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-5
+  question: "Extract a ConfigMap to YAML format"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-6
+  question: "Update a value in an existing ConfigMap named 'app-config'"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-7
+  question: "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-8
+  question: "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::3-9
+  question: "Create a ConfigMap from an env file"
+  solution_file: "question-data/yaml/solutions/kubernetes/3-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-0
+  question: "Create a Secret named 'db-creds' with username=admin and password=password123"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-1
+  question: "Create a Secret named 'tls-cert' from a certificate file"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-2
+  question: "View the encoded values in a Secret named 'api-secrets'"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-3
+  question: "Encode a string for use in a Secret YAML definition"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-4
+  question: "Decode a base64 encoded Secret value"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-5
+  question: "Create a TLS Secret type from certificate and key files"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-6
+  question: "Create a pod that uses a Secret value as an environment variable"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-7
+  question: "Create a Secret from a .env file"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-8
+  question: "Create a pod that mounts a Secret as a volume using the nginx image"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::4-9
+  question: "Create a docker-registry type Secret for private registry authentication"
+  solution_file: "question-data/yaml/solutions/kubernetes/4-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::5-0
+  question: "Create a Service Account named 'deployment-sa'"
+  solution_file: "question-data/yaml/solutions/kubernetes/5-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::5-1
+  question: "List all Service Accounts in the current namespace"
+  solution_file: "question-data/yaml/solutions/kubernetes/5-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-0
+  question: "Create an alias 'k' for 'kubectl'"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-1
+  question: "Enable kubectl autocompletion for bash"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-2
+  question: "Add kubectl autocompletion to ~/.bashrc"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-3
+  question: "Set the KUBECONFIG environment variable to /home/user/config"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-4
+  question: "Check the kubectl client and server versions"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-5
+  question: "Create a namespace named dev"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-6
+  question: "List all namespaces"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-7
+  question: "Describe namespace dev"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-8
+  question: "Delete namespace dev"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-9
+  question: "Create a deployment named frontend using image nginx:1.14"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-10
+  question: "List all deployments"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-10.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-11
+  question: "Describe deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-11.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-12
+  question: "Scale deployment frontend to 3 replicas"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-12.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-13
+  question: "Roll back the deployment frontend to the previous version"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-13.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-14
+  question: "Restart the deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-14.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-15
+  question: "Delete deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-15.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-16
+  question: "Run a pod named busybox with image busybox that runs indefinitely"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-16.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-17
+  question: "List all pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-17.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-18
+  question: "Describe pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-18.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-19
+  question: "Delete pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-19.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-20
+  question: "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-20.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-21
+  question: "List all services"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-21.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-22
+  question: "Describe service frontend-svc"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-22.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-23
+  question: "Delete service frontend-svc"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-23.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-24
+  question: "Create a ConfigMap named app-config from file config.yaml"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-24.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-25
+  question: "List all ConfigMaps"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-25.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-26
+  question: "Describe configmap app-config"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-26.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-27
+  question: "Delete configmap app-config"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-27.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-28
+  question: "Create a generic secret named db-secret with literal username and password"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-28.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-29
+  question: "List all secrets"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-29.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-30
+  question: "Describe secret db-secret"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-30.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-31
+  question: "Delete secret db-secret"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-31.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-32
+  question: "Create a ServiceAccount named default-sa"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-32.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-33
+  question: "List all ServiceAccounts"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-33.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-34
+  question: "Describe serviceaccount default-sa"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-34.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-35
+  question: "Delete serviceaccount default-sa"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-35.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-36
+  question: "Label pod busybox with env=prod"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-36.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-37
+  question: "Remove the label env from pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-37.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-38
+  question: "Annotate deployment frontend with description=test"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-38.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-39
+  question: "Remove the annotation description from deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-39.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-40
+  question: "Apply the configuration in deployment.yaml"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-40.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-41
+  question: "Replace configmap using file configmap.yaml"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-41.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-42
+  question: "Open the file app.yaml in Vim"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-42.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-43
+  question: "Use kubectl to edit deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-43.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-44
+  question: "Open service.yaml in Vim"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-44.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-45
+  question: "View logs of pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-45.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-46
+  question: "Follow logs of pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-46.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-47
+  question: "View logs of container nginx in pod frontend-pod"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-47.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-48
+  question: "Execute a shell in pod busybox"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-48.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-49
+  question: "Port-forward local port 8080 to port 80 on service frontend-svc"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-49.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-50
+  question: "Describe pod busybox for troubleshooting"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-50.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-51
+  question: "List all events"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-51.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-52
+  question: "Get pod busybox in YAML format"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-52.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-53
+  question: "Get pod busybox in JSON format"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-53.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-54
+  question: "Copy file /tmp/data from pod busybox to current directory"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-54.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-55
+  question: "Show resource usage of pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-55.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-56
+  question: "Show resource usage of nodes"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-56.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-57
+  question: "Describe node worker-node-1"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-57.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-58
+  question: "View the current kubectl context"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-58.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-59
+  question: "List all contexts"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-59.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-60
+  question: "Switch kubectl context to minikube"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-60.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-61
+  question: "Set the namespace to dev in the current context"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-61.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-62
+  question: "Display cluster info"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-62.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-63
+  question: "Show available API resource types"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-63.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-64
+  question: "Explain the fields of pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-64.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-65
+  question: "Get pods with label app=frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-65.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-66
+  question: "Get pods with all labels"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-66.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-67
+  question: "Apply deployment.yaml without sending to server (dry run)"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-67.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-68
+  question: "Generate YAML for deployment 'test' using the nginx image without creating it"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-68.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-69
+  question: "Continuously watch pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-69.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-70
+  question: "Get all resources in all namespaces"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-70.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-71
+  question: "List pods with status phase=Running"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-71.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-72
+  question: "Watch the rollout status of deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-72.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-73
+  question: "Restart the deployment frontend"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-73.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-74
+  question: "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-74.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-75
+  question: "Check if you can create pods"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-75.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-76
+  question: "Show only context names"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-76.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-77
+  question: "Open or create the file app.yaml in Vim"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-77.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-78
+  question: "Enter insert mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-78.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-79
+  question: "Exit insert mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-79.yaml"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-80
+  question: "Save and quit Vim"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-80.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-81
+  question: "Quit without saving"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-81.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-82
+  question: "Delete the current line"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-82.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-83
+  question: "Yank (copy) the current line"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-83.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-84
+  question: "Paste after the cursor"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-84.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-85
+  question: "Search forward for 'pattern'"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-85.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-86
+  question: "Go to line N"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-86.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-87
+  question: "Undo the last change"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-87.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-88
+  question: "Redo the last undone change"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-88.yaml"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-89
+  question: "Enter visual mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-89.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-90
+  question: "Enter visual line mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-90.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-91
+  question: "Enter visual block mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-91.yaml"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-92
+  question: "Enter replace mode"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-92.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-93
+  question: "Move to the next word"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-93.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-94
+  question: "Move to the previous word"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-94.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-95
+  question: "Move to the end of the word"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-95.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-96
+  question: "Move to the first character of the line"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-96.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-97
+  question: "Move to the end of the line"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-97.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::6-98
+  question: "Jump to matching bracket"
+  solution_file: "question-data/yaml/solutions/kubernetes/6-98.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::7-0
+  question: "The provided YAML is for a basic pod. Modify it to create a pod named 'nginx-live' that uses the 'nginx:stable' image."
+  solution_file: "question-data/yaml/solutions/kubernetes/7-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::7-1
+  question: "A 'webapp' deployment is defined in the file. Add a new NodePort service named 'webapp-svc' that exposes the deployment on port 80. The service should target port 8080 on the pods."
+  solution_file: "question-data/yaml/solutions/kubernetes/7-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::7-2
+  question: "Create two resources: 1. A ConfigMap named 'app-config' with data 'index.html: <h1>Hello World</h1>'. 2. A Pod named 'web-server' using the 'nginx' image that mounts the ConfigMap as a volume at '/usr/share/nginx/html', replacing the default nginx page."
+  solution_file: "question-data/yaml/solutions/kubernetes/7-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-0
+  question: "Solve this question on instance: ssh ckad5601
+Create a single Pod of image httpd:2.4.41-alpine in Namespace default. The Pod should be named pod1 and the container should be named pod1-container.
+Your manager would like to run a command manually on occasion to output the status of that exact Pod. Please write a command that does this into /opt/course/2/pod1-status-command.sh on ckad5601. The command should use kubectl."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-0.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-1
+  question: "Solve this question on instance: ssh ckad7326
+Team Neptune needs a Job template located at /opt/course/3/job.yaml. This Job should run image busybox:1.31.0 and execute sleep 2 && echo done. It should be in namespace neptune, run a total of 3 times and should execute 2 runs in parallel.
+Start the Job and check its history. Each pod created by the Job should have the label id: awesome-job. The job should be named neb-new-job and the container neb-new-job-container."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-1.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-2
+  question: "Solve this question on instance: ssh ckad7326
+Team Mercury asked you to perform some operations using Helm, all in Namespace mercury:
+Delete release internal-issue-report-apiv1
+Upgrade release internal-issue-report-apiv2 to any newer version of chart bitnami/nginx available
+Install a new release internal-issue-report-apache of chart bitnami/apache. The Deployment should have two replicas, set these via Helm-values during install
+There seems to be a broken release, stuck in pending-install state. Find it and delete it"
+  solution_file: "question-data/yaml/solutions/kubernetes/8-2.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-3
+  question: "Solve this question on instance: ssh ckad7326
+Team Neptune has its own ServiceAccount named neptune-sa-v2 in Namespace neptune. A coworker needs the token from the Secret that belongs to that ServiceAccount. Write the base64 decoded token to file /opt/course/5/token on ckad7326."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-3.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-4
+  question: "Solve this question on instance: ssh ckad5601
+Create a single Pod named pod6 in Namespace default of image busybox:1.31.0. The Pod should have a readiness-probe executing cat /tmp/ready. It should initially wait 5 and periodically wait 10 seconds. This will set the container ready only if the file /tmp/ready exists.
+The Pod should run the command touch /tmp/ready && sleep 1d, which will create the necessary file to be ready and then idles. Create the Pod and confirm it starts."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-4.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-5
+  question: "Solve this question on instance: ssh ckad7326
+The board of Team Neptune decided to take over control of one e-commerce webserver from Team Saturn. The administrator who once setup this webserver is not part of the organisation any longer. All information you could get was that the e-commerce system is called my-happy-shop.
+Search for the correct Pod in Namespace saturn and move it to Namespace neptune. It doesn't matter if you shut it down and spin it up again, it probably hasn't any customers anyways."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-5.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-6
+  question: "Solve this question on instance: ssh ckad7326
+There is an existing Deployment named api-new-c32 in Namespace neptune. A developer did make an update to the Deployment but the updated version never came online. Check the Deployment history and find a revision that works, then rollback to it. Could you tell Team Neptune what the error was so it doesn't happen again?"
+  solution_file: "question-data/yaml/solutions/kubernetes/8-6.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-7
+  question: "Solve this question on instance: ssh ckad9043
+In Namespace pluto there is single Pod named holy-api. It has been working okay for a while now but Team Pluto needs it to be more reliable.
+Convert the Pod into a Deployment named holy-api with 3 replicas and delete the single Pod once done. The raw Pod template file is available at /opt/course/9/holy-api-pod.yaml.
+In addition, the new Deployment should set allowPrivilegeEscalation: false and privileged: false for the security context on container level.
+Please create the Deployment and save its yaml under /opt/course/9/holy-api-deployment.yaml on ckad9043."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-7.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-8
+  question: "Solve this question on instance: ssh ckad9043
+Team Pluto needs a new cluster internal Service. Create a ClusterIP Service named project-plt-6cc-svc in Namespace pluto. This Service should expose a single Pod named project-plt-6cc-api of image nginx:1.17.3-alpine, create that Pod as well. The Pod should be identified by label project: plt-6cc-api. The Service should use tcp port redirection of 3333:80.
+Finally use for example curl from a temporary nginx:alpine Pod to get the response from the Service. Write the response into /opt/course/10/service_test.html on ckad9043. Also check if the logs of Pod project-plt-6cc-api show the request and write those into /opt/course/10/service_test.log on ckad9043."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-8.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-9
+  question: "Solve this question on instance: ssh ckad9043
+There are files to build a container image located at /opt/course/11/image on ckad9043. The container will run a Golang application which outputs information to stdout. You're asked to perform the following tasks:
+ℹ️ Run all Docker and Podman commands as user root. Use sudo docker and sudo podman or become root with sudo -i
+Change the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f
+Build the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker and push it to the registry
+Build the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman and push it to the registry
+Run a container using sudo podman, which keeps running detached in the background, named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman
+Write the logs your container sun-cipher produces into /opt/course/11/logs on ckad9043"
+  solution_file: "question-data/yaml/solutions/kubernetes/8-9.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-10
+  question: "Solve this question on instance: ssh ckad5601
+Create a new PersistentVolume named earth-project-earthflower-pv. It should have a capacity of 2Gi, accessMode ReadWriteOnce, hostPath /Volumes/Data and no storageClassName defined.
+Next create a new PersistentVolumeClaim in Namespace earth named earth-project-earthflower-pvc . It should request 2Gi storage, accessMode ReadWriteOnce and should not define a storageClassName. The PVC should bound to the PV correctly.
+Finally create a new Deployment project-earthflower in Namespace earth which mounts that volume at /tmp/project-data. The Pods of that Deployment should be of image httpd:2.4.41-alpine."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-10.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-11
+  question: "Solve this question on instance: ssh ckad9043
+Team Moonpie, which has the Namespace moon, needs more storage. Create a new PersistentVolumeClaim named moon-pvc-126 in that namespace. This claim should use a new StorageClass moon-retain with the provisioner set to moon-retainer and the reclaimPolicy set to Retain. The claim should request storage of 3Gi, an accessMode of ReadWriteOnce and should use the new StorageClass.
+The provisioner moon-retainer will be created by another team, so it's expected that the PVC will not boot yet. Confirm this by writing the event message from the PVC into file /opt/course/13/pvc-126-reason on ckad9043."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-11.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-12
+  question: "Solve this question on instance: ssh ckad9043
+You need to make changes on an existing Pod in Namespace moon called secret-handler. Create a new Secret secret1 which contains user=test and pass=pwd. The Secret's content should be available in Pod secret-handler as environment variables SECRET1_USER and SECRET1_PASS. The yaml for Pod secret-handler is available at /opt/course/14/secret-handler.yaml.
+There is existing yaml for another Secret at /opt/course/14/secret2.yaml, create this Secret and mount it inside the same Pod at /tmp/secret2. Your changes should be saved under /opt/course/14/secret-handler-new.yaml on ckad9043. Both Secrets should only be available in Namespace moon."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-12.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-13
+  question: "Solve this question on instance: ssh ckad9043
+Team Moonpie has a nginx server Deployment called web-moon in Namespace moon. Someone started configuring it but it was never completed. To complete please create a ConfigMap called configmap-web-moon-html containing the content of file /opt/course/15/web-moon.html under the data key-name index.html.
+The Deployment web-moon is already configured to work with this ConfigMap and serve its content. Test the nginx configuration for example using curl from a temporary nginx:alpine Pod."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-13.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-14
+  question: "Solve this question on instance: ssh ckad7326
+The Tech Lead of Mercury2D decided it's time for more logging, to finally fight all these missing data incidents. There is an existing container named cleaner-con in Deployment cleaner in Namespace mercury. This container mounts a volume and writes logs into a file called cleaner.log.
+The yaml for the existing Deployment is available at /opt/course/16/cleaner.yaml. Persist your changes at /opt/course/16/cleaner-new.yaml on ckad7326 but also make sure the Deployment is running.
+Create a sidecar container named logger-con, image busybox:1.31.0 , which mounts the same volume and writes the content of cleaner.log to stdout, you can use the tail -f command for this. This way it can be picked up by kubectl logs.
+Check if the logs of the new container reveal something about the missing data incidents."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-14.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-15
+  question: "Solve this question on instance: ssh ckad5601
+Last lunch you told your coworker from department Mars Inc how amazing InitContainers are. Now he would like to see one in action. There is a Deployment yaml at /opt/course/17/test-init-container.yaml. This Deployment spins up a single Pod of image nginx:1.17.3-alpine and serves files from a mounted volume, which is empty right now.
+Create an InitContainer named init-con which also mounts that volume and creates a file index.html with content check this out! in the root of the mounted volume. For this test we ignore that it doesn't contain valid html.
+The InitContainer should be using image busybox:1.31.0. Test your implementation for example using curl from a temporary nginx:alpine Pod."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-15.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-16
+  question: "Solve this question on instance: ssh ckad5601
+There seems to be an issue in Namespace mars where the ClusterIP service manager-api-svc should make the Pods of Deployment manager-api-deployment available inside the cluster.
+You can test this with curl manager-api-svc.mars:4444 from a temporary nginx:alpine Pod. Check for the misconfiguration and apply a fix."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-16.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-17
+  question: "Solve this question on instance: ssh ckad5601
+In Namespace jupiter you'll find an apache Deployment (with one replica) named jupiter-crew-deploy and a ClusterIP Service called jupiter-crew-svc which exposes it. Change this service to a NodePort one to make it available on all nodes on port 30100.
+Test the NodePort Service using the internal IP of all available nodes and the port 30100 using curl, you can reach the internal node IPs directly from your main terminal. On which nodes is the Service reachable? On which node is the Pod running?"
+  solution_file: "question-data/yaml/solutions/kubernetes/8-17.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-18
+  question: "Solve this question on instance: ssh ckad7326
+In Namespace venus you'll find two Deployments named api and frontend. Both Deployments are exposed inside the cluster using Services. Create a NetworkPolicy named np1 which restricts outgoing tcp connections from Deployment frontend and only allows those going to Deployment api. Make sure the NetworkPolicy still allows outgoing traffic on UDP/TCP ports 53 for DNS resolution.
+Test using: wget www.google.com and wget api:2222 from a Pod of Deployment frontend."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-18.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-19
+  question: "Solve this question on instance: ssh ckad7326
+Team Neptune needs 3 Pods of image httpd:2.4-alpine, create a Deployment named neptune-10ab for this. The containers should be named neptune-pod-10ab. Each container should have a memory request of 20Mi and a memory limit of 50Mi.
+Team Neptune has its own ServiceAccount neptune-sa-v2 under which the Pods should run. The Deployment should be in Namespace neptune."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-19.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
+- id: kubernetes::8-20
+  question: "Solve this question on instance: ssh ckad9043
+Team Sunny needs to identify some of their Pods in namespace sun. They ask you to add a new label protected: true to all Pods with an existing label type: worker or type: runner. Also add an annotation protected: do not delete this pod to all Pods having the new label protected: true."
+  solution_file: "question-data/yaml/solutions/kubernetes/8-20.sh"
+  source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
