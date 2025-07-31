@@ -687,6 +687,14 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
+                    choices.append({"name": "Show Expected Answer(s)", "value": "show_expected"})
+
+                    # Show Model Answer option, disabled if not available.
+                    if q.get('model_answer'):
+                        choices.append({"name": "Show Model Answer", "value": "show_model"})
+                    else:
+                        choices.append({"name": "Show Model Answer", "value": "show_model_disabled", "disabled": "Not available"})
+
                     # Show Visit Source if a citation or source URL is provided
                     if q.get('citation') or q.get('source'):
                         choices.append({"name": "Visit Source", "value": "visit_source"})
@@ -694,7 +702,7 @@ class NewSession(StudySession):
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Next Question", "value": "next"})
                     choices.append({"name": "Previous Question", "value": "prev"})
-                    choices.append({"name": "Return to Quiz Menu", "value": "back"})
+                    choices.append({"name": "Exit Quiz.", "value": "back"})
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
                     # Determine if interactive action selection is available
@@ -743,6 +751,25 @@ class NewSession(StudySession):
                         current_question_index = max(current_question_index - 1, 0)
                         break
                     
+                    if action == "show_expected":
+                        # Attempt to find an expected answer in a few common fields
+                        expected = q.get('response') or (q.get('validation_steps') and q['validation_steps'][0].get('cmd'))
+                        if expected:
+                            print(f"\n{Fore.CYAN}Expected Answer(s):{Style.RESET_ALL}\n{expected}")
+                        else:
+                            print(f"\n{Fore.YELLOW}No expected answer defined for this question.{Style.RESET_ALL}")
+                        continue
+
+                    if action in ("show_model", "show_model_disabled"):
+                        model_answer = q.get('model_answer')
+                        if model_answer:
+                            print(f"\n{Fore.CYAN}Model Answer:{Style.RESET_ALL}\n{model_answer}")
+                        else:
+                            # This case handles both clicking the disabled option and clicking an enabled one
+                            # for a question that somehow lacks the data.
+                            print(f"\n{Fore.YELLOW}No model answer available for this question.{Style.RESET_ALL}")
+                        continue
+
                     if action == "visit_source":
                         # Use citation if provided, fallback to source for URL
                         url = q.get('citation') or q.get('source')
