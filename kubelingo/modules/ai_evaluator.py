@@ -107,6 +107,7 @@ Your response MUST be a JSON object with two keys:
 2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
 Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
 A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
+It is also common to omit `kubectl` or `k` entirely. If the user provides just a subcommand like `get pods` or `alpha`, you should treat it as if `kubectl` was prepended.
 If a source URL is provided, please cite it in your reasoning.
 """
 
