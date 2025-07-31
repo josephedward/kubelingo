@@ -747,7 +747,8 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
-                    if q.get('source'):
+                    # Show Visit Source if a citation or source URL is provided
+                    if q.get('citation') or q.get('source'):
                         choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
@@ -803,7 +804,8 @@ class NewSession(StudySession):
                         break
                     
                     if action == "visit_source":
-                        url = q.get('source')
+                        # Use citation if provided, fallback to source for URL
+                        url = q.get('citation') or q.get('source')
                         if url:
                             print(f"Opening documentation at {url} ...")
                             webbrowser.open(url)
@@ -898,9 +900,16 @@ class NewSession(StudySession):
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
-                        # Handle plain text answers (e.g., Vim, Kubectl commands) with AI evaluation.
+                        # Handle plain text answers (e.g., Vim, Kubectl command quizzes) with direct comparison
                         if isinstance(result, str):
-                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                            expected = q.get('response', '') or ''
+                            attempted_indices.add(current_question_index)
+                            if result.strip() == expected:
+                                correct_indices.add(current_question_index)
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                            else:
+                                correct_indices.discard(current_question_index)
+                                print(f"{Fore.RED}Incorrect. Expected: {expected}{Style.RESET_ALL}")
                             continue
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
