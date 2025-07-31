@@ -57,6 +57,7 @@ class YAMLLoader(BaseLoader):
 
                 questions.append(Question(
                     id=qid,
+                    type=item.get('type') or 'command',
                     prompt=item.get('prompt', ''),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
@@ -91,6 +92,7 @@ class YAMLLoader(BaseLoader):
 
                 questions.append(Question(
                     id=qid,
+                    type=item.get('type') or 'command',
                     prompt=item.get('prompt', ''),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,

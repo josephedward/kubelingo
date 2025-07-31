@@ -46,8 +46,12 @@ def load_transcript(qid: str) -> str:
     """
     Load transcript content for a given question id, or return empty string if not found.
     """
+    session_id = os.getenv('KUBELINGO_SESSION_ID') or ''
+    base = TRANSCRIPTS_DIR
+    if session_id:
+        base = os.path.join(TRANSCRIPTS_DIR, session_id)
     fname = _sanitize_qid(qid) + '.log'
-    path = os.path.join(TRANSCRIPTS_DIR, fname)
+    path = os.path.join(base, fname)
     if os.path.exists(path):
         try:
             with open(path, 'r', encoding='utf-8') as f:

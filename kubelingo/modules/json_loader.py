@@ -39,6 +39,11 @@ class JSONLoader(BaseLoader):
                 ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
                 for v in steps_data
             ]
+            # Fallback: if no validation steps, use 'response' or 'answer' as default
+            if not validation_steps:
+                resp = item.get('response') or item.get('answer')
+                if resp:
+                    validation_steps.append(ValidationStep(cmd=resp, matcher={'exit_code': 0}))
             initial_files = item.get('initial_files', {})
             if not initial_files and 'initial_yaml' in item:
                 initial_files['exercise.yaml'] = item['initial_yaml']
@@ -46,6 +51,7 @@ class JSONLoader(BaseLoader):
             # Build Question
             questions.append(Question(
                 id=qid,
+                type=item.get('type') or item.get('runner') or 'command',
                 prompt=item.get('prompt', ''),
                 pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                 initial_files=initial_files,
