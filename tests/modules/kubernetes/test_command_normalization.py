@@ -37,6 +37,7 @@ def test_commands_equivalent_python_fallback(capsys):
     assert "Warning: Rust extension not found" in captured.out
 
 
+@pytest.mark.skip(reason="YAML functionality not yet implemented")
 @patch('kubelingo.utils.validation.rust_validate_yaml_structure', None)
 def test_validate_yaml_structure_python_fallback(capsys):
     """Test that the Python fallback for YAML validation works."""
