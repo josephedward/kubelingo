@@ -1,0 +1,9 @@
+"""
+Kubectl Resource Types Quiz Manifest
+Tests for resource shortnames, API versions, namespaced flag, and Kind.
+"""
+---
+"""
+Include this manifest as a top-level kubectl quiz module.
+"""
+file: manifests/resource_reference.yaml
