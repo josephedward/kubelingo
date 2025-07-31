@@ -376,6 +376,8 @@ class NewSession(StudySession):
         
         if all_quiz_files:
             seen_subjects = set()
+            # List additional quizzes; enable selected ones by default
+            enabled_files = {"kubectl_common_operations.yaml", "resource_reference.yaml"}
             for file_path in all_quiz_files:
                 base = os.path.basename(file_path)
                 name = os.path.splitext(base)[0]
@@ -383,11 +385,15 @@ class NewSession(StudySession):
                 if subject in seen_subjects:
                     continue
                 seen_subjects.add(subject)
-                choices.append({
-                    "name": subject,
-                    "value": file_path,
-                    "disabled": "Not yet implemented"
-                })
+                # Enable certain YAML quizzes, others are coming soon
+                if base in enabled_files:
+                    choices.append({"name": subject, "value": file_path})
+                else:
+                    choices.append({
+                        "name": subject,
+                        "value": file_path,
+                        "disabled": "Not yet implemented"
+                    })
         
         if all_flagged:
             choices.append(questionary.Separator())
