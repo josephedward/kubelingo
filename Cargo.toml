@@ -1,6 +1,8 @@
 [package]
 name = "kubelingo"
 version = "0.1.7"
+description = "CLI quizzes for kubectl commands and Kubernetes YAML editing"
+license = "MIT"
 homepage = "https://github.com/josephedward/kubelingo"
 repository = "https://github.com/josephedward/kubelingo.git"
 edition = "2021"
