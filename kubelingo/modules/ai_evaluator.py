@@ -106,6 +106,7 @@ Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
 Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
+A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
 If a source URL is provided, please cite it in your reasoning.
 """
 
