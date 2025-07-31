@@ -574,7 +574,7 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
-                    if q.get('category') == 'Vim Commands':
+                    if q.get('source'):
                         choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
@@ -630,9 +630,12 @@ class NewSession(StudySession):
                         break
                     
                     if action == "visit_source":
-                        url = "https://www.vim.page/vim-commands-cheat-sheet"
-                        print(f"Opening documentation at {url} ...")
-                        webbrowser.open(url)
+                        url = q.get('source')
+                        if url:
+                            print(f"Opening documentation at {url} ...")
+                            webbrowser.open(url)
+                        else:
+                            print(f"{Fore.YELLOW}No source URL defined for this question.{Style.RESET_ALL}")
                         continue
                     if action == "flag":
                         data_file_path = q.get('data_file', args.file)
@@ -738,7 +741,7 @@ class NewSession(StudySession):
 
                         # Vim command questions use AI evaluator
                         if q.get('category') == 'Vim Commands':
-                            self._check_vim_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
+                            self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                             continue
                         # AI-based semantic validation for command answers
                         if is_ai_validator:
@@ -761,11 +764,10 @@ class NewSession(StudySession):
                         # No-cluster mode for live k8s questions also uses AI evaluator
                         if is_mocked_k8s:
                             # AI-based k8s validation for live questions without a cluster
-                            # Use the question's expected response as the command to validate
-                            expected_cmd = q.get('response', '')
-                            self._check_k8s_command_with_ai(
+                            # Use the user's answer to validate.
+                            self._check_command_with_ai(
                                 q,
-                                expected_cmd,
+                                result,
                                 current_question_index,
                                 attempted_indices,
                                 correct_indices
@@ -826,49 +828,17 @@ class NewSession(StudySession):
             stats[category]['correct'] += 1
         return stats
 
-    def _check_k8s_command_with_ai(self, q, expected_command: str, current_question_index, attempted_indices, correct_indices):
+
+    def _check_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
         """
-        Helper to evaluate a k8s command using the AI evaluator, for use when no live cluster is available.
-        """
-        attempted_indices.add(current_question_index)
-
-        try:
-            from kubelingo.modules.ai_evaluator import AIEvaluator
-            evaluator = AIEvaluator()
-            # Provide the expected command for AI comparison
-            ai_result = evaluator.evaluate_k8s_command(q, expected_command)
-            is_correct = ai_result.get('correct', False)
-            reasoning = ai_result.get('reasoning', 'No reasoning provided.')
-            
-            status = 'Correct' if is_correct else 'Incorrect'
-            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-
-            if is_correct:
-                correct_indices.add(current_question_index)
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                correct_indices.discard(current_question_index)
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-            
-            # Show explanation if correct
-            if is_correct and q.get('explanation'):
-                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
-
-        except ImportError:
-            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
-        except Exception as e:
-            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
-
-    def _check_vim_command_with_ai(self, q, user_command, current_question_index, attempted_indices, correct_indices):
-        """
-        Helper to evaluate a Vim command using the AI evaluator.
+        Helper to evaluate a command-based answer using the AI evaluator.
         """
         attempted_indices.add(current_question_index)
 
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
             evaluator = AIEvaluator()
-            result = evaluator.evaluate_vim_command(q, user_command)
+            result = evaluator.evaluate_command(q, user_command)
             is_correct = result.get('correct', False)
             reasoning = result.get('reasoning', 'No reasoning provided.')
             
@@ -887,7 +857,7 @@ class NewSession(StudySession):
                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
         except ImportError:
-            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check Vim command.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
         except Exception as e:
             print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
 
