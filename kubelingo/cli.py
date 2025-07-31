@@ -174,7 +174,10 @@ def main():
                 pass
     # Prompt for key if still missing and not requesting help
     if not os.getenv('OPENAI_API_KEY') and '--help' not in sys.argv and '-h' not in sys.argv:
-        prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
+        try:
+            prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
+        except Exception:
+            prompt = ''
         if prompt:
             try:
                 cfg_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
