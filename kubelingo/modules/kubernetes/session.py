@@ -19,13 +19,16 @@ from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
     DEFAULT_DATA_FILE,
-    VIM_QUESTIONS_FILE,
     YAML_QUESTIONS_FILE,
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
     KILLERCODA_CSV_FILE,
 )
+
+# The VIM_QUESTIONS_FILE in config points to a .yaml file which causes a parsing error.
+# The correct data is in `question-data/json/vim.json`. We define the path here to fix it.
+VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim.json')
 
 try:
     from prompt_toolkit import PromptSession
