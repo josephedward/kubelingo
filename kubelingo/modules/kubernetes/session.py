@@ -858,6 +858,9 @@ class NewSession(StudySession):
             # If user exited the quiz early, return to quiz menu without summary.
             if quiz_backed_out:
                 print(f"\n{Fore.YELLOW}Returning to quiz selection menu.{Style.RESET_ALL}")
+                # Reset selection so next loop shows the module menu
+                initial_args.file = None
+                initial_args.review_only = False
                 continue
             
             end_time = datetime.now()
