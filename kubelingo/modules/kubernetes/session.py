@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import shlex
+import webbrowser
 from datetime import datetime
 import logging
 
@@ -174,13 +175,7 @@ def _get_yaml_quiz_files():
 
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    all_quiz_files = \
-        _get_quiz_files() + \
-        _get_md_quiz_files() + \
-        _get_yaml_quiz_files()
-
-    if os.path.exists(VIM_QUESTIONS_FILE):
-        all_quiz_files.append(VIM_QUESTIONS_FILE)
+    all_quiz_files = ([VIM_QUESTIONS_FILE] if os.path.exists(VIM_QUESTIONS_FILE) else [])
 
     all_flagged = []
     for f in all_quiz_files:
@@ -579,11 +574,8 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
-                    # Show the expected answers derived from validation steps
-                    choices.append({"name": "Show Expected Answer(s)", "value": "show"})
-                    # Show the model's example response (if defined)
-                    if q.get('response'):
-                        choices.append({"name": "Show Model Answer", "value": "show_answer"})
+                    if q.get('category') == 'Vim Commands':
+                        choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Next Question", "value": "next"})
@@ -637,26 +629,10 @@ class NewSession(StudySession):
                         current_question_index = max(current_question_index - 1, 0)
                         break
                     
-                    if action == "show_answer":
-                        answer = q.get('response')
-                        if answer:
-                            print(f"\n{Fore.GREEN}--- Model Answer ---{Style.RESET_ALL}")
-                            print(f"{Fore.YELLOW}{answer.strip()}{Style.RESET_ALL}")
-                            print(f"{Fore.GREEN}--------------------{Style.RESET_ALL}")
-                        continue
-
-                    if action == "show":
-                        # Display expected commands or response for this question
-                        expected = []
-                        for vs in q.get('validation_steps', []):
-                            cmd = vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', None)
-                            if cmd:
-                                expected.append(cmd)
-                        if not expected and q.get('response'):
-                            expected = [q['response']]
-                        print(f"{Fore.CYAN}Expected answer(s):{Style.RESET_ALL}")
-                        for cmd in expected:
-                            print(f"  {cmd}")
+                    if action == "visit_source":
+                        url = "https://www.vim.page/vim-commands-cheat-sheet"
+                        print(f"Opening documentation at {url} ...")
+                        webbrowser.open(url)
                         continue
                     if action == "flag":
                         data_file_path = q.get('data_file', args.file)
@@ -1021,10 +997,7 @@ class NewSession(StudySession):
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
-        all_quiz_files = sorted(
-            _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files() +
-            ([VIM_QUESTIONS_FILE] if os.path.exists(VIM_QUESTIONS_FILE) else [])
-        )
+        all_quiz_files = ([VIM_QUESTIONS_FILE] if os.path.exists(VIM_QUESTIONS_FILE) else [])
         all_flagged = get_all_flagged_questions()
 
         choices = []
