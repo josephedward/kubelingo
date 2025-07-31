@@ -432,47 +432,16 @@ class NewSession(StudySession):
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
 
-            is_interactive = questionary and not args.file and not args.category and not args.review_only
-
-            if is_interactive:
-                # Interactive file-selection loop for k8s quizzes
-                while True:
-                    choices, flagged_questions = self._build_interactive_menu_choices()
-                    selected = questionary.select(
-                        "Choose a Kubernetes exercise:",
-                        choices=choices,
-                        use_indicator=True
-                    ).ask()
-                    # Back to file menu
-                    if selected is None:
-                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        sys.exit(0)
-                    if selected == 'help':
-                        from kubelingo.utils.ui import show_quiz_type_help
-                        show_quiz_type_help()
-                        input("\nPress Enter to return to the menu...")
-                        continue
-                    if selected == 'exit_app':
-                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        sys.exit(0)
-                    # Clear all review flags and re-list files
-                    if selected == 'clear_flags':
-                        _clear_all_review_flags(self.logger)
-                        continue
-                    # Review flagged questions
-                    if selected == 'review':
-                        args.review_only = True
-                        questions = flagged_questions
-                        args.file = 'review_session'
-                    else:
-                        args.file = selected
-                        questions = load_questions(args.file)
-                    break
+            if args.review_only:
+                questions = get_all_flagged_questions()
+            elif args.file:
+                questions = load_questions(args.file)
             else:
-                if args.review_only:
-                    questions = get_all_flagged_questions()
-                else:
-                    questions = load_questions(args.file)
+                # This case should not be reached if called from the interactive CLI,
+                # as the CLI sets args.file or args.review_only.
+                # If another part of the code calls this without args, we should exit gracefully.
+                print(f"{Fore.YELLOW}No quiz file specified. Returning to main menu.{Style.RESET_ALL}")
+                return
 
             # De-duplicate questions based on the prompt text to avoid redundancy.
             # This can happen if questions are loaded from multiple sources or if
@@ -964,62 +933,6 @@ class NewSession(StudySession):
         
         return is_correct
 
-    def _build_interactive_menu_choices(self):
-        """Helper to construct the list of choices for the interactive menu."""
-        # Discover all quiz files from JSON, MD, and YAML sources.
-        all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
-        all_quiz_files = sorted(list(set(all_quiz_files)))
-
-        all_flagged = get_all_flagged_questions()
-        
-        choices = []
-
-        # 1. Vim Quiz (if available)
-        vim_quiz_path = VIM_QUESTIONS_FILE if os.path.exists(VIM_QUESTIONS_FILE) else None
-        if vim_quiz_path:
-            choices.append({"name": "Vim Quiz", "value": vim_quiz_path})
-            if vim_quiz_path in all_quiz_files:
-                all_quiz_files.remove(vim_quiz_path)
-        else:
-            choices.append({"name": "Vim Quiz", "value": "vim_quiz_disabled", "disabled": "Not available"})
-
-        # 2. Review Flagged
-        if all_flagged:
-            choices.append({"name": f"Review {len(all_flagged)} Flagged Questions", "value": "review"})
-        else:
-            choices.append({"name": "Review Flagged Questions", "value": "review"})
-        
-        # 3. Help
-        choices.append({"name": "Help", "value": "help"})
-        
-        # 4. Exit App
-        choices.append({"name": "Exit App", "value": "exit_app"})
-        
-        choices.append(questionary.Separator())
-
-        # 5. Session Type (disabled)
-        choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
-        
-        # 6. Custom Quiz (disabled)
-        choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
-        
-        if all_quiz_files:
-            choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
-            for file_path in all_quiz_files:
-                base = os.path.basename(file_path)
-                name = os.path.splitext(base)[0]
-                subject = humanize_module(name).strip()
-                choices.append({
-                    "name": subject,
-                    "value": file_path,
-                    "disabled": "Not yet implemented"
-                })
-        
-        if all_flagged:
-            choices.append(questionary.Separator())
-            choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
-        
-        return choices, all_flagged
 
     def _check_cluster_connectivity(self):
         """Checks if kubectl can connect to a cluster and provides helpful error messages."""
