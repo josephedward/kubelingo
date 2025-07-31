@@ -463,6 +463,33 @@ class NewSession(StudySession):
         
         return choices, all_flagged
 
+    def _show_help(self):
+        """Displays a contextual help menu for the main quiz selection screen."""
+        print(f"\n{Fore.CYAN}--- Kubelingo Help ---{Style.RESET_ALL}\n")
+        print("This screen provides access to all quiz modules and application features.\n")
+
+        print(f"{Fore.GREEN}Vim Quiz{Style.RESET_ALL}")
+        print("  The primary, active quiz module for practicing Vim commands.\n")
+
+        print(f"{Fore.GREEN}Review Flagged Questions{Style.RESET_ALL}")
+        print("  Starts a quiz session with only the questions you have previously flagged for review.")
+        print("  Use this for focused study on topics you find difficult.\n")
+
+        print(f"{Fore.GREEN}View Session History{Style.RESET_ALL}")
+        print("  Displays a summary of your past quiz sessions, including scores and timings.\n")
+        
+        print(f"{Fore.GREEN}Help{Style.RESET_ALL}")
+        print("  Shows this help screen.\n")
+        
+        print(f"{Fore.GREEN}Exit App{Style.RESET_ALL}")
+        print("  Quits the application.\n")
+        
+        print(f"{Fore.YELLOW}Other Options (Not yet implemented){Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Session Type (PTY/Docker){Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Custom Quiz{Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Other Quizzes...{Style.RESET_ALL}")
+        print(f"  - {Style.DIM}Clear All Review Flags{Style.RESET_ALL} (appears when questions are flagged)")
+
     def run_exercises(self, args):
         """
         Router for running exercises. It decides which quiz to run.
@@ -532,8 +559,7 @@ class NewSession(StudySession):
                     sys.exit(0)
 
                 if selected == "help":
-                    from kubelingo.utils.ui import show_quiz_type_help
-                    show_quiz_type_help()
+                    self._show_help()
                     input("\nPress Enter to return to the menu...")
                     continue
                 # View past session history
