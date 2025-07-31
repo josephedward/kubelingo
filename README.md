@@ -91,9 +91,19 @@ Example:
 
 ## Installation
 
+To install `kubelingo` from PyPI, simply run:
+
+```bash
+pip install kubelingo
+```
+
+### Development Setup
+
+If you want to contribute to the project, follow these steps to set up a development environment.
+
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/your-repo/kubelingo.git
+    git clone https://github.com/josephedward/kubelingo.git
     cd kubelingo
     ```
 
