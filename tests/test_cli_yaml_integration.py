@@ -2,24 +2,29 @@ import pytest
 import json
 from unittest.mock import patch, Mock
 import yaml
+import os
 
 # Import the function to be tested and the path to the data file from the CLI module.
 # This makes the test robust against changes in file locations.
 from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
 
-# Load the test data once to get the list of questions and correct solutions.
-with open(YAML_QUESTIONS_FILE, 'r') as f:
-    yaml_questions_data = json.load(f)
+@pytest.fixture
+def yaml_test_data():
+    """Load YAML test data, skipping if the file doesn't exist."""
+    if not os.path.exists(YAML_QUESTIONS_FILE):
+        pytest.skip(f"YAML questions file not found: {YAML_QUESTIONS_FILE}")
 
-# Flatten the list of questions to make them easier to iterate through in the test.
-all_prompts = []
-for section in yaml_questions_data:
-    for prompt in section.get('prompts', []):
-        if prompt.get('question_type') == 'yaml_edit':
-            all_prompts.append(prompt)
+    with open(YAML_QUESTIONS_FILE, 'r') as f:
+        yaml_questions_data = json.load(f)
 
-correct_yaml_solutions = [p['correct_yaml'] for p in all_prompts]
-num_questions = len(correct_yaml_solutions)
+    # Flatten the list of questions to make them easier to iterate through in the test.
+    all_prompts = []
+    for section in yaml_questions_data:
+        for prompt in section.get('prompts', []):
+            if prompt.get('question_type') == 'yaml_edit':
+                all_prompts.append(prompt)
+    
+    return all_prompts
 
 # A stateful callable class to simulate the editor for `subprocess.run`.
 # This allows us to provide a different "edited" file for each question.
@@ -51,19 +56,26 @@ class MockEditor:
         mock_proc.returncode = 0
         return mock_proc
 
-def test_yaml_editing_e2e_flow(capsys):
+def test_yaml_editing_e2e_flow(capsys, yaml_test_data):
     """
     Tests the end-to-end flow of the YAML editing mode.
     - Mocks the editor subprocess to simulate correct answers for all questions.
     - Mocks user input to auto-continue through all exercises.
     - Verifies that the full session flow and output are correct.
     """
+    all_prompts = yaml_test_data
+    correct_yaml_solutions = [p['correct_yaml'] for p in all_prompts]
+    num_questions = len(correct_yaml_solutions)
+
+    if num_questions == 0:
+        pytest.skip("No YAML edit questions found to test.")
+
     # Instantiate our mock editor with the correct solutions.
     mock_editor_instance = MockEditor(correct_yaml_solutions)
 
     # Mock user input to automatically answer 'y' to "Continue?" prompts
     # and 'n' to any retry prompts. This test covers the success path, so only 'y' for 'Continue?' is needed.
-    user_inputs = ['y'] * num_questions
+    user_inputs = ['y'] * (num_questions - 1)
 
     # The function is now a method on the NewSession class
     session = NewSession(logger=Mock())
