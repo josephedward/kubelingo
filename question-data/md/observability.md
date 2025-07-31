@@ -47,7 +47,7 @@ kubectl delete -f pod.yaml
 </p>
 </details>
 
-### Modify the pod.yaml file so that liveness probe starts kicking in after 5 seconds whereas the interval between probes would be 5 seconds. Run it, check the probe, delete it.
+### Modify the YAML configuration of an nginx pod that you previously created with a liveness probe running the command 'ls'. Adjust the liveness probe in the pod.yaml file to start after 5 seconds and set the interval between probes to 5 seconds. After making these adjustments, run the updated pod, check its liveness probe status to ensure it is working as expected, then delete the pod.
 
 <details><summary>show</summary>
 <p>
@@ -90,7 +90,7 @@ kubectl delete -f pod.yaml
 </p>
 </details>
 
-### Create an nginx pod (that includes port 80) with an HTTP readinessProbe on path '/' on port 80. Again, run it, check the readinessProbe, delete it.
+### Create an nginx pod (that includes port 80) with an HTTP readinessProbe configured to check the path '/' on port 80. After creation, run this pod, verify the functionality of the readinessProbe by checking its status to ensure it is working as expected, then delete the pod. This question follows the previous task where you modified a YAML configuration for an nginx pod by adjusting a liveness probe; now you'll focus on implementing and testing a readinessProbe.
 
 <details><summary>show</summary>
 <p>
@@ -134,7 +134,7 @@ kubectl delete -f pod.yaml
 </p>
 </details>
 
-### Lots of pods are running in `qa`,`alan`,`test`,`production` namespaces.  All of these pods are configured with liveness probe.  Please list all pods whose liveness probe are failed in the format of `<namespace>/<pod name>` per line.
+### Following the task where you created an nginx pod with a readinessProbe on port 80, now turn your attention to the broader cluster environment. Within the `qa`, `alan`, `test`, and `production` namespaces, all pods are configured with liveness probes. Please list all pods whose liveness probes have failed, providing the output in the format of `<namespace>/<pod name>` per line.
 
 <details><summary>show</summary>
 <p>
@@ -156,7 +156,7 @@ kubectl get events -o json | jq -r '.items[] | select(.message | contains("Liven
 
 ## Logging
 
-### Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done`. Check its logs
+### Create a busybox pod in any namespace that runs the following command: `i=0; while true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done`. After deployment, check and provide its logs.
 
 <details><summary>show</summary>
 <p>
@@ -171,7 +171,7 @@ kubectl logs busybox -f # follow the logs
 
 ## Debugging
 
-### Create a busybox pod that runs 'ls /notexist'. Determine if there's an error (of course there is), see it. In the end, delete the pod
+### Create a busybox pod in any namespace that runs the command `ls /notexist`. Check the logs to determine if there's an error (there will be an error). After reviewing the error in the logs, delete the pod.
 
 <details><summary>show</summary>
 <p>
@@ -187,7 +187,7 @@ kubectl delete po busybox
 </p>
 </details>
 
-### Create a busybox pod that runs 'notexist'. Determine if there's an error (of course there is), see it. In the end, delete the pod forcefully with a 0 grace period
+### Create a busybox pod in any namespace that runs the command `ls /notexist`, similar to a previous task. Check the pod's logs to determine if there's an error (as expected, there will be an error). After observing the error, delete the pod forcefully using a 0 grace period.
 
 <details><summary>show</summary>
 <p>
@@ -205,7 +205,7 @@ kubectl delete po busybox --force --grace-period=0
 </details>
 
 
-### Get CPU/memory utilization for nodes ([metrics-server](https://github.com/kubernetes-incubator/metrics-server) must be running)
+### Get CPU/memory utilization for nodes in the cluster (ensure that [metrics-server](https://github.com/kubernetes-incubator/metrics-server) is installed and running) after completing the task of creating a busybox pod in any namespace that runs the command `ls /notexist`, checking the pod's logs for an expected error, and forcefully deleting the pod with a 0 grace period.
 
 <details><summary>show</summary>
 <p>

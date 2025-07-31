@@ -54,7 +54,7 @@ spec:
 </p>
 </details>
 
-### Create the CRD resource in the K8S API
+### Create the CustomResourceDefinition (CRD) resource in the Kubernetes (K8S) API based on the manifest file for an Operator with the specified specifications.
 
 <details><summary>show</summary>
 <p>
@@ -66,7 +66,7 @@ kubectl apply -f operator-crd.yml
 </p>
 </details>
 
-### Create custom object from the CRD
+### Create a custom object from the CustomResourceDefinition (CRD) resource you previously created in the Kubernetes API for an Operator, based on the specified specifications in the manifest file.
 
 * *Name* : `operator-sample`
 * *Kind*: `Operator`
@@ -96,7 +96,7 @@ kubectl apply -f operator.yml
 </p>
 </details>
 
-### Listing operator
+### List the custom object you created from the CustomResourceDefinition (CRD) in the Kubernetes API for an Operator, as specified in the previous question's manifest file.
 
 <details><summary>show</summary>
 <p>

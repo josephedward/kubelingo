@@ -1,0 +1,1841 @@
+[
+  {
+    "prompt": "A 'webapp' deployment is defined in the file. Add a new NodePort service named 'webapp-svc' that exposes the deployment on port 80. The service should target port 8080 on the pods.",
+    "initial_files": {
+      "service.yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: webapp\n  labels:\n    app: webapp\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: webapp\n  template:\n    metadata:\n      labels:\n        app: webapp\n    spec:\n      containers:\n      - name: webapp\n        image: httpd\n        ports:\n        - containerPort: 8080\n---\n# Add your Service definition below"
+    },
+    "validation_steps": [
+      {
+        "cmd": "#!/bin/bash\nset -e\nkubectl apply -f service.yaml\nkubectl wait --for=condition=available deployment/webapp --timeout=60s > /dev/null\n# Check service exists and is NodePort\nTYPE=$(kubectl get svc webapp-svc -o jsonpath='{.spec.type}')\nif [ \"$TYPE\" != \"NodePort\" ]; then\n  echo \"Error: Service 'webapp-svc' is type '$TYPE', expected 'NodePort'\"\n  exit 1\nfi\n# Check service port and targetPort\nPORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].port}')\nTARGET_PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].targetPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Service port is '$PORT', expected '80'\"\n  exit 1\nfi\nif [ \"$TARGET_PORT\" != \"8080\" ]; then\n  echo \"Error: Service targetPort is '$TARGET_PORT', expected '8080'\"\n  exit 1\nfi\necho \"Service 'webapp-svc' correctly configured as a NodePort.\"",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "explanation": "You need to add a second resource definition for the Service, setting `spec.type` to `NodePort`, `spec.ports[0].port` to 80, `spec.ports[0].targetPort` to 8080, and `spec.selector` to match the deployment's labels (`app: webapp`).",
+    "category": "Live Kubernetes Questions",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json"
+  },
+  {
+    "prompt": "Add kubectl autocompletion to ~/.bashrc",
+    "response": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc",
+    "explanation": "Appends the completion command to your startup file so every new shell session loads `kubectl` tab-completion automatically.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "After creating a pod in the Kubernetes cluster with the image nginx, naming the pod nginx, and exposing it to receive traffic on port 80, change the pod's image to nginx:1.24.0. Observe that the container will be restarted as soon as the image gets pulled.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "Kubernetes automatically restarts a container within a pod when its image is updated to ensure the pod runs the latest version specified."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "After creating a pod in the Kubernetes cluster with the image nginx, naming the pod nginx, and exposing it to receive traffic on port 80, then changing the pod's image to nginx:1.24.0 and observing that the container restarts as soon as the image is pulled, get the nginx pod's IP and use a temporary busybox image to wget its root directory ('/').",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "To retrieve the nginx pod's IP and access its root directory using a temporary busybox container, you would first use `kubectl get pods -o wide` to find the pod's IP, then `kubectl run busybox --rm -it --image=busybox -- wget -O- <nginx-pod-IP>` to execute a wget command from within the busybox container, demonstrating pod-to-pod communication within the Kubernetes cluster."
+  },
+  {
+    "prompt": "Annotate deployment frontend with description=test",
+    "response": "kubectl annotate deployment frontend description=test",
+    "explanation": "Adds or updates the annotation `description=test` on `frontend`, useful for non-selective metadata.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Append text after cursor",
+    "response": "a",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Apply deployment.yaml without sending to server (dry run)",
+    "response": "kubectl apply -f deployment.yaml --dry-run=client",
+    "explanation": "Validates and prints the changes locally, ensuring your manifest is correct before touching live resources.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Apply the configuration in deployment.yaml",
+    "response": "kubectl apply -f deployment.yaml",
+    "explanation": "Applies changes from `deployment.yaml` declaratively, creating or patching resources to match the file\u2019s spec.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80% CPU",
+    "response": "kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80",
+    "explanation": "Creates an HPA targeting `frontend`, automatically adjusting replicas between 2 and 5 to maintain ~80% CPU utilization.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Check if you can create pods",
+    "response": "kubectl auth can-i create pods",
+    "explanation": "Tests your current user\u2019s RBAC permissions for the `create` verb on Pod resources in the active namespace.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Check the kubectl client and server versions",
+    "response": "kubectl version",
+    "explanation": "Displays both client and API server versions, helping you verify compatibility and diagnose version-related issues.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Check the rollout status of a deployment named 'frontend'",
+    "response": "kubectl rollout status deployment/frontend",
+    "explanation": "Displays live progress of the `frontend` Deployment\u2019s rollout, reporting when all updated Pods are available or if any failures occur.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Continuously watch pods",
+    "response": "kubectl get pods -w",
+    "explanation": "Keeps the `kubectl get pods` table live, updating your terminal as Pods start, stop, or change status.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Copy current line (yank)",
+    "response": "yy",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Copy file /tmp/data from pod busybox to current directory",
+    "response": "kubectl cp busybox:/tmp/data ./",
+    "explanation": "Transfers `/tmp/data` from the `busybox` Pod into your local cwd, enabling retrieval of logs or test artifacts.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap from all files in the '/configs' directory",
+    "response": "kubectl create cm app-settings --from-file=/configs",
+    "explanation": "Iterates over every file under `/configs`, creating corresponding keys in `app-settings`, great for grouping multiple configs.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap from all files in the 'configs' directory",
+    "initial_files": {
+      "configs/conf1": "val1",
+      "configs/conf2": "val2"
+    },
+    "validation_steps": [
+      {
+        "cmd": "kubectl get cm app-settings",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The correct command to create a ConfigMap from all files in the 'configs' directory is `kubectl create configmap <map-name> --from-file=configs/`, not `kubectl get cm app-settings` which retrieves information about an existing ConfigMap named app-settings."
+  },
+  {
+    "prompt": "Create a ConfigMap from an env file",
+    "response": "kubectl create cm env-config --from-env-file=config.env",
+    "explanation": "Parses `config.env` (KEY=VALUE per line) into `env-config`, letting containers import it via `envFrom` without manual literal listing.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "question_type": "yaml_edit",
+    "prompt": "Create a ConfigMap named 'app-config' with data: database_url=mysql://localhost:3306/app",
+    "starting_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add name\ndata:\n  # TODO: Add data fields",
+    "correct_yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  database_url: mysql://localhost:3306/app",
+    "explanation": "ConfigMap with key-value data for application configuration",
+    "category": "YAML Editing - ConfigMaps",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/yaml_edit_questions.json"
+  },
+  {
+    "prompt": "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod",
+    "response": "kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod",
+    "explanation": "Builds a ConfigMap `app-config` injecting literals for `APP_COLOR` and `APP_MODE`, which Pods can consume as environment variables or files.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at '/configs/game.properties'",
+    "response": "kubectl create cm game-config --from-file=/configs/game.properties",
+    "explanation": "Loads the contents of `game.properties` into `game-config`, mapping the filename to a key so containers can mount it as a file.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap named 'game-config' from a configuration file located at 'game.properties'",
+    "initial_files": {
+      "game.properties": "level=1\nworld=dungeon\n"
+    },
+    "validation_steps": [
+      {
+        "cmd": "kubectl get cm game-config",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The correct command to create a ConfigMap named 'game-config' from a file is `kubectl create configmap game-config --from-file=game.properties`, not `kubectl get cm game-config` which only retrieves information about an existing ConfigMap."
+  },
+  {
+    "prompt": "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line",
+    "response": "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true",
+    "explanation": "Bundles three literals into `multi-config`, showcasing how to supply multiple discrete settings in a single invocation.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap named app-config from file config.yaml",
+    "response": "kubectl create configmap app-config --from-file=config.yaml",
+    "explanation": "Loads `config.yaml` into key `config.yaml` in the ConfigMap, making it mountable or env-injectable for Pods.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ConfigMap named trauerweide with data tree=trauerweide.",
+    "answer": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: trauerweide\ndata:\n  tree: trauerweide",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_questions.json"
+  },
+  {
+    "question_type": "yaml_edit",
+    "prompt": "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21",
+    "starting_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: # TODO: Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n    matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n      containers:\n      - name: nginx\n        image: # TODO: Set image",
+    "correct_yaml": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: frontend\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.21",
+    "explanation": "Deployment with replica count and proper label selectors",
+    "category": "YAML Editing - Deployments",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/yaml_edit_questions.json"
+  },
+  {
+    "prompt": "Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5.",
+    "answer": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n    spec:\n      containers:\n      - name: httpd\n        image: httpd:alpine\n        readinessProbe:\n          exec:\n            command:\n            - stat\n            - /tmp/ready\n          initialDelaySeconds: 10\n          periodSeconds: 5",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_questions.json"
+  },
+  {
+    "question_type": "yaml_edit",
+    "prompt": "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80",
+    "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\nspec:\n  containers:\n  - name: # TODO: Add container name\n    image: # TODO: Add image\n    ports:\n    - containerPort: # TODO: Add port",
+    "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\nspec:\n  containers:\n  - name: nginx\n    image: nginx:1.20\n    ports:\n    - containerPort: 80",
+    "explanation": "Basic pod with specific name, image, and port configuration",
+    "category": "YAML Editing - Pods",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/yaml_edit_questions.json"
+  },
+  {
+    "prompt": "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
+    "pre_shell_cmds": [
+      "kubectl create configmap app-config --from-literal=key=value"
+    ],
+    "initial_files": {
+      "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: config-pod\nspec:\n  containers:\n  - name: busybox\n    image: busybox\n    command: ['sleep', '3600']\n"
+    },
+    "validation_steps": [
+      {
+        "cmd": "kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}' | grep 'app-config' && kubectl get pod config-pod -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}' | grep '/etc/config'",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The command sequence applies a configuration from a YAML file to create a Pod, then verifies that the Pod mounts the specified ConfigMap `app-config` at the correct path `/etc/config` by extracting and checking these details from the Pod's specification."
+  },
+  {
+    "prompt": "Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke.",
+    "answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n  - name: nginx\n    image: nginx:alpine\n    env:\n    - name: TREE1\n      valueFrom:\n        configMapKeyRef:\n          name: trauerweide\n          key: tree\n    volumeMounts:\n    - name: birke-volume\n      mountPath: /etc/birke\n  volumes:\n  - name: birke-volume\n    configMap:\n      name: birke",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_questions.json"
+  },
+  {
+    "question_type": "yaml_edit",
+    "prompt": "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432",
+    "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables",
+    "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value: localhost\n    - name: DB_PORT\n      value: \"5432\"",
+    "explanation": "Pod with environment variables defined in container spec",
+    "category": "YAML Editing - Pods",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/yaml_edit_questions.json"
+  },
+  {
+    "prompt": "Create a Secret from a .env file",
+    "response": "kubectl create secret generic my-secrets --from-env-file=.env",
+    "explanation": "Converts each `KEY=VALUE` line in `.env` into data entries in `my-secrets`, streamlining multi-value secret ingestion.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a Secret named 'db-creds' with username=admin and password=password123",
+    "response": "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123",
+    "explanation": "Encodes `username` and `password` into a base64 Secret `db-creds`, which Pods can consume via `secretKeyRef` to keep credentials out of plaintext manifests.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a Secret named 'tls-cert' from a certificate file",
+    "response": "kubectl create secret generic tls-cert --from-file=/path/to/cert.pem",
+    "explanation": "Imports the raw bytes of `cert.pem` into `tls-cert`, ideal when you need to inject TLS assets into containers without baking them into images.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a Service Account named 'deployment-sa'",
+    "response": "kubectl create sa deployment-sa",
+    "explanation": "Provisions a ServiceAccount `deployment-sa`, which Pods can reference under `spec.serviceAccountName` to assume its RBAC permissions.",
+    "category": "Service Account Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a ServiceAccount named default-sa",
+    "response": "kubectl create serviceaccount default-sa",
+    "explanation": "Adds a custom ServiceAccount `default-sa`; Pods specifying it will inherit its token and RBAC scopes.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a TLS Secret type from certificate and key files",
+    "response": "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key",
+    "explanation": "Bundles a cert/key pair into a `tls` Secret, which Ingress controllers and web servers natively understand for TLS termination.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a busybox pod that echoes 'hello world' and then exits, ensuring it is separate from an initially created nginx pod that was later updated to use the nginx:1.24.0 image and exposed to receive traffic on port 80. Additionally, configure the busybox pod to be deleted automatically once it has completed its task.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The busybox pod can be created with a Job or a CronJob resource in Kubernetes, which supports running a command (echo 'hello world') and then exiting, with the Job's `ttlSecondsAfterFinished` feature enabling automatic deletion after completion, ensuring it operates independently of any nginx pod configurations or updates."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a busybox pod that echoes 'hello world' and then exits, ensuring it is separate from the nginx pod initially created with the nginx image and later updated to use the nginx:1.24.0 image, which is exposed to receive traffic on port 80.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "To create a busybox pod that echoes 'hello world' and then exits, while ensuring it does not interfere with an existing nginx pod, you would use a pod definition that specifies the busybox image and the command to echo 'hello world', without altering the nginx pod's configuration or service definitions that expose it on port 80."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a busybox pod using YAML that runs the command \"env\" and is placed in the 'mynamespace' namespace, similar to the nginx pod created in a previous task. Run the pod and see the output.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "To create a busybox pod that runs the \"env\" command in the 'mynamespace' namespace, you need to define a pod in a YAML file specifying the container image as busybox, the command to run, and the namespace, then apply this YAML file with kubectl to create the pod and use `kubectl logs` to see the output."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a busybox pod using the kubectl command that runs the command \"env\". Ensure the pod is named 'busybox' and it is created in the same namespace ('mynamespace') as the nginx pod specified in the previous task. Run the pod and see the output.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The correct command to achieve this would involve using `kubectl run busybox --namespace=mynamespace --image=busybox --restart=Never -- env`, which creates a pod named 'busybox' in the specified namespace 'mynamespace', using the busybox image to run the 'env' command once before exiting, showcasing how to execute a specific command within a pod at creation."
+  },
+  {
+    "prompt": "Create a deployment named frontend using image nginx:1.14",
+    "response": "kubectl create deployment frontend --image=nginx:1.14",
+    "explanation": "Sets up `frontend` Deployment running `nginx:1.14`, managing Pods declaratively with rolling updates.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a deployment named webapp with image nginx:1.17 and 3 replicas",
+    "response": "kubectl create deployment webapp --image=nginx:1.17 --replicas=3",
+    "explanation": "Creates a Deployment object `webapp` running `nginx:1.17` across 3 Pods, ensuring declarative rolling updates, self-healing, and scaling capabilities under the hood.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a deployment with a record of the change-cause for future reference",
+    "response": "kubectl create deployment nginx --image=nginx --record",
+    "explanation": "Adds an annotation capturing the command that triggered this Deployment, letting you later inspect `kubectl rollout history` to trace change causes.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a docker-registry type Secret for private registry authentication",
+    "response": "kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL",
+    "explanation": "Generates a `.dockerconfigjson`\u2013style Secret that Kubernetes uses to pull from private registries, embedding credentials securely.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a generic secret named db-secret with literal username and password",
+    "response": "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret",
+    "explanation": "Builds `db-secret` with two data entries for secure credential distribution to Pods.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "kubectl get ns mynamespace",
+        "matcher": {
+          "exit_code": 0
+        }
+      },
+      {
+        "cmd": "kubectl get pod nginx -n mynamespace",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a namespace called 'mynamespace' and a pod with image nginx called nginx on this namespace",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The provided answer is incorrect; to create a namespace called 'mynamespace' and a pod named nginx with the nginx image in this namespace, you would first use `kubectl create namespace mynamespace` to create the namespace, followed by `kubectl run nginx --image=nginx --namespace=mynamespace` to create the pod within that namespace."
+  },
+  {
+    "prompt": "Create a namespace named dev",
+    "response": "kubectl create namespace dev",
+    "explanation": "Bootstraps a new `dev` namespace for isolating development workloads from others.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a new namespace called 'development'",
+    "response": "kubectl create namespace development",
+    "explanation": "Provision a logical scope `development` in the cluster, isolating resources and RBAC policies under its own boundary.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a new namespace called 'testing' and output its YAML definition",
+    "response": "kubectl create ns testing --dry-run=client -o yaml",
+    "explanation": "Renders the `testing` Namespace manifest without creating it, giving you a versioned YAML stub for review or customization.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod in the 'development' namespace",
+    "response": "kubectl run nginx --image=nginx -n development",
+    "explanation": "Launches a Pod named `nginx` within `development`, isolating it from other namespaces and inheriting the namespace\u2019s resource quotas and policies.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a pod in the Kubernetes cluster with the image nginx, name the pod nginx, and expose it to receive traffic on port 80.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command `kubectl run nginx --image=nginx --port=80` creates a pod named nginx using the nginx image and exposes it internally on port 80 to receive traffic."
+  },
+  {
+    "prompt": "Create a pod named busybox that runs the command 'sleep 3600'",
+    "response": "kubectl run busybox --image=busybox -- sleep 3600",
+    "explanation": "Launches a Pod named `busybox` that executes `sleep 3600` as its entrypoint, using the minimal BusyBox image. Useful for ephemeral debug containers that remain alive long enough for exec- or log-based inspection.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod named nginx using the nginx image and expose port 80",
+    "response": "kubectl run nginx --image=nginx --port=80",
+    "explanation": "Invokes `kubectl run` to create a standalone Pod called `nginx`, pulling the official `nginx` image and annotating its container spec with port 80, so Services or `kubectl port-forward` can route traffic. Ideal for quick dev-mode tests before wrapping in a Deployment for production.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod named nginx using the nginx image and expose port 80. You can use 'kubectl run' or create a YAML file.",
+    "validation_steps": [
+      {
+        "cmd": "#!/bin/bash\nset -e\nPOD_NAME=$(kubectl get pod nginx -o jsonpath='{.metadata.name}' 2>/dev/null)\nif [ \"$POD_NAME\" != \"nginx\" ]; then\n  echo \"Error: Pod 'nginx' not found.\"\n  exit 1\nfi\nIMAGE=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx'.\"\n  exit 1\nfi\nPORT=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].ports[0].containerPort}')\nif [ \"$PORT\" != \"80\" ]; then\n  echo \"Error: Port is '$PORT', expected '80'.\"\n  exit 1\nfi\necho \"Pod 'nginx' with image 'nginx' and port 80 found.\"",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "explanation": "You can solve this with 'kubectl run nginx --image=nginx --port=80' or by creating a Pod manifest with the specified image and containerPort.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json"
+  },
+  {
+    "prompt": "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend",
+    "response": "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\"",
+    "explanation": "Tags the new `nginx` Pod with `app=web` and `tier=frontend` labels, enabling Services, ReplicaSets, and `kubectl get -l` selectors to group and manage it alongside related resources.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod that mounts a Secret as a volume using the nginx image",
+    "response": "kubectl run secret-pod --image=nginx --dry-run=client -o yaml > pod.yaml # add volume.secret",
+    "explanation": "Creates a Pod manifest; under `spec.volumes` reference `secret.name: my-secrets` and mount into the container to expose files rather than env vars.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod that runs curl against an internal service at 10.244.0.4",
+    "response": "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4",
+    "explanation": "Launches a disposable Pod named `curl1` to execute `curl 10.244.0.4` inside the cluster; `--rm` and `--restart=Never` ensure it doesn\u2019t persist, while `-i -t` streams output to your terminal.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db",
+    "response": "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\"",
+    "explanation": "Spawns an `nginx` Pod with `DB_URL` injected into the container\u2019s environment, letting the process read database connection info at runtime; for sensitive data, prefer mounting Secrets or ConfigMaps instead of literals.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod that uses a ConfigMap as environment variables",
+    "response": "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # add envFrom with configMapRef",
+    "explanation": "Generates a Pod spec stub; you then add `envFrom.configMapRef.name: app-config` under the container to import all ConfigMap keys as env vars.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod that uses a Secret value as an environment variable",
+    "response": "kubectl run secure-app --image=nginx --dry-run=client -o yaml > pod.yaml # add env.secretKeyRef",
+    "explanation": "Emits a Pod spec stub; modify `env` to reference `secretKeyRef.name: db-creds, key: password` so the container sees the secret at runtime without plaintext.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create a pod with resource requests of 100m CPU and 256Mi memory",
+    "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # then add resource requests",
+    "explanation": "Dumps a Pod spec to `pod.yaml`, which you then enrich under `resources.requests` with `cpu: \"100m\"` and `memory: \"256Mi\"` so the scheduler reserves minimal compute and memory for the container.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "pre_shell_cmds": [
+      "kubectl create ns mynamespace"
+    ],
+    "validation_steps": [
+      {
+        "cmd": "test -f pod.yaml",
+        "matcher": {
+          "exit_code": 0
+        }
+      },
+      {
+        "cmd": "kubectl get pod nginx -n mynamespace",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create a pod with the image nginx called nginx in a namespace called 'mynamespace' using YAML.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command \"test -f pod.yaml\" checks if a file named pod.yaml exists but does not create a pod; to create a pod, one would need to use `kubectl apply -f pod.yaml` with the appropriate YAML configuration for the pod."
+  },
+  {
+    "prompt": "Create a resource quota for a namespace limiting it to 10 pods",
+    "response": "kubectl create quota ns-quota --hard=pods=10 -n development",
+    "explanation": "Establishes a `ResourceQuota` named `ns-quota` in `development`, capping Pod creation at 10 to prevent resource exhaustion.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'k' for 'kubectl'",
+    "response": "alias k=kubectl",
+    "explanation": "Defines a shell alias `k` so you can type `k get pods` instead of `kubectl get pods`, saving keystrokes on every invocation.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'kc' for 'kubectl create'",
+    "response": "alias kc='kubectl create'",
+    "explanation": "Defines a shell alias `kc` so you can type `kc deployment webapp --image=nginx` instead of `kubectl create deployment webapp --image=nginx`, simplifying resource creation.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'kd' for 'kubectl describe'",
+    "response": "alias kd='kubectl describe'",
+    "explanation": "Defines a shell alias `kd` so you can type `kd pod nginx` instead of `kubectl describe pod nginx`, streamlining the describe command.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'ke' for 'kubectl explain'",
+    "response": "alias ke='kubectl explain'",
+    "explanation": "Defines a shell alias `ke` so you can type `ke pods` instead of `kubectl explain pods`, making API field lookup quicker.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'kgp' for 'kubectl get pods'",
+    "response": "alias kgp='kubectl get pods'",
+    "explanation": "Defines a shell alias `kgp` so you can list pods with just `kgp`, reducing typing for frequent pod listings.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'kgs' for 'kubectl get svc'",
+    "response": "alias kgs='kubectl get svc'",
+    "explanation": "Defines a shell alias `kgs` so you can list services with just `kgs`, making service inspection faster.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an alias 'kr' for 'kubectl run'",
+    "response": "alias kr='kubectl run'",
+    "explanation": "Defines a shell alias `kr` so you can type `kr nginx --image=nginx` instead of `kubectl run nginx --image=nginx`, speeding up pod creation.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues",
+    "response": "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash",
+    "explanation": "Starts a one-off `ubuntu` Pod named `my-shell` with an interactive Bash shell; flags `-i --tty` attach your terminal, and `--rm` auto-cleans the Pod on exit\u2014perfect for ad hoc network or volume tests.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create an nginx pod, separate from the busybox pod that echoes 'hello world' and then exits. Ensure this nginx pod is set with an environment variable 'var1=val1' and verify the existence of this environment variable within the pod.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "To create an nginx pod with a specific environment variable, you would use a pod definition that specifies nginx as the container image and includes the environment variable 'var1=val1' in the container's configuration, then you can verify the environment variable by executing a command inside the running pod, such as `kubectl exec [pod-name] -- printenv var1`, ensuring the pod's configuration and operational environment meet the specified requirements."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Create the YAML definition for a new ResourceQuota called 'myrq' in the namespace 'myns', where you previously created a busybox pod that runs the command \"env\". The ResourceQuota should have hard limits of 1 CPU, 1G memory, and allow for a maximum of 2 pods, all without actually creating the ResourceQuota.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The `kubectl create quota myrq --hard=cpu=1,memory=1G,pods=2 --dry-run=client -o yaml -n myns` command generates the YAML definition for a ResourceQuota named 'myrq' with specified limits, using the `--dry-run=client` option to prevent actual creation, and outputs it in YAML format."
+  },
+  {
+    "prompt": "Create two resources: 1. A ConfigMap named 'app-config' with data 'index.html: <h1>Hello World</h1>'. 2. A Pod named 'web-server' using the 'nginx' image that mounts the ConfigMap as a volume at '/usr/share/nginx/html', replacing the default nginx page.",
+    "initial_files": {
+      "resources.yaml": "# Add your ConfigMap and Pod definitions here"
+    },
+    "validation_steps": [
+      {
+        "cmd": "#!/bin/bash\nset -e\nkubectl apply -f resources.yaml\n# Check ConfigMap data\nDATA=$(kubectl get cm app-config -o jsonpath='{.data.index\\.html}')\nif ! echo \"$DATA\" | grep -q 'Hello World'; then\n  echo \"Error: ConfigMap 'app-config' does not have the correct data.\"\n  exit 1\nfi\n# Wait for pod to be ready\nkubectl wait --for=condition=Ready pod/web-server --timeout=120s > /dev/null\n# Check that the mounted file contains the correct content\nCONTENT=$(kubectl exec web-server -- curl -s localhost)\nif ! echo \"$CONTENT\" | grep -q 'Hello World'; then\n  echo \"Error: The web server did not return the expected content from the ConfigMap.\"\n  echo \"Received: $CONTENT\"\n  exit 1\nfi\necho \"Pod is serving content from the mounted ConfigMap correctly.\"",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "explanation": "You need to define a ConfigMap with the specified data. Then, define a Pod that references this ConfigMap in `spec.volumes` and mounts it into the container at the correct path using `spec.containers[0].volumeMounts`.",
+    "category": "Live Kubernetes Questions",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json"
+  },
+  {
+    "prompt": "Decode a base64 encoded Secret value",
+    "response": "echo -n 'encoded string...' | base64 --decode",
+    "explanation": "Reverses the encoding, revealing the original plaintext\u2014handy for quick checks of Secret contents on the CLI.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete a namespace called 'testing' and all its resources",
+    "response": "kubectl delete namespace testing",
+    "explanation": "Removes the entire `testing` namespace object, cascading deletion to every resource contained within.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete configmap app-config",
+    "response": "kubectl delete configmap app-config",
+    "explanation": "Removes the `app-config` resource; Pods mounting it will see no files or errors on next restart.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Delete current line",
+    "response": "dd",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Delete deployment frontend",
+    "response": "kubectl delete deployment frontend",
+    "explanation": "Removes the `frontend` Deployment and its managed ReplicaSets and Pods.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete namespace dev",
+    "response": "kubectl delete namespace dev",
+    "explanation": "Tears down `dev` and all resources within\u2014use carefully to avoid data loss.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete pod busybox",
+    "response": "kubectl delete pod busybox",
+    "explanation": "Immediately removes the `busybox` Pod from the cluster; if managed by a higher-level controller it may be recreated.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete secret db-secret",
+    "response": "kubectl delete secret db-secret",
+    "explanation": "Purges the `db-secret` resource, revoking any Pod\u2019s access to its values.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete service frontend-svc",
+    "response": "kubectl delete service frontend-svc",
+    "explanation": "Removes the `frontend-svc` Service; client traffic will no longer route to backend Pods.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete serviceaccount default-sa",
+    "response": "kubectl delete serviceaccount default-sa",
+    "explanation": "Removes the `default-sa` object, invalidating its token Secret.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Delete the current line",
+    "response": "dd",
+    "explanation": "Removes the line under the cursor in Vim\u2019s normal mode.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe configmap app-config",
+    "response": "kubectl describe configmap app-config",
+    "explanation": "Reveals keys, data sizes, and events for `app-config` to help validate expected content.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe deployment frontend",
+    "response": "kubectl describe deployment frontend",
+    "explanation": "Provides full detail of `frontend`\u2019s spec, ReplicaSets, events, and rollout history.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe namespace dev",
+    "response": "kubectl describe namespace dev",
+    "explanation": "Reveals details about `dev`\u2019s annotations, labels, and any events tied to its lifecycle.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe node worker-node-1",
+    "response": "kubectl describe node worker-node-1",
+    "explanation": "Gives full node details\u2014capacity, allocatable resources, taints, conditions, and running Pods\u2014for cluster operations.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe pod busybox",
+    "response": "kubectl describe pod busybox",
+    "explanation": "Shows the full YAML spec, conditions, events, and container statuses for the `busybox` Pod.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe pod busybox for troubleshooting",
+    "response": "kubectl describe pod busybox",
+    "explanation": "Displays event history, container states, and resource details to pinpoint Pod startup or runtime issues.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe secret db-secret",
+    "response": "kubectl describe secret db-secret",
+    "explanation": "Lists metadata and type of `db-secret`, but does not reveal values (use `-o yaml` to see base64-encoded data).",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe service frontend-svc",
+    "response": "kubectl describe service frontend-svc",
+    "explanation": "Provides the Service\u2019s selectors, endpoints, port mappings, and any related events.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Describe serviceaccount default-sa",
+    "response": "kubectl describe serviceaccount default-sa",
+    "explanation": "Shows the linked Secret tokens and any associated image pull secrets for `default-sa`.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Display cluster info",
+    "response": "kubectl cluster-info",
+    "explanation": "Shows API server and DNS endpoints for the cluster, confirming connectivity.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enable kubectl autocomplete in your shell",
+    "response": "source <(kubectl completion bash)\ncomplete -F __start_kubectl k",
+    "explanation": "Loads the kubectl bash completion script and registers it for the `k` alias, providing real-time tab-completion of commands, flags, and resource names.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enable kubectl autocompletion for bash",
+    "response": "source <(kubectl completion bash)",
+    "explanation": "Activates real-time tab-completion for `kubectl` commands and flags in your current shell session, speeding up CLI usage.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Encode a string for use in a Secret YAML definition",
+    "response": "echo -n 'string' | base64",
+    "explanation": "Pipes `string` through `base64` to produce the encoded representation required in Secret manifests under `data:`.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enter insert mode",
+    "response": "i",
+    "explanation": "Switches Vim into insert mode, letting you type text into the file.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Enter insert mode at cursor",
+    "response": "i",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Enter replace mode",
+    "response": "R",
+    "explanation": "Switches into replace mode where typed characters overwrite existing text.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enter visual block mode",
+    "response": "<C-v>",
+    "explanation": "Starts block-wise (column) selection in Vim.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enter visual line mode",
+    "response": "V",
+    "explanation": "Starts line-wise selection in Vim.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Enter visual mode",
+    "response": "v",
+    "explanation": "Starts character-wise selection in Vim.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Execute a shell in pod busybox",
+    "response": "kubectl exec -it busybox -- /bin/sh",
+    "explanation": "Spawns an interactive `/bin/sh` session into the running `busybox` Pod container for real-time debug commands.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Execute a simple shell command on the nginx pod, which was initially created with the nginx image and then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command demonstrates how to interact with a specific pod by executing commands inside it, showcasing Kubernetes' ability to manage and interact with containerized applications."
+  },
+  {
+    "prompt": "Exit insert mode",
+    "response": "<Esc>",
+    "explanation": "Returns to command mode from insert mode in Vim.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Exit without saving changes",
+    "response": ":q!",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Explain the fields of pods",
+    "response": "kubectl explain pods",
+    "explanation": "Provides documentation on the `Pod` object\u2019s schema, walking you through each spec and status field.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc",
+    "response": "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc",
+    "explanation": "Creates a Service `frontend-svc` of type ClusterIP that load-balances traffic to the `frontend` Pods on port 80.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Extract a ConfigMap to YAML format",
+    "response": "kubectl get cm app-config -o yaml > config.yaml",
+    "explanation": "Dumps `app-config`\u2019s full manifest, including data entries, into `config.yaml` for backup or diff-based change tracking.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace",
+    "response": "kubectl get pod webapp -n development -o yaml > webapp.yaml",
+    "explanation": "Retrieves the live Pod object `webapp` from namespace `development` and outputs its complete spec, metadata, and status as YAML into `webapp.yaml`, allowing diff-based debugging against source manifests.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Find next search occurrence",
+    "response": "n",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Follow logs of pod busybox",
+    "response": "kubectl logs busybox -f",
+    "explanation": "Tails `busybox` logs in real time, keeping the stream open until you interrupt (Ctrl+C).",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Generate YAML for deployment 'test' using the nginx image without creating it",
+    "response": "kubectl create deployment test --image=nginx --dry-run=client -o yaml",
+    "explanation": "Locally outputs the `test` Deployment spec as YAML for review, avoiding API server calls.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Generate a YAML definition file for a pod named nginx without creating it",
+    "response": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml",
+    "explanation": "Uses `--dry-run=client` with `-o yaml` to locally render the full Pod manifest for `nginx` without contacting the API server, saving it as `nginx.yaml`. You can then customize or version-control before applying.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Generate a YAML file for a deployment with nginx image without creating it",
+    "response": "kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml",
+    "explanation": "Renders the Deployment spec for `nginx` locally as `deploy.yaml` without persisting it, letting you review or tweak rollout strategy (e.g., `spec.strategy`) before `kubectl apply -f`.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Get all resources in all namespaces",
+    "response": "kubectl get all -A",
+    "explanation": "Aggregates core resource types across every namespace for a cluster-wide overview.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Get information about the nginx pod, which was initially created with the nginx image, named nginx, exposed to receive traffic on port 80, and later had its image updated to nginx:1.24.0, including details about potential issues (e.g., pod hasn't started).",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command retrieves detailed information and status about the specific nginx pod, including its update history to nginx:1.24.0 and any issues preventing it from starting, which is crucial for troubleshooting and ensuring the pod is configured correctly."
+  },
+  {
+    "prompt": "Get pod busybox in JSON format",
+    "response": "kubectl get pods busybox -o json",
+    "explanation": "Same as above but in JSON, useful for scripting via `jq` or other tooling.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Get pod busybox in YAML format",
+    "response": "kubectl get pods busybox -o yaml",
+    "explanation": "Outputs the full Pod object as YAML so you can inspect computed fields, status, and metadata.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Get pods with all labels",
+    "response": "kubectl get pods --show-labels",
+    "explanation": "Shows the full set of labels for each listed Pod in the table output.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Get pods with label app=frontend",
+    "response": "kubectl get pods -l app=frontend",
+    "explanation": "Filters Pods by the `app=frontend` label selector, returning only matching workloads.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Get the YAML definition for a new namespace called 'myns' without actually creating the namespace. This follows a previous task where you created a busybox pod that runs the command \"env\" and is placed in the 'mynamespace' namespace using YAML.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The correct command to get the YAML definition for a new namespace called 'myns' without creating it is `kubectl create namespace myns --dry-run=client -o yaml`, which simulates the creation of the namespace and outputs the YAML configuration, aligning with Kubernetes' practice of declarative configuration."
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Get the logs of the nginx pod, named nginx, which was initially created with the nginx image, then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command retrieves the operational history of the specified nginx pod, allowing insight into its behavior and performance after the image update and its network exposure settings."
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Go to end of file",
+    "response": "G",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Go to line 10",
+    "response": ":10",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Go to line N",
+    "response": ":N",
+    "explanation": "Jumps directly to line number N in the file.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Go to top of file",
+    "response": "gg",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "If the nginx pod, named nginx, which was initially created with the nginx image, then updated to use the nginx:1.24.0 image, and is exposed to receive traffic on port 80, crashed and restarted, get logs about the previous instance.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command `kubectl logs nginx -p` retrieves logs from the previous instance of a container within a pod, useful for debugging issues that caused the container to crash and restart."
+  },
+  {
+    "prompt": "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.",
+    "answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: resource-checker\n  namespace: limit\nspec:\n  containers:\n  - name: my-container\n    image: httpd:alpine\n    resources:\n      requests:\n        cpu: 30m\n        memory: 30Mi\n      limits:\n        cpu: 300m\n        memory: 30Mi",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_questions.json"
+  },
+  {
+    "prompt": "Jump to matching bracket",
+    "response": "%",
+    "explanation": "Toggles between matching `{}`, `[]`, or parentheses, useful in nested code blocks.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Label pod busybox with env=prod",
+    "response": "kubectl label pod busybox env=prod",
+    "explanation": "Attaches the label `env=prod` to the `busybox` Pod, which can drive Service selectors or monitoring filters.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List ConfigMaps using the short alias",
+    "response": "k get cm",
+    "explanation": "Uses `cm` as the short resource name for ConfigMaps with the `k` alias to quickly list ConfigMaps.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List HorizontalPodAutoscalers using the short alias",
+    "response": "k get hpa",
+    "explanation": "Uses `hpa` as the short resource name for HorizontalPodAutoscalers with the `k` alias.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List Ingresses using the short alias",
+    "response": "k get ing",
+    "explanation": "Uses `ing` as the short resource name for Ingress resources with the `k` alias.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List NetworkPolicies using the short alias",
+    "response": "k get netpol",
+    "explanation": "Uses `netpol` as the short resource name for NetworkPolicy objects with the `k` alias.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List ServiceAccounts using the short alias",
+    "response": "k get sa",
+    "explanation": "Uses `sa` as the short resource name for ServiceAccounts with the `k` alias.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all ConfigMaps",
+    "response": "kubectl get configmaps",
+    "explanation": "Lists each ConfigMap name and age in the namespace.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all Service Accounts in the current namespace",
+    "response": "kubectl get sa",
+    "explanation": "Shows every ServiceAccount object in the active namespace, including defaults like `default` and any custom ones you\u2019ve created.",
+    "category": "Service Account Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all ServiceAccounts",
+    "response": "kubectl get serviceaccounts",
+    "explanation": "Lists each ServiceAccount object in the namespace, including the default one created automatically.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all contexts",
+    "response": "kubectl config get-contexts",
+    "explanation": "Enumerates each context entry\u2014cluster, user, namespace combos\u2014available in your kubeconfig.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all deployments",
+    "response": "kubectl get deployments",
+    "explanation": "Shows each Deployment\u2019s name, desired vs. current replicas, and availability status.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all events",
+    "response": "kubectl get events",
+    "explanation": "Shows recent cluster events (e.g., scheduling failures, restarts) in chronological order for debugging.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all namespaces",
+    "response": "kubectl get namespaces",
+    "explanation": "Enumerates every namespace, showing their current status (Active/Terminating) and age.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all namespaces in the cluster",
+    "response": "kubectl get namespaces",
+    "explanation": "Displays every namespace, their statuses, and age\u2014useful for housekeeping or capacity planning.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all pods",
+    "response": "kubectl get pods",
+    "explanation": "Displays every Pod in the current namespace, their READY status, restarts, and age.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "List all pods across all namespaces in the Kubernetes cluster where you've been working with ResourceQuotas and pods, including the one running the busybox image.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command `kubectl get pods --all-namespaces` lists all pods across all namespaces, helping to identify pods, including those running specific images like busybox, even in environments using ResourceQuotas."
+  },
+  {
+    "prompt": "List all pods in the 'kube-system' namespace",
+    "response": "kubectl get pods -n kube-system",
+    "explanation": "Shows core control-plane and system Pods managed by Kubernetes in the `kube-system` namespace, used for health checks or troubleshooting.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all resources across all namespaces",
+    "response": "kubectl get all -A",
+    "explanation": "Aggregates Pods, Services, Deployments, ReplicaSets, and more from every namespace, giving a cluster-wide resource snapshot.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all secrets",
+    "response": "kubectl get secrets",
+    "explanation": "Shows Secret names and types; data is hidden by default to protect sensitive values.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List all services",
+    "response": "kubectl get services",
+    "explanation": "Enumerates Services in the namespace, including ClusterIP, NodePort, and LoadBalancer types.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List daemonsets using the short alias",
+    "response": "k get ds",
+    "explanation": "Uses `ds` as the short resource name for DaemonSets with the `k` alias to view all DaemonSets.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List pods using the 'kgp' alias",
+    "response": "kgp",
+    "explanation": "Runs `kubectl get pods` via the `kgp` alias to display all Pods in the current namespace.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List pods with status phase=Running",
+    "response": "kubectl get pods --field-selector=status.phase=Running",
+    "explanation": "Filters Pods based on their status field, showing only those in `Running` phase.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List replicasets using the short alias",
+    "response": "k get rs",
+    "explanation": "Uses `rs` as the short resource name for ReplicaSets with the `k` alias for a quick listing.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List secrets using the short alias",
+    "response": "k get secret",
+    "explanation": "Runs `kubectl get secret` with the `k` alias to display all Secrets.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "List services using the 'kgs' alias",
+    "response": "kgs",
+    "explanation": "Runs `kubectl get svc` via the `kgs` alias to display all Services in the current namespace.",
+    "category": "Shell Setup: Aliases & Autocomplete",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions",
+    "response": "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # then add volume with defaultMode",
+    "explanation": "Emits a Pod manifest to `pod.yaml`; edit its `spec.volumes` and `volumeMounts` to mount `app-config` at `/etc/config` with `defaultMode` for Unix file bits.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Move to the end of the line",
+    "response": "$",
+    "explanation": "Jumps the cursor to the last character of the current line.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Move to the end of the word",
+    "response": "e",
+    "explanation": "Advances the cursor to the end of the current or next word.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Move to the first character of the line",
+    "response": "0",
+    "explanation": "Places the cursor at column 0 of the current line.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Move to the next word",
+    "response": "w",
+    "explanation": "Jumps the cursor to the start of the next word.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Move to the previous word",
+    "response": "b",
+    "explanation": "Moves the cursor back to the beginning of the previous word.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Open a new line below the current line",
+    "response": "o",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Open or create the file app.yaml in Vim",
+    "response": "vim app.yaml",
+    "explanation": "Launches Vim for `app.yaml`, creating it if missing\u2014standard file-edit workflow.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Open service.yaml in Vim",
+    "response": "vim service.yaml",
+    "explanation": "Edits the `service.yaml` manifest file locally to adjust port mappings, selectors, or Service types.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Open the file app.yaml in Vim",
+    "response": "vim app.yaml",
+    "explanation": "Launches the `app.yaml` manifest in Vim, letting you edit Kubernetes specs directly in your terminal editor.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Paste after cursor",
+    "response": "p",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Paste after the cursor",
+    "response": "p",
+    "explanation": "Inserts the contents of the unnamed register after the cursor\u2019s position.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Pause the rollout of a deployment named 'frontend'",
+    "response": "kubectl rollout pause deployment/frontend",
+    "explanation": "Temporarily halts `frontend`\u2019s rolling update, giving you time to inspect or modify the Deployment spec before resuming.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Port-forward local port 8080 to port 80 on service frontend-svc",
+    "response": "kubectl port-forward service/frontend-svc 8080:80",
+    "explanation": "Tunnels traffic from your machine\u2019s port 8080 to the Service\u2019s clusterIP on port 80, enabling local access without exposing NodePorts.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Q: Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`",
+    "response": "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # add volume and volumeMount",
+    "explanation": "Outputs a BusyBox Pod manifest to `pod.yaml`; edit its `spec.volumes` to reference `configMap.name: app-config` and `spec.containers[0].volumeMounts` to mount it at `/etc/config`, injecting config files at runtime.",
+    "category": "Pod Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Quit without saving",
+    "response": ":q!",
+    "explanation": "Exits Vim discarding any unsaved edits.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Redo the last undone change",
+    "response": "<C-r>",
+    "explanation": "Re-applies the last undone change in Vim\u2019s redo stack.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Remove the annotation description from deployment frontend",
+    "response": "kubectl annotate deployment frontend description-",
+    "explanation": "Removes the `description` annotation, cleaning up auxiliary metadata.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Remove the label env from pod busybox",
+    "response": "kubectl label pod busybox env-",
+    "explanation": "Deletes the `env` label from `busybox`, updating its metadata in-place.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Replace configmap using file configmap.yaml",
+    "response": "kubectl replace -f configmap.yaml",
+    "explanation": "Atomically replaces the existing ConfigMap with the contents of `configmap.yaml`; fails if none exists.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Restart the deployment frontend",
+    "response": "kubectl rollout restart deployment frontend",
+    "explanation": "Triggers a rolling restart of all Pods in `frontend`, useful for picking up new ConfigMaps or Secrets.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Resume the rollout of a deployment named 'frontend'",
+    "response": "kubectl rollout resume deployment/frontend",
+    "explanation": "Continues a paused rollout for the `frontend` Deployment, applying any pending Pod template changes.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "validation_steps": [
+      {
+        "cmd": "true",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "prompt": "Retrieve the YAML configuration of the nginx pod, which was initially created with the nginx image, named nginx, exposed to receive traffic on port 80, and later had its image updated to nginx:1.24.0.",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/md/a.core_concepts.md",
+    "explanation": "The command `kubectl get pod nginx -o yaml` retrieves the current configuration of the nginx pod in YAML format, showing its latest state including any updates like the image change to nginx:1.24.0."
+  },
+  {
+    "prompt": "Roll back a deployment named 'webapp' to its previous version",
+    "response": "kubectl rollout undo deployment/webapp",
+    "explanation": "Reverts the `webapp` Deployment to its prior revision, restoring previous Pod templates and undoing the last `set image` or `apply` change.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Roll back the deployment frontend to the previous version",
+    "response": "kubectl rollout undo deployment frontend",
+    "explanation": "Reverts `frontend` to its last successful revision, undoing the most recent spec change.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Run a pod named busybox with image busybox that runs indefinitely",
+    "response": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\"",
+    "explanation": "Creates a Pod that sleeps for an hour, with `--restart=Never` so it won\u2019t loop\u2014handy for test or debug scenarios.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Save and quit Vim",
+    "response": ":wq",
+    "explanation": "Writes buffer changes to disk and exits Vim.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Save file and quit",
+    "response": ":wq",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Save file without exiting",
+    "response": "w",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Scale a deployment named 'frontend' to 5 replicas",
+    "response": "kubectl scale deployment frontend --replicas=5",
+    "explanation": "Adjusts the `frontend` Deployment\u2019s replica count to 5, prompting the ReplicaSet controller to create or remove Pods to match the desired state.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Scale deployment frontend to 3 replicas",
+    "response": "kubectl scale deployment frontend --replicas=3",
+    "explanation": "Adjusts the target replica count for `frontend`, prompting creation or termination of Pods.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Search forward for 'pattern'",
+    "response": "/pattern",
+    "explanation": "Initiates a forward search for `pattern` in the current buffer; press Enter to jump.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Set the KUBECONFIG environment variable to /home/user/config",
+    "response": "export KUBECONFIG=/home/user/config",
+    "explanation": "Points the `kubectl` client at a non-default kubeconfig file, useful when managing multiple clusters or contexts.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Set the current context to use the 'production' namespace by default",
+    "response": "kubectl config set-context --current --namespace=production",
+    "explanation": "Mutates your active kubeconfig context so that subsequent `kubectl` commands default to `production` unless overridden with `-n`.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Set the namespace to dev in the current context",
+    "response": "kubectl config set-context --current --namespace=dev",
+    "explanation": "Alters your default namespace for the current context so that `kubectl get pods` goes to `dev` by default.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Show available API resource types",
+    "response": "kubectl api-resources",
+    "explanation": "Lists every resource kind the API server supports, including short names and whether they\u2019re namespaced.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Show only context names",
+    "response": "kubectl config get-contexts -o name",
+    "explanation": "Outputs just the context identifiers, ideal for scripting or building dynamic prompt menus.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Show resource usage of nodes",
+    "response": "kubectl top nodes",
+    "explanation": "Lists CPU and memory utilization across nodes, helping identify saturation or under-utilization.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Show resource usage of pods",
+    "response": "kubectl top pods",
+    "explanation": "Displays CPU and memory metrics for each Pod (requires Metrics Server in the cluster).",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nCreate a new PersistentVolume named earth-project-earthflower-pv. It should have a capacity of 2Gi, accessMode ReadWriteOnce, hostPath /Volumes/Data and no storageClassName defined.\nNext create a new PersistentVolumeClaim in Namespace earth named earth-project-earthflower-pvc . It should request 2Gi storage, accessMode ReadWriteOnce and should not define a storageClassName. The PVC should bound to the PV correctly.\nFinally create a new Deployment project-earthflower in Namespace earth which mounts that volume at /tmp/project-data. The Pods of that Deployment should be of image httpd:2.4.41-alpine.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Creating a PersistentVolume (PV) with specified capacity and access modes allows for storage to be provisioned for use by Pods, while a PersistentVolumeClaim (PVC) in the same namespace with matching specifications ensures a binding between the volume and the claim, enabling the Deployment to mount the volume at a specified path, using a specific image for its Pods."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nCreate a single Pod named pod6 in Namespace default of image busybox:1.31.0. The Pod should have a readiness-probe executing cat /tmp/ready. It should initially wait 5 and periodically wait 10 seconds. This will set the container ready only if the file /tmp/ready exists.\nThe Pod should run the command touch /tmp/ready && sleep 1d, which will create the necessary file to be ready and then idles. Create the Pod and confirm it starts.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The command creates a Pod named 'pod6' using the 'busybox:1.31.0' image, with a readiness probe that checks for the existence of '/tmp/ready' to determine if the Pod is ready to handle traffic, ensuring the Pod only receives traffic when the file exists, demonstrating how readiness probes are used to manage traffic flow to Pods based on their state."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nCreate a single Pod of image httpd:2.4.41-alpine in Namespace default. The Pod should be named pod1 and the container should be named pod1-container.\nYour manager would like to run a command manually on occasion to output the status of that exact Pod. Please write a command that does this into /opt/course/2/pod1-status-command.sh on ckad5601. The command should use kubectl.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The correct command to output the status of a specific pod named pod1 in the default namespace is `kubectl get pod pod1 -n default -o wide`, which retrieves detailed information about pod1, including its status, IP address, and the node it's running on, helping to quickly assess its current state."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nIn Namespace jupiter you'll find an apache Deployment (with one replica) named jupiter-crew-deploy and a ClusterIP Service called jupiter-crew-svc which exposes it. Change this service to a NodePort one to make it available on all nodes on port 30100.\nTest the NodePort Service using the internal IP of all available nodes and the port 30100 using curl, you can reach the internal node IPs directly from your main terminal. On which nodes is the Service reachable? On which node is the Pod running?",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Changing a service to NodePort in Kubernetes exposes it on a specific port across all nodes, allowing external access to the service through any node's IP address at the specified port, in this case, 30100. This makes the service reachable from outside the cluster, facilitating testing and access without needing to know the specific pod's location."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nLast lunch you told your coworker from department Mars Inc how amazing InitContainers are. Now he would like to see one in action. There is a Deployment yaml at /opt/course/17/test-init-container.yaml. This Deployment spins up a single Pod of image nginx:1.17.3-alpine and serves files from a mounted volume, which is empty right now.\nCreate an InitContainer named init-con which also mounts that volume and creates a file index.html with content check this out! in the root of the mounted volume. For this test we ignore that it doesn't contain valid html.\nThe InitContainer should be using image busybox:1.31.0. Test your implementation for example using curl from a temporary nginx:alpine Pod.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "InitContainers are special containers that run before app containers in a Pod, used here to prepare a volume with specific data (an index.html file) before the main nginx container serves it, demonstrating their utility in initializing or setting up prerequisites for an application's primary containers."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad5601\nThere seems to be an issue in Namespace mars where the ClusterIP service manager-api-svc should make the Pods of Deployment manager-api-deployment available inside the cluster.\nYou can test this with curl manager-api-svc.mars:4444 from a temporary nginx:alpine Pod. Check for the misconfiguration and apply a fix.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Creating a temporary nginx:alpine Pod and using curl to test the service's connectivity allows for diagnosing issues with service exposure or networking within the specified namespace, ensuring the service is correctly routing requests to the pods of the deployment."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nIn Namespace venus you'll find two Deployments named api and frontend. Both Deployments are exposed inside the cluster using Services. Create a NetworkPolicy named np1 which restricts outgoing tcp connections from Deployment frontend and only allows those going to Deployment api. Make sure the NetworkPolicy still allows outgoing traffic on UDP/TCP ports 53 for DNS resolution.\nTest using: wget www.google.com and wget api:2222 from a Pod of Deployment frontend.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Creating a NetworkPolicy named np1 to restrict outgoing TCP connections from the frontend Deployment to only allow connections to the api Deployment, while ensuring DNS resolution can occur, involves defining specific egress rules that target the api service's labels for TCP traffic and allow all traffic on UDP/TCP port 53 for DNS queries."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nTeam Mercury asked you to perform some operations using Helm, all in Namespace mercury:\nDelete release internal-issue-report-apiv1\nUpgrade release internal-issue-report-apiv2 to any newer version of chart bitnami/nginx available\nInstall a new release internal-issue-report-apache of chart bitnami/apache. The Deployment should have two replicas, set these via Helm-values during install\nThere seems to be a broken release, stuck in pending-install state. Find it and delete it",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To address the tasks, you would use Helm commands to manage releases within a Kubernetes cluster: deleting a specified release with `helm delete`, upgrading another with `helm upgrade` using a newer chart version, installing a new release with `helm install` while specifying values for the desired number of replicas, and identifying then deleting a release in a `pending-install` state, showcasing Helm's capabilities in application lifecycle management in a Kubernetes environment."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune has its own ServiceAccount named neptune-sa-v2 in Namespace neptune. A coworker needs the token from the Secret that belongs to that ServiceAccount. Write the base64 decoded token to file /opt/course/5/token on ckad7326.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To retrieve the token for a ServiceAccount, you must first identify the Secret associated with that ServiceAccount, extract the token field from the Secret, decode it from base64, and then write it to the specified file, demonstrating how Kubernetes ServiceAccounts are linked to Secrets for authentication purposes."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune needs 3 Pods of image httpd:2.4-alpine, create a Deployment named neptune-10ab for this. The containers should be named neptune-pod-10ab. Each container should have a memory request of 20Mi and a memory limit of 50Mi.\nTeam Neptune has its own ServiceAccount neptune-sa-v2 under which the Pods should run. The Deployment should be in Namespace neptune.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To address the scenario, you would create a Deployment in Kubernetes specifying the image, the number of replicas, container name, memory requests and limits, and the ServiceAccount under which the Pods should run, all within the specified namespace, to ensure the Pods are deployed according to the team's requirements."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nTeam Neptune needs a Job template located at /opt/course/3/job.yaml. This Job should run image busybox:1.31.0 and execute sleep 2 && echo done. It should be in namespace neptune, run a total of 3 times and should execute 2 runs in parallel.\nStart the Job and check its history. Each pod created by the Job should have the label id: awesome-job. The job should be named neb-new-job and the container neb-new-job-container.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To address the requirements, you need to modify the job.yaml file to specify the busybox:1.31.0 image, the command to execute, and the namespace. The job's spec should include `completions: 3` for the total runs, `parallelism: 2` for concurrent executions, and `labels: id: awesome-job` for pod identification. The job and container names are set in the metadata and container spec, respectively. After applying the job with `kubectl apply`, use `kubectl get pods --selector=id=awesome-job --namespace=neptune` to check the job's pod history, ensuring all specifications are met."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nThe Tech Lead of Mercury2D decided it's time for more logging, to finally fight all these missing data incidents. There is an existing container named cleaner-con in Deployment cleaner in Namespace mercury. This container mounts a volume and writes logs into a file called cleaner.log.\nThe yaml for the existing Deployment is available at /opt/course/16/cleaner.yaml. Persist your changes at /opt/course/16/cleaner-new.yaml on ckad7326 but also make sure the Deployment is running.\nCreate a sidecar container named logger-con, image busybox:1.31.0 , which mounts the same volume and writes the content of cleaner.log to stdout, you can use the tail -f command for this. This way it can be picked up by kubectl logs.\nCheck if the logs of the new container reveal something about the missing data incidents.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Adding a sidecar container like logger-con to the Deployment allows for real-time monitoring of log files by leveraging the tail command to continuously output the log file's content to stdout, making it accessible through Kubernetes' logging mechanisms."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nThe board of Team Neptune decided to take over control of one e-commerce webserver from Team Saturn. The administrator who once setup this webserver is not part of the organisation any longer. All information you could get was that the e-commerce system is called my-happy-shop.\nSearch for the correct Pod in Namespace saturn and move it to Namespace neptune. It doesn't matter if you shut it down and spin it up again, it probably hasn't any customers anyways.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To move a pod from one namespace to another in Kubernetes, you must first delete the existing pod in the current namespace and then recreate it in the target namespace, as pods cannot be directly moved between namespaces."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad7326\nThere is an existing Deployment named api-new-c32 in Namespace neptune. A developer did make an update to the Deployment but the updated version never came online. Check the Deployment history and find a revision that works, then rollback to it. Could you tell Team Neptune what the error was so it doesn't happen again?",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "To troubleshoot and fix the issue, use `kubectl rollout history deployment api-new-c32 --namespace=neptune` to view the deployment's revision history, identify a working revision, and then rollback using `kubectl rollout undo deployment api-new-c32 --to-revision=<revision_number> --namespace=neptune`, which restores the deployment to a previous, stable state, helping to avoid downtime caused by the failed update."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nIn Namespace pluto there is single Pod named holy-api. It has been working okay for a while now but Team Pluto needs it to be more reliable.\nConvert the Pod into a Deployment named holy-api with 3 replicas and delete the single Pod once done. The raw Pod template file is available at /opt/course/9/holy-api-pod.yaml.\nIn addition, the new Deployment should set allowPrivilegeEscalation: false and privileged: false for the security context on container level.\nPlease create the Deployment and save its yaml under /opt/course/9/holy-api-deployment.yaml on ckad9043.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Converting a Pod into a Deployment ensures that the desired number of pod replicas are maintained, enhancing reliability by allowing Kubernetes to automatically replace instances that fail or are terminated. Editing the Pod template to include specific security contexts enhances the security posture by restricting the privileges of the container, aligning with best practices for container security. Deleting the original Pod after creating the Deployment avoids potential conflicts and ensures that only the managed pods are running. Saving the Deployment's YAML file allows for version control and documentation of the infrastructure configuration."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nTeam Moonpie has a nginx server Deployment called web-moon in Namespace moon. Someone started configuring it but it was never completed. To complete please create a ConfigMap called configmap-web-moon-html containing the content of file /opt/course/15/web-moon.html under the data key-name index.html.\nThe Deployment web-moon is already configured to work with this ConfigMap and serve its content. Test the nginx configuration for example using curl from a temporary nginx:alpine Pod.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Creating a ConfigMap named configmap-web-moon-html with the content of /opt/course/15/web-moon.html under the data key-name index.html allows the Deployment web-moon to dynamically load and serve the specified HTML content through nginx, leveraging Kubernetes' ability to inject configuration data into Pods."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nTeam Moonpie, which has the Namespace moon, needs more storage. Create a new PersistentVolumeClaim named moon-pvc-126 in that namespace. This claim should use a new StorageClass moon-retain with the provisioner set to moon-retainer and the reclaimPolicy set to Retain. The claim should request storage of 3Gi, an accessMode of ReadWriteOnce and should use the new StorageClass.\nThe provisioner moon-retainer will be created by another team, so it's expected that the PVC will not boot yet. Confirm this by writing the event message from the PVC into file /opt/course/13/pvc-126-reason on ckad9043.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Creating a PersistentVolumeClaim (PVC) with specific parameters such as storage class, access modes, and storage size allows users to request storage resources in Kubernetes, ensuring that applications have the necessary storage capacity and characteristics they require, while the use of a custom provisioner and retention policy allows for tailored storage management and data persistence strategies."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nTeam Pluto needs a new cluster internal Service. Create a ClusterIP Service named project-plt-6cc-svc in Namespace pluto. This Service should expose a single Pod named project-plt-6cc-api of image nginx:1.17.3-alpine, create that Pod as well. The Pod should be identified by label project: plt-6cc-api. The Service should use tcp port redirection of 3333:80.\nFinally use for example curl from a temporary nginx:alpine Pod to get the response from the Service. Write the response into /opt/course/10/service_test.html on ckad9043. Also check if the logs of Pod project-plt-6cc-api show the request and write those into /opt/course/10/service_test.log on ckad9043.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The scenario involves creating a Pod and a ClusterIP Service in Kubernetes to expose the Pod within the cluster, then testing the connectivity to this Service from another temporary Pod, demonstrating how to set up internal communication between Pods and how to log and verify that communication."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nTeam Sunny needs to identify some of their Pods in namespace sun. They ask you to add a new label protected: true to all Pods with an existing label type: worker or type: runner. Also add an annotation protected: do not delete this pod to all Pods having the new label protected: true.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "Labeling and annotating pods in Kubernetes allows for the organization, management, and selection of pods based on specified criteria, enabling more efficient resource handling and policy enforcement."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nThere are files to build a container image located at /opt/course/11/image on ckad9043. The container will run a Golang application which outputs information to stdout. You're asked to perform the following tasks:\n\u2139\ufe0f Run all Docker and Podman commands as user root. Use sudo docker and sudo podman or become root with sudo -i\nChange the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f\nBuild the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker and push it to the registry\nBuild the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman and push it to the registry\nRun a container using sudo podman, which keeps running detached in the background, named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman\nWrite the logs your container sun-cipher produces into /opt/course/11/logs on ckad9043",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The scenario involves modifying a Dockerfile to set an environment variable, building and tagging the container image with both Docker and Podman, pushing these images to a registry, running a container in detached mode, and saving its stdout logs to a file, demonstrating proficiency in container image management and runtime operations."
+  },
+  {
+    "prompt": "Solve this question on instance: ssh ckad9043\nYou need to make changes on an existing Pod in Namespace moon called secret-handler. Create a new Secret secret1 which contains user=test and pass=pwd. The Secret's content should be available in Pod secret-handler as environment variables SECRET1_USER and SECRET1_PASS. The yaml for Pod secret-handler is available at /opt/course/14/secret-handler.yaml.\nThere is existing yaml for another Secret at /opt/course/14/secret2.yaml, create this Secret and mount it inside the same Pod at /tmp/secret2. Your changes should be saved under /opt/course/14/secret-handler-new.yaml on ckad9043. Both Secrets should only be available in Namespace moon.",
+    "response": "This is a complex scenario. Follow the prompt instructions on the specified instance.",
+    "category": "Advanced Scenarios",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json",
+    "explanation": "The scenario requires creating a new Secret with specific key-value pairs, updating an existing Pod to inject the Secret's data as environment variables, and mounting another Secret from a provided YAML file, demonstrating how to manage sensitive data and configure Pods to use Secrets in Kubernetes."
+  },
+  {
+    "prompt": "Switch kubectl context to minikube",
+    "response": "kubectl config use-context minikube",
+    "explanation": "Sets the active context to `minikube`, directing subsequent commands to your local Minikube cluster.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "The provided YAML is for a basic pod. Modify it to create a pod named 'nginx-live' that uses the 'nginx:stable' image.",
+    "initial_files": {
+      "pod.yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]"
+    },
+    "validation_steps": [
+      {
+        "cmd": "#!/bin/bash\nset -e\nkubectl apply -f pod.yaml\n# Check pod name\nPOD_NAME=$(kubectl get pods -o jsonpath='{.items[0].metadata.name}')\nif [ \"$POD_NAME\" != \"nginx-live\" ]; then\n  echo \"Error: Pod name is '$POD_NAME', expected 'nginx-live'\"\n  exit 1\nfi\n# Check image\nIMAGE=$(kubectl get pod nginx-live -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"nginx:stable\" ]; then\n  echo \"Error: Image is '$IMAGE', expected 'nginx:stable'\"\n  exit 1\nfi\necho \"Pod 'nginx-live' with image 'nginx:stable' found.\"",
+        "matcher": {
+          "exit_code": 0
+        }
+      }
+    ],
+    "explanation": "To solve this, you need to change the `metadata.name` to 'nginx-live' and the `spec.containers[0].image` to 'nginx:stable'.",
+    "category": "Live Kubernetes Questions",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data.json"
+  },
+  {
+    "category": "Vim Commands",
+    "prompt": "Undo last change",
+    "response": "u",
+    "type": "command",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/vim_quiz_data.json"
+  },
+  {
+    "prompt": "Undo the last change",
+    "response": "u",
+    "explanation": "Reverts the most recent edit in Vim\u2019s undo history.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Update a value in an existing ConfigMap named 'app-config'",
+    "response": "kubectl edit cm app-config",
+    "explanation": "Opens the live ConfigMap in your default editor, letting you change keys inline; upon save, Kubernetes replaces the resource atomically.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Update the image of a deployment named 'webapp' to nginx:1.18",
+    "response": "kubectl set image deployment/webapp webapp=nginx:1.18",
+    "explanation": "Patches the `webapp` Deployment to use `nginx:1.18`, triggering a rolling update that replaces old Pods with new ones in a controlled fashion.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Use kubectl to edit deployment frontend",
+    "response": "kubectl edit deployment frontend",
+    "explanation": "Fetches the live `frontend` Deployment into an editor, then patches it on save, providing an in-place live edit workflow.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Verify which namespace is currently being used in your context",
+    "response": "kubectl config view --minify | grep namespace:",
+    "explanation": "Extracts the `namespace:` line from the minimized kubeconfig output, confirming the default target for your `kubectl` operations.",
+    "category": "Namespace Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View logs of container nginx in pod frontend-pod",
+    "response": "kubectl logs frontend-pod -c nginx",
+    "explanation": "Specifies `-c nginx` to select the `nginx` container when a Pod has multiple containers, isolating its logs.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View logs of pod busybox",
+    "response": "kubectl logs busybox",
+    "explanation": "Streams the stdout/stderr logs from the `busybox` container, useful for simple log inspection when no sidecar is present.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View the contents of a ConfigMap named 'db-config'",
+    "response": "kubectl describe cm db-config",
+    "explanation": "Shows detailed key/value pairs, creation timestamp, and events related to `db-config`, aiding in verification and debugging.",
+    "category": "ConfigMap Operations",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View the current kubectl context",
+    "response": "kubectl config current-context",
+    "explanation": "Prints the name of the active context from your kubeconfig, clarifying which cluster and namespace your commands target.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View the encoded values in a Secret named 'api-secrets'",
+    "response": "kubectl get secret api-secrets -o yaml",
+    "explanation": "Prints `api-secrets`\u2019s data fields in base64 form; decode locally via `echo '<value>' | base64 --decode` to inspect underlying values.",
+    "category": "Secret Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "View the history of a deployment named 'webapp'",
+    "response": "kubectl rollout history deployment/webapp",
+    "explanation": "Lists all revisions of `webapp`, showing image versions and `change-cause` annotations to help audit past rollouts.",
+    "category": "Deployment Management",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Watch the rollout status of deployment frontend",
+    "response": "kubectl rollout status deployment/frontend -w",
+    "explanation": "Streams updates on the `frontend` rollout, auto-refreshing until completion or error.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  },
+  {
+    "prompt": "Yank (copy) the current line",
+    "response": "yy",
+    "explanation": "Copies the entire line under the cursor into Vim\u2019s unnamed register.",
+    "category": "Additional Commands",
+    "source_file": "/Users/user/Documents/GitHub/kubelingo/scripts/../question-data/json/ckad_quiz_data_with_explanations.json"
+  }
+]

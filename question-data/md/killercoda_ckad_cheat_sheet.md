@@ -485,7 +485,7 @@
 > Write all Admission Controller Plugins, which are enabled in the kube-apiserver manifest,
 > into `/root/admission-plugins`.
 
-### Steps
+### I'm sorry, but you haven't provided the actual text for the first and second questions. Could you please share the specific questions you'd like to be rewritten?
 1. Extract the `--enable-admission-plugins` line:
    ```bash
    grep -- '--enable-admission-plugins' /etc/kubernetes/manifests/kube-apiserver.yaml > /root/admission-plugins
@@ -500,7 +500,7 @@
 > Tip: The apiserver manifest is under `/etc/kubernetes/manifests/kube-apiserver.yaml`.
 > The argument we're looking for is `--enable-admission-plugins`.
 
-### Steps
+### I'm sorry, but you haven't provided the actual text for the question to be rewritten. Could you please share the specific question you'd like to be rewritten?
 1. Backup the existing manifest:
    ```bash
    cp /etc/kubernetes/manifests/kube-apiserver.yaml /root/kube-apiserver-backup.yaml
@@ -521,7 +521,7 @@
 > Disable the Admission Controller Plugin `NamespaceLifecycle` (not recommended).
 > Now delete Namespace `default`.
 
-### Steps
+### What are the steps involved in the process described in the first question?
 1. Backup the manifest:
    ```bash
    cp /etc/kubernetes/manifests/kube-apiserver.yaml /root/kube-apiserver-nsl-backup.yaml
@@ -547,7 +547,7 @@
 > Create file `/root/versions` with three lines:
 > Major, Minor, Patch of the installed Kubernetes server version.
 
-### Steps
+### What are the steps involved in deploying an application to Kubernetes?
 1. Extract and split the server version:
    ```bash
    kubectl version --short | grep 'Server Version' | sed 's/.*Server Version: v//' | tr '.' '\n' > /root/versions
@@ -560,7 +560,7 @@
 **Original prompt:**
 > Write the API Group of `Deployments` into `/root/group`.
 
-### Steps
+### Based on the steps involved in deploying an application to Kubernetes, list them in detail.
 1. Extract the group from `kubectl explain`:
    ```bash
    kubectl explain deployments | grep '^GROUP:' | awk '{print $2}' > /root/group
@@ -574,7 +574,7 @@
 > There is a CronJob file at `/apps/cronjob.yaml` which uses a deprecated API version.
 > Update the file to use the non-deprecated one.
 
-### Steps
+### What are the detailed steps involved in deploying an application to Kubernetes?
 1. Backup and update the API version:
    ```bash
    cp /apps/cronjob.yaml /root/cronjob-backup.yaml
@@ -593,7 +593,7 @@
 > There is a FlowSchema file at `/apps/flowschema.yaml` which uses a deprecated API version.
 > Update the file to use the non-deprecated one.
 
-### Steps
+### What are the detailed steps involved in deploying an application to Kubernetes, as previously described?
 1. Backup and update the API version:
    ```bash
    cp /apps/flowschema.yaml /root/flowschema-backup.yaml

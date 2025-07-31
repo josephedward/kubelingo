@@ -17,7 +17,7 @@ RUN echo "Hello, World!" > /usr/local/apache2/htdocs/index.html
 </p>
 </details>
 
-### Build and see how many layers the image consists of
+### Build the Dockerfile designed to deploy an Apache HTTP Server with a custom main page and determine how many layers the resulting image consists of.
 
 <details><summary>show</summary>
 <p>
@@ -52,7 +52,7 @@ Image Layers
 </p>
 </details>
 
-### Run the image locally, inspect its status and logs, finally test that it responds as expected
+### Run the Docker image of the Apache HTTP Server with a custom main page locally, inspect its status and logs, and finally test that it responds as expected.
 
 <details><summary>show</summary>
 <p>
@@ -78,7 +78,7 @@ Hello, World!
 </p>
 </details>
 
-### Run a command inside the pod to print out the index.html file
+### After running the Docker image of the Apache HTTP Server with a custom main page locally, inspecting its status and logs, and finally testing that it responds as expected, run a command inside the pod to print out the index.html file.
 
 <details><summary>show</summary>
 <p>
@@ -90,7 +90,7 @@ Hello, World!
 </p>
 </details>
 
-### Tag the image with ip and port of a private local registry and then push the image to this registry
+### After successfully running the Docker image of the Apache HTTP Server with a custom main page locally, inspecting its status and logs, and verifying that it responds as expected by running a command inside the pod to print out the index.html file, tag the same image with the IP address and port of a private local registry and then push the image to this registry.
 
 <details><summary>show</summary>
 <p>
@@ -136,7 +136,7 @@ ef4b14a72d02ae0577eb0632d084c057777725c279e12ccf5b0c6e4ff5fd598b
 </p>
 </details>
 
-### Create a container without running/starting it
+### After successfully tagging and pushing the Docker image of the Apache HTTP Server to a private local registry as previously outlined, create a container from this image without running/starting it.
 
 <details><summary>show</summary>
 <p>
@@ -159,7 +159,7 @@ CONTAINER ID  IMAGE                             COMMAND     CREATED        STATU
 </p>
 </details>
 
-### Export a container to output.tar file
+### Export the container created from the Docker image of the Apache HTTP Server that was tagged and pushed to a private local registry, without starting it, to an output.tar file.
 
 <details><summary>show</summary>
 <p>
@@ -178,7 +178,7 @@ CONTAINER ID  IMAGE                             COMMAND     CREATED        STATU
 </p>
 </details>
 
-### Run a pod with the image pushed to the registry
+### Run a pod with the Apache HTTP Server image that was previously tagged and pushed to a private local registry.
 
 <details><summary>show</summary>
 <p>
@@ -193,7 +193,7 @@ Hello, World!
 </p>
 </details>
 
-### Log into a remote registry server and then read the credentials from the default file
+### After running a pod with the Apache HTTP Server image from a private local registry, log into a remote registry server and then read the credentials from the default file.
 
 <details><summary>show</summary>
 <p>
@@ -215,7 +215,7 @@ Hello, World!
 </p>
 </details>
 
-### Create a secret both from existing login credentials and from the CLI
+### Create a Kubernetes secret to store the login credentials for a remote registry server, after logging in to access an Apache HTTP Server image from a private local registry, using both the credentials retrieved from the default file and directly from the command line interface (CLI).
 
 <details><summary>show</summary>
 <p>
@@ -230,7 +230,7 @@ secret/mysecret2 created
 </p>
 </details>
 
-### Create the manifest for a Pod that uses one of the two secrets just created to pull an image hosted on the relative private remote registry
+### Create the manifest for a Pod that uses one of the two secrets created for storing login credentials for a remote registry server, to pull an Apache HTTP Server image hosted on the same private local registry, where the secrets were either retrieved from the default file or directly from the command line interface (CLI).
 
 <details><summary>show</summary>
 <p>
@@ -251,7 +251,7 @@ spec:
 </p>
 </details>
 
-### Clean up all the images and containers
+### Following the creation of a Pod manifest that utilizes one of the two secrets for storing login credentials to pull an Apache HTTP Server image from a private local registry, describe the process for cleaning up all the images and containers associated with this setup.
 
 <details><summary>show</summary>
 <p>

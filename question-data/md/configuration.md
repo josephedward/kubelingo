@@ -30,7 +30,7 @@ kubectl create configmap config --from-literal=foo=lala --from-literal=foo2=lolo
 </p>
 </details>
 
-### Display its values
+### Display the values of the configmap named config with values foo=lala,foo2=lolo.
 
 <details><summary>show</summary>
 <p>
@@ -44,7 +44,7 @@ kubectl describe cm config
 </p>
 </details>
 
-### Create and display a configmap from a file
+### Create and display a configmap from a file, following the example where the values of a configmap named config with values foo=lala,foo2=lolo were displayed.
 
 Create the file with
 
@@ -63,7 +63,7 @@ kubectl get cm configmap2 -o yaml
 </p>
 </details>
 
-### Create and display a configmap from a .env file
+### Create and display a configmap from a .env file, similar to the previous exercise where a configmap named config with values foo=lala,foo2=lolo was created and displayed.
 
 Create the file with the command
 
@@ -82,7 +82,7 @@ kubectl get cm configmap3 -o yaml
 </p>
 </details>
 
-### Create and display a configmap from a file, giving the key 'special'
+### Create and display a configmap from a file, similar to the previous exercise where a configmap named config with values foo=lala,foo2=lolo was created and displayed, giving the key 'special'.
 
 Create the file with
 
@@ -102,7 +102,7 @@ kubectl get cm configmap4 -o yaml
 </p>
 </details>
 
-### Create a configMap called 'options' with the value var5=val5. Create a new nginx pod that loads the value from variable 'var5' in an env variable called 'option'
+### Create a configMap named 'options' with the value var5=val5, similar to the exercise where a configmap named config with values foo=lala,foo2=lolo was created. Then, create a new nginx pod that loads the value from variable 'var5' into an environment variable named 'option'.
 
 <details><summary>show</summary>
 <p>
@@ -146,7 +146,7 @@ kubectl exec -it nginx -- env | grep option # will show 'option=val5'
 </p>
 </details>
 
-### Create a configMap 'anotherone' with values 'var6=val6', 'var7=val7'. Load this configMap as env variables into a new nginx pod
+### Create a configMap named 'anotherone' with the values 'var6=val6' and 'var7=val7', similar to the previous task where you created a configMap named 'options' with the value 'var5=val5'. Then, create a new nginx pod that loads the values from 'var6' and 'var7' into environment variables, resembling the method used to load 'var5' into the 'option' environment variable in the nginx pod you previously set up.
 
 <details><summary>show</summary>
 <p>
@@ -187,7 +187,7 @@ kubectl exec -it nginx -- env
 </p>
 </details>
 
-### Create a configMap 'cmvolume' with values 'var8=val8', 'var9=val9'. Load this as a volume inside an nginx pod on path '/etc/lala'. Create the pod and 'ls' into the '/etc/lala' directory.
+### Create a configMap named 'cmvolume' with the values 'var8=val8' and 'var9=val9'. Then create a new nginx pod that loads this configMap as a volume, similarly to how you created a new nginx pod that loaded values from a configMap into environment variables in a previous task. Mount the 'cmvolume' configMap at the path '/etc/lala' inside the nginx pod. After the pod is running, use the 'ls' command to list the contents of the '/etc/lala' directory to verify the configMap's values were correctly loaded.
 
 <details><summary>show</summary>
 <p>
@@ -239,7 +239,7 @@ cat var8 # will show val8
 
 kubernetes.io > Documentation > Tasks > Configure Pods and Containers > [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/)
 
-### Create the YAML for an nginx pod that runs with the user ID 101. No need to create the pod
+### Create the YAML for an nginx pod that runs with the user ID 101, ensuring it follows the practice of loading a configMap named 'cmvolume' with the values 'var8=val8' and 'var9=val9' as a volume. The configMap should be mounted at the path '/etc/lala' inside the nginx pod as demonstrated in a related task. No need to create the pod.
 
 <details><summary>show</summary>
 <p>
@@ -274,7 +274,7 @@ status: {}
 </details>
 
 
-### Create the YAML for an nginx pod that has the capabilities "NET_ADMIN", "SYS_TIME" added to its single container
+### Create the YAML for an nginx pod that runs with the user ID 101, ensures it follows the practice of loading a configMap named 'cmvolume' with the values 'var8=val8' and 'var9=val9' as a volume, which should be mounted at the path '/etc/lala' inside the nginx pod, and has the capabilities "NET_ADMIN", "SYS_TIME" added to its single container.
 
 <details><summary>show</summary>
 <p>
@@ -313,7 +313,7 @@ status: {}
 
 kubernetes.io > Documentation > Tasks > Configure Pods and Containers > [Assign CPU Resources to Containers and Pods](https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/)
 
-### Create an nginx pod with requests cpu=100m,memory=256Mi and limits cpu=200m,memory=512Mi
+### Create the YAML for an nginx pod that runs with the user ID 101, ensures it loads a configMap named 'cmvolume' with the values 'var8=val8' and 'var9=val9' as a volume mounted at '/etc/lala', has the capabilities "NET_ADMIN", "SYS_TIME" in its single container, and specifies resource requests of cpu=100m, memory=256Mi along with limits of cpu=200m, memory=512Mi.
 
 <details><summary>show</summary>
 <p>
@@ -353,7 +353,7 @@ status: {}
 ## Limit Ranges
 kubernetes.io > Documentation > Concepts > Policies > Limit Ranges (https://kubernetes.io/docs/concepts/policy/limit-range/)
 
-### Create a namespace named limitrange with a LimitRange that limits pod memory to a max of 500Mi and min of 100Mi
+### Create a namespace named limitrange and within it, define a LimitRange that sets the maximum memory limit for pods at 500Mi and the minimum at 100Mi, ensuring it accommodates the specifications of a pod like the nginx pod from the previous context which includes resource requests and limits.
 
 <details><summary>show</summary>
 <p>
@@ -384,7 +384,7 @@ kubectl apply -f 1.yaml
 </p>
 </details>
 
-### Describe the namespace limitrange
+### Describe the characteristics and purpose of the namespace named limitrange where you have defined a LimitRange setting the maximum memory limit for pods at 500Mi and the minimum at 100Mi.
 
 <details><summary>show</summary>
 <p>
@@ -395,7 +395,7 @@ kubectl describe limitrange ns-memory-limit -n limitrange
 </p>
 </details>
 
-### Create an nginx pod that requests 250Mi of memory in the limitrange namespace
+### Create an nginx pod that requests 250Mi of memory in the namespace named limitrange, where a LimitRange has been defined setting the maximum memory limit for pods at 500Mi and the minimum at 100Mi.
 
 <details><summary>show</summary>
 <p>
@@ -434,7 +434,7 @@ kubectl apply -f 2.yaml
 ## Resource Quotas
 kubernetes.io > Documentation > Concepts > Policies > Resource Quotas (https://kubernetes.io/docs/concepts/policy/resource-quotas/)
 
-### Create ResourceQuota in namespace `one` with hard requests `cpu=1`, `memory=1Gi` and hard limits `cpu=2`, `memory=2Gi`.
+### Create a ResourceQuota in the namespace `one` specifying hard requests for `cpu=1` and `memory=1Gi`, and hard limits for `cpu=2` and `memory=2Gi`. This is in the context of managing Kubernetes resources where, previously, you were asked to create an nginx pod requesting 250Mi of memory in a namespace called limitrange, which had a LimitRange set with a maximum memory limit of 500Mi for pods and a minimum of 100Mi.
 
 <details><summary>show</summary>
 <p>
@@ -474,7 +474,7 @@ kubectl create quota my-rq --namespace=one --hard=requests.cpu=1,requests.memory
 </p>
 </details>
 
-### Attempt to create a pod with resource requests `cpu=2`, `memory=3Gi` and limits `cpu=3`, `memory=4Gi` in namespace `one`
+### After having created a ResourceQuota in the namespace `one` specifying hard requests for `cpu=1` and `memory=1Gi`, as well as hard limits for `cpu=2` and `memory=2Gi`, attempt to create a pod within the same namespace with resource requests `cpu=2`, `memory=3Gi` and limits `cpu=3`, `memory=4Gi`.
 
 <details><summary>show</summary>
 <p>
@@ -519,7 +519,7 @@ Error from server (Forbidden): error when creating "pod.yaml": pods "nginx" is f
 </p>
 </details>
 
-### Create a pod with resource requests `cpu=0.5`, `memory=1Gi` and limits `cpu=1`, `memory=2Gi` in namespace `one`
+### Given a ResourceQuota in namespace `one` specifying hard requests for `cpu=1` and `memory=1Gi`, as well as hard limits for `cpu=2` and `memory=2Gi`, create a pod within the same namespace with resource requests `cpu=0.5`, `memory=1Gi` and limits `cpu=1`, `memory=2Gi`.
 
 <details><summary>show</summary>
 <p>
@@ -576,7 +576,7 @@ kubernetes.io > Documentation > Concepts > Configuration > [Secrets](https://kub
 
 kubernetes.io > Documentation > Tasks > Inject Data Into Applications > [Distribute Credentials Securely Using Secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/)
 
-### Create a secret called mysecret with the values password=mypass
+### Create a secret called mysecret with the values password=mypass in the namespace 'one'.
 
 <details><summary>show</summary>
 <p>
@@ -588,7 +588,7 @@ kubectl create secret generic mysecret --from-literal=password=mypass
 </p>
 </details>
 
-### Create a secret called mysecret2 that gets key/value from a file
+### Create a secret called mysecret2 in the same Kubernetes namespace as the previous secret ('one') that gets key/value pairs from a file.
 
 Create a file called username with the value admin:
 
@@ -606,7 +606,7 @@ kubectl create secret generic mysecret2 --from-file=username
 </p>
 </details>
 
-### Get the value of mysecret2
+### Retrieve the value of the secret named 'mysecret2', which was created in the same Kubernetes namespace as the secret named 'one', using key/value pairs sourced from a file.
 
 <details><summary>show</summary>
 <p>
@@ -637,7 +637,7 @@ kubectl get secret mysecret2 -o json | jq -r .data.username | base64 -d  # on MA
 </p>
 </details>
 
-### Create an nginx pod that mounts the secret mysecret2 in a volume on path /etc/foo
+### Create an nginx pod that mounts the secret named 'mysecret2', which was created in the same Kubernetes namespace as the secret named 'one' using key/value pairs sourced from a file, in a volume on path /etc/foo.
 
 <details><summary>show</summary>
 <p>
@@ -683,7 +683,7 @@ cat /etc/foo/username # shows admin
 </p>
 </details>
 
-### Delete the pod you just created and mount the variable 'username' from secret mysecret2 onto a new nginx pod in env variable called 'USERNAME'
+### Delete the nginx pod that mounts the secret named 'mysecret2', previously created in the same Kubernetes namespace as the secret named 'one' using key/value pairs sourced from a file, in a volume on path /etc/foo. Then, mount the variable 'username' from secret 'mysecret2' onto a new nginx pod in an environment variable called 'USERNAME'.
 
 <details><summary>show</summary>
 <p>
@@ -727,7 +727,7 @@ kubectl exec -it nginx -- env | grep USERNAME | cut -d '=' -f 2 # will show 'adm
 </p>
 </details>
 
-### Create a Secret named 'ext-service-secret' in the namespace 'secret-ops'. Then, provide the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T as literal.
+### Create a Secret named 'ext-service-secret' in the namespace 'secret-ops', separate from the namespace involving 'mysecret2' and the nginx pod operation. Then, provide the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T as a literal to the secret.
 
 <details><summary>show</summary>
 <p>
@@ -742,7 +742,7 @@ k apply -f sc.yaml
 </p>
 </details>
 
-### Consuming the Secret. Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops' and consume the Secret as an environment variable. Then, open an interactive shell to the Pod, and print all environment variables.
+### Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops' where you have previously created a Secret named 'ext-service-secret' containing the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T. Ensure this Secret is consumed as an environment variable by the Pod. Then, open an interactive shell to the Pod, and print all environment variables to confirm the Secret's consumption.
 <details><summary>show</summary>
 <p>
 
@@ -785,7 +785,7 @@ k exec -it $ns consumer -- /bin/sh
 </p>
 </details>
 
-### Create a Secret named 'my-secret' of type 'kubernetes.io/ssh-auth' in the namespace 'secret-ops'. Define a single key named 'ssh-privatekey', and point it to the file 'id_rsa' in this directory.
+### After successfully creating a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops', where you created a Secret named 'ext-service-secret' containing the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T and ensured this Secret is consumed as an environment variable by the Pod, proceed to create a new Secret named 'my-secret' of type 'kubernetes.io/ssh-auth' in the same namespace 'secret-ops'. For this new Secret, define a single key named 'ssh-privatekey', and ensure it is pointing to the file 'id_rsa' found in this directory.
 <details><summary>show</summary>
 <p>
 
@@ -803,7 +803,7 @@ k apply -f sc.yaml
 </p>
 </details>
 
-### Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops', and consume the Secret as Volume. Mount the Secret as Volume to the path /var/app with read-only access. Open an interactive shell to the Pod, and render the contents of the file.
+### Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops', and consume the newly created 'my-secret' Secret, which is of type 'kubernetes.io/ssh-auth' containing a key 'ssh-privatekey' that points to the file 'id_rsa', as a Volume. Mount this Secret as a Volume to the path /var/app with read-only access. Open an interactive shell to the Pod, and render the contents of the file.
 <details><summary>show</summary>
 <p>
 
@@ -855,7 +855,7 @@ k exec -it $ns consumer -- /bin/sh
 
 kubernetes.io > Documentation > Tasks > Configure Pods and Containers > [Configure Service Accounts for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)
 
-### See all the service accounts of the cluster in all namespaces
+### List all the service accounts in a Kubernetes cluster across all namespaces.
 
 <details><summary>show</summary>
 <p>
@@ -872,7 +872,7 @@ kubectl get sa -A
 </p>
 </details>
 
-### Create a new serviceaccount called 'myuser'
+### Create a new service account called 'myuser' in a Kubernetes cluster.
 
 <details><summary>show</summary>
 <p>
@@ -903,7 +903,7 @@ kubectl create -f sa.yaml
 </p>
 </details>
 
-### Create an nginx pod that uses 'myuser' as a service account
+### Create an nginx pod that uses a service account called 'myuser' in a Kubernetes cluster.
 
 <details><summary>show</summary>
 <p>
@@ -966,7 +966,7 @@ kubectl exec -it nginx -- cat /var/run/secrets/kubernetes.io/serviceaccount/toke
 </p>
 </details>
 
-### Generate an API token for the service account 'myuser'
+### Generate an API token for the service account 'myuser' used by an nginx pod in a Kubernetes cluster.
 
 <details><summary>show</summary>
 <p>
