@@ -1,0 +1,1 @@
+alias kd='kubectl describe'
