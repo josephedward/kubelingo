@@ -327,8 +327,7 @@ def main():
                     quiz_choice = questionary.select(
                         f"Session: {session_choice.upper()}. Select quiz type:",
                         choices=[
-                            questionary.Choice("K8s (preinstalled)", value="k8s"),
-                            questionary.Choice("Kustom (upload your own quiz)", value="kustom"),
+                            questionary.Choice("Vim Command Quiz", value="k8s"),
                             questionary.Choice("Review flagged questions", value="review"),
                             questionary.Separator(),
                             questionary.Choice("Back to session selection", value="back"),
@@ -338,13 +337,12 @@ def main():
                     ).ask()
                 else:
                     # Text fallback
-                    print(f"\nSession: {session_choice.upper()}. Select quiz type:\n 1) K8s (preinstalled)\n 2) Kustom\n 3) Review\n 4) Back\n 5) Exit")
+                    print(f"\nSession: {session_choice.upper()}. Select quiz type:\n 1) Vim Command Quiz\n 2) Review flagged questions\n 3) Back\n 4) Exit")
                     text_choice = input("Choice: ").strip()
                     if text_choice == '1': quiz_choice = 'k8s'
-                    elif text_choice == '2': quiz_choice = 'kustom'
-                    elif text_choice == '3': quiz_choice = 'review'
-                    elif text_choice == '4': quiz_choice = 'back'
-                    elif text_choice == '5': quiz_choice = 'exit'
+                    elif text_choice == '2': quiz_choice = 'review'
+                    elif text_choice == '3': quiz_choice = 'back'
+                    elif text_choice == '4': quiz_choice = 'exit'
 
 
                 # Exit quiz type selection: return to session-type menu
