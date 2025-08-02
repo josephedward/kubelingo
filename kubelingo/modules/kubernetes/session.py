@@ -520,6 +520,11 @@ class NewSession(StudySession):
         import copy
         initial_args = copy.deepcopy(args)
 
+        if not os.getenv('OPENAI_API_KEY'):
+            print(f"\n{Fore.YELLOW}Warning: AI-based answer evaluation requires an OpenAI API key.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Without it, answer checking will rely on deterministic validation if available.{Style.RESET_ALL}")
+
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
         while True:
@@ -687,13 +692,6 @@ class NewSession(StudySession):
                         answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
                     choices.append({"name": "Check Answer", "value": "check"})
-                    choices.append({"name": "Show Expected Answer(s)", "value": "show_expected"})
-
-                    # Show Model Answer option, disabled if not available.
-                    if q.get('model_answer'):
-                        choices.append({"name": "Show Model Answer", "value": "show_model"})
-                    else:
-                        choices.append({"name": "Show Model Answer", "value": "show_model_disabled", "disabled": "Not available"})
 
                     # Show Visit Source if a citation or source URL is provided
                     if q.get('citation') or q.get('source'):
@@ -751,25 +749,6 @@ class NewSession(StudySession):
                         current_question_index = max(current_question_index - 1, 0)
                         break
                     
-                    if action == "show_expected":
-                        # Attempt to find an expected answer in a few common fields
-                        expected = q.get('response') or (q.get('validation_steps') and q['validation_steps'][0].get('cmd'))
-                        if expected:
-                            print(f"\n{Fore.CYAN}Expected Answer(s):{Style.RESET_ALL}\n{expected}")
-                        else:
-                            print(f"\n{Fore.YELLOW}No expected answer defined for this question.{Style.RESET_ALL}")
-                        continue
-
-                    if action in ("show_model", "show_model_disabled"):
-                        model_answer = q.get('model_answer')
-                        if model_answer:
-                            print(f"\n{Fore.CYAN}Model Answer:{Style.RESET_ALL}\n{model_answer}")
-                        else:
-                            # This case handles both clicking the disabled option and clicking an enabled one
-                            # for a question that somehow lacks the data.
-                            print(f"\n{Fore.YELLOW}No model answer available for this question.{Style.RESET_ALL}")
-                        continue
-
                     if action == "visit_source":
                         # Use citation if provided, fallback to source for URL
                         url = q.get('citation') or q.get('source')
@@ -1004,13 +983,10 @@ class NewSession(StudySession):
             return ok
         is_correct = False  # Default to incorrect
         ai_eval_used = False
-        ai_eval_active = getattr(args, 'ai_eval', False)
-        is_live_question = q.get('type') in ('live_k8s', 'live_k8s_edit')
-        use_ai_for_mocking = not args.docker and is_live_question
         openai_key_present = bool(os.getenv('OPENAI_API_KEY'))
 
-        # AI-First Evaluation: if --ai-eval is on, or for live questions without docker, use transcript with LLM.
-        if (ai_eval_active or use_ai_for_mocking) and openai_key_present and result.transcript_path:
+        # Always try AI evaluation if an API key is present and there's a transcript.
+        if openai_key_present and result.transcript_path:
             try:
                 from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
                 evaluator = _AIEvaluator()
@@ -1019,8 +995,6 @@ class NewSession(StudySession):
                 is_correct = ai_result.get('correct', False)
                 reasoning = ai_result.get('reasoning', '')
                 status = 'Correct' if is_correct else 'Incorrect'
-                if use_ai_for_mocking and not ai_eval_active:
-                    print(f"{Fore.CYAN}Using AI to evaluate transcript since no cluster is running.{Style.RESET_ALL}")
                 print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
                 ai_eval_used = True
             except ImportError:
@@ -1031,7 +1005,9 @@ class NewSession(StudySession):
                 print(f"{Fore.YELLOW}Falling back to deterministic checks.{Style.RESET_ALL}")
                 is_correct = result.success  # Fallback
         else:
-            if use_ai_for_mocking and not openai_key_present:
+            # If no API key, and it's a live question run without docker, we can't check.
+            is_live_question = q.get('type') in ('live_k8s', 'live_k8s_edit')
+            if not args.docker and is_live_question and not openai_key_present:
                 print(f"{Fore.YELLOW}Cannot check answer: This question requires a live cluster, and --docker was not used.{Style.RESET_ALL}")
                 print(f"{Fore.YELLOW}AI-based checking is available as a fallback, but 'OPENAI_API_KEY' environment variable is not set.{Style.RESET_ALL}")
                 return
