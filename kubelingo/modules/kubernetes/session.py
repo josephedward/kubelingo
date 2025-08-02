@@ -964,6 +964,11 @@ class NewSession(StudySession):
                 correct_indices.discard(current_question_index)
                 print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
             
+            # The AI reasoning should contain the source, but we print it here for consistency.
+            source_url = q.get('citation') or q.get('source')
+            if source_url:
+                print(f"{Fore.CYAN}Source: {source_url}{Style.RESET_ALL}")
+
             # Show explanation if correct
             if is_correct and q.get('explanation'):
                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
@@ -1071,6 +1076,11 @@ class NewSession(StudySession):
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+
+        # The AI reasoning should contain the source, but we print it here for consistency.
+        source_url = q.get('citation') or q.get('source')
+        if source_url:
+            print(f"{Fore.CYAN}Source: {source_url}{Style.RESET_ALL}")
 
         # Show explanation if correct
         if is_correct and q.get('explanation'):
