@@ -41,7 +41,7 @@ You are an expert Kubernetes administrator and trainer. Your task is to evaluate
 Based on the provided question, the expected validation steps, the terminal transcript, and any associated logs (like vim commands), determine if the user successfully completed the task.
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's solution is correct, false otherwise).
-2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+2. "reasoning": a string providing a concise explanation for your decision, explaining why the answer is correct or incorrect. This will be shown to the user.
 """
 
         user_content = f"Question: {prompt}\n\n"
@@ -77,7 +77,7 @@ You are an expert instructor. Your task is to evaluate a user's attempt to answe
 You will be given the question, the user's submitted answer, and a list of expected correct answers.
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's answer is valid and correct, false otherwise).
-2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
+2. "reasoning": a string providing a concise explanation for your decision, explaining why the answer is correct or incorrect. This will be shown to the user.
 """
         if quiz_type == 'k8s':
             return base_prompt + """
