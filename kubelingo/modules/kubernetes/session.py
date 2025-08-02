@@ -784,10 +784,16 @@ class NewSession(StudySession):
                             if is_ai_validator:
                                 print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
 
+                            # Get previous answer to pre-fill the prompt
+                            previous_answer = str(transcripts_by_index.get(current_question_index, ''))
+
                             try:
                                 if prompt_session:
-                                    user_input = prompt_session.prompt("Your answer: ")
+                                    user_input = prompt_session.prompt("Your answer: ", default=previous_answer)
                                 else:
+                                    # `input` does not support pre-filling, so just show the previous answer.
+                                    if previous_answer:
+                                        print(f"Your previous answer was: \"{previous_answer}\"")
                                     user_input = input("Your answer: ")
                             except (KeyboardInterrupt, EOFError):
                                 print()  # New line after prompt
