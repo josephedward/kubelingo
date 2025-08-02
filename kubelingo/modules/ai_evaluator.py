@@ -100,6 +100,7 @@ Similarly, if the user provides a command without `kubectl` or `k` (e.g., `get p
 Evaluate valid aliases and shorthands as correct without commenting on their use.
 Also consider resource shorthands (e.g., `po` for `pods`) and equivalent flags.
 If a question is general (e.g., "list all daemon sets"), and the user provides a command that is more specific but still correct (e.g., `kubectl get ds -A` to list across all namespaces), you MUST evaluate it as correct. The user's answer should only be marked incorrect if it fails to accomplish the core task of the question.
+For `kubectl exec`, a common mistake is omitting the space after `--`. For example, `kubectl exec my-pod --date` instead of `kubectl exec my-pod -- date`. If the user makes this mistake but their intent is clear, mark it as correct but gently explain the proper syntax in your reasoning.
 """
         elif quiz_type == 'vim':
             return base_prompt + """
