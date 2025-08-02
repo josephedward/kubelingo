@@ -263,10 +263,16 @@ def load_questions(data_file, exit_on_error=True):
                     q_dict['response'] = cmd.strip()
             # Promote citation/source from metadata to top-level for UI actions
             meta = q_dict.get('metadata', {}) or {}
-            if 'citation' in meta and meta.get('citation'):
+            if meta.get('citation'):
                 q_dict['citation'] = meta.get('citation')
-            if 'source' in meta and meta.get('source'):
+            if meta.get('source'):
                 q_dict['source'] = meta.get('source')
+            if meta.get('category'):
+                q_dict['category'] = meta.get('category')
+            if meta.get('response'):
+                q_dict['response'] = meta.get('response')
+            if meta.get('validator'):
+                q_dict['validator'] = meta.get('validator')
             questions.append(q_dict)
         return questions
     except Exception as e:
