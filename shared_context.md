@@ -134,6 +134,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Resolved an `ImportError` for a missing configuration variable that occurred after reorganizing the `kubectl` quiz files.
   - **Fixed**: Resolved a bug preventing text-based answers (like for Vim or Kubectl command quizzes) from being evaluated. The quiz flow now consistently requires the user to explicitly select "Check Answer" to trigger evaluation for all question types, ensuring reliability.
   - **Fixed**: Corrected the quiz flow for text-based questions (Vim, commands) to auto-evaluate the answer upon submission, as intended. This also ensures that the expected answer and source citation are displayed immediately, even for correct answers.
+  - **Fixed**: Removed faulty pre-processing of Vim commands before AI evaluation. The AI now receives the raw command, allowing it to correctly handle normal-mode commands with mistaken colons (e.g., `:dd`) and properly evaluate command-line mode commands (e.g., `:q!`). This change restores the auto-evaluation workflow and ensures Vim questions display their source citations correctly.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
@@ -349,7 +350,7 @@ If a source URL is provided, please cite it in your reasoning.
 1. **Answer Question** replaces "Work on Answer" for text-based questions (commands, Vim exercises, non-live k8s).
    - After typing an answer and pressing Enter, the quiz auto-evaluates:
      * Runs the AI or deterministic checker immediately.
-     * Displays the AI reasoning in cyan, the canonical expected answer, and the citation URL.
+     * Displays the AI reasoning in cyan, the canonical expected answer, and the citation URL (including for Vim commands, if a citation is present).
      * Returns to the action menu so the user can `Next Question`, `Visit Source`, or `Flag for Review`.
    - The explicit "Check Answer" menu entry is removed for these question types.
 
