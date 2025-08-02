@@ -105,7 +105,7 @@ For `kubectl exec`, a common mistake is omitting the space after `--`. For examp
         elif quiz_type == 'vim':
             return base_prompt + """
 You are a Vim expert. The user is answering a question about a Vim command.
-Consider variations and equivalent commands. For example, if the answer is `:w`, `:write` should also be correct.
+Consider variations and equivalent commands. For example, `:w` and `:write` are equivalent, as are `:x` and `:wq`.
 For normal mode commands (like `dd`, `yy`), users might incorrectly add a colon (`:`). If the user's intent is clear, you MUST mark it as correct, but you can gently clarify the proper syntax in your reasoning.
 """
         else: # general
