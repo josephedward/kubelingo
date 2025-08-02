@@ -82,9 +82,10 @@ Your response MUST be a JSON object with two keys:
         if quiz_type == 'k8s':
             return base_prompt + """
 You are a Kubernetes expert. The user is answering a question about `kubectl`.
-Consider variations, like short resource names (`po` for `pods`) and equivalent flags.
-A very common alias for `kubectl` is `k`. Please treat `k` as equivalent to `kubectl`.
-It is also common to omit `kubectl` or `k` entirely. If the user provides just a subcommand like `get pods` or `alpha`, you should treat it as if `kubectl` was prepended.
+Users may use common aliases. You MUST treat `k` as a perfect alias for `kubectl`.
+Similarly, if the user provides a command without `kubectl` or `k` (e.g., `get pods`), treat it as if `kubectl` was prepended.
+Evaluate valid aliases and shorthands as correct without commenting on their use.
+Also consider resource shorthands (e.g., `po` for `pods`) and equivalent flags.
 """
         elif quiz_type == 'vim':
             return base_prompt + """
@@ -113,15 +114,7 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         category = question_data.get('category', '').lower()
         source_url = question_data.get('source')
 
-        # Determine quiz type for system prompt
-        if 'vim' in category:
-            quiz_type = 'vim'
-        elif any(k in category for k in ['kubectl', 'kubernetes', 'resource types']):
-            quiz_type = 'k8s'
-        else:
-            quiz_type = 'general'
-
-        # Get expected answers
+        # Get expected answers to help determine quiz type
         expected_answers = []
         if question_data.get('response'):
             expected_answers.append(question_data['response'])
@@ -129,6 +122,21 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
             if cmd:
                 expected_answers.append(cmd)
+
+        # Determine quiz type for system prompt.
+        # This is important for providing the correct context to the AI (e.g., for kubectl aliases).
+        is_k8s = (
+            any(k in category for k in ['kubectl', 'kubernetes', 'resource types']) or
+            'kubectl' in prompt.lower() or 'kubernetes' in prompt.lower() or
+            any('kubectl' in ans.lower() for ans in expected_answers)
+        )
+
+        if 'vim' in category:
+            quiz_type = 'vim'
+        elif is_k8s:
+            quiz_type = 'k8s'
+        else:
+            quiz_type = 'general'
         
         system_prompt = self._get_system_prompt_for_command_eval(quiz_type)
         if source_url:
