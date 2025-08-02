@@ -826,6 +826,10 @@ class NewSession(StudySession):
                             expected_answer = q.get('response', '').strip()
                             if expected_answer:
                                 print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
+                            # Display citation/source if available
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                             # Return to action menu
                             continue
@@ -956,6 +960,27 @@ class NewSession(StudySession):
         Helper to evaluate a command-based answer using the AI evaluator.
         """
         attempted_indices.add(current_question_index)
+        # Normalize common 'k' alias for short-circuit matching
+        uc = user_command.strip()
+        if uc == 'k':
+            normalized = 'kubectl'
+        elif uc.startswith('k '):
+            normalized = 'kubectl ' + uc[2:]
+        else:
+            normalized = uc
+        # Short-circuit exact matches against the expected base command
+        expected = q.get('response', '').strip()
+        if expected and normalized == expected:
+            correct_indices.add(current_question_index)
+            print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            # Show reference if available
+            source_url = q.get('citation') or q.get('source')
+            if source_url:
+                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+            # Show explanation if present
+            if q.get('explanation'):
+                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+            return
 
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator

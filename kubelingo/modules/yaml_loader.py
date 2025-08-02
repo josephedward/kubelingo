@@ -47,6 +47,15 @@ class YAMLLoader(BaseLoader):
         # If first document is not question data (e.g., a docstring), use next
         if not isinstance(raw, (list, dict)) and len(docs) > 1:
             raw = docs[1] or {}
+        # Flatten nested metadata blocks: if items have a 'metadata' dict, merge its fields
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict) and 'metadata' in item and isinstance(item['metadata'], dict):
+                    nested = item.pop('metadata')
+                    for k, v in nested.items():
+                        # Do not overwrite existing top-level keys
+                        if k not in item:
+                            item[k] = v
         module = raw.get('module') if isinstance(raw, dict) else None
         module = module or os.path.splitext(os.path.basename(path))[0]
         questions: List[Question] = []
@@ -107,6 +116,12 @@ class YAMLLoader(BaseLoader):
         # Fallback to standard 'questions' key in dict
         if isinstance(raw, dict) and 'questions' in raw:
             for idx, item in enumerate(raw.get('questions', [])):
+                # Flatten nested metadata for each question
+                if isinstance(item, dict) and 'metadata' in item and isinstance(item['metadata'], dict):
+                    nested = item.pop('metadata')
+                    for k, v in nested.items():
+                        if k not in item:
+                            item[k] = v
                 qid = f"{module}::{idx}"
                 # Populate new schema, falling back to legacy fields
                 steps_data = item.get('validation_steps') or item.get('validations', [])
