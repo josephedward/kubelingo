@@ -81,7 +81,12 @@ Your response MUST be a JSON object with two keys:
         """Returns a tailored system prompt based on the quiz type."""
         base_prompt = """
 You are an expert instructor. Your task is to evaluate a user's attempt to answer a question.
-You will be given the question, the user's submitted answer, and a list of expected correct answers.
+You will be given the question, the user's submitted answer, and a list of one or more "expected" or "correct" answers.
+Your primary goal is to determine if the user's answer is functionally equivalent to any of the provided expected answers.
+
+If the user's answer is equivalent to an expected answer, you MUST evaluate it as correct.
+Do not overthink the question or seek alternative solutions. The provided expected answers are the ground truth for the quiz, even if they contain potential errors.
+
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's answer is valid and correct, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. If the answer is correct, briefly affirm it. If incorrect, explain the mistake and provide one or more correct answers with context. This will be shown to the user.
@@ -132,6 +137,11 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         expected_answers = []
         if question_data.get('response'):
             expected_answers.append(question_data['response'])
+
+        validator = question_data.get('validator', {})
+        if isinstance(validator, dict) and validator.get('expected'):
+            expected_answers.append(validator['expected'])
+
         for step in question_data.get('validation_steps', []):
             cmd = step.get('cmd') if isinstance(step, dict) else getattr(step, 'cmd', None)
             if cmd:
