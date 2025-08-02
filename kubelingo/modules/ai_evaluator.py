@@ -174,6 +174,11 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             quiz_type = 'k8s'
         else:
             quiz_type = 'general'
+        # For k8s quizzes, normalize commands missing 'kubectl' or 'k ' by prefixing 'kubectl'
+        if quiz_type == 'k8s':
+            uc = (user_command or '').strip()
+            if uc and not uc.startswith('kubectl') and not uc.startswith('k '):
+                user_command = 'kubectl ' + uc
         
         system_prompt = self._get_system_prompt_for_command_eval(quiz_type)
         if source_url:
