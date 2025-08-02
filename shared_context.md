@@ -366,3 +366,27 @@ If a source URL is provided, please cite it in your reasoning.
    - In non-interactive (scripted) mode, the quiz loop exits as before.
 
 > **IMPORTANT**: Do not revert these flows or menu orderings. They ensure a consistent, transparent quiz experience and prevent accidental breakage of the unified UI.
+
+## Vim Quiz Mode Clarification
+Vim quizzes assume knowledge of Vim's two primary modes:
+1. **Normal Mode** (default upon opening Vim):
+   - Used for navigation and editing commands such as:
+     * `dd` (delete line)
+     * `yy` (yank line)
+     * `p` (paste)
+     * `u` (undo)
+     * `n` (next search match)
+     * `gg` (go to top), `G` (go to end)
+   - These commands do **not** require a leading colon and can be executed directly (after exiting Insert Mode with `Esc`).
+2. **Ex (Command-Line) Mode** (entered by typing `:` in Normal Mode):
+   - Used for file operations and line-based commands such as:
+     * `:w` to save without exiting
+     * `:wq`, `:x`, or `ZZ` to save and quit
+     * `:q!` to quit without saving
+     * `/:pattern` to search forward
+     * `:10` to go to line 10
+   - In our evaluator, answers may be submitted with or without the leading `:` (e.g., `w` and `:w` both accepted), but represent Ex commands that run after `:`.
+
+Make sure all Vim quiz questions and expected answers align with these modes:
+- Normal-mode commands should list the key sequence (e.g., `dd`, `yy`).
+- Ex-mode commands should include the command name, and colon-variants are automatically normalized (leading `:` is optional in answer input).
