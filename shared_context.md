@@ -341,3 +341,24 @@ Your response MUST be a JSON object with two keys:
 Consider variations and equivalent commands (e.g., short resource names in kubectl, or command aliases in vim).
 If a source URL is provided, please cite it in your reasoning.
 ```
+
+## Recent Interactive Quiz UI Updates
+
+1. **Answer Question** replaces "Work on Answer" for text-based questions (commands, Vim exercises, non-live k8s).
+   - After typing an answer and pressing Enter, the quiz auto-evaluates:
+     * Runs the AI or deterministic checker immediately.
+     * Displays the AI reasoning in cyan, the canonical expected answer, and the citation URL.
+     * Returns to the action menu so the user can `Next Question`, `Visit Source`, or `Flag for Review`.
+   - The explicit "Check Answer" menu entry is removed for these question types.
+
+2. **Shell-mode questions** (live_k8s, YAML edits) still use "Work on Answer (in Shell)" followed by a manual "Check Answer" step.
+
+3. **Navigation** remains manual for all questions:
+   - `Next Question` and `Previous Question` are placed above the `Flag for Review` option.
+   - No auto-advance on correct—users can review reasoning and citations first.
+
+4. **Quiz Completion** in interactive mode:
+   - After summarizing results and cleaning up swap files, the session returns to the main quiz selection menu.
+   - In non-interactive (scripted) mode, the quiz loop exits as before.
+
+> **IMPORTANT**: Do not revert these flows or menu orderings. They ensure a consistent, transparent quiz experience and prevent accidental breakage of the unified UI.
