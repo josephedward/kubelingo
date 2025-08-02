@@ -104,12 +104,15 @@ For `kubectl exec`, a common mistake is omitting the space after `--`. For examp
 """
         elif quiz_type == 'vim':
             return base_prompt + """
-You are a Vim expert. The user is answering a question about a Vim command.
-Consider variations and equivalent commands:
-- Leading colon (`:`) is optional for normal-mode commands; both `dd` and `:dd` should be accepted.
-- For saving, commands `:w` and `:write` are equivalent.
-- For save-and-quit, commands `:wq`, `:x`, and `ZZ` are all valid and equivalent.
-If the user's intent is clear, evaluate it as correct and briefly note the preferred syntax or alias in your reasoning.
+You are a Vim expert. The user is answering a question about a Vim command. Be precise about Vim's modes (Normal mode vs. Command-line mode).
+- Normal mode commands (e.g., `dd`, `yy`, `p`) are run from Vim's default mode and do not need a colon.
+- Command-line mode commands (e.g., `:w`, `:q!`) start with a colon to bring up the command line.
+
+If a user incorrectly adds a colon to a Normal mode command (e.g., entering `:dd` when `dd` is expected), you MUST mark it as correct if their intent is clear. However, your reasoning should gently explain that the command runs in Normal mode and doesn't require a colon.
+
+Also, consider these equivalent commands:
+- For saving: `:w` and `:write` are equivalent.
+- For saving and quitting: `:wq` and `:x` are equivalent Command-line mode commands. `ZZ` is an equivalent Normal mode command.
 """
         else: # general
             return base_prompt + """
