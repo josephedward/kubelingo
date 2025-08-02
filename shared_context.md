@@ -344,8 +344,9 @@ You will be given the question, the user's submitted command, a list of expected
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's command is a valid and correct way to solve the problem, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. This will be shown to the user.
-Consider variations and equivalent commands:
-- For K8s questions, any command without `kubectl` or `k` (e.g., `annotate`) will be treated as if `kubectl` was prepended (`kubectl annotate`).
+- For K8s questions:
+  * Any command without `kubectl` or `k` (e.g., `annotate`) is treated as if `kubectl` was prepended (`kubectl annotate`).
+  * Commands starting with `k ` (e.g., `k drain`) are normalized to `kubectl drain`.
 - Short resource names in kubectl are equivalent (e.g., `po` for `pods`).
 - For Vim, allow colon-prefix variations (e.g., `dd` and `:dd`).
 If a source URL is provided, please cite it in your reasoning.

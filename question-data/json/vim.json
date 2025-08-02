@@ -32,7 +32,7 @@
   {
     "category": "Vim Commands",
     "prompt": "Save file without exiting",
-    "response": "w",
+    "response": ":w",
     "type": "command"
   },
   {
