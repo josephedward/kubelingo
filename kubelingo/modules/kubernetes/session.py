@@ -237,7 +237,7 @@ def load_questions(data_file, exit_on_error=True):
         return []
 
     try:
-        # Loaders return a list of Question objects. The quiz logic expects dicts.
+        # Loaders return a list of Question objects. We'll convert them to dicts.
         questions_obj = loader.load_file(data_file)
 
         # If a loader returns a list containing a single list of questions (a common
@@ -261,6 +261,12 @@ def load_questions(data_file, exit_on_error=True):
                 cmd = first_val.get('cmd') if isinstance(first_val, dict) else getattr(first_val, 'cmd', '')
                 if cmd:
                     q_dict['response'] = cmd.strip()
+            # Promote citation/source from metadata to top-level for UI actions
+            meta = q_dict.get('metadata', {}) or {}
+            if 'citation' in meta and meta.get('citation'):
+                q_dict['citation'] = meta.get('citation')
+            if 'source' in meta and meta.get('source'):
+                q_dict['source'] = meta.get('source')
             questions.append(q_dict)
         return questions
     except Exception as e:
@@ -864,6 +870,14 @@ class NewSession(StudySession):
                         else:
                             is_correct = self._check_and_process_answer(
                                 args, q, result, current_question_index, attempted_indices, correct_indices)
+                        # Display the expected answer for reference
+                        expected_answer = q.get('response', '').strip()
+                        if expected_answer:
+                            print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
+                        # Display source citation if available
+                        source_url = q.get('citation') or q.get('source')
+                        if source_url:
+                            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                         # Automatically proceed to next question if correct
                         if is_correct:

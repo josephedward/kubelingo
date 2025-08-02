@@ -110,6 +110,13 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             except ImportError:
                 return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
 
+        # Normalize common kubectl alias 'k' to full command for evaluation
+        cmd_input = (user_command or '').strip()
+        if cmd_input == 'k':
+            user_command = 'kubectl'
+        elif cmd_input.startswith('k '):
+            # Replace leading 'k' alias with 'kubectl'
+            user_command = 'kubectl' + cmd_input[1:]
         prompt = question_data.get('prompt', '')
         category = question_data.get('category', '').lower()
         source_url = question_data.get('source')
