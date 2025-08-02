@@ -136,6 +136,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Corrected the quiz flow for text-based questions (Vim, commands) to auto-evaluate the answer upon submission, as intended. This also ensures that the expected answer and source citation are displayed immediately, even for correct answers.
   - **Fixed**: Removed faulty pre-processing of Vim commands before AI evaluation. The AI now receives the raw command, allowing it to correctly handle normal-mode commands with mistaken colons (e.g., `:dd`) and properly evaluate command-line mode commands (e.g., `:q!`). This change restores the auto-evaluation workflow and ensures Vim questions display their source citations correctly.
   - **Fixed**: The AI evaluator was incorrectly marking the valid Vim command `:x` as incorrect when the expected answer was `:wq`. The system prompt for Vim quizzes has been updated with a stronger example (`:x` and `:wq` are equivalent) to ensure it correctly identifies command aliases.
+  - **Fixed**: Improved AI evaluation for Vim quizzes to be more precise about Vim's modes. The AI will now correctly distinguish between Normal mode (e.g., `dd`) and Command-line mode (e.g., `:w`). It will still accept Normal mode commands mistakenly prefixed with a colon but will provide a gentle correction, enhancing the learning experience.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
