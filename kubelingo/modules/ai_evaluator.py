@@ -132,13 +132,6 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             except ImportError:
                 return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
 
-        # Normalize common kubectl alias 'k' to full command for evaluation
-        cmd_input = (user_command or '').strip()
-        if cmd_input == 'k':
-            user_command = 'kubectl'
-        elif cmd_input.startswith('k '):
-            # Replace leading 'k' alias with 'kubectl'
-            user_command = 'kubectl' + cmd_input[1:]
         # Load question prompt and category
         prompt = question_data.get('prompt', '')
         category = question_data.get('category', '').lower()
@@ -174,11 +167,28 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             quiz_type = 'k8s'
         else:
             quiz_type = 'general'
-        # For k8s quizzes, normalize commands missing 'kubectl' or 'k ' by prefixing 'kubectl'
+        
+        # Normalize command based on quiz type for robust evaluation
+        cmd_input = (user_command or '').strip()
         if quiz_type == 'k8s':
-            uc = (user_command or '').strip()
-            if uc and not uc.startswith('kubectl') and not uc.startswith('k '):
-                user_command = 'kubectl ' + uc
+            if cmd_input == 'k':
+                user_command = 'kubectl'
+            elif cmd_input.startswith('k '):
+                user_command = 'kubectl' + cmd_input[1:]
+            else:
+                # For k8s questions, if command doesn't start with 'kubectl' or 'k',
+                # and it matches a known kubectl command, prepend 'kubectl'.
+                known_kubectl_commands = {
+                    "alpha", "annotate", "api-resources", "api-versions", "apply", "attach", "auth",
+                    "autoscale", "certificate", "cluster-info", "completion", "config", "convert",
+                    "cordon", "cp", "create", "delete", "describe", "diff", "drain", "edit", "events",
+                    "exec", "explain", "expose", "get", "kustomize", "label", "logs", "options",
+                    "patch", "plugin", "port-forward", "proxy", "replace", "rollout", "run", "scale",
+                    "set", "taint", "top", "uncordon", "version", "wait"
+                }
+                first_word = cmd_input.split(' ')[0] if cmd_input else ''
+                if first_word in known_kubectl_commands and not cmd_input.startswith('kubectl '):
+                    user_command = 'kubectl ' + cmd_input
         
         system_prompt = self._get_system_prompt_for_command_eval(quiz_type)
         if source_url:
