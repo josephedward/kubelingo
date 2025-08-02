@@ -978,7 +978,7 @@ class NewSession(StudySession):
             # The AI reasoning should contain the source, but we print it here for consistency.
             source_url = q.get('citation') or q.get('source')
             if source_url:
-                print(f"{Fore.CYAN}Source: {source_url}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
             # Show explanation if correct
             if is_correct and q.get('explanation'):
