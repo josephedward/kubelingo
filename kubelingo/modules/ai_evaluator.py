@@ -35,6 +35,7 @@ class AIEvaluator:
 
         prompt = question_data.get('prompt', '')
         validation_steps = question_data.get('validation_steps', [])
+        source_url = question_data.get('source') or question_data.get('citation')
 
         system_prompt = """
 You are an expert Kubernetes administrator and trainer. Your task is to evaluate a user's attempt to solve a problem in a sandboxed terminal environment.
@@ -43,6 +44,9 @@ Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's solution is correct, false otherwise).
 2. "reasoning": a string providing a concise explanation for your decision. If the user's solution is correct, briefly affirm it. If incorrect, explain what went wrong and suggest the correct approach or command(s). This will be shown to the user.
 """
+        if source_url:
+            system_prompt += "\nA source URL is provided. You MUST include it in your reasoning."
+
 
         user_content = f"Question: {prompt}\n\n"
 
@@ -56,6 +60,9 @@ Your response MUST be a JSON object with two keys:
         user_content += f"Terminal Transcript:\n---\n{transcript}\n---\n"
         if vim_log and vim_log.strip():
             user_content += f"Vim Command Log:\n---\n{vim_log}\n---\n"
+        
+        if source_url:
+            user_content += f"Source URL: {source_url}\n\n"
         
         user_content += "\nBased on the above, please evaluate the user's solution and respond only with the required JSON object."
 
@@ -147,7 +154,7 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         
         system_prompt = self._get_system_prompt_for_command_eval(quiz_type)
         if source_url:
-            system_prompt += f"\nIf a source URL is provided, please cite it in your reasoning."
+            system_prompt += "\nA source URL is provided. You MUST include it in your reasoning."
 
         user_content = f"Question: {prompt}\n\n"
         user_content += f"User's answer: `{user_command}`\n\n"
