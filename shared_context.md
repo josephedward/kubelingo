@@ -133,6 +133,7 @@ Updated interactive CLI quiz session to:
   - **Feature**: Reorganized `kubectl` quizzes into three distinct topics: Syntax, Operations, and Resource Types. Created new quiz files for each and updated the main menu to reflect the new structure, removing "trick questions" about non-existent resource short names.
   - **Fixed**: Resolved an `ImportError` for a missing configuration variable that occurred after reorganizing the `kubectl` quiz files.
   - **Fixed**: Resolved a bug preventing text-based answers (like for Vim or Kubectl command quizzes) from being evaluated. The quiz flow now consistently requires the user to explicitly select "Check Answer" to trigger evaluation for all question types, ensuring reliability.
+  - **Fixed**: Corrected the quiz flow for text-based questions (Vim, commands) to auto-evaluate the answer upon submission, as intended. This also ensures that the expected answer and source citation are displayed immediately, even for correct answers.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
