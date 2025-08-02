@@ -261,18 +261,13 @@ def load_questions(data_file, exit_on_error=True):
                 cmd = first_val.get('cmd') if isinstance(first_val, dict) else getattr(first_val, 'cmd', '')
                 if cmd:
                     q_dict['response'] = cmd.strip()
-            # Promote citation/source from metadata to top-level for UI actions
+            # Promote common metadata fields, including nested 'metadata' (e.g., from YAML)
             meta = q_dict.get('metadata', {}) or {}
-            if meta.get('citation'):
-                q_dict['citation'] = meta.get('citation')
-            if meta.get('source'):
-                q_dict['source'] = meta.get('source')
-            if meta.get('category'):
-                q_dict['category'] = meta.get('category')
-            if meta.get('response'):
-                q_dict['response'] = meta.get('response')
-            if meta.get('validator'):
-                q_dict['validator'] = meta.get('validator')
+            nested = meta.get('metadata') if isinstance(meta.get('metadata'), dict) else {}
+            for fld in ('citation', 'source', 'category', 'response', 'validator'):
+                val = meta.get(fld) or nested.get(fld)
+                if val:
+                    q_dict[fld] = val
             questions.append(q_dict)
         return questions
     except Exception as e:
@@ -698,12 +693,19 @@ class NewSession(StudySession):
                     validator = q.get('validator')
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
                     is_shell_mode = q.get('type', 'command') != 'command' and q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
-                    
-                    answer_option_text = "Work on Answer"
-                    if is_shell_mode:
-                        answer_option_text += " (in Shell)"
+                    # Determine if the question should use text input (no separate check step)
+                    use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                    # Primary action
+                    if use_text_input:
+                        answer_option_text = "Answer Question"
+                    else:
+                        answer_option_text = "Work on Answer"
+                        if is_shell_mode:
+                            answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
-                    choices.append({"name": "Check Answer", "value": "check"})
+                    # Only include explicit 'Check Answer' for shell-based questions
+                    if not use_text_input:
+                        choices.append({"name": "Check Answer", "value": "check"})
 
                     # Show Visit Source if a citation or source URL is provided
                     if q.get('citation') or q.get('source'):
@@ -814,11 +816,19 @@ class NewSession(StudySession):
                             if user_input is None:  # Handle another way of EOF from prompt_toolkit
                                 user_input = ""
                             
-                            transcripts_by_index[current_question_index] = user_input.strip()
-
-                            # Re-print question header after input.
-                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                            # Record the answer
+                            answer = user_input.strip()
+                            transcripts_by_index[current_question_index] = answer
+                            # Auto-evaluate the answer
+                            self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
+                            # Display expected answer and source
+                            expected_answer = q.get('response', '').strip()
+                            if expected_answer:
+                                print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+                            # Return to action menu
                             continue
 
                         from kubelingo.sandbox import run_shell_with_setup
@@ -869,13 +879,12 @@ class NewSession(StudySession):
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
 
-                        # Evaluate the recorded answer
+                        # Evaluate the recorded answer (updates attempted_indices and correct_indices)
                         if isinstance(result, str):
                             self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                            is_correct = current_question_index in correct_indices
                         else:
-                            is_correct = self._check_and_process_answer(
-                                args, q, result, current_question_index, attempted_indices, correct_indices)
+                            self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
+
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
                         if expected_answer:
@@ -885,15 +894,7 @@ class NewSession(StudySession):
                         if source_url:
                             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-                        # Automatically proceed to next question if correct
-                        if is_correct:
-                            if current_question_index < total_questions - 1:
-                                current_question_index += 1
-                            else:
-                                # Last question; advance beyond last to end quiz
-                                current_question_index = total_questions
-                            break
-                        # If incorrect, remain on current question
+                        # Return to action menu, allowing user to view LLM explanation or visit source
                         continue
                 
                 if quiz_backed_out:
@@ -923,9 +924,13 @@ class NewSession(StudySession):
 
             self._cleanup_swap_files()
 
+            # After finishing a quiz in interactive mode, return to quiz selection menu.
+            if is_interactive:
+                initial_args.file = None
+                initial_args.review_only = False
+                continue
             # In non-interactive mode, break the loop to exit.
-            if not is_interactive:
-                break
+            break
 
     def _recompute_stats(self, questions, attempted_indices, correct_indices):
         """Helper to calculate per-category stats from state sets."""
