@@ -133,14 +133,28 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         elif cmd_input.startswith('k '):
             # Replace leading 'k' alias with 'kubectl'
             user_command = 'kubectl' + cmd_input[1:]
+        # Load question prompt and category, normalize Vim commands if needed
         prompt = question_data.get('prompt', '')
         category = question_data.get('category', '').lower()
-        source_url = question_data.get('source')
+        is_vim_quiz = 'vim' in category
+        if is_vim_quiz:
+            uc = (user_command or '').strip()
+            # Allow commands with or without leading ':' in Vim quizzes
+            user_command = uc[1:] if uc.startswith(':') else uc
+        # Citation or source URL for LLM context
+        source_url = question_data.get('source') or question_data.get('citation')
 
-        # Get expected answers to help determine quiz type
+        # Get expected answers to help determine quiz type (including Vim variants)
         expected_answers = []
-        if question_data.get('response'):
-            expected_answers.append(question_data['response'])
+        resp = question_data.get('response')
+        if resp:
+            expected_answers.append(resp)
+            if is_vim_quiz:
+                # include variant without/with leading ':'
+                if resp.startswith(':'):
+                    expected_answers.append(resp.lstrip(':'))
+                else:
+                    expected_answers.append(':' + resp)
 
         validator = question_data.get('validator', {})
         if isinstance(validator, dict) and validator.get('expected'):
