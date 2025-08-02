@@ -132,6 +132,7 @@ Updated interactive CLI quiz session to:
   - **Feature**: Added `kubectl_common_operations.yaml`, a new quiz based on the official Kubernetes documentation examples. The questions cover common `kubectl` commands and are intended for AI-based evaluation, allowing for flexibility with aliases and command variations.
   - **Feature**: Reorganized `kubectl` quizzes into three distinct topics: Syntax, Operations, and Resource Types. Created new quiz files for each and updated the main menu to reflect the new structure, removing "trick questions" about non-existent resource short names.
   - **Fixed**: Resolved an `ImportError` for a missing configuration variable that occurred after reorganizing the `kubectl` quiz files.
+  - **Fixed**: Resolved a bug preventing text-based answers (like for Vim or Kubectl command quizzes) from being evaluated. The quiz flow now consistently requires the user to explicitly select "Check Answer" to trigger evaluation for all question types, ensuring reliability.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Data Management Scripts
