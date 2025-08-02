@@ -696,10 +696,11 @@ class NewSession(StudySession):
                     # Show Visit Source if a citation or source URL is provided
                     if q.get('citation') or q.get('source'):
                         choices.append({"name": "Visit Source", "value": "visit_source"})
-                    # Toggle flag for review
-                    choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
+                    # Navigation options
                     choices.append({"name": "Next Question", "value": "next"})
                     choices.append({"name": "Previous Question", "value": "prev"})
+                    # Toggle flag for review
+                    choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Exit Quiz.", "value": "back"})
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
@@ -850,14 +851,23 @@ class NewSession(StudySession):
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
 
-                        # If result is a string, it's a text-based answer that needs AI evaluation.
+                        # Evaluate the recorded answer
                         if isinstance(result, str):
                             self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
-                            continue
-                        
-                        # Otherwise, it's a ShellResult from a live exercise.
-                        # This keeps the logic for live k8s exercises.
-                        self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
+                            is_correct = current_question_index in correct_indices
+                        else:
+                            is_correct = self._check_and_process_answer(
+                                args, q, result, current_question_index, attempted_indices, correct_indices)
+
+                        # Automatically proceed to next question if correct
+                        if is_correct:
+                            if current_question_index < total_questions - 1:
+                                current_question_index += 1
+                            else:
+                                # Last question; advance beyond last to end quiz
+                                current_question_index = total_questions
+                            break
+                        # If incorrect, remain on current question
                         continue
                 
                 if quiz_backed_out:
