@@ -86,6 +86,7 @@ Your primary goal is to determine if the user's answer is functionally equivalen
 
 If the user's answer is equivalent to an expected answer, you MUST evaluate it as correct.
 Do not overthink the question or seek alternative solutions. The provided expected answers are the ground truth for the quiz, even if they contain potential errors.
+Be lenient with minor typos (e.g., 'whomai' for 'whoami') if the user's intent is obvious. The goal is to test knowledge, not just typing accuracy.
 
 Your response MUST be a JSON object with two keys:
 1. "correct": a boolean value (true if the user's answer is valid and correct, false otherwise).
