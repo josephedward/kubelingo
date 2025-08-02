@@ -703,9 +703,7 @@ class NewSession(StudySession):
                         if is_shell_mode:
                             answer_option_text += " (in Shell)"
                     choices.append({"name": answer_option_text, "value": "answer"})
-                    # Only include explicit 'Check Answer' for shell-based questions
-                    if not use_text_input:
-                        choices.append({"name": "Check Answer", "value": "check"})
+                    choices.append({"name": "Check Answer", "value": "check"})
 
                     # Show Visit Source if a citation or source URL is provided
                     if q.get('citation') or q.get('source'):
@@ -819,16 +817,10 @@ class NewSession(StudySession):
                             # Record the answer
                             answer = user_input.strip()
                             transcripts_by_index[current_question_index] = answer
-                            # Auto-evaluate the answer
-                            self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
-                            # Display expected answer and source
-                            expected_answer = q.get('response', '').strip()
-                            if expected_answer:
-                                print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-                            # Return to action menu
+
+                            # Re-print question header after input.
+                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
                             continue
 
                         from kubelingo.sandbox import run_shell_with_setup
