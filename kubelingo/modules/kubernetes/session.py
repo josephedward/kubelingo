@@ -720,7 +720,7 @@ class NewSession(StudySession):
                     choices.append({"name": "Previous Question", "value": "prev"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
-                    choices.append({"name": "Exit Quiz.", "value": "back"})
+                    choices.append({"name": "Exit Quiz", "value": "back"})
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
                     # Determine if interactive action selection is available
