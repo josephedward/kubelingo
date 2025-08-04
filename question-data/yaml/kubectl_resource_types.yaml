@@ -1,5 +1,5 @@
 # Resource Reference Quiz Manifest
-# Tests for each resource: shortnames, API version, namespaced, kind
+# Tests for each resource: shortnames, API version, namespaced
 ---
 - id: binding::apiversion
   question: "What is the API version for Binding?"
@@ -14,14 +14,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: binding::kind
-  question: "What is the Kind name for the resource Binding?"
-  type: command
-  metadata:
-    response: "Binding"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -49,14 +41,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: componentstatus::kind
-  question: "What is the Kind name for the resource ComponentStatus?"
-  type: command
-  metadata:
-    response: "ComponentStatus"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: configmap::shortnames
   question: "What is the shortname for ConfigMap?"
   type: command
@@ -78,14 +62,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: configmap::kind
-  question: "What is the Kind name for the resource ConfigMap?"
-  type: command
-  metadata:
-    response: "ConfigMap"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -113,14 +89,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: endpoints::kind
-  question: "What is the Kind name for the resource Endpoints?"
-  type: command
-  metadata:
-    response: "Endpoints"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: event::shortnames
   question: "What is the shortname for Event?"
   type: command
@@ -142,14 +110,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: event::kind
-  question: "What is the Kind name for the resource Event?"
-  type: command
-  metadata:
-    response: "Event"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -177,14 +137,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: limitrange::kind
-  question: "What is the Kind name for the resource LimitRange?"
-  type: command
-  metadata:
-    response: "LimitRange"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: namespace::shortnames
   question: "What is the shortname for Namespace?"
   type: command
@@ -206,14 +158,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: namespace::kind
-  question: "What is the Kind name for the resource Namespace?"
-  type: command
-  metadata:
-    response: "Namespace"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -241,14 +185,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: node::kind
-  question: "What is the Kind name for the resource Node?"
-  type: command
-  metadata:
-    response: "Node"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: persistentvolumeclaim::shortnames
   question: "What is the shortname for PersistentVolumeClaim?"
   type: command
@@ -270,14 +206,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: persistentvolumeclaim::kind
-  question: "What is the Kind name for the resource PersistentVolumeClaim?"
-  type: command
-  metadata:
-    response: "PersistentVolumeClaim"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -305,14 +233,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: persistentvolume::kind
-  question: "What is the Kind name for the resource PersistentVolume?"
-  type: command
-  metadata:
-    response: "PersistentVolume"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: pod::shortnames
   question: "What is the shortname for Pod?"
   type: command
@@ -337,14 +257,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: pod::kind
-  question: "What is the Kind name for the resource Pod?"
-  type: command
-  metadata:
-    response: "Pod"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: podtemplate::apiversion
   question: "What is the API version for PodTemplate?"
   type: command
@@ -358,14 +270,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: podtemplate::kind
-  question: "What is the Kind name for the resource PodTemplate?"
-  type: command
-  metadata:
-    response: "PodTemplate"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -393,14 +297,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: replicationcontroller::kind
-  question: "What is the Kind name for the resource ReplicationController?"
-  type: command
-  metadata:
-    response: "ReplicationController"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: resourcequota::shortnames
   question: "What is the shortname for ResourceQuota?"
   type: command
@@ -425,14 +321,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: resourcequota::kind
-  question: "What is the Kind name for the resource ResourceQuota?"
-  type: command
-  metadata:
-    response: "ResourceQuota"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: secret::apiversion
   question: "What is the API version for Secret?"
   type: command
@@ -446,14 +334,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: secret::kind
-  question: "What is the Kind name for the resource Secret?"
-  type: command
-  metadata:
-    response: "Secret"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -481,14 +361,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: serviceaccount::kind
-  question: "What is the Kind name for the resource ServiceAccount?"
-  type: command
-  metadata:
-    response: "ServiceAccount"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: service::shortnames
   question: "What is the shortname for Service?"
   type: command
@@ -513,14 +385,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: service::kind
-  question: "What is the Kind name for the resource Service?"
-  type: command
-  metadata:
-    response: "Service"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: mutatingwebhookconfiguration::apiversion
   question: "What is the API version for MutatingWebhookConfiguration?"
   type: command
@@ -537,14 +401,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: mutatingwebhookconfiguration::kind
-  question: "What is the Kind name for the resource MutatingWebhookConfiguration?"
-  type: command
-  metadata:
-    response: "MutatingWebhookConfiguration"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: validatingwebhookconfiguration::apiversion
   question: "What is the API version for ValidatingWebhookConfiguration?"
   type: command
@@ -558,14 +414,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: validatingwebhookconfiguration::kind
-  question: "What is the Kind name for the resource ValidatingWebhookConfiguration?"
-  type: command
-  metadata:
-    response: "ValidatingWebhookConfiguration"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -593,14 +441,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: customresourcedefinition::kind
-  question: "What is the Kind name for the resource CustomResourceDefinition?"
-  type: command
-  metadata:
-    response: "CustomResourceDefinition"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: apiservice::apiversion
   question: "What is the API version for APIService?"
   type: command
@@ -617,14 +457,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: apiservice::kind
-  question: "What is the Kind name for the resource APIService?"
-  type: command
-  metadata:
-    response: "APIService"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: controllerrevision::apiversion
   question: "What is the API version for ControllerRevision?"
   type: command
@@ -638,14 +470,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: controllerrevision::kind
-  question: "What is the Kind name for the resource ControllerRevision?"
-  type: command
-  metadata:
-    response: "ControllerRevision"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -673,14 +497,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: daemonset::kind
-  question: "What is the Kind name for the resource DaemonSet?"
-  type: command
-  metadata:
-    response: "DaemonSet"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: deployment::shortnames
   question: "What is the shortname for Deployment?"
   type: command
@@ -702,14 +518,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: deployment::kind
-  question: "What is the Kind name for the resource Deployment?"
-  type: command
-  metadata:
-    response: "Deployment"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -737,14 +545,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: replicaset::kind
-  question: "What is the Kind name for the resource ReplicaSet?"
-  type: command
-  metadata:
-    response: "ReplicaSet"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: statefulset::shortnames
   question: "What is the shortname for StatefulSet?"
   type: command
@@ -769,14 +569,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: statefulset::kind
-  question: "What is the Kind name for the resource StatefulSet?"
-  type: command
-  metadata:
-    response: "StatefulSet"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: tokenreview::apiversion
   question: "What is the API version for TokenReview?"
   type: command
@@ -790,14 +582,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: tokenreview::kind
-  question: "What is the Kind name for the resource TokenReview?"
-  type: command
-  metadata:
-    response: "TokenReview"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -817,14 +601,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: localsubjectaccessreview::kind
-  question: "What is the Kind name for the resource LocalSubjectAccessReview?"
-  type: command
-  metadata:
-    response: "LocalSubjectAccessReview"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: selfsubjectaccessreview::apiversion
   question: "What is the API version for SelfSubjectAccessReview?"
   type: command
@@ -838,14 +614,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: selfsubjectaccessreview::kind
-  question: "What is the Kind name for the resource SelfSubjectAccessReview?"
-  type: command
-  metadata:
-    response: "SelfSubjectAccessReview"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -865,14 +633,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: selfsubjectrulesreview::kind
-  question: "What is the Kind name for the resource SelfSubjectRulesReview?"
-  type: command
-  metadata:
-    response: "SelfSubjectRulesReview"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: subjectaccessreview::apiversion
   question: "What is the API version for SubjectAccessReview?"
   type: command
@@ -886,14 +646,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: subjectaccessreview::kind
-  question: "What is the Kind name for the resource SubjectAccessReview?"
-  type: command
-  metadata:
-    response: "SubjectAccessReview"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -921,14 +673,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: horizontalpodautoscaler::kind
-  question: "What is the Kind name for the resource HorizontalPodAutoscaler?"
-  type: command
-  metadata:
-    response: "HorizontalPodAutoscaler"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: cronjob::shortnames
   question: "What is the shortname for CronJob?"
   type: command
@@ -953,14 +697,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: cronjob::kind
-  question: "What is the Kind name for the resource CronJob?"
-  type: command
-  metadata:
-    response: "CronJob"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: job::apiversion
   question: "What is the API version for Job?"
   type: command
@@ -974,14 +710,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: job::kind
-  question: "What is the Kind name for the resource Job?"
-  type: command
-  metadata:
-    response: "Job"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1009,14 +737,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: certificatesigningrequest::kind
-  question: "What is the Kind name for the resource CertificateSigningRequest?"
-  type: command
-  metadata:
-    response: "CertificateSigningRequest"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: lease::apiversion
   question: "What is the API version for Lease?"
   type: command
@@ -1030,14 +750,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: lease::kind
-  question: "What is the Kind name for the resource Lease?"
-  type: command
-  metadata:
-    response: "Lease"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1057,14 +769,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: endpointslice::kind
-  question: "What is the Kind name for the resource EndpointSlice?"
-  type: command
-  metadata:
-    response: "EndpointSlice"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: flowschema::apiversion
   question: "What is the API version for FlowSchema?"
   type: command
@@ -1078,14 +782,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: flowschema::kind
-  question: "What is the Kind name for the resource FlowSchema?"
-  type: command
-  metadata:
-    response: "FlowSchema"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1105,14 +801,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: prioritylevelconfiguration::kind
-  question: "What is the Kind name for the resource PriorityLevelConfiguration?"
-  type: command
-  metadata:
-    response: "PriorityLevelConfiguration"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: ingressclass::apiversion
   question: "What is the API version for IngressClass?"
   type: command
@@ -1126,14 +814,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: ingressclass::kind
-  question: "What is the Kind name for the resource IngressClass?"
-  type: command
-  metadata:
-    response: "IngressClass"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1161,14 +841,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: ingress::kind
-  question: "What is the Kind name for the resource Ingress?"
-  type: command
-  metadata:
-    response: "Ingress"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: networkpolicy::shortnames
   question: "What is the shortname for NetworkPolicy?"
   type: command
@@ -1193,14 +865,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: networkpolicy::kind
-  question: "What is the Kind name for the resource NetworkPolicy?"
-  type: command
-  metadata:
-    response: "NetworkPolicy"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: runtimeclass::apiversion
   question: "What is the API version for RuntimeClass?"
   type: command
@@ -1214,14 +878,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: runtimeclass::kind
-  question: "What is the Kind name for the resource RuntimeClass?"
-  type: command
-  metadata:
-    response: "RuntimeClass"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1249,14 +905,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: poddisruptionbudget::kind
-  question: "What is the Kind name for the resource PodDisruptionBudget?"
-  type: command
-  metadata:
-    response: "PodDisruptionBudget"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: podsecuritypolicy::shortnames
   question: "What is the shortname for PodSecurityPolicy?"
   type: command
@@ -1281,14 +929,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: podsecuritypolicy::kind
-  question: "What is the Kind name for the resource PodSecurityPolicy?"
-  type: command
-  metadata:
-    response: "PodSecurityPolicy"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: clusterrolebinding::apiversion
   question: "What is the API version for ClusterRoleBinding?"
   type: command
@@ -1302,14 +942,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: clusterrolebinding::kind
-  question: "What is the Kind name for the resource ClusterRoleBinding?"
-  type: command
-  metadata:
-    response: "ClusterRoleBinding"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1329,14 +961,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: clusterrole::kind
-  question: "What is the Kind name for the resource ClusterRole?"
-  type: command
-  metadata:
-    response: "ClusterRole"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: rolebinding::apiversion
   question: "What is the API version for RoleBinding?"
   type: command
@@ -1353,14 +977,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: rolebinding::kind
-  question: "What is the Kind name for the resource RoleBinding?"
-  type: command
-  metadata:
-    response: "RoleBinding"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: role::apiversion
   question: "What is the API version for Role?"
   type: command
@@ -1374,14 +990,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: role::kind
-  question: "What is the Kind name for the resource Role?"
-  type: command
-  metadata:
-    response: "Role"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1409,14 +1017,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: priorityclass::kind
-  question: "What is the Kind name for the resource PriorityClass?"
-  type: command
-  metadata:
-    response: "PriorityClass"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: csidriver::apiversion
   question: "What is the API version for CSIDriver?"
   type: command
@@ -1430,14 +1030,6 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: csidriver::kind
-  question: "What is the Kind name for the resource CSIDriver?"
-  type: command
-  metadata:
-    response: "CSIDriver"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1457,14 +1049,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: csinode::kind
-  question: "What is the Kind name for the resource CSINode?"
-  type: command
-  metadata:
-    response: "CSINode"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: csistoragecapacity::apiversion
   question: "What is the API version for CSIStorageCapacity?"
   type: command
@@ -1478,14 +1062,6 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: csistoragecapacity::kind
-  question: "What is the Kind name for the resource CSIStorageCapacity?"
-  type: command
-  metadata:
-    response: "CSIStorageCapacity"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
@@ -1513,14 +1089,6 @@
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
-- id: storageclass::kind
-  question: "What is the Kind name for the resource StorageClass?"
-  type: command
-  metadata:
-    response: "StorageClass"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
 - id: volumeattachment::apiversion
   question: "What is the API version for VolumeAttachment?"
   type: command
@@ -1534,13 +1102,5 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
-
-- id: volumeattachment::kind
-  question: "What is the Kind name for the resource VolumeAttachment?"
-  type: command
-  metadata:
-    response: "VolumeAttachment"
     category: "Resource Reference"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
