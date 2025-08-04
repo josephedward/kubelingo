@@ -19,14 +19,15 @@ YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_edit.json')
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'json', 'vim.json')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_resource_types.yaml')
-KUBECTL_SYNTAX_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_syntax_quiz.yaml')
+# Renamed syntax quiz from kubectl_syntax_quiz.yaml
+KUBECTL_BASIC_SYNTAX_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_basic_syntax_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
     "Vim Quiz": VIM_QUESTIONS_FILE,
-    "Kubectl Syntax": KUBECTL_SYNTAX_QUIZ_FILE,
+    "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
     "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
 }
