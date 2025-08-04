@@ -140,6 +140,59 @@ Updated interactive CLI quiz session to:
   - **Fixed**: For Kubernetes questions, the AI evaluator now programmatically prepends `kubectl` to answers that start with a valid subcommand (e.g., `get`, `annotate`) but omit the `kubectl` or `k` prefix. This prevents answers from being marked incorrect for a missing prefix, improving the learning experience.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
+## Standardized Quiz Formats
+
+To provide a consistent experience and enable robust, reusable evaluation logic, all quiz questions are being standardized on a unified schema. This ensures that every question, regardless of type, can be processed by the same quiz engine and take advantage of features like AI evaluation and transcript-based validation.
+
+### Core Question Schema
+
+Every question is represented as a dictionary with the following core fields:
+
+- `id`: A unique identifier for the question (e.g., `vim_quiz_data::0`).
+- `question`: The prompt text displayed to the user.
+- `source`: A URL pointing to relevant documentation.
+- `explanation`: A brief explanation of the correct answer.
+- `answers`: A list of acceptable correct answers (for command-based questions).
+- `validation_steps`: A list of commands and matchers to verify success (for shell-based exercises).
+
+### Quiz Types
+
+#### 1. Command-Based Quizzes (e.g., Vim, `kubectl` commands)
+
+These quizzes test knowledge of single commands. They use the `answers` field to list correct responses and can be evaluated quickly by the AI. To ensure they are handled by the unified quiz runner, they include an empty `validation_steps` list.
+
+**Example (`vim_quiz.yaml`):**
+```yaml
+- id: vim_quiz_data::6
+  question: "Delete current line"
+  answers:
+    - "dd"
+  explanation: "Deletes the entire line under the cursor in Vim's normal mode."
+  source: "https://vim.rtorr.com"
+  validation_steps: []
+```
+
+#### 2. Shell-Based Exercises (e.g., Live Kubernetes Manifest Editing)
+
+These exercises require users to perform actions in a live shell environment. They use `pre_shell_cmds`, `initial_files`, and `validation_steps` to set up the environment and validate the outcome.
+
+**Example (Conceptual):**
+```yaml
+- id: k8s_quiz::5
+  question: "Create a new ConfigMap named 'my-config' with the data 'key=value'."
+  pre_shell_cmds: []
+  initial_files: {}
+  validation_steps:
+    - cmd: "kubectl get configmap my-config -o jsonpath='{.data.key}'"
+      matchers:
+        - type: "exact_match"
+          expected: "value"
+```
+
+### Standardization Efforts
+
+- The `vim_quiz.yaml` file has been migrated to this new standardized format, replacing the legacy `solution_file` field with `answers` and `explanation`. This aligns it with the unified quiz engine and enables more flexible evaluation.
+
 ## Data Management Scripts
 
 ### `scripts/organize_question_data.py`

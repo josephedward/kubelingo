@@ -6,113 +6,169 @@ Each entry contains a question (prompt) and the source material for the answer.
 ---
 - id: vim_quiz_data::0
   question: "Enter insert mode at cursor"
-  solution_file: "yaml/solutions/vim_quiz/0.yaml"
+  answers: ["i"]
+  explanation: "insert before the cursor"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::1
   question: "Append text after cursor"
-  solution_file: "yaml/solutions/vim_quiz/1.yaml"
+  answers: ["a"]
+  explanation: "insert (append) after the cursor"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::2
   question: "Open a new line below the current line"
-  solution_file: "yaml/solutions/vim_quiz/2.yaml"
+  answers: ["o"]
+  explanation: "append (open) a new line below the current line"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::3
   question: "Save file and quit"
-  solution_file: "yaml/solutions/vim_quiz/3.yaml"
+  answers: [":wq", ":x", "ZZ"]
+  explanation: "write (save) and quit"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::4
   question: "Exit without saving changes"
-  solution_file: "yaml/solutions/vim_quiz/4.yaml"
+  answers: [":q!", "ZQ"]
+  explanation: "quit and throw away unsaved changes"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::5
   question: "Save file without exiting"
-  solution_file: "yaml/solutions/vim_quiz/5.yaml"
+  answers: [":w"]
+  explanation: "write (save) the file, but don't exit"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::6
   question: "Delete current line"
-  solution_file: "yaml/solutions/vim_quiz/6.yaml"
+  answers: ["dd"]
+  explanation: "delete (cut) a line"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::7
   question: "Copy current line (yank)"
-  solution_file: "yaml/solutions/vim_quiz/7.yaml"
+  answers: ["yy"]
+  explanation: "yank (copy) a line"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::8
   question: "Paste after cursor"
-  solution_file: "yaml/solutions/vim_quiz/8.yaml"
+  answers: ["p"]
+  explanation: "put (paste) the clipboard after cursor"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::9
   question: "Undo last change"
-  solution_file: "yaml/solutions/vim_quiz/9.yaml"
+  answers: ["u"]
+  explanation: "undo"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::10
   question: "Search forward for 'pattern'"
-  solution_file: "yaml/solutions/vim_quiz/10.yaml"
+  answers: ["/pattern"]
+  explanation: "search for pattern"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::11
   question: "Find next search occurrence"
-  solution_file: "yaml/solutions/vim_quiz/11.yaml"
+  answers: ["n"]
+  explanation: "repeat search in same direction"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::12
   question: "Go to top of file"
-  solution_file: "yaml/solutions/vim_quiz/12.yaml"
+  answers: ["gg"]
+  explanation: "go to the first line of the document"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::13
   question: "Go to end of file"
-  solution_file: "yaml/solutions/vim_quiz/13.yaml"
+  answers: ["G"]
+  explanation: "go to the last line of the document"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::14
   question: "Go to line 10"
-  solution_file: "yaml/solutions/vim_quiz/14.yaml"
+  answers: [":10", "10gg", "10G"]
+  explanation: "go to line N (e.g. 5gg or 5G)"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::15
   question: "Exit insert mode"
-  solution_file: "yaml/solutions/vim_quiz/15.yaml"
+  answers: ["<Esc>", "<C-c>"]
+  explanation: "exit insert mode"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::16
-  question: "Go to line N (e.g. :10)"
-  solution_file: "yaml/solutions/vim_quiz/16.yaml"
+  question: "Go to an arbitrary line N (e.g., :42)"
+  answers: [":N"]
+  explanation: "go to line N"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::17
   question: "Redo the last undone change"
-  solution_file: "yaml/solutions/vim_quiz/17.yaml"
+  answers: ["<C-r>"]
+  explanation: "redo"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::18
   question: "Enter visual mode"
-  solution_file: "yaml/solutions/vim_quiz/18.yaml"
+  answers: ["v"]
+  explanation: "start visual mode, mark lines, then do a command (like y-yank)"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::19
   question: "Enter visual line mode"
-  solution_file: "yaml/solutions/vim_quiz/19.yaml"
+  answers: ["V"]
+  explanation: "start linewise visual mode"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::20
   question: "Enter visual block mode"
-  solution_file: "yaml/solutions/vim_quiz/20.yaml"
+  answers: ["<C-v>"]
+  explanation: "start visual block mode"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::21
   question: "Enter replace mode"
-  solution_file: "yaml/solutions/vim_quiz/21.yaml"
+  answers: ["R"]
+  explanation: "replace more than one character, until ESC is pressed"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::22
   question: "Move to the next word"
-  solution_file: "yaml/solutions/vim_quiz/22.yaml"
+  answers: ["w"]
+  explanation: "jump forwards to the start of a word"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::23
   question: "Move to the previous word"
-  solution_file: "yaml/solutions/vim_quiz/23.yaml"
+  answers: ["b"]
+  explanation: "jump backwards to the start of a word"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::24
   question: "Move to the end of the word"
-  solution_file: "yaml/solutions/vim_quiz/24.yaml"
+  answers: ["e"]
+  explanation: "jump forwards to the end of a word"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::25
   question: "Move to the first character of the line"
-  solution_file: "yaml/solutions/vim_quiz/25.yaml"
+  answers: ["0"]
+  explanation: "jump to the start of the line"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::26
   question: "Move to the end of the line"
-  solution_file: "yaml/solutions/vim_quiz/26.yaml"
+  answers: ["$"]
+  explanation: "jump to the end of the line"
   source: "https://vim.rtorr.com"
+  validation_steps: []
 - id: vim_quiz_data::27
   question: "Jump to matching bracket"
-  solution_file: "yaml/solutions/vim_quiz/27.yaml"
+  answers: ["%"]
+  explanation: "move cursor to matching character (default supported pairs: '()', '{}', '[]')"
   source: "https://vim.rtorr.com"
+  validation_steps: []
