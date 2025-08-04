@@ -659,15 +659,21 @@ class NewSession(StudySession):
                 prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
 
             quiz_backed_out = False
+            finish_quiz = False
+            # Flag to suppress screen clear immediately after auto-advancing on answer
+            just_answered = False
             current_question_index = 0
             transcripts_by_index = {}
             
             while current_question_index < len(questions_to_ask):
-                # Clear the terminal for visual clarity between questions
-                try:
-                    os.system('clear')
-                except Exception:
-                    pass
+                # Clear the terminal for visual clarity between questions, unless just answered
+                if not just_answered:
+                    try:
+                        os.system('clear')
+                    except Exception:
+                        pass
+                # Reset the auto-advance flag
+                just_answered = False
                 q = questions_to_ask[current_question_index]
                 i = current_question_index + 1
                 category = q.get('category', 'General')
@@ -831,8 +837,13 @@ class NewSession(StudySession):
                             if source_url:
                                 print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-                            # Return to action menu
-                            continue
+                            if current_question_index == total_questions - 1:
+                                finish_quiz = True
+                                break
+                            # Advance to next question, keeping previous feedback visible
+                            just_answered = True
+                            current_question_index += 1
+                            break
 
                         from kubelingo.sandbox import run_shell_with_setup
                         from kubelingo.question import Question, ValidationStep
@@ -900,6 +911,8 @@ class NewSession(StudySession):
                         # Return to action menu, allowing user to view LLM explanation or visit source
                         continue
                 
+                if finish_quiz:
+                    break
                 if quiz_backed_out:
                     break
             
