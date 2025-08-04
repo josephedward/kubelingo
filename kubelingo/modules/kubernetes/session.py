@@ -830,7 +830,12 @@ class NewSession(StudySession):
 
                             # Auto-evaluate the answer
                             self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
-                            
+                            # Auto-flag wrong answers, unflag correct ones
+                            data_file_path = q.get('data_file', args.file)
+                            if current_question_index in correct_indices:
+                                self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            else:
+                                self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
                             # Display expected answer for reference
                             expected_answer = q.get('response', '').strip()
                             if expected_answer:
@@ -901,6 +906,12 @@ class NewSession(StudySession):
                             self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         else:
                             self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
+                        # Auto-flag wrong answers, unflag correct ones
+                        data_file_path = q.get('data_file', args.file)
+                        if current_question_index in correct_indices:
+                            self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                        else:
+                            self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
