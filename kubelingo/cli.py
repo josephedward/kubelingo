@@ -212,8 +212,9 @@ def main():
                         help='Number of questions to ask (default: all)')
     parser.add_argument('--randomize', action='store_true',
                         help='Randomize question order (for modules that support it)')
+    parser.add_argument('--quiz', type=str, help='Select a quiz by name.')
     parser.add_argument('-c', '--category', type=str,
-                        help='Limit quiz to a specific category')
+                        help='Limit quiz to a specific category within the selected quiz file.')
     parser.add_argument('--list-categories', action='store_true',
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
@@ -321,6 +322,16 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
+
+        if args.quiz:
+            from kubelingo.utils.config import ENABLED_QUIZZES
+            if args.quiz in ENABLED_QUIZZES:
+                args.file = ENABLED_QUIZZES[args.quiz]
+            else:
+                parser.error(
+                    f"Quiz '{args.quiz}' not found. "
+                    f"Available quizzes: {', '.join(ENABLED_QUIZZES.keys())}"
+                )
 
         args.module = None
         # Early flags: history and list-modules
