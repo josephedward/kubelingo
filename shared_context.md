@@ -446,6 +446,30 @@ Vim quizzes assume knowledge of Vim's two primary modes:
      * `:10` to go to line 10
    - In our evaluator, answers may be submitted with or without the leading `:` (e.g., `w` and `:w` both accepted), but represent Ex commands that run after `:`.
 
-Make sure all Vim quiz questions and expected answers align with these modes:
-- Normal-mode commands should list the key sequence (e.g., `dd`, `yy`).
-- Ex-mode commands should include the command name, and colon-variants are automatically normalized (leading `:` is optional in answer input).
+ Make sure all Vim quiz questions and expected answers align with these modes:
+ - Normal-mode commands should list the key sequence (e.g., `dd`, `yy`).
+ - Ex-mode commands should include the command name, and colon-variants are automatically normalized (leading `:` is optional in answer input).
+
+## Standard YAML Quiz Format
+
+To ensure consistent experience across all YAML-based quizzes, each YAML file should adhere to the following schema:
+
+- Top-level: a YAML sequence (`- ...`) of question objects.
+- Each question object must include:
+  - `id` (string): unique identifier for the question, e.g., `resource::shortname`.
+  - `prompt` (string): the question text to present (legacy `question:` keys are supported but deprecated).
+  - `type` (string): the question type, e.g., `command`, `live_k8s`, etc.
+  - `response` (string): the expected answer or command.
+  - `category` (string): category label, e.g., `Kubectl Common Operations`.
+  - `citation` (string, optional): URL for reference documentation.
+  - `validator` (object, optional): for AI-based validation, with:
+    - `type` (string): e.g., `ai`.
+    - `expected` (string): expected canonical command or answer.
+- Optional fields:
+  - `pre_shell_cmds`: list of setup commands to run before the quiz shell.
+  - `initial_files`: mapping of filenames to initial file contents.
+  - `validation_steps`: list of validation step objects for deterministic checks.
+  - `explanation`: explanatory text to display on correct answers.
+  - `difficulty`: question difficulty level.
+
+Nested `metadata:` blocks in YAML files are automatically flattened at runtime by the `YAMLLoader`, and legacy `question:` keys are normalized to `prompt:`. New quizzes should use the flat schema shown above to avoid relying on runtime transformations.

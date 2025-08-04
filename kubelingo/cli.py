@@ -434,6 +434,9 @@ def main():
     # Handle module-based execution.
     if args.module:
         module_name = args.module.lower()
+        # Alias 'k8s' shorthand to 'kubernetes'
+        if module_name == 'k8s':
+            module_name = 'kubernetes'
 
         # Optional Rust-based command quiz for non-interactive (--num) runs
         if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
