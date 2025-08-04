@@ -197,7 +197,6 @@ class SessionManager:
                 changed = True
                 break
             if not changed:
-                print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
                 return
             try:
                 with open(data_file, 'w') as f:
@@ -222,7 +221,6 @@ class SessionManager:
                     changed = True
                     break
             if not changed:
-                print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
                 return
             try:
                 with open(data_file, 'w') as f:
@@ -244,7 +242,6 @@ class SessionManager:
             if changed:
                 break
         if not changed:
-            self.logger.error(f"Flagged question not found in {data_file} to un-flag: {prompt_text}")
             return
         try:
             with open(data_file, 'w') as f:
