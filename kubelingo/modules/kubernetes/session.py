@@ -772,6 +772,9 @@ class NewSession(StudySession):
                     if action == "visit_source":
                         # Use citation if provided, fallback to source for URL
                         url = q.get('citation') or q.get('source')
+                        if q.get('category') == 'Resource Reference':
+                            url = "https://kubernetes.io/docs/reference/kubectl/#resource-types"
+
                         if url:
                             print(f"Opening documentation at {url} ...")
                             webbrowser.open(url)
