@@ -38,7 +38,18 @@ def extract_links_from_file(file_path: Path) -> Set[str]:
     if not data:
         return set()
 
-    questions = data if isinstance(data, list) else data.get("questions", [])
+    questions = []
+    if isinstance(data, list):
+        questions = data
+    elif isinstance(data, dict):
+        # Handles a flat structure with a 'questions' key.
+        if 'questions' in data:
+            questions = data.get('questions', [])
+        # Handles a nested structure where keys are categories.
+        else:
+            for value in data.values():
+                if isinstance(value, dict) and 'questions' in value:
+                    questions.extend(value.get('questions', []))
 
     for item in questions:
         if not isinstance(item, dict):

@@ -47,4 +47,5 @@ kubelingo = "kubelingo.cli:main"
 [tool.pytest.ini_options]
 markers = [
     "network: marks tests that require a network connection",
+    "e2e: marks end-to-end tests that require a full installation",
 ]
