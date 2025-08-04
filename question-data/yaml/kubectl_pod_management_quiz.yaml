@@ -1,62 +1,72 @@
 questions:
-  - id: pod-mgmt-q1
-    category: "Pod Management"
-    prompt: "Create a pod named nginx using the nginx image and expose port 80"
-    response: "kubectl run nginx --image=nginx --port=80"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,port%3D5701"
-  - id: pod-mgmt-q2
-    category: "Pod Management"
-    prompt: "Create a pod named busybox that runs the command 'sleep 3600'"
-    response: "kubectl run busybox --image=busybox -- sleep 3600"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)"
-  - id: pod-mgmt-q3
-    category: "Pod Management"
-    prompt: "Generate a YAML definition file for a pod named nginx without creating it"
-    response: "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient"
-  - id: pod-mgmt-q4
-    category: "Pod Management"
-    prompt: "Create a pod that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db"
-    response: "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\""
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,env%3D%22POD_NAMESPACE%3Ddefault"
-  - id: pod-mgmt-q5
-    category: "Pod Management"
-    prompt: "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace"
-    response: "kubectl get pod webapp -n development -o yaml > webapp.yaml"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20deployment%20my,Get%20a%20pod%27s%20YAML"
-  - id: pod-mgmt-q6
-    category: "Pod Management"
-    prompt: "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend"
-    response: "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\""
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,labels%3D%22app%3Dhazelcast%2Cenv%3Dprod"
-  - id: pod-mgmt-q7
-    category: "Pod Management"
-    prompt: "Create an interactive temporary pod with Ubuntu image to troubleshoot cluster issues"
-    response: "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever"
-  - id: pod-mgmt-q8
-    category: "Pod Management"
-    prompt: "Create a pod with resource requests of 100m CPU and 256Mi memory"
-    response: "kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml # then add resource requests"
-    links:
-      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=set%20nginx,595696685f%20to%200"
-  - id: pod-mgmt-q9
-    category: "Pod Management"
-    prompt: "Create a pod that runs curl against an internal service at 10.244.0.4"
-    response: "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever"
-  - id: pod-mgmt-q10
-    category: "Pod Management"
-    prompt: "Create a Pod named `config-pod` using the `busybox` image that mounts a ConfigMap named `app-config` as a volume at `/etc/config`"
-    response: "kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml # add volume and volumeMount"
-    links:
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=command%3A%20%5B%20%22%2Fbin%2Fsh%22%2C%20%22,config"
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=volumes%3A%20,config%20restartPolicy%3A%20Never"
+- id: pod-mgmt-q1
+  category: Pod Management
+  prompt: Create a pod named nginx using the nginx image and expose port 80
+  response: kubectl run nginx --image=nginx --port=80
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,port%3D5701
+- id: pod-mgmt-q2
+  category: Pod Management
+  prompt: Create a pod named busybox that runs the command 'sleep 3600'
+  response: kubectl run busybox --image=busybox -- sleep 3600
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
+- id: pod-mgmt-q3
+  category: Pod Management
+  prompt: Generate a YAML definition file for a pod named nginx without creating it
+  response: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
+  review: true
+- id: pod-mgmt-q4
+  category: Pod Management
+  prompt: Create a pod that runs the latest nginx image and sets an environment variable
+    DB_URL=postgresql://db
+  response: kubectl run nginx --image=nginx --env="DB_URL=postgresql://db"
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,env%3D%22POD_NAMESPACE%3Ddefault
+  review: true
+- id: pod-mgmt-q5
+  category: Pod Management
+  prompt: Extract the YAML definition of a running pod named 'webapp' in the 'development'
+    namespace
+  response: kubectl get pod webapp -n development -o yaml > webapp.yaml
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20deployment%20my,Get%20a%20pod%27s%20YAML
+- id: pod-mgmt-q6
+  category: Pod Management
+  prompt: Create a pod named nginx using the nginx image and set labels app=web and
+    tier=frontend
+  response: kubectl run nginx --image=nginx --labels="app=web,tier=frontend"
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,labels%3D%22app%3Dhazelcast%2Cenv%3Dprod
+- id: pod-mgmt-q7
+  category: Pod Management
+  prompt: Create an interactive temporary pod with Ubuntu image to troubleshoot cluster
+    issues
+  response: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q8
+  category: Pod Management
+  prompt: Create a pod with resource requests of 100m CPU and 256Mi memory
+  response: 'kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml #
+    then add resource requests'
+  links:
+  - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=set%20nginx,595696685f%20to%200
+- id: pod-mgmt-q9
+  category: Pod Management
+  prompt: Create a pod that runs curl against an internal service at 10.244.0.4
+  response: kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never --
+    curl 10.244.0.4
+  links:
+  - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q10
+  category: Pod Management
+  prompt: Create a Pod named `config-pod` using the `busybox` image that mounts a
+    ConfigMap named `app-config` as a volume at `/etc/config`
+  response: 'kubectl run config-pod --image=busybox --dry-run=client -o yaml > pod.yaml
+    # add volume and volumeMount'
+  links:
+  - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=command%3A%20%5B%20%22%2Fbin%2Fsh%22%2C%20%22,config
+  - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=volumes%3A%20,config%20restartPolicy%3A%20Never
