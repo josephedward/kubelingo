@@ -1,3 +1,19 @@
+## New `kubectl` Quizzes
+
+Added eight new quiz modules based on the Kubernetes documentation, covering a wide range of `kubectl` commands. These quizzes are designed as command-based knowledge checks and follow the standardized YAML format.
+
+The new quizzes are:
+- **Kubectl Shell Setup**: Focuses on `kubectl` aliases and shell autocompletion.
+- **Kubectl Pod Management**: Covers creating, inspecting, and managing Pods.
+- **Kubectl Deployment Management**: Deals with Deployments, rollouts, and scaling.
+- **Kubectl Namespace Operations**: Questions on creating and managing namespaces.
+- **Kubectl ConfigMap Operations**: Focuses on creating and using ConfigMaps.
+- **Kubectl Secret Management**: Covers creating and using Secrets.
+- **Kubectl Service Account Operations**: Questions about ServiceAccounts.
+- **Kubectl Additional Commands**: A general collection of other useful `kubectl` commands.
+
+These quizzes are integrated into the main application menu and can be invoked using the `--quiz` argument.
+
 ## Current Architecture: The Unified Shell Experience
 
 Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.

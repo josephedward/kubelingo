@@ -22,6 +22,14 @@ KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_resou
 # Renamed syntax quiz from kubectl_syntax_quiz.yaml
 KUBECTL_BASIC_SYNTAX_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_basic_syntax_quiz.yaml')
 HELM_BASICS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'helm_basics_quiz.yaml')
+KUBECTL_SHELL_SETUP_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_shell_setup_quiz.yaml')
+KUBECTL_POD_MANAGEMENT_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_pod_management_quiz.yaml')
+KUBECTL_DEPLOYMENT_MANAGEMENT_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_deployment_management_quiz.yaml')
+KUBECTL_NAMESPACE_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_namespace_operations_quiz.yaml')
+KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_configmap_operations_quiz.yaml')
+KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_secret_management_quiz.yaml')
+KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_service_account_ops_quiz.yaml')
+KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_additional_commands_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
@@ -32,6 +40,14 @@ ENABLED_QUIZZES = {
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
     "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
     "Helm Basics": HELM_BASICS_QUIZ_FILE,
+    "Kubectl Shell Setup": KUBECTL_SHELL_SETUP_QUIZ_FILE,
+    "Kubectl Pod Management": KUBECTL_POD_MANAGEMENT_QUIZ_FILE,
+    "Kubectl Deployment Management": KUBECTL_DEPLOYMENT_MANAGEMENT_QUIZ_FILE,
+    "Kubectl Namespace Operations": KUBECTL_NAMESPACE_OPERATIONS_QUIZ_FILE,
+    "Kubectl ConfigMap Operations": KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE,
+    "Kubectl Secret Management": KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE,
+    "Kubectl Service Account Operations": KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE,
+    "Kubectl Additional Commands": KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE,
 }
 
 # CSV files
