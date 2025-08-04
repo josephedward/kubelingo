@@ -1,5 +1,10 @@
 import json
 import os
+import os.path
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 from kubelingo.utils.config import HISTORY_FILE
 from kubelingo.utils.ui import Fore, Style
@@ -56,6 +61,50 @@ class SessionManager:
 
     def mark_question_for_review(self, data_file, category, prompt_text):
         """Adds 'review': True to the matching question in the JSON data file."""
+        # Load file and flag the matching question; support JSON modules and YAML question lists
+        ext = os.path.splitext(data_file)[1].lower()
+        # YAML raw quiz: list of question items
+        if ext in ('.yaml', '.yml'):
+            if yaml is None:
+                msg = "PyYAML not installed; cannot flag YAML quiz files"
+                self.logger.error(msg)
+                print(Fore.RED + msg + Style.RESET_ALL)
+                return
+            try:
+                with open(data_file, 'r') as f:
+                    data = yaml.safe_load(f)
+            except Exception as e:
+                self.logger.error(f"Error opening YAML file for review flagging: {e}")
+                print(Fore.RED + f"Error opening YAML file for review flagging: {e}" + Style.RESET_ALL)
+                return
+            # Expect data as list of question dicts
+            if isinstance(data, list):
+                changed = False
+                for item in data:
+                    if not isinstance(item, dict):
+                        continue
+                    # Determine category from nested metadata or top-level
+                    sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
+                    if sec_cat != category:
+                        continue
+                    # Question text key may be 'prompt' or 'question'
+                    text = item.get('prompt') or item.get('question')
+                    if text != prompt_text:
+                        continue
+                    item['review'] = True
+                    changed = True
+                    break
+                if not changed:
+                    print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+                    return
+                try:
+                    with open(data_file, 'w') as f:
+                        yaml.safe_dump(data, f, sort_keys=False)
+                except Exception as e:
+                    self.logger.error(f"Error writing YAML file when flagging for review: {e}")
+                    print(Fore.RED + f"Error writing YAML file when flagging for review: {e}" + Style.RESET_ALL)
+                return
+        # Fallback: JSON modules
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
@@ -66,7 +115,6 @@ class SessionManager:
         changed = False
         for section in data:
             if section.get('category') == category:
-                # Support both 'questions' and 'prompts' keys.
                 qs = section.get('questions', []) or section.get('prompts', [])
                 for item in qs:
                     if item.get('prompt') == prompt_text:
@@ -87,6 +135,47 @@ class SessionManager:
 
     def unmark_question_for_review(self, data_file, category, prompt_text):
         """Removes 'review' flag from the matching question in the JSON data file."""
+        # Load file and remove the review flag; support JSON modules and YAML question lists
+        ext = os.path.splitext(data_file)[1].lower()
+        # YAML raw quiz: list of question items
+        if ext in ('.yaml', '.yml'):
+            if yaml is None:
+                msg = "PyYAML not installed; cannot unflag YAML quiz files"
+                self.logger.error(msg)
+                print(Fore.RED + msg + Style.RESET_ALL)
+                return
+            try:
+                with open(data_file, 'r') as f:
+                    data = yaml.safe_load(f)
+            except Exception as e:
+                self.logger.error(f"Error opening YAML file for un-flagging: {e}")
+                print(Fore.RED + f"Error opening YAML file for un-flagging: {e}" + Style.RESET_ALL)
+                return
+            if isinstance(data, list):
+                changed = False
+                for item in data:
+                    if not isinstance(item, dict):
+                        continue
+                    sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
+                    if sec_cat != category:
+                        continue
+                    text = item.get('prompt') or item.get('question')
+                    if text != prompt_text or 'review' not in item:
+                        continue
+                    del item['review']
+                    changed = True
+                    break
+                if not changed:
+                    print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+                    return
+                try:
+                    with open(data_file, 'w') as f:
+                        yaml.safe_dump(data, f, sort_keys=False)
+                except Exception as e:
+                    self.logger.error(f"Error writing YAML file when un-flagging: {e}")
+                    print(Fore.RED + f"Error writing YAML file when un-flagging: {e}" + Style.RESET_ALL)
+                return
+        # Fallback: JSON modules
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
@@ -97,7 +186,6 @@ class SessionManager:
         changed = False
         for section in data:
             if section.get('category') == category:
-                # Support both 'questions' and 'prompts' keys.
                 qs = section.get('questions', []) or section.get('prompts', [])
                 for item in qs:
                     if item.get('prompt') == prompt_text and item.get('review'):
