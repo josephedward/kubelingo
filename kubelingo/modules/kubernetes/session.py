@@ -970,7 +970,9 @@ class NewSession(StudySession):
             normalized = uc
         # Short-circuit exact matches against the expected base command
         expected = q.get('response', '').strip()
-        if expected and normalized == expected:
+
+        # For Vim commands, we always use AI to allow for flexible answers.
+        if q.get('category') != 'Vim Commands' and expected and normalized == expected:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
             # Show reference if available
