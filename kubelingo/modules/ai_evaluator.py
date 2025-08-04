@@ -46,6 +46,14 @@ Your response MUST be a JSON object with two keys:
 """
         if source_url:
             system_prompt += "\nA source URL is provided. You MUST include it in your reasoning."
+        # Provide extra guidance for API group/version questions
+        if 'API' in prompt or 'version' in prompt:
+            system_prompt += (
+                "\nWhen the question involves Kubernetes API groups or versions, "
+                "your reasoning must include an explanation of the API group and why the resource belongs to that group. "
+                "For example, for TokenReview, explain that it is part of the 'authentication.k8s.io' API group "
+                "because it is used to validate tokens as part of Kubernetes' authentication API."
+            )
 
 
         user_content = f"Question: {prompt}\n\n"
