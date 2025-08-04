@@ -347,6 +347,8 @@ def main():
         args.sandbox_submode = None
         if args.command:
             args.module = args.command[0]
+            if args.module == 'k8s':
+                args.module = 'kubernetes'
             if args.module == 'sandbox' and len(args.command) > 1:
                 subcommand = args.command[1]
                 if subcommand in ['pty', 'docker']:
@@ -434,9 +436,6 @@ def main():
     # Handle module-based execution.
     if args.module:
         module_name = args.module.lower()
-        # Alias 'k8s' shorthand to 'kubernetes'
-        if module_name == 'k8s':
-            module_name = 'kubernetes'
 
         # Optional Rust-based command quiz for non-interactive (--num) runs
         if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:

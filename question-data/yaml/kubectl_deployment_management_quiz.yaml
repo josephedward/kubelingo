@@ -1,0 +1,61 @@
+questions:
+  - id: deploy-mgmt-q1
+    category: "Deployment Management"
+    prompt: "Create a deployment named webapp with image nginx:1.17 and 3 replicas"
+    response: "kubectl create deployment webapp --image=nginx:1.17 --replicas=3"
+    links:
+      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=kubectl%20create%20deployment%20my,date"
+  - id: deploy-mgmt-q2
+    category: "Deployment Management"
+    prompt: "Generate a YAML file for a deployment with nginx image without creating it"
+    response: "kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml"
+    links:
+      - "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)"
+  - id: deploy-mgmt-q3
+    category: "Deployment Management"
+    prompt: "Scale a deployment named 'frontend' to 5 replicas"
+    response: "kubectl scale deployment frontend --replicas=5"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20scale%20a%20Deployment,by%20using%20the%20following%20command"
+  - id: deploy-mgmt-q4
+    category: "Deployment Management"
+    prompt: "Update the image of a deployment named 'webapp' to nginx:1.18"
+    response: "kubectl set image deployment/webapp webapp=nginx:1.18"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,of%20the%20Deployment"
+  - id: deploy-mgmt-q5
+    category: "Deployment Management"
+    prompt: "Check the rollout status of a deployment named 'frontend'"
+    response: "kubectl rollout status deployment/frontend"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20check%20if%20a,returns%20a%20zero%20exit%20code"
+  - id: deploy-mgmt-q6
+    category: "Deployment Management"
+    prompt: "Roll back a deployment named 'webapp' to its previous version"
+    response: "kubectl rollout undo deployment/webapp"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=1,rollback%20to%20the%20previous%20revision"
+  - id: deploy-mgmt-q7
+    category: "Deployment Management"
+    prompt: "Create a deployment with a record of the change-cause for future reference"
+    response: "kubectl create deployment nginx --image=nginx --record"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,80%2FTCP"
+  - id: deploy-mgmt-q8
+    category: "Deployment Management"
+    prompt: "View the history of a deployment named 'webapp'"
+    response: "kubectl rollout history deployment/webapp"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,rollout%20started"
+  - id: deploy-mgmt-q9
+    category: "Deployment Management"
+    prompt: "Pause the rollout of a deployment named 'frontend'"
+    response: "kubectl rollout pause deployment/frontend"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,following%20command"
+  - id: deploy-mgmt-q10
+    category: "Deployment Management"
+    prompt: "Resume the rollout of a deployment named 'frontend'"
+    response: "kubectl rollout resume deployment/frontend"
+    links:
+      - "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,with%20all%20the%20new%20updates"

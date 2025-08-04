@@ -1,0 +1,70 @@
+questions:
+  - id: cm-ops-q1
+    category: "ConfigMap Operations"
+    prompt: "Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue and APP_MODE=prod"
+    response: "kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=apiVersion%3A%20v1%20kind%3A%20Pod%20metadata%3A,c%22%2C%20%22env%22"
+  - id: cm-ops-q2
+    category: "ConfigMap Operations"
+    prompt: "Create a ConfigMap named 'game-config' from a configuration file located at '/configs/game.properties'"
+    response: "kubectl create cm game-config --from-file=/configs/game.properties"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)"
+  - id: cm-ops-q3
+    category: "ConfigMap Operations"
+    prompt: "View the contents of a ConfigMap named 'db-config'"
+    response: "kubectl describe cm db-config"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard"
+  - id: cm-ops-q4
+    category: "ConfigMap Operations"
+    prompt: "Create a ConfigMap from all files in the '/configs' directory"
+    response: "kubectl create cm app-settings --from-file=/configs"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)"
+  - id: cm-ops-q5
+    category: "ConfigMap Operations"
+    prompt: "Create a pod that uses a ConfigMap as environment variables"
+    response: "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # add envFrom with configMapRef"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20a%20container%20environment%20variable,data%20from%20a%20single%20ConfigMap"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
+  - id: cm-ops-q6
+    category: "ConfigMap Operations"
+    prompt: "Extract a ConfigMap to YAML format"
+    response: "kubectl get cm app-config -o yaml > config.yaml"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard"
+  - id: cm-ops-q7
+    category: "ConfigMap Operations"
+    prompt: "Update a value in an existing ConfigMap named 'app-config'"
+    response: "kubectl edit cm app-config"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+  - id: cm-ops-q8
+    category: "ConfigMap Operations"
+    prompt: "Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db, API_KEY=123456, and DEBUG=true from the command line"
+    response: "kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456 --from-literal=DEBUG=true"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
+  - id: cm-ops-q9
+    category: "ConfigMap Operations"
+    prompt: "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions"
+    response: "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # then add volume with defaultMode"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=volumes%3A%20,config%20restartPolicy%3A%20Never"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=kubectl%20create%20"
+  - id: cm-ops-q10
+    category: "ConfigMap Operations"
+    prompt: "Create a ConfigMap from an env file"
+    response: "kubectl create cm env-config --from-env-file=config.env"
+    links:
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
+      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
