@@ -66,51 +66,54 @@ class SessionManager:
         # YAML raw quiz: list of question items
         if ext in ('.yaml', '.yml'):
             if yaml is None:
-                msg = "PyYAML not installed; cannot flag YAML quiz files"
-                self.logger.error(msg)
-                print(Fore.RED + msg + Style.RESET_ALL)
+                self.logger.error("Cannot flag review: PyYAML not installed")
                 return
             try:
                 with open(data_file, 'r') as f:
-                    data = yaml.safe_load(f)
+                    docs = list(yaml.safe_load_all(f))
             except Exception as e:
                 self.logger.error(f"Error opening YAML file for review flagging: {e}")
-                print(Fore.RED + f"Error opening YAML file for review flagging: {e}" + Style.RESET_ALL)
                 return
-            # Expect data as list of question dicts
-            if isinstance(data, list):
-                changed = False
-                for item in data:
-                    if not isinstance(item, dict):
-                        continue
-                    # Determine category from nested metadata or top-level
-                    sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
-                    if sec_cat != category:
-                        continue
-                    # Question text key may be 'prompt' or 'question'
-                    text = item.get('prompt') or item.get('question')
-                    if text != prompt_text:
-                        continue
-                    item['review'] = True
-                    changed = True
+            # Find the main list of questions
+            data = None
+            for doc in docs:
+                if isinstance(doc, list):
+                    data = doc
                     break
-                if not changed:
-                    print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
-                    return
-                try:
-                    with open(data_file, 'w') as f:
-                        yaml.safe_dump(data, f, sort_keys=False)
-                except Exception as e:
-                    self.logger.error(f"Error writing YAML file when flagging for review: {e}")
-                    print(Fore.RED + f"Error writing YAML file when flagging for review: {e}" + Style.RESET_ALL)
+            # Fallback to 'questions' key in first dict document
+            if data is None and docs and isinstance(docs[0], dict) and 'questions' in docs[0]:
+                data = docs[0]['questions']
+            if not isinstance(data, list):
+                self.logger.error(f"No question list found in {data_file} to flag for review")
                 return
+            changed = False
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
+                if sec_cat != category:
+                    continue
+                text = item.get('prompt') or item.get('question')
+                if text != prompt_text:
+                    continue
+                item['review'] = True
+                changed = True
+                break
+            if not changed:
+                self.logger.error(f"Question not found in {data_file} to flag for review: {prompt_text}")
+                return
+            try:
+                with open(data_file, 'w') as f:
+                    yaml.safe_dump_all(docs, f, sort_keys=False)
+            except Exception as e:
+                self.logger.error(f"Error writing YAML file when flagging for review: {e}")
+            return
         # Fallback: JSON modules; support both flat question lists and sectioned files
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
         except Exception as e:
-            self.logger.error(f"Error opening data file for review flagging: {e}")
-            print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
+            self.logger.error(f"Error opening JSON file for review flagging: {e}")
             return
         # Flat list of questions (e.g., Vim JSON)
         if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
@@ -143,14 +146,13 @@ class SessionManager:
             if changed:
                 break
         if not changed:
-            print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+            self.logger.error(f"Question not found in {data_file} to flag for review: {prompt_text}")
             return
         try:
             with open(data_file, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            self.logger.error(f"Error writing data file when flagging for review: {e}")
-            print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
+            self.logger.error(f"Error writing JSON file when flagging for review: {e}")
 
     def unmark_question_for_review(self, data_file, category, prompt_text):
         """Removes 'review' flag from the matching question in the JSON data file."""
@@ -165,42 +167,51 @@ class SessionManager:
                 return
             try:
                 with open(data_file, 'r') as f:
-                    data = yaml.safe_load(f)
+                    docs = list(yaml.safe_load_all(f))
             except Exception as e:
                 self.logger.error(f"Error opening YAML file for un-flagging: {e}")
                 print(Fore.RED + f"Error opening YAML file for un-flagging: {e}" + Style.RESET_ALL)
                 return
-            if isinstance(data, list):
-                changed = False
-                for item in data:
-                    if not isinstance(item, dict):
-                        continue
-                    sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
-                    if sec_cat != category:
-                        continue
-                    text = item.get('prompt') or item.get('question')
-                    if text != prompt_text or 'review' not in item:
-                        continue
-                    del item['review']
-                    changed = True
+            # Find the main list of questions
+            data = None
+            for doc in docs:
+                if isinstance(doc, list):
+                    data = doc
                     break
-                if not changed:
-                    print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
-                    return
-                try:
-                    with open(data_file, 'w') as f:
-                        yaml.safe_dump(data, f, sort_keys=False)
-                except Exception as e:
-                    self.logger.error(f"Error writing YAML file when un-flagging: {e}")
-                    print(Fore.RED + f"Error writing YAML file when un-flagging: {e}" + Style.RESET_ALL)
+            if data is None and docs and isinstance(docs[0], dict) and 'questions' in docs[0]:
+                data = docs[0]['questions']
+            if not isinstance(data, list):
+                print(Fore.RED + f"Warning: no question list found in {data_file} to un-flag." + Style.RESET_ALL)
                 return
+            changed = False
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
+                if sec_cat != category:
+                    continue
+                text = item.get('prompt') or item.get('question')
+                if text != prompt_text or 'review' not in item:
+                    continue
+                del item['review']
+                changed = True
+                break
+            if not changed:
+                print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+                return
+            try:
+                with open(data_file, 'w') as f:
+                    yaml.safe_dump_all(docs, f, sort_keys=False)
+            except Exception as e:
+                self.logger.error(f"Error writing YAML file when un-flagging: {e}")
+                print(Fore.RED + f"Error writing YAML file when un-flagging: {e}" + Style.RESET_ALL)
+            return
         # Fallback: JSON modules; support flat question lists and sectioned files
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
         except Exception as e:
-            self.logger.error(f"Error opening data file for un-flagging: {e}")
-            print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
+            self.logger.error(f"Error opening JSON file for un-flagging: {e}")
             return
         # Flat list of questions
         if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
@@ -233,14 +244,13 @@ class SessionManager:
             if changed:
                 break
         if not changed:
-            print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+            self.logger.error(f"Flagged question not found in {data_file} to un-flag: {prompt_text}")
             return
         try:
             with open(data_file, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            self.logger.error(f"Error writing data file when un-flagging: {e}")
-            print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+            self.logger.error(f"Error writing JSON file when un-flagging: {e}")
 
 
 class StudySession:
