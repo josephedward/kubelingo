@@ -21,6 +21,7 @@ KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operation
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_resource_types.yaml')
 # Renamed syntax quiz from kubectl_syntax_quiz.yaml
 KUBECTL_BASIC_SYNTAX_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_basic_syntax_quiz.yaml')
+HELM_BASICS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'helm_basics_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
@@ -30,6 +31,7 @@ ENABLED_QUIZZES = {
     "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
     "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
+    "Helm Basics": HELM_BASICS_QUIZ_FILE,
 }
 
 # CSV files
