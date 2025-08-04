@@ -1,9 +1,6 @@
-"""
-Vim Commands Quiz Manifest
-
-Each entry contains a question (prompt) and the source material for the answer.
-"""
----
+ # Vim Commands Quiz Manifest
+ # Each entry contains a question (prompt), a solution file, and optionally a source URL.
+ ---
 - id: vim_quiz_data::0
   question: "Enter insert mode at cursor"
   answers: ["i"]
