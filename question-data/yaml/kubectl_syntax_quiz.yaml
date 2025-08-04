@@ -10,7 +10,7 @@
       type: ai
       expected: "kubectl apply -f example-service.yaml"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/apply/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: apply::controller
   question: "Create a replication controller using the definition in example-controller.yaml"
   type: command
@@ -20,7 +20,7 @@
       type: ai
       expected: "kubectl apply -f example-controller.yaml"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/apply/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: apply::directory
   question: "Create the objects defined in all files within a directory"
   type: command
@@ -30,7 +30,7 @@
       type: ai
       expected: "kubectl apply -f <directory>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/apply/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::pods
   question: "List all pods in plain-text output format"
   type: command
@@ -40,7 +40,7 @@
       type: ai
       expected: "kubectl get pods"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::pods-wide
   question: "List all pods and include additional information such as node name"
   type: command
@@ -50,7 +50,7 @@
       type: ai
       expected: "kubectl get pods -o wide"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::rc
   question: "List the replication controller with the specified name using alias"
   type: command
@@ -60,7 +60,7 @@
       type: ai
       expected: "kubectl get rc <rc-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::rc-svc
   question: "List all replication controllers and services together"
   type: command
@@ -70,7 +70,7 @@
       type: ai
       expected: "kubectl get rc,services"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::ds
   question: "List all daemon sets"
   type: command
@@ -80,7 +80,7 @@
       type: ai
       expected: "kubectl get ds"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: get::pods-node
   question: "List all pods running on node server01"
   type: command
@@ -90,7 +90,7 @@
       type: ai
       expected: "kubectl get pods --field-selector=spec.nodeName=server01"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/get/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: describe::node
   question: "Display the details of the node with name <node-name>"
   type: command
@@ -100,7 +100,7 @@
       type: ai
       expected: "kubectl describe nodes <node-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/describe/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: describe::pod
   question: "Display the details of the pod with name <pod-name>"
   type: command
@@ -110,7 +110,7 @@
       type: ai
       expected: "kubectl describe pods/<pod-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/describe/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: describe::pods-rc
   question: "Display the details of all pods managed by the replication controller <rc-name>"
   type: command
@@ -120,7 +120,7 @@
       type: ai
       expected: "kubectl describe pods <rc-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/describe/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: describe::pods
   question: "Describe all pods"
   type: command
@@ -130,7 +130,7 @@
       type: ai
       expected: "kubectl describe pods"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/describe/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: delete::pod-file
   question: "Delete a pod using the definition in pod.yaml"
   type: command
@@ -140,7 +140,7 @@
       type: ai
       expected: "kubectl delete -f pod.yaml"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/delete/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: delete::label
   question: "Delete all pods and services with label '<label-key>=<label-value>'"
   type: command
@@ -150,7 +150,7 @@
       type: ai
       expected: "kubectl delete pods,services -l <label-key>=<label-value>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/delete/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: delete::all-pods
   question: "Delete all pods, including uninitialized ones"
   type: command
@@ -160,7 +160,7 @@
       type: ai
       expected: "kubectl delete pods --all"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/delete/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: exec::date
   question: "Get output of 'date' from pod <pod-name>"
   type: command
@@ -170,7 +170,7 @@
       type: ai
       expected: "kubectl exec <pod-name> -- date"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/exec/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: exec::date-container
   question: "Get output of 'date' in container <container-name> of pod <pod-name>"
   type: command
@@ -180,7 +180,7 @@
       type: ai
       expected: "kubectl exec <pod-name> -c <container-name> -- date"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/exec/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: exec::bash
   question: "Open an interactive bash shell in pod <pod-name>"
   type: command
@@ -190,7 +190,7 @@
       type: ai
       expected: "kubectl exec -ti <pod-name> -- /bin/bash"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/exec/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: logs::snapshot
   question: "Return a snapshot of logs from pod <pod-name>"
   type: command
@@ -200,7 +200,7 @@
       type: ai
       expected: "kubectl logs <pod-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/logs/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: logs::stream
   question: "Stream logs from pod <pod-name>"
   type: command
@@ -210,7 +210,7 @@
       type: ai
       expected: "kubectl logs -f <pod-name>"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/logs/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: diff::file
   question: "View a diff of resources in pod.json"
   type: command
@@ -220,7 +220,7 @@
       type: ai
       expected: "kubectl diff -f pod.json"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/diff/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: diff::stdin
   question: "View a diff reading file from stdin"
   type: command
@@ -230,7 +230,7 @@
       type: ai
       expected: "kubectl diff -f -"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/diff/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: plugin::invoke
   question: "Invoke the plugin named 'hello'"
   type: command
@@ -240,7 +240,7 @@
       type: ai
       expected: "kubectl hello"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: plugin::list
   question: "List available kubectl-compatible plugins"
   type: command
@@ -250,7 +250,7 @@
       type: ai
       expected: "kubectl plugin list"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/extend-kubectl/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: plugin::list-warning
   question: "What warning does 'kubectl plugin list' show when a plugin is not executable?"
   type: command
@@ -260,7 +260,7 @@
       type: ai
       expected: "warning: <plugin-path> identified as a plugin, but it is not executable"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/reference/kubectl/extend-kubectl/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
 - id: plugin::whoami
   question: "Invoke the plugin named 'whoami'"
   type: command
@@ -270,4 +270,4 @@
       type: ai
       expected: "kubectl whoami"
     category: "Kubectl Common Operations"
-    citation: "https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations"
