@@ -104,7 +104,7 @@ class SessionManager:
                     self.logger.error(f"Error writing YAML file when flagging for review: {e}")
                     print(Fore.RED + f"Error writing YAML file when flagging for review: {e}" + Style.RESET_ALL)
                 return
-        # Fallback: JSON modules
+        # Fallback: JSON modules; support both flat question lists and sectioned files
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
@@ -112,6 +112,25 @@ class SessionManager:
             self.logger.error(f"Error opening data file for review flagging: {e}")
             print(Fore.RED + f"Error opening data file for review flagging: {e}" + Style.RESET_ALL)
             return
+        # Flat list of questions (e.g., Vim JSON)
+        if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
+            changed = False
+            for item in data:
+                if item.get('category') == category and item.get('prompt') == prompt_text:
+                    item['review'] = True
+                    changed = True
+                    break
+            if not changed:
+                print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+                return
+            try:
+                with open(data_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+            except Exception as e:
+                self.logger.error(f"Error writing data file when flagging for review: {e}")
+                print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
+            return
+        # Sectioned JSON modules
         changed = False
         for section in data:
             if section.get('category') == category:
@@ -175,7 +194,7 @@ class SessionManager:
                     self.logger.error(f"Error writing YAML file when un-flagging: {e}")
                     print(Fore.RED + f"Error writing YAML file when un-flagging: {e}" + Style.RESET_ALL)
                 return
-        # Fallback: JSON modules
+        # Fallback: JSON modules; support flat question lists and sectioned files
         try:
             with open(data_file, 'r') as f:
                 data = json.load(f)
@@ -183,6 +202,25 @@ class SessionManager:
             self.logger.error(f"Error opening data file for un-flagging: {e}")
             print(Fore.RED + f"Error opening data file for un-flagging: {e}" + Style.RESET_ALL)
             return
+        # Flat list of questions
+        if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
+            changed = False
+            for item in data:
+                if item.get('category') == category and item.get('prompt') == prompt_text and 'review' in item:
+                    del item['review']
+                    changed = True
+                    break
+            if not changed:
+                print(Fore.RED + f"Warning: flagged question not found in {data_file} to un-flag." + Style.RESET_ALL)
+                return
+            try:
+                with open(data_file, 'w') as f:
+                    json.dump(data, f, indent=2)
+            except Exception as e:
+                self.logger.error(f"Error writing data file when un-flagging: {e}")
+                print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+            return
+        # Sectioned JSON modules
         changed = False
         for section in data:
             if section.get('category') == category:
