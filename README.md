@@ -52,8 +52,10 @@ kubelingo --list-categories
 # Launch interactive menu (recommended)
 kubelingo
 
-# Run a 10-question quiz on Pod Management
+# Run a 10-question quiz on Pod Management (using flag)
 kubelingo --k8s -n 10 -c "Pod Management"
+# Or equivalently via module alias:
+kubelingo k8s -n 10 -c "Pod Management"
 
 # Run a quiz on only the questions you've flagged for review
 kubelingo --k8s --review-only
