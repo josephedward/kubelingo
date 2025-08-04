@@ -712,8 +712,8 @@ class NewSession(StudySession):
                     if not use_text_input:
                         choices.append({"name": "Check Answer", "value": "check"})
 
-                    # Show Visit Source if a citation or source URL is provided
-                    if q.get('citation') or q.get('source'):
+                    # Show Visit Source if a citation or source URL is provided, or for Vim commands
+                    if q.get('citation') or q.get('source') or q.get('category') == 'Vim Commands':
                         choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Navigation options
                     choices.append({"name": "Next Question", "value": "next"})
@@ -774,6 +774,8 @@ class NewSession(StudySession):
                         url = q.get('citation') or q.get('source')
                         if q.get('category') == 'Resource Reference':
                             url = "https://kubernetes.io/docs/reference/kubectl/#resource-types"
+                        elif q.get('category') == 'Vim Commands':
+                            url = "https://vim.rtorr.com/"
 
                         if url:
                             print(f"Opening documentation at {url} ...")
