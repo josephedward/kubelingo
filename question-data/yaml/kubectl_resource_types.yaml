@@ -7,7 +7,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: binding::namespaced
   question: "Is Binding a namespaced resource? (true/false)"
@@ -15,7 +15,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: componentstatus::shortnames
   question: "What is the shortname for ComponentStatus?"
@@ -23,7 +23,7 @@
   metadata:
     response: "cs"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: componentstatus::apiversion
   question: "What is the API version for ComponentStatus?"
@@ -31,7 +31,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: componentstatus::namespaced
   question: "Is ComponentStatus a namespaced resource? (true/false)"
@@ -39,7 +39,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: configmap::shortnames
   question: "What is the shortname for ConfigMap?"
@@ -47,7 +47,7 @@
   metadata:
     response: "cm"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: configmap::apiversion
   question: "What is the API version for ConfigMap?"
@@ -55,7 +55,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: configmap::namespaced
   question: "Is ConfigMap a namespaced resource? (true/false)"
@@ -63,7 +63,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: endpoints::shortnames
   question: "What is the shortname for Endpoints?"
@@ -71,7 +71,7 @@
   metadata:
     response: "ep"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: endpoints::apiversion
   question: "What is the API version for Endpoints?"
@@ -79,7 +79,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: endpoints::namespaced
   question: "Is Endpoints a namespaced resource? (true/false)"
@@ -87,7 +87,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: event::shortnames
   question: "What is the shortname for Event?"
@@ -95,7 +95,7 @@
   metadata:
     response: "ev"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: event::apiversion
   question: "What is the API version for Event?"
@@ -103,7 +103,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: event::namespaced
   question: "Is Event a namespaced resource? (true/false)"
@@ -111,7 +111,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: limitrange::shortnames
   question: "What is the shortname for LimitRange?"
@@ -119,7 +119,7 @@
   metadata:
     response: "limits"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: limitrange::apiversion
   question: "What is the API version for LimitRange?"
@@ -127,7 +127,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: limitrange::namespaced
   question: "Is LimitRange a namespaced resource? (true/false)"
@@ -135,7 +135,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: namespace::shortnames
   question: "What is the shortname for Namespace?"
@@ -143,7 +143,7 @@
   metadata:
     response: "ns"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: namespace::apiversion
   question: "What is the API version for Namespace?"
@@ -151,7 +151,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: namespace::namespaced
   question: "Is Namespace a namespaced resource? (true/false)"
@@ -159,7 +159,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: node::shortnames
   question: "What is the shortname for Node?"
@@ -167,7 +167,7 @@
   metadata:
     response: "no"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: node::apiversion
   question: "What is the API version for Node?"
@@ -175,7 +175,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: node::namespaced
   question: "Is Node a namespaced resource? (true/false)"
@@ -183,7 +183,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolumeclaim::shortnames
   question: "What is the shortname for PersistentVolumeClaim?"
@@ -191,7 +191,7 @@
   metadata:
     response: "pvc"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolumeclaim::apiversion
   question: "What is the API version for PersistentVolumeClaim?"
@@ -199,7 +199,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolumeclaim::namespaced
   question: "Is PersistentVolumeClaim a namespaced resource? (true/false)"
@@ -207,7 +207,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolume::shortnames
   question: "What is the shortname for PersistentVolume?"
@@ -215,7 +215,7 @@
   metadata:
     response: "pv"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolume::apiversion
   question: "What is the API version for PersistentVolume?"
@@ -223,7 +223,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: persistentvolume::namespaced
   question: "Is PersistentVolume a namespaced resource? (true/false)"
@@ -231,7 +231,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: pod::shortnames
   question: "What is the shortname for Pod?"
@@ -239,7 +239,7 @@
   metadata:
     response: "po"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: pod::apiversion
   question: "What is the API version for Pod?"
@@ -247,7 +247,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: pod::namespaced
   question: "Is Pod a namespaced resource? (true/false)"
@@ -255,7 +255,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: podtemplate::apiversion
   question: "What is the API version for PodTemplate?"
@@ -263,7 +263,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: podtemplate::namespaced
   question: "Is PodTemplate a namespaced resource? (true/false)"
@@ -271,7 +271,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicationcontroller::shortnames
   question: "What is the shortname for ReplicationController?"
@@ -279,7 +279,7 @@
   metadata:
     response: "rc"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicationcontroller::apiversion
   question: "What is the API version for ReplicationController?"
@@ -287,7 +287,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicationcontroller::namespaced
   question: "Is ReplicationController a namespaced resource? (true/false)"
@@ -295,7 +295,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: resourcequota::shortnames
   question: "What is the shortname for ResourceQuota?"
@@ -303,7 +303,7 @@
   metadata:
     response: "quota"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: resourcequota::apiversion
   question: "What is the API version for ResourceQuota?"
@@ -311,7 +311,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: resourcequota::namespaced
   question: "Is ResourceQuota a namespaced resource? (true/false)"
@@ -319,7 +319,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: secret::apiversion
   question: "What is the API version for Secret?"
@@ -327,7 +327,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: secret::namespaced
   question: "Is Secret a namespaced resource? (true/false)"
@@ -335,7 +335,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: serviceaccount::shortnames
   question: "What is the shortname for ServiceAccount?"
@@ -343,7 +343,7 @@
   metadata:
     response: "sa"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: serviceaccount::apiversion
   question: "What is the API version for ServiceAccount?"
@@ -351,7 +351,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: serviceaccount::namespaced
   question: "Is ServiceAccount a namespaced resource? (true/false)"
@@ -359,7 +359,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: service::shortnames
   question: "What is the shortname for Service?"
@@ -367,7 +367,7 @@
   metadata:
     response: "svc"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: service::apiversion
   question: "What is the API version for Service?"
@@ -375,7 +375,7 @@
   metadata:
     response: "v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: service::namespaced
   question: "Is Service a namespaced resource? (true/false)"
@@ -383,7 +383,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: mutatingwebhookconfiguration::apiversion
   question: "What is the API version for MutatingWebhookConfiguration?"
@@ -391,7 +391,7 @@
   metadata:
     response: "admissionregistration.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: mutatingwebhookconfiguration::namespaced
   question: "Is MutatingWebhookConfiguration a namespaced resource? (true/false)"
@@ -399,7 +399,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: validatingwebhookconfiguration::apiversion
   question: "What is the API version for ValidatingWebhookConfiguration?"
@@ -407,7 +407,7 @@
   metadata:
     response: "admissionregistration.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: validatingwebhookconfiguration::namespaced
   question: "Is ValidatingWebhookConfiguration a namespaced resource? (true/false)"
@@ -415,7 +415,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: customresourcedefinition::shortnames
   question: "What is the shortname for CustomResourceDefinition?"
@@ -423,7 +423,7 @@
   metadata:
     response: "crd,crds"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: customresourcedefinition::apiversion
   question: "What is the API version for CustomResourceDefinition?"
@@ -431,7 +431,7 @@
   metadata:
     response: "apiextensions.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: customresourcedefinition::namespaced
   question: "Is CustomResourceDefinition a namespaced resource? (true/false)"
@@ -439,7 +439,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: apiservice::apiversion
   question: "What is the API version for APIService?"
@@ -447,7 +447,7 @@
   metadata:
     response: "apiregistration.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: apiservice::namespaced
   question: "Is APIService a namespaced resource? (true/false)"
@@ -455,7 +455,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: controllerrevision::apiversion
   question: "What is the API version for ControllerRevision?"
@@ -463,7 +463,7 @@
   metadata:
     response: "apps/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: controllerrevision::namespaced
   question: "Is ControllerRevision a namespaced resource? (true/false)"
@@ -471,7 +471,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: daemonset::shortnames
   question: "What is the shortname for DaemonSet?"
@@ -479,7 +479,7 @@
   metadata:
     response: "ds"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: daemonset::apiversion
   question: "What is the API version for DaemonSet?"
@@ -487,7 +487,7 @@
   metadata:
     response: "apps/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: daemonset::namespaced
   question: "Is DaemonSet a namespaced resource? (true/false)"
@@ -495,7 +495,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: deployment::shortnames
   question: "What is the shortname for Deployment?"
@@ -503,7 +503,7 @@
   metadata:
     response: "deploy"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: deployment::apiversion
   question: "What is the API version for Deployment?"
@@ -511,7 +511,7 @@
   metadata:
     response: "apps/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: deployment::namespaced
   question: "Is Deployment a namespaced resource? (true/false)"
@@ -519,7 +519,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicaset::shortnames
   question: "What is the shortname for ReplicaSet?"
@@ -527,7 +527,7 @@
   metadata:
     response: "rs"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicaset::apiversion
   question: "What is the API version for ReplicaSet?"
@@ -535,7 +535,7 @@
   metadata:
     response: "apps/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: replicaset::namespaced
   question: "Is ReplicaSet a namespaced resource? (true/false)"
@@ -543,7 +543,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: statefulset::shortnames
   question: "What is the shortname for StatefulSet?"
@@ -551,7 +551,7 @@
   metadata:
     response: "sts"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: statefulset::apiversion
   question: "What is the API version for StatefulSet?"
@@ -559,7 +559,7 @@
   metadata:
     response: "apps/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: statefulset::namespaced
   question: "Is StatefulSet a namespaced resource? (true/false)"
@@ -567,7 +567,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: tokenreview::apiversion
   question: "What is the API version for TokenReview?"
@@ -575,7 +575,7 @@
   metadata:
     response: "authentication.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: tokenreview::namespaced
   question: "Is TokenReview a namespaced resource? (true/false)"
@@ -583,7 +583,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: localsubjectaccessreview::apiversion
   question: "What is the API version for LocalSubjectAccessReview?"
@@ -591,7 +591,7 @@
   metadata:
     response: "authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: localsubjectaccessreview::namespaced
   question: "Is LocalSubjectAccessReview a namespaced resource? (true/false)"
@@ -599,7 +599,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: selfsubjectaccessreview::apiversion
   question: "What is the API version for SelfSubjectAccessReview?"
@@ -607,7 +607,7 @@
   metadata:
     response: "authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: selfsubjectaccessreview::namespaced
   question: "Is SelfSubjectAccessReview a namespaced resource? (true/false)"
@@ -615,7 +615,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: selfsubjectrulesreview::apiversion
   question: "What is the API version for SelfSubjectRulesReview?"
@@ -623,7 +623,7 @@
   metadata:
     response: "authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: selfsubjectrulesreview::namespaced
   question: "Is SelfSubjectRulesReview a namespaced resource? (true/false)"
@@ -631,7 +631,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: subjectaccessreview::apiversion
   question: "What is the API version for SubjectAccessReview?"
@@ -639,7 +639,7 @@
   metadata:
     response: "authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: subjectaccessreview::namespaced
   question: "Is SubjectAccessReview a namespaced resource? (true/false)"
@@ -647,7 +647,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: horizontalpodautoscaler::shortnames
   question: "What is the shortname for HorizontalPodAutoscaler?"
@@ -655,7 +655,7 @@
   metadata:
     response: "hpa"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: horizontalpodautoscaler::apiversion
   question: "What is the API version for HorizontalPodAutoscaler?"
@@ -663,7 +663,7 @@
   metadata:
     response: "autoscaling/v2"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: horizontalpodautoscaler::namespaced
   question: "Is HorizontalPodAutoscaler a namespaced resource? (true/false)"
@@ -671,7 +671,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: cronjob::shortnames
   question: "What is the shortname for CronJob?"
@@ -679,7 +679,7 @@
   metadata:
     response: "cj"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: cronjob::apiversion
   question: "What is the API version for CronJob?"
@@ -687,7 +687,7 @@
   metadata:
     response: "batch/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: cronjob::namespaced
   question: "Is CronJob a namespaced resource? (true/false)"
@@ -695,7 +695,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: job::apiversion
   question: "What is the API version for Job?"
@@ -703,7 +703,7 @@
   metadata:
     response: "batch/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: job::namespaced
   question: "Is Job a namespaced resource? (true/false)"
@@ -711,7 +711,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: certificatesigningrequest::shortnames
   question: "What is the shortname for CertificateSigningRequest?"
@@ -719,7 +719,7 @@
   metadata:
     response: "csr"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: certificatesigningrequest::apiversion
   question: "What is the API version for CertificateSigningRequest?"
@@ -727,7 +727,7 @@
   metadata:
     response: "certificates.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: certificatesigningrequest::namespaced
   question: "Is CertificateSigningRequest a namespaced resource? (true/false)"
@@ -735,7 +735,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: lease::apiversion
   question: "What is the API version for Lease?"
@@ -743,7 +743,7 @@
   metadata:
     response: "coordination.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: lease::namespaced
   question: "Is Lease a namespaced resource? (true/false)"
@@ -751,7 +751,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: endpointslice::apiversion
   question: "What is the API version for EndpointSlice?"
@@ -759,7 +759,7 @@
   metadata:
     response: "discovery.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: endpointslice::namespaced
   question: "Is EndpointSlice a namespaced resource? (true/false)"
@@ -767,7 +767,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: flowschema::apiversion
   question: "What is the API version for FlowSchema?"
@@ -775,7 +775,7 @@
   metadata:
     response: "flowcontrol.apiserver.k8s.io/v1beta2"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: flowschema::namespaced
   question: "Is FlowSchema a namespaced resource? (true/false)"
@@ -783,7 +783,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: prioritylevelconfiguration::apiversion
   question: "What is the API version for PriorityLevelConfiguration?"
@@ -791,7 +791,7 @@
   metadata:
     response: "flowcontrol.apiserver.k8s.io/v1beta2"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: prioritylevelconfiguration::namespaced
   question: "Is PriorityLevelConfiguration a namespaced resource? (true/false)"
@@ -799,7 +799,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: ingressclass::apiversion
   question: "What is the API version for IngressClass?"
@@ -807,7 +807,7 @@
   metadata:
     response: "networking.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: ingressclass::namespaced
   question: "Is IngressClass a namespaced resource? (true/false)"
@@ -815,7 +815,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: ingress::shortnames
   question: "What is the shortname for Ingress?"
@@ -823,7 +823,7 @@
   metadata:
     response: "ing"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: ingress::apiversion
   question: "What is the API version for Ingress?"
@@ -831,7 +831,7 @@
   metadata:
     response: "networking.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: ingress::namespaced
   question: "Is Ingress a namespaced resource? (true/false)"
@@ -839,7 +839,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: networkpolicy::shortnames
   question: "What is the shortname for NetworkPolicy?"
@@ -847,7 +847,7 @@
   metadata:
     response: "netpol"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: networkpolicy::apiversion
   question: "What is the API version for NetworkPolicy?"
@@ -855,7 +855,7 @@
   metadata:
     response: "networking.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: networkpolicy::namespaced
   question: "Is NetworkPolicy a namespaced resource? (true/false)"
@@ -863,7 +863,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: runtimeclass::apiversion
   question: "What is the API version for RuntimeClass?"
@@ -871,7 +871,7 @@
   metadata:
     response: "node.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: runtimeclass::namespaced
   question: "Is RuntimeClass a namespaced resource? (true/false)"
@@ -879,7 +879,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: poddisruptionbudget::shortnames
   question: "What is the shortname for PodDisruptionBudget?"
@@ -887,7 +887,7 @@
   metadata:
     response: "pdb"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: poddisruptionbudget::apiversion
   question: "What is the API version for PodDisruptionBudget?"
@@ -895,7 +895,7 @@
   metadata:
     response: "policy/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: poddisruptionbudget::namespaced
   question: "Is PodDisruptionBudget a namespaced resource? (true/false)"
@@ -903,7 +903,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: podsecuritypolicy::shortnames
   question: "What is the shortname for PodSecurityPolicy?"
@@ -911,7 +911,7 @@
   metadata:
     response: "psp"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: podsecuritypolicy::apiversion
   question: "What is the API version for PodSecurityPolicy?"
@@ -919,7 +919,7 @@
   metadata:
     response: "policy/v1beta1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: podsecuritypolicy::namespaced
   question: "Is PodSecurityPolicy a namespaced resource? (true/false)"
@@ -927,7 +927,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: clusterrolebinding::apiversion
   question: "What is the API version for ClusterRoleBinding?"
@@ -935,7 +935,7 @@
   metadata:
     response: "rbac.authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: clusterrolebinding::namespaced
   question: "Is ClusterRoleBinding a namespaced resource? (true/false)"
@@ -943,7 +943,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: clusterrole::apiversion
   question: "What is the API version for ClusterRole?"
@@ -951,7 +951,7 @@
   metadata:
     response: "rbac.authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: clusterrole::namespaced
   question: "Is ClusterRole a namespaced resource? (true/false)"
@@ -959,7 +959,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: rolebinding::apiversion
   question: "What is the API version for RoleBinding?"
@@ -967,7 +967,7 @@
   metadata:
     response: "rbac.authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: rolebinding::namespaced
   question: "Is RoleBinding a namespaced resource? (true/false)"
@@ -975,7 +975,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: role::apiversion
   question: "What is the API version for Role?"
@@ -983,7 +983,7 @@
   metadata:
     response: "rbac.authorization.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: role::namespaced
   question: "Is Role a namespaced resource? (true/false)"
@@ -991,7 +991,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: priorityclass::shortnames
   question: "What is the shortname for PriorityClass?"
@@ -999,7 +999,7 @@
   metadata:
     response: "pc"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: priorityclass::apiversion
   question: "What is the API version for PriorityClass?"
@@ -1007,7 +1007,7 @@
   metadata:
     response: "scheduling.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: priorityclass::namespaced
   question: "Is PriorityClass a namespaced resource? (true/false)"
@@ -1015,7 +1015,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csidriver::apiversion
   question: "What is the API version for CSIDriver?"
@@ -1023,7 +1023,7 @@
   metadata:
     response: "storage.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csidriver::namespaced
   question: "Is CSIDriver a namespaced resource? (true/false)"
@@ -1031,7 +1031,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csinode::apiversion
   question: "What is the API version for CSINode?"
@@ -1039,7 +1039,7 @@
   metadata:
     response: "storage.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csinode::namespaced
   question: "Is CSINode a namespaced resource? (true/false)"
@@ -1047,7 +1047,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csistoragecapacity::apiversion
   question: "What is the API version for CSIStorageCapacity?"
@@ -1055,7 +1055,7 @@
   metadata:
     response: "storage.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: csistoragecapacity::namespaced
   question: "Is CSIStorageCapacity a namespaced resource? (true/false)"
@@ -1063,7 +1063,7 @@
   metadata:
     response: "true"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: storageclass::shortnames
   question: "What is the shortname for StorageClass?"
@@ -1071,7 +1071,7 @@
   metadata:
     response: "sc"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: storageclass::apiversion
   question: "What is the API version for StorageClass?"
@@ -1079,7 +1079,7 @@
   metadata:
     response: "storage.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: storageclass::namespaced
   question: "Is StorageClass a namespaced resource? (true/false)"
@@ -1087,7 +1087,7 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: volumeattachment::apiversion
   question: "What is the API version for VolumeAttachment?"
@@ -1095,7 +1095,7 @@
   metadata:
     response: "storage.k8s.io/v1"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
 - id: volumeattachment::namespaced
   question: "Is VolumeAttachment a namespaced resource? (true/false)"
@@ -1103,4 +1103,4 @@
   metadata:
     response: "false"
     category: "Resource Reference"
-    citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#resource-types"
