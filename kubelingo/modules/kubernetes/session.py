@@ -604,11 +604,6 @@ class NewSession(StudySession):
                 self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
             questions = unique_questions
 
-            # Standardize source URL for Vim questions to be the official docs.
-            for q_item in questions:
-                if q_item.get('category') == 'Vim Commands':
-                    q_item['source'] = 'https://www.vim.org/docs.php'
-
             if args.review_only and not questions:
                 print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
                 return
@@ -768,8 +763,6 @@ class NewSession(StudySession):
                         url = q.get('citation') or q.get('source')
                         if q.get('category') == 'Resource Reference':
                             url = "https://kubernetes.io/docs/reference/kubectl/#resource-types"
-                        elif q.get('category') == 'Vim Commands':
-                            url = "https://vimdoc.sourceforge.net/"
 
                         if url:
                             print(f"Opening documentation at {url} ...")
@@ -912,12 +905,9 @@ class NewSession(StudySession):
                         if expected_answer:
                             print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
                         # Display source citation
-                        if q.get('category') == 'Vim Commands':
-                            print(f"{Fore.CYAN}Reference: https://vimdoc.sourceforge.net/{Style.RESET_ALL}")
-                        else:
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+                        source_url = q.get('citation') or q.get('source')
+                        if source_url:
+                            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                         # Return to action menu, allowing user to view LLM explanation or visit source
                         continue
@@ -998,12 +988,9 @@ class NewSession(StudySession):
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
             # Always show one reference: override for Vim Commands
-            if q.get('category') == 'Vim Commands':
-                print(f"{Fore.CYAN}Reference: https://vimdoc.sourceforge.net/{Style.RESET_ALL}")
-            else:
-                source_url = q.get('citation') or q.get('source')
-                if source_url:
-                    print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+            source_url = q.get('citation') or q.get('source')
+            if source_url:
+                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
             return
 
         try:
