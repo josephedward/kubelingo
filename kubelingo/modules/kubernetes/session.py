@@ -111,9 +111,6 @@ def _get_yaml_quiz_files():
 
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    # Retrieve flagged question IDs from the SessionManager
-    sm = SessionManager(logging.getLogger(__name__))
-    flagged_ids = sm.flagged_ids
     # Only YAML-based quizzes are used for review
     all_quiz_files = _get_yaml_quiz_files()
     if os.path.exists(VIM_QUESTIONS_FILE):
@@ -126,21 +123,56 @@ def get_all_flagged_questions():
             qs = load_questions(f, exit_on_error=False)
         except Exception:
             continue
+        # The `review: true` flag in the source YAML is the source of truth.
         for q in qs:
-            if q.get('id') in flagged_ids:
+            if q.get('review'):
                 q['data_file'] = f
-                q['review'] = True
                 all_flagged.append(q)
     return all_flagged
 
 
 def _clear_all_review_flags(logger):
-    """Removes 'review' flag from all questions in all known JSON quiz files."""
-    # Clear all flagged question IDs via SessionManager
-    sm = SessionManager(logger)
-    sm.flagged_ids.clear()
-    sm._save_flagged_file()
-    print(f"\n{Fore.GREEN}Cleared all review flags.{Style.RESET_ALL}")
+    """Removes 'review' flag from all questions in all known YAML quiz files."""
+    if yaml is None:
+        logger.error("Cannot clear review flags: PyYAML is not installed.")
+        print(f"{Fore.RED}Cannot clear review flags: PyYAML is not installed.{Style.RESET_ALL}")
+        return
+
+    all_quiz_files = _get_yaml_quiz_files()
+    if os.path.exists(VIM_QUESTIONS_FILE):
+        all_quiz_files.append(VIM_QUESTIONS_FILE)
+    all_quiz_files = sorted(set(all_quiz_files))
+
+    cleared_count = 0
+    for file_path in all_quiz_files:
+        try:
+            with open(file_path, 'r') as f:
+                # Use list(yaml.safe_load_all(f)) if file can have multiple docs
+                questions = yaml.safe_load(f)
+        except Exception:
+            continue  # Skip files that can't be read
+
+        if not isinstance(questions, list):
+            continue
+
+        changed = False
+        for q in questions:
+            if isinstance(q, dict) and 'review' in q:
+                del q['review']
+                changed = True
+        
+        if changed:
+            cleared_count += 1
+            try:
+                with open(file_path, 'w') as f:
+                    yaml.safe_dump(questions, f, sort_keys=False, allow_unicode=True)
+            except Exception as e:
+                logger.error(f"Failed to save cleared review flags for {file_path}: {e}")
+    
+    if cleared_count > 0:
+        print(f"\n{Fore.GREEN}Cleared all review flags.{Style.RESET_ALL}")
+    else:
+        print(f"\n{Fore.YELLOW}No flagged questions found to clear.{Style.RESET_ALL}")
 
 
 def check_dependencies(*commands):
@@ -571,11 +603,6 @@ class NewSession(StudySession):
             if len(questions) != len(unique_questions):
                 self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
             questions = unique_questions
-
-            # Set the 'review' flag on questions based on the central flagged list
-            for q_to_flag in questions:
-                if q_to_flag.get('id') in self.session_manager.flagged_ids:
-                    q_to_flag['review'] = True
 
             if args.review_only and not questions:
                 print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
