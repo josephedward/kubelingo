@@ -33,10 +33,10 @@ questions:
       - https://helm.sh/docs/helm/helm_uninstall/
   - id: helm-q5
     category: "Helm Basics"
-    prompt: "How do you upgrade the existing Helm release named 'my-release' using the chart located in './my-chart'?"
+    prompt: "How do you upgrade an existing Helm release named my-release using the chart in ./my-chart?"
     response: "helm upgrade my-release ./my-chart"
     explanation: |
-      Use `helm upgrade <release_name> <chart-path>` to apply updates to an existing release. For example, `helm upgrade my-release ./my-chart` upgrades the release `my-release` using the chart in the `./my-chart` directory.
+      The correct command is `helm upgrade my-release ./my-chart`. An answer like `helm release upgrade` is incomplete and uses incorrect syntax. The `upgrade` command requires the release name and the path to the chart.
     links:
       - https://helm.sh/docs/helm/helm_upgrade/
   - id: helm-q6
