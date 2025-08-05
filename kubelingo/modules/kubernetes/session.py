@@ -604,6 +604,11 @@ class NewSession(StudySession):
                 self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
             questions = unique_questions
 
+            # Standardize source URL for Vim questions to be the official docs.
+            for q_item in questions:
+                if q_item.get('category') == 'Vim Commands':
+                    q_item['source'] = 'https://www.vim.org/docs.php'
+
             if args.review_only and not questions:
                 print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
                 return
