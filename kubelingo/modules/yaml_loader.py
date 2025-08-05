@@ -81,13 +81,14 @@ class YAMLLoader(BaseLoader):
                     explanation=item.get('explanation'),
                     categories=item.get('categories', []),
                     difficulty=item.get('difficulty'),
+                    review=item.get('review', False),
                     metadata={
                         k: v for k, v in item.items()
                         if k not in (
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'answer', 'response'
+                            'answer', 'response', 'review'
                         )
                     }
                 ))
@@ -126,12 +127,14 @@ class YAMLLoader(BaseLoader):
                     explanation=item.get('explanation'),
                     categories=item.get('categories', []),
                     difficulty=item.get('difficulty'),
+                    review=item.get('review', False),
                     metadata={
                         k: v for k, v in item.items()
                         if k not in (
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
-                            'pre_shell_cmds', 'initial_files', 'validation_steps'
+                            'pre_shell_cmds', 'initial_files', 'validation_steps',
+                            'review'
                         )
                     }
                 ))
