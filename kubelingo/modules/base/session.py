@@ -15,14 +15,6 @@ class SessionManager:
 
     def __init__(self, logger):
         self.logger = logger
-        # Initialize flagged question ID store
-        self.flagged_file = FLAGGED_QUESTIONS_FILE
-        try:
-            with open(self.flagged_file, 'r') as f:
-                data = json.load(f)
-                self.flagged_ids = set(data) if isinstance(data, list) else set()
-        except Exception:
-            self.flagged_ids = set()
 
     def get_history(self):
         """Retrieves quiz history."""
