@@ -154,6 +154,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: The AI evaluator was incorrectly marking the valid Vim command `:x` as incorrect when the expected answer was `:wq`. The system prompt for Vim quizzes has been updated with a stronger example (`:x` and `:wq` are equivalent) to ensure it correctly identifies command aliases.
   - **Fixed**: Improved AI evaluation for Vim quizzes to be more precise about Vim's modes. The AI will now correctly distinguish between Normal mode (e.g., `dd`) and Command-line mode (e.g., `:w`). It will still accept Normal mode commands mistakenly prefixed with a colon but will provide a gentle correction, enhancing the learning experience.
   - **Fixed**: Standardized the source URL for all Vim quiz questions to point to the official documentation at `https://vimdoc.sourceforge.net/`, removing inconsistent references. This ensures that both AI evaluation and the "Visit Source" action provide a consistent, authoritative reference.
+  - **Fixed**: Removed a redundant question from the Vim quiz ("Go to an arbitrary line N") to avoid confusion and improve quiz quality.
   - **Fixed**: For Kubernetes questions, the AI evaluator now programmatically prepends `kubectl` to answers that start with a valid subcommand (e.g., `get`, `annotate`) but omit the `kubectl` or `k` prefix. This prevents answers from being marked incorrect for a missing prefix, improving the learning experience.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
