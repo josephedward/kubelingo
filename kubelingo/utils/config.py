@@ -30,6 +30,7 @@ KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl
 KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_secret_management_quiz.yaml')
 KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_service_account_ops_quiz.yaml')
 KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_additional_commands_quiz.yaml')
+YAML_EDITING_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
@@ -48,6 +49,7 @@ ENABLED_QUIZZES = {
     "Kubectl Secret Management": KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE,
     "Kubectl Service Account Operations": KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE,
     "Kubectl Additional Commands": KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE,
+    "YAML Editing": YAML_EDITING_QUIZ_FILE,
 }
 
 # CSV files
