@@ -1,7 +1,7 @@
 questions:
   - id: helm-q1
     category: "Helm Basics"
-    prompt: "What is the command to create a basic Helm chart?"
+    prompt: "What is the command to create a basic Helm chart named `my-chart`?"
     response: "helm create my-chart"
     explanation: |
       Use `helm create <chart-name>` to create a new Helm chart with a default structure. For example, `helm create my-chart` creates a directory named `my-chart` with the necessary files.
@@ -57,7 +57,7 @@ questions:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q8
     category: "Helm Repositories"
-    prompt: "What command is used to remove a Helm chart repository?"
+    prompt: "What command is used to remove a Helm chart repository named `stable`?"
     response: "helm repo remove stable"
     explanation: |
       `helm repo remove [REPO]` is used to remove one or more chart repositories.
@@ -73,7 +73,7 @@ questions:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q10
     category: "Helm Repositories"
-    prompt: "What command is used to generate an index file for a chart repository?"
+    prompt: "What command is used to generate an index file for a chart repository in the current directory?"
     response: "helm repo index ."
     explanation: |
       `helm repo index [DIR]` generates an `index.yaml` file for a directory containing packaged charts, making it a valid chart repository.
@@ -81,7 +81,7 @@ questions:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q11
     category: "Helm Basics"
-    prompt: "What command downloads a Helm chart from a repository without installing it?"
+    prompt: "What command downloads the `wordpress` chart from the `bitnami` repository without installing it?"
     response: "helm pull bitnami/wordpress"
     explanation: |
       Use `helm pull [repo/chartname]` to download a chart to your local directory. Use the `--untar` flag to extract the chart after downloading.
@@ -106,7 +106,7 @@ questions:
       - https://helm.sh/docs/helm/helm_show/
   - id: helm-q14
     category: "Helm Basics"
-    prompt: "How do you install the `bitnami/node` chart with a specific number of replicas (e.g., 5)?"
+    prompt: "How do you install the `bitnami/node` chart as a release named `my-node` with a specific number of replicas (e.g., 5)?"
     response: "helm install my-node bitnami/node --set replicaCount=5"
     explanation: |
       You can override values in a chart's `values.yaml` file at installation time using the `--set` flag. First, find the relevant key (e.g., with `helm show values bitnami/node | grep -i replica`). Then, install the chart with the override: `helm install my-node bitnami/node --set replicaCount=5`.
