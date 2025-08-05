@@ -41,7 +41,7 @@ questions:
       - https://helm.sh/docs/helm/helm_upgrade/
   - id: helm-q6
     category: "Helm Repositories"
-    prompt: "How do you add the Prometheus community Helm chart repository?"
+    prompt: "How do you add the Prometheus community Helm repository from `https://prometheus-community.github.io/helm-charts` and name it `prometheus-community`?"
     response: "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts"
     explanation: |
       Use `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` to add the Prometheus community chart repository.
@@ -81,7 +81,7 @@ questions:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q11
     category: "Helm Basics"
-    prompt: "What command downloads the `bitnami/wordpress` Helm chart from a repository without installing it?"
+    prompt: "What command downloads the `wordpress` chart from the `bitnami` repository without installing it?"
     response: "helm pull bitnami/wordpress"
     explanation: |
       Use `helm pull [repo/chartname]` to download a chart to your local directory. Use the `--untar` flag to extract the chart after downloading.
@@ -89,7 +89,7 @@ questions:
       - https://helm.sh/docs/helm/helm_pull/
   - id: helm-q12
     category: "Helm Repositories"
-    prompt: "How do you add the Bitnami chart repository to Helm?"
+    prompt: "How do you add the Bitnami chart repository from `https://charts.bitnami.com/bitnami` and name it `bitnami`?"
     response: "helm repo add bitnami https://charts.bitnami.com/bitnami"
     explanation: |
       Add the Bitnami repo with: `helm repo add bitnami https://charts.bitnami.com/bitnami`.
@@ -106,7 +106,7 @@ questions:
       - https://helm.sh/docs/helm/helm_show/
   - id: helm-q14
     category: "Helm Basics"
-    prompt: "How do you install the `bitnami/node` chart as a release named `my-node` with a specific number of replicas (e.g., 5)?"
+    prompt: "How do you install the `bitnami/node` chart as a release named `my-node`, setting the `replicaCount` value to 5?"
     response: "helm install my-node bitnami/node --set replicaCount=5"
     explanation: |
       You can override values in a chart's `values.yaml` file at installation time using the `--set` flag. First, find the relevant key (e.g., with `helm show values bitnami/node | grep -i replica`). Then, install the chart with the override: `helm install my-node bitnami/node --set replicaCount=5`.
