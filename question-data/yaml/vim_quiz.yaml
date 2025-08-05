@@ -5,25 +5,25 @@
   question: "Enter insert mode at cursor"
   answers: ["i"]
   explanation: "insert before the cursor"
-  source: "https://vim.rtorr.com"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::1
   question: "Append text after cursor"
   answers: ["a"]
   explanation: "insert (append) after the cursor"
-  source: "https://vim.rtorr.com"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::2
   question: "Open a new line below the current line"
   answers: ["o"]
   explanation: "append (open) a new line below the current line"
-  source: "https://vim.rtorr.com"
+  source: "https://vimdoc.sourceforge.net/"
   validation_steps: []
 - id: vim_quiz_data::3
   question: "Save file and quit"
   answers: [":wq", ":x", "ZZ"]
   explanation: "write (save) and quit"
-  source: "https://vim.rtorr.com"
+  source: "https://vimdoc.sourceforge.net/"
   validation_steps: []
 - id: vim_quiz_data::4
   question: "Exit without saving changes"

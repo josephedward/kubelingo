@@ -911,6 +911,13 @@ class NewSession(StudySession):
                         expected_answer = q.get('response', '').strip()
                         if expected_answer:
                             print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
+                        # Display source citation
+                        if q.get('category') == 'Vim Commands':
+                            print(f"{Fore.CYAN}Reference: https://vimdoc.sourceforge.net/{Style.RESET_ALL}")
+                        else:
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                         # Return to action menu, allowing user to view LLM explanation or visit source
                         continue
@@ -992,7 +999,7 @@ class NewSession(StudySession):
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
             # Always show one reference: override for Vim Commands
             if q.get('category') == 'Vim Commands':
-                print(f"{Fore.CYAN}Reference: https://www.vim.org/docs.php{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}Reference: https://vimdoc.sourceforge.net/{Style.RESET_ALL}")
             else:
                 source_url = q.get('citation') or q.get('source')
                 if source_url:
