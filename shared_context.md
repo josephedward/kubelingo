@@ -156,6 +156,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Standardized the source URL for all Vim quiz questions to point to the official documentation at `https://vimdoc.sourceforge.net/`, removing inconsistent references. This ensures that both AI evaluation and the "Visit Source" action provide a consistent, authoritative reference.
   - **Fixed**: Removed a redundant question from the Vim quiz ("Go to an arbitrary line N") to avoid confusion and improve quiz quality.
   - **Fixed**: For Kubernetes questions, the AI evaluator now programmatically prepends `kubectl` to answers that start with a valid subcommand (e.g., `get`, `annotate`) but omit the `kubectl` or `k` prefix. This prevents answers from being marked incorrect for a missing prefix, improving the learning experience.
+  - **Fixed**: Clarified several questions in the Helm quiz that were ambiguous or lacked necessary information in the prompt (e.g., a release name or chart name). This ensures that questions can be answered correctly based on the provided text, improving the user experience and fairness of the AI evaluation.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Standardized Quiz Formats
