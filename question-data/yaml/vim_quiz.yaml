@@ -97,12 +97,6 @@
   explanation: "exit insert mode"
   source: "https://vimdoc.sourceforge.net/"
   validation_steps: []
-- id: vim_quiz_data::16
-  question: "Go to an arbitrary line N (e.g., :42)"
-  answers: [":N"]
-  explanation: "go to line N"
-  source: "https://vimdoc.sourceforge.net/"
-  validation_steps: []
 - id: vim_quiz_data::17
   question: "Redo the last undone change"
   answers: ["<C-r>"]
