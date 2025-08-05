@@ -764,7 +764,7 @@ class NewSession(StudySession):
                         if q.get('category') == 'Resource Reference':
                             url = "https://kubernetes.io/docs/reference/kubectl/#resource-types"
                         elif q.get('category') == 'Vim Commands':
-                            url = "https://vim.rtorr.com/"
+                            url = "https://vimdoc.sourceforge.net/"
 
                         if url:
                             print(f"Opening documentation at {url} ...")
@@ -982,18 +982,16 @@ class NewSession(StudySession):
             normalized = uc
         # Short-circuit exact matches against the expected base command
         expected = q.get('response', '').strip()
-
-        # For Vim commands, we always use AI to allow for flexible answers.
-        if q.get('category') != 'Vim Commands' and expected and normalized == expected:
+        if expected and normalized == expected:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            # Show reference if available
-            source_url = q.get('citation') or q.get('source')
-            if source_url:
-                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-            # Show explanation if present
-            if q.get('explanation'):
-                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+            # Always show one reference: override for Vim Commands
+            if q.get('category') == 'Vim Commands':
+                print(f"{Fore.CYAN}Reference: https://www.vim.org/docs.php{Style.RESET_ALL}")
+            else:
+                source_url = q.get('citation') or q.get('source')
+                if source_url:
+                    print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
             return
 
         try:
