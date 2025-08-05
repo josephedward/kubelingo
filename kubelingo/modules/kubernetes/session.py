@@ -906,10 +906,6 @@ class NewSession(StudySession):
                         expected_answer = q.get('response', '').strip()
                         if expected_answer:
                             print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
-                        # Display source citation if available
-                        source_url = q.get('citation') or q.get('source')
-                        if source_url:
-                            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                         # Return to action menu, allowing user to view LLM explanation or visit source
                         continue
