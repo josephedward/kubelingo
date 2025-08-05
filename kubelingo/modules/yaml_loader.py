@@ -9,8 +9,6 @@ except ImportError:
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
-import json
-from kubelingo.utils.config import JSON_DIR
 
 class YAMLLoader(BaseLoader):
     """Discovers and parses YAML question modules."""
@@ -30,31 +28,21 @@ class YAMLLoader(BaseLoader):
     def load_file(self, path: str) -> List[Question]:
         # Load and normalize YAML file into Question objects
         if yaml is None:
-            # Cannot process YAML files without PyYAML
-            # Fallback for Vim quiz: load JSON counterpart if available
-            if os.path.basename(path).startswith('vim_quiz'):
-                try:
-                    from kubelingo.modules.json_loader import JSONLoader
-                    json_path = os.path.join(JSON_DIR, 'vim.json')
-                    return JSONLoader().load_file(json_path)
-                except Exception:
-                    pass
+            # PyYAML is required to load YAML quiz files
             return []
-        # Load all YAML documents (skip leading docstring sections)
+        # Load all YAML documents, take the first non-empty doc
         with open(path, encoding='utf-8') as f:
             docs = list(yaml.safe_load_all(f))
         raw = docs[0] if docs else {}
-        # If first document is not question data (e.g., a docstring), use next
+        # If first document is not question data (e.g., a docstring), use second
         if not isinstance(raw, (list, dict)) and len(docs) > 1:
             raw = docs[1] or {}
         # Normalize legacy 'question' key to 'prompt' and flatten nested metadata
         if isinstance(raw, list):
             for item in raw:
                 if isinstance(item, dict):
-                    # Support 'question' field as prompt
                     if 'question' in item:
                         item['prompt'] = item.pop('question')
-                    # Flatten nested metadata blocks
                     if 'metadata' in item and isinstance(item['metadata'], dict):
                         nested = item.pop('metadata')
                         for k, v in nested.items():
@@ -65,32 +53,19 @@ class YAMLLoader(BaseLoader):
         questions: List[Question] = []
         # Flat list of question dicts
         if isinstance(raw, list) and raw and isinstance(raw[0], dict):
-            # Detect Vim quiz to merge expected responses from JSON
-            is_vim = os.path.basename(path).startswith('vim_quiz')
-            vim_json = []
-            if is_vim:
-                try:
-                    vim_json = json.load(open(os.path.join(JSON_DIR, 'vim.json'), encoding='utf-8'))
-                except Exception:
-                    vim_json = []
             for idx, item in enumerate(raw):
                 qid = f"{module}::{idx}"
-                # Populate new schema, falling back to legacy fields
-                steps_data = item.get('validation_steps') or item.get('validations', [])
+                # Determine validation steps from YAML only
+                steps_data = item.get('validation_steps', []) or item.get('validations', [])
                 validation_steps = [
                     ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
                     for v in steps_data
                 ]
-                # Legacy: Use 'answer' or 'response' as a validation if others don't exist
+                # Legacy: Use 'answer' or 'response' as fallback
                 if not validation_steps:
                     cmd = item.get('answer') or item.get('response')
                     if cmd:
                         validation_steps.append(ValidationStep(cmd=cmd, matcher={}))
-                # For Vim quiz, override from JSON responses
-                if is_vim and not validation_steps and idx < len(vim_json):
-                    cmd = vim_json[idx].get('response')
-                    if cmd:
-                        validation_steps = [ValidationStep(cmd=cmd, matcher={})]
 
                 initial_files = item.get('initial_files', {})
                 if not initial_files and 'initial_yaml' in item:
@@ -99,7 +74,7 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
-                    prompt=(item.get('prompt') or item.get('question', '')),
+                    prompt=item.get('prompt', ''),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
                     validation_steps=validation_steps,
