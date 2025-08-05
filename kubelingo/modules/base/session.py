@@ -6,7 +6,7 @@ try:
 except ImportError:
     yaml = None
 
-from kubelingo.utils.config import HISTORY_FILE
+from kubelingo.utils.config import HISTORY_FILE, FLAGGED_QUESTIONS_FILE
 from kubelingo.utils.ui import Fore, Style
 
 
@@ -15,6 +15,14 @@ class SessionManager:
 
     def __init__(self, logger):
         self.logger = logger
+        # Initialize flagged question ID store
+        self.flagged_file = FLAGGED_QUESTIONS_FILE
+        try:
+            with open(self.flagged_file, 'r') as f:
+                data = json.load(f)
+                self.flagged_ids = set(data) if isinstance(data, list) else set()
+        except Exception:
+            self.flagged_ids = set()
 
     def get_history(self):
         """Retrieves quiz history."""
@@ -233,7 +241,27 @@ class SessionManager:
         except Exception as e:
             self.logger.error(f"Error writing JSON file when un-flagging: {e}")
 
+    # New id-based flagging logic (overrides legacy file-based methods)
+    def mark_question_for_review(self, question_id):
+        """Record a question ID for review."""
+        self.flagged_ids.add(question_id)
+        self._save_flagged_file()
 
+    def unmark_question_for_review(self, question_id):
+        """Remove a question ID from review flags."""
+        if question_id in self.flagged_ids:
+            self.flagged_ids.remove(question_id)
+            self._save_flagged_file()
+
+    def _save_flagged_file(self):
+        """Persist the current set of flagged question IDs to disk."""
+        try:
+            os.makedirs(os.path.dirname(self.flagged_file), exist_ok=True)
+            with open(self.flagged_file, 'w') as f:
+                json.dump(sorted(self.flagged_ids), f, indent=2)
+        except Exception as e:
+            print(Fore.RED + f"Error saving review flags: {e}" + Style.RESET_ALL)
+    
 class StudySession:
     """Base class for a study session for a specific subject."""
 

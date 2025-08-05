@@ -111,65 +111,36 @@ def _get_yaml_quiz_files():
 
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    # Collect flagged questions only from Markdown and YAML quiz files
-    all_quiz_files = _get_md_quiz_files() + _get_yaml_quiz_files()
+    # Retrieve flagged question IDs from the SessionManager
+    sm = SessionManager(logging.getLogger(__name__))
+    flagged_ids = sm.flagged_ids
+    # Only YAML-based quizzes are used for review
+    all_quiz_files = _get_yaml_quiz_files()
+    if os.path.exists(VIM_QUESTIONS_FILE):
+        all_quiz_files.append(VIM_QUESTIONS_FILE)
     all_quiz_files = sorted(set(all_quiz_files))
 
     all_flagged = []
     for f in all_quiz_files:
-        # Load questions without exiting on error (e.g., missing dependencies)
         try:
             qs = load_questions(f, exit_on_error=False)
         except Exception:
             continue
         for q in qs:
-            if q.get('review'):
-                q['data_file'] = f  # Tag with origin file
+            if q.get('id') in flagged_ids:
+                q['data_file'] = f
+                q['review'] = True
                 all_flagged.append(q)
     return all_flagged
 
 
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in all known JSON quiz files."""
-    # Clear review flags in all YAML quiz files
-    quiz_files = _get_yaml_quiz_files()
-
-    cleared_count = 0
-    for data_file in quiz_files:
-        try:
-            with open(data_file, 'r') as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.error(f"Error opening {data_file} for clearing flags: {e}")
-            continue
-
-        changed_in_file = False
-        for item in data:
-            # Clear top-level review flags
-            if 'review' in item:
-                del item['review']
-                changed_in_file = True
-                cleared_count += 1
-            # Clear nested review flags in prompts (for Markdown/YAML quizzes)
-            if isinstance(item, dict) and 'prompts' in item and isinstance(item['prompts'], list):
-                for prompt in item['prompts']:
-                    if isinstance(prompt, dict) and 'review' in prompt:
-                        del prompt['review']
-                        changed_in_file = True
-                        cleared_count += 1
-
-        if changed_in_file:
-            try:
-                with open(data_file, 'w') as f:
-                    json.dump(data, f, indent=2)
-                logger.info(f"Cleared review flags in {data_file}")
-            except Exception as e:
-                logger.error(f"Error writing to {data_file} after clearing flags: {e}")
-
-    if cleared_count > 0:
-        print(f"\n{Fore.GREEN}Cleared {cleared_count} review flags from all quiz files.{Style.RESET_ALL}")
-    else:
-        print(f"\n{Fore.YELLOW}No review flags to clear.{Style.RESET_ALL}")
+    # Clear all flagged question IDs via SessionManager
+    sm = SessionManager(logger)
+    sm.flagged_ids.clear()
+    sm._save_flagged_file()
+    print(f"\n{Fore.GREEN}Cleared all review flags.{Style.RESET_ALL}")
 
 
 def check_dependencies(*commands):
@@ -782,21 +753,26 @@ class NewSession(StudySession):
                             print(f"{Fore.YELLOW}No source URL defined for this question.{Style.RESET_ALL}")
                         continue
                     if action == "flag":
+                        # Explicit flag/unflag via category and prompt
                         data_file_path = q.get('data_file', args.file)
-                        question_id = q.get('id')
-                        if not question_id:
-                            print(f"{Fore.RED}Cannot flag question: missing question ID.{Style.RESET_ALL}")
+                        category = q.get('category')
+                        prompt_text = q.get('prompt')
+                        if not category or not prompt_text:
+                            print(f"{Fore.RED}Cannot flag question: missing category or prompt.{Style.RESET_ALL}")
                             continue
-
                         if is_flagged:
                             self.session_manager.unmark_question_for_review(
-                                data_file_path, question_id
+                                data_file_path,
+                                category,
+                                prompt_text
                             )
                             q['review'] = False
                             print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                         else:
                             self.session_manager.mark_question_for_review(
-                                data_file_path, question_id
+                                data_file_path,
+                                category,
+                                prompt_text
                             )
                             q['review'] = True
                             print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
@@ -839,14 +815,23 @@ class NewSession(StudySession):
 
                             # Auto-evaluate the answer
                             self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
-                            # Auto-flag wrong answers, unflag correct ones
+                            # Auto-flag wrong answers, unflag correct ones (using category and prompt)
                             data_file_path = q.get('data_file', args.file)
-                            question_id = q.get('id')
-                            if question_id:
+                            category = q.get('category')
+                            prompt_text = q.get('prompt')
+                            if category and prompt_text:
                                 if current_question_index in correct_indices:
-                                    self.session_manager.unmark_question_for_review(data_file_path, question_id)
+                                    self.session_manager.unmark_question_for_review(
+                                        data_file_path,
+                                        category,
+                                        prompt_text
+                                    )
                                 else:
-                                    self.session_manager.mark_question_for_review(data_file_path, question_id)
+                                    self.session_manager.mark_question_for_review(
+                                        data_file_path,
+                                        category,
+                                        prompt_text
+                                    )
                             # Display expected answer for reference
                             expected_answer = q.get('response', '').strip()
                             if expected_answer:
@@ -917,14 +902,23 @@ class NewSession(StudySession):
                             self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         else:
                             self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                        # Auto-flag wrong answers, unflag correct ones
+                        # Auto-flag wrong answers, unflag correct ones (using category and prompt)
                         data_file_path = q.get('data_file', args.file)
-                        question_id = q.get('id')
-                        if question_id:
+                        category = q.get('category')
+                        prompt_text = q.get('prompt')
+                        if category and prompt_text:
                             if current_question_index in correct_indices:
-                                self.session_manager.unmark_question_for_review(data_file_path, question_id)
+                                self.session_manager.unmark_question_for_review(
+                                    data_file_path,
+                                    category,
+                                    prompt_text
+                                )
                             else:
-                                self.session_manager.mark_question_for_review(data_file_path, question_id)
+                                self.session_manager.mark_question_for_review(
+                                    data_file_path,
+                                    category,
+                                    prompt_text
+                                )
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
