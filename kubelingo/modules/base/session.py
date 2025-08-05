@@ -67,179 +67,71 @@ class SessionManager:
         except IOError as e:
             print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
 
-    def mark_question_for_review(self, data_file, question_id):
-        """Adds 'review': True to the matching question by its ID."""
-        # Load file and flag the matching question; support JSON modules and YAML question lists
-        ext = os.path.splitext(data_file)[1].lower()
-        # YAML raw quiz: list of question items
-        if ext in ('.yaml', '.yml'):
-            if yaml is None:
-                self.logger.error("Cannot flag review: PyYAML not installed")
-                return
-            try:
-                with open(data_file, 'r') as f:
-                    docs = list(yaml.safe_load_all(f))
-            except Exception as e:
-                self.logger.error(f"Error opening YAML file for review flagging: {e}")
-                return
-            # Find the main list of questions
-            data = None
-            for doc in docs:
-                if isinstance(doc, list):
-                    data = doc
-                    break
-            # Fallback to 'questions' key in first dict document
-            if data is None and docs and isinstance(docs[0], dict) and 'questions' in docs[0]:
-                data = docs[0]['questions']
-            if not isinstance(data, list):
-                self.logger.error(f"No question list found in {data_file} to flag for review")
-                return
-            changed = False
-            for item in data:
-                if isinstance(item, dict) and item.get('id') == question_id:
-                    item['review'] = True
-                    changed = True
-                    break
-            if not changed:
-                self.logger.error(f"Question with ID '{question_id}' not found in {data_file} to flag for review.")
-                return
-            try:
-                with open(data_file, 'w') as f:
-                    yaml.safe_dump_all(docs, f, sort_keys=False)
-            except Exception as e:
-                self.logger.error(f"Error writing YAML file when flagging for review: {e}")
+    def _update_review_status(self, question_id: str, review: bool):
+        """Sets or removes the review flag for a given question ID in its source YAML."""
+        if yaml is None:
+            self.logger.error("Cannot update review status: PyYAML not installed")
             return
-        # Fallback: JSON modules; support both flat question lists and sectioned files
-        try:
-            with open(data_file, 'r') as f:
-                data = json.load(f)
-        except Exception as e:
-            self.logger.error(f"Error opening JSON file for review flagging: {e}")
-            return
-        # Flat list of questions (e.g., Vim JSON)
-        if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
-            changed = False
-            for item in data:
-                if isinstance(item, dict) and item.get('id') == question_id:
-                    item['review'] = True
-                    changed = True
-                    break
-            if not changed:
-                print(Fore.RED + f"Warning: question with ID '{question_id}' not found in {data_file} to flag for review." + Style.RESET_ALL)
-                return
-            try:
-                with open(data_file, 'w') as f:
-                    json.dump(data, f, indent=2)
-            except Exception as e:
-                self.logger.error(f"Error writing data file when flagging for review: {e}")
-                print(Fore.RED + f"Error writing data file when flagging for review: {e}" + Style.RESET_ALL)
-            return
-        # Sectioned JSON modules
-        changed = False
-        for section in data:
-            qs = section.get('questions', []) or section.get('prompts', [])
-            for item in qs:
-                if isinstance(item, dict) and item.get('id') == question_id:
-                    item['review'] = True
-                    changed = True
-                    break
-            if changed:
-                break
-        if not changed:
-            self.logger.error(f"Question with ID '{question_id}' not found in {data_file} to flag for review.")
-            return
-        try:
-            with open(data_file, 'w') as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            self.logger.error(f"Error writing JSON file when flagging for review: {e}")
 
-    def unmark_question_for_review(self, data_file, question_id):
-        """Removes 'review' flag from the matching question by its ID."""
-        # Load file and remove the review flag; support JSON modules and YAML question lists
-        ext = os.path.splitext(data_file)[1].lower()
-        # YAML raw quiz: list of question items
-        if ext in ('.yaml', '.yml'):
-            if yaml is None:
-                msg = "PyYAML not installed; cannot unflag YAML quiz files"
-                self.logger.error(msg)
-                print(Fore.RED + msg + Style.RESET_ALL)
-                return
-            try:
-                with open(data_file, 'r') as f:
-                    docs = list(yaml.safe_load_all(f))
-            except Exception as e:
-                self.logger.error(f"Error opening YAML file for un-flagging: {e}")
-                print(Fore.RED + f"Error opening YAML file for un-flagging: {e}" + Style.RESET_ALL)
-                return
-            # Find the main list of questions
-            data = None
-            for doc in docs:
-                if isinstance(doc, list):
-                    data = doc
-                    break
-            if data is None and docs and isinstance(docs[0], dict) and 'questions' in docs[0]:
-                data = docs[0]['questions']
-            if not isinstance(data, list):
-                print(Fore.RED + f"Warning: no question list found in {data_file} to un-flag." + Style.RESET_ALL)
-                return
-            changed = False
-            for item in data:
-                if isinstance(item, dict) and item.get('id') == question_id and 'review' in item:
-                    del item['review']
-                    changed = True
-                    break
-            if not changed:
-                return
-            try:
-                with open(data_file, 'w') as f:
-                    yaml.safe_dump_all(docs, f, sort_keys=False)
-            except Exception as e:
-                self.logger.error(f"Error writing YAML file when un-flagging: {e}")
-                print(Fore.RED + f"Error writing YAML file when un-flagging: {e}" + Style.RESET_ALL)
+        try:
+            module, _ = question_id.split('::', 1)
+        except (ValueError, IndexError):
+            self.logger.error(f"Invalid question ID format for review flagging: {question_id}")
             return
-        # Fallback: JSON modules; support flat question lists and sectioned files
+
+        # Derive the expected path in question-data/yaml
+        data_file = os.path.join(DATA_DIR, 'yaml', f"{module}.yaml")
+
+        if not os.path.exists(data_file):
+            self.logger.error(f"Could not find source file for question {question_id}: {data_file}")
+            return
+
         try:
             with open(data_file, 'r') as f:
-                data = json.load(f)
+                questions = yaml.safe_load(f)
         except Exception as e:
-            self.logger.error(f"Error opening JSON file for un-flagging: {e}")
+            self.logger.error(f"Error opening YAML file for review flagging: {e}")
             return
-        # Flat list of questions
-        if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
-            changed = False
-            for item in data:
-                if isinstance(item, dict) and item.get('id') == question_id and 'review' in item:
-                    del item['review']
-                    changed = True
-                    break
-            if not changed:
-                return
-            try:
-                with open(data_file, 'w') as f:
-                    json.dump(data, f, indent=2)
-            except Exception as e:
-                self.logger.error(f"Error writing data file when un-flagging: {e}")
-                print(Fore.RED + f"Error writing data file when un-flagging: {e}" + Style.RESET_ALL)
+
+        if not isinstance(questions, list):
+            self.logger.error(f"Invalid format in {data_file}: expected a list of questions.")
             return
-        # Sectioned JSON modules
+
+        question_found = False
         changed = False
-        for section in data:
-            qs = section.get('questions', []) or section.get('prompts', [])
-            for item in qs:
-                if isinstance(item, dict) and item.get('id') == question_id and item.get('review'):
-                    del item['review']
-                    changed = True
-                    break
-            if changed:
+        for item in questions:
+            if isinstance(item, dict) and item.get('id') == question_id:
+                question_found = True
+                if review:
+                    if not item.get('review'):
+                        item['review'] = True
+                        changed = True
+                else:  # unflag
+                    if 'review' in item:
+                        del item['review']
+                        changed = True
                 break
+        
+        if not question_found:
+            self.logger.error(f"Question with ID {question_id} not found in {data_file}")
+            return
+
         if not changed:
             return
+
         try:
             with open(data_file, 'w') as f:
-                json.dump(data, f, indent=2)
+                yaml.safe_dump(questions, f, sort_keys=False)
         except Exception as e:
-            self.logger.error(f"Error writing JSON file when un-flagging: {e}")
+            self.logger.error(f"Error writing YAML file when updating review status: {e}")
+
+    def mark_question_for_review(self, question_id: str):
+        """Adds 'review': True to the matching question in its source YAML file."""
+        self._update_review_status(question_id, review=True)
+
+    def unmark_question_for_review(self, question_id: str):
+        """Removes 'review' flag from the matching question in its source YAML file."""
+        self._update_review_status(question_id, review=False)
 
     # New id-based flagging logic (overrides legacy file-based methods)
     def mark_question_for_review(self, question_id):

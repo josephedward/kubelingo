@@ -244,18 +244,6 @@ def load_questions(data_file, exit_on_error=True):
             sys.exit(1)
         return []
 
-def mark_question_for_review(data_file, question_id):
-    """Module-level helper to flag a question for review."""
-    logger = logging.getLogger(__name__)
-    sm = SessionManager(logger)
-    sm.mark_question_for_review(data_file, question_id)
-
-
-def unmark_question_for_review(data_file, question_id):
-    """Module-level helper to remove a question from review."""
-    logger = logging.getLogger(__name__)
-    sm = SessionManager(logger)
-    sm.unmark_question_for_review(data_file, question_id)
     
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
@@ -753,27 +741,17 @@ class NewSession(StudySession):
                             print(f"{Fore.YELLOW}No source URL defined for this question.{Style.RESET_ALL}")
                         continue
                     if action == "flag":
-                        # Explicit flag/unflag via category and prompt
-                        data_file_path = q.get('data_file', args.file)
-                        category = q.get('category')
-                        prompt_text = q.get('prompt')
-                        if not category or not prompt_text:
-                            print(f"{Fore.RED}Cannot flag question: missing category or prompt.{Style.RESET_ALL}")
+                        # Toggle review flag by question ID
+                        question_id = q.get('id')
+                        if not question_id:
+                            print(f"{Fore.RED}Cannot flag question: missing ID.{Style.RESET_ALL}")
                             continue
                         if is_flagged:
-                            self.session_manager.unmark_question_for_review(
-                                data_file_path,
-                                category,
-                                prompt_text
-                            )
+                            self.session_manager.unmark_question_for_review(question_id)
                             q['review'] = False
                             print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                         else:
-                            self.session_manager.mark_question_for_review(
-                                data_file_path,
-                                category,
-                                prompt_text
-                            )
+                            self.session_manager.mark_question_for_review(question_id)
                             q['review'] = True
                             print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
                         continue
