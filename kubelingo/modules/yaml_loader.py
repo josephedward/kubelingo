@@ -37,6 +37,11 @@ class YAMLLoader(BaseLoader):
         # If first document is not question data (e.g., a docstring), use second
         if not isinstance(raw, (list, dict)) and len(docs) > 1:
             raw = docs[1] or {}
+        # Override source URL for Vim quiz to ensure consistent documentation link
+        if os.path.basename(path) in ('vim_quiz.yaml', 'vim_quiz.yml') and isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict):
+                    item['source'] = 'https://vimdoc.sourceforge.net/'
         # Normalize legacy 'question' key to 'prompt' and flatten nested metadata
         if isinstance(raw, list):
             for item in raw:
