@@ -273,17 +273,18 @@ def load_questions(data_file, exit_on_error=True):
             sys.exit(1)
         return []
 
-def mark_question_for_review(data_file, category, prompt_text):
+def mark_question_for_review(data_file, question_id):
     """Module-level helper to flag a question for review."""
     logger = logging.getLogger(__name__)
     sm = SessionManager(logger)
-    sm.mark_question_for_review(data_file, category, prompt_text)
+    sm.mark_question_for_review(data_file, question_id)
 
-def unmark_question_for_review(data_file, category, prompt_text):
+
+def unmark_question_for_review(data_file, question_id):
     """Module-level helper to remove a question from review."""
     logger = logging.getLogger(__name__)
     sm = SessionManager(logger)
-    sm.unmark_question_for_review(data_file, category, prompt_text)
+    sm.unmark_question_for_review(data_file, question_id)
     
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
@@ -782,19 +783,20 @@ class NewSession(StudySession):
                         continue
                     if action == "flag":
                         data_file_path = q.get('data_file', args.file)
+                        question_id = q.get('id')
+                        if not question_id:
+                            print(f"{Fore.RED}Cannot flag question: missing question ID.{Style.RESET_ALL}")
+                            continue
+
                         if is_flagged:
                             self.session_manager.unmark_question_for_review(
-                                data_file_path,
-                                q.get('category'),
-                                q.get('prompt')
+                                data_file_path, question_id
                             )
                             q['review'] = False
                             print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                         else:
                             self.session_manager.mark_question_for_review(
-                                data_file_path,
-                                q.get('category'),
-                                q.get('prompt')
+                                data_file_path, question_id
                             )
                             q['review'] = True
                             print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
@@ -839,10 +841,12 @@ class NewSession(StudySession):
                             self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
                             # Auto-flag wrong answers, unflag correct ones
                             data_file_path = q.get('data_file', args.file)
-                            if current_question_index in correct_indices:
-                                self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
-                            else:
-                                self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            question_id = q.get('id')
+                            if question_id:
+                                if current_question_index in correct_indices:
+                                    self.session_manager.unmark_question_for_review(data_file_path, question_id)
+                                else:
+                                    self.session_manager.mark_question_for_review(data_file_path, question_id)
                             # Display expected answer for reference
                             expected_answer = q.get('response', '').strip()
                             if expected_answer:
