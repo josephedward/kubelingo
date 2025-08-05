@@ -1,0 +1,193 @@
+- id: yaml_quiz::resource-checker-pod
+  prompt: "A namespace 'limit' has been created. Edit 'pod.yaml' to define a Pod named 'resource-checker' in that namespace. It should use the 'httpd:alpine' image with a container named 'my-container'. Configure resource requests for 'cpu=30m' and 'memory=30Mi', and limits for 'cpu=300m' and 'memory=30Mi'. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing"
+  pre_shell_cmds:
+    - "kubectl create ns limit"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: resource-checker
+        namespace: limit
+      spec:
+        containers:
+        - name: my-container
+          image: httpd:alpine
+          resources:
+            requests:
+              cpu: # TODO
+              memory: # TODO
+            limits:
+              cpu: # TODO
+              memory: # TODO
+  validation_steps:
+    - cmd: "kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.cpu}'"
+      matcher: { "contains": "30m" }
+    - cmd: "kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.memory}'"
+      matcher: { "contains": "30Mi" }
+    - cmd: "kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.cpu}'"
+      matcher: { "contains": "300m" }
+- id: yaml_quiz::trauerweide-cm
+  prompt: "Edit 'configmap.yaml' to create a ConfigMap named 'trauerweide' with the data 'tree=trauerweide'. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing"
+  initial_files:
+    configmap.yaml: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: # TODO
+      data:
+        # TODO
+  validation_steps:
+    - cmd: "kubectl get configmap trauerweide -o jsonpath='{.data.tree}'"
+      matcher: { "contains": "trauerweide" }
+- id: yaml_quiz::pod-with-cm-ref
+  prompt: "Two ConfigMaps, 'trauerweide' and 'birke', have been created. Edit 'pod.yaml' to create a Pod named 'pod1' using the 'nginx:alpine' image. The Pod should have an environment variable 'TREE1' that gets its value from the 'tree' key of the 'trauerweide' ConfigMap. It should also mount all keys from the 'birke' ConfigMap into the directory '/etc/birke'. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing"
+  pre_shell_cmds:
+    - "kubectl create configmap trauerweide --from-literal=tree=trauerweide"
+    - "kubectl create configmap birke --from-literal=sample-key=sample-value"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod1
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:alpine
+          env:
+            # TODO
+          volumeMounts:
+            # TODO
+        volumes:
+          # TODO
+  validation_steps:
+    - cmd: "kubectl get pod pod1 -o jsonpath='{.spec.containers[0].env[0].valueFrom.configMapKeyRef.name}'"
+      matcher: { "contains": "trauerweide" }
+    - cmd: "kubectl get pod pod1 -o jsonpath='{.spec.volumes[0].configMap.name}'"
+      matcher: { "contains": "birke" }
+- id: yaml_quiz::deployment-readiness
+  prompt: "Edit 'deployment.yaml' to create a Deployment named 'space-alien-welcome-message-generator' using the 'httpd:alpine' image. It should have 1 replica and a readinessProbe that runs the command 'stat /tmp/ready' with an 'initialDelaySeconds' of 10 and a 'periodSeconds' of 5. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing"
+  initial_files:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: space-alien-welcome-message-generator
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: space-alien-welcome-message-generator
+        template:
+          metadata:
+            labels:
+              app: space-alien-welcome-message-generator
+          spec:
+            containers:
+            - name: httpd
+              image: httpd:alpine
+              readinessProbe:
+                # TODO
+  validation_steps:
+    - cmd: "kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.exec.command[1]}'"
+      matcher: { "contains": "/tmp/ready" }
+    - cmd: "kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.initialDelaySeconds}'"
+      matcher: { "contains": "10" }
+- id: yaml_quiz::web-server-pod
+  prompt: "Edit 'pod.yaml' to create a Pod named 'web-server' using the 'nginx:1.20' image, exposing port 80. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing - Pods"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: # TODO: Add name
+      spec:
+        containers:
+        - name: # TODO: Add container name
+          image: # TODO: Add image
+          ports:
+          - containerPort: # TODO: Add port
+  validation_steps:
+    - cmd: "kubectl get pod web-server -o jsonpath='{.spec.containers[0].image}'"
+      matcher: { "contains": "nginx:1.20" }
+    - cmd: "kubectl get pod web-server -o jsonpath='{.spec.containers[0].ports[0].containerPort}'"
+      matcher: { "contains": "80" }
+  explanation: "Basic pod with specific name, image, and port configuration"
+- id: yaml_quiz::pod-with-env
+  prompt: "Edit 'pod.yaml' to create a Pod named 'app-pod' with environment variables: DB_HOST=localhost, DB_PORT=5432. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing - Pods"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: app-pod
+      spec:
+        containers:
+        - name: app
+          image: nginx
+          env:
+          # TODO: Add environment variables
+  validation_steps:
+    - cmd: "kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[0].name}'"
+      matcher: { "contains": "DB_HOST" }
+    - cmd: "kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[1].value}'"
+      matcher: { "contains": "5432" }
+  explanation: "Pod with environment variables defined in container spec"
+- id: yaml_quiz::frontend-deployment
+  prompt: "Edit 'deployment.yaml' to create a Deployment named 'frontend' with 3 replicas of 'nginx:1.21'. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing - Deployments"
+  initial_files:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: # TODO: Add name
+      spec:
+        replicas: # TODO: Set replicas
+        selector:
+          matchLabels:
+            app: frontend
+        template:
+          metadata:
+            labels:
+              app: frontend
+          spec:
+            containers:
+            - name: nginx
+              image: # TODO: Set image
+  validation_steps:
+    - cmd: "kubectl get deploy frontend -o jsonpath='{.spec.replicas}'"
+      matcher: { "contains": "3" }
+    - cmd: "kubectl get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}'"
+      matcher: { "contains": "nginx:1.21" }
+  explanation: "Deployment with replica count and proper label selectors"
+- id: yaml_quiz::app-config-cm
+  prompt: "Edit 'configmap.yaml' to create a ConfigMap named 'app-config' with the data 'database_url=mysql://localhost:3306/app'. After editing, apply the manifest."
+  type: live_k8s
+  category: "YAML Editing - ConfigMaps"
+  initial_files:
+    configmap.yaml: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: # TODO: Add name
+      data:
+        # TODO: Add data fields
+  validation_steps:
+    - cmd: "kubectl get configmap app-config -o jsonpath='{.data.database_url}'"
+      matcher: { "contains": "mysql://localhost:3306/app" }
+  explanation: "ConfigMap with key-value data for application configuration"
