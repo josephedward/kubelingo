@@ -98,7 +98,7 @@ questions:
       - https://artifacthub.io/packages/helm/bitnami/node
   - id: helm-q13
     category: "Helm Basics"
-    prompt: "How do you print the contents of the `values.yaml` for the `bitnami/node` chart?"
+    prompt: "Assuming the `bitnami` repository has been added, how do you print the contents of the `values.yaml` for the `bitnami/node` chart?"
     response: "helm show values bitnami/node"
     explanation: |
       `helm show values <chart>` displays the contents of the `values.yaml` file for a given chart. For example: `helm show values bitnami/node`.
