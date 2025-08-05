@@ -81,7 +81,7 @@ questions:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q11
     category: "Helm Basics"
-    prompt: "What command downloads the `wordpress` chart from the `bitnami` repository without installing it?"
+    prompt: "Assuming the `bitnami` repository has been added, what command downloads the `wordpress` chart from it without installing it?"
     response: "helm pull bitnami/wordpress"
     explanation: |
       Use `helm pull [repo/chartname]` to download a chart to your local directory. Use the `--untar` flag to extract the chart after downloading.
@@ -106,7 +106,7 @@ questions:
       - https://helm.sh/docs/helm/helm_show/
   - id: helm-q14
     category: "Helm Basics"
-    prompt: "How do you install the `bitnami/node` chart as a release named `my-node`, setting the `replicaCount` value to 5?"
+    prompt: "Assuming the `bitnami` repository has been added, how do you install the `bitnami/node` chart as a release named `my-node`, setting the `replicaCount` value to 5?"
     response: "helm install my-node bitnami/node --set replicaCount=5"
     explanation: |
       You can override values in a chart's `values.yaml` file at installation time using the `--set` flag. First, find the relevant key (e.g., with `helm show values bitnami/node | grep -i replica`). Then, install the chart with the override: `helm install my-node bitnami/node --set replicaCount=5`.
