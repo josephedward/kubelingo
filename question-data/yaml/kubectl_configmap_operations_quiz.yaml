@@ -27,13 +27,6 @@ questions:
     links:
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20"
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)"
-  - id: cm-ops-q5
-    category: "ConfigMap Operations"
-    prompt: "Create a pod that uses a ConfigMap as environment variables"
-    response: "kubectl run app --image=nginx --dry-run=client -o yaml > pod.yaml # add envFrom with configMapRef"
-    links:
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20a%20container%20environment%20variable,data%20from%20a%20single%20ConfigMap"
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
   - id: cm-ops-q6
     category: "ConfigMap Operations"
     prompt: "Extract a ConfigMap to YAML format"
@@ -54,13 +47,6 @@ questions:
     links:
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
-  - id: cm-ops-q9
-    category: "ConfigMap Operations"
-    prompt: "Mount a ConfigMap as a volume in a pod at path /etc/config with specific file permissions"
-    response: "kubectl run config-pod --image=nginx --dry-run=client -o yaml > pod.yaml # then add volume with defaultMode"
-    links:
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=volumes%3A%20,config%20restartPolicy%3A%20Never"
-      - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=kubectl%20create%20"
   - id: cm-ops-q10
     category: "ConfigMap Operations"
     prompt: "Create a ConfigMap from an env file"
