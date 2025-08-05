@@ -32,5 +32,6 @@ class Question:
     explanation: Optional[str] = None
     categories: List[str] = field(default_factory=list)
     difficulty: Optional[str] = None
+    review: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
 
