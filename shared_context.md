@@ -158,6 +158,7 @@ Updated interactive CLI quiz session to:
   - **Fixed**: For Kubernetes questions, the AI evaluator now programmatically prepends `kubectl` to answers that start with a valid subcommand (e.g., `get`, `annotate`) but omit the `kubectl` or `k` prefix. This prevents answers from being marked incorrect for a missing prefix, improving the learning experience.
   - **Fixed**: Clarified several questions in the Helm quiz that were ambiguous or lacked necessary information in the prompt (e.g., a release name or chart name). This ensures that questions can be answered correctly based on the provided text, improving the user experience and fairness of the AI evaluation.
   - **Cleanup**: Standardized the use of backticks for names and commands in Helm quiz prompts and removed a redundant link to improve consistency.
+  - **Fixed**: Further clarified Helm quiz questions that rely on a repository (`bitnami`) by explicitly stating in the prompt to assume the repository has already been added. This removes ambiguity and ensures questions provide all necessary context.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Standardized Quiz Formats
