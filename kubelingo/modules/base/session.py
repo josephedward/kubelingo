@@ -59,8 +59,8 @@ class SessionManager:
         except IOError as e:
             print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
 
-    def mark_question_for_review(self, data_file, category, prompt_text):
-        """Adds 'review': True to the matching question in the JSON data file."""
+    def mark_question_for_review(self, data_file, question_id):
+        """Adds 'review': True to the matching question by its ID."""
         # Load file and flag the matching question; support JSON modules and YAML question lists
         ext = os.path.splitext(data_file)[1].lower()
         # YAML raw quiz: list of question items
@@ -88,19 +88,12 @@ class SessionManager:
                 return
             changed = False
             for item in data:
-                if not isinstance(item, dict):
-                    continue
-                sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
-                if sec_cat != category:
-                    continue
-                text = item.get('prompt') or item.get('question')
-                if text != prompt_text:
-                    continue
-                item['review'] = True
-                changed = True
-                break
+                if isinstance(item, dict) and item.get('id') == question_id:
+                    item['review'] = True
+                    changed = True
+                    break
             if not changed:
-                self.logger.error(f"Question not found in {data_file} to flag for review: {prompt_text}")
+                self.logger.error(f"Question with ID '{question_id}' not found in {data_file} to flag for review.")
                 return
             try:
                 with open(data_file, 'w') as f:
@@ -119,12 +112,12 @@ class SessionManager:
         if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
             changed = False
             for item in data:
-                if item.get('category') == category and item.get('prompt') == prompt_text:
+                if isinstance(item, dict) and item.get('id') == question_id:
                     item['review'] = True
                     changed = True
                     break
             if not changed:
-                print(Fore.RED + f"Warning: question not found in {data_file} to flag for review." + Style.RESET_ALL)
+                print(Fore.RED + f"Warning: question with ID '{question_id}' not found in {data_file} to flag for review." + Style.RESET_ALL)
                 return
             try:
                 with open(data_file, 'w') as f:
@@ -136,17 +129,16 @@ class SessionManager:
         # Sectioned JSON modules
         changed = False
         for section in data:
-            if section.get('category') == category:
-                qs = section.get('questions', []) or section.get('prompts', [])
-                for item in qs:
-                    if item.get('prompt') == prompt_text:
-                        item['review'] = True
-                        changed = True
-                        break
+            qs = section.get('questions', []) or section.get('prompts', [])
+            for item in qs:
+                if isinstance(item, dict) and item.get('id') == question_id:
+                    item['review'] = True
+                    changed = True
+                    break
             if changed:
                 break
         if not changed:
-            self.logger.error(f"Question not found in {data_file} to flag for review: {prompt_text}")
+            self.logger.error(f"Question with ID '{question_id}' not found in {data_file} to flag for review.")
             return
         try:
             with open(data_file, 'w') as f:
@@ -154,8 +146,8 @@ class SessionManager:
         except Exception as e:
             self.logger.error(f"Error writing JSON file when flagging for review: {e}")
 
-    def unmark_question_for_review(self, data_file, category, prompt_text):
-        """Removes 'review' flag from the matching question in the JSON data file."""
+    def unmark_question_for_review(self, data_file, question_id):
+        """Removes 'review' flag from the matching question by its ID."""
         # Load file and remove the review flag; support JSON modules and YAML question lists
         ext = os.path.splitext(data_file)[1].lower()
         # YAML raw quiz: list of question items
@@ -185,17 +177,10 @@ class SessionManager:
                 return
             changed = False
             for item in data:
-                if not isinstance(item, dict):
-                    continue
-                sec_cat = item.get('category') or (item.get('metadata') or {}).get('category')
-                if sec_cat != category:
-                    continue
-                text = item.get('prompt') or item.get('question')
-                if text != prompt_text or 'review' not in item:
-                    continue
-                del item['review']
-                changed = True
-                break
+                if isinstance(item, dict) and item.get('id') == question_id and 'review' in item:
+                    del item['review']
+                    changed = True
+                    break
             if not changed:
                 return
             try:
@@ -216,7 +201,7 @@ class SessionManager:
         if isinstance(data, list) and data and isinstance(data[0], dict) and 'prompt' in data[0] and not any(k in data[0] for k in ('questions', 'prompts')):
             changed = False
             for item in data:
-                if item.get('category') == category and item.get('prompt') == prompt_text and 'review' in item:
+                if isinstance(item, dict) and item.get('id') == question_id and 'review' in item:
                     del item['review']
                     changed = True
                     break
@@ -232,13 +217,12 @@ class SessionManager:
         # Sectioned JSON modules
         changed = False
         for section in data:
-            if section.get('category') == category:
-                qs = section.get('questions', []) or section.get('prompts', [])
-                for item in qs:
-                    if item.get('prompt') == prompt_text and item.get('review'):
-                        del item['review']
-                        changed = True
-                        break
+            qs = section.get('questions', []) or section.get('prompts', [])
+            for item in qs:
+                if isinstance(item, dict) and item.get('id') == question_id and item.get('review'):
+                    del item['review']
+                    changed = True
+                    break
             if changed:
                 break
         if not changed:
