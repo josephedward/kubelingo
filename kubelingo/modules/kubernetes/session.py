@@ -832,14 +832,6 @@ class NewSession(StudySession):
                                     self.session_manager.unmark_question_for_review(question_id)
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
-                            # Display expected answer for reference
-                            expected_answer = q.get('response', '').strip()
-                            if expected_answer:
-                                print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
-                            # Display citation/source if available
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                             if current_question_index == total_questions - 1:
                                 finish_quiz = True
