@@ -111,10 +111,9 @@ def _get_yaml_quiz_files():
 
 def get_all_flagged_questions():
     """Returns a list of all questions from all files that are flagged for review."""
-    all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
-    if os.path.exists(VIM_QUESTIONS_FILE):
-        all_quiz_files.append(VIM_QUESTIONS_FILE)
-    all_quiz_files = sorted(list(set(all_quiz_files)))
+    # Collect flagged questions only from Markdown and YAML quiz files
+    all_quiz_files = _get_md_quiz_files() + _get_yaml_quiz_files()
+    all_quiz_files = sorted(set(all_quiz_files))
 
     all_flagged = []
     for f in all_quiz_files:
@@ -132,10 +131,8 @@ def get_all_flagged_questions():
 
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in all known JSON quiz files."""
-    quiz_files = _get_quiz_files()
-    # Also include the vim file in the clear operation
-    if os.path.exists(VIM_QUESTIONS_FILE):
-        quiz_files.append(VIM_QUESTIONS_FILE)
+    # Clear review flags in all YAML quiz files
+    quiz_files = _get_yaml_quiz_files()
 
     cleared_count = 0
     for data_file in quiz_files:
@@ -692,7 +689,7 @@ class NewSession(StudySession):
                     is_flagged = q.get('review', False)
                     flag_option_text = "Unflag" if is_flagged else "Flag"
 
-                    # Action menu options: Work on Answer (in Shell), Check Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
+                    # Action menu options: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
                     choices = []
                     
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
@@ -786,11 +783,19 @@ class NewSession(StudySession):
                     if action == "flag":
                         data_file_path = q.get('data_file', args.file)
                         if is_flagged:
-                            self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            self.session_manager.unmark_question_for_review(
+                                data_file_path,
+                                q.get('category'),
+                                q.get('prompt')
+                            )
                             q['review'] = False
                             print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
                         else:
-                            self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            self.session_manager.mark_question_for_review(
+                                data_file_path,
+                                q.get('category'),
+                                q.get('prompt')
+                            )
                             q['review'] = True
                             print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
                         continue
@@ -911,9 +916,17 @@ class NewSession(StudySession):
                         # Auto-flag wrong answers, unflag correct ones
                         data_file_path = q.get('data_file', args.file)
                         if current_question_index in correct_indices:
-                            self.session_manager.unmark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            self.session_manager.unmark_question_for_review(
+                                data_file_path,
+                                q.get('category'),
+                                q.get('prompt')
+                            )
                         else:
-                            self.session_manager.mark_question_for_review(data_file_path, q['category'], q['prompt'])
+                            self.session_manager.mark_question_for_review(
+                                data_file_path,
+                                q.get('category'),
+                                q.get('prompt')
+                            )
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
