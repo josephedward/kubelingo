@@ -495,3 +495,5 @@ Nested `metadata:` blocks in YAML files are automatically flattened at runtime b
 To streamline the architecture and fully embrace a standardized data format, Kubelingo now exclusively uses YAML files for all quiz modules. The `JSONLoader` and `MDLoader` have been removed, simplifying the data loading pipeline and ensuring that all questions adhere to the standard YAML schema.
 
 The question flagging mechanism has also been refactored to be independent of the source file. Previously, flagging a question required its `data_file`, which created a dependency on legacy file structures. Flagging now operates on the unique `id` of each question, making the feature more robust and compatible with the unified, in-memory question database.
+
+> **Note**: A `KeyError: 'category'` during flagging operations reveals that parts of the quiz session logic still use a legacy method signature (`data_file`, `category`, `prompt`) instead of the question's `id`. This needs to be refactored to fully align with the documented `id`-based approach and resolve crashes for questions that lack a `category` field (e.g., from the Vim quiz).
