@@ -13,7 +13,8 @@ questions:
   - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
 - id: pod-mgmt-q3
   category: Pod Management
-  prompt: Generate a YAML definition file for a pod named nginx without creating it
+  prompt: Generate a YAML definition file for a pod named nginx, using the nginx image,
+    without creating it
   response: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
   links:
   - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
