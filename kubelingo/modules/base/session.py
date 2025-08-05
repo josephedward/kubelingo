@@ -6,7 +6,7 @@ try:
 except ImportError:
     yaml = None
 
-from kubelingo.utils.config import HISTORY_FILE, FLAGGED_QUESTIONS_FILE
+from kubelingo.utils.config import HISTORY_FILE, FLAGGED_QUESTIONS_FILE, DATA_DIR
 from kubelingo.utils.ui import Fore, Style
 
 
