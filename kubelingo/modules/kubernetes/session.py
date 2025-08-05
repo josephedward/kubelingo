@@ -572,6 +572,11 @@ class NewSession(StudySession):
                 self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
             questions = unique_questions
 
+            # Set the 'review' flag on questions based on the central flagged list
+            for q_to_flag in questions:
+                if q_to_flag.get('id') in self.session_manager.flagged_ids:
+                    q_to_flag['review'] = True
+
             if args.review_only and not questions:
                 print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)
                 return
