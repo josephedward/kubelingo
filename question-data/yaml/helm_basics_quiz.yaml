@@ -25,7 +25,7 @@ questions:
       - https://helm.sh/docs/helm/helm_list/
   - id: helm-q4
     category: "Helm Basics"
-    prompt: "How can you uninstall a Helm release?"
+    prompt: "How can you uninstall a Helm release named 'my-release'?"
     response: "helm uninstall my-release"
     explanation: |
       To uninstall a release, use `helm uninstall <release_name>`. If the release is in another namespace, use the `-n <namespace>` flag. This removes all Kubernetes resources associated with the release.
