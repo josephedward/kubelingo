@@ -2,164 +2,164 @@
 # Each entry contains a question (prompt), a solution file, and optionally a source URL.
 ---
 - id: vim_quiz_data::0
-  question: "Enter insert mode at cursor"
+  prompt: "Enter insert mode at cursor"
   answers: ["i"]
   explanation: "insert before the cursor"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::1
-  question: "Append text after cursor"
+  prompt: "Append text after cursor"
   answers: ["a"]
   explanation: "insert (append) after the cursor"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::2
-  question: "Open a new line below the current line"
+  prompt: "Open a new line below the current line"
   answers: ["o"]
   explanation: "append (open) a new line below the current line"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::3
-  question: "Save file and quit"
+  prompt: "Save file and quit"
   answers: [":wq", ":x", "ZZ"]
   explanation: "write (save) and quit"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::4
-  question: "Exit without saving changes"
+  prompt: "Exit without saving changes"
   answers: [":q!", "ZQ"]
   explanation: "quit and throw away unsaved changes"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::5
-  question: "Save file without exiting"
+  prompt: "Save file without exiting"
   answers: [":w"]
   explanation: "write (save) the file, but don't exit"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::6
-  question: "Delete current line"
+  prompt: "Delete current line"
   answers: ["dd"]
   explanation: "delete (cut) a line"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::7
-  question: "Copy current line (yank)"
+  prompt: "Copy current line (yank)"
   answers: ["yy"]
   explanation: "yank (copy) a line"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::8
-  question: "Paste after cursor"
+  prompt: "Paste after cursor"
   answers: ["p"]
   explanation: "put (paste) the clipboard after cursor"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::9
-  question: "Undo last change"
+  prompt: "Undo last change"
   answers: ["u"]
   explanation: "undo"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::10
-  question: "Search forward for 'pattern'"
+  prompt: "Search forward for 'pattern'"
   answers: ["/pattern"]
   explanation: "search for pattern"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::11
-  question: "Find next search occurrence"
+  prompt: "Find next search occurrence"
   answers: ["n"]
   explanation: "repeat search in same direction"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::12
-  question: "Go to top of file"
+  prompt: "Go to top of file"
   answers: ["gg"]
   explanation: "go to the first line of the document"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::13
-  question: "Go to end of file"
+  prompt: "Go to end of file"
   answers: ["G"]
   explanation: "go to the last line of the document"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::14
-  question: "Go to line 10"
+  prompt: "Go to line 10"
   answers: [":10", "10gg", "10G"]
   explanation: "go to line N (e.g. 5gg or 5G)"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::15
-  question: "Exit insert mode"
+  prompt: "Exit insert mode"
   answers: ["<Esc>", "<C-c>"]
   explanation: "exit insert mode"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::17
-  question: "Redo the last undone change"
+  prompt: "Redo the last undone change"
   answers: ["<C-r>"]
   explanation: "redo"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::18
-  question: "Enter visual mode"
+  prompt: "Enter visual mode"
   answers: ["v"]
   explanation: "start visual mode, mark lines, then do a command (like y-yank)"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::19
-  question: "Enter visual line mode"
+  prompt: "Enter visual line mode"
   answers: ["V"]
   explanation: "start linewise visual mode"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::20
-  question: "Enter visual block mode"
+  prompt: "Enter visual block mode"
   answers: ["<C-v>"]
   explanation: "start visual block mode"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::21
-  question: "Enter replace mode"
+  prompt: "Enter replace mode"
   answers: ["R"]
   explanation: "replace more than one character, until ESC is pressed"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::22
-  question: "Move to the next word"
+  prompt: "Move to the next word"
   answers: ["w"]
   explanation: "jump forwards to the start of a word"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::23
-  question: "Move to the previous word"
+  prompt: "Move to the previous word"
   answers: ["b"]
   explanation: "jump backwards to the start of a word"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::24
-  question: "Move to the end of the word"
+  prompt: "Move to the end of the word"
   answers: ["e"]
   explanation: "jump forwards to the end of a word"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::25
-  question: "Move to the first character of the line"
+  prompt: "Move to the first character of the line"
   answers: ["0"]
   explanation: "jump to the start of the line"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::26
-  question: "Move to the end of the line"
+  prompt: "Move to the end of the line"
   answers: ["$"]
   explanation: "jump to the end of the line"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
 - id: vim_quiz_data::27
-  question: "Jump to matching bracket"
+  prompt: "Jump to matching bracket"
   answers: ["%"]
   explanation: "move cursor to matching character (default supported pairs: '()', '{}', '[]')"
-  source: "https://vimdoc.sourceforge.net/"
+  source: "https://www.vim.org/docs.php"
   validation_steps: []
