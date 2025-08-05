@@ -919,18 +919,12 @@ class NewSession(StudySession):
                             self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
                         # Auto-flag wrong answers, unflag correct ones
                         data_file_path = q.get('data_file', args.file)
-                        if current_question_index in correct_indices:
-                            self.session_manager.unmark_question_for_review(
-                                data_file_path,
-                                q.get('category'),
-                                q.get('prompt')
-                            )
-                        else:
-                            self.session_manager.mark_question_for_review(
-                                data_file_path,
-                                q.get('category'),
-                                q.get('prompt')
-                            )
+                        question_id = q.get('id')
+                        if question_id:
+                            if current_question_index in correct_indices:
+                                self.session_manager.unmark_question_for_review(data_file_path, question_id)
+                            else:
+                                self.session_manager.mark_question_for_review(data_file_path, question_id)
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
