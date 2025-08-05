@@ -9,7 +9,7 @@ questions:
       - https://helm.sh/docs/helm/helm_create/
   - id: helm-q2
     category: "Helm Basics"
-    prompt: "How do you install a Helm chart from a local directory?"
+    prompt: "How do you install the Helm chart located in './my-chart' with the release name 'my-release'?"
     response: "helm install my-release ./my-chart"
     explanation: |
       Use `helm install <release-name> <chart-path>` to deploy an application. For example, `helm install my-release ./my-chart` installs the chart located in the `./my-chart` directory with the release name `my-release`.
@@ -33,18 +33,18 @@ questions:
       - https://helm.sh/docs/helm/helm_uninstall/
   - id: helm-q5
     category: "Helm Basics"
-    prompt: "What is the command to upgrade a Helm release?"
+    prompt: "How do you upgrade the existing Helm release named 'my-release' using the chart located in './my-chart'?"
     response: "helm upgrade my-release ./my-chart"
     explanation: |
-      To upgrade a release, use `helm upgrade <release_name> <chart-path>`. This command can be used to apply a new chart version or to change configuration values. You can pass multiple values files with `-f`.
+      Use `helm upgrade <release_name> <chart-path>` to apply updates to an existing release. For example, `helm upgrade my-release ./my-chart` upgrades the release `my-release` using the chart in the `./my-chart` directory.
     links:
       - https://helm.sh/docs/helm/helm_upgrade/
   - id: helm-q6
     category: "Helm Repositories"
-    prompt: "What command is used to add a Helm chart repository?"
+    prompt: "What command is used to add the 'stable' Helm chart repository at https://charts.helm.sh/stable?"
     response: "helm repo add stable https://charts.helm.sh/stable"
     explanation: |
-      `helm repo add [NAME] [URL]` is used to add a new chart repository.
+      Use `helm repo add stable https://charts.helm.sh/stable` to add the official stable chart repository.
     links:
       - https://helm.sh/docs/helm/helm_repo/
   - id: helm-q7
@@ -89,12 +89,12 @@ questions:
       - https://helm.sh/docs/helm/helm_pull/
   - id: helm-q12
     category: "Helm Repositories"
-    prompt: "How do you add the Bitnami chart repository to Helm?"
+    prompt: "How do you add the Bitnami chart repository located at https://charts.bitnami.com/bitnami with the name 'bitnami'?"
     response: "helm repo add bitnami https://charts.bitnami.com/bitnami"
     explanation: |
-      Add the Bitnami repo with: `helm repo add bitnami https://charts.bitnami.com/bitnami`.
+      Use `helm repo add bitnami https://charts.bitnami.com/bitnami` to add the Bitnami repository under the name `bitnami`.
     links:
-      - https://artifacthub.io/packages/helm/bitnami/node
+      - https://charts.bitnami.com/bitnami
   - id: helm-q13
     category: "Helm Basics"
     prompt: "How do you print the contents of the values.yaml for the `bitnami/node` chart?"
