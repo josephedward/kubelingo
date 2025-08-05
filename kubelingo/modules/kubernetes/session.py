@@ -880,23 +880,13 @@ class NewSession(StudySession):
                             self._check_command_with_ai(q, result, current_question_index, attempted_indices, correct_indices)
                         else:
                             self._check_and_process_answer(args, q, result, current_question_index, attempted_indices, correct_indices)
-                        # Auto-flag wrong answers, unflag correct ones (using category and prompt)
-                        data_file_path = q.get('data_file', args.file)
-                        category = q.get('category')
-                        prompt_text = q.get('prompt')
-                        if category and prompt_text:
+                        # Auto-flag wrong answers, unflag correct ones by question ID
+                        question_id = q.get('id')
+                        if question_id:
                             if current_question_index in correct_indices:
-                                self.session_manager.unmark_question_for_review(
-                                    data_file_path,
-                                    category,
-                                    prompt_text
-                                )
+                                self.session_manager.unmark_question_for_review(question_id)
                             else:
-                                self.session_manager.mark_question_for_review(
-                                    data_file_path,
-                                    category,
-                                    prompt_text
-                                )
+                                self.session_manager.mark_question_for_review(question_id)
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()

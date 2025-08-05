@@ -133,26 +133,6 @@ class SessionManager:
         """Removes 'review' flag from the matching question in its source YAML file."""
         self._update_review_status(question_id, review=False)
 
-    # New id-based flagging logic (overrides legacy file-based methods)
-    def mark_question_for_review(self, question_id):
-        """Record a question ID for review."""
-        self.flagged_ids.add(question_id)
-        self._save_flagged_file()
-
-    def unmark_question_for_review(self, question_id):
-        """Remove a question ID from review flags."""
-        if question_id in self.flagged_ids:
-            self.flagged_ids.remove(question_id)
-            self._save_flagged_file()
-
-    def _save_flagged_file(self):
-        """Persist the current set of flagged question IDs to disk."""
-        try:
-            os.makedirs(os.path.dirname(self.flagged_file), exist_ok=True)
-            with open(self.flagged_file, 'w') as f:
-                json.dump(sorted(self.flagged_ids), f, indent=2)
-        except Exception as e:
-            print(Fore.RED + f"Error saving review flags: {e}" + Style.RESET_ALL)
     
 class StudySession:
     """Base class for a study session for a specific subject."""
