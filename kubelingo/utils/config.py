@@ -17,7 +17,6 @@ DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
 YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_quiz.json')
 # Built-in Vim quiz data file (YAML-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'vim_quiz.yaml')
-YAML_EXERCISES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_exercises_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_resource_types.yaml')
 # Renamed syntax quiz from kubectl_syntax_quiz.yaml
@@ -31,14 +30,13 @@ KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl
 KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_secret_management_quiz.yaml')
 KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_service_account_ops_quiz.yaml')
 KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_additional_commands_quiz.yaml')
-YAML_EDITING_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
     "Vim Quiz": VIM_QUESTIONS_FILE,
-    "YAML Exercises": YAML_EXERCISES_QUIZ_FILE,
+    "YAML Editing": YAML_QUESTIONS_FILE,
     "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
     "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
@@ -51,8 +49,6 @@ ENABLED_QUIZZES = {
     "Kubectl Secret Management": KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE,
     "Kubectl Service Account Operations": KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE,
     "Kubectl Additional Commands": KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE,
-    "YAML Editing": YAML_QUESTIONS_FILE,
-    "YAML Editing": YAML_EDITING_QUIZ_FILE,
 }
 
 # CSV files
