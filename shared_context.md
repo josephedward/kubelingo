@@ -496,4 +496,4 @@ To streamline the architecture and fully embrace a standardized data format, Kub
 
 The question flagging mechanism has also been refactored to be independent of the source file. Previously, flagging a question required its `data_file`, which created a dependency on legacy file structures. Flagging now operates on the unique `id` of each question, making the feature more robust and compatible with the unified, in-memory question database.
 
-> **Note**: A `KeyError: 'category'` during flagging operations reveals that parts of the quiz session logic still use a legacy method signature (`data_file`, `category`, `prompt`) instead of the question's `id`. This needs to be refactored to fully align with the documented `id`-based approach and resolve crashes for questions that lack a `category` field (e.g., from the Vim quiz).
+> **Fixed**: The question flagging mechanism is now fully `id`-based, resolving a `KeyError: 'category'` that occurred when flagging questions without a category (e.g., from the Vim quiz). The `SessionManager` now correctly derives the source file from the question `id`, removing the need to pass legacy parameters.
