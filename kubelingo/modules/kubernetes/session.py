@@ -714,20 +714,24 @@ class NewSession(StudySession):
             # Questions for quiz: include AI-generated extras if needed
             if clones_needed > 0:
                 # Inform user about AI-assisted question generation
-                print(f"\nGenerating {clones_needed} additional AI questions...")
-                try:
-                    generator = AIQuestionGenerator()
-                    # Generate AI-backed questions for this quiz category
-                    subject = questions[0].get('category', '') if questions else ''
-                    ai_qs = generator.generate_questions(subject, clones_needed)
-                    generated = len(ai_qs)
-                    if generated < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
-                except Exception as e:
-                    self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
-                    print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}This may be due to a missing OPENAI_API_KEY or network issues.{Style.RESET_ALL}")
+                if not os.getenv('OPENAI_API_KEY'):
+                    print(f"\n{Fore.RED}Cannot generate AI questions: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
                     ai_qs = []
+                else:
+                    print(f"\nGenerating {clones_needed} additional AI questions...")
+                    try:
+                        generator = AIQuestionGenerator()
+                        # Generate AI-backed questions for this quiz category
+                        subject = questions[0].get('category', '') if questions else ''
+                        ai_qs = generator.generate_questions(subject, clones_needed)
+                        generated = len(ai_qs)
+                        if generated < clones_needed:
+                            print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
+                    except Exception as e:
+                        self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
+                        print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}This may be due to a missing OPENAI_API_KEY or network issues.{Style.RESET_ALL}")
+                        ai_qs = []
                 # Assemble full question list
                 questions_to_ask = list(static_to_show)
                 for q_item in ai_qs:
