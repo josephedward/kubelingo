@@ -52,6 +52,7 @@ from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.modules.question_generator import AIQuestionGenerator
 from dataclasses import asdict
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 # Existing import
@@ -754,8 +755,46 @@ class NewSession(StudySession):
             just_answered = False
             current_question_index = 0
             transcripts_by_index = {}
+            ai_questions_generated = 0
+            max_ai_questions = 5
             
-            while current_question_index < len(questions_to_ask):
+            while current_question_index <= len(questions_to_ask):
+                if current_question_index == len(questions_to_ask):
+                    if ai_questions_generated >= max_ai_questions:
+                        print(f"\n{Fore.YELLOW}You've reached the maximum limit of {max_ai_questions} AI-generated questions.{Style.RESET_ALL}")
+                        break
+
+                    try:
+                        another = questionary.confirm(
+                            "You've finished the questions. Would you like an AI-generated question?",
+                            default=False
+                        ).ask()
+                    except (KeyboardInterrupt, EOFError):
+                        another = False
+
+                    if another is None or not another:
+                        break
+                    
+                    print(f"\n{Fore.CYAN}Generating a new AI question... (Attempt {ai_questions_generated + 1}/{max_ai_questions}){Style.RESET_ALL}")
+
+                    if 'generator' not in locals():
+                        generator = AIQuestionGenerator()
+
+                    base_for_gen = [q for q in questions if q.get('type', 'command') == 'command'] or questions
+                    
+                    new_qs = generator.generate_questions(
+                        base_questions=base_for_gen,
+                        num_to_generate=1,
+                        seen_prompts=seen_prompts
+                    )
+                    
+                    if new_qs:
+                        questions_to_ask.extend(new_qs)
+                        ai_questions_generated += 1
+                        total_questions = len(questions_to_ask)
+                    else:
+                        print(f"{Fore.RED}AI could not generate a unique question this time. Please try again later.{Style.RESET_ALL}")
+                        break
                 # Clear the terminal for visual clarity between questions, unless just answered
                 if not just_answered:
                     try:
@@ -809,6 +848,7 @@ class NewSession(StudySession):
                     # Navigation options
                     choices.append({"name": "Next Question", "value": "next"})
                     choices.append({"name": "Previous Question", "value": "prev"})
+                    choices.append({"name": "View All Questions", "value": "view_all"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
                     choices.append({"name": "Exit Quiz", "value": "back"})
@@ -860,6 +900,18 @@ class NewSession(StudySession):
                         current_question_index = max(current_question_index - 1, 0)
                         break
                     
+                    if action == "view_all":
+                        print(f"\n{Fore.CYAN}--- All {total_questions} Questions in this Quiz ---{Style.RESET_ALL}")
+                        for idx, q_item in enumerate(questions_to_ask, start=1):
+                            prompt_text = q_item.get('prompt', '').strip()
+                            if idx - 1 == current_question_index:
+                                print(f"{Fore.YELLOW}▶ {idx}. {prompt_text}{Style.RESET_ALL}")
+                            else:
+                                print(f"  {idx}. {prompt_text}")
+                        input("\nPress Enter to return to the question...")
+                        # Break from inner action loop to re-render the question prompt
+                        break
+
                     if action == "visit_source":
                         # Use citation if provided, fallback to source for URL
                         url = q.get('citation') or q.get('source')
