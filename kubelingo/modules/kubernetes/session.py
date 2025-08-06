@@ -12,7 +12,10 @@ from datetime import datetime
 import logging
 
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
-import questionary
+try:
+    import questionary
+except ImportError:
+    questionary = None
 from kubelingo.utils.config import (
     ROOT,
     LOGS_DIR,
@@ -619,6 +622,14 @@ class NewSession(StudySession):
                 if not questions:
                     print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                     return
+            # Interactive prompt for number of questions if not set
+            if not args.num and sys.stdin.isatty() and sys.stdout.isatty():
+                total_q = len(questions)
+                try:
+                    resp = input(f"How many questions would you like? [default: {total_q}] ").strip()
+                    args.num = int(resp) if resp else total_q
+                except Exception:
+                    args.num = total_q
 
             # Determine how many to ask based on user input
             total = len(questions)
