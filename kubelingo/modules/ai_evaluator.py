@@ -90,12 +90,13 @@ Your response MUST be a JSON object with two keys:
         The generated question's commands are validated for syntax.
         """
         global llm
+        use_llm = True
         if llm is None:
             try:
                 import llm as llm_module
                 llm = llm_module
             except ImportError:
-                return None # Cannot generate if llm is not available
+                use_llm = False  # fall back to openai directly if available
 
         from kubelingo.utils.validation import validate_kubectl_syntax
 
@@ -111,29 +112,48 @@ Your response MUST be a JSON object with two keys:
         )
         system_prompt = "You are an expert Kubernetes instructor creating quiz questions. You generate valid JSON."
 
-        try:
-            model = llm.get_model("gpt-4-turbo-preview")
-            response_text = model.prompt(
-                prompt_text,
-                system=system_prompt
-            ).text()
-            new_q = json.loads(response_text)
-
-            # Validate the generated question
-            if not isinstance(new_q, dict) or 'prompt' not in new_q or 'validation_steps' not in new_q:
+        new_q = None
+        # Attempt via llm package first
+        if use_llm:
+            try:
+                model = llm.get_model("gpt-4-turbo-preview")
+                response_text = model.prompt(
+                    prompt_text,
+                    system=system_prompt
+                ).text()
+                new_q = json.loads(response_text)
+            except Exception:
+                new_q = None
+        # Fallback: use openai directly if llm unavailable or failed
+        if new_q is None:
+            try:
+                import openai
+                # Ensure API key is set in environment
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt_text}
+                    ],
+                    temperature=0.7,
+                )
+                response_text = response.choices[0].message.content
+                new_q = json.loads(response_text)
+            except Exception:
                 return None
-
-            for step in new_q['validation_steps']:
-                if 'cmd' in step:
-                    validation_result = validate_kubectl_syntax(step['cmd'])
-                    if not validation_result.get('is_valid'):
-                        # The generated command is not valid, discard this question
-                        return None
-            
-            return new_q
-
-        except Exception:
+        # Validate the generated question structure
+        if not isinstance(new_q, dict) or 'prompt' not in new_q or 'validation_steps' not in new_q:
             return None
+        # Validate each step's syntax
+        # Validate generated commands with kubectl syntax checker
+        for step in new_q.get('validation_steps', []):
+            cmd = step.get('cmd')
+            if cmd:
+                validation_result = validate_kubectl_syntax(cmd)
+                if not validation_result.get('valid'):
+                    # Discard if syntax invalid
+                    return None
+        return new_q
 
 
     def _get_system_prompt_for_command_eval(self, quiz_type: str) -> str:
