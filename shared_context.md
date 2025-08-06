@@ -87,6 +87,23 @@ With this foundation, the next steps are to:
 
 Use PTY for quick local quizzes, Docker for safe, reproducible environments.
 
+### How YAML Quiz File Handling Works
+
+You don’t have to “tell” the quiz which filename you used — all wiring happens behind the scenes in the question definition:
+
+• **Live K8s Edits** (`type: live_k8s_edit` in `yaml_quiz.yaml`):
+  – Each question’s metadata includes an `initial_files` map (e.g. `pod.yaml` → a stub with TODOs).
+  – When you select “Work on Answer (in Shell)”, you enter a sandbox whose working directory already contains that exact file (`pod.yaml`).
+  – You edit that file (or rename and apply it with your own `-f`, if you prefer), then run `kubectl apply -f …`.
+  – On exit, Kubelingo runs the `validation_steps` (for example, `kubectl get pod resource-checker …`) against the live cluster state — it never needs to re‐read your local file.
+
+• **Pure YAML Comparisons** (`type: yaml_edit`):
+  – The CLI creates a tiny temp file under the covers and opens it in Vim for you to edit.
+  – When you exit Vim, it slurps the temp file’s contents into memory and `safe_load`s it via PyYAML to a Python object.
+  – That object is directly compared against the question’s `correct_yaml` field — again, you never name the file yourself.
+
+In both modes, the question’s metadata (`initial_files` + `pre_shell_cmds` + `validation_steps`) drives seeding, checking, and grading. You simply edit & apply as instructed; the quiz picks up your work through its validation commands or by comparing the in-memory YAML object.
+
 ### Session Transcript Logging & AI-Based Evaluation
 To support full-session auditing and optional AI judgment, we can record everything the user does in the sandbox:
 1. **Robust PTY shell launch with `script`**:
