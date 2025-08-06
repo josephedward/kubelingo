@@ -545,7 +545,6 @@ class NewSession(StudySession):
             session_id = start_time.strftime('%Y%m%dT%H%M%S')
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
-            ai_generation_enabled = False
 
             if args.review_only:
                 questions = get_all_flagged_questions()
@@ -665,25 +664,14 @@ class NewSession(StudySession):
                     print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
                     return
 
-            # Support legacy args.num_questions from tests or aliases
+            # Determine how many questions to ask based on user input or defaults
             num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
             requested = num_arg if num_arg and num_arg > 0 else total
-            # Determine static questions to show
-            # Warn and clamp if user requested more questions than available
+            # Determine static questions to show, and compute AI extras needed
             clones_needed = 0
             if requested > total:
                 clones_needed = requested - total
-                if ai_generation_enabled:
-                    if total > 0:
-                        print(f"\nRequested {requested} questions. Using {total} from quiz file and generating {clones_needed} more with AI.")
-                    else:
-                        print(f"\nAI will generate {requested} questions.")
-                else:
-                    if total > 0:
-                        print(f"\nRequested {requested} questions but only {total} available. This quiz does not support AI generation. Proceeding with {total}.")
-                    else:
-                        print(f"\nNo questions found and AI generation is not enabled for this quiz.")
-                    clones_needed = 0
+                print(f"\nRequested {requested} questions but only {total} available. Proceeding with {total}.")
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested)
@@ -696,11 +684,9 @@ class NewSession(StudySession):
                 if clones_needed > 0:
                     try:
                         generator = AIQuestionGenerator()
-                        ai_qs = generator.generate_questions(
-                            base_questions=loaded_questions,
-                            num_to_generate=clones_needed,
-                            existing_prompts=seen_prompts
-                        )
+                        # Generate AI-backed questions for this quiz category
+                        subject = questions[0].get('category', '') if questions else ''
+                        ai_qs = generator.generate_questions(subject, clones_needed)
                     except Exception as e:
                         self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
                         print(f"{Fore.RED}Error: Could not list AI-generated questions due to an issue with the AI service.{Style.RESET_ALL}")
@@ -728,11 +714,9 @@ class NewSession(StudySession):
                 print(f"\nGenerating {clones_needed} additional AI questions...")
                 try:
                     generator = AIQuestionGenerator()
-                    ai_qs = generator.generate_questions(
-                        base_questions=loaded_questions,
-                        num_to_generate=clones_needed,
-                        existing_prompts=seen_prompts
-                    )
+                    # Generate AI-backed questions for this quiz category
+                    subject = questions[0].get('category', '') if questions else ''
+                    ai_qs = generator.generate_questions(subject, clones_needed)
                     generated = len(ai_qs)
                     if generated < clones_needed:
                         print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
@@ -810,11 +794,9 @@ class NewSession(StudySession):
 
                     base_for_gen = [q for q in questions if q.get('type', 'command') == 'command'] or questions
                     
-                    new_qs = generator.generate_questions(
-                        base_questions=base_for_gen,
-                        num_to_generate=1,
-                        existing_prompts=seen_prompts
-                    )
+                    # Generate one AI-based follow-up question for this quiz category
+                    subject = questions[0].get('category', '') if questions else ''
+                    new_qs = generator.generate_questions(subject, 1)
                     
                     if new_qs:
                         questions_to_ask.extend(new_qs)
