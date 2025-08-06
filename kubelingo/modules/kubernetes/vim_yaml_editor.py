@@ -45,8 +45,14 @@ class VimYamlEditor:
                 print("\nEditor launch cancelled.")
                 return None
 
-        # Write to temp file
+        # Write to a temporary YAML file, injecting the prompt as comments if provided
         with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode='w', encoding='utf-8') as tmp:
+            # Inject prompt at the top of the file as comments for context
+            if prompt:
+                for line in prompt.splitlines():
+                    tmp.write(f"# {line}\n")
+                tmp.write("\n")
+            # Write the YAML content
             if isinstance(yaml_content, str):
                 tmp.write(yaml_content)
             else:
@@ -68,6 +74,10 @@ class VimYamlEditor:
             # If using Vim, provide a temp vimrc for consistent settings.
             if 'vim' in editor_name:
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.vimrc', encoding='utf-8') as f:
+                    # Ensure Vim is not in 'compatible' mode and backspace works across indents, line breaks, and start of insert
+                    f.write("set nocompatible\n")
+                    f.write("set backspace=indent,eol,start\n")
+                    # Use spaces for tabs and configure indentation
                     f.write("set expandtab\n")
                     f.write("set tabstop=2\n")
                     f.write("set shiftwidth=2\n")
@@ -104,14 +114,6 @@ class VimYamlEditor:
             # Read back edited content
             with open(tmp_filename, 'r', encoding='utf-8') as f:
                 content = f.read()
-            # Quick syntax check: detect lines with multiple colons indicating likely invalid YAML
-            for line in content.splitlines():
-                s = line.strip()
-                if not s or s.startswith('#'):
-                    continue
-                if s.count(':') > 1:
-                    print(f"\033[31mFailed to parse YAML: invalid syntax on line '{s}'\033[0m")
-                    return None
             # Parse YAML if PyYAML is available and timeout fallback not used
             if (not used_fallback) and yaml and hasattr(yaml, 'safe_load'):
                 try:
