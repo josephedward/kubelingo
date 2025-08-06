@@ -176,7 +176,9 @@ Updated interactive CLI quiz session to:
   - **Fixed**: Clarified several questions in the Helm quiz that were ambiguous or lacked necessary information in the prompt (e.g., a release name or chart name). This ensures that questions can be answered correctly based on the provided text, improving the user experience and fairness of the AI evaluation.
   - **Cleanup**: Standardized the use of backticks for names and commands in Helm quiz prompts and removed a redundant link to improve consistency.
   - **Fixed**: Further clarified Helm quiz questions that rely on a repository (`bitnami`) by explicitly stating in the prompt to assume the repository has already been added. This removes ambiguity and ensures questions provide all necessary context.
-  - **Feature**: Added a new "YAML Editing" quiz with 8 exercises. These questions use the unified shell experience, providing starter YAML templates in an `initial_files` directory for users to edit in `vim` and validating their work with `kubectl` checks.
+  - **Feature**: Added a new "YAML Editing" quiz with 8 exercises. Kubelingo supports two modes for YAML questions:
+    - **Live Kubernetes Edits (`type: live_k8s_edit`)**: These questions use the unified shell experience, providing starter YAML templates in an `initial_files` directory for users to edit and `apply`. Validation is performed by running `kubectl` commands against the live cluster state.
+    - **Pure YAML Comparison (`type: yaml_edit`)**: For these questions, the quiz opens a temporary file in `vim` with a starting template. After editing, the final YAML is compared directly against the question's `correct_yaml` definition. This flow does not require a live cluster.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
 ## Standardized Quiz Formats
@@ -453,7 +455,7 @@ If a source URL is provided, please cite it in your reasoning.
      * Returns to the action menu so the user can `Next Question`, `Visit Source`, or `Flag for Review`.
    - The explicit "Check Answer" menu entry is removed for these question types.
 
-2. **Shell-mode questions** (live_k8s, YAML edits) still use "Work on Answer (in Shell)" followed by a manual "Check Answer" step.
+2. **Shell-mode questions** (`live_k8s`, `live_k8s_edit`) use "Work on Answer (in Shell)" followed by a manual "Check Answer" step. The `yaml_edit` question type is similar in that it requires a manual "Check Answer", but it uses the "Answer Question" action to open `vim` directly without an interactive shell.
 
 3. **Navigation** remains manual for all questions:
    - `Next Question` and `Previous Question` are placed above the `Flag for Review` option.
