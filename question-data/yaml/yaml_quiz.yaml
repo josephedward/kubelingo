@@ -32,7 +32,7 @@ yaml_exercises:
         matcher: { "contains": "300m" }
       - cmd: "kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.memory}'"
         matcher: { "contains": "30Mi" }
-    explanation: "Pod with resource requests and limits."
+    explanation: "Pod with resource requests and limits. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::trauerweide-cm
     prompt: "Edit 'configmap.yaml' to create a ConfigMap named 'trauerweide' with the data 'tree=trauerweide'. After editing, apply the manifest."
     type: live_k8s_edit
@@ -48,7 +48,7 @@ yaml_exercises:
     validation_steps:
       - cmd: "kubectl get configmap trauerweide -o jsonpath='{.data.tree}'"
         matcher: { "contains": "trauerweide" }
-    explanation: "Basic ConfigMap creation."
+    explanation: "Basic ConfigMap creation. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::pod-with-cm-ref
     prompt: "Two ConfigMaps, 'trauerweide' and 'birke', have been created. Edit 'pod.yaml' to create a Pod named 'pod1' using the 'nginx:alpine' image. The Pod should have an environment variable 'TREE1' that gets its value from the 'tree' key of the 'trauerweide' ConfigMap. It should also mount all keys from the 'birke' ConfigMap into the directory '/etc/birke'. After editing, apply the manifest."
     type: live_k8s_edit
@@ -77,7 +77,7 @@ yaml_exercises:
         matcher: { "contains": "trauerweide" }
       - cmd: "kubectl get pod pod1 -o jsonpath='{.spec.volumes[0].configMap.name}'"
         matcher: { "contains": "birke" }
-    explanation: "Pod with environment variable and volume from ConfigMaps."
+    explanation: "Pod with environment variable and volume from ConfigMaps. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::deployment-readiness
     prompt: "Edit 'deployment.yaml' to create a Deployment named 'space-alien-welcome-message-generator' using the 'httpd:alpine' image. It should have 1 replica and a readinessProbe that runs the command 'stat /tmp/ready' with an 'initialDelaySeconds' of 10 and a 'periodSeconds' of 5. After editing, apply the manifest."
     type: live_k8s_edit
@@ -108,7 +108,7 @@ yaml_exercises:
         matcher: { "contains": "/tmp/ready" }
       - cmd: "kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.initialDelaySeconds}'"
         matcher: { "contains": "10" }
-    explanation: "Deployment with a readiness probe."
+    explanation: "Deployment with a readiness probe. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::web-server-pod
     prompt: "Edit 'pod.yaml' to create a Pod named 'web-server' using the 'nginx:1.20' image, exposing port 80. After editing, apply the manifest."
     type: live_k8s_edit
@@ -130,7 +130,7 @@ yaml_exercises:
         matcher: { "contains": "nginx:1.20" }
       - cmd: "kubectl get pod web-server -o jsonpath='{.spec.containers[0].ports[0].containerPort}'"
         matcher: { "contains": "80" }
-    explanation: "Basic pod with specific name, image, and port configuration"
+    explanation: "Basic pod with specific name, image, and port configuration. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::pod-with-env
     prompt: "Edit 'pod.yaml' to create a Pod named 'app-pod' with environment variables: DB_HOST=localhost, DB_PORT=5432. After editing, apply the manifest."
     type: live_k8s_edit
@@ -152,7 +152,7 @@ yaml_exercises:
         matcher: { "contains": "DB_HOST" }
       - cmd: "kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[1].value}'"
         matcher: { "contains": "5432" }
-    explanation: "Pod with environment variables defined in container spec"
+    explanation: "Pod with environment variables defined in container spec. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::frontend-deployment
     prompt: "Edit 'deployment.yaml' to create a Deployment named 'frontend' with 3 replicas of 'nginx:1.21'. After editing, apply the manifest."
     type: live_k8s_edit
@@ -181,7 +181,7 @@ yaml_exercises:
         matcher: { "contains": "3" }
       - cmd: "kubectl get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}'"
         matcher: { "contains": "nginx:1.21" }
-    explanation: "Deployment with replica count and proper label selectors"
+    explanation: "Deployment with replica count and proper label selectors. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
   - id: yaml_quiz::app-config-cm
     prompt: "Edit 'configmap.yaml' to create a ConfigMap named 'app-config' with the data 'database_url=mysql://localhost:3306/app'. After editing, apply the manifest."
     type: live_k8s_edit
@@ -197,4 +197,4 @@ yaml_exercises:
     validation_steps:
       - cmd: "kubectl get configmap app-config -o jsonpath='{.data.database_url}'"
         matcher: { "contains": "mysql://localhost:3306/app" }
-    explanation: "ConfigMap with key-value data for application configuration"
+    explanation: "ConfigMap with key-value data for application configuration. Validation is performed by checking the live resource in the cluster, not by comparing YAML files."
