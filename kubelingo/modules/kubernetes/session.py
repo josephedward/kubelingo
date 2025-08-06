@@ -715,7 +715,7 @@ class NewSession(StudySession):
                     )
                     generated = len(ai_qs)
                     if generated < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: Requested {clones_needed} extra AI questions, but only {generated} were generated.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
                 except Exception as _:
                     ai_qs = []
                 # Assemble full question list
