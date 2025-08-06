@@ -2,6 +2,7 @@ import random
 import logging
 import json
 from typing import List, Dict, Any
+from difflib import SequenceMatcher
 
 try:
     import llm
@@ -39,6 +40,8 @@ class AIQuestionGenerator:
             "The new question must be different but test a similar concept.\n"
             "For example, if the original question uses 'nginx', you could use 'httpd' or 'redis'. If it refers to a namespace 'dev', you could use 'prod'.\n"
             "Crucially, the 'response' (the correct command) must be a syntactically valid `kubectl` command.\n"
+            "Ensure the new question prompt is unique and not a paraphrase or duplicate of the example or any existing quiz questions.\n"
+            "Ensure that your prompt explicitly specifies every resource name, flag, and value used in the response command. Do not include any arguments in the response that are not described in the prompt.\n"
             "Do not just copy the example. Provide a fresh take on the same topic.\n\n"
             "Example Question:\n"
             f"- Prompt: \"{prompt}\"\n"
@@ -61,9 +64,11 @@ class AIQuestionGenerator:
             logger.warning("No base questions provided to generate variations from.")
             return []
 
-        generated_questions = []
+        # Track seen prompts to avoid duplicates or near-duplicates
+        seen_prompts = {q.get('prompt', '').strip() for q in base_questions if q.get('prompt')}
+        generated_questions: List[Dict[str, Any]] = []
         attempts = 0
-        max_attempts = num_to_generate * 2 + 5  # Give some leeway for failed validations
+        max_attempts = num_to_generate * 4 + 10  # allow extra tries for uniqueness
 
         while len(generated_questions) < num_to_generate and attempts < max_attempts:
             attempts += 1
@@ -85,6 +90,16 @@ class AIQuestionGenerator:
                 if not new_prompt or not new_response:
                     logger.warning("Generated question missing prompt or response. Skipping.")
                     continue
+                # Deduplicate: skip exact or near-duplicate prompts
+                new_prompt_clean = new_prompt.strip()
+                is_duplicate = False
+                for existing in seen_prompts:
+                    if existing == new_prompt_clean or SequenceMatcher(None, new_prompt_clean, existing).ratio() > 0.8:
+                        is_duplicate = True
+                        break
+                if is_duplicate:
+                    logger.warning(f"Skipping duplicate or near-duplicate question: '{new_prompt_clean}'")
+                    continue
 
                 # Validate the generated kubectl command
                 validation_result = validate_kubectl_syntax(new_response)
@@ -92,7 +107,7 @@ class AIQuestionGenerator:
                     logger.warning(f"Generated command '{new_response}' failed validation: {validation_result['errors']}. Retrying.")
                     continue
 
-                # Assemble the new question
+                # Assemble the new question and mark prompt as seen
                 new_question = {
                     'id': f"ai-gen::{random.randint(1000, 9999)}",
                     'prompt': new_prompt,
@@ -103,6 +118,7 @@ class AIQuestionGenerator:
                 }
 
                 generated_questions.append(new_question)
+                seen_prompts.add(new_prompt_clean)
                 logger.info(f"Successfully generated and validated a new question: {new_prompt}")
 
             except Exception as e:
