@@ -61,7 +61,18 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 ## Recent Enhancements
 
-- [In Progress] **AI-Powered Question Cloning**: When the requested quiz size (`-n/--num`) exceeds available questions, Kubelingo now automatically generates additional command-based variations using a new `AIQuestionGenerator` (via the `llm` package) and falls back to random duplication if AI is unavailable. Cloned questions inherit original metadata, receive unique IDs, and are shuffled into the final quiz.
+- [In Progress] **AI-Powered Question Cloning**: When `-n/--num` exceeds static question count *and* a quiz’s YAML metadata includes `ai_generation_enabled: true`, Kubelingo will:
+  - Invoke `AIQuestionGenerator.generate_questions(subject, clones_needed)`, using up to 5 attempts per extra question (`max_attempts_per_question=5`).
+  - Sanity-check each AI response: valid JSON with `prompt` and at least one `validation_steps` entry containing a `cmd`; the prompt must mention the subject, include an action (`create` or `get`), and name the resource.
+  - On failure after all attempts, print: `Warning: Could not generate {n} unique AI questions. Proceeding with {m} generated.`
+  - To enable AI cloning:
+    - Install the LLM helper: `pip install llm llm-openai`.
+    - Provide your OpenAI key: `llm keys set openai` or `export OPENAI_API_KEY=…`.
+    - Ensure network access to the OpenAI API.
+  - If AI cloning still fails:
+    - Inspect `logs/quiz_kubernetes_log.txt` or set `export KUBELINGO_LOG_LEVEL=DEBUG` to view raw prompts and errors.
+    - Increase `max_attempts_per_question` in `kubelingo/modules/question_generator.py`.
+    - Loosen validation filters in `kubelingo/modules/question_generator.py` (e.g., subject or action checks).
 - [Added] **Kubectl Syntax Validation**: Introduced `validate_kubectl_syntax()` in `kubelingo/utils/validation.py`, which runs `kubectl <cmd> --help` client-side to catch unknown commands or flags and surfaces errors or warnings before executing or recording user input.
 - [Added] **YAML Manifest Structure Validation**: In the Vim-based YAML editor (`kubelingo/modules/kubernetes/vim_yaml_editor.py`), Kubelingo now applies `validate_yaml_structure()` on the edited manifest, printing any syntax or structure errors and warnings immediately after editing and before answer evaluation.
 
