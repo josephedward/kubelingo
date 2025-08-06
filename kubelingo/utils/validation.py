@@ -17,6 +17,8 @@ import os
 
 # Allow disabling Rust-based validation via environment variable
 RUST_VALIDATOR_ENABLED = os.getenv("KUBELINGO_DISABLE_RUST", "").lower() not in ("1", "true", "yes")
+import subprocess
+import shlex
 
 
 def commands_equivalent(cmd1: str, cmd2: str) -> bool:
@@ -78,6 +80,55 @@ def commands_equivalent(cmd1: str, cmd2: str) -> bool:
     cmd2_pos, cmd2_flags = _normalize_command(cmd2)
 
     return cmd1_pos == cmd2_pos and cmd1_flags == cmd2_flags
+
+def validate_kubectl_syntax(cmd_str: str) -> Dict[str, Any]:
+    """
+    Validates a kubectl command's syntax without requiring a Kubernetes cluster.
+    Attempts to run the command with '--help' and checks for unknown commands or flags.
+
+    Args:
+        cmd_str: The kubectl command as a string (e.g., 'kubectl get pods').
+
+    Returns:
+        A dict with keys:
+        {
+            'valid': bool,
+            'errors': List[str],   # error messages if invalid
+            'warnings': List[str]  # warnings from stderr if any
+        }
+    """
+    parts: List[str]
+    try:
+        parts = shlex.split(cmd_str)
+    except ValueError:
+        return {'valid': False, 'errors': ["Failed to parse command string."], 'warnings': []}
+    # Handle 'k' alias
+    if parts and parts[0] == 'k':
+        parts[0] = 'kubectl'
+    # Append --help to trigger syntax checking
+    help_cmd = parts + ['--help']
+    try:
+        proc = subprocess.run(help_cmd, capture_output=True, text=True)
+    except FileNotFoundError as e:
+        return {'valid': False, 'errors': [str(e)], 'warnings': []}
+    valid = (proc.returncode == 0)
+    errors: List[str] = []
+    warnings: List[str] = []
+    stderr = (proc.stderr or '').strip()
+    stdout = (proc.stdout or '').strip()
+    if not valid:
+        # Capture stderr or stdout for error details
+        if stderr:
+            errors.append(stderr)
+        elif stdout:
+            errors.append(stdout)
+        else:
+            errors.append(f"Command exited with code {proc.returncode}.")
+    else:
+        # Treat any stderr output as a warning
+        if stderr:
+            warnings.append(stderr)
+    return {'valid': valid, 'errors': errors, 'warnings': warnings}
 
 def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
     """
