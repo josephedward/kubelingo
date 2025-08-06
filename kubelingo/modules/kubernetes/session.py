@@ -802,7 +802,7 @@ class NewSession(StudySession):
                     base_for_gen = [q for q in questions if q.get('type', 'command') == 'command'] or questions
                     
                     # Generate one AI-based follow-up question for this quiz category
-                    subject = questions[0].get('category', '') if questions else ''
+                    subject = questions_to_ask[0].get('category', '') if questions_to_ask else ""
                     new_qs = generator.generate_questions(subject, 1)
                     
                     if new_qs:
