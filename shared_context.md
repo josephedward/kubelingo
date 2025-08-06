@@ -49,11 +49,14 @@ The quiz engine handles file management for you—there’s no need to name or m
 
 In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `validation_steps`, or `correct_yaml`) drives what gets seeded, what gets checked, and where your edits are evaluated.
 
-With this foundation, the next steps are to:
-1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
-2.  Add unit/integration tests for `answer_checker` and the new UI flows.
-3.  Flesh out AI-based “second opinion” evaluation (using Simon Willison’s [`llm`](https://github.com/simonw/llm) package to reduce transcripts to a deterministic yes/no verdict).
-4.  Implement an interactive prompt for the `OPENAI_API_KEY` if it is not found, to improve usability.
+### Roadmap Progress
+
+**Phase 1: Unified Shell Experience** is largely complete. The core architecture for delivering all question types through a consistent shell-driven workflow is in place. Here's where we stand on the immediate next steps:
+
+-   **[In Progress] Expand matcher support**: `exit_code`, `contains`, and `regex` matchers are implemented. JSONPath, YAML structure, and direct cluster state checks are still pending.
+-   **[Not Started] Add unit/integration tests**: No formal tests exist yet for `answer_checker` or the new UI flows. This is the highest priority next step to prevent regressions.
+-   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
+-   **[Not Started] Improve API key handling**: An interactive prompt for the `OPENAI_API_KEY` has not been implemented.
 
 ## Unified Terminal Quiz Refactor
 
@@ -293,11 +296,12 @@ The script is highly configurable via command-line flags.
 - The script's import logic is now robust, allowing it to be run as a standalone file. It unconditionally defines `project_root` at the top and inserts it into `sys.path`, fixing previous import errors.
   
 ### Testing & Observations
-- Smoke-tested `run_shell_with_setup` with a dummy question (echo/contains): passes validation, shell spawn aborted appropriately in headless mode.
-- Transcript persistence via `save_transcript` works: logs saved under `logs/transcripts/...`.
-- CLI menu navigation now inserts a blank line before rendering the next menu, preventing prompt text from merging with question output.
-- `evaluate_transcript` correctly evaluates exit_code, contains, and regex matchers; JSONPath and cluster-state matchers pending.
-- Loaders still populate only legacy `initial_yaml` and `validations`; new `initial_files`/`validation_steps` fields unpopulated.
+- **Core Functionality**: The main quiz loop is stable. The PTY shell now correctly handles terminal input (including `vim` on macOS), resolving the garbled character issue.
+- **Quiz Loading**: YAML quiz files are now correctly parsed, and all questions from the "Interactive YAML Exercises" module are loaded as expected.
+- **Answer Validation**:
+    - `live_k8s_edit` questions are correctly validated against the live cluster state using their `validation_steps`.
+    - `yaml_edit` questions are correctly compared against their `correct_yaml` definitions.
+- **Gaps**: There are no formal unit or integration tests for the answer-checking logic (`answer_checker`) or the YAML loading/parsing pipeline. All testing so far has been manual via smoke tests.
 
 ### CLI Readability & Regression Tests
 To guard against mangled output and UI regressions, we recommend:
