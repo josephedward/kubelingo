@@ -620,12 +620,48 @@ class NewSession(StudySession):
                     print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                     return
 
-            # Randomize question order and select the desired number of questions
+            # Determine how many to ask based on user input
             total = len(questions)
-            # Determine how many to ask: either args.num or all questions
             count = args.num if args.num and args.num > 0 else total
-            # random.sample returns items in random order without replacement
-            questions_to_ask = random.sample(questions, min(count, total))
+            if count <= total:
+                # select a random subset without replacement
+                questions_to_ask = random.sample(questions, count)
+            else:
+                # need to generate additional cloned questions via AI or fallback to duplicates
+                questions_to_ask = questions.copy()
+                clones_needed = count - total
+                try:
+                    import llm
+                    model = llm.get_model()
+                    for i in range(clones_needed):
+                        base = random.choice(questions)
+                        prompt_text = (
+                            f"Generate a new Kubernetes quiz question similar to this one. "
+                            f"Original question: {base.get('prompt')} . "
+                            "Provide a new question prompt and validation_steps in JSON format "
+                            "with keys 'prompt' and 'validation_steps'. Only output valid JSON."
+                        )
+                        response = model.prompt(prompt_text, system="Generate Kubernetes quiz question").text()
+                        try:
+                            new_q = json.loads(response)
+                        except Exception:
+                            new_q = {}
+                        clone = base.copy()
+                        clone['id'] = f"{base.get('id', 'question')}-clone-{i}"
+                        if 'prompt' in new_q:
+                            clone['prompt'] = new_q['prompt']
+                        if 'validation_steps' in new_q:
+                            clone['validation_steps'] = new_q['validation_steps']
+                        questions_to_ask.append(clone)
+                except Exception:
+                    # Fallback: duplicate random questions
+                    for i in range(clones_needed):
+                        base = random.choice(questions)
+                        clone = base.copy()
+                        clone['id'] = f"{base.get('id', 'question')}-clone-{i}"
+                        questions_to_ask.append(clone)
+                # mix original and cloned questions
+                random.shuffle(questions_to_ask)
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
