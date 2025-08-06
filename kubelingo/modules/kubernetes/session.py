@@ -708,7 +708,8 @@ class NewSession(StudySession):
                         generator = AIQuestionGenerator()
                         # Generate AI-backed questions for this quiz category
                         subject = _get_subject_for_questions(questions[0]) if questions else ''
-                        ai_qs = generator.generate_questions(subject, clones_needed)
+                        # Pass base_questions so the generator can create variations.
+                        ai_qs = generator.generate_questions(subject, clones_needed, base_questions=questions)
                     except Exception as e:
                         self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
                         print(f"{Fore.RED}Error: Could not list AI-generated questions due to an issue with the AI service.{Style.RESET_ALL}")
