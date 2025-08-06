@@ -39,65 +39,68 @@ class AIQuestionGenerator:
             "\n  • include a resource name, e.g. “named 'foo-sa'”"
             "\n  • specify any namespace or flags required to scope the command"
             "\nGenerate a question that asks the user to run `kubectl` to perform "
-            "an operation on that resource."
+            "an operation like 'create' or 'get' on that resource."
         )
 
-        # Give it enough attempts to generate the desired number of unique questions
-        for _ in range(self.max_attempts * num_questions):
-            if len(questions) >= num_questions:
-                break
+        for _ in range(num_questions):
+            for attempt in range(self.max_attempts):
+                user_prompt = f"{system_prompt}\n\nGenerate 1 distinct question about {subject}."
 
-            user_prompt = f"{system_prompt}\n\nGenerate 1 distinct question about {subject}."
-
-            try:
-                # Based on user's sketch. It defines a system prompt, so we pass it.
-                # AIEvaluator.generate_question is assumed to accept a dict.
-                raw_q = self.evaluator.generate_question(
-                    {"prompt": user_prompt, "validation_steps": []}
-                )
-
-                if not raw_q or "prompt" not in raw_q or "validation_steps" not in raw_q:
-                    logger.warning("AI generation returned invalid format. Retrying.")
-                    continue
-
-                prompt = raw_q["prompt"].strip()
-                # 1) No exact duplicates
-                if prompt in seen_prompts:
-                    logger.warning(f"Skipping duplicate question: '{prompt}'")
-                    continue
-                # 2) Must mention the subject
-                if not re.search(fr"\b{re.escape(subject)}\b", prompt, re.IGNORECASE):
-                    logger.warning(f"Generated prompt does not mention subject '{subject}'. Retrying.")
-                    continue
-                # 3) Must mention “named <something>”
-                if not re.search(r"named ['\"][A-Za-z0-9\-\_]+['\"]", prompt):
-                    logger.warning("Generated prompt does not include a resource name. Retrying.")
-                    continue
-
-                seen_prompts.add(prompt)
-                validation_steps = [
-                    ValidationStep(**step) for step in raw_q["validation_steps"]
-                ]
-                response = ""
-                if (
-                    validation_steps
-                    and hasattr(validation_steps[0], "cmd")
-                    and validation_steps[0].cmd
-                ):
-                    response = validation_steps[0].cmd
-
-                questions.append(
-                    Question(
-                        id=f"ai-gen-{uuid.uuid4()}",
-                        prompt=prompt,
-                        response=response,
-                        validation=validation_steps,
+                try:
+                    raw_q = self.evaluator.generate_question(
+                        {"prompt": user_prompt, "validation_steps": []}
                     )
-                )
-                logger.info(f"Successfully generated and validated a new question: {prompt}")
 
-            except Exception as e:
-                logger.error(f"Error during AI question generation or validation: {e}")
+                    if not raw_q or "prompt" not in raw_q or "validation_steps" not in raw_q:
+                        logger.debug("AI generation returned invalid format. Retrying.")
+                        continue
+
+                    prompt = raw_q["prompt"].strip()
+                    # 1) No exact duplicates
+                    if prompt in seen_prompts:
+                        logger.debug(f"Skipping duplicate question: '{prompt}'")
+                        continue
+                    # 2) Must mention the subject
+                    if not re.search(fr"\b{re.escape(subject)}\b", prompt, re.IGNORECASE):
+                        logger.debug(f"Generated prompt does not mention subject '{subject}'. Retrying.")
+                        continue
+                    # 3) Must ask to create or get a named resource
+                    if not re.search(r"\b(create|get)\b", prompt, re.IGNORECASE):
+                        logger.debug("Generated prompt does not mention 'create' or 'get'. Retrying.")
+                        continue
+                    if not re.search(r"named ['\"][A-Za-z0-9\-\_]+['\"]", prompt):
+                        logger.debug("Generated prompt does not include a resource name. Retrying.")
+                        continue
+
+                    seen_prompts.add(prompt)
+                    validation_steps = [
+                        ValidationStep(**step) for step in raw_q["validation_steps"]
+                    ]
+                    response = ""
+                    if (
+                        validation_steps
+                        and hasattr(validation_steps[0], "cmd")
+                        and validation_steps[0].cmd
+                    ):
+                        response = validation_steps[0].cmd
+
+                    questions.append(
+                        Question(
+                            id=f"ai-gen-{uuid.uuid4()}",
+                            prompt=prompt,
+                            response=response,
+                            validation=validation_steps,
+                        )
+                    )
+                    logger.info(f"Successfully generated and validated a new question: {prompt}")
+                    # Break from attempt loop and generate next question
+                    break
+
+                except Exception as e:
+                    logger.error(f"Error during AI question generation or validation: {e}")
+            else:  # This else belongs to the inner for loop, executed if it's not broken out of
+                logger.warning(f"Could not generate a valid question for {subject} after {self.max_attempts} attempts.")
+
 
         if len(questions) < num_questions:
             logger.warning(
