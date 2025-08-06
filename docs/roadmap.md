@@ -106,10 +106,11 @@ _Status: Planned. See [Vim Integration Analysis](vim_integration_analysis.md) fo
 - [ ] **Competency Mapping**: Map performance to specific CKAD exam objectives [#27]
 
 ### Development Workflow
-- [ ] **Hot Reload for Development**: Automatically reload question data during development [#28]
-- [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions [#29]
-- [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML) [#30]
-- [ ] **Question Analytics**: Track which questions are most/least effective [#31]
+ - [ ] **Hot Reload for Development**: Automatically reload question data during development [#28]
+ - [ ] **Question Authoring Tools**: CLI tools for creating and validating new questions [#29]
+ - [ ] **Bulk Question Import**: Import questions from various formats (CSV, JSON, YAML) [#30]
+ - [ ] **Question Analytics**: Track which questions are most/least effective [#31]
+ - [ ] **Persistent AI Question Database**: Store AI-generated questions in a local SQLite database for reuse, auditing, and analytics [#65]
 
 ### Integration Enhancements
 - [ ] **IDE Plugins**: VSCode/Vim plugins for in-editor practice [#32]
