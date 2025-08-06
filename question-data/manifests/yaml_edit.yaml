@@ -6,8 +6,8 @@ Generated from yaml_edit.json
   question: "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80"
   solution_file: "question-data/yaml/solutions/yaml_edit/0-0.yaml"
   source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
-- id: yaml_edit::0-1
-  question: "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432"
+ - id: yaml_edit::0-1
+  question: "Create a Pod named 'app-pod' with container name 'app' and environment variables: DB_HOST=localhost, DB_PORT=5432"
   solution_file: "question-data/yaml/solutions/yaml_edit/0-1.yaml"
   source: "https://kubernetes.io/docs/reference/kubectl/cheatsheet/"
 - id: yaml_edit::1-0
