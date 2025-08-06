@@ -474,6 +474,18 @@ Your response MUST be a JSON object with two keys:
 If a source URL is provided, please cite it in your reasoning.
 ```
 
+#### For AI Question Generation
+
+This prompt is used by `AIQuestionGenerator` to create new questions based on an existing one.
+
+```
+You are an expert Kubernetes administrator and trainer. Your task is to generate a new quiz question that is a variation of an existing one.
+The new question should test the same concept but be worded differently and have a different target resource or parameter.
+You will be given a base question as a JSON object.
+Your response MUST be a JSON object containing the new question, with "prompt" and "validation_steps" keys.
+The validation steps must be correct for the new prompt.
+```
+
 ## Recent Interactive Quiz UI Updates
 
 1. **Answer Question** replaces "Work on Answer" for text-based questions (commands, Vim exercises, non-live k8s).
