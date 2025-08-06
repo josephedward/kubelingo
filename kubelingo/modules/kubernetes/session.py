@@ -549,11 +549,12 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                questions = load_questions(args.file)
+                # Load original Question objects for potential AI generation
+                loaded_questions = load_questions(args.file)
                 # Convert Question objects to dicts for uniform handling
                 from kubelingo.question import Question as QCls
                 converted = []
-                for q in questions:
+                for q in loaded_questions:
                     if isinstance(q, QCls):
                         converted.append(q.__dict__.copy())
                     else:
@@ -1428,9 +1429,15 @@ class NewSession(StudySession):
         for q in questions:
             question_type = q.get('type', 'command')
             # Determine if any question in the session needs a live cluster
-            if question_type in ('live_k8s', 'live_k8s_edit') or \
-               any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', [])) or \
-               (question_type != 'command' and any(vs.get('cmd') and 'kubectl' in vs.get('cmd') for vs in q.get('validation_steps', []))):
+            has_pre = any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', []))
+            has_validation = any(
+                'kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', ''))
+                for vs in q.get('validation_steps', [])
+            )
+            if (question_type in ('live_k8s', 'live_k8s_edit')
+                or has_pre
+                or (question_type != 'command' and has_validation)
+            ):
                 needs_k8s = True
                 break
         
