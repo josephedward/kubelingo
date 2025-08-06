@@ -52,7 +52,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from dataclasses import asdict
-from kubelingo.utils.validation import commands_equivalent
+from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
@@ -1034,14 +1034,15 @@ class NewSession(StudySession):
                                     user_obj = {}
                                 correct_obj = yaml.safe_load(correct_yaml_str)
 
-                                if user_obj == correct_obj:
+                                # Use flexible subset validation instead of exact match
+                                if is_yaml_subset(subset_yaml_str=correct_yaml_str, superset_yaml_str=user_yaml_str):
                                     correct_indices.add(current_question_index)
                                     print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
                                 else:
                                     correct_indices.discard(current_question_index)
                                     print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
                                     if correct_yaml_str:
-                                        print(f"{Fore.CYAN}Expected YAML:{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
+                                        print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
 
                             except yaml.YAMLError as e:
                                 correct_indices.discard(current_question_index)
