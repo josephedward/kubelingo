@@ -1,6 +1,9 @@
 import os
 import re
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 from kubelingo.utils.config import LOGS_DIR
 
