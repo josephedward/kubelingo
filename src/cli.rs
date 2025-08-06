@@ -75,6 +75,7 @@ pub fn run_pty_shell() -> anyhow::Result<()> {
         .context("Failed to open PTY")?;
 
     let mut cmd = CommandBuilder::new("bash");
+    cmd.arg("--login");
     cmd.env("PS1", "(kubelingo-sandbox)$ ");
 
     let mut child = pair
