@@ -642,8 +642,7 @@ class NewSession(StudySession):
             session_id = start_time.strftime('%Y%m%dT%H%M%S')
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
-            ai_generation_enabled = False
-            ai_generation_enabled = False
+            ai_generation_enabled = True
 
             if args.review_only:
                 questions = get_all_flagged_questions()
@@ -653,7 +652,7 @@ class NewSession(StudySession):
                         with open(args.file, 'r', encoding='utf-8') as f:
                             data = yaml.safe_load(f)
                             if isinstance(data, dict):
-                                ai_generation_enabled = data.get('metadata', {}).get('ai_generation_enabled', False)
+                                ai_generation_enabled = data.get('metadata', {}).get('ai_generation_enabled', True)
                     except Exception:
                         pass  # Let load_questions handle errors
                 # Load original Question objects for potential AI generation
