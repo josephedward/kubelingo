@@ -654,56 +654,7 @@ class NewSession(StudySession):
                     return
 
             requested = args.num if args.num and args.num > 0 else total
-            if requested <= total:
-                questions_to_ask = random.sample(questions, requested)
-                clones_needed = 0
-            else:
-                # Need AI or duplicate clones for extra questions, capped at 5
-                questions_to_ask = questions.copy()
-                extra = requested - total
-                clones_needed = min(extra, 5)
-                if extra > clones_needed:
-                    print(f"{Fore.YELLOW}Note: AI-generated questions limited to {clones_needed} (max 5).{Style.RESET_ALL}")
-                
-                # Generate AI-backed questions, ensuring uniqueness against seen_prompts
-                generated_count = 0
-                if clones_needed > 0:
-                    print(f"{Fore.CYAN}🎯 Generating {clones_needed} AI-generated question(s)...{Style.RESET_ALL}")
-                    try:
-                        from kubelingo.modules.question_generator import AIQuestionGenerator
-                        generator = AIQuestionGenerator()
-                        
-                        # Only use command-based questions as a base for generation
-                        command_questions = [q for q in questions if q.get('type') == 'command' and q.get('response')]
-                        if not command_questions:
-                            # Fallback to any question if no suitable ones found
-                            command_questions = questions
-
-                        if command_questions:
-                            # Pass all existing prompts from `seen_prompts` to avoid duplicates.
-                            new_questions = generator.generate_questions(
-                                base_questions=command_questions,
-                                num_to_generate=clones_needed,
-                                existing_prompts=seen_prompts
-                            )
-                            questions_to_ask.extend(new_questions)
-                            generated_count = len(new_questions)
-                            # Add newly generated prompts to seen_prompts to keep it consistent.
-                            for q in new_questions:
-                                if q.get('prompt'):
-                                    seen_prompts.add(q['prompt'].strip())
-
-                    except (ImportError, Exception) as e:
-                        self.logger.error(f"AI generation failed: {e}")
-                        # In case of any issue with AI generation, do not generate
-                        pass
-                # Warn if we could not generate the full set of unique AI questions
-                remaining_needed = clones_needed - generated_count
-                if remaining_needed > 0:
-                    print(f"{Fore.YELLOW}Warning: Could not generate {remaining_needed} unique AI questions. Proceeding with {generated_count} generated.{Style.RESET_ALL}")
-                
-                # mix original and cloned questions
-                random.shuffle(questions_to_ask)
+            questions_to_ask = random.sample(questions, min(requested, total))
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
