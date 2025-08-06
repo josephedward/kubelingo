@@ -63,6 +63,25 @@ from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellRe
 import logging  # for logging in exercises
 # Stub out AI evaluator to avoid heavy external dependencies
 
+def _get_subject_for_questions(q):
+    """Extracts the category/subject string for AI question generation."""
+    # Try dict form first
+    if isinstance(q, dict):
+        subject = q.get('category') or (q.get('categories') or [None])[0] or ''
+        if not subject:
+            subject = q.get('metadata', {}).get('category', '')
+        return subject or ''
+    # Fallback for Question objects
+    subject = getattr(q, 'category', None) or ''
+    if not subject:
+        cats = getattr(q, 'categories', [])
+        if cats:
+            subject = cats[0]
+    if not subject:
+        meta = getattr(q, 'metadata', {})
+        subject = meta.get('category', '')
+    return subject or ''
+
 
 def _get_quiz_files():
     """Returns a list of paths to JSON command quiz files, excluding special ones."""
@@ -688,7 +707,7 @@ class NewSession(StudySession):
                     try:
                         generator = AIQuestionGenerator()
                         # Generate AI-backed questions for this quiz category
-                        subject = questions[0].get('category', '') if questions else ''
+                        subject = _get_subject_for_questions(questions[0]) if questions else ''
                         ai_qs = generator.generate_questions(subject, clones_needed)
                     except Exception as e:
                         self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
@@ -722,7 +741,7 @@ class NewSession(StudySession):
                     try:
                         generator = AIQuestionGenerator()
                         # Generate AI-backed questions for this quiz category
-                        subject = questions[0].get('category', '') if questions else ''
+                        subject = _get_subject_for_questions(questions[0]) if questions else ''
                         ai_qs = generator.generate_questions(subject, clones_needed)
                         generated = len(ai_qs)
                         if generated < clones_needed:
