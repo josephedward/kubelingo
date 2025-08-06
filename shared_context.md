@@ -53,10 +53,17 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 **Phase 1: Unified Shell Experience** is largely complete. The core architecture for delivering all question types through a consistent shell-driven workflow is in place. Here's where we stand on the immediate next steps:
 
+-   **[Completed] Customizable quiz length**: Users can now specify the number of questions with `-n/--num`. If fewer than available are requested, a random subset is chosen; if more are requested, the system generates additional similar questions via AI (falling back to duplicates if AI is unavailable) to match the desired length.
 -   **[In Progress] Expand matcher support**: `exit_code`, `contains`, and `regex` matchers are implemented. JSONPath, YAML structure, and direct cluster state checks are still pending.
 -   **[Not Started] Add unit/integration tests**: No formal tests exist yet for `answer_checker` or the new UI flows. This is the highest priority next step to prevent regressions.
 -   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
 -   **[Not Started] Improve API key handling**: An interactive prompt for the `OPENAI_API_KEY` has not been implemented.
+
+## Recent Enhancements
+
+- [In Progress] **AI-Powered Question Cloning**: When the requested quiz size (`-n/--num`) exceeds available questions, Kubelingo now automatically generates additional command-based variations using a new `AIQuestionGenerator` (via the `llm` package) and falls back to random duplication if AI is unavailable. Cloned questions inherit original metadata, receive unique IDs, and are shuffled into the final quiz.
+- [Added] **Kubectl Syntax Validation**: Introduced `validate_kubectl_syntax()` in `kubelingo/utils/validation.py`, which runs `kubectl <cmd> --help` client-side to catch unknown commands or flags and surfaces errors or warnings before executing or recording user input.
+- [Added] **YAML Manifest Structure Validation**: In the Vim-based YAML editor (`kubelingo/modules/kubernetes/vim_yaml_editor.py`), Kubelingo now applies `validate_yaml_structure()` on the edited manifest, printing any syntax or structure errors and warnings immediately after editing and before answer evaluation.
 
 ## Unified Terminal Quiz Refactor
 
