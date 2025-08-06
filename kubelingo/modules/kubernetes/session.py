@@ -1161,16 +1161,13 @@ class NewSession(StudySession):
                         if source_url:
                             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-                        if current_question_index in correct_indices:
-                            if current_question_index == total_questions - 1:
-                                finish_quiz = True
-                                break
-                            just_answered = True
-                            current_question_index += 1
+                        # After evaluating command/AI, always advance to next question
+                        if current_question_index == total_questions - 1:
+                            finish_quiz = True
                             break
-                        else:
-                            # Return to action menu, allowing user to view LLM explanation or visit source
-                            continue
+                        just_answered = True
+                        current_question_index += 1
+                        break
                 
                 if finish_quiz:
                     break
