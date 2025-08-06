@@ -35,6 +35,7 @@ from kubelingo.modules.kubernetes.session import (
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
@@ -344,6 +345,22 @@ def main():
                     f"Available quizzes: {', '.join(ENABLED_QUIZZES.keys())}"
                 )
 
+        # If a quiz is selected without specifying the number of questions, ask interactively.
+        if args.quiz and args.num == 0 and questionary and sys.stdin.isatty() and sys.stdout.isatty():
+            try:
+                num_str = questionary.text(
+                    "Enter number of questions (or press Enter for all):",
+                    default=""
+                ).ask()
+                if num_str:
+                    if num_str.isdigit() and int(num_str) > 0:
+                        args.num = int(num_str)
+                    else:
+                        print(f"{Fore.YELLOW}Invalid input. Defaulting to all questions.{Style.RESET_ALL}")
+            except (KeyboardInterrupt, EOFError):
+                print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
+                return
+
         args.module = None
         # Early flags: history and list-modules
         if args.history:
@@ -368,7 +385,6 @@ def main():
                     parser.error(f"unrecognized arguments: {subcommand}")
         # Sandbox mode dispatch: if specified with other args, they are passed to the module.
         # If run alone, they launch a shell and exit.
-        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
         # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
         if args.module == 'sandbox' or ((args.pty or args.docker)
                                         and args.module is None
