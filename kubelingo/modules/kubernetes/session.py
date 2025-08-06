@@ -535,8 +535,9 @@ class NewSession(StudySession):
         is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
         while True:
-            # For each quiz, use a fresh copy of args.
+            # For each quiz, use a fresh copy of args and normalize question count
             args = copy.deepcopy(initial_args)
+            args.num = getattr(args, 'num', getattr(args, 'num_questions', 0))
             is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
 
             start_time = datetime.now()
@@ -687,7 +688,7 @@ class NewSession(StudySession):
                         ai_qs = generator.generate_questions(
                             base_questions=static_to_show,
                             num_to_generate=clones_needed,
-                            seen_prompts=seen_prompts
+                            existing_prompts=seen_prompts
                         )
                     except Exception:
                         ai_qs = []
@@ -715,7 +716,7 @@ class NewSession(StudySession):
                     ai_qs = generator.generate_questions(
                         base_questions=static_to_show,
                         num_to_generate=clones_needed,
-                        seen_prompts=seen_prompts
+                        existing_prompts=seen_prompts
                     )
                     generated = len(ai_qs)
                     if generated < clones_needed:
@@ -794,7 +795,7 @@ class NewSession(StudySession):
                     new_qs = generator.generate_questions(
                         base_questions=base_for_gen,
                         num_to_generate=1,
-                        seen_prompts=seen_prompts
+                        existing_prompts=seen_prompts
                     )
                     
                     if new_qs:
