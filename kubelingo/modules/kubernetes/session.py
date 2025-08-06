@@ -951,7 +951,13 @@ class NewSession(StudySession):
                     # Action menu options: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
                     choices = []
                     
-                    is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                    has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in q.get('validation_steps', []))
+                    question_needs_k8s = (
+                        q.get('type') in ('live_k8s', 'live_k8s_edit') or
+                        'kubectl' in q.get('prompt', '') or
+                        has_kubectl_in_validation
+                    )
+                    is_mocked_k8s = question_needs_k8s and not args.docker
                     validator = q.get('validator')
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
                     is_shell_mode = False  # shell disabled for all question types except live cluster flows
@@ -1089,7 +1095,13 @@ class NewSession(StudySession):
                             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
                             continue
                         
-                        is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
+                        has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in q.get('validation_steps', []))
+                        question_needs_k8s = (
+                            q.get('type') in ('live_k8s', 'live_k8s_edit') or
+                            'kubectl' in q.get('prompt', '') or
+                            has_kubectl_in_validation
+                        )
+                        is_mocked_k8s = question_needs_k8s and not args.docker
                         # Detect AI-based semantic validator
                         validator = q.get('validator')
                         is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
