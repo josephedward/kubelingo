@@ -9,7 +9,7 @@ try:
 except ImportError:
     llm = None
 
-from kubelingo.utils.validation import validate_kubectl_syntax
+from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness
 
 logger = logging.getLogger(__name__)
 
@@ -104,10 +104,17 @@ class AIQuestionGenerator:
                     logger.warning(f"Skipping duplicate or near-duplicate question: '{new_prompt_clean}'")
                     continue
 
-                # Validate the generated kubectl command
-                validation_result = validate_kubectl_syntax(new_response)
-                if not validation_result['valid']:
-                    logger.warning(f"Generated command '{new_response}' failed validation: {validation_result['errors']}. Retrying.")
+                # Validate the generated kubectl command syntax
+                syntax_result = validate_kubectl_syntax(new_response)
+                if not syntax_result['valid']:
+                    logger.warning(f"Generated command '{new_response}' failed validation: {syntax_result['errors']}. Retrying.")
+                    continue
+                # Validate that the prompt contains all details (resource type, name, flags)
+                prompt_check = validate_prompt_completeness(new_response, new_prompt)
+                if not prompt_check['valid']:
+                    logger.warning(
+                        f"Prompt missing required details for command '{new_response}': {prompt_check['errors']}. Retrying."
+                    )
                     continue
 
                 # Assemble the new question and mark prompt as seen
