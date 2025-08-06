@@ -151,6 +151,14 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: invalid metadata 'citation' link"
             )
             continue
+
+        # 5) YAML authoring style quizzes with 'answer' field
+        if "answer" in q:
+            ans = q.get("answer")
+            assert isinstance(ans, str) and ans.strip(), (
+                f"{file_path.name}[{idx}]: missing or empty 'answer'"
+            )
+            continue
         # Unknown format
         pytest.fail(f"{file_path.name}[{idx}]: unsupported question format keys: {list(q.keys())}")
 
