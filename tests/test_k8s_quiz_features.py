@@ -7,7 +7,6 @@ from unittest.mock import patch, MagicMock
 # These imports are based on the provided file summaries.
 # They might need to be adjusted if the structure is different.
 from kubelingo.modules.kubernetes.session import NewSession
-from kubelingo.question import Question
 
 
 class KubernetesQuizFeaturesTest(unittest.TestCase):

@@ -1385,7 +1385,6 @@ class NewSession(StudySession):
                     print(f"{Fore.YELLOW}Warning: Cannot connect to a Kubernetes cluster. Falling back to AI-based validation.{Style.RESET_ALL}")
 
         # Inform the user of future roadmap for embedded cluster provisioning
-        print(f"{Fore.YELLOW}Note: Embedded Kubernetes cluster provisioning (Kind/Minikube) is on our roadmap; for now, use --docker or provide a live cluster.{Style.RESET_ALL}")
         self.live_session_active = True
         return True
 
