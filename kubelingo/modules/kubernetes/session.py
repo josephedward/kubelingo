@@ -550,6 +550,14 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
+                if args.file.endswith(('.yaml', '.yml')):
+                    try:
+                        with open(args.file, 'r', encoding='utf-8') as f:
+                            data = yaml.safe_load(f)
+                            if isinstance(data, dict) and data.get('metadata', {}).get('ai_generation_enabled'):
+                                ai_generation_enabled = True
+                    except Exception:
+                        pass  # Let load_questions handle errors
                 # Load original Question objects for potential AI generation
                 loaded_questions = load_questions(args.file)
                 # Convert Question objects to dicts for uniform handling
@@ -665,10 +673,17 @@ class NewSession(StudySession):
             clones_needed = 0
             if requested > total:
                 clones_needed = requested - total
-                if total > 0:
-                    print(f"\nRequested {requested} questions, but only {total} are available. Attempting to generate {clones_needed} more with AI.")
+                if ai_generation_enabled:
+                    if total > 0:
+                        print(f"\nRequested {requested} questions. Using {total} from quiz file and generating {clones_needed} more with AI.")
+                    else:
+                        print(f"\nAI will generate {requested} questions.")
                 else:
-                    print(f"\nNo questions found in this quiz. Attempting to generate {clones_needed} new questions with AI.")
+                    if total > 0:
+                        print(f"\nRequested {requested} questions but only {total} available. This quiz does not support AI generation. Proceeding with {total}.")
+                    else:
+                        print(f"\nNo questions found and AI generation is not enabled for this quiz.")
+                    clones_needed = 0
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested)
