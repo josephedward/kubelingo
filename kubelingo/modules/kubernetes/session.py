@@ -634,14 +634,6 @@ class NewSession(StudySession):
                 if not questions:
                     print(Fore.YELLOW + f"No questions found in category '{args.category}'." + Style.RESET_ALL)
                     return
-            # Interactive prompt for number of questions if not set
-            if not args.num and sys.stdin.isatty() and sys.stdout.isatty():
-                total_q = len(questions)
-                try:
-                    resp = input(f"How many questions would you like? [default: {total_q}] ").strip()
-                    args.num = int(resp) if resp else total_q
-                except Exception:
-                    args.num = total_q
 
             # Determine how many to ask based on user input
             total = len(questions)
@@ -670,8 +662,12 @@ class NewSession(StudySession):
             # Warn and clamp if user requested more questions than available
             clones_needed = 0
             if requested > total:
-                clones_needed = requested - total
-                print(f"\nRequested {requested} questions but only {total} available. Proceeding with {total}.")
+                if total > 0:
+                    clones_needed = requested - total
+                    print(f"\nRequested {requested} questions, but only {total} are available. Attempting to generate {clones_needed} more with AI.")
+                else:
+                    clones_needed = 0  # Can't generate from nothing
+                    print(f"\nRequested {requested} questions, but none are available in this quiz.")
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested)
@@ -690,7 +686,9 @@ class NewSession(StudySession):
                             num_to_generate=clones_needed,
                             existing_prompts=seen_prompts
                         )
-                    except Exception:
+                    except Exception as e:
+                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
+                        print(f"{Fore.RED}Error: Could not list AI-generated questions due to an issue with the AI service.{Style.RESET_ALL}")
                         ai_qs = []
                     # Append generated questions
                     for q_item in ai_qs:
@@ -721,7 +719,9 @@ class NewSession(StudySession):
                     generated = len(ai_qs)
                     if generated < clones_needed:
                         print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
-                except Exception as _:
+                except Exception as e:
+                    self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
+                    print(f"{Fore.YELLOW}Warning: Could not generate additional AI questions.{Style.RESET_ALL}")
                     ai_qs = []
                 # Assemble full question list
                 questions_to_ask = list(static_to_show)
