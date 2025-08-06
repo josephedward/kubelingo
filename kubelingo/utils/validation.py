@@ -197,6 +197,54 @@ def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
 
     return result
 
+def validate_prompt_completeness(cmd_str: str, prompt: str) -> Dict[str, Any]:
+    """
+    Ensure that the prompt includes the resource type, resource name,
+    and any flag values used in the kubectl command.
+    Returns a dict with 'valid' bool and 'errors' list.
+    """
+    import shlex
+    try:
+        tokens = shlex.split(cmd_str)
+    except ValueError:
+        return {'valid': False, 'errors': ['Failed to parse command string for prompt validation.']}
+    errors: list[str] = []
+    prompt_l = prompt.lower()
+    # Determine resource name position: skip kubectl, verb, and resource type
+    idx = 0
+    if tokens and tokens[0].lower() == 'kubectl':
+        idx = 1
+    if idx < len(tokens):
+        idx += 1  # skip verb
+    if idx < len(tokens) and not tokens[idx].startswith('-'):
+        idx += 1  # skip resource type
+    # resource name
+    if idx < len(tokens) and not tokens[idx].startswith('-'):
+        resource_name = tokens[idx]
+        if resource_name.lower() not in prompt_l:
+            errors.append(f"Resource name '{resource_name}' missing from prompt")
+    # flag values: namespace, filename
+    for i, tok in enumerate(tokens):
+        # namespace flags
+        if tok in ('-n', '--namespace') and i + 1 < len(tokens):
+            ns = tokens[i+1]
+            if ns.lower() not in prompt_l:
+                errors.append(f"Namespace '{ns}' missing from prompt")
+        elif tok.startswith('--namespace='):
+            ns = tok.split('=', 1)[1]
+            if ns.lower() not in prompt_l:
+                errors.append(f"Namespace '{ns}' missing from prompt")
+        # filename flags
+        if tok in ('-f', '--filename') and i + 1 < len(tokens):
+            fname = tokens[i+1]
+            if fname.lower() not in prompt_l:
+                errors.append(f"Filename '{fname}' missing from prompt")
+        elif tok.startswith('--filename=') or tok.startswith('-f='):
+            parts = tok.split('=', 1)
+            if len(parts) == 2 and parts[1].lower() not in prompt_l:
+                errors.append(f"Filename '{parts[1]}' missing from prompt")
+    return {'valid': not errors, 'errors': errors}
+
 
 def is_yaml_subset(subset_yaml_str: str, superset_yaml_str: str) -> bool:
     """

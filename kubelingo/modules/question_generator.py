@@ -55,27 +55,21 @@ class AIQuestionGenerator:
             user_prompt = (
                 f"{system_prompt}\n\n"
                 f"Generate exactly {num_questions} distinct Kubernetes quiz questions about '{subject}'. "
-                "Respond with a JSON array of objects, each with keys 'prompt' (string) and 'validation_steps' (array of {'cmd': <kubectl command>})."
+                "Respond only with a JSON array of objects, each with keys 'prompt' and 'validation_steps', where 'validation_steps' is a list of {'cmd':<kubectl command>} objects."
             )
-            logger.debug("LLM bulk prompt: %s", user_prompt)
-            # Invoke the AI evaluator directly for bulk generation
+            logger.debug("Bulk generation prompt: %s", user_prompt)
             try:
-                raw_list = None
-                # Try via llm package
-                try:
-                    model = self.evaluator.llm.get_model("gpt-4-turbo-preview")
-                    resp = model.prompt(user_prompt, system=system_prompt).text()
-                except Exception:
-                    # Fallback to openai
-                    import openai
-                    resp_obj = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=[{"role": "system", "content": system_prompt},
-                                  {"role": "user", "content": user_prompt}],
-                        temperature=0.7,
-                    )
-                    resp = resp_obj.choices[0].message.content
-                logger.debug("LLM bulk response: %s", resp)
+                import openai
+                resp_obj = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.7,
+                )
+                resp = resp_obj.choices[0].message.content
+                logger.debug("Bulk generation response: %s", resp)
                 raw_list = json.loads(resp)
             except Exception as e:
                 logger.error(f"Bulk AI question generation error: {e}")
