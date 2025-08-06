@@ -75,117 +75,115 @@
               initialDelaySeconds: 10
               periodSeconds: 5
 - category: "YAML Editing - Pods"
-  prompts:
-  - question_type: "yaml_edit"
-    prompt: "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80"
-    starting_yaml: |-
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: # TODO: Add name
-      spec:
-        containers:
-        - name: # TODO: Add container name
-          image: # TODO: Add image
-          ports:
-          - containerPort: # TODO: Add port
-    correct_yaml: |-
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: web-server
-      spec:
-        containers:
-        - name: nginx
-          image: nginx:1.20
-          ports:
-          - containerPort: 80
-    explanation: "Basic pod with specific name, image, and port configuration"
-  - question_type: "yaml_edit"
-    prompt: "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432"
-    starting_yaml: |-
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: app-pod
-      spec:
-        containers:
-        - name: app
-          image: nginx
-          env:
-          # TODO: Add environment variables
-    correct_yaml: |-
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: app-pod
-      spec:
-        containers:
-        - name: app
-          image: nginx
-          env:
-          - name: DB_HOST
-            value: localhost
-          - name: DB_PORT
-            value: "5432"
-    explanation: "Pod with environment variables defined in container spec"
+  question_type: "yaml_edit"
+  prompt: "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80"
+  starting_yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: # TODO: Add name
+    spec:
+      containers:
+      - name: # TODO: Add container name
+        image: # TODO: Add image
+        ports:
+        - containerPort: # TODO: Add port
+  correct_yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: web-server
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20
+        ports:
+        - containerPort: 80
+  explanation: "Basic pod with specific name, image, and port configuration"
+- category: "YAML Editing - Pods"
+  question_type: "yaml_edit"
+  prompt: "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432"
+  starting_yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: app-pod
+    spec:
+      containers:
+      - name: app
+        image: nginx
+        env:
+        # TODO: Add environment variables
+  correct_yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: app-pod
+    spec:
+      containers:
+      - name: app
+        image: nginx
+        env:
+        - name: DB_HOST
+          value: localhost
+        - name: DB_PORT
+          value: "5432"
+  explanation: "Pod with environment variables defined in container spec"
 - category: "YAML Editing - Deployments"
-  prompts:
-  - question_type: "yaml_edit"
-    prompt: "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21"
-    starting_yaml: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: # TODO: Add name
-      spec:
-        replicas: # TODO: Set replicas
-        selector:
-          matchLabels:
+  question_type: "yaml_edit"
+  prompt: "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21"
+  starting_yaml: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: # TODO: Add name
+    spec:
+      replicas: # TODO: Set replicas
+      selector:
+        matchLabels:
+          app: frontend
+      template:
+        metadata:
+          labels:
             app: frontend
-        template:
-          metadata:
-            labels:
-              app: frontend
-          spec:
-            containers:
-            - name: nginx
-              image: # TODO: Set image
-    correct_yaml: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: frontend
-      spec:
-        replicas: 3
-        selector:
-          matchLabels:
+        spec:
+          containers:
+          - name: nginx
+            image: # TODO: Set image
+  correct_yaml: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: frontend
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: frontend
+      template:
+        metadata:
+          labels:
             app: frontend
-        template:
-          metadata:
-            labels:
-              app: frontend
-          spec:
-            containers:
-            - name: nginx
-              image: nginx:1.21
-    explanation: "Deployment with replica count and proper label selectors"
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:1.21
+  explanation: "Deployment with replica count and proper label selectors"
 - category: "YAML Editing - ConfigMaps"
-  prompts:
-  - question_type: "yaml_edit"
-    prompt: "Create a ConfigMap named 'app-config' with data: database_url=mysql://localhost:3306/app"
-    starting_yaml: |-
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: # TODO: Add name
-      data:
-        # TODO: Add data fields
-    correct_yaml: |-
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: app-config
-      data:
-        database_url: mysql://localhost:3306/app
-    explanation: "ConfigMap with key-value data for application configuration"
+  question_type: "yaml_edit"
+  prompt: "Create a ConfigMap named 'app-config' with data: database_url=mysql://localhost:3306/app"
+  starting_yaml: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: # TODO: Add name
+    data:
+      # TODO: Add data fields
+  correct_yaml: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-config
+    data:
+      database_url: mysql://localhost:3306/app
+  explanation: "ConfigMap with key-value data for application configuration"
