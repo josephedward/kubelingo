@@ -267,6 +267,14 @@ def main():
         help='Generate validation_steps via AI for questions missing them'
     )
     parser.add_argument(
+        '--list-questions', action='store_true',
+        help='List all question prompts for the selected quiz and exit'
+    )
+    parser.add_argument(
+        '--ai-question', type=str, metavar='TOPIC',
+        help='Generate one AI-based question on a given topic (e.g. serviceaccount) and exit'
+    )
+    parser.add_argument(
         '--enrich-model', type=str, default='gpt-3.5-turbo',
         help='AI model to use for explanations and validation generation'
     )
@@ -334,6 +342,27 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
+        # Handle on-demand AI-generated question and exit
+        if args.ai_question:
+            topic = args.ai_question.strip()
+            from kubelingo.modules.ai_evaluator import AIEvaluator
+            evaluator = AIEvaluator()
+            base_q = {'prompt': f'Topic: {topic}', 'validation_steps': []}
+            new_q = evaluator.generate_question(base_q)
+            if not new_q or 'prompt' not in new_q:
+                print(f"{Fore.RED}Failed to generate AI question for topic '{topic}'.{Style.RESET_ALL}")
+                return
+            prompt_text = new_q['prompt'].strip()
+            # Validate topic mentioned in prompt
+            if topic.lower() not in prompt_text.lower():
+                print(f"{Fore.YELLOW}Warning: Generated question may lack explicit reference to topic '{topic}'.{Style.RESET_ALL}")
+            print(f"\n{Fore.CYAN}AI-generated question:{Style.RESET_ALL}\n{prompt_text}\n")
+            if new_q.get('validation_steps'):
+                print(f"{Fore.CYAN}Validation steps:{Style.RESET_ALL}")
+                for step in new_q['validation_steps']:
+                    cmd = step.get('cmd', '')
+                    print(f"  - {cmd}")
+            return
 
         if args.quiz:
             from kubelingo.utils.config import ENABLED_QUIZZES
@@ -345,8 +374,8 @@ def main():
                     f"Available quizzes: {', '.join(ENABLED_QUIZZES.keys())}"
                 )
 
-        # If a quiz is selected, always ask interactively for number of questions.
-        if args.quiz and questionary and sys.stdin.isatty() and sys.stdout.isatty():
+        # If a quiz is selected without specifying the number of questions, ask interactively.
+        if args.quiz and args.num == 0 and questionary and sys.stdin.isatty() and sys.stdout.isatty():
             try:
                 num_str = questionary.text(
                     "Enter number of questions (or press Enter for all):",
@@ -403,9 +432,12 @@ def main():
                 else:
                     mode = 'pty'
                 if mode == 'pty':
-                    spawn_pty_shell()
+                    # Use direct module call to respect patches on kubelingo.sandbox
+                    import kubelingo.sandbox as _sb
+                    _sb.spawn_pty_shell()
                 elif mode in ('docker', 'container'):
-                    launch_container_sandbox()
+                    import kubelingo.sandbox as _sb
+                    _sb.launch_container_sandbox()
                 else:
                     print(f"Unknown sandbox mode: {mode}")
                 return
@@ -483,13 +515,14 @@ def main():
             try:
                 from kubelingo.bridge import rust_bridge
                 if rust_bridge.is_available():
-                    # Attempt Rust-backed command quiz
-                    if rust_bridge.run_command_quiz(args):
+                    success = rust_bridge.run_command_quiz(args)
+                    if success:
                         return
-                    # Rust execution failed; fallback to Python quiz
-                    print("Rust command quiz execution failed. Falling back to Python quiz.")
-            except (ImportError, AttributeError):
-                pass  # Fall through to Python implementation
+                    else:
+                        print("Rust command quiz execution failed")
+            except ImportError:
+                # Rust bridge not available, fall back to Python quiz
+                pass
 
         if module_name == 'kustom':
             module_name = 'custom'
