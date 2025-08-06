@@ -59,6 +59,7 @@ from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
 from .answer_checker import evaluate_transcript
+from .study_mode import KubernetesStudyMode, KUBERNETES_TOPICS
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellResult, StepResult
 import logging  # for logging in exercises
 # Stub out AI evaluator to avoid heavy external dependencies
@@ -355,6 +356,80 @@ class NewSession(StudySession):
         """Basic initialization. Live session initialization is deferred."""
         return True
 
+    def _run_study_mode_session(self):
+        """Runs an interactive study session using the Socratic method."""
+        if not os.getenv('OPENAI_API_KEY'):
+            print(f"\n{Fore.RED}Study Mode requires an OpenAI API key.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
+            input("\nPress Enter to return to the menu...")
+            return
+
+        try:
+            print()  # Add a blank line for spacing before the menu
+            topic_choices = list(KUBERNETES_TOPICS.keys())
+            if not topic_choices:
+                print(f"{Fore.YELLOW}No study topics available for Study Mode.{Style.RESET_ALL}")
+                input("\nPress Enter to return to the menu...")
+                return
+            
+            topic = questionary.select(
+                "What Kubernetes topic would you like to study?",
+                choices=topic_choices,
+                use_indicator=True
+            ).ask()
+
+            if topic is None:
+                return
+
+            level = questionary.select(
+                "What is your current skill level on this topic?",
+                choices=["beginner", "intermediate", "advanced"],
+                default="intermediate"
+            ).ask()
+
+            if level is None:
+                return
+
+            api_key = os.getenv('OPENAI_API_KEY')
+            study_session = KubernetesStudyMode(api_key=api_key)
+
+            print(f"\n{Fore.CYAN}Starting study session on '{topic}'... (type 'exit' or 'quit' to end){Style.RESET_ALL}")
+            response = study_session.start_study_session(topic, level)
+            print(f"\n{Fore.GREEN}Tutor:{Style.RESET_ALL} {response}")
+
+            prompt_session = None
+            if PromptSession and FileHistory:
+                os.makedirs(os.path.dirname(INPUT_HISTORY_FILE), exist_ok=True)
+                prompt_session = PromptSession(history=FileHistory(INPUT_HISTORY_FILE))
+
+            while True:
+                try:
+                    if prompt_session:
+                        user_input = prompt_session.prompt(f"\n{Fore.YELLOW}You:{Style.RESET_ALL} ")
+                    else:
+                        user_input = input(f"\n{Fore.YELLOW}You:{Style.RESET_ALL} ")
+
+                    if user_input is None:  # Handle Ctrl-D
+                        break
+                    if user_input.lower().strip() in ['exit', 'quit', 'done']:
+                        break
+                    
+                    print(f"{Fore.YELLOW}Thinking...{Style.RESET_ALL}")
+                    response = study_session.continue_conversation(user_input)
+                    print(f"\n{Fore.GREEN}Tutor:{Style.RESET_ALL} {response}")
+                except (KeyboardInterrupt, EOFError):
+                    break
+
+            print(f"\n{Fore.CYAN}Study session ended. Returning to main menu.{Style.RESET_ALL}")
+
+        except ImportError:
+             print(f"\n{Fore.RED}Study Mode requires the 'openai' package. Please install it with `pip install openai`.{Style.RESET_ALL}")
+        except Exception as e:
+            self.logger.error(f"Error during study mode session: {e}", exc_info=True)
+            print(f"\n{Fore.RED}An error occurred during the study session: {e}{Style.RESET_ALL}")
+
+        input("\nPress Enter to return to the menu...")
+
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
         # Discover all quiz files from JSON, MD, and YAML sources.
@@ -382,13 +457,16 @@ class NewSession(StudySession):
             review_text = f"Review {len(all_flagged)} Flagged Questions"
         choices.append({"name": review_text, "value": "review"})
 
-        # 3. View Session History
+        # 3. Study Mode
+        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
+
+        # 4. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
         
-        # 4. Help
+        # 5. Help
         choices.append({"name": "Help", "value": "help"})
 
-        # 5. Exit App
+        # 6. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
         return choices, all_flagged
 
@@ -610,6 +688,10 @@ class NewSession(StudySession):
                 if selected == "exit_app":
                     print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
                     sys.exit(0)
+
+                if selected == "study_mode":
+                    self._run_study_mode_session()
+                    continue
 
                 if selected == "help":
                     self._show_help()
