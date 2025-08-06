@@ -84,6 +84,57 @@ Your response MUST be a JSON object with two keys:
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
 
+    def generate_question(self, base_question: dict):
+        """
+        Generates a new question similar to a base question using an AI model.
+        The generated question's commands are validated for syntax.
+        """
+        global llm
+        if llm is None:
+            try:
+                import llm as llm_module
+                llm = llm_module
+            except ImportError:
+                return None # Cannot generate if llm is not available
+
+        from kubelingo.utils.validation import validate_kubectl_syntax
+
+        prompt_text = (
+            f"Generate a new Kubernetes quiz question similar to this one, but not identical. "
+            f"Original question prompt: \"{base_question.get('prompt')}\".\n"
+            f"The original question's validation steps are: {base_question.get('validation_steps')}\n\n"
+            "Your task is to create a new, distinct question that tests a similar concept. "
+            "For example, if the original asks to create a pod, you could ask to create a different pod with a different name or image. "
+            "If it asks to get logs, ask for logs from a different resource.\n"
+            "The `validation_steps` you provide must contain syntactically valid `kubectl` commands.\n"
+            "Respond ONLY with a valid JSON object containing 'prompt' and 'validation_steps' keys. The 'validation_steps' must be a list of objects, each with a 'cmd' key."
+        )
+        system_prompt = "You are an expert Kubernetes instructor creating quiz questions. You generate valid JSON."
+
+        try:
+            model = llm.get_model("gpt-4-turbo-preview")
+            response_text = model.prompt(
+                prompt_text,
+                system=system_prompt
+            ).text()
+            new_q = json.loads(response_text)
+
+            # Validate the generated question
+            if not isinstance(new_q, dict) or 'prompt' not in new_q or 'validation_steps' not in new_q:
+                return None
+
+            for step in new_q['validation_steps']:
+                if 'cmd' in step:
+                    validation_result = validate_kubectl_syntax(step['cmd'])
+                    if not validation_result.get('is_valid'):
+                        # The generated command is not valid, discard this question
+                        return None
+            
+            return new_q
+
+        except Exception:
+            return None
+
 
     def _get_system_prompt_for_command_eval(self, quiz_type: str) -> str:
         """Returns a tailored system prompt based on the quiz type."""
