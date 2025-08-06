@@ -208,6 +208,8 @@ def load_questions(data_file, exit_on_error=True):
                         if not isinstance(prompt, dict):
                             continue
                         q = prompt.copy()
+                        if 'question_type' in q:
+                            q['type'] = q['question_type']
                         if category is not None:
                             q['category'] = category
                         questions.append(q)
@@ -786,6 +788,29 @@ class NewSession(StudySession):
                         continue
 
                     if action == "answer":
+                        if q.get('type') == 'yaml_edit':
+                            editor = VimYamlEditor()
+                            starting_yaml = q.get('starting_yaml', '')
+                            
+                            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml', encoding='utf-8') as tf:
+                                temp_path = tf.name
+                            
+                            try:
+                                # This call will open vim and block until it's closed.
+                                editor.edit_yaml_with_vim(starting_yaml, filename=temp_path, prompt=q.get('prompt', ''))
+                                
+                                with open(temp_path, 'r', encoding='utf-8') as f:
+                                    user_edited_yaml = f.read()
+                                
+                                transcripts_by_index[current_question_index] = user_edited_yaml
+                            finally:
+                                os.remove(temp_path)
+                            
+                            # Re-print question header after editing.
+                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                            continue
+                        
                         is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
                         # Detect AI-based semantic validator
                         validator = q.get('validator')
@@ -888,6 +913,53 @@ class NewSession(StudySession):
                         result = transcripts_by_index.get(current_question_index)
                         if result is None:
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
+                            continue
+
+                        if q.get('type') == 'yaml_edit':
+                            attempted_indices.add(current_question_index)
+                            user_yaml_str = result
+                            # The correct answer can be under 'correct_yaml' or 'answer'
+                            correct_yaml_str = q.get('correct_yaml') or q.get('answer', '')
+
+                            if not correct_yaml_str:
+                                print(f"{Fore.YELLOW}Warning: No correct answer defined for this question. Cannot check.{Style.RESET_ALL}")
+                                continue
+
+                            try:
+                                user_obj = yaml.safe_load(user_yaml_str)
+                                if user_obj is None: # An empty file is loaded as None
+                                    user_obj = {}
+                                correct_obj = yaml.safe_load(correct_yaml_str)
+
+                                if user_obj == correct_obj:
+                                    correct_indices.add(current_question_index)
+                                    print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                else:
+                                    correct_indices.discard(current_question_index)
+                                    print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                                    if correct_yaml_str:
+                                        print(f"{Fore.CYAN}Expected YAML:{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
+
+                            except yaml.YAMLError as e:
+                                correct_indices.discard(current_question_index)
+                                print(f"{Fore.RED}Your submission is not valid YAML: {e}{Style.RESET_ALL}")
+
+                            # Auto-flagging logic
+                            question_id = q.get('id')
+                            if question_id:
+                                if current_question_index in correct_indices:
+                                    self.session_manager.unmark_question_for_review(question_id)
+                                else:
+                                    self.session_manager.mark_question_for_review(question_id)
+
+                            # Display explanation if provided
+                            if q.get('explanation'):
+                                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+
+                            # Display source citation
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
                             continue
 
                         # Evaluate the recorded answer (updates attempted_indices and correct_indices)
