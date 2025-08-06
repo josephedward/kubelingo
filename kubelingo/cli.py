@@ -34,6 +34,7 @@ from kubelingo.modules.kubernetes.session import (
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
+from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -345,10 +346,9 @@ def main():
         # Handle on-demand AI-generated question and exit
         if args.ai_question:
             topic = args.ai_question.strip()
-            from kubelingo.modules.ai_evaluator import AIEvaluator
-            evaluator = AIEvaluator()
+            generator = AIQuestionGenerator()
             base_q = {'prompt': f'Topic: {topic}', 'validation_steps': []}
-            new_q = evaluator.generate_question(base_q)
+            new_q = generator.generate_question(base_q)
             if not new_q or 'prompt' not in new_q:
                 print(f"{Fore.RED}Failed to generate AI question for topic '{topic}'.{Style.RESET_ALL}")
                 return
