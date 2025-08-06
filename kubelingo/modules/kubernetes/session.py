@@ -565,6 +565,7 @@ class NewSession(StudySession):
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
             ai_generation_enabled = False
+            ai_generation_enabled = False
 
             if args.review_only:
                 questions = get_all_flagged_questions()
@@ -573,8 +574,8 @@ class NewSession(StudySession):
                     try:
                         with open(args.file, 'r', encoding='utf-8') as f:
                             data = yaml.safe_load(f)
-                            if isinstance(data, dict) and data.get('metadata', {}).get('ai_generation_enabled'):
-                                ai_generation_enabled = True
+                            if isinstance(data, dict):
+                                ai_generation_enabled = data.get('metadata', {}).get('ai_generation_enabled', False)
                     except Exception:
                         pass  # Let load_questions handle errors
                 # Load original Question objects for potential AI generation
@@ -734,8 +735,11 @@ class NewSession(StudySession):
                 return
             # Questions for quiz: include AI-generated extras if needed
             if clones_needed > 0:
+                if not ai_generation_enabled:
+                    print(f"\n{Fore.YELLOW}Requested {requested} questions, but only {total} are available and AI generation is disabled for this module.{Style.RESET_ALL}")
+                    ai_qs = []
                 # Inform user about AI-assisted question generation
-                if not os.getenv('OPENAI_API_KEY'):
+                elif not os.getenv('OPENAI_API_KEY'):
                     print(f"\n{Fore.RED}Cannot generate AI questions: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
                     ai_qs = []
                 else:
@@ -815,6 +819,10 @@ class NewSession(StudySession):
                     if another is None or not another:
                         break
                     
+                    if not ai_generation_enabled:
+                        print(f"\n{Fore.YELLOW}AI question generation is disabled for this module.{Style.RESET_ALL}")
+                        break
+
                     print(f"\n{Fore.CYAN}Generating a new AI question... (Attempt {ai_questions_generated + 1}/{max_ai_questions}){Style.RESET_ALL}")
 
                     if 'generator' not in locals():
