@@ -6,6 +6,10 @@ from typing import List, Set
 import json
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
+from kubelingo.utils.validation import (
+    validate_kubectl_syntax,
+    validate_prompt_completeness,
+)
 from kubelingo.utils.validation import validate_kubectl_syntax
 
 logger = logging.getLogger(__name__)
