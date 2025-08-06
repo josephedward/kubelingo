@@ -1,46 +1,10 @@
 questions:
   - id: shell-setup-q1
     category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'k' for 'kubectl'"
+    prompt: "Shell aliases are shortcuts for longer commands, saving you from typing long commands repeatedly. A common alias is `k` for `kubectl`, which lets you run commands like `k get pods`. Create the `k` alias now."
     response: "alias k=kubectl"
     links:
       - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion"
-  - id: shell-setup-q2
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'kd' for 'kubectl describe'"
-    response: "alias kd='kubectl describe'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)"
-  - id: shell-setup-q3
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'kr' for 'kubectl run'"
-    response: "alias kr='kubectl run'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20,in%20the%20namespace%20of%20mynamespace"
-  - id: shell-setup-q4
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'kc' for 'kubectl create'"
-    response: "alias kc='kubectl create'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20apply%20,a%20single%20instance%20of%20nginx"
-  - id: shell-setup-q5
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'ke' for 'kubectl explain'"
-    response: "alias ke='kubectl explain'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20explain%20pods%20%20,the%20documentation%20for%20pod%20manifests"
-  - id: shell-setup-q6
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'kgp' for 'kubectl get pods'"
-    response: "alias kgp='kubectl get pods'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,List%20all%20pods%20in%20the"
-  - id: shell-setup-q7
-    category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "Create an alias 'kgs' for 'kubectl get svc'"
-    response: "alias kgs='kubectl get svc'"
-    links:
-      - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,all%20pods%20in%20the%20current"
   - id: shell-setup-q8
     category: "Shell Setup: Aliases & Autocomplete"
     prompt: "Enable kubectl autocomplete in your shell"
@@ -52,8 +16,8 @@ questions:
       - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=alias%20k%3Dkubectl%20complete%20,F%20__start_kubectl%20k"
   - id: shell-setup-q9
     category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "List pods using the 'kgp' alias"
-    response: "kgp"
+    prompt: "List pods using the 'k' alias"
+    response: "k get pods"
     links:
       - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,List%20all%20pods%20in%20the"
   - id: shell-setup-q10
@@ -70,8 +34,8 @@ questions:
       - "https://kubernetes.io/docs/reference/kubectl/#:~:text=,apps%2Fv1%20true%20ReplicaSet"
   - id: shell-setup-q12
     category: "Shell Setup: Aliases & Autocomplete"
-    prompt: "List services using the 'kgs' alias"
-    response: "kgs"
+    prompt: "List services using the 'k' alias"
+    response: "k get svc"
     links:
       - "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,all%20pods%20in%20the%20current"
   - id: shell-setup-q13
