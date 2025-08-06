@@ -824,7 +824,7 @@ class NewSession(StudySession):
                     
                     # Generate one AI-based follow-up question for this quiz category
                     subject = _get_subject_for_questions(questions_to_ask[0]) if questions_to_ask else ""
-                    new_qs = generator.generate_questions(subject, 1)
+                    new_qs = generator.generate_questions(subject, 1, base_questions=base_for_gen)
                     
                     if new_qs:
                         questions_to_ask.extend(new_qs)
