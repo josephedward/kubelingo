@@ -81,7 +81,7 @@ class AIQuestionGenerator:
                     if not cmd or not validate_kubectl_syntax(cmd).get("valid"):
                         valid = False
                         break
-                    steps.append(ValidationStep(cmd=cmd))
+                    steps.append(ValidationStep(cmd=cmd, matcher={}))
                 if not valid:
                     continue
                 qid = f"ai-gen-{uuid.uuid4()}"
@@ -117,7 +117,7 @@ class AIQuestionGenerator:
                     if not cmd or not validate_kubectl_syntax(cmd).get("valid"):
                         valid = False
                         break
-                    steps.append(ValidationStep(cmd=cmd))
+                    steps.append(ValidationStep(cmd=cmd, matcher={}))
                 if not valid:
                     continue
                 qid = f"ai-gen-{uuid.uuid4()}"
