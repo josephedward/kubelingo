@@ -2,6 +2,12 @@
 """
 Kubelingo: A simple CLI tool to quiz commands (or other strings) based on supplied JSON data.
 """
+# Load environment variables from a .env file if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import json
 import argparse
 import sys
@@ -166,6 +172,15 @@ def main():
         return
 
     os.makedirs(LOGS_DIR, exist_ok=True)
+    # Initialize logging for both interactive and non-interactive modes
+    import logging
+    log_level = os.getenv('KUBELINGO_LOG_LEVEL', 'INFO').upper()
+    numeric_level = getattr(logging, log_level, logging.INFO)
+    logging.basicConfig(
+        filename=LOGS_DIR + '/quiz_kubernetes_log.txt',
+        level=numeric_level,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
         # rewrite to explicit sandbox-mode flag
