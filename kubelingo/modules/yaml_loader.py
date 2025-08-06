@@ -37,6 +37,35 @@ class YAMLLoader(BaseLoader):
         # If first document is not question data (e.g., a docstring), use second
         if not isinstance(raw, (list, dict)) and len(docs) > 1:
             raw = docs[1] or {}
+        # Flatten nested 'prompts' sections into top-level question entries
+        if isinstance(raw, list):
+            flattened = []
+            for section in raw:
+                if isinstance(section, dict) and 'prompts' in section and isinstance(section['prompts'], list):
+                    for prompt in section['prompts']:
+                        entry = {}
+                        # Map YAML edit question type
+                        if 'question_type' in prompt:
+                            entry['type'] = prompt['question_type']
+                        # Prompt text
+                        if 'prompt' in prompt:
+                            entry['prompt'] = prompt.get('prompt')
+                        # Starting YAML content
+                        if 'starting_yaml' in prompt:
+                            entry['initial_yaml'] = prompt.get('starting_yaml')
+                        # Correct YAML content
+                        if 'correct_yaml' in prompt:
+                            entry['correct_yaml'] = prompt.get('correct_yaml')
+                        # Explanation
+                        if 'explanation' in prompt:
+                            entry['explanation'] = prompt.get('explanation')
+                        # Inherit category from section
+                        if 'category' in section:
+                            entry['category'] = section.get('category')
+                        flattened.append(entry)
+                else:
+                    flattened.append(section)
+            raw = flattened
         # Normalize legacy 'question' key to 'prompt' and flatten nested metadata
         if isinstance(raw, list):
             for item in raw:

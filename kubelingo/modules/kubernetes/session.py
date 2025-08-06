@@ -269,6 +269,11 @@ def load_questions(data_file, exit_on_error=True):
                 val = meta.get(fld) or nested.get(fld)
                 if val:
                     q_dict[fld] = val
+            # Extract YAML authoring/editing canonical answers for validation
+            if 'answer' in meta:
+                q_dict['answer'] = meta.get('answer')
+            if 'correct_yaml' in meta:
+                q_dict['correct_yaml'] = meta.get('correct_yaml')
             questions.append(q_dict)
         return questions
     except Exception as e:
@@ -789,25 +794,24 @@ class NewSession(StudySession):
                         continue
 
                     if action == "answer":
-                        if q.get('type') == 'yaml_edit':
+                        # Support YAML editing and authoring questions
+                        if q.get('type') in ('yaml_edit', 'yaml_author'):
                             editor = VimYamlEditor()
                             starting_yaml = q.get('starting_yaml', '')
-                            
-                            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml', encoding='utf-8') as tf:
-                                temp_path = tf.name
-                            
-                            try:
-                                # This call will open vim and block until it's closed.
-                                editor.edit_yaml_with_vim(starting_yaml, filename=temp_path, prompt=q.get('prompt', ''))
-                                
-                                with open(temp_path, 'r', encoding='utf-8') as f:
-                                    user_edited_yaml = f.read()
-                                
-                                transcripts_by_index[current_question_index] = user_edited_yaml
-                            finally:
-                                os.remove(temp_path)
-                            
-                            # Re-print question header after editing.
+                            # Open in Vim and parse the edited YAML
+                            parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
+                            # Serialize back to YAML string for evaluation
+                            user_yaml_str = ''
+                            if parsed is not None:
+                                if yaml and hasattr(yaml, 'safe_dump'):
+                                    try:
+                                        user_yaml_str = yaml.safe_dump(parsed, default_flow_style=False)
+                                    except Exception:
+                                        user_yaml_str = str(parsed)
+                                else:
+                                    user_yaml_str = str(parsed)
+                            transcripts_by_index[current_question_index] = user_yaml_str
+                            # Re-print question header after editing
                             print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
                             print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
                             continue
@@ -841,6 +845,18 @@ class NewSession(StudySession):
 
                             if user_input is None:  # Handle another way of EOF from prompt_toolkit
                                 user_input = ""
+                            # Detect editor invocation at answer prompt
+                            stripped = user_input.strip()
+                            try:
+                                parts = shlex.split(stripped)
+                            except Exception:
+                                parts = stripped.split()
+                            if parts and parts[0] in ('vim', 'vi', 'nano'):
+                                try:
+                                    subprocess.run(parts)
+                                except Exception as e:
+                                    print(f"{Fore.RED}Failed to launch editor: {e}{Style.RESET_ALL}")
+                                continue  # Back to action menu
                             
                             # Record the answer
                             answer = user_input.strip()
@@ -916,7 +932,8 @@ class NewSession(StudySession):
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
 
-                        if q.get('type') == 'yaml_edit':
+                        # Check YAML editing and authoring answers by comparing parsed objects
+                        if q.get('type') in ('yaml_edit', 'yaml_author'):
                             attempted_indices.add(current_question_index)
                             user_yaml_str = result
                             # The correct answer can be under 'correct_yaml' or 'answer'

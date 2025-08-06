@@ -13,8 +13,8 @@ LOGS_DIR = os.path.join(ROOT, 'logs')
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
 # Built-in YAML-edit quiz data (YAML form)
-# The YAML source for YAML editing exercises is named 'yaml_quiz.yaml'
-YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_quiz.yaml')
+# Updated to use the properly formatted 'yaml_exercises_quiz.yaml'
+YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_exercises_quiz.yaml')
 # Built-in Vim quiz data file (YAML-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
@@ -36,7 +36,7 @@ KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
     "Vim Quiz": VIM_QUESTIONS_FILE,
-    "Interactive YAML Exercises": YAML_QUESTIONS_FILE,
+    "YAML Editing": YAML_QUESTIONS_FILE,
     "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
     "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,

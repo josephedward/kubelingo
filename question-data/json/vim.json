@@ -33,7 +33,8 @@
     "category": "Vim Commands",
     "prompt": "Save file without exiting",
     "response": ":w",
-    "type": "command"
+    "type": "command",
+    "review": true
   },
   {
     "category": "Vim Commands",
@@ -81,7 +82,8 @@
     "category": "Vim Commands",
     "prompt": "Go to end of file",
     "response": "G",
-    "type": "command"
+    "type": "command",
+    "review": true
   },
   {
     "category": "Vim Commands",

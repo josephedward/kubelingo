@@ -27,8 +27,9 @@ def test_cli_list_modules_argument(mock_show_modules):
         mock_show_modules.assert_called_once()
 
 
+@patch('questionary.select', autospec=True)
 @patch('kubelingo.cli.load_session')
-def test_cli_k8s_module_argument(mock_load_session):
+def test_cli_k8s_module_argument(mock_load_session, mock_select):
     """Test that `kubelingo --k8s` loads the kubernetes module."""
     mock_session = MagicMock()
     mock_session.initialize.return_value = True

@@ -1,5 +1,5 @@
 import pytest
-pytest.skip("YAML editing feature not enabled yet", allow_module_level=True)
+# YAML editing feature is now enabled
 import json
 from unittest.mock import patch, Mock
 import yaml
@@ -16,16 +16,26 @@ from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
 def yaml_test_data():
     """Load YAML test data."""
     # The file existence is already checked by pytestmark, so we can assume it exists.
-    with open(YAML_QUESTIONS_FILE, 'r') as f:
-        yaml_questions_data = json.load(f)
+    with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
+        # Load YAML quiz data directly
+        yaml_questions_data = yaml.safe_load(f)
 
     # Flatten the list of questions to make them easier to iterate through in the test.
     all_prompts = []
     for section in yaml_questions_data:
-        for prompt in section.get('prompts', []):
-            if prompt.get('question_type') == 'yaml_edit':
-                all_prompts.append(prompt)
-    
+        # Nested prompts
+        if isinstance(section, dict) and section.get('prompts'):
+            for prompt in section.get('prompts', []):
+                if prompt.get('question_type') == 'yaml_edit':
+                    all_prompts.append(prompt)
+        # Simple standalone questions
+        elif isinstance(section, dict) and section.get('prompt') and 'answer' in section:
+            all_prompts.append({
+                'prompt': section['prompt'],
+                'starting_yaml': section.get('starting_yaml', ''),
+                'correct_yaml': section.get('correct_yaml', section['answer']),
+                'explanation': section.get('explanation', '')
+            })
     return all_prompts
 
 # A stateful callable class to simulate the editor for `subprocess.run`.
@@ -75,17 +85,22 @@ def test_yaml_editing_e2e_flow(capsys, yaml_test_data):
     # Instantiate our mock editor with the correct solutions.
     mock_editor_instance = MockEditor(correct_yaml_solutions)
 
-    # Mock user input to automatically answer 'y' to "Continue?" prompts
-    # and 'n' to any retry prompts. This test covers the success path, so only 'y' for 'Continue?' is needed.
-    user_inputs = ['y'] * (num_questions - 1)
+    # Mock user input for editor launches and continue prompts: alternate '' then 'y', ending with ''
+    user_inputs = []
+    for idx in range(num_questions):
+        # Press Enter to open editor
+        user_inputs.append('')
+        # Respond 'y' to continue prompts except after last question
+        if idx < num_questions - 1:
+            user_inputs.append('y')
 
     # The function is now a method on the NewSession class
     session = NewSession(logger=Mock())
     # Mock CLI args, though they are not used by this specific method
     mock_args = Mock()
 
-    # Patch subprocess in the module where it's used
-    with patch('kubelingo.modules.kubernetes.session.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
+    # Patch subprocess in the vim_yaml_editor module to simulate editor
+    with patch('kubelingo.modules.kubernetes.vim_yaml_editor.subprocess.run', side_effect=mock_editor_instance) as mock_run, \
          patch('builtins.input', side_effect=user_inputs) as mock_input, \
          patch('kubelingo.modules.kubernetes.session.random.sample', lambda pop, k: pop):
         
@@ -95,8 +110,9 @@ def test_yaml_editing_e2e_flow(capsys, yaml_test_data):
     # Assert that the editor was called once for each question.
     assert mock_editor_instance.call_count == num_questions
 
-    # Assert that input was called to prompt for continuing after each question except the last one.
-    assert mock_input.call_count == num_questions - 1
+    # Assert that input was called for each editor launch and continue prompt
+    expected_input_calls = 2 * num_questions - 1
+    assert mock_input.call_count == expected_input_calls
 
     # Assert on the captured standard output.
     captured = capsys.readouterr()
