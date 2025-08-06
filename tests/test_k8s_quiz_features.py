@@ -141,3 +141,37 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         # There should be two calls to prompt: one for Q1 menu, one for Q2 menu.
         # If auto-advance failed, there would be more calls.
         self.assertEqual(mock_prompt.call_count, 2)
+
+    @patch('kubelingo.modules.kubernetes.session.load_questions')
+    @patch('kubelingo.modules.question_generator.AIQuestionGenerator.generate_questions')
+    @patch('questionary.prompt')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_ai_questions_are_generated_when_more_are_requested(
+        self, mock_stdout, mock_prompt, mock_generate_questions, mock_load_questions
+    ):
+        # Arrange
+        mock_load_questions.return_value = self.static_questions # 2 questions
+        mock_generate_questions.return_value = self.ai_questions # 1 question
+        
+        args = self._get_mock_args(num_questions=3) # Request 3 questions
+        session = NewSession(self.logger)
+
+        # Mock user exiting immediately after the first question
+        mock_prompt.return_value = {'action': 'Exit App'}
+
+        # Act
+        session.run_exercises(args)
+
+        # Assert
+        # AI generator should be called to generate 1 more question.
+        mock_generate_questions.assert_called_once()
+        call_args, call_kwargs = mock_generate_questions.call_args
+        self.assertEqual(call_kwargs.get('base_questions'), self.static_questions)
+        self.assertEqual(call_kwargs.get('num_to_generate'), 1)
+        
+        # The quiz should start with 3 questions (2 static + 1 AI)
+        output = mock_stdout.getvalue()
+        self.assertIn("Generating 1 additional AI questions...", output)
+        self.assertIn("File: dummy.yaml, Questions: 3", output)
+        self.assertIn("Question 1/3", output)
+        mock_prompt.assert_called_once()
