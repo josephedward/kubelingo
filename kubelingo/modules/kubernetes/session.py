@@ -684,7 +684,11 @@ class NewSession(StudySession):
                     try:
                         from kubelingo.modules.question_generator import AIQuestionGenerator
                         generator = AIQuestionGenerator()
-                        ai_qs = generator.generate_questions(static_to_show, clones_needed, set(q.get('prompt', '') for q in questions))
+                        ai_qs = generator.generate_questions(
+                            base_questions=static_to_show,
+                            num_to_generate=clones_needed,
+                            seen_prompts=seen_prompts
+                        )
                     except Exception:
                         ai_qs = []
                     # Append generated questions
@@ -711,7 +715,7 @@ class NewSession(StudySession):
                     ai_qs = generator.generate_questions(
                         base_questions=static_to_show,
                         num_to_generate=clones_needed,
-                        existing_prompts=seen_prompts
+                        seen_prompts=seen_prompts
                     )
                     generated = len(ai_qs)
                     if generated < clones_needed:
