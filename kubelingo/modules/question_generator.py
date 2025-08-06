@@ -1,140 +1,108 @@
-import random
 import logging
-import json
-from typing import List, Dict, Any
-from difflib import SequenceMatcher
+import re
+import uuid
+from typing import List, Set
 
-try:
-    import llm
-except ImportError:
-    llm = None
-
-from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness
+from kubelingo.modules.ai_evaluator import AIEvaluator
+from kubelingo.question import Question, ValidationStep
 
 logger = logging.getLogger(__name__)
 
 
 class AIQuestionGenerator:
     """
-    Uses an AI model to generate new questions based on existing ones.
+    Generates questions about Kubernetes subjects using an AI model.
+    Wraps AIEvaluator to generate and validate questions about specific
+    Kubernetes subjects.
     """
 
-    def __init__(self):
-        self.model = None
-        if not llm:
-            logger.warning("`llm` library not found. AI question generation is disabled.")
-            return
-        try:
-            self.model = llm.get_model()
-        except Exception as e:
-            logger.error(f"Failed to initialize LLM for question generation: {e}")
+    def __init__(self, max_attempts_per_question: int = 5):
+        self.evaluator = AIEvaluator()
+        self.max_attempts = max_attempts_per_question
 
-    def _generate_variation_prompt(self, question: Dict[str, Any], seen_prompts: List[str]) -> str:
-        prompt = question.get('prompt', '')
-        response = question.get('response', '')
-        category = question.get('category', '')
-        seen_prompts_text = "\n".join([f"- {p}" for p in seen_prompts])
+    def generate_questions(
+        self, subject: str, num_questions: int = 1
+    ) -> List[Question]:
+        """
+        Ask the LLM to generate kubectl questions about `subject`, and validate
+        that they mention the resource kind, a name, and any needed flags.
 
-        return (
-            "You are an expert Kubernetes instructor creating quiz questions for a tool called 'kubelingo'.\n"
-            "Based on the following example question, create one new, unique, but similar variation.\n"
-            "The new question must be different but test a similar concept.\n"
-            "For example, if the original question uses 'nginx', you could use 'httpd' or 'redis'. If it refers to a namespace 'dev', you could use 'prod'.\n"
-            "Crucially, the 'response' (the correct command) must be a syntactically valid `kubectl` command.\n"
-            "Ensure the new question prompt is unique and not a paraphrase or duplicate of the example or any existing quiz questions.\n"
-            "Do not create a question with a prompt that is substantially similar to any of the following:\n"
-            f"{seen_prompts_text}\n\n"
-            "Ensure that your prompt explicitly specifies every resource name, flag, and value used in the response command. Do not include any arguments in the response that are not described in the prompt.\n"
-            "Do not just copy the example. Provide a fresh take on the same topic.\n\n"
-            "Example Question:\n"
-            f"- Prompt: \"{prompt}\"\n"
-            f"- Response: \"{response}\"\n"
-            f"- Category: \"{category}\"\n\n"
-            "Your Output Format (strict JSON):\n"
-            "{\n"
-            "  \"prompt\": \"<new_question_prompt>\",\n"
-            "  \"response\": \"<new_kubectl_command>\",\n"
-            "  \"category\": \"<same_category>\"\n"
-            "}"
+        Returns a list of Question objects.
+        """
+        questions: List[Question] = []
+        seen_prompts: Set[str] = set()
+
+        system_prompt = (
+            "You are a Kubernetes quiz‐generator. Produce JSON with keys "
+            "'prompt' and 'validation_steps' only. The prompt must:"
+            f"\n  • mention the resource kind exactly: “{subject}”"
+            "\n  • include a resource name, e.g. “named 'foo-sa'”"
+            "\n  • specify any namespace or flags required to scope the command"
+            "\nGenerate a question that asks the user to run `kubectl` to perform "
+            "an operation on that resource."
         )
 
-    def generate_questions(self, base_questions: List[Dict[str, Any]], num_to_generate: int, existing_prompts: set) -> List[Dict[str, Any]]:
-        if not self.model:
-            logger.warning("LLM not available. Cannot generate new questions.")
-            return []
+        # Give it enough attempts to generate the desired number of unique questions
+        for _ in range(self.max_attempts * num_questions):
+            if len(questions) >= num_questions:
+                break
 
-        if not base_questions:
-            logger.warning("No base questions provided to generate variations from.")
-            return []
-
-        # Track seen prompts to avoid duplicates or near-duplicates
-        seen_prompts = existing_prompts.copy()
-        generated_questions: List[Dict[str, Any]] = []
-        attempts = 0
-        max_attempts = num_to_generate * 4 + 10  # allow extra tries for uniqueness
-
-        while len(generated_questions) < num_to_generate and attempts < max_attempts:
-            attempts += 1
-            source_question = random.choice(base_questions)
-
-            prompt = self._generate_variation_prompt(source_question, list(seen_prompts))
+            user_prompt = f"{system_prompt}\n\nGenerate 1 distinct question about {subject}."
 
             try:
-                response_text = self.model.prompt(
-                    prompt,
-                    system="You are a JSON-generating assistant."
-                ).text()
+                # Based on user's sketch. It defines a system prompt, so we pass it.
+                # AIEvaluator.generate_question is assumed to accept a dict.
+                raw_q = self.evaluator.generate_question(
+                    {"prompt": user_prompt, "validation_steps": []}
+                )
 
-                new_q_data = json.loads(response_text)
-
-                new_prompt = new_q_data.get('prompt')
-                new_response = new_q_data.get('response')
-
-                if not new_prompt or not new_response:
-                    logger.warning("Generated question missing prompt or response. Skipping.")
-                    continue
-                # Deduplicate: skip exact or near-duplicate prompts
-                new_prompt_clean = new_prompt.strip()
-                is_duplicate = False
-                for existing in seen_prompts:
-                    if existing == new_prompt_clean or SequenceMatcher(None, new_prompt_clean, existing).ratio() > 0.8:
-                        is_duplicate = True
-                        break
-                if is_duplicate:
-                    logger.warning(f"Skipping duplicate or near-duplicate question: '{new_prompt_clean}'")
+                if not raw_q or "prompt" not in raw_q or "validation_steps" not in raw_q:
+                    logger.warning("AI generation returned invalid format. Retrying.")
                     continue
 
-                # Validate the generated kubectl command syntax
-                syntax_result = validate_kubectl_syntax(new_response)
-                if not syntax_result['valid']:
-                    logger.warning(f"Generated command '{new_response}' failed validation: {syntax_result['errors']}. Retrying.")
+                prompt = raw_q["prompt"].strip()
+                # 1) No exact duplicates
+                if prompt in seen_prompts:
+                    logger.warning(f"Skipping duplicate question: '{prompt}'")
                     continue
-                # Validate that the prompt contains all details (resource type, name, flags)
-                prompt_check = validate_prompt_completeness(new_response, new_prompt)
-                if not prompt_check['valid']:
-                    logger.warning(
-                        f"Prompt missing required details for command '{new_response}': {prompt_check['errors']}. Retrying."
+                # 2) Must mention the subject
+                if not re.search(fr"\b{re.escape(subject)}\b", prompt, re.IGNORECASE):
+                    logger.warning(f"Generated prompt does not mention subject '{subject}'. Retrying.")
+                    continue
+                # 3) Must mention “named <something>”
+                if not re.search(r"named ['\"][A-Za-z0-9\-\_]+['\"]", prompt):
+                    logger.warning("Generated prompt does not include a resource name. Retrying.")
+                    continue
+
+                seen_prompts.add(prompt)
+                validation_steps = [
+                    ValidationStep(**step) for step in raw_q["validation_steps"]
+                ]
+                response = ""
+                if (
+                    validation_steps
+                    and hasattr(validation_steps[0], "cmd")
+                    and validation_steps[0].cmd
+                ):
+                    response = validation_steps[0].cmd
+
+                questions.append(
+                    Question(
+                        id=f"ai-gen-{uuid.uuid4()}",
+                        prompt=prompt,
+                        response=response,
+                        validation=validation_steps,
                     )
-                    continue
-
-                # Assemble the new question and mark prompt as seen
-                new_question = {
-                    'id': f"ai-gen::{random.randint(1000, 9999)}",
-                    'prompt': new_prompt,
-                    'response': new_response,
-                    'category': new_q_data.get('category', source_question.get('category')),
-                    'type': 'command',  # Generated questions are command-based
-                    'validator': {'type': 'ai', 'expected': new_response}
-                }
-
-                generated_questions.append(new_question)
-                seen_prompts.add(new_prompt_clean)
-                logger.info(f"Successfully generated and validated a new question: {new_prompt}")
+                )
+                logger.info(f"Successfully generated and validated a new question: {prompt}")
 
             except Exception as e:
                 logger.error(f"Error during AI question generation or validation: {e}")
 
-        if len(generated_questions) < num_to_generate:
-            logger.warning(f"Failed to generate the requested number of questions. Got {len(generated_questions)} out of {num_to_generate}.")
+        if len(questions) < num_questions:
+            logger.warning(
+                "Failed to generate the requested number of questions. "
+                f"Got {len(questions)} out of {num_questions}."
+            )
 
-        return generated_questions
+        return questions
