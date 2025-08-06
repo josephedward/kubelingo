@@ -825,6 +825,10 @@ class NewSession(StudySession):
                 else:
                     print(f"\nGenerating {clones_needed} additional AI questions...")
                     try:
+                        # ROADMAP: Store generated questions in a local database (e.g., SQLite)
+                        # to build a persistent, user-specific question bank. This would
+                        # reduce redundant API calls and allow for more sophisticated review
+                        # mechanisms.
                         generator = AIQuestionGenerator()
                         # Generate AI-backed questions for this quiz category
                         subject = _get_subject_for_questions(questions[0]) if questions else ''
