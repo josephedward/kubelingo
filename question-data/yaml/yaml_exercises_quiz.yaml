@@ -122,7 +122,7 @@ questions:
     id: yaml-edit-q2
     category: "YAML Editing - Pods"
     type: "yaml_edit"
-    prompt: "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432"
+    prompt: "Create a Pod named 'app-pod' with container name 'app' and environment variables: DB_HOST=localhost, DB_PORT=5432"
     starting_yaml: |
       apiVersion: v1
       kind: Pod
