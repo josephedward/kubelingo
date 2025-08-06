@@ -1,5 +1,6 @@
 questions:
-  - id: yaml-author-q1
+  - 
+    id: yaml-author-q1
     category: "YAML Authoring"
     type: "yaml_author"
     prompt: "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi."
@@ -20,7 +21,8 @@ questions:
             limits:
               cpu: 300m
               memory: 30Mi
-  - id: yaml-author-q2
+  - 
+    id: yaml-author-q2
     category: "YAML Authoring"
     type: "yaml_author"
     prompt: "Create a ConfigMap named trauerweide with data tree=trauerweide."
@@ -31,7 +33,8 @@ questions:
         name: trauerweide
       data:
         tree: trauerweide
-  - id: yaml-author-q3
+  - 
+    id: yaml-author-q3
     category: "YAML Authoring"
     type: "yaml_author"
     prompt: "Create a Pod named pod1 using image nginx:alpine with env var TREE1 from ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke."
@@ -57,7 +60,8 @@ questions:
         - name: birke-volume
           configMap:
             name: birke
-  - id: yaml-author-q4
+  - 
+    id: yaml-author-q4
     category: "YAML Authoring"
     type: "yaml_author"
     prompt: "Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10 and periodSeconds=5."
@@ -86,7 +90,8 @@ questions:
                   - /tmp/ready
                 initialDelaySeconds: 10
                 periodSeconds: 5
-  - id: yaml-edit-q1
+  - 
+    id: yaml-edit-q1
     category: "YAML Editing - Pods"
     type: "yaml_edit"
     prompt: "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80"
@@ -113,7 +118,8 @@ questions:
           ports:
           - containerPort: 80
     explanation: "Basic pod with specific name, image, and port configuration"
-  - id: yaml-edit-q2
+  - 
+    id: yaml-edit-q2
     category: "YAML Editing - Pods"
     type: "yaml_edit"
     prompt: "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432"
@@ -143,7 +149,8 @@ questions:
           - name: DB_PORT
             value: "5432"
     explanation: "Pod with environment variables defined in container spec"
-  - id: yaml-edit-q3
+  - 
+    id: yaml-edit-q3
     category: "YAML Editing - Deployments"
     type: "yaml_edit"
     prompt: "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21"
@@ -184,7 +191,8 @@ questions:
             - name: nginx
               image: nginx:1.21
     explanation: "Deployment with replica count and proper label selectors"
-  - id: yaml-edit-q4
+  - 
+    id: yaml-edit-q4
     category: "YAML Editing - ConfigMaps"
     type: "yaml_edit"
     prompt: "Create a ConfigMap named 'app-config' with data: database_url=mysql://localhost:3306/app"
