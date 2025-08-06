@@ -1366,10 +1366,13 @@ class NewSession(StudySession):
         and validate via subprocess-run simulation.
         """
         print("=== Kubelingo YAML Editing Mode ===")
-        # Load raw YAML quiz data (JSON format)
+        # Load raw YAML quiz data (YAML format)
+        if yaml is None:
+            print(f"{Fore.RED}Cannot load YAML questions: PyYAML is not installed.{Style.RESET_ALL}")
+            return
         try:
             with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = yaml.safe_load(f)
         except Exception as e:
             print(f"{Fore.RED}Error loading YAML questions: {e}{Style.RESET_ALL}")
             return
