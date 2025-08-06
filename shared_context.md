@@ -61,18 +61,14 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 ## Recent Enhancements
 
-- [In Progress] **AI-Powered Question Cloning**: When `-n/--num` exceeds static question count *and* a quiz’s YAML metadata includes `ai_generation_enabled: true`, Kubelingo will:
-  - Invoke `AIQuestionGenerator.generate_questions(subject, clones_needed)`, using up to 5 attempts per extra question (`max_attempts_per_question=5`).
-  - Sanity-check each AI response: valid JSON with `prompt` and at least one `validation_steps` entry containing a `cmd`; the prompt must mention the subject, include an action (`create` or `get`), and name the resource.
-  - On failure after all attempts, print: `Warning: Could not generate {n} unique AI questions. Proceeding with {m} generated.`
-  - To enable AI cloning:
-    - Install the LLM helper: `pip install llm llm-openai`.
-    - Provide your OpenAI key: `llm keys set openai` or `export OPENAI_API_KEY=…`.
-    - Ensure network access to the OpenAI API.
-  - If AI cloning still fails:
-    - Inspect `logs/quiz_kubernetes_log.txt` or set `export KUBELINGO_LOG_LEVEL=DEBUG` to view raw prompts and errors.
-    - Increase `max_attempts_per_question` in `kubelingo/modules/question_generator.py`.
-    - Loosen validation filters in `kubelingo/modules/question_generator.py` (e.g., subject or action checks).
+- [Refactored] **AI-Powered Question Generation**: The question generation logic has been refactored for simplicity and reliability, especially for generating multiple questions.
+  - **Bulk Generation**: When more than one question is requested (`-n > 1`), Kubelingo now makes a single bulk request to the OpenAI API, asking for `N` distinct questions about a given subject.
+  - **Simplified Validation**: The complex, per-question validation filters have been removed. Instead, each AI-generated question is only checked to ensure its associated command has valid `kubectl` syntax. This removes brittle regex checks and relies on `kubectl`'s own parser.
+  - **Debugging**: The raw prompt sent to the AI and the full JSON response are logged at the `DEBUG` level, making it easier to diagnose generation issues.
+  - To enable AI generation:
+    - Install the OpenAI client: `pip install openai`.
+    - Provide your OpenAI key: `export OPENAI_API_KEY=…`.
+    - For debugging, set the log level: `export KUBELINGO_LOG_LEVEL=DEBUG` and inspect `logs/quiz_kubernetes_log.txt`.
 - [Added] **Kubectl Syntax Validation**: Introduced `validate_kubectl_syntax()` in `kubelingo/utils/validation.py`, which runs `kubectl <cmd> --help` client-side to catch unknown commands or flags and surfaces errors or warnings before executing or recording user input.
 - [Added] **YAML Manifest Structure Validation**: In the Vim-based YAML editor (`kubelingo/modules/kubernetes/vim_yaml_editor.py`), Kubelingo now applies `validate_yaml_structure()` on the edited manifest, printing any syntax or structure errors and warnings immediately after editing and before answer evaluation.
 
@@ -488,14 +484,14 @@ If a source URL is provided, please cite it in your reasoning.
 
 #### For AI Question Generation
 
-This prompt is used by `AIQuestionGenerator` to create new questions based on an existing one.
+This prompt is used by `AIQuestionGenerator` to create new questions based on a subject.
 
 ```
-You are an expert Kubernetes administrator and trainer. Your task is to generate a new quiz question that is a variation of an existing one.
-The new question should test the same concept but be worded differently and have a different target resource or parameter.
-You will be given a base question as a JSON object.
-Your response MUST be a JSON object containing the new question, with "prompt" and "validation_steps" keys.
-The validation steps must be correct for the new prompt.
+You are a Kubernetes quiz‐generator. Produce JSON with keys 'prompt' and 'validation_steps' only. The prompt must:
+  • mention the resource kind exactly: “{subject}”
+  • include a resource name, e.g. “named 'foo-sa'”
+  • specify any namespace or flags required to scope the command
+Generate a question that asks the user to run `kubectl` to perform an operation like 'create' or 'get' on that resource.
 ```
 
 ## Recent Interactive Quiz UI Updates
