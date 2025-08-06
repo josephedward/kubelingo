@@ -549,6 +549,15 @@ class NewSession(StudySession):
                 questions = get_all_flagged_questions()
             elif args.file:
                 questions = load_questions(args.file)
+                # Convert Question objects to dicts for uniform handling
+                from kubelingo.question import Question as QCls
+                converted = []
+                for q in questions:
+                    if isinstance(q, QCls):
+                        converted.append(q.__dict__.copy())
+                    else:
+                        converted.append(q)
+                questions = converted
             else:
                 # Interactive mode: show menu to select quiz.
                 if not is_interactive:
@@ -656,10 +665,68 @@ class NewSession(StudySession):
             # Support legacy args.num_questions from tests or aliases
             num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
             requested = num_arg if num_arg and num_arg > 0 else total
+            # Determine static questions to show
             # Warn and clamp if user requested more questions than available
+            clones_needed = 0
             if requested > total:
-                print(f"\n{Fore.YELLOW}Requested {requested} questions but only {total} available. Proceeding with {total}.{Style.RESET_ALL}")
-            questions_to_ask = random.sample(questions, min(requested, total))
+                clones_needed = requested - total
+                print(f"\nRequested {requested} questions but only {total} available. Proceeding with {total}.")
+                static_to_show = list(questions)
+            else:
+                static_to_show = random.sample(questions, requested)
+            # If --list-questions, show the static + AI-generated questions and exit
+            if getattr(args, 'list_questions', False):
+                combined = []
+                # Show static in original order
+                combined.extend(static_to_show)
+                # If more needed, generate AI-backed questions
+                if clones_needed > 0:
+                    try:
+                        from kubelingo.modules.question_generator import AIQuestionGenerator
+                        generator = AIQuestionGenerator()
+                        ai_qs = generator.generate_questions(static_to_show, clones_needed, set(q.get('prompt', '') for q in questions))
+                    except Exception:
+                        ai_qs = []
+                    # Append generated questions
+                    for q_item in ai_qs:
+                        # If Question object, extract prompt and validation
+                        if hasattr(q_item, '__dict__') and not isinstance(q_item, dict):
+                            combined.append(q_item.__dict__)
+                        else:
+                            combined.append(q_item)
+                # Print list
+                print("List of Questions:")
+                for idx, q_item in enumerate(combined, start=1):
+                    # Support dict or Question object
+                    if isinstance(q_item, dict):
+                        prompt_text = q_item.get('prompt', '<no prompt>')
+                    else:
+                        prompt_text = getattr(q_item, 'prompt', str(q_item))
+                    print(f"{idx}. {prompt_text}")
+                return
+            # Questions for quiz: include AI-generated extras if needed
+            if clones_needed > 0:
+                try:
+                    generator = AIQuestionGenerator()
+                    ai_qs = generator.generate_questions(
+                        base_questions=static_to_show,
+                        num_to_generate=clones_needed,
+                        existing_prompts=seen_prompts
+                    )
+                    generated = len(ai_qs)
+                    if generated < clones_needed:
+                        print(f"{Fore.YELLOW}Warning: Requested {clones_needed} extra AI questions, but only {generated} were generated.{Style.RESET_ALL}")
+                except Exception as _:
+                    ai_qs = []
+                # Assemble full question list
+                questions_to_ask = list(static_to_show)
+                for q_item in ai_qs:
+                    if hasattr(q_item, '__dict__') and not isinstance(q_item, dict):
+                        questions_to_ask.append(q_item.__dict__)
+                    else:
+                        questions_to_ask.append(q_item)
+            else:
+                questions_to_ask = static_to_show
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
@@ -669,20 +736,13 @@ class NewSession(StudySession):
             if not questions_to_ask:
                 print(f"{Fore.YELLOW}No questions to ask.{Style.RESET_ALL}")
                 return
-            # If requested, list all question prompts and exit
-            if getattr(args, 'list_questions', False):
-                print(f"{Fore.CYAN}List of Questions:{Style.RESET_ALL}")
-                for idx, q_item in enumerate(questions_to_ask, start=1):
-                    prompt_text = q_item.get('prompt', '<no prompt>').strip()
-                    print(f"{idx}. {prompt_text}")
-                return
 
             total_questions = len(questions_to_ask)
             attempted_indices = set()
             correct_indices = set()
 
-            print(f"\n{Fore.CYAN}=== Starting Kubelingo Quiz ==={Style.RESET_ALL}")
-            print(f"File: {Fore.CYAN}{os.path.basename(args.file)}{Style.RESET_ALL}, Questions: {Fore.CYAN}{total_questions}{Style.RESET_ALL}")
+            print("\n=== Starting Kubelingo Quiz ===")
+            print(f"File: {os.path.basename(args.file)}, Questions: {total_questions}")
             self._initialize_live_session(args, questions_to_ask)
 
             from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
