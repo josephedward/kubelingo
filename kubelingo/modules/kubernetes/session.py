@@ -545,6 +545,7 @@ class NewSession(StudySession):
             session_id = start_time.strftime('%Y%m%dT%H%M%S')
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
+            ai_generation_enabled = False
 
             if args.review_only:
                 questions = get_all_flagged_questions()
