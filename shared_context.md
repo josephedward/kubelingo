@@ -608,3 +608,24 @@ Kubelingo now supports customizing the number of questions via the `-n/--num` fl
 - The combined set of original and cloned questions is shuffled and presented as the quiz.
 
 Make sure an `OPENAI_API_KEY` is configured to enable AI-based cloning.
+
+## Study Mode: AI-Guided Tutoring
+
+You can extend Kubelingo with a “Study Mode” that transforms it into a Socratic, AI-driven tutor for Kubernetes topics:
+
+- Add the `openai` package to your optional dependencies (`pyproject.toml` under `[project.optional-dependencies]`) and install it.
+- Create a new module `kubelingo/modules/study_mode.py` containing:
+  - A comprehensive multi-line system prompt enforcing a Socratic, step-by-step teaching style tailored to Kubernetes.
+  - A `KubernetesStudySession` class that:
+    - Initializes an OpenAI client using `OPENAI_API_KEY`.
+    - Implements `start_study_session(topic: str, level: str)` to send the system prompt and first user message.
+    - Implements `continue_conversation(user_input: str)` to append to conversation history and fetch AI responses.
+    - Optionally, a helper `generate_practice_question(topic: str, difficulty: str)` for scenario-based troubleshooting questions.
+- Wire it into the CLI (`kubelingo/cli.py`):
+  - Add a new `study` subcommand or a `--study` flag.
+  - When invoked, prompt the user for the Kubernetes `topic` and their `level`, then call `start_study_session` and enter a loop reading user input and calling `continue_conversation` until the user exits.
+- Best practices:
+  - Cache only the last ~6 messages in memory to reduce token usage.
+  - Use `gpt-3.5-turbo` for cost-effective interactions and reserve `gpt-4` for complex reasoning tasks.
+  - Ensure the tutor always ends responses with a guiding question, never full solutions.
+  - Persist study session transcripts under `logs/study_sessions/` for later review.
