@@ -3,8 +3,10 @@ import re
 import uuid
 from typing import List, Set
 
+import json
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
+from kubelingo.utils.validation import validate_kubectl_syntax
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,10 @@ class AIQuestionGenerator:
         self.max_attempts = max_attempts_per_question
 
     def generate_questions(
-        self, subject: str, num_questions: int = 1
+        self,
+        subject: str,
+        num_questions: int = 1,
+        base_questions: List[Question] = None,
     ) -> List[Question]:
         """
         Ask the LLM to generate kubectl questions about `subject`, and validate
@@ -30,7 +35,6 @@ class AIQuestionGenerator:
         Returns a list of Question objects.
         """
         questions: List[Question] = []
-        seen_prompts: Set[str] = set()
 
         system_prompt = (
             "You are a Kubernetes quiz‐generator. Produce JSON with keys "
@@ -42,70 +46,81 @@ class AIQuestionGenerator:
             "an operation like 'create' or 'get' on that resource."
         )
 
+        # Bulk-generate if requesting multiple questions in one shot
+        if num_questions > 1:
+            user_prompt = (
+                f"{system_prompt}\n\n"
+                f"Generate exactly {num_questions} distinct Kubernetes quiz questions about '{subject}'. "
+                "Respond with a JSON array of objects, each with keys 'prompt' (string) and 'validation_steps' (array of {'cmd': <kubectl command>})."
+            )
+            logger.debug("LLM bulk prompt: %s", user_prompt)
+            # Invoke the AI evaluator directly for bulk generation
+            try:
+                raw_list = None
+                # Try via llm package
+                try:
+                    model = self.evaluator.llm.get_model("gpt-4-turbo-preview")
+                    resp = model.prompt(user_prompt, system=system_prompt).text()
+                except Exception:
+                    # Fallback to openai
+                    import openai
+                    resp_obj = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[{"role": "system", "content": system_prompt},
+                                  {"role": "user", "content": user_prompt}],
+                        temperature=0.7,
+                    )
+                    resp = resp_obj.choices[0].message.content
+                logger.debug("LLM bulk response: %s", resp)
+                raw_list = json.loads(resp)
+            except Exception as e:
+                logger.error(f"Bulk AI question generation error: {e}")
+                return questions
+            # Validate and convert each question
+            for raw_q in raw_list or []:
+                if not isinstance(raw_q, dict) or 'prompt' not in raw_q or 'validation_steps' not in raw_q:
+                    continue
+                # Build validation steps
+                steps = []
+                valid = True
+                for step in raw_q.get('validation_steps', []):
+                    cmd = step.get('cmd')
+                    if not cmd or not validate_kubectl_syntax(cmd).get('is_valid'):
+                        valid = False
+                        break
+                    steps.append(ValidationStep(cmd=cmd))
+                if not valid:
+                    continue
+                qid = f"ai-gen-{uuid.uuid4()}"
+                resp_cmd = steps[0].cmd if steps else ''
+                questions.append(Question(id=qid, prompt=raw_q['prompt'].strip(), response=resp_cmd, validation=steps))
+            return questions
+        # Fallback: generate one question at a time (legacy flow)
         for _ in range(num_questions):
             for attempt in range(self.max_attempts):
                 user_prompt = f"{system_prompt}\n\nGenerate 1 distinct question about {subject}."
-
                 try:
-                    raw_q = self.evaluator.generate_question(
-                        {"prompt": user_prompt, "validation_steps": []}
-                    )
-
-                    if not raw_q or "prompt" not in raw_q or "validation_steps" not in raw_q:
-                        logger.debug("AI generation returned invalid format. Retrying.")
-                        continue
-
-                    prompt = raw_q["prompt"].strip()
-                    # 1) No exact duplicates
-                    if prompt in seen_prompts:
-                        logger.debug(f"Skipping duplicate question: '{prompt}'")
-                        continue
-                    # 2) Must mention the subject
-                    if not re.search(fr"\b{re.escape(subject)}\b", prompt, re.IGNORECASE):
-                        logger.debug(f"Generated prompt does not mention subject '{subject}'. Retrying.")
-                        continue
-                    # 3) Must ask to create or get a named resource
-                    if not re.search(r"\b(create|get)\b", prompt, re.IGNORECASE):
-                        logger.debug("Generated prompt does not mention 'create' or 'get'. Retrying.")
-                        continue
-                    if not re.search(r"named ['\"][A-Za-z0-9\-\_]+['\"]", prompt):
-                        logger.debug("Generated prompt does not include a resource name. Retrying.")
-                        continue
-
-                    seen_prompts.add(prompt)
-                    validation_steps = [
-                        ValidationStep(**step) for step in raw_q["validation_steps"]
-                    ]
-                    response = ""
-                    if (
-                        validation_steps
-                        and hasattr(validation_steps[0], "cmd")
-                        and validation_steps[0].cmd
-                    ):
-                        response = validation_steps[0].cmd
-
-                    questions.append(
-                        Question(
-                            id=f"ai-gen-{uuid.uuid4()}",
-                            prompt=prompt,
-                            response=response,
-                            validation=validation_steps,
-                        )
-                    )
-                    logger.info(f"Successfully generated and validated a new question: {prompt}")
-                    # Break from attempt loop and generate next question
-                    break
-
+                    raw_q = self.evaluator.generate_question({"prompt": user_prompt, "validation_steps": []})
                 except Exception as e:
-                    logger.error(f"Error during AI question generation or validation: {e}")
-            else:  # This else belongs to the inner for loop, executed if it's not broken out of
-                logger.warning(f"Could not generate a valid question for {subject} after {self.max_attempts} attempts.")
-
-
-        if len(questions) < num_questions:
-            logger.warning(
-                "Failed to generate the requested number of questions. "
-                f"Got {len(questions)} out of {num_questions}."
-            )
-
+                    logger.error(f"Error during AI question generation: {e}")
+                    continue
+                if not raw_q or not isinstance(raw_q, dict):
+                    continue
+                # Convert and validate syntax only
+                prompt = raw_q.get('prompt', '').strip()
+                steps = []
+                valid = True
+                for step in raw_q.get('validation_steps', []):
+                    cmd = step.get('cmd')
+                    if not cmd or not validate_kubectl_syntax(cmd).get('is_valid'):
+                        valid = False
+                        break
+                    steps.append(ValidationStep(cmd=cmd))
+                if not valid:
+                    continue
+                qid = f"ai-gen-{uuid.uuid4()}"
+                resp_cmd = steps[0].cmd if steps else ''
+                questions.append(Question(id=qid, prompt=prompt, response=resp_cmd, validation=steps))
+                logger.info(f"Generated AI question: {prompt}")
+                break
         return questions
