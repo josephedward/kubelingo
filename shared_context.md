@@ -503,3 +503,20 @@ To streamline the architecture and fully embrace a standardized data format, Kub
 The question flagging mechanism has also been refactored to be independent of the source file. Previously, flagging a question required its `data_file`, which created a dependency on legacy file structures. Flagging now operates on the unique `id` of each question, making the feature more robust and compatible with the unified, in-memory question database.
 
 > **Fixed**: The question flagging mechanism is now fully `id`-based, resolving a `KeyError: 'category'` that occurred when flagging questions without a category (e.g., from the Vim quiz). The `SessionManager` now correctly derives the source file from the question `id`, removing the need to pass legacy parameters.
+
+## How YAML Exercises Are Evaluated
+
+You don’t have to “tell” the quiz which filename you used—all of the wiring happens behind the scenes in the question’s definition. Here’s how it works:
+
+-   **For live k8s edits (`type: live_k8s_edit`)**:
+    -   Each question comes pre-loaded with an `initial_files` map (e.g., `pod.yaml` → stub with TODOs).
+    -   When you choose “Work on Answer (in Shell),” it drops you into a sandbox whose `cwd` already contains that exact file (`pod.yaml`).
+    -   You edit that file, then `kubectl apply -f …`.
+    -   On exit, it runs the `validation_steps` (e.g., `kubectl get pod resource-checker …`) against the live cluster state—it never tries to read your local file at that point.
+
+-   **For pure YAML-comparisons (`type: yaml_edit`)**:
+    -   The CLI spins up a temporary file and opens it in `vim`.
+    -   When you exit `vim`, it reads the temp file’s contents into memory and does a `PyYAML safe_load` vs. the question’s `correct_yaml` field.
+    -   You never have to name the file; it’s all handled in the temporary workspace.
+
+In either case, the question’s metadata (`initial_files`, `pre_shell_cmds`, and `validation_steps`) tells the sandbox what to seed and what to check. You just edit & apply as instructed; the quiz will pick up your work via those validation commands or by comparing the in-memory temp file.
