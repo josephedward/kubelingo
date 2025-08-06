@@ -876,13 +876,17 @@ class NewSession(StudySession):
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
 
-                            if current_question_index == total_questions - 1:
-                                finish_quiz = True
+                            if current_question_index in correct_indices:
+                                if current_question_index == total_questions - 1:
+                                    finish_quiz = True
+                                    break
+                                # Advance to next question, keeping previous feedback visible
+                                just_answered = True
+                                current_question_index += 1
                                 break
-                            # Advance to next question, keeping previous feedback visible
-                            just_answered = True
-                            current_question_index += 1
-                            break
+                            else:
+                                # On incorrect answer, loop back to the action menu for the same question.
+                                continue
 
                         from kubelingo.sandbox import run_shell_with_setup
                         from kubelingo.question import Question, ValidationStep
@@ -978,7 +982,16 @@ class NewSession(StudySession):
                             source_url = q.get('citation') or q.get('source')
                             if source_url:
                                 print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-                            continue
+
+                            if current_question_index in correct_indices:
+                                if current_question_index == total_questions - 1:
+                                    finish_quiz = True
+                                    break
+                                just_answered = True
+                                current_question_index += 1
+                                break
+                            else:
+                                continue
 
                         # Evaluate the recorded answer (updates attempted_indices and correct_indices)
                         if isinstance(result, str):
@@ -1002,8 +1015,16 @@ class NewSession(StudySession):
                         if source_url:
                             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-                        # Return to action menu, allowing user to view LLM explanation or visit source
-                        continue
+                        if current_question_index in correct_indices:
+                            if current_question_index == total_questions - 1:
+                                finish_quiz = True
+                                break
+                            just_answered = True
+                            current_question_index += 1
+                            break
+                        else:
+                            # Return to action menu, allowing user to view LLM explanation or visit source
+                            continue
                 
                 if finish_quiz:
                     break
