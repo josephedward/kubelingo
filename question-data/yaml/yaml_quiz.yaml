@@ -1,5 +1,4 @@
-yaml_exercises:
-  - id: yaml_quiz::resource-checker-pod
+- id: yaml_quiz::resource-checker-pod
     prompt: "A namespace 'limit' has been created. Edit 'pod.yaml' to define a Pod named 'resource-checker' in that namespace. It should use the 'httpd:alpine' image with a container named 'my-container'. Configure resource requests for 'cpu=30m' and 'memory=30Mi', and limits for 'cpu=300m' and 'memory=30Mi'. After editing, apply the manifest."
     type: live_k8s_edit
     category: "YAML Editing - General"
