@@ -32,6 +32,23 @@ The core components of this architecture are:
 4.  **Stateful Navigation**: The interactive quiz menu supports `Work on Answer (in Shell)`, `Check Answer`, `Show Expected Answer(s)`, `Show Model Answer` (when available), `Flag for Review`/`Unflag`, `Next Question`, `Previous Question`, and `Exit Quiz`, tracking per-question status and transcripts.
 5.  **Persistent Transcripts**: Session transcripts are saved to `logs/transcripts/...` and can be evaluated on-demand via the `Check Answer` feature, enabling replayable proof-of-execution.
 
+### How YAML Quizzes Pick Up Your Edits
+
+The quiz engine handles file management for you—there’s no need to name or manage temp files manually. It works in two modes:
+
+• **Live K8s Edits** (`live_k8s_edit` questions in YAML quizzes):
+  – Each question defines an `initial_files` map, e.g. `pod.yaml` → stub contents.
+  – Selecting “Work on Answer (in Shell)” seeds your sandbox’s working directory with those files.
+  – Edit or rename them as you like, then run `kubectl apply -f <your-file>.yaml`.
+  – On exit, the quiz runs `validation_steps` (e.g. `kubectl get pod resource-checker …`) against the cluster state; it does not re-read your local files.
+
+• **Pure YAML Comparisons** (`yaml_edit` questions):
+  – The CLI spins up a temporary YAML file, injects the prompt as comments, and opens it in Vim for you.
+  – Exiting Vim returns you to the CLI, which slurps the temp file into memory, runs `yaml.safe_load`, and compares the resulting object to the question’s `correct_yaml`.
+  – You never need to refer to the temp file yourself; matching happens in-memory.
+
+In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `validation_steps`, or `correct_yaml`) drives what gets seeded, what gets checked, and where your edits are evaluated.
+
 With this foundation, the next steps are to:
 1.  Expand matcher support (JSONPath, YAML structure, cluster state checks).
 2.  Add unit/integration tests for `answer_checker` and the new UI flows.
