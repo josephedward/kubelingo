@@ -670,7 +670,7 @@ class NewSession(StudySession):
                     from kubelingo.modules.ai_evaluator import AIEvaluator
                     evaluator = AIEvaluator()
                     # Cap attempts to avoid infinite loops
-                    max_attempts = clones_needed * 2
+                    max_attempts = clones_needed * 4
                     attempts = 0
                     # Only use command-based questions as a base
                     command_questions = [q for q in questions if q.get('type', 'command') == 'command' and q.get('validation_steps')]
@@ -1079,15 +1079,13 @@ class NewSession(StudySession):
                             if source_url:
                                 print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-                            if current_question_index in correct_indices:
-                                if current_question_index == total_questions - 1:
-                                    finish_quiz = True
-                                    break
-                                just_answered = True
-                                current_question_index += 1
+                            # After evaluating YAML edits, always advance to next question
+                            if current_question_index == total_questions - 1:
+                                finish_quiz = True
                                 break
-                            else:
-                                continue
+                            just_answered = True
+                            current_question_index += 1
+                            break
 
                         # Evaluate the recorded answer (updates attempted_indices and correct_indices)
                         if isinstance(result, str):
