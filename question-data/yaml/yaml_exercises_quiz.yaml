@@ -94,7 +94,7 @@ questions:
     id: yaml-edit-q1
     category: "YAML Editing - Pods"
     type: "yaml_edit"
-    prompt: "Create a Pod named 'web-server' using nginx:1.20 image, expose port 80"
+    prompt: "Create a Pod named 'web-server' with a container named 'nginx' using the nginx:1.20 image, and expose port 80."
     starting_yaml: |
       apiVersion: v1
       kind: Pod
@@ -153,7 +153,7 @@ questions:
     id: yaml-edit-q3
     category: "YAML Editing - Deployments"
     type: "yaml_edit"
-    prompt: "Create a Deployment named 'frontend' with 3 replicas of nginx:1.21"
+    prompt: "Create a Deployment named 'frontend' with 3 replicas. Set the image for the 'nginx' container to nginx:1.21."
     starting_yaml: |
       apiVersion: apps/v1
       kind: Deployment
