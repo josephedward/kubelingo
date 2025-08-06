@@ -663,12 +663,11 @@ class NewSession(StudySession):
             # Warn and clamp if user requested more questions than available
             clones_needed = 0
             if requested > total:
+                clones_needed = requested - total
                 if total > 0:
-                    clones_needed = requested - total
                     print(f"\nRequested {requested} questions, but only {total} are available. Attempting to generate {clones_needed} more with AI.")
                 else:
-                    clones_needed = 0  # Can't generate from nothing
-                    print(f"\nRequested {requested} questions, but none are available in this quiz.")
+                    print(f"\nNo questions found in this quiz. Attempting to generate {clones_needed} new questions with AI.")
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested)
@@ -719,10 +718,11 @@ class NewSession(StudySession):
                     )
                     generated = len(ai_qs)
                     if generated < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Warning: AI could only generate {generated} of {clones_needed} requested unique questions.{Style.RESET_ALL}")
                 except Exception as e:
                     self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
-                    print(f"{Fore.YELLOW}Warning: Could not generate additional AI questions.{Style.RESET_ALL}")
+                    print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}This may be due to a missing OPENAI_API_KEY or network issues.{Style.RESET_ALL}")
                     ai_qs = []
                 # Assemble full question list
                 questions_to_ask = list(static_to_show)
