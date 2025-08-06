@@ -695,7 +695,6 @@ class NewSession(StudySession):
                 # If more needed, generate AI-backed questions
                 if clones_needed > 0:
                     try:
-                        from kubelingo.modules.question_generator import AIQuestionGenerator
                         generator = AIQuestionGenerator()
                         ai_qs = generator.generate_questions(
                             base_questions=loaded_questions,
