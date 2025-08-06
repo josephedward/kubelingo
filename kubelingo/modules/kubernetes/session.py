@@ -688,9 +688,10 @@ class NewSession(StudySession):
                     is_mocked_k8s = q.get('type') in ('live_k8s', 'live_k8s_edit') and not args.docker
                     validator = q.get('validator')
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                    is_shell_mode = q.get('type', 'command') != 'command' and q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
+                    is_shell_mode = q.get('category') != 'Vim Commands' and not is_mocked_k8s and not is_ai_validator
                     # Determine if the question should use text input (no separate check step)
-                    use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                    # All questions now default to a shell, except for Vim, no-cluster mode, or AI-validated questions which expect a single command.
+                    use_text_input = q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
                     # Primary action
                     if use_text_input:
                         answer_option_text = "Answer Question"
