@@ -69,9 +69,6 @@ class AIQuestionGenerator:
 
         # Track seen prompts to avoid duplicates or near-duplicates
         seen_prompts = existing_prompts.copy()
-        for q in base_questions:
-            if q.get('prompt'):
-                seen_prompts.add(q.get('prompt').strip())
         generated_questions: List[Dict[str, Any]] = []
         attempts = 0
         max_attempts = num_to_generate * 4 + 10  # allow extra tries for uniqueness
