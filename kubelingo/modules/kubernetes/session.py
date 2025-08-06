@@ -1165,7 +1165,10 @@ class NewSession(StudySession):
                         from kubelingo.sandbox import run_shell_with_setup
                         from kubelingo.question import Question, ValidationStep
                         
-                        validation_steps = [ValidationStep(**vs) for vs in q.get('validation_steps', [])]
+                        validation_steps = [
+                            vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
+                            for vs in q.get('validation_steps', [])
+                        ]
                         if not validation_steps and q.get('type') == 'command' and q.get('response'):
                             validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
