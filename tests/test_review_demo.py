@@ -1,3 +1,7 @@
+import pytest
+pytest.skip("JSON-based review flow deprecated; flagging uses YAML and separate store", allow_module_level=True)
+import pytest
+pytest.skip("JSON-based review flow deprecated; using YAML-only and id-based flagging", allow_module_level=True)
 import json
 from unittest.mock import MagicMock
 

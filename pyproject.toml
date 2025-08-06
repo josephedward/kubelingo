@@ -49,3 +49,4 @@ markers = [
     "network: marks tests that require a network connection",
     "e2e: marks end-to-end tests that require a full installation",
 ]
+addopts = "-m 'not network'"

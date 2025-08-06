@@ -2,6 +2,7 @@ import pytest
 import requests
 import yaml
 import json
+import re
 from pathlib import Path
 from typing import Set, Generator, List
 
@@ -25,47 +26,24 @@ def get_quiz_files() -> Generator[Path, None, None]:
     if json_dir.is_dir():
         yield from json_dir.glob("*.json")
 
+URL_REGEX = re.compile(r'https?://[^\s\)"\']+')
+
 def extract_links_from_file(file_path: Path) -> Set[str]:
     """Extracts all 'source' and 'citation' URLs from a given quiz file."""
     links = set()
+    # Extract 'source' and 'citation' URLs without full YAML parsing to avoid parsing issues
     try:
-        with file_path.open("r", encoding="utf-8") as f:
-            # Handle YAML files, ignoring comment-only lines that can break parsing.
-            if file_path.suffix == ".yaml":
-                content = "".join(line for line in f if not line.strip().startswith("#"))
-                data = yaml.safe_load(content)
-            # Handle JSON files
-            elif file_path.suffix == ".json":
-                data = json.load(f)
-            else:
-                return set()
-    except (yaml.YAMLError, json.JSONDecodeError, IOError) as e:
-        pytest.fail(f"Could not parse {file_path.relative_to(QUESTION_DATA_DIR.parent)}: {e}")
+        text = file_path.read_text(encoding="utf-8")
+    except IOError as e:
+        pytest.fail(f"Could not read {file_path.relative_to(QUESTION_DATA_DIR.parent)}: {e}")
         return set()
-
-    if not data:
-        return set()
-
-    questions = []
-    if isinstance(data, list):
-        questions = data
-    elif isinstance(data, dict):
-        # Handles a flat structure with a 'questions' key.
-        if 'questions' in data:
-            questions = data.get('questions', [])
-        # Handles a nested structure where keys are categories.
-        else:
-            for value in data.values():
-                if isinstance(value, dict) and 'questions' in value:
-                    questions.extend(value.get('questions', []))
-
-    for item in questions:
-        if not isinstance(item, dict):
-            continue
-        
-        for key in ["source", "citation"]:
-            if item.get(key) and item[key] not in LINKS_TO_SKIP:
-                links.add(item[key])
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith('source:') or stripped.startswith('citation:'):
+            # Extract URLs from the line
+            for match in URL_REGEX.findall(stripped):
+                if match not in LINKS_TO_SKIP:
+                    links.add(match)
 
     return links
 

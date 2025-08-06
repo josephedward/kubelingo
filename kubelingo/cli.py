@@ -22,15 +22,16 @@ except ImportError:
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
-    _get_quiz_files, _get_md_quiz_files, _get_yaml_quiz_files, get_all_flagged_questions
+    _get_quiz_files, _get_md_quiz_files, _get_yaml_quiz_files, get_all_flagged_questions, NewSession
 )
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
-    Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help, questionary
+    Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
+import questionary
 from pathlib import Path
 import subprocess
 
@@ -401,12 +402,26 @@ def main():
 
         # Handle --k8s shortcut
         if args.k8s_mode:
+            # Shortcut to display the main Kubernetes quiz menu and exit
             args.module = 'kubernetes'
-            # For direct --k8s invocation without other flags, just load the module and exit
+            # Only interactive when no other quiz flags are present
             if args.num == 0 and not args.category and not args.review_only and not args.list_categories and not args.exercise_module:
+                # Configure logging
                 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
                 logger = logging.getLogger()
+                # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
+                # Build menu choices from enabled quizzes
+                from kubelingo.utils.config import ENABLED_QUIZZES
+                choices = [{"name": name, "value": path} for name, path in ENABLED_QUIZZES.items()]
+                # Add Exit option
+                choices.append({"name": "Exit", "value": "exit_app"})
+                # Display selection menu
+                questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
                 return
 
         # Global flags handling (note: history and list-modules are handled earlier)
