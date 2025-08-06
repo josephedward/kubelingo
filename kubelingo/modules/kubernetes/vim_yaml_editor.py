@@ -192,6 +192,18 @@ class VimYamlEditor:
             result = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml", prompt=prompt)
             if result is None:
                 return False
+            # Validate YAML manifest structure (syntax and basic fields)
+            try:
+                raw_str = yaml.dump(result)
+                validation = validate_yaml_structure(raw_str)
+                # Report any errors or warnings
+                for err in validation.get('errors', []):
+                    print(f"{Fore.RED}YAML validation error: {err}{Style.RESET_ALL}")
+                for warn in validation.get('warnings', []):
+                    print(f"{Fore.YELLOW}YAML validation warning: {warn}{Style.RESET_ALL}")
+            except Exception:
+                # If validation fails unexpectedly, skip
+                pass
             # Compare structures if possible
             is_correct = False
             if expected_obj is not None:
