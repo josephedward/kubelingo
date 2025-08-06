@@ -683,7 +683,7 @@ class NewSession(StudySession):
                         from kubelingo.modules.question_generator import AIQuestionGenerator
                         generator = AIQuestionGenerator()
                         ai_qs = generator.generate_questions(
-                            base_questions=static_to_show,
+                            base_questions=loaded_questions,
                             num_to_generate=clones_needed,
                             existing_prompts=seen_prompts
                         )
@@ -710,16 +710,18 @@ class NewSession(StudySession):
                 return
             # Questions for quiz: include AI-generated extras if needed
             if clones_needed > 0:
+                # Inform user about AI-assisted question generation
+                print(f"\nGenerating {clones_needed} additional AI questions...")
                 try:
                     generator = AIQuestionGenerator()
                     ai_qs = generator.generate_questions(
-                        base_questions=static_to_show,
+                        base_questions=loaded_questions,
                         num_to_generate=clones_needed,
                         existing_prompts=seen_prompts
                     )
                     generated = len(ai_qs)
                     if generated < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: AI could only generate {generated} of {clones_needed} requested unique questions.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
                 except Exception as e:
                     self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
                     print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
