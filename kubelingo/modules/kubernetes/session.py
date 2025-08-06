@@ -671,7 +671,10 @@ class NewSession(StudySession):
             clones_needed = 0
             if requested > total:
                 clones_needed = requested - total
-                print(f"\nRequested {requested} questions but only {total} available. Proceeding with {total}.")
+                if total > 0:
+                    print(f"\nRequested {requested} questions. Using {total} from quiz file and attempting to generate {clones_needed} more with AI.")
+                else:
+                    print(f"\nNo questions in file. Attempting to generate {clones_needed} with AI.")
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested)
