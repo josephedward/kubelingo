@@ -29,10 +29,11 @@ class AIQuestionGenerator:
         except Exception as e:
             logger.error(f"Failed to initialize LLM for question generation: {e}")
 
-    def _generate_variation_prompt(self, question: Dict[str, Any]) -> str:
+    def _generate_variation_prompt(self, question: Dict[str, Any], seen_prompts: List[str]) -> str:
         prompt = question.get('prompt', '')
         response = question.get('response', '')
         category = question.get('category', '')
+        seen_prompts_text = "\n".join([f"- {p}" for p in seen_prompts])
 
         return (
             "You are an expert Kubernetes instructor creating quiz questions for a tool called 'kubelingo'.\n"
@@ -41,6 +42,8 @@ class AIQuestionGenerator:
             "For example, if the original question uses 'nginx', you could use 'httpd' or 'redis'. If it refers to a namespace 'dev', you could use 'prod'.\n"
             "Crucially, the 'response' (the correct command) must be a syntactically valid `kubectl` command.\n"
             "Ensure the new question prompt is unique and not a paraphrase or duplicate of the example or any existing quiz questions.\n"
+            "Do not create a question with a prompt that is substantially similar to any of the following:\n"
+            f"{seen_prompts_text}\n\n"
             "Ensure that your prompt explicitly specifies every resource name, flag, and value used in the response command. Do not include any arguments in the response that are not described in the prompt.\n"
             "Do not just copy the example. Provide a fresh take on the same topic.\n\n"
             "Example Question:\n"
@@ -55,7 +58,7 @@ class AIQuestionGenerator:
             "}"
         )
 
-    def generate_questions(self, base_questions: List[Dict[str, Any]], num_to_generate: int) -> List[Dict[str, Any]]:
+    def generate_questions(self, base_questions: List[Dict[str, Any]], num_to_generate: int, existing_prompts: set) -> List[Dict[str, Any]]:
         if not self.model:
             logger.warning("LLM not available. Cannot generate new questions.")
             return []
@@ -65,7 +68,10 @@ class AIQuestionGenerator:
             return []
 
         # Track seen prompts to avoid duplicates or near-duplicates
-        seen_prompts = {q.get('prompt', '').strip() for q in base_questions if q.get('prompt')}
+        seen_prompts = existing_prompts.copy()
+        for q in base_questions:
+            if q.get('prompt'):
+                seen_prompts.add(q.get('prompt').strip())
         generated_questions: List[Dict[str, Any]] = []
         attempts = 0
         max_attempts = num_to_generate * 4 + 10  # allow extra tries for uniqueness
@@ -74,7 +80,7 @@ class AIQuestionGenerator:
             attempts += 1
             source_question = random.choice(base_questions)
 
-            prompt = self._generate_variation_prompt(source_question)
+            prompt = self._generate_variation_prompt(source_question, list(seen_prompts))
 
             try:
                 response_text = self.model.prompt(
