@@ -345,8 +345,8 @@ def main():
                     f"Available quizzes: {', '.join(ENABLED_QUIZZES.keys())}"
                 )
 
-        # If a quiz is selected without specifying the number of questions, ask interactively.
-        if args.quiz and args.num == 0 and questionary and sys.stdin.isatty() and sys.stdout.isatty():
+        # If a quiz is selected, always ask interactively for number of questions.
+        if args.quiz and questionary and sys.stdin.isatty() and sys.stdout.isatty():
             try:
                 num_str = questionary.text(
                     "Enter number of questions (or press Enter for all):",
