@@ -196,3 +196,58 @@ def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
             pass
 
     return result
+
+
+def is_yaml_subset(subset_yaml_str: str, superset_yaml_str: str) -> bool:
+    """
+    Checks if one YAML object is a structural subset of another.
+    It parses both YAML strings and recursively compares them.
+    - All keys and values in subset must exist in superset.
+    - Lists are handled specially: each item in subset list must find a matching
+      item in superset list. For list of dicts, matching is done by checking if
+      an item in superset is a superset of an item in subset.
+    - It ignores extra keys in superset.
+    - It is flexible with types for scalar values (e.g., 5432 vs "5432").
+    """
+    if not yaml:
+        print("Warning: PyYAML not installed, cannot perform YAML subset check.")
+        # Fallback to simple string comparison if yaml lib is not available.
+        return superset_yaml_str == subset_yaml_str
+
+    try:
+        subset = yaml.safe_load(subset_yaml_str)
+        superset = yaml.safe_load(superset_yaml_str)
+    except yaml.YAMLError:
+        return False  # If parsing fails, they can't be equivalent
+
+    def _compare(sub, super_):
+        if isinstance(sub, dict):
+            if not isinstance(super_, dict):
+                return False
+            for key, value in sub.items():
+                if key not in super_:
+                    return False
+                if not _compare(value, super_[key]):
+                    return False
+            return True
+        elif isinstance(sub, list):
+            if not isinstance(super_, list):
+                return False
+            
+            # Create a copy of the superset list to modify it during iteration
+            super_list_copy = list(super_)
+            for sub_item in sub:
+                found_match = False
+                for i, super_item in enumerate(super_list_copy):
+                    if _compare(sub_item, super_item):
+                        found_match = True
+                        super_list_copy.pop(i)  # Remove to handle duplicates correctly
+                        break
+                if not found_match:
+                    return False
+            return True
+        else:
+            # For scalars (int, str, etc.), compare as strings for flexibility
+            return str(sub) == str(super_)
+
+    return _compare(subset, superset)
