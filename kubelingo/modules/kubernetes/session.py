@@ -622,6 +622,24 @@ class NewSession(StudySession):
 
             # Determine how many to ask based on user input
             total = len(questions)
+
+            # If interactive and --num not specified, ask user for number of questions.
+            if is_interactive and args.num == 0 and total > 0:
+                try:
+                    num_str = questionary.text(
+                        f"How many questions would you like? (Enter a number, or press Enter for all {total})",
+                        validate=lambda text: text.isdigit() or text == ""
+                    ).ask()
+
+                    if num_str is None: # User cancelled with Ctrl+C
+                        return # Exit the quiz session gracefully
+
+                    if num_str and num_str.isdigit():
+                        args.num = int(num_str)
+                except (KeyboardInterrupt, EOFError):
+                    print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
+                    return
+
             count = args.num if args.num and args.num > 0 else total
             if count <= total:
                 # select a random subset without replacement
