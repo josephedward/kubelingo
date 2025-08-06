@@ -203,7 +203,6 @@ def validate_prompt_completeness(cmd_str: str, prompt: str) -> Dict[str, Any]:
     and any flag values used in the kubectl command.
     Returns a dict with 'valid' bool and 'errors' list.
     """
-    import shlex
     try:
         tokens = shlex.split(cmd_str)
     except ValueError:
