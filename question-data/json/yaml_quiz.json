@@ -27,7 +27,7 @@
       },
       {
         "question_type": "yaml_edit",
-        "prompt": "Create a Pod with environment variables: DB_HOST=localhost, DB_PORT=5432",
+        "prompt": "Create a Pod named 'app-pod' with container name 'app' and environment variables: DB_HOST=localhost, DB_PORT=5432",
         "starting_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables",
         "correct_yaml": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value: localhost\n    - name: DB_PORT\n      value: \"5432\"",
         "explanation": "Pod with environment variables defined in container spec"
