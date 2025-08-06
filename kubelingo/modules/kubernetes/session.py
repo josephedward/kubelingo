@@ -12,6 +12,7 @@ from datetime import datetime
 import logging
 
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
+from difflib import SequenceMatcher
 try:
     import questionary
 except ImportError:
@@ -326,6 +327,9 @@ class NewSession(StudySession):
         finally:
             if path:
                 try:
+                    # Inform user about AI question generation
+                    if clones_needed > 0:
+                        print(f"{Fore.CYAN}🎯 Generating {clones_needed} AI-generated question(s)...{Style.RESET_ALL}")
                     os.remove(path)
                 except Exception:
                     pass
@@ -651,59 +655,58 @@ class NewSession(StudySession):
                     print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
                     return
 
-            count = args.num if args.num and args.num > 0 else total
-            if count <= total:
-                # select a random subset without replacement
-                questions_to_ask = random.sample(questions, min(count, total))
+            requested = args.num if args.num and args.num > 0 else total
+            if requested <= total:
+                questions_to_ask = random.sample(questions, requested)
+                clones_needed = 0
             else:
-                # need to generate additional cloned questions via AI or fallback to duplicates
+                # Need AI or duplicate clones for extra questions, capped at 5
                 questions_to_ask = questions.copy()
-                clones_needed = count - total
+                extra = requested - total
+                clones_needed = min(extra, 5)
+                if extra > clones_needed:
+                    print(f"{Fore.YELLOW}Note: AI-generated questions limited to {clones_needed} (max 5).{Style.RESET_ALL}")
                 
+                # Generate AI-backed questions, ensuring uniqueness against seen_prompts
                 generated_count = 0
                 try:
                     from kubelingo.modules.ai_evaluator import AIEvaluator
                     evaluator = AIEvaluator()
-                    
-                    # Try to generate questions, with a limit on attempts to avoid infinite loops
-                    max_attempts = clones_needed * 2 
+                    # Cap attempts to avoid infinite loops
+                    max_attempts = clones_needed * 2
                     attempts = 0
-
-                    # Only use command-based questions as a base for generation
+                    # Only use command-based questions as a base
                     command_questions = [q for q in questions if q.get('type', 'command') == 'command' and q.get('validation_steps')]
                     if not command_questions:
-                        # Fallback to any question if no suitable ones found
                         command_questions = questions
-
+                    # Generate until we have enough unique prompts or exhaust attempts
                     while generated_count < clones_needed and attempts < max_attempts and command_questions:
+                        print(f"{Fore.CYAN}→ Generating AI question {generated_count+1}/{clones_needed} (attempt {attempts+1}/{max_attempts})...{Style.RESET_ALL}")
                         base = random.choice(command_questions)
                         new_q = evaluator.generate_question(base)
                         attempts += 1
-                        
-                        if new_q:
-                            clone = base.copy()
-                            clone['id'] = f"{base.get('id', 'question')}-clone-{generated_count}"
-                            clone['prompt'] = new_q['prompt']
-                            clone['validation_steps'] = new_q['validation_steps']
-                            # The generated question is a new entity, it shouldn't be flagged for review
-                            clone['review'] = False 
-                            questions_to_ask.append(clone)
-                            generated_count += 1
-
+                        if not new_q or not new_q.get('prompt'):
+                            continue
+                        new_prompt = new_q['prompt'].strip()
+                        if new_prompt in seen_prompts:
+                            continue
+                        # Accept the new question
+                        clone = base.copy()
+                        clone['id'] = f"{base.get('id', 'question')}-clone-{generated_count}"
+                        clone['prompt'] = new_prompt
+                        orig_steps = new_q.get('validation_steps', [])
+                        filtered = [step for step in orig_steps if step.get('cmd') and step.get('cmd') in new_prompt]
+                        clone['validation_steps'] = filtered if filtered else orig_steps
+                        clone['review'] = False
+                        questions_to_ask.append(clone)
+                        seen_prompts.add(new_prompt)
+                        generated_count += 1
                 except (ImportError, Exception):
-                    # In case of any issue with AI generation, do not generate
                     pass
-
-                # If AI generation failed or wasn't enough, fallback to duplicating questions
+                # Warn if we could not generate the full set of unique AI questions
                 remaining_needed = clones_needed - generated_count
                 if remaining_needed > 0:
-                    self.logger.info(f"AI generation created {generated_count} questions. "
-                                     f"Falling back to duplication for the remaining {remaining_needed}.")
-                    for i in range(remaining_needed):
-                        base = random.choice(questions)
-                        clone = base.copy()
-                        clone['id'] = f"{base.get('id', 'question')}-clone-dup-{i}"
-                        questions_to_ask.append(clone)
+                    print(f"{Fore.YELLOW}Warning: Could not generate {remaining_needed} unique AI questions. Proceeding with {generated_count} generated.{Style.RESET_ALL}")
                 
                 # mix original and cloned questions
                 random.shuffle(questions_to_ask)
@@ -714,7 +717,14 @@ class NewSession(StudySession):
                 print(f"{Fore.YELLOW}Without the --docker flag, answers will be checked by AI instead of a live sandbox.{Style.RESET_ALL}")
 
             if not questions_to_ask:
-                print(Fore.YELLOW + "No questions to ask." + Style.RESET_ALL)
+                print(f"{Fore.YELLOW}No questions to ask.{Style.RESET_ALL}")
+                return
+            # If requested, list all question prompts and exit
+            if getattr(args, 'list_questions', False):
+                print(f"{Fore.CYAN}List of Questions:{Style.RESET_ALL}")
+                for idx, q_item in enumerate(questions_to_ask, start=1):
+                    prompt_text = q_item.get('prompt', '<no prompt>').strip()
+                    print(f"{idx}. {prompt_text}")
                 return
 
             total_questions = len(questions_to_ask)
