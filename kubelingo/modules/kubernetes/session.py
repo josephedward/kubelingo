@@ -839,7 +839,7 @@ class NewSession(StudySession):
                         break
                     
                     if action == "next":
-                        current_question_index = min(current_question_index + 1, total_questions - 1)
+                        current_question_index += 1
                         break
 
                     if action == "prev":
