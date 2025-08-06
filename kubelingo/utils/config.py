@@ -12,9 +12,9 @@ LOGS_DIR = os.path.join(ROOT, 'logs')
 # JSON files
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
-# Built-in YAML-edit quiz data (JSON form)
-# The JSON source for YAML editing exercises is named 'yaml_quiz.json'
-YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_quiz.json')
+# Built-in YAML-edit quiz data (YAML form)
+# The YAML source for YAML editing exercises is named 'yaml_quiz.yaml'
+YAML_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'yaml_quiz.yaml')
 # Built-in Vim quiz data file (YAML-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(DATA_DIR, 'yaml', 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(DATA_DIR, 'yaml', 'kubectl_operations_quiz.yaml')
