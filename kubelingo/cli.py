@@ -358,7 +358,7 @@ def main():
                     parser.error(f"unrecognized arguments: {subcommand}")
         # Sandbox mode dispatch: if specified with other args, they are passed to the module.
         # If run alone, they launch a shell and exit.
-        from .sandbox import spawn_pty_shell, launch_container_sandbox
+        from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
         # Launch sandbox: new "sandbox" module or legacy --pty/--docker flags
         if args.module == 'sandbox' or ((args.pty or args.docker)
                                         and args.module is None
