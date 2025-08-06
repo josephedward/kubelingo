@@ -1,15 +1,12 @@
 import logging
 import json
-import random
 import uuid
 from typing import List, Set
 
+import openai
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
-from kubelingo.utils.validation import (
-    validate_kubectl_syntax,
-    validate_prompt_completeness,
-)
+from kubelingo.utils.validation import validate_kubectl_syntax
 
 logger = logging.getLogger(__name__)
 
@@ -32,144 +29,102 @@ class AIQuestionGenerator:
         base_questions: List[Question] = None,
     ) -> List[Question]:
         """
-        Generates new questions by "cloning" from a list of base questions using an AI model.
+        Ask the LLM to generate kubectl questions about `subject`, and validate
+        their syntax.
 
-        It inspects the format of the base questions (command-based vs. shell-based)
-        and asks the AI to generate a new question in the same format.
-        Generated questions are validated for correctness and completeness.
-
-        Returns a list of valid, newly generated Question objects.
+        Returns a list of Question objects.
         """
-        if not base_questions:
-            logger.warning(
-                "AI generation skipped: cannot generate questions without base questions."
-            )
-            return []
-
         questions: List[Question] = []
-        seen_prompts: Set[str] = {q.prompt for q in base_questions}
-        is_command_based = bool(base_questions[0].response)
 
-        if is_command_based:
-            system_prompt = (
-                "You are an expert Kubernetes administrator and trainer. Your task is to generate a new quiz question "
-                "that is a variation of an existing one.\nThe new question should test the same concept but be worded "
-                "differently and have a different target resource or parameter.\nYou will be given a base question as a JSON object.\n"
-                'Your response MUST be a JSON object containing the new question, with "prompt" and "response" keys. '
-                "The 'response' must be a single, valid `kubectl` command.\nThe generated prompt must contain all "
-                "necessary information for a user to be able to formulate the response/command. For example, if the "
-                "response is 'kubectl get pod my-pod', the prompt must mention 'my-pod'."
-            )
-            output_keys = ["prompt", "response"]
-        else:  # shell-based
-            system_prompt = (
-                "You are an expert Kubernetes administrator and trainer. Your task is to generate a new quiz question "
-                "that is a variation of an existing one.\nThe new question should test the same concept but be worded "
-                "differently and have a different target resource or parameter.\nYou will be given a base question as a JSON object.\n"
-                'Your response MUST be a JSON object containing the new question, with "prompt" and "validation_steps" keys. '
-                "The validation steps must be correct for the new prompt."
-            )
-            output_keys = ["prompt", "validation_steps"]
+        system_prompt = (
+            "You are a Kubernetes quiz‐generator. Produce JSON with keys "
+            "'prompt' and 'validation_steps' only. The prompt must:"
+            f"\n  • mention the resource kind exactly: “{subject}”"
+            "\n  • include a resource name, e.g. “named 'foo-sa'”"
+            "\n  • specify any namespace or flags required to scope the command"
+            "\nGenerate a question that asks the user to run `kubectl` to perform "
+            "an operation like 'create' or 'get' on that resource."
+        )
 
+        # Bulk-generate if requesting multiple questions in one shot
+        if num_questions > 1:
+            user_prompt = (
+                f"{system_prompt}\n\n"
+                f"Generate exactly {num_questions} distinct Kubernetes quiz questions about '{subject}'. "
+                "Respond only with a JSON array of objects, each with keys 'prompt' and 'validation_steps', where 'validation_steps' is a list of {'cmd':<kubectl command>} objects."
+            )
+            logger.debug("Bulk generation prompt: %s", user_prompt)
+            try:
+                resp_obj = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.7,
+                )
+                resp = resp_obj.choices[0].message.content
+                logger.debug("Bulk generation response: %s", resp)
+                raw_list = json.loads(resp)
+            except Exception as e:
+                logger.error(f"Bulk AI question generation error: {e}")
+                return questions
+            # Validate and convert each question
+            for raw_q in raw_list or []:
+                if not isinstance(raw_q, dict) or "prompt" not in raw_q or "validation_steps" not in raw_q:
+                    continue
+                # Build validation steps
+                steps = []
+                valid = True
+                for step in raw_q.get("validation_steps", []):
+                    cmd = step.get("cmd")
+                    if not cmd or not validate_kubectl_syntax(cmd).get("valid"):
+                        valid = False
+                        break
+                    steps.append(ValidationStep(cmd=cmd))
+                if not valid:
+                    continue
+                qid = f"ai-gen-{uuid.uuid4()}"
+                resp_cmd = steps[0].cmd if steps else ""
+                questions.append(
+                    Question(
+                        id=qid,
+                        prompt=raw_q["prompt"].strip(),
+                        response=resp_cmd,
+                        validation=steps,
+                    )
+                )
+            return questions
+        # Fallback: generate one question at a time (legacy flow)
         for _ in range(num_questions):
             for attempt in range(self.max_attempts):
-                base_q = random.choice(base_questions)
-                # We need a simplified dict representation for the prompt
-                base_q_dict = {"prompt": base_q.prompt}
-                if is_command_based:
-                    base_q_dict["response"] = base_q.response
-                else:
-                    base_q_dict["validation_steps"] = [
-                        step.__dict__ for step in (base_q.validation or [])
-                    ]
-
-                user_prompt = f"{system_prompt}\n\nHere is the base question to vary:\n{json.dumps(base_q_dict)}"
-
+                user_prompt = f"{system_prompt}\n\nGenerate 1 distinct question about {subject}."
                 try:
-                    raw_q = self.evaluator.generate_question({"prompt": user_prompt})
-
-                    if not raw_q or not all(k in raw_q for k in output_keys):
-                        logger.debug(
-                            f"AI response missing required keys ({output_keys}). Retrying."
-                        )
-                        continue
-
-                    prompt = raw_q["prompt"].strip()
-                    if prompt in seen_prompts:
-                        logger.debug(f"Skipping duplicate question: '{prompt}'")
-                        continue
-
-                    if is_command_based:
-                        response = raw_q["response"].strip()
-                        # 1. Validate kubectl command syntax
-                        syntax_check = validate_kubectl_syntax(response)
-                        if not syntax_check["valid"]:
-                            logger.debug(
-                                f"Generated command failed syntax check: {syntax_check['errors']}. Retrying."
-                            )
-                            continue
-                        # 2. Validate prompt has enough info for the command
-                        completeness_check = validate_prompt_completeness(
-                            response, prompt
-                        )
-                        if not completeness_check["valid"]:
-                            logger.debug(
-                                f"Generated prompt failed completeness check: {completeness_check['errors']}. Retrying."
-                            )
-                            continue
-
-                        new_question = Question(
-                            id=f"ai-gen-{uuid.uuid4()}",
-                            prompt=prompt,
-                            response=response,
-                            category=base_q.category,
-                            # validation will be empty for command-based questions
-                        )
-                    else:  # shell-based
-                        validation_steps_data = raw_q["validation_steps"]
-                        if (
-                            not validation_steps_data
-                            or not isinstance(validation_steps_data, list)
-                            or not validation_steps_data[0].get("cmd")
-                        ):
-                            logger.debug(
-                                "Generated question missing valid validation_steps. Retrying."
-                            )
-                            continue
-
-                        validation_steps = [
-                            ValidationStep(**step) for step in validation_steps_data
-                        ]
-                        response = validation_steps[0].cmd if validation_steps else ""
-
-                        new_question = Question(
-                            id=f"ai-gen-{uuid.uuid4()}",
-                            prompt=prompt,
-                            response=response,
-                            validation=validation_steps,
-                            category=base_q.category,
-                        )
-
-                    seen_prompts.add(prompt)
-                    questions.append(new_question)
-                    logger.info(
-                        f"Successfully generated and validated a new question: {prompt}"
+                    raw_q = self.evaluator.generate_question(
+                        {"prompt": user_prompt, "validation_steps": []}
                     )
-                    break  # Success, move to next question
-
                 except Exception as e:
-                    logger.error(
-                        f"Error during AI question generation or validation: {e}"
-                    )
-            else:  # No break from attempt loop
-                logger.warning(
-                    f"Could not generate a valid question for subject '{subject}' after {self.max_attempts} attempts."
+                    logger.error(f"Error during AI question generation: {e}")
+                    continue
+                if not raw_q or not isinstance(raw_q, dict):
+                    continue
+                # Convert and validate syntax only
+                prompt = raw_q.get("prompt", "").strip()
+                steps = []
+                valid = True
+                for step in raw_q.get("validation_steps", []):
+                    cmd = step.get("cmd")
+                    if not cmd or not validate_kubectl_syntax(cmd).get("valid"):
+                        valid = False
+                        break
+                    steps.append(ValidationStep(cmd=cmd))
+                if not valid:
+                    continue
+                qid = f"ai-gen-{uuid.uuid4()}"
+                resp_cmd = steps[0].cmd if steps else ""
+                questions.append(
+                    Question(id=qid, prompt=prompt, response=resp_cmd, validation=steps)
                 )
-
-        if len(questions) < num_questions:
-            logger.warning(
-                "Failed to generate the requested number of questions. "
-                f"Got {len(questions)} out of {num_questions}."
-            )
-
+                logger.info(f"Generated AI question: {prompt}")
+                break
         return questions
