@@ -18,6 +18,13 @@ try:
 except ImportError:
     pass
 
+# Support running this script directly: ensure the parent directory is on sys.path
+if __name__ == '__main__' and __package__ is None:
+    pkg_dir = os.path.dirname(os.path.abspath(__file__))
+    # Add project root (parent of package dir) so that 'import kubelingo' works
+    sys.path.insert(0, os.path.dirname(pkg_dir))
+    __package__ = 'kubelingo'
+
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
@@ -31,7 +38,10 @@ from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
-import questionary
+try:
+    import questionary
+except ImportError:
+    questionary = None
 from pathlib import Path
 import subprocess
 
