@@ -653,7 +653,12 @@ class NewSession(StudySession):
                     print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
                     return
 
-            requested = args.num if args.num and args.num > 0 else total
+            # Support legacy args.num_questions from tests or aliases
+            num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
+            requested = num_arg if num_arg and num_arg > 0 else total
+            # Warn and clamp if user requested more questions than available
+            if requested > total:
+                print(f"\n{Fore.YELLOW}Requested {requested} questions but only {total} available. Proceeding with {total}.{Style.RESET_ALL}")
             questions_to_ask = random.sample(questions, min(requested, total))
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
