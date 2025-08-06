@@ -561,6 +561,23 @@ You don’t have to “tell” the quiz which filename you used—all of the wir
 
 In either case, the question’s metadata (`initial_files`, `pre_shell_cmds`, and `validation_steps`) tells the sandbox what to seed and what to check. You just edit & apply as instructed; the quiz will pick up your work via those validation commands or by comparing the in-memory temp file.
 
+## Dynamic Question Cloning
+
+The unified quiz runner has been enhanced to dynamically generate additional questions when a user requests more questions than are available in a given module. This ensures a quiz can always be generated to the desired length.
+
+### How It Works
+
+- **Trigger**: This feature is activated when the `-n` or `--num` argument is greater than the total number of available questions for the selected quiz. If the requested number is less than or equal to the total, Kubelingo picks a random subset of questions as it did previously.
+- **Cloning Strategy**:
+  1.  **AI-Based Generation**: The system first attempts to generate new, unique questions using an AI model (via the `llm` package). It uses an existing question as a template and prompts the AI to create a variation with a new prompt and new validation steps, returned in JSON format.
+  2.  **Simple Duplication**: If AI generation is not available (e.g., no API key), the system falls back to simple duplication of existing questions.
+- **Question Properties**:
+    - Each cloned question inherits the metadata of its source question.
+    - A new unique `id` is assigned to each clone to prevent collisions.
+- **Final Quiz**: The original questions and the newly generated clones are combined and shuffled to create the final quiz list, providing a varied experience even when extending beyond the base question set.
+
+This allows for on-the-fly expansion of quiz content, providing more practice opportunities. Future improvements may include tweaking the AI cloning prompt, adding more rigorous syntax checks for generated content, or adding flags to control the AI cloning behavior.
+
 ## Custom Quiz Length
 
 Kubelingo now supports customizing the number of questions via the `-n/--num` flag:
