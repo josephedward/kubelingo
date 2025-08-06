@@ -327,9 +327,6 @@ class NewSession(StudySession):
         finally:
             if path:
                 try:
-                    # Inform user about AI question generation
-                    if clones_needed > 0:
-                        print(f"{Fore.CYAN}🎯 Generating {clones_needed} AI-generated question(s)...{Style.RESET_ALL}")
                     os.remove(path)
                 except Exception:
                     pass
@@ -688,9 +685,16 @@ class NewSession(StudySession):
                         if not new_q or not new_q.get('prompt'):
                             continue
                         new_prompt = new_q['prompt'].strip()
-                        if new_prompt in seen_prompts:
+                        # Skip if prompt is duplicate or too similar
+                        dup = False
+                        for ep in seen_prompts:
+                            if ep == new_prompt or SequenceMatcher(None, ep, new_prompt).ratio() > 0.8:
+                                dup = True
+                                break
+                        if dup:
+                            self.logger.info(f"Skipping duplicate or near-duplicate question: '{new_prompt}'")
                             continue
-                        # Accept the new question
+                        # Accept the new unique question
                         clone = base.copy()
                         clone['id'] = f"{base.get('id', 'question')}-clone-{generated_count}"
                         clone['prompt'] = new_prompt
