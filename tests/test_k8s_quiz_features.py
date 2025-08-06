@@ -4,6 +4,9 @@ from argparse import Namespace
 from io import StringIO
 from unittest.mock import patch, MagicMock
 
+from kubelingo.question import Question
+
+
 # These imports are based on the provided file summaries.
 # They might need to be adjusted if the structure is different.
 from kubelingo.modules.kubernetes.session import NewSession
@@ -35,6 +38,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
             'num_questions': 2,
             'category': None,
             'review': False,
+            'review_only': False,
             'all_flagged': False,
             'clear_all_review': False,
             'list_questions': False,
@@ -73,7 +77,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
 
     @patch('kubelingo.modules.kubernetes.session.load_questions')
     @patch('kubelingo.modules.question_generator.AIQuestionGenerator')
-    @patch('inquirer.prompt')
+    @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     def test_ai_generation_failure_shows_warning_and_continues(
         self, mock_stdout, mock_prompt, MockAIGenerator, mock_load_questions
@@ -102,7 +106,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
 
     @patch('kubelingo.modules.kubernetes.session.load_questions')
     @patch('kubelingo.modules.kubernetes.session.check_answer')
-    @patch('inquirer.prompt')
+    @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     def test_auto_advances_after_checking_answer(
         self, mock_stdout, mock_prompt, mock_check_answer, mock_load_questions
