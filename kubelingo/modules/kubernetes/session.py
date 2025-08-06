@@ -11,9 +11,8 @@ import webbrowser
 from datetime import datetime
 import logging
 
-from kubelingo.utils.ui import (
-    Fore, Style, questionary, yaml, humanize_module
-)
+from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
+import questionary
 from kubelingo.utils.config import (
     ROOT,
     LOGS_DIR,
@@ -823,6 +822,10 @@ class NewSession(StudySession):
 
                             # Auto-evaluate the answer
                             self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
+                            # Always show reference URL after answering
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
@@ -1298,12 +1301,22 @@ class NewSession(StudySession):
         except Exception as e:
             print(f"{Fore.RED}Error loading YAML questions: {e}{Style.RESET_ALL}")
             return
-        # Flatten YAML edit questions
+        # Flatten YAML edit questions, including simple and nested formats
         questions = []
         for section in data:
-            for p in section.get('prompts', []):
-                if p.get('question_type') == 'yaml_edit':
-                    questions.append(p)
+            # Nested prompt sections
+            if isinstance(section, dict) and section.get('prompts'):
+                for p in section.get('prompts', []):
+                    if p.get('question_type') == 'yaml_edit':
+                        questions.append(p)
+            # Simple standalone questions
+            elif isinstance(section, dict) and section.get('prompt') and 'answer' in section:
+                questions.append({
+                    'prompt': section['prompt'],
+                    'starting_yaml': section.get('starting_yaml', ''),
+                    'correct_yaml': section.get('correct_yaml', section['answer']),
+                    'explanation': section.get('explanation', '')
+                })
         total = len(questions)
         if total == 0:
             print(f"{Fore.YELLOW}No YAML editing questions found.{Style.RESET_ALL}")
@@ -1318,10 +1331,9 @@ class NewSession(StudySession):
             editor.edit_yaml_with_vim(starting, prompt=prompt)
             # Success path (mocked editor returns exit code 0)
             print("✅ Correct!")
-            # Explanation
-            expl = q.get('explanation')
-            if expl:
-                print(f"Explanation: {expl}")
+            # Explanation (always print, even if empty)
+            expl = q.get('explanation', '')
+            print(f"Explanation: {expl}")
             # Prompt to continue except after last question
             if idx < total:
                 try:
