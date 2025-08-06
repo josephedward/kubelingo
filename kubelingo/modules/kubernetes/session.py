@@ -667,47 +667,36 @@ class NewSession(StudySession):
                 
                 # Generate AI-backed questions, ensuring uniqueness against seen_prompts
                 generated_count = 0
-                try:
-                    from kubelingo.modules.ai_evaluator import AIEvaluator
-                    evaluator = AIEvaluator()
-                    # Cap attempts to avoid infinite loops
-                    max_attempts = clones_needed * 4
-                    attempts = 0
-                    # Only use command-based questions as a base
-                    command_questions = [q for q in questions if q.get('type', 'command') == 'command' and q.get('validation_steps')]
-                    if not command_questions:
-                        command_questions = questions
-                    # Generate until we have enough unique prompts or exhaust attempts
-                    while generated_count < clones_needed and attempts < max_attempts and command_questions:
-                        print(f"{Fore.CYAN}→ Generating AI question {generated_count+1}/{clones_needed} (attempt {attempts+1}/{max_attempts})...{Style.RESET_ALL}")
-                        base = random.choice(command_questions)
-                        new_q = evaluator.generate_question(base)
-                        attempts += 1
-                        if not new_q or not new_q.get('prompt'):
-                            continue
-                        new_prompt = new_q['prompt'].strip()
-                        # Skip if prompt is duplicate or too similar
-                        dup = False
-                        for ep in seen_prompts:
-                            if ep == new_prompt or SequenceMatcher(None, ep, new_prompt).ratio() > 0.8:
-                                dup = True
-                                break
-                        if dup:
-                            self.logger.info(f"Skipping duplicate or near-duplicate question: '{new_prompt}'")
-                            continue
-                        # Accept the new unique question
-                        clone = base.copy()
-                        clone['id'] = f"{base.get('id', 'question')}-clone-{generated_count}"
-                        clone['prompt'] = new_prompt
-                        orig_steps = new_q.get('validation_steps', [])
-                        filtered = [step for step in orig_steps if step.get('cmd') and step.get('cmd') in new_prompt]
-                        clone['validation_steps'] = filtered if filtered else orig_steps
-                        clone['review'] = False
-                        questions_to_ask.append(clone)
-                        seen_prompts.add(new_prompt)
-                        generated_count += 1
-                except (ImportError, Exception):
-                    pass
+                if clones_needed > 0:
+                    print(f"{Fore.CYAN}🎯 Generating {clones_needed} AI-generated question(s)...{Style.RESET_ALL}")
+                    try:
+                        from kubelingo.modules.question_generator import AIQuestionGenerator
+                        generator = AIQuestionGenerator()
+                        
+                        # Only use command-based questions as a base for generation
+                        command_questions = [q for q in questions if q.get('type') == 'command' and q.get('response')]
+                        if not command_questions:
+                            # Fallback to any question if no suitable ones found
+                            command_questions = questions
+
+                        if command_questions:
+                            # Pass all existing prompts from `seen_prompts` to avoid duplicates.
+                            new_questions = generator.generate_questions(
+                                base_questions=command_questions,
+                                num_to_generate=clones_needed,
+                                existing_prompts=seen_prompts
+                            )
+                            questions_to_ask.extend(new_questions)
+                            generated_count = len(new_questions)
+                            # Add newly generated prompts to seen_prompts to keep it consistent.
+                            for q in new_questions:
+                                if q.get('prompt'):
+                                    seen_prompts.add(q['prompt'].strip())
+
+                    except (ImportError, Exception) as e:
+                        self.logger.error(f"AI generation failed: {e}")
+                        # In case of any issue with AI generation, do not generate
+                        pass
                 # Warn if we could not generate the full set of unique AI questions
                 remaining_needed = clones_needed - generated_count
                 if remaining_needed > 0:
