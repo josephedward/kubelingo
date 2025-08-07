@@ -106,28 +106,31 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         mock_prompt.assert_called_once() # Verify interactive quiz started
 
     @patch('kubelingo.modules.kubernetes.session.load_questions')
-    @patch('kubelingo.modules.kubernetes.session.check_answer')
-    @patch('kubelingo.modules.base.session.SessionManager')
+    @patch('kubelingo.modules.kubernetes.session.NewSession._check_command_with_ai')
+    @patch('kubelingo.modules.kubernetes.session.PromptSession')
     @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
-    def test_auto_advances_after_checking_answer(
-        self, mock_stdout, mock_prompt, MockSessionManager, mock_check_answer, mock_load_questions
+    def test_auto_advances_on_correct_answer(
+        self, mock_stdout, mock_prompt, MockPromptSession, mock_check_command, mock_load_questions
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
-        mock_check_answer.return_value = (True, [])  # Assume correct answer
+        
+        def mark_correct(q, answer, idx, attempted, correct):
+            attempted.add(idx)
+            correct.add(idx)
+        mock_check_command.side_effect = mark_correct
 
-        # Mock that an attempt has been made for the question
-        mock_session_manager_instance = MockSessionManager.return_value
-        mock_session_manager_instance.get_last_attempt.return_value = "dummy_attempt.yaml"
+        mock_prompt_session_instance = MockPromptSession.return_value
+        mock_prompt_session_instance.prompt.return_value = "k get pods"
         
         # Simulate user actions:
-        # 1. On Q1, choose 'Check Answer'. The runner should auto-advance.
+        # 1. On Q1, choose 'Answer Question'. After a correct answer, it should auto-advance.
         # 2. On Q2, choose 'Exit Quiz' to end the test.
         mock_prompt.side_effect = [
-            {'action': 'Check Answer'},
-            {'action': 'Exit Quiz'},
+            {'action': 'answer'},
+            {'action': 'back'},
         ]
 
         args = self._get_mock_args(num_questions=2)
@@ -137,16 +140,15 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         session.run_exercises(args)
 
         # Assert
-        # It should print Q1, then after "Check Answer", it should print Q2.
+        # It should print Q1, then after answering, it should print Q2.
         output = mock_stdout.getvalue()
         self.assertIn("Question 1/2", output)
         self.assertIn("Question 2/2", output)
         
-        # Verify that check_answer was called for the first question.
-        mock_check_answer.assert_called_once()
+        # Verify that our check method was called for the first question.
+        mock_check_command.assert_called_once()
         
-        # There should be two calls to prompt: one for Q1 menu, one for Q2 menu.
-        # If auto-advance failed, there would be more calls.
+        # questionary.prompt is called for Q1 menu, then for Q2 menu.
         self.assertEqual(mock_prompt.call_count, 2)
 
 
