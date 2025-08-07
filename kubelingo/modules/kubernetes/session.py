@@ -275,7 +275,13 @@ class NewSession(StudySession):
         # 1. Add enabled quizzes from config
         for name, path in ENABLED_QUIZZES.items():
             # The existence of the path is no longer checked. We assume if it's in config, it's in the DB.
-            choices.append({"name": name, "value": path})
+            try:
+                num_questions = len(get_questions_by_source_file(path))
+                display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
+                choices.append({"name": display_name, "value": path})
+            except Exception as e:
+                self.logger.warning(f"Could not get question count for {path}: {e}")
+                choices.append({"name": name, "value": path})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
