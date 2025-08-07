@@ -130,12 +130,12 @@ class AIQuestionGenerator:
                     )
                 except Exception:
                     logger.warning(f"Failed to add AI-generated question '{qid}' to DB.")
-            if len(valid_questions) >= num_questions:
+            if len(valid_questions) >= num_to_generate:
                 break
-            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
-        if len(valid_questions) < num_questions:
+            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_to_generate} valid AI question(s); retrying...{Style.RESET_ALL}")
+        if len(valid_questions) < num_to_generate:
             print(f"{Fore.YELLOW}Warning: Could only generate {len(valid_questions)} AI question(s).{Style.RESET_ALL}")
-        return valid_questions[:num_questions]
+        return valid_questions[:num_to_generate]
     
     def generate_question(self, base_question: dict) -> dict:
         """

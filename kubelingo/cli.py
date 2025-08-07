@@ -15,7 +15,10 @@ import os
 import logging
 import subprocess
 import shutil
-import readline  # Enable rich input editing, history, and arrow keys
+try:
+    import readline  # Enable rich input editing, history, and arrow keys
+except ImportError:
+    pass # readline not available
 # Provide pytest.anything for test wildcard assertions
 try:
     import pytest
