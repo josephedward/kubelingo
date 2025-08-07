@@ -5,10 +5,9 @@ from pathlib import Path
 from dataclasses import asdict
 
 # Add project root to path to allow importing kubelingo modules
-project_root = Path(__file__).resolve().parents[1]
+# Use ROOT from config for a more reliable path
+from kubelingo.utils.config import ENABLED_QUIZZES, ROOT as project_root
 sys.path.insert(0, str(project_root))
-
-from kubelingo.utils.config import ENABLED_QUIZZES
 from kubelingo.database import init_db, add_question
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question
@@ -24,7 +23,7 @@ def migrate():
     total_questions = 0
 
     # Discover all YAML files directly from the data directory to avoid stale paths in config.
-    yaml_dir = project_root / 'question-data' / 'yaml'
+    yaml_dir = Path(project_root) / 'question-data' / 'yaml'
     
     yaml_files = []
     if yaml_dir.is_dir():

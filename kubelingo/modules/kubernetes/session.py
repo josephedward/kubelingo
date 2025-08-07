@@ -529,9 +529,14 @@ class NewSession(StudySession):
                 if not questions:
                     # Fallback to static loader if DB is empty or missing
                     try:
-                        static_qs = load_questions(args.file)
-                        # Convert Question objects to dicts if necessary
-                        questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
+                        _, ext = os.path.splitext(args.file)
+                        if ext.lower() in ('.yaml', '.yml'):
+                            loader = YAMLLoader()
+                            static_qs = loader.load_file(args.file)
+                            # Convert Question objects to dicts if necessary
+                            questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
+                        else:
+                            questions = []
                     except Exception as e:
                         self.logger.error(f"Failed to load static questions for '{args.file}': {e}")
                         questions = []
