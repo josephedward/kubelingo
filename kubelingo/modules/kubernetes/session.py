@@ -780,6 +780,7 @@ class NewSession(StudySession):
                             base_q_sample.append(QuestionObject(
                                 id=q_dict.get('id', ''),
                                 prompt=q_dict.get('prompt', ''),
+                                response=q_dict.get('response'),
                                 type=q_dict.get('type', ''),
                                 pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
                                 initial_files=q_dict.get('initial_files', {}),

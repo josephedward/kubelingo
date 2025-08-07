@@ -21,11 +21,11 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
     def setUp(self):
         """Set up common test data."""
         self.static_questions = [
-            Question(id='q1', prompt='Static Prompt 1', response='res1', validation=[]),
-            Question(id='q2', prompt='Static Prompt 2', response='res2', validation=[]),
+            Question(id='q1', prompt='Static Prompt 1', response='res1', validation=[], type='command'),
+            Question(id='q2', prompt='Static Prompt 2', response='res2', validation=[], type='command'),
         ]
         self.ai_questions = [
-            Question(id='ai-q1', prompt='AI Prompt 1', response='ai-res1', validation=[]),
+            Question(id='ai-q1', prompt='AI Prompt 1', response='ai-res1', validation=[], type='command'),
         ]
         # Suppress logs during tests to keep output clean
         self.logger = logging.getLogger('test_logger')
