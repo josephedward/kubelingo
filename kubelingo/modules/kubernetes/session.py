@@ -313,6 +313,7 @@ class NewSession(StudySession):
 
     def __init__(self, logger):
         super().__init__(logger)
+        self.session_manager = SessionManager(logger)
         self.cluster_name = None
         self.kubeconfig_path = None
         self.region = None
@@ -1068,6 +1069,7 @@ class NewSession(StudySession):
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
+                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
                                     # Inform the user that the question has been flagged
                                     print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
@@ -1226,6 +1228,8 @@ class NewSession(StudySession):
                             else:
                                 self.session_manager.mark_question_for_review(question_id)
                                 q['review'] = True
+                                # Inform the user that the question has been flagged
+                                print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
