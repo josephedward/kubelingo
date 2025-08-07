@@ -54,7 +54,7 @@ def migrate():
                     'source': getattr(q, 'source', None),
                     'validation_steps': [asdict(step) for step in q.validation_steps],
                     'validator': q.validator,
-                    'source_file': file_path,
+                    'source_file': os.path.basename(file_path),
                     'review': raw_q_data.get('review', False)
                 }
                 add_question(**q_data)

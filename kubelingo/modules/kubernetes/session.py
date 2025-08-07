@@ -276,7 +276,8 @@ class NewSession(StudySession):
         for name, path in ENABLED_QUIZZES.items():
             # The existence of the path is no longer checked. We assume if it's in config, it's in the DB.
             try:
-                num_questions = len(get_questions_by_source_file(path))
+                # Use basename to query DB for question count
+                num_questions = len(get_questions_by_source_file(os.path.basename(path)))
                 display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
                 choices.append({"name": display_name, "value": path})
             except Exception as e:
@@ -432,8 +433,8 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # Load questions from the database using the source file path as a key
-                questions = get_questions_by_source_file(args.file)
+                # Load questions from the database using the source file's basename as a key
+                questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
                     # Check if the DB file exists and is populated, offer to migrate.
                     db_path = os.path.join(DATA_DIR, 'kubelingo.db')
@@ -1241,7 +1242,10 @@ class NewSession(StudySession):
             print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
             print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
             
-            self.session_manager.save_history(start_time, asked_count, correct_count, duration, args, per_category_stats)
+            history_args = copy.deepcopy(args)
+            if history_args.file:
+                history_args.file = os.path.basename(history_args.file)
+            self.session_manager.save_history(start_time, asked_count, correct_count, duration, history_args, per_category_stats)
 
             self._cleanup_swap_files()
 
