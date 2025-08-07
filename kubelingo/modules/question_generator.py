@@ -4,6 +4,8 @@ import uuid
 from typing import List, Set
 
 import openai
+import re
+from kubelingo.utils.ui import Fore, Style
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax
@@ -31,74 +33,87 @@ class AIQuestionGenerator:
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
-        Uses the OpenAI API to create a JSON list of question/response pairs, then
-        validates syntax and prompt completeness.
+        Uses few-shot prompting with examples and validates syntax before returning.
         """
-        questions: List[Question] = []
-        # Build AI prompt
-        ai_prompt = (
-            f"You are a Kubernetes instructor.\n"
-            f"Create exactly {num_questions} distinct quiz questions about '{subject}' in JSON format.\n"
-            "Each question object must have two keys: 'prompt' and 'response'.\n"
-            "- 'prompt': a clear instruction, e.g. 'Create a Service Account named \'foo-sa\''.\n"
-            "- 'response': the exact kubectl command to solve it, e.g. 'kubectl create sa foo-sa'.\n"
-            "Return only a JSON array of such objects, no extra text."
-        )
-        logger.debug("AI generation prompt: %s", ai_prompt)
-        try:
-            resp_obj = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": ai_prompt},
-                ],
-                temperature=0.7,
-            )
-            raw = resp_obj.choices[0].message.content
-            logger.debug("AI raw response: %s", raw)
-            items = json.loads(raw)
-        except Exception as e:
-            logger.error("AI question generation failed: %s", e)
-            return questions
-        # Validate and convert
-        for obj in items:
-            prompt_text = obj.get('prompt')
-            resp_cmd = obj.get('response')
-            if not prompt_text or not resp_cmd:
-                continue
-            # Syntax check
-            syntax = validate_kubectl_syntax(resp_cmd)
-            if not syntax.get('valid'):
-                logger.debug("Dropping invalid command: %s", resp_cmd)
-                continue
-            # Prompt completeness
-            completeness = validate_prompt_completeness(resp_cmd, prompt_text)
-            if not completeness.get('valid'):
-                logger.debug("Dropping incomplete prompt: %s", completeness.get('errors'))
-                continue
-            qid = f"ai-gen-{uuid.uuid4()}"
-            questions.append(
-                Question(
+        # Build few-shot prompt
+        prompt_lines = ["You are a Kubernetes instructor."]
+        if base_questions:
+            prompt_lines.append("Here are example questions and answers:")
+            for ex in base_questions:
+                prompt_lines.append(f"- Prompt: {ex.prompt}")
+                prompt_lines.append(f"  Response: {ex.response}")
+        prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
+        prompt_lines.append("Return ONLY a JSON array of objects with 'prompt' and 'response' keys.")
+        ai_prompt = "\n".join(prompt_lines)
+        logger.debug("AI few-shot prompt: %s", ai_prompt)
+
+        valid_questions: List[Question] = []
+        # Attempt generation up to max_attempts
+        for attempt in range(1, self.max_attempts + 1):
+            print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
+            raw = None
+            # Try OpenAI client
+            try:
+                resp = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "system", "content": ai_prompt}],
+                    temperature=0.7,
+                )
+                raw = resp.choices[0].message.content
+            except Exception as e:
+                logger.debug("OpenAI client failed: %s", e)
+            # Fallback to llm package
+            if raw is None:
+                try:
+                    import llm as _llm_module
+                    llm_model = _llm_module.get_model()
+                    llm_resp = llm_model.prompt(ai_prompt)
+                    raw = llm_resp.text() if callable(getattr(llm_resp, "text", None)) else getattr(llm_resp, "text", str(llm_resp))
+                except Exception as e:
+                    logger.error("LLM fallback failed: %s", e)
+                    break
+            # Parse JSON
+            items = []
+            try:
+                items = json.loads(raw)
+            except Exception:
+                m = re.search(r"\[.*\]", raw, flags=re.S)
+                if m:
+                    try:
+                        items = json.loads(m.group())
+                    except Exception:
+                        items = []
+            valid_questions.clear()
+            for obj in items or []:
+                # Support common key names for question/answer
+                p = obj.get("prompt") or obj.get("question") or obj.get("q")
+                r = obj.get("response") or obj.get("answer") or obj.get("a")
+                if not p or not r:
+                    continue
+                if not validate_kubectl_syntax(r).get("valid"):
+                    continue
+                if not validate_prompt_completeness(r, p).get("valid"):
+                    continue
+                qid = f"ai-gen-{uuid.uuid4()}"
+                valid_questions.append(Question(
                     id=qid,
-                    prompt=prompt_text,
+                    prompt=p,
                     category=subject,
-                    response=resp_cmd,
+                    response=r,
                     type="command",
-                    validator={"type": "ai", "expected": resp_cmd},
-                )
-            )
-        if len(questions) < num_questions:
-            logger.warning("Only generated %d/%d AI questions", len(questions), num_questions)
-        return questions
-        # As a last resort, if we have at least one valid question, duplicate to meet the count
-        if questions and len(questions) < num_questions:
-            needed = num_questions - len(questions)
-            base = questions[0]
-            for _ in range(needed):
-                clone = Question(
-                    id=f"ai-fallback-{uuid.uuid4()}",
-                    prompt=base.prompt,
-                    response=base.response,
-                    validation=base.validation,
-                )
-                questions.append(clone)
-        return questions
+                    validator={"type": "ai", "expected": r},
+                ))
+            if len(valid_questions) >= num_questions:
+                break
+            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
+        if len(valid_questions) < num_questions:
+            print(f"{Fore.YELLOW}Warning: Could only generate {len(valid_questions)} AI question(s).{Style.RESET_ALL}")
+        return valid_questions[:num_questions]
+    
+    def generate_question(self, base_question: dict) -> dict:
+        """
+        Generate a single AI-based question similar to a base question.
+        Delegates to the AI evaluator's generate_question method.
+        """
+        # Use underlying AI evaluator to generate one question
+        return self.evaluator.generate_question(base_question)
