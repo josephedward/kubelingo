@@ -1346,47 +1346,15 @@ class NewSession(StudySession):
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
         Helper to process the result of an answer attempt. It uses AI evaluation
-        if available and requested, otherwise falls back to deterministic checks.
+        as the primary method and falls back to deterministic checks.
         """
         attempted_indices.add(current_question_index)
-        # Explicit AI validator: if question.validator.type == 'ai', use LLM to compare
-        validator = q.get('validator')
-        if validator and validator.get('type') == 'ai':
-            # Read transcript if available
-            transcript = ''
-            try:
-                if result.transcript_path:
-                    transcript = Path(result.transcript_path).read_text(encoding='utf-8')
-            except Exception:
-                pass
-            # Ask AI to validate equivalence
-            try:
-                from kubelingo.modules.ai_evaluator import AIEvaluator
-                evaluator = AIEvaluator()
-                ai_result = evaluator.evaluate(q, transcript)
-                ok = ai_result.get('correct', False)
-                reasoning = ai_result.get('reasoning', 'No reasoning provided.')
-
-                status = 'Correct' if ok else 'Incorrect'
-                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-
-            except Exception as e:
-                print(f"{Fore.YELLOW}AI validator error: {e}{Style.RESET_ALL}")
-                return False
-
-            if ok:
-                correct_indices.add(current_question_index)
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                correct_indices.discard(current_question_index)
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-            return ok
-        is_correct = False  # Default to incorrect
+        is_correct = False
         ai_eval_used = False
         openai_key_present = bool(os.getenv('OPENAI_API_KEY'))
 
-        # Always try AI evaluation if an API key is present and there's a transcript.
-        if openai_key_present and result.transcript_path:
+        # AI is the primary evaluation method for shell exercises if available
+        if openai_key_present and hasattr(result, 'transcript_path') and result.transcript_path:
             try:
                 from kubelingo.modules.ai_evaluator import AIEvaluator as _AIEvaluator
                 evaluator = _AIEvaluator()
@@ -1397,22 +1365,12 @@ class NewSession(StudySession):
                 status = 'Correct' if is_correct else 'Incorrect'
                 print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
                 ai_eval_used = True
-            except ImportError:
-                print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Falling back to deterministic checks.{Style.RESET_ALL}")
-                is_correct = result.success  # Fallback
-            except Exception as e:
-                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}Falling back to deterministic checks.{Style.RESET_ALL}")
-                is_correct = result.success  # Fallback
-        else:
-            # If no API key, and it's a live question run without docker, we can't check.
-            is_live_question = q.get('type') in ('live_k8s', 'live_k8s_edit')
-            if not args.docker and is_live_question and not openai_key_present:
-                print(f"{Fore.YELLOW}Cannot check answer: This question requires a live cluster, and --docker was not used.{Style.RESET_ALL}")
-                print(f"{Fore.YELLOW}AI-based checking is available as a fallback, but 'OPENAI_API_KEY' environment variable is not set.{Style.RESET_ALL}")
-                return
+            except (ImportError, Exception) as e:
+                self.logger.error(f"AI evaluation failed, falling back. Error: {e}", exc_info=True)
+                print(f"{Fore.YELLOW}AI evaluation failed, falling back to deterministic checks.{Style.RESET_ALL}")
 
-            # Fallback to deterministic validation from transcript.
+        # Fallback to deterministic validation if AI was not used or failed
+        if not ai_eval_used:
             validation_steps = q.get('validation_steps', [])
             if not validation_steps and q.get('type') == 'command' and q.get('response'):
                 validation_steps.append({'cmd': q['response'], 'matcher': {'contains': q.get('response', '')}})
@@ -1421,17 +1379,16 @@ class NewSession(StudySession):
             if not validation_steps:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question. Cannot check answer.{Style.RESET_ALL}")
                 is_correct = False
-            elif not result.transcript_path:
+            elif not hasattr(result, 'transcript_path') or not result.transcript_path:
                 print(f"{Fore.YELLOW}Warning: No transcript available for this question. Using fallback validation.{Style.RESET_ALL}")
-                is_correct = result.success
+                is_correct = result.success if hasattr(result, 'success') else False
                 if hasattr(result, 'step_results'):
                     for step_res in result.step_results:
                         details.append((step_res.step.cmd, step_res.success, step_res.stderr or step_res.stdout))
             else:
                 is_correct, details = evaluate_transcript(result.transcript_path, validation_steps)
-
-        # If AI evaluation was not performed, show deterministic step-by-step results.
-        if not ai_eval_used:
+            
+            # Show deterministic step-by-step results.
             for cmd, passed, reason in details:
                 if passed:
                     print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {cmd}")
@@ -1439,7 +1396,7 @@ class NewSession(StudySession):
                     print(f"{Fore.RED}[✗]{Style.RESET_ALL} {cmd}")
                     if reason:
                         print(f"  {Fore.WHITE}{reason.strip()}{Style.RESET_ALL}")
-        
+
         # Report final result
         if is_correct:
             correct_indices.add(current_question_index)
@@ -1448,15 +1405,11 @@ class NewSession(StudySession):
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
 
-        # The AI reasoning should contain the source, but we print it here for consistency.
+        # Always show source URL and explanation if available, for consistency.
         source_url = q.get('citation') or q.get('source')
         if source_url:
             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-        # Show explanation if correct
-        if is_correct and q.get('explanation'):
-            print(f"{Fore.CYAN}Explanation: {q.get('explanation')}{Style.RESET_ALL}")
 
-        # Show explanation if correct
         if is_correct and q.get('explanation'):
             print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
         
