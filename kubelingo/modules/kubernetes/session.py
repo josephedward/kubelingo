@@ -656,13 +656,17 @@ class NewSession(StudySession):
                             if 'kubectl' in first_cmd:
                                 print(f"{Fore.CYAN}  Validating command: `{first_cmd}`{Style.RESET_ALL}")
                                 validation_cmd = shlex.split(first_cmd) + ["--dry-run=client"]
-                                result = subprocess.run(validation_cmd, capture_output=True, text=True, check=False)
-                                if result.returncode != 0:
-                                    self.logger.warning(f"Generated command failed dry-run validation. Stderr: {result.stderr.strip()}")
-                                    print(f"{Fore.RED}  Generated command is invalid, retrying...{Style.RESET_ALL}")
-                                    if result.stderr:
-                                        print(f"{Fore.RED}  Validation failed: {result.stderr.strip()}{Style.RESET_ALL}")
-                                    continue # Try generating again
+                                try:
+                                    result = subprocess.run(validation_cmd, capture_output=True, text=True, check=False)
+                                except FileNotFoundError as e:
+                                    print(f"{Fore.YELLOW}  kubectl not found, skipping dry-run validation: {e}{Style.RESET_ALL}")
+                                else:
+                                    if result.returncode != 0:
+                                        self.logger.warning(f"Generated command failed dry-run validation. Stderr: {result.stderr.strip()}")
+                                        print(f"{Fore.RED}  Generated command is invalid, retrying...{Style.RESET_ALL}")
+                                        if result.stderr:
+                                            print(f"{Fore.RED}  Validation failed: {result.stderr.strip()}{Style.RESET_ALL}")
+                                        continue # Try generating again
 
                             is_valid = True
                             print(f"{Fore.GREEN}  Generated question is valid.{Style.RESET_ALL}")
