@@ -22,8 +22,8 @@ def migrate():
     yaml_loader = YAMLLoader()
     total_questions = 0
 
-    # Discover all YAML files directly from the data directory to avoid stale paths in config.
-    yaml_dir = Path(project_root) / 'question-data' / 'yaml'
+    # Discover all YAML files from the backup directory.
+    yaml_dir = Path(project_root) / 'question-data' / 'backup'
     
     yaml_files = []
     if yaml_dir.is_dir():
