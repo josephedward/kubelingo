@@ -34,8 +34,18 @@ def migrate():
 
         print(f"Processing {file_path}...")
         try:
-            questions: list[Question] = yaml_loader.load_file(file_path)
-            for q in questions:
+            # Load questions as objects for structured data
+            questions_obj: list[Question] = yaml_loader.load_file(file_path)
+            
+            # Load raw data to get attributes not on the Question dataclass, like 'review'
+            with open(file_path, 'r', encoding='utf-8') as f:
+                raw_questions_data = yaml.safe_load(f)
+            raw_q_map = {
+                item.get('id'): item for item in raw_questions_data if isinstance(item, dict)
+            }
+
+            for q in questions_obj:
+                raw_q_data = raw_q_map.get(q.id, {})
                 q_data = {
                     'id': q.id,
                     'prompt': q.prompt,
@@ -45,10 +55,11 @@ def migrate():
                     'validation_steps': [asdict(step) for step in q.validation_steps],
                     'validator': q.validator,
                     'source_file': file_path,
+                    'review': raw_q_data.get('review', False)
                 }
                 add_question(**q_data)
-            total_questions += len(questions)
-            print(f"  Migrated {len(questions)} questions.")
+            total_questions += len(questions_obj)
+            print(f"  Migrated {len(questions_obj)} questions.")
         except Exception as e:
             print(f"Error processing file {file_path}: {e}")
 

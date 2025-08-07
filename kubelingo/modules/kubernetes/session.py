@@ -11,6 +11,7 @@ import webbrowser
 from datetime import datetime
 import logging
 
+from kubelingo.database import get_questions_by_source_file, get_flagged_questions, update_review_status
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
 from difflib import SequenceMatcher, unified_diff
 try:
@@ -84,150 +85,46 @@ def _get_subject_for_questions(q):
     return subject or ''
 
 
-def _get_quiz_files():
-    """Returns a list of paths to JSON command quiz files, excluding special ones."""
-    json_dir = os.path.join(DATA_DIR, 'json')
-    if not os.path.isdir(json_dir):
-        return []
-
-    # Exclude special files that have their own quiz modes or are enabled in the main menu
-    excluded_files = {os.path.basename(f) for f in ENABLED_QUIZZES.values() if f}
-    if YAML_QUESTIONS_FILE:
-        excluded_files.add(os.path.basename(YAML_QUESTIONS_FILE))
-
-    return sorted([
-        os.path.join(json_dir, f)
-        for f in os.listdir(json_dir)
-        if f.endswith('.json') and f not in excluded_files
-    ])
-
-
-def _get_md_quiz_files():
-    """Returns a list of paths to Markdown quiz files that contain runnable questions."""
-    md_dir = os.path.join(DATA_DIR, 'md')
-    if not os.path.isdir(md_dir):
-        return []
-
-    runnable_files = []
-    for f in os.listdir(md_dir):
-        if f.endswith(('.md', '.markdown')):
-            file_path = os.path.join(md_dir, f)
-            # Pass exit_on_error=False to prevent halting on non-quiz markdown files.
-            questions = load_questions(file_path, exit_on_error=False)
-            # A file is a runnable quiz if it has at least one question of a runnable type.
-            if any(q.get('type') in ('command', 'live_k8s', 'live_k8s_edit') for q in questions):
-                runnable_files.append(file_path)
-
-    return sorted(runnable_files)
-
-
-def _get_yaml_quiz_files():
-    """Returns a list of paths to YAML quiz files."""
-    yaml_dir = os.path.join(DATA_DIR, 'yaml')
-    if not os.path.isdir(yaml_dir):
-        return []
-    return sorted([
-        os.path.join(yaml_dir, f)
-        for f in os.listdir(yaml_dir)
-        if f.endswith(('.yaml', '.yml'))
-    ])
 
 
 def get_all_flagged_questions():
-    """Returns a list of all questions from all files that are flagged for review."""
-    # Only YAML-based quizzes are used for review
-    all_quiz_files = _get_yaml_quiz_files()
-    if os.path.exists(VIM_QUESTIONS_FILE):
-        all_quiz_files.append(VIM_QUESTIONS_FILE)
-    all_quiz_files = sorted(set(all_quiz_files))
-
-    all_flagged = []
-    for f in all_quiz_files:
-        try:
-            qs = load_questions(f, exit_on_error=False)
-        except Exception:
-            continue
-        # The `review: true` flag in the source YAML is the source of truth.
-        for q in qs:
-            if q.get('review'):
-                q['data_file'] = f
-                all_flagged.append(q)
-    return all_flagged
+    """Returns a list of all questions from the database that are flagged for review."""
+    # This now reads from the database instead of parsing files.
+    return get_flagged_questions()
 
 
-def _update_review_in_yaml_file(file_path: str, question_id: str, review: bool):
-    """Updates the 'review' flag for a specific question in its source YAML file."""
-    if not file_path or not question_id or not os.path.exists(file_path):
+def _update_review_status_in_db(question_id: str, review: bool):
+    """Updates the 'review' flag for a specific question in the database."""
+    if not question_id:
         return
-    if yaml is None:
-        return
-
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
-        
-        if not isinstance(data, list):
-            return  # Only support list-of-questions format for now
-
-        changed = False
-        for q in data:
-            if isinstance(q, dict) and q.get('id') == question_id:
-                if review:
-                    q['review'] = True
-                elif 'review' in q:
-                    del q['review']
-                changed = True
-                break
-        
-        if changed:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
-    except Exception:
-        pass # Fail silently
+        update_review_status(question_id, review)
+    except Exception as e:
+        # Log this error but don't crash the quiz
+        logging.getLogger().error(f"Failed to update review status in DB for QID {question_id}: {e}")
 
 
 def _clear_all_review_flags(logger):
-    """Removes 'review' flag from all questions in all known YAML quiz files."""
-    if yaml is None:
-        logger.error("Cannot clear review flags: PyYAML is not installed.")
-        print(f"{Fore.RED}Cannot clear review flags: PyYAML is not installed.{Style.RESET_ALL}")
-        return
-
-    all_quiz_files = _get_yaml_quiz_files()
-    if os.path.exists(VIM_QUESTIONS_FILE):
-        all_quiz_files.append(VIM_QUESTIONS_FILE)
-    all_quiz_files = sorted(set(all_quiz_files))
-
-    cleared_count = 0
-    for file_path in all_quiz_files:
-        try:
-            with open(file_path, 'r') as f:
-                # Use list(yaml.safe_load_all(f)) if file can have multiple docs
-                questions = yaml.safe_load(f)
-        except Exception:
-            continue  # Skip files that can't be read
-
-        if not isinstance(questions, list):
-            continue
-
-        changed = False
-        for q in questions:
-            if isinstance(q, dict) and 'review' in q:
-                del q['review']
-                changed = True
+    """Removes 'review' flag from all questions in the database."""
+    try:
+        from kubelingo.database import get_db_connection
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Get count of flagged questions before clearing
+        cursor.execute("SELECT COUNT(*) FROM questions WHERE review = 1")
+        count = cursor.fetchone()[0]
         
-        if changed:
-            cleared_count += 1
-            try:
-                with open(file_path, 'w') as f:
-                    yaml.safe_dump(questions, f, sort_keys=False, allow_unicode=True)
-            except Exception as e:
-                logger.error(f"Failed to save cleared review flags for {file_path}: {e}")
-    
-    if cleared_count > 0:
-        print(f"\n{Fore.GREEN}Cleared all review flags.{Style.RESET_ALL}")
-    else:
-        print(f"\n{Fore.YELLOW}No flagged questions found to clear.{Style.RESET_ALL}")
+        if count > 0:
+            cursor.execute("UPDATE questions SET review = 0 WHERE review = 1")
+            conn.commit()
+            print(f"\n{Fore.GREEN}Cleared all {count} review flags.{Style.RESET_ALL}")
+        else:
+            print(f"\n{Fore.YELLOW}No flagged questions found to clear.{Style.RESET_ALL}")
+        
+        conn.close()
+    except Exception as e:
+        logger.error(f"Failed to clear review flags in DB: {e}")
+        print(f"{Fore.RED}An error occurred while clearing review flags.{Style.RESET_ALL}")
 
 
 def check_dependencies(*commands):
@@ -237,106 +134,6 @@ def check_dependencies(*commands):
         if not shutil.which(cmd):
             missing.append(cmd)
     return missing
-
-def load_questions(data_file, exit_on_error=True):
-    """Loads questions from JSON, YAML, or Markdown files using dedicated loaders."""
-    ext = os.path.splitext(data_file)[1].lower()
-    # Handle raw JSON list-of-modules questions format (from Markdown/YAML quizzes)
-    if ext == '.json':
-        try:
-            with open(data_file, 'r', encoding='utf-8') as f:
-                raw_data = json.load(f)
-        except Exception as e:
-            if exit_on_error:
-                print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
-                sys.exit(1)
-            return []
-        # If JSON file is a list, detect format:
-        if isinstance(raw_data, list):
-            # Case: list of modules with nested prompts (e.g., CKAD exercises)
-            if raw_data and isinstance(raw_data[0], dict) and 'prompts' in raw_data[0]:
-                questions = []
-                for module in raw_data:
-                    if not isinstance(module, dict):
-                        continue
-                    category = module.get('category')
-                    for prompt in module.get('prompts', []):
-                        if not isinstance(prompt, dict):
-                            continue
-                        q = prompt.copy()
-                        if 'question_type' in q:
-                            q['type'] = q['question_type']
-                        if category is not None:
-                            q['category'] = category
-                        questions.append(q)
-                return questions
-            # Case: list of simple questions (e.g., Killercoda CKAD)
-            if raw_data and isinstance(raw_data[0], dict) and 'prompt' in raw_data[0]:
-                questions = []
-                for item in raw_data:
-                    if not isinstance(item, dict):
-                        continue
-                    q = item.copy()
-                    # Normalize 'answer' key to 'response'
-                    if 'answer' in q:
-                        q['response'] = q.pop('answer')
-                    questions.append(q)
-                return questions
-        loader = JSONLoader()
-    elif ext in ('.md', '.markdown'):
-        loader = MDLoader()
-    elif ext in ('.yaml', '.yml'):
-        loader = YAMLLoader()
-    else:
-        if exit_on_error:
-            print(Fore.RED + f"Unsupported file type for quiz data: {data_file}" + Style.RESET_ALL)
-            sys.exit(1)
-        return []
-
-    try:
-        # Loaders return a list of Question objects. We'll convert them to dicts.
-        questions_obj = loader.load_file(data_file)
-
-        # If a loader returns a list containing a single list of questions (a common
-        # scenario for flat JSON files), flatten it to a simple list of questions.
-        if questions_obj and len(questions_obj) == 1 and isinstance(questions_obj[0], list):
-            questions_obj = questions_obj[0]
-
-        # The fields of the Question dataclass need to be compatible with what the
-        # rest of this module expects. We convert them to dicts.
-        questions = []
-        for q_obj in questions_obj:
-            q_dict = asdict(q_obj)
-            # Ensure a default question type for loaders, to match inline parsing
-            if 'type' not in q_dict or not q_dict['type']:
-                q_dict['type'] = 'command'
-            # Ensure response is populated from answer if present, for compatibility
-            q_dict['response'] = q_dict.get('response', '') or q_dict.get('answer', '')
-            # Populate response from validation command if no explicit response provided
-            if not q_dict['response'] and q_dict.get('validation_steps'):
-                first_val = q_dict['validation_steps'][0]
-                cmd = first_val.get('cmd') if isinstance(first_val, dict) else getattr(first_val, 'cmd', '')
-                if cmd:
-                    q_dict['response'] = cmd.strip()
-            # Promote common metadata fields, including nested 'metadata' (e.g., from YAML)
-            meta = q_dict.get('metadata', {}) or {}
-            nested = meta.get('metadata') if isinstance(meta.get('metadata'), dict) else {}
-            for fld in ('citation', 'source', 'category', 'response', 'validator'):
-                val = meta.get(fld) or nested.get(fld)
-                if val:
-                    q_dict[fld] = val
-            # Extract YAML authoring/editing canonical answers for validation
-            if 'answer' in meta:
-                q_dict['answer'] = meta.get('answer')
-            if 'correct_yaml' in meta:
-                q_dict['correct_yaml'] = meta.get('correct_yaml')
-            questions.append(q_dict)
-        return questions
-    except Exception as e:
-        if exit_on_error:
-            print(Fore.RED + f"Error loading quiz data from {data_file}: {e}" + Style.RESET_ALL)
-            sys.exit(1)
-        return []
 
     
 class NewSession(StudySession):
@@ -463,24 +260,14 @@ class NewSession(StudySession):
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
-        # Discover all quiz files from JSON, MD, and YAML sources.
-        all_quiz_files = _get_quiz_files() + _get_md_quiz_files() + _get_yaml_quiz_files()
-        
-        # Explicitly remove enabled quizzes from the "other" list to avoid duplication.
-        enabled_quiz_stems = {Path(p).stem for p in ENABLED_QUIZZES.values()}
-        all_quiz_files = [p for p in all_quiz_files if Path(p).stem not in enabled_quiz_stems]
-        all_quiz_files = sorted(list(set(all_quiz_files)))
-
         all_flagged = get_all_flagged_questions()
         
         choices = []
 
         # 1. Add enabled quizzes from config
         for name, path in ENABLED_QUIZZES.items():
-            if os.path.exists(path):
-                choices.append({"name": name, "value": path})
-            else:
-                choices.append({"name": name, "value": f"{path}_disabled", "disabled": "Not available"})
+            # The existence of the path is no longer checked. We assume if it's in config, it's in the DB.
+            choices.append({"name": name, "value": path})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -632,20 +419,6 @@ class NewSession(StudySession):
         """
         # All exercises now run through the unified quiz runner.
         self._run_unified_quiz(args)
-
-    def _run_command_quiz(self, args):
-        """Attempt Rust bridge execution first; fallback to Python if unavailable or fails."""
-        try:
-            from kubelingo.bridge import rust_bridge
-            # Always invoke rust bridge; tests patch this call
-            success = rust_bridge.run_command_quiz(args)
-            if success:
-                return
-        except ImportError:
-            pass
-        # Fallback: load questions via Python
-        load_questions(args.file)
-        return
     
     def _run_unified_quiz(self, args):
         """
@@ -678,25 +451,21 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                if args.file.endswith(('.yaml', '.yml')):
-                    try:
-                        with open(args.file, 'r', encoding='utf-8') as f:
-                            data = yaml.safe_load(f)
-                            if isinstance(data, dict):
-                                ai_generation_enabled = data.get('metadata', {}).get('ai_generation_enabled', True)
-                    except Exception:
-                        pass  # Let load_questions handle errors
-                # Load original Question objects for potential AI generation
-                loaded_questions = load_questions(args.file)
-                # Convert Question objects to dicts for uniform handling
-                from kubelingo.question import Question as QCls
-                converted = []
-                for q in loaded_questions:
-                    if isinstance(q, QCls):
-                        converted.append(q.__dict__.copy())
+                # Load questions from the database using the source file path as a key
+                questions = get_questions_by_source_file(args.file)
+                if not questions:
+                    # Check if the DB file exists and is populated, offer to migrate.
+                    db_path = os.path.join(DATA_DIR, 'kubelingo.db')
+                    if not os.path.exists(db_path):
+                         print(f"{Fore.YELLOW}Database file not found. Please run the migration script:{Style.RESET_ALL}")
+                         print(f"  python scripts/migrate_to_db.py")
                     else:
-                        converted.append(q)
-                questions = converted
+                        print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}If you have added or changed question files, please run the migration script again:{Style.RESET_ALL}")
+                        print(f"  python scripts/migrate_to_db.py")
+                    return
+                # AI generation is enabled by default when loading from DB
+                ai_generation_enabled = True
             else:
                 # Interactive mode: show menu to select quiz.
                 if not is_interactive:
@@ -1050,14 +819,18 @@ class NewSession(StudySession):
                         if not question_id:
                             print(f"{Fore.RED}Cannot flag question: missing ID.{Style.RESET_ALL}")
                             continue
-                        if is_flagged:
-                            self.session_manager.unmark_question_for_review(question_id)
-                            q['review'] = False
-                            print(f"{Fore.MAGENTA}This question has been removed from review.{Style.RESET_ALL}")
-                        else:
+                        
+                        # New status is the opposite of the current one
+                        new_review_status = not is_flagged
+                        _update_review_status_in_db(question_id, new_review_status)
+                        q['review'] = new_review_status # Update in-memory question object
+
+                        if new_review_status:
                             self.session_manager.mark_question_for_review(question_id)
-                            q['review'] = True
                             print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
+                        else:
+                            self.session_manager.unmark_question_for_review(question_id)
+                            print(f"{Fore.MAGENTA}This question has been removed from review.{Style.RESET_ALL}")
                         continue
 
                     if action == "answer":
@@ -1136,15 +909,14 @@ class NewSession(StudySession):
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
-                                source_file = q.get('data_file') or args.file
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
-                                    _update_review_in_yaml_file(source_file, question_id, review=False)
-                            else:
+                                    _update_review_status_in_db(question_id, review=False)
+                                else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
-                                    _update_review_in_yaml_file(source_file, question_id, review=True)
+                                    _update_review_status_in_db(question_id, review=True)
                                     print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
@@ -1264,15 +1036,14 @@ class NewSession(StudySession):
                             # Auto-flagging logic
                             question_id = q.get('id')
                             if question_id:
-                                source_file = q.get('data_file') or args.file
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
-                                    _update_review_in_yaml_file(source_file, question_id, review=False)
+                                    _update_review_status_in_db(question_id, review=False)
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
-                                    _update_review_in_yaml_file(source_file, question_id, review=True)
+                                    _update_review_status_in_db(question_id, review=True)
                                     print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                             # Display explanation if provided
@@ -1300,15 +1071,14 @@ class NewSession(StudySession):
                         # Auto-flag wrong answers, unflag correct ones by question ID
                         question_id = q.get('id')
                         if question_id:
-                            source_file = q.get('data_file') or args.file
                             if current_question_index in correct_indices:
                                 self.session_manager.unmark_question_for_review(question_id)
                                 q['review'] = False
-                                _update_review_in_yaml_file(source_file, question_id, review=False)
+                                _update_review_status_in_db(question_id, review=False)
                             else:
                                 self.session_manager.mark_question_for_review(question_id)
                                 q['review'] = True
-                                _update_review_in_yaml_file(source_file, question_id, review=True)
+                                _update_review_status_in_db(question_id, review=True)
                                 print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                         # Display the expected answer for reference
