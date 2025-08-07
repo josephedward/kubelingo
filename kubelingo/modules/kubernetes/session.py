@@ -51,8 +51,6 @@ import os
 
 
 from kubelingo.modules.base.loader import load_session
-from kubelingo.modules.json_loader import JSONLoader
-from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from dataclasses import asdict
@@ -310,28 +308,15 @@ class NewSession(StudySession):
         choices = []
 
         # 1. Add enabled quizzes from config
+        loader = YAMLLoader()
         for name, path in ENABLED_QUIZZES.items():
-            # Determine number of questions, first try the database
             try:
-                num_questions = len(get_questions_by_source_file(os.path.basename(path)))
-            except Exception:
+                # YAMLLoader now combines file and DB questions
+                num_questions = len(loader.load_file(path))
+            except Exception as e:
+                self.logger.warning(f"Could not load questions for {name}: {e}")
                 num_questions = 0
-            # Fallback: count questions in the file if DB has none
-            if num_questions == 0:
-                try:
-                    _, ext = os.path.splitext(path)
-                    if ext.lower() == '.json':
-                        from kubelingo.modules.json_loader import JSONLoader
-                        loader = JSONLoader()
-                        file_qs = loader.load_file(path)
-                        num_questions = len(file_qs)
-                    elif ext.lower() in ('.yaml', '.yml'):
-                        from kubelingo.modules.yaml_loader import YAMLLoader
-                        loader = YAMLLoader()
-                        file_qs = loader.load_file(path)
-                        num_questions = len(file_qs)
-                except Exception:
-                    pass
+            
             # Format display name with question count if available
             display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
             choices.append({"name": display_name, "value": path})
