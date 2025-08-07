@@ -210,9 +210,9 @@ def validate_prompt_completeness(cmd_str: str, prompt: str) -> Dict[str, Any]:
         return {'valid': False, 'errors': ['Failed to parse command string for prompt validation.']}
     errors: list[str] = []
     prompt_l = prompt.lower()
-    # Determine resource name position: skip kubectl, verb, and resource type
+    # Determine resource name position: skip kubectl/k, verb, and resource type
     idx = 0
-    if tokens and tokens[0].lower() == 'kubectl':
+    if tokens and tokens[0].lower() in ('kubectl', 'k'):
         idx = 1
     if idx < len(tokens):
         idx += 1  # skip verb
