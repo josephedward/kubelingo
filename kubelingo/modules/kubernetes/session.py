@@ -496,6 +496,7 @@ class NewSession(StudySession):
                     except Exception as e:
                         self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
                         print(f"{Fore.RED}Error: Could not list AI-generated questions.{Style.RESET_ALL}")
+                
                 # Print the list and exit
                 print("\nList of Questions:")
                 for idx, q_item in enumerate(combined, start=1):

@@ -1,12 +1,13 @@
 import os
 import sys
 import yaml
+import shutil
 from pathlib import Path
 from dataclasses import asdict
 
 # Add project root to path to allow importing kubelingo modules
 # Use ROOT from config for a more reliable path
-from kubelingo.utils.config import ENABLED_QUIZZES, ROOT as project_root, DATABASE_FILE, BACKUP_DATABASE_FILE
+from kubelingo.utils.config import ENABLED_QUIZZES, ROOT as project_root, DATABASE_FILE, BACKUP_DATABASE_FILE, DATA_DIR
 sys.path.insert(0, str(project_root))
 from kubelingo.database import init_db, add_question
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -69,36 +70,16 @@ def migrate():
             print(f"Error processing file {file_path}: {e}")
 
     print(f"\nMigration complete. Total questions migrated: {total_questions}")
-    # Backup the database only if new questions have been added since last backup
+
+    # Create a backup of the newly migrated database.
     try:
-        import sqlite3
-        # Count total questions in primary database
-        conn = sqlite3.connect(DATABASE_FILE)
-        total_primary = conn.cursor().execute("SELECT COUNT(*) FROM questions").fetchone()[0]
-        conn.close()
-        backup_path = Path(BACKUP_DATABASE_FILE)
-        perform_backup = False
-        if not backup_path.exists():
-            perform_backup = True
-            print(f"Backup database not found at {BACKUP_DATABASE_FILE}, creating initial backup...")
-        else:
-            # Count questions in backup database
-            conn_bkp = sqlite3.connect(BACKUP_DATABASE_FILE)
-            total_backup = conn_bkp.cursor().execute("SELECT COUNT(*) FROM questions").fetchone()[0]
-            conn_bkp.close()
-            if total_primary > total_backup:
-                perform_backup = True
-                print(f"New questions detected ({total_primary} > {total_backup}), updating backup database...")
-            else:
-                print("No new questions; backup database remains unchanged.")
-        if perform_backup:
-            backup_dir = backup_path.parent
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            import shutil
-            shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-            print(f"Backup database created/updated at {BACKUP_DATABASE_FILE}")
+        db_path = os.path.join(DATA_DIR, 'kubelingo.db')
+        backup_path = os.path.join(DATA_DIR, 'kubelingo.db.bak')
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, backup_path)
+            print(f"Created a backup of the database at: {backup_path}")
     except Exception as e:
-        print(f"Failed to backup database: {e}")
+        print(f"Could not create database backup: {e}")
 
 
 if __name__ == "__main__":
