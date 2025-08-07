@@ -65,48 +65,6 @@ from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellRe
 import logging  # for logging in exercises
 # Stub out AI evaluator to avoid heavy external dependencies
 
-# Helper functions to discover quiz data files (for interactive menu)
-def _get_quiz_files():
-    """Returns list of JSON quiz files excluding enabled quizzes."""
-    json_dir = os.path.join(DATA_DIR, 'json')
-    if not os.path.isdir(json_dir):
-        return []
-    excluded = {os.path.basename(p) for p in ENABLED_QUIZZES.values() if p}
-    if YAML_QUESTIONS_FILE:
-        excluded.add(os.path.basename(YAML_QUESTIONS_FILE))
-    files = []
-    for fname in os.listdir(json_dir):
-        if fname.endswith('.json') and fname not in excluded:
-            files.append(os.path.join(json_dir, fname))
-    return sorted(files)
-
-def _get_md_quiz_files():
-    """Returns list of Markdown quiz files containing runnable questions."""
-    md_dir = os.path.join(DATA_DIR, 'md')
-    if not os.path.isdir(md_dir):
-        return []
-    runnable = []
-    for fname in os.listdir(md_dir):
-        if fname.endswith(('.md', '.markdown')):
-            path = os.path.join(md_dir, fname)
-            try:
-                qs = load_questions(path, exit_on_error=False)
-            except Exception:
-                continue
-            if any(q.get('type') in ('command', 'live_k8s', 'live_k8s_edit') for q in qs):
-                runnable.append(path)
-    return sorted(runnable)
-
-def _get_yaml_quiz_files():
-    """Returns list of YAML quiz files."""
-    yaml_dir = os.path.join(DATA_DIR, 'yaml')
-    if not os.path.isdir(yaml_dir):
-        return []
-    files = []
-    for fname in os.listdir(yaml_dir):
-        if fname.endswith(('.yaml', '.yml')):
-            files.append(os.path.join(yaml_dir, fname))
-    return sorted(files)
 def _get_subject_for_questions(q):
     """Extracts the category/subject string for AI question generation."""
     # Try dict form first
