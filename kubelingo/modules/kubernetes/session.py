@@ -837,9 +837,7 @@ class NewSession(StudySession):
                         if q.get('type') in ('yaml_edit', 'yaml_author'):
                             editor = VimYamlEditor()
                             starting_yaml = q.get('starting_yaml', '')
-                            # Open in Vim and parse the edited YAML
                             parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
-                            # Serialize back to YAML string for evaluation
                             user_yaml_str = ''
                             if parsed is not None:
                                 if yaml and hasattr(yaml, 'safe_dump'):
@@ -850,10 +848,69 @@ class NewSession(StudySession):
                                 else:
                                     user_yaml_str = str(parsed)
                             transcripts_by_index[current_question_index] = user_yaml_str
-                            # Re-print question header after editing
-                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
-                            continue
+                            # Automatically grade the YAML and show diff if incorrect
+                            attempted_indices.add(current_question_index)
+                            correct_yaml_str = q.get('correct_yaml') or q.get('answer', '')
+                            if not correct_yaml_str:
+                                print(f"{Fore.YELLOW}Warning: No correct answer defined for this question. Cannot check.{Style.RESET_ALL}")
+                            else:
+                                try:
+                                    user_obj = yaml.safe_load(user_yaml_str)
+                                    if user_obj is None:
+                                        user_obj = {}
+                                    correct_obj = yaml.safe_load(correct_yaml_str)
+                                    if is_yaml_subset(subset_yaml_str=correct_yaml_str, superset_yaml_str=user_yaml_str):
+                                        correct_indices.add(current_question_index)
+                                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                                    else:
+                                        correct_indices.discard(current_question_index)
+                                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+                                        diff = unified_diff(
+                                            correct_yaml_str.strip().splitlines(keepends=True),
+                                            user_yaml_str.strip().splitlines(keepends=True),
+                                            fromfile='expected.yaml',
+                                            tofile='your-answer.yaml',
+                                        )
+                                        diff_text = ''.join(diff)
+                                        if diff_text:
+                                            print(f"{Fore.CYAN}Showing differences (-expected, +yours):{Style.RESET_ALL}")
+                                            for line in diff_text.splitlines():
+                                                if line.startswith('+'):
+                                                    print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
+                                                elif line.startswith('-'):
+                                                    print(f"{Fore.RED}{line}{Style.RESET_ALL}")
+                                                elif line.startswith('@@'):
+                                                    print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
+                                                else:
+                                                    print(line)
+                                        else:
+                                            print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
+                                except Exception as e:
+                                    print(f"{Fore.RED}Failed to check YAML: {e}{Style.RESET_ALL}")
+                            # Auto-flag or unflag based on correctness
+                            question_id = q.get('id')
+                            if question_id:
+                                if current_question_index in correct_indices:
+                                    self.session_manager.unmark_question_for_review(question_id)
+                                    q['review'] = False
+                                    _update_review_status_in_db(question_id, review=False)
+                                else:
+                                    self.session_manager.mark_question_for_review(question_id)
+                                    q['review'] = True
+                                    _update_review_status_in_db(question_id, review=True)
+                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
+                            # Show explanation and reference if available
+                            if q.get('explanation'):
+                                print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+                            # Advance to next question
+                            if current_question_index == total_questions - 1:
+                                finish_quiz = True
+                            just_answered = True
+                            current_question_index += 1
+                            break
                         
                         has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in q.get('validation_steps', []))
                         question_needs_k8s = (
