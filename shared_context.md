@@ -53,7 +53,7 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 **Phase 1: Unified Shell Experience** is largely complete. The core architecture for delivering all question types through a consistent shell-driven workflow is in place. Here's where we stand on the immediate next steps:
 
--   **[Completed] Customizable quiz length**: Users can now specify the number of questions with `-n/--num`. If fewer than available are requested, a random subset is chosen; if more are requested, the system generates additional similar questions via AI (falling back to duplicates if AI is unavailable) to match the desired length.
+-   **[Completed] Customizable quiz length**: Users can now specify the number of questions with `-n/--num`. If fewer than available are requested, a random subset is chosen. If more are requested, the number of questions is capped at the maximum available.
 -   **[In Progress] Expand matcher support**: `exit_code`, `contains`, and `regex` matchers are implemented. JSONPath, YAML structure, and direct cluster state checks are still pending.
 -   **[Not Started] Add unit/integration tests**: No formal tests exist yet for `answer_checker` or the new UI flows. This is the highest priority next step to prevent regressions.
 -   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
@@ -62,14 +62,6 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 ## Recent Enhancements
 
-- [Refactored] **AI-Powered Question Generation**: The question generation logic has been refactored for simplicity and reliability, especially for generating multiple questions.
-  - **Bulk Generation**: When more than one question is requested (`-n > 1`), Kubelingo now makes a single bulk request to the OpenAI API, asking for `N` distinct questions about a given subject.
-  - **Simplified Validation**: The complex, per-question validation filters have been removed. Instead, each AI-generated question is only checked to ensure its associated command has valid `kubectl` syntax. This removes brittle regex checks and relies on `kubectl`'s own parser.
-  - **Debugging**: The raw prompt sent to the AI and the full JSON response are logged at the `DEBUG` level, making it easier to diagnose generation issues.
-  - To enable AI generation:
-    - Install the OpenAI client: `pip install openai`.
-    - Provide your OpenAI key: `export OPENAI_API_KEY=…`.
-    - For debugging, set the log level: `export KUBELINGO_LOG_LEVEL=DEBUG` and inspect `logs/quiz_kubernetes_log.txt`.
 - [Added] **Kubectl Syntax Validation**: Introduced `validate_kubectl_syntax()` in `kubelingo/utils/validation.py`, which runs `kubectl <cmd> --help` client-side to catch unknown commands or flags and surfaces errors or warnings before executing or recording user input.
 - [Added] **YAML Manifest Structure Validation**: In the Vim-based YAML editor (`kubelingo/modules/kubernetes/vim_yaml_editor.py`), Kubelingo now applies `validate_yaml_structure()` on the edited manifest, printing any syntax or structure errors and warnings immediately after editing and before answer evaluation.
 
@@ -483,17 +475,6 @@ Your response MUST be a JSON object with two keys:
 If a source URL is provided, please cite it in your reasoning.
 ```
 
-#### For AI Question Generation
-
-This prompt is used by `AIQuestionGenerator` to create new questions based on a subject.
-
-```
-You are a Kubernetes quiz‐generator. Produce JSON with keys 'prompt' and 'validation_steps' only. The prompt must:
-  • mention the resource kind exactly: “{subject}”
-  • include a resource name, e.g. “named 'foo-sa'”
-  • specify any namespace or flags required to scope the command
-Generate a question that asks the user to run `kubectl` to perform an operation like 'create' or 'get' on that resource.
-```
 
 ## Recent Interactive Quiz UI Updates
 
@@ -589,34 +570,13 @@ You don’t have to “tell” the quiz which filename you used—all of the wir
 
 In either case, the question’s metadata (`initial_files`, `pre_shell_cmds`, and `validation_steps`) tells the sandbox what to seed and what to check. You just edit & apply as instructed; the quiz will pick up your work via those validation commands or by comparing the in-memory temp file.
 
-## Dynamic Question Cloning
-
-The unified quiz runner has been enhanced to dynamically generate additional questions when a user requests more questions than are available in a given module. This ensures a quiz can always be generated to the desired length.
-
-### How It Works
-
-- **Trigger**: This feature is activated when the `-n` or `--num` argument is greater than the total number of available questions for the selected quiz. If the requested number is less than or equal to the total, Kubelingo picks a random subset of questions as it did previously.
-- **Cloning Strategy**:
-  1.  **AI-Based Generation**: The system first attempts to generate new, unique questions using an AI model (via the `llm` package). It uses an existing question as a template and prompts the AI to create a variation with a new prompt and new validation steps, returned in JSON format.
-  2.  **Simple Duplication**: If AI generation is not available (e.g., no API key), the system falls back to simple duplication of existing questions.
-- **Question Properties**:
-    - Each cloned question inherits the metadata of its source question.
-    - A new unique `id` is assigned to each clone to prevent collisions.
-- **Final Quiz**: The original questions and the newly generated clones are combined and shuffled to create the final quiz list, providing a varied experience even when extending beyond the base question set.
-
-This allows for on-the-fly expansion of quiz content, providing more practice opportunities. Future improvements may include tweaking the AI cloning prompt, adding more rigorous syntax checks for generated content, or adding flags to control the AI cloning behavior.
 
 ## Custom Quiz Length
 
 Kubelingo now supports customizing the number of questions via the `-n/--num` flag:
 
 - If the requested number (`-n N`) is less than or equal to the total available questions, Kubelingo picks a random subset of size N without replacement.
-- If N exceeds the total available questions, Kubelingo will:
-  1. Attempt to generate (via AI) additional "clone" questions similar to existing ones using the `llm` package. New questions are generated by prompting the LLM for JSON-formatted `prompt` and `validation_steps` and then integrated, inheriting original metadata but with unique IDs (`<original-id>-clone-<i>`).
-  2. If AI-based generation fails or `llm` is not installed, fall back to duplicating random questions with new clone IDs.
-- The combined set of original and cloned questions is shuffled and presented as the quiz.
-
-Make sure an `OPENAI_API_KEY` is configured to enable AI-based cloning.
+- If N exceeds the total available questions, the number of questions will be capped at the maximum available for that quiz. A warning message will be displayed.
 
 ## Study Mode: AI-Guided Tutoring
 
