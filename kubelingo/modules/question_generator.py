@@ -31,6 +31,7 @@ class AIQuestionGenerator:
         subject: str,
         num_questions: int = 1,
         base_questions: List[Question] = None,
+        num_to_generate: int = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -54,6 +55,9 @@ class AIQuestionGenerator:
             # Use their source file so new questions are associated with that quiz.
             source_file = getattr(base_questions[0], 'source_file', source_file)
 
+        # Allow alias 'num_to_generate' for compatibility in calls
+        if num_to_generate is not None:
+            num_questions = num_to_generate
         valid_questions: List[Question] = []
         # Attempt generation up to max_attempts
         for attempt in range(1, self.max_attempts + 1):
