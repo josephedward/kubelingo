@@ -7,6 +7,9 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.par
 DATA_DIR = os.path.join(ROOT, 'question-data')
 LOGS_DIR = os.path.join(ROOT, 'logs')
 
+# --- Database ---
+DATABASE_FILE = os.path.join(DATA_DIR, 'kubelingo.db')
+
 # --- Quiz Data Files ---
 
 # JSON files
