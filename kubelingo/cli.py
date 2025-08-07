@@ -228,6 +228,10 @@ def main():
     if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('OPENAI_API_KEY'):
         print(f"{Fore.RED}AI explanations are disabled: no OpenAI API key provided.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(description='Kubelingo: Interactive kubectl and YAML quiz tool')
+    # Explicitly handle --help to avoid issues in some environments
+    if '--help' in sys.argv or '-h' in sys.argv:
+        parser.print_help()
+        return
     # Unified exercise mode: run questions from question-data modules
     parser.add_argument('--exercise-module', type=str,
                         help='Run unified live exercise for a question-data module')

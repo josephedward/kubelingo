@@ -107,15 +107,20 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
 
     @patch('kubelingo.modules.kubernetes.session.load_questions')
     @patch('kubelingo.modules.kubernetes.session.check_answer')
+    @patch('kubelingo.modules.base.session.SessionManager')
     @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_auto_advances_after_checking_answer(
-        self, mock_shuffle, mock_stdout, mock_prompt, mock_check_answer, mock_load_questions
+        self, mock_shuffle, mock_stdout, mock_prompt, MockSessionManager, mock_check_answer, mock_load_questions
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
-        mock_check_answer.return_value = (True, []) # Assume correct answer
+        mock_check_answer.return_value = (True, [])  # Assume correct answer
+
+        # Mock that an attempt has been made for the question
+        mock_session_manager_instance = MockSessionManager.return_value
+        mock_session_manager_instance.get_last_attempt.return_value = "dummy_attempt.yaml"
         
         # Simulate user actions:
         # 1. On Q1, choose 'Check Answer'. The runner should auto-advance.
@@ -172,7 +177,9 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         call_args, call_kwargs = mock_generate_questions.call_args
 
         # Compare based on question IDs to avoid issues with object mutation.
-        base_question_ids = {q.id for q in call_kwargs.get('base_questions')}
+        # The objects themselves can be modified by the session runner.
+        base_questions = call_kwargs.get('base_questions', [])
+        base_question_ids = {q.id for q in base_questions}
         expected_ids = {q.id for q in self.static_questions}
         self.assertEqual(base_question_ids, expected_ids)
         self.assertEqual(call_kwargs.get('num_to_generate'), 1)
