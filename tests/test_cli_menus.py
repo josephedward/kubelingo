@@ -1,7 +1,12 @@
 import sys
 from unittest.mock import patch
 
+import pytest
+
 from kubelingo.cli import main
+
+
+pytestmark = pytest.mark.filterwarnings("ignore:Can not control echo on the terminal")
 
 
 @patch('kubelingo.cli.load_session')
