@@ -1023,8 +1023,6 @@ class NewSession(StudySession):
                         use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
                         if use_text_input:
-                            if is_ai_validator:
-                                print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
 
                             # Get previous answer to pre-fill the prompt
                             previous_answer = str(transcripts_by_index.get(current_question_index, ''))
@@ -1071,6 +1069,10 @@ class NewSession(StudySession):
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
+                            # Show reference URL for this question
+                            source_url = q.get('citation') or q.get('source')
+                            if source_url:
+                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
@@ -1342,10 +1344,6 @@ class NewSession(StudySession):
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
             
-        # The AI reasoning is expected to include the source, but we print it here for consistency.
-        source_url = q.get('citation') or q.get('source')
-        if source_url:
-            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
