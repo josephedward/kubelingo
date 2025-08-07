@@ -978,7 +978,7 @@ class NewSession(StudySession):
                     is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
                     is_shell_mode = False  # shell disabled for all question types except live cluster flows
                     # Determine if the question should use text input (no separate shell). For commands, Vim, no-cluster, or AI validator, use inline input.
-                    use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                    use_text_input = (q.get('type') or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
                     # Primary action
                     if use_text_input:
                         answer_option_text = "Answer Question"
@@ -1002,8 +1002,8 @@ class NewSession(StudySession):
                     choices.append({"name": "Exit Quiz", "value": "back"})
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
-                    # Determine if interactive action selection is available
-                    action_interactive = bool(questionary)
+                    # Determine if interactive action selection (questionary.prompt) is available
+                    action_interactive = hasattr(questionary, 'prompt')
                     if not action_interactive:
                         # Text fallback for action selection
                         print("\nActions:")
@@ -1044,8 +1044,7 @@ class NewSession(StudySession):
                         return
 
                     if action == "back":
-                        quiz_backed_out = True
-                        break
+                        return
                     
                     if action == "next":
                         current_question_index += 1
@@ -1189,7 +1188,7 @@ class NewSession(StudySession):
                         # Detect AI-based semantic validator
                         validator = q.get('validator')
                         is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                        use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
+                        use_text_input = (q.get('type') or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
                         if use_text_input:
 
@@ -1303,6 +1302,21 @@ class NewSession(StudySession):
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
                         if result is None:
+                            # For simple questions with a predefined response, allow immediate checking
+                            if q.get('response') is not None:
+                                correct, details = check_answer(q)
+                                attempted_indices.add(current_question_index)
+                                if correct:
+                                    correct_indices.add(current_question_index)
+                                else:
+                                    correct_indices.discard(current_question_index)
+                                expected_answer = q.get('response', '').strip()
+                                if expected_answer:
+                                    print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
+                                # Advance to next question
+                                just_answered = True
+                                current_question_index += 1
+                                break
                             print(f"{Fore.YELLOW}No attempt recorded for this question. Please use 'Work on Answer' first.{Style.RESET_ALL}")
                             continue
 
