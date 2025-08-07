@@ -27,9 +27,13 @@ def migrate():
 
     print(f"Found {len(yaml_files)} unique YAML quiz files to migrate.")
 
-    for file_path in yaml_files:
+    for file_path_from_config in yaml_files:
+        # Try to locate the file by its basename, as the absolute path from config might be stale.
+        file_basename = os.path.basename(file_path_from_config)
+        file_path = str(project_root / 'question-data' / 'yaml' / file_basename)
+
         if not os.path.exists(file_path):
-            print(f"Warning: File not found, skipping: {file_path}")
+            print(f"Warning: File not found, skipping: {file_path_from_config} (also not at {file_path})")
             continue
 
         print(f"Processing {file_path}...")
