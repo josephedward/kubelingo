@@ -155,6 +155,37 @@ def get_all_flagged_questions():
     return all_flagged
 
 
+def _update_review_in_yaml_file(file_path: str, question_id: str, review: bool):
+    """Updates the 'review' flag for a specific question in its source YAML file."""
+    if not file_path or not question_id or not os.path.exists(file_path):
+        return
+    if yaml is None:
+        return
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+        
+        if not isinstance(data, list):
+            return  # Only support list-of-questions format for now
+
+        changed = False
+        for q in data:
+            if isinstance(q, dict) and q.get('id') == question_id:
+                if review:
+                    q['review'] = True
+                elif 'review' in q:
+                    del q['review']
+                changed = True
+                break
+        
+        if changed:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
+    except Exception:
+        pass # Fail silently
+
+
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in all known YAML quiz files."""
     if yaml is None:
@@ -1063,13 +1094,15 @@ class NewSession(StudySession):
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
+                                source_file = q.get('data_file') or args.file
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
+                                    _update_review_in_yaml_file(source_file, question_id, review=False)
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
-                                    # Inform the user that the question has been flagged
+                                    _update_review_in_yaml_file(source_file, question_id, review=True)
                                     print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
@@ -1221,13 +1254,15 @@ class NewSession(StudySession):
                         # Auto-flag wrong answers, unflag correct ones by question ID
                         question_id = q.get('id')
                         if question_id:
+                            source_file = q.get('data_file') or args.file
                             if current_question_index in correct_indices:
                                 self.session_manager.unmark_question_for_review(question_id)
                                 q['review'] = False
+                                _update_review_in_yaml_file(source_file, question_id, review=False)
                             else:
                                 self.session_manager.mark_question_for_review(question_id)
                                 q['review'] = True
-                                # Inform the user that the question has been flagged
+                                _update_review_in_yaml_file(source_file, question_id, review=True)
                                 print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                         # Display the expected answer for reference
