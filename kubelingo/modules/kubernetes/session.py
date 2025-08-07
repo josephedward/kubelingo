@@ -583,62 +583,97 @@ class NewSession(StudySession):
                     print(f"{idx}. {prompt_text}")
                 return
             # Questions for quiz: include AI-generated extras if needed
+            questions_to_ask = list(static_to_show)
             if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
-                print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
-                try:
-                    from kubelingo.question import Question as QuestionObject, ValidationStep
-                    generator = AIQuestionGenerator()
-                    # Generate AI-backed questions, using existing questions as a few-shot prompt.
-                    subject = _get_subject_for_questions(questions[0]) if questions else ''
-                    
-                    base_q_sample = []
-                    if questions:
-                        # Use a small, random sample of existing questions for few-shot prompting
-                        sample_dicts = random.sample(questions, min(len(questions), 3))
-                        for q_dict in sample_dicts:
-                            # Manually construct Question object to provide as a few-shot example for AI.
-                            # This is more robust than filtering keys.
-                            try:
-                                validation_steps = [
-                                    vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
-                                    for vs in q_dict.get('validation_steps', [])
-                                ]
-                                if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
-                                    validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
+                from kubelingo.question import Question as QuestionObject, ValidationStep
+                generator = AIQuestionGenerator()
+                subject = _get_subject_for_questions(questions[0]) if questions else ''
+                
+                base_q_sample = []
+                if questions:
+                    # Use a small, random sample of existing questions for few-shot prompting
+                    sample_dicts = random.sample(questions, min(len(questions), 3))
+                    for q_dict in sample_dicts:
+                        # Manually construct Question object to provide as a few-shot example for AI.
+                        try:
+                            validation_steps = [
+                                vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
+                                for vs in q_dict.get('validation_steps', [])
+                            ]
+                            if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
+                                validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
 
-                                base_q_sample.append(QuestionObject(
-                                    id=q_dict.get('id', ''),
-                                    prompt=q_dict.get('prompt', ''),
-                                    type=q_dict.get('type', ''),
-                                    pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
-                                    initial_files=q_dict.get('initial_files', {}),
-                                    validation_steps=validation_steps,
-                                    explanation=q_dict.get('explanation'),
-                                    categories=q_dict.get('categories') or [q_dict.get('category') or 'General'],
-                                    difficulty=q_dict.get('difficulty'),
-                                    metadata=q_dict.get('metadata', {})
-                                ))
-                            except (TypeError, KeyError) as e:
-                                self.logger.warning(f"Could not convert question dict to object for AI generation: {e}")
+                            base_q_sample.append(QuestionObject(
+                                id=q_dict.get('id', ''),
+                                prompt=q_dict.get('prompt', ''),
+                                type=q_dict.get('type', ''),
+                                pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
+                                initial_files=q_dict.get('initial_files', {}),
+                                validation_steps=validation_steps,
+                                explanation=q_dict.get('explanation'),
+                                categories=q_dict.get('categories') or [q_dict.get('category') or 'General'],
+                                difficulty=q_dict.get('difficulty'),
+                                metadata=q_dict.get('metadata', {})
+                            ))
+                        except (TypeError, KeyError) as e:
+                            self.logger.warning(f"Could not convert question dict to object for AI generation: {e}")
 
-                    ai_qs = generator.generate_questions(
-                        subject,
-                        clones_needed,
-                        base_questions=base_q_sample
-                    )
-                    generated = len(ai_qs)
-                    if generated < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: Could only generate {generated} unique AI question(s).{Style.RESET_ALL}")
+                generated_qs = []
+                max_attempts_per_question = 3 # Give it a few tries per question
+                for i in range(clones_needed):
+                    print(f"\n{Fore.YELLOW}Generating and validating question {i+1}/{clones_needed}...{Style.RESET_ALL}")
                     
-                    # Assemble full question list by converting Question objects to dicts
-                    questions_to_ask = list(static_to_show)
-                    for q_item in ai_qs:
-                        questions_to_ask.append(asdict(q_item))
-                except Exception as e:
-                    self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
-                    print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}This may be due to a missing or invalid OPENAI_API_KEY, or network issues.{Style.RESET_ALL}")
-                    questions_to_ask = static_to_show
+                    is_valid = False
+                    for attempt in range(max_attempts_per_question):
+                        try:
+                            # Generate one question at a time to allow for validation.
+                            # Pass existing good questions and newly generated ones as examples.
+                            new_qs = generator.generate_questions(
+                                subject,
+                                1,
+                                base_questions=base_q_sample + generated_qs
+                            )
+                            if not new_qs:
+                                self.logger.warning(f"AI generator returned no questions on attempt {attempt+1}.")
+                                continue
+                            
+                            new_q = new_qs[0]
+
+                            # --- Validation ---
+                            # 1. Check for basic completeness.
+                            if not new_q.prompt or not new_q.validation_steps or not new_q.validation_steps[0].cmd:
+                                self.logger.warning(f"Generated question is incomplete. Discarding.")
+                                continue
+                            
+                            # 2. For kubectl commands, do a dry-run validation.
+                            first_cmd = new_q.validation_steps[0].cmd
+                            if 'kubectl' in first_cmd:
+                                print(f"{Fore.CYAN}  Validating command: `{first_cmd}`{Style.RESET_ALL}")
+                                validation_cmd = shlex.split(first_cmd) + ["--dry-run=client"]
+                                result = subprocess.run(validation_cmd, capture_output=True, text=True, check=False)
+                                if result.returncode != 0:
+                                    self.logger.warning(f"Generated command failed dry-run validation. Stderr: {result.stderr.strip()}")
+                                    print(f"{Fore.RED}  Generated command is invalid, retrying...{Style.RESET_ALL}")
+                                    continue # Try generating again
+
+                            is_valid = True
+                            print(f"{Fore.GREEN}  Generated question is valid.{Style.RESET_ALL}")
+                            generated_qs.append(new_q)
+                            questions_to_ask.append(asdict(new_q))
+                            break # Success, move to next question
+                        
+                        except Exception as e:
+                            self.logger.error(f"Error during AI question generation (attempt {attempt+1}): {e}", exc_info=True)
+                            import time
+                            time.sleep(1)
+
+                    if not is_valid:
+                        print(f"{Fore.RED}Failed to generate a valid question after multiple attempts.{Style.RESET_ALL}")
+
+                generated_count = len(generated_qs)
+                if generated_count < clones_needed:
+                    print(f"\n{Fore.YELLOW}Warning: Could only generate {generated_count}/{clones_needed} valid AI question(s).{Style.RESET_ALL}")
+
             else:
                 questions_to_ask = static_to_show
 
