@@ -240,10 +240,10 @@ def main():
                         help='Run Kubernetes exercises. A shortcut for the "kubernetes" module.')
 
     # Sandbox modes (deprecated flags) and new sandbox command support
-    parser.add_argument('--pty', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode pty' instead.")
-    parser.add_argument('--docker', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox --sandbox-mode docker' instead.")
+    parser.add_argument('--pty', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox pty'.")
+    parser.add_argument('--docker', action='store_true', help="[DEPRECATED] Use 'kubelingo sandbox docker'.")
     parser.add_argument('--sandbox-mode', choices=['pty', 'docker', 'container'], dest='sandbox_mode',
-                        help='Sandbox mode to use: pty (default), docker, or container (alias for docker).')
+                        help='Sandbox mode: pty (default), docker, or container.')
 
     # Core quiz options
     parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
@@ -254,17 +254,17 @@ def main():
                         help='Randomize question order (for modules that support it)')
     parser.add_argument('--quiz', type=str, help='Select a quiz by name.')
     parser.add_argument('-c', '--category', type=str,
-                        help='Limit quiz to a specific category within the selected quiz file.')
+                        help='Limit quiz to a specific category.')
     parser.add_argument('--list-categories', action='store_true',
                         help='List available categories and exit')
     parser.add_argument('--history', action='store_true',
                         help='Show quiz history and statistics')
     parser.add_argument('--review-flagged', '--review-only', '--flagged', dest='review_only', action='store_true',
-                        help='Quiz only on questions flagged for review (alias: --review-only, --flagged)')
+                        help='Quiz on flagged questions only.')
     parser.add_argument('--ai-eval', action='store_true',
-                        help='Use AI to evaluate sandbox exercises. Requires OPENAI_API_KEY.')
+                        help='Use AI for evaluation (needs OPENAI_API_KEY).')
     parser.add_argument('--start-cluster', action='store_true',
-                        help='Automatically start a temporary Kind cluster for k8s sessions.')
+                        help='Start a temporary Kind cluster for the session.')
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
@@ -283,7 +283,7 @@ def main():
     # Question-data enrichment: dedupe & AI-enrich explanations
     parser.add_argument(
         '--enrich', nargs=2, metavar=('SRC_DIR', 'DEST_FILE'),
-        help='Enrich and dedupe question-data from SRC_DIR to DEST_FILE'
+        help='Enrich & dedupe questions from SRC_DIR to DEST_FILE.'
     )
     parser.add_argument(
         '--dry-run-enrich', action='store_true',
@@ -292,7 +292,7 @@ def main():
     # Enrichment feature flags
     parser.add_argument(
         '--generate-validations', action='store_true',
-        help='Generate validation_steps via AI for questions missing them'
+        help='Generate validation steps for questions using AI.'
     )
     parser.add_argument(
         '--list-questions', action='store_true',
@@ -300,19 +300,19 @@ def main():
     )
     parser.add_argument(
         '--ai-question', type=str, metavar='TOPIC',
-        help='Generate one AI-based question on a given topic (e.g. serviceaccount) and exit'
+        help='Generate one AI question on a topic and exit.'
     )
     parser.add_argument(
         '--ai-questions', nargs=2, metavar=('COUNT','TOPIC'),
-        help='Generate multiple AI-based questions: specify COUNT and TOPIC, then exit'
+        help='Generate multiple AI questions and exit.'
     )
     parser.add_argument(
         '--enrich-model', type=str, default='gpt-3.5-turbo',
-        help='AI model to use for explanations and validation generation'
+        help='AI model for enriching questions.'
     )
     parser.add_argument(
         '--enrich-format', choices=['json','yaml'], default='json',
-        help='Output format for enriched question-data (json or yaml)'
+        help='Output format for enriched questions (json or yaml).'
     )
 
     # Handle question-data enrichment early and exit
