@@ -186,6 +186,8 @@ class NewSession(StudySession):
                 success = rust_bridge.run_command_quiz(args)
                 if success:
                     return
+                # Rust bridge available but failed; notify and fallback
+                print("Rust command quiz execution failed; falling back to Python quiz.")
         except ImportError:
             pass
         # Fallback: load questions from file
@@ -437,8 +439,18 @@ class NewSession(StudySession):
     def run_exercises(self, args):
         """
         Router for running exercises. It decides which quiz to run.
+        Supports both command-style quizzes (via Rust bridge or Python fallback)
+        and unified quiz mode (all question types).
         """
-        # All exercises now run through the unified quiz runner.
+        # Command quiz mode: if a count or live flag is specified, use command quiz
+        if getattr(args, 'num', 0) > 0 or getattr(args, 'live', False):
+            try:
+                self._run_command_quiz(args)
+            except Exception:
+                # Ensure failures in command quiz do not prevent cleanup
+                pass
+            return
+        # Unified quiz mode for interactive or review sessions
         self._run_unified_quiz(args)
     
     def _run_unified_quiz(self, args):
