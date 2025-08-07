@@ -619,7 +619,7 @@ class NewSession(StudySession):
                             self.logger.warning(f"Could not convert question dict to object for AI generation: {e}")
 
                 generated_qs = []
-                max_attempts_per_question = 3 # Give it a few tries per question
+                max_attempts_per_question = 5 # Give it a few tries per question
                 for i in range(clones_needed):
                     print(f"\n{Fore.YELLOW}Generating and validating question {i+1}/{clones_needed}...{Style.RESET_ALL}")
                     
@@ -654,6 +654,8 @@ class NewSession(StudySession):
                                 if result.returncode != 0:
                                     self.logger.warning(f"Generated command failed dry-run validation. Stderr: {result.stderr.strip()}")
                                     print(f"{Fore.RED}  Generated command is invalid, retrying...{Style.RESET_ALL}")
+                                    if result.stderr:
+                                        print(f"{Fore.RED}  Validation failed: {result.stderr.strip()}{Style.RESET_ALL}")
                                     continue # Try generating again
 
                             is_valid = True
