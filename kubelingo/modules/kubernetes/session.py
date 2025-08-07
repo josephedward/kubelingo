@@ -60,7 +60,7 @@ from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
-from .answer_checker import evaluate_transcript
+from .answer_checker import evaluate_transcript, evaluate_transcript as check_answer
 from .study_mode import KubernetesStudyMode, KUBERNETES_TOPICS
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox, ShellResult, StepResult
 import logging  # for logging in exercises
@@ -527,16 +527,11 @@ class NewSession(StudySession):
                 # Attempt to load questions from the database using the source file's basename
                 questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
-                    # Fallback to static loader if DB is empty or missing
+                    # Fallback to static loader using load_questions (tests may patch this)
                     try:
-                        _, ext = os.path.splitext(args.file)
-                        if ext.lower() in ('.yaml', '.yml'):
-                            loader = YAMLLoader()
-                            static_qs = loader.load_file(args.file)
-                            # Convert Question objects to dicts if necessary
-                            questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
-                        else:
-                            questions = []
+                        static_qs = load_questions(args.file)
+                        # Convert Question objects to dicts if necessary
+                        questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
                     except Exception as e:
                         self.logger.error(f"Failed to load static questions for '{args.file}': {e}")
                         questions = []
@@ -699,7 +694,12 @@ class NewSession(StudySession):
                 #    (e.g., using `kubectl --dry-run=client` for command questions).
                 # 4. Retry generation up to `max_attempts_per_question` times if validation fails.
                 from kubelingo.question import Question as QuestionObject, ValidationStep
-                generator = AIQuestionGenerator()
+                # Instantiate AI generator via module lookup to respect patches
+                try:
+                    import kubelingo.modules.question_generator as qg_module
+                    generator = qg_module.AIQuestionGenerator()
+                except Exception:
+                    generator = AIQuestionGenerator()
                 subject = _get_subject_for_questions(questions[0]) if questions else ''
                 
                 base_q_sample = []
@@ -741,12 +741,6 @@ class NewSession(StudySession):
                         try:
                             # Generate one question at a time to allow for validation.
                             # Pass existing good questions and newly generated ones as examples.
-                            # Ensure using patched AIQuestionGenerator via module lookup
-                            try:
-                                import kubelingo.modules.question_generator as qg_module
-                                generator = qg_module.AIQuestionGenerator()
-                            except Exception:
-                                generator = AIQuestionGenerator()
                             new_qs = generator.generate_questions(
                                 subject,
                                 1,
