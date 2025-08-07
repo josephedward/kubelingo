@@ -295,9 +295,6 @@ class NewSession(StudySession):
         # 6. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
 
-        if all_flagged:
-            choices.append(questionary.Separator())
-            choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
         
         return choices, all_flagged
 
@@ -481,9 +478,6 @@ class NewSession(StudySession):
                     input("\nPress Enter to return to the menu...")
                     continue
 
-                if selected == "clear_flags":
-                    _clear_all_review_flags(self.logger)
-                    continue # Show menu again
 
                 # Find the choice dictionary that corresponds to the selected value.
                 selected_choice = next((c for c in choices if isinstance(c, dict) and c.get('value') == selected), None)
