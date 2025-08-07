@@ -51,6 +51,8 @@ import os
 
 
 from kubelingo.modules.base.loader import load_session
+from kubelingo.modules.json_loader import JSONLoader
+from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from dataclasses import asdict
@@ -512,19 +514,54 @@ class NewSession(StudySession):
                 # Attempt to load questions from the database using the source file's basename
                 questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
-                    # Fallback to static loader if DB is empty or missing
+                    # If questions are not in the DB, load from file and persist them.
+                    # This makes manual migration less critical and fixes issues with non-JSON files.
+                    self.logger.info(f"No questions for '{os.path.basename(args.file)}' in DB, attempting to load from file...")
                     try:
-                        _, ext = os.path.splitext(args.file)
-                        if ext.lower() in ('.yaml', '.yml'):
-                            from kubelingo.modules.yaml_loader import YAMLLoader
+                        file_path = args.file
+                        _, ext = os.path.splitext(file_path)
+                        loader = None
+                        if ext.lower() == '.json':
+                            loader = JSONLoader()
+                        elif ext.lower() in ('.yaml', '.yml'):
                             loader = YAMLLoader()
-                            static_qs = loader.load_file(args.file)
-                            questions = [asdict(q) for q in static_qs]
+                        elif ext.lower() == '.md':
+                            loader = MDLoader()
+
+                        if loader:
+                            loaded_questions = loader.load_file(file_path)
+                            self.logger.info(f"Loaded {len(loaded_questions)} questions from '{os.path.basename(file_path)}'. Persisting to database.")
+                            # Persist loaded questions to the database
+                            for q_obj in loaded_questions:
+                                # The loader provides Question objects, convert to dict for DB
+                                q_dict = asdict(q_obj)
+                                # Extract category correctly from list or single value
+                                category = None
+                                if q_dict.get('categories'):
+                                    category = q_dict['categories'][0]
+                                elif q_dict.get('category'):
+                                    category = q_dict['category']
+
+                                add_question(
+                                    id=q_dict.get('id'),
+                                    prompt=q_dict.get('prompt'),
+                                    source_file=os.path.basename(file_path),
+                                    response=q_dict.get('response'),
+                                    category=category,
+                                    source=q_dict.get('source'),
+                                    validation_steps=q_dict.get('validation_steps'),
+                                    validator=q_dict.get('validator')
+                                )
+                            # Now that they are in DB, fetch them again to ensure consistent data structure.
+                            questions = get_questions_by_source_file(os.path.basename(args.file))
                         else:
+                            self.logger.warning(f"No loader found for file type '{ext}'.")
                             questions = []
+
                     except Exception as e:
-                        self.logger.error(f"Failed to load static questions for '{args.file}': {e}")
+                        self.logger.error(f"Failed to load or persist questions for '{args.file}': {e}", exc_info=True)
                         questions = []
+
                 if not questions:
                     # Neither DB nor static loader provided questions
                     db_path = os.path.join(DATA_DIR, 'kubelingo.db')
