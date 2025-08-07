@@ -1330,6 +1330,13 @@ class NewSession(StudySession):
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+        # Show reference URL for this question
+        source_url = q.get('citation') or q.get('source')
+        if source_url:
+            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+        # Show explanation if correct
+        if is_correct and q.get('explanation'):
+            print(f"{Fore.CYAN}Explanation: {q.get('explanation')}{Style.RESET_ALL}")
         
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
