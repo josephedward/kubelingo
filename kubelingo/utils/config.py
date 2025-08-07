@@ -17,9 +17,10 @@ APP_DIR = os.path.join(HOME_DIR, ".kubelingo")
 # Logs directory located within the package root (for history and logging)
 LOGS_DIR = os.path.join(PACKAGE_ROOT, 'logs')
 try:
+    os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOGS_DIR, exist_ok=True)
 except Exception:
-    # Could not create logs directory (permissions?), ignore
+    # Could not create directories (permissions?), ignore
     pass
 
 # Data directories for built-in quiz files are located at the project root
