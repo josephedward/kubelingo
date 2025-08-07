@@ -41,7 +41,7 @@ def migrate():
                     'prompt': q.prompt,
                     'response': q.response,
                     'category': q.category,
-                    'source': q.source,
+                    'source': getattr(q, 'source', None),
                     'validation_steps': [asdict(step) for step in q.validation_steps],
                     'validator': q.validator,
                     'source_file': file_path,
