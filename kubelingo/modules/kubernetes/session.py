@@ -546,7 +546,8 @@ class NewSession(StudySession):
             total = len(questions)
 
             # If interactive and --num not specified, ask user for number of questions.
-            if is_interactive and args.num == 0 and total > 0:
+            # Skip this for review mode, as we always review all flagged questions.
+            if is_interactive and args.num == 0 and total > 0 and not args.review_only:
                 try:
                     num_str = questionary.text(
                         f"How many questions would you like? (Enter a number, or press Enter for all {total})",
@@ -728,7 +729,8 @@ class NewSession(StudySession):
             correct_indices = set()
 
             print("\n=== Starting Kubelingo Quiz ===")
-            print(f"File: {os.path.basename(args.file)}, Questions: {total_questions}")
+            quiz_source_name = "Flagged for Review" if args.review_only else os.path.basename(args.file)
+            print(f"File: {quiz_source_name}, Questions: {total_questions}")
             self._initialize_live_session(args, questions_to_ask)
 
             from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
