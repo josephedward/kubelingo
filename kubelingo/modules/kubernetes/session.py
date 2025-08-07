@@ -885,7 +885,8 @@ class NewSession(StudySession):
 
                 while True:
                     is_flagged = q.get('review', False)
-                    flag_option_text = "Unflag" if is_flagged else "Flag"
+                    # Toggle review flag option wording
+                    flag_option_text = "Remove Flag" if is_flagged else "Flag for Review"
 
                     # Action menu options: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
                     choices = []
@@ -921,7 +922,7 @@ class NewSession(StudySession):
                     choices.append({"name": "Previous Question", "value": "prev"})
                     choices.append({"name": "View All Questions", "value": "view_all"})
                     # Toggle flag for review
-                    choices.append({"name": flag_option_text if 'Unflag' in flag_option_text else "Flag for Review", "value": "flag"})
+                    choices.append({"name": flag_option_text, "value": "flag"})
                     choices.append({"name": "Exit Quiz", "value": "back"})
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
@@ -1367,7 +1368,7 @@ class NewSession(StudySession):
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
         else:
             correct_indices.discard(current_question_index)
-            print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Your answer is incorrect.{Style.RESET_ALL}")
         # Show reference URL for this question
         source_url = q.get('citation') or q.get('source')
         if source_url:
