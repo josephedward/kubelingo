@@ -1069,11 +1069,6 @@ class NewSession(StudySession):
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
-                            # Show reference URL for this question
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
                                     finish_quiz = True
@@ -1308,34 +1303,25 @@ class NewSession(StudySession):
         attempted_indices.add(current_question_index)
         is_correct = False
 
-        # Normalize common 'k' alias for short-circuit matching
-        uc = user_command.strip()
-        if uc == 'k':
-            normalized = 'kubectl'
-        elif uc.startswith('k '):
-            normalized = 'kubectl ' + uc[2:]
-        else:
-            normalized = uc
+        try:
+            from kubelingo.modules.ai_evaluator import AIEvaluator
+            evaluator = AIEvaluator()
+            result = evaluator.evaluate_command(q, user_command)
+            is_correct = result.get('correct', False)
+            reasoning = result.get('reasoning', 'No reasoning provided.')
+            
+            status = 'Correct' if is_correct else 'Incorrect'
+            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
 
-        # Short-circuit exact matches against the expected base command
-        expected = q.get('response', '').strip()
-        if expected and normalized == expected:
-            is_correct = True
-        else:
-            try:
-                from kubelingo.modules.ai_evaluator import AIEvaluator
-                evaluator = AIEvaluator()
-                result = evaluator.evaluate_command(q, user_command)
-                is_correct = result.get('correct', False)
-                reasoning = result.get('reasoning', 'No reasoning provided.')
-                
-                status = 'Correct' if is_correct else 'Incorrect'
-                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-
-            except ImportError:
-                print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+        except ImportError:
+            print(f"{Fore.YELLOW}AI evaluator not available. Falling back to deterministic command check.{Style.RESET_ALL}")
+            if commands_equivalent(user_command, q.get('response', '')):
+                is_correct = True
+        except Exception as e:
+            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+            # Fallback to deterministic check on AI error
+            if commands_equivalent(user_command, q.get('response', '')):
+                is_correct = True
 
         if is_correct:
             correct_indices.add(current_question_index)
@@ -1343,7 +1329,11 @@ class NewSession(StudySession):
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-            
+        
+        # The AI reasoning should contain the source, but we print it here for consistency.
+        source_url = q.get('citation') or q.get('source')
+        if source_url:
+            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
