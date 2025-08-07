@@ -379,13 +379,14 @@ def main():
                 print(f"{Fore.RED}Invalid usage: --ai-questions requires COUNT and TOPIC.{Style.RESET_ALL}")
                 return
             generator = AIQuestionGenerator()
-            q_list = generator.generate_topic_questions(topic, count)
-            if not q_list:
+            # generate_questions returns a list of Question objects
+            questions = generator.generate_questions(topic, count)
+            if not questions:
                 print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
                 return
             print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
-            for i, q in enumerate(q_list, 1):
-                print(f"{i}. {q}")
+            for i, q in enumerate(questions, 1):
+                print(f"{i}. {q.prompt}")
             return
         if args.ai_question:
             topic = args.ai_question.strip()
