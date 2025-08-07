@@ -393,7 +393,6 @@ class NewSession(StudySession):
             api_key = os.getenv('OPENAI_API_KEY')
             study_session = KubernetesStudyMode(api_key=api_key)
 
-            print(f"\n{Fore.CYAN}Starting study session on '{topic}'... (type 'exit' or 'quit' to end){Style.RESET_ALL}")
             response = study_session.start_study_session(topic, level)
             print(f"\n{Fore.GREEN}Tutor:{Style.RESET_ALL} {response}")
 
@@ -1069,6 +1068,8 @@ class NewSession(StudySession):
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
+                                    # Inform the user that the question has been flagged
+                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
                                     finish_quiz = True
@@ -1330,10 +1331,6 @@ class NewSession(StudySession):
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
         
-        # The AI reasoning should contain the source, but we print it here for consistency.
-        source_url = q.get('citation') or q.get('source')
-        if source_url:
-            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
@@ -1444,6 +1441,9 @@ class NewSession(StudySession):
         source_url = q.get('citation') or q.get('source')
         if source_url:
             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+        # Show explanation if correct
+        if is_correct and q.get('explanation'):
+            print(f"{Fore.CYAN}Explanation: {q.get('explanation')}{Style.RESET_ALL}")
 
         # Show explanation if correct
         if is_correct and q.get('explanation'):
