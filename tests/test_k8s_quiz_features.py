@@ -128,9 +128,14 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         # Simulate user actions:
         # 1. On Q1, choose 'Answer Question'. After a correct answer, it should auto-advance.
         # 2. On Q2, choose 'Exit Quiz' to end the test.
+        # We add a third value to the side_effect to prevent the mock from
+        # returning a default MagicMock if an unexpected third call happens,
+        # which can cause a cryptic EOFError. The assertion on call_count
+        # will catch if this actually happens.
         mock_prompt.side_effect = [
             {'action': 'answer'},
             {'action': 'back'},
+            {'action': 'back'},  # Sentinel for unexpected calls
         ]
 
         args = self._get_mock_args(num_questions=2)
