@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import List, Set
 
-import openai
+openai = None
 import re
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.modules.ai_evaluator import AIEvaluator
@@ -59,8 +59,9 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            # Try OpenAI client
+            # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
+                import openai
                 resp = openai.ChatCompletion.create(
                     model="gpt-4",
                     messages=[{"role": "system", "content": ai_prompt}],
@@ -102,14 +103,29 @@ class AIQuestionGenerator:
                 if not validate_prompt_completeness(r, p).get("valid"):
                     continue
                 qid = f"ai-gen-{uuid.uuid4()}"
-                valid_questions.append(Question(
+                # Create question object
+                question = Question(
                     id=qid,
                     prompt=p,
                     category=subject,
                     response=r,
                     type="command",
                     validator={"type": "ai", "expected": r},
-                ))
+                )
+                valid_questions.append(question)
+                # Persist the generated question to the database
+                try:
+                    add_question(
+                        id=qid,
+                        prompt=p,
+                        source_file=source_file,
+                        response=r,
+                        category=subject,
+                        source='ai',
+                        validator={"type": "ai", "expected": r},
+                    )
+                except Exception:
+                    logger.warning(f"Failed to add AI-generated question '{qid}' to DB.")
             if len(valid_questions) >= num_questions:
                 break
             print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
