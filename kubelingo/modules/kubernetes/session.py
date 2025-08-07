@@ -1487,27 +1487,33 @@ class NewSession(StudySession):
                 print(f"{Fore.YELLOW}AI-based checking is available as a fallback, but 'OPENAI_API_KEY' environment variable is not set.{Style.RESET_ALL}")
                 return
 
-            # Fallback to deterministic validation.
-            # An answer cannot be correct if there are no validation steps defined in the question data.
-            has_validation_data = bool(
-                q.get('validation_steps') or
-                (q.get('type') == 'command' and q.get('response'))
-            )
-            if not has_validation_data:
+            # Fallback to deterministic validation from transcript.
+            validation_steps = q.get('validation_steps', [])
+            if not validation_steps and q.get('type') == 'command' and q.get('response'):
+                validation_steps.append({'cmd': q['response'], 'matcher': {'contains': q.get('response', '')}})
+            
+            details = []
+            if not validation_steps:
                 print(f"{Fore.YELLOW}Warning: No validation steps found for this question. Cannot check answer.{Style.RESET_ALL}")
-                return
-            else:
+                is_correct = False
+            elif not result.transcript_path:
+                print(f"{Fore.YELLOW}Warning: No transcript available for this question. Using fallback validation.{Style.RESET_ALL}")
                 is_correct = result.success
+                if hasattr(result, 'step_results'):
+                    for step_res in result.step_results:
+                        details.append((step_res.step.cmd, step_res.success, step_res.stderr or step_res.stdout))
+            else:
+                is_correct, details = evaluate_transcript(result.transcript_path, validation_steps)
 
         # If AI evaluation was not performed, show deterministic step-by-step results.
         if not ai_eval_used:
-            for step_res in result.step_results:
-                if step_res.success:
-                    print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {step_res.step.cmd}")
+            for cmd, passed, reason in details:
+                if passed:
+                    print(f"{Fore.GREEN}[✓]{Style.RESET_ALL} {cmd}")
                 else:
-                    print(f"{Fore.RED}[✗]{Style.RESET_ALL} {step_res.step.cmd}")
-                    if step_res.stdout or step_res.stderr:
-                        print(f"  {Fore.WHITE}{(step_res.stdout or step_res.stderr).strip()}{Style.RESET_ALL}")
+                    print(f"{Fore.RED}[✗]{Style.RESET_ALL} {cmd}")
+                    if reason:
+                        print(f"  {Fore.WHITE}{reason.strip()}{Style.RESET_ALL}")
         
         # Report final result
         if is_correct:
