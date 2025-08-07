@@ -1223,12 +1223,16 @@ class NewSession(StudySession):
                             # Auto-flagging logic
                             question_id = q.get('id')
                             if question_id:
+                                source_file = q.get('data_file') or args.file
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
+                                    _update_review_in_yaml_file(source_file, question_id, review=False)
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
+                                    _update_review_in_yaml_file(source_file, question_id, review=True)
+                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                             # Display explanation if provided
                             if q.get('explanation'):
