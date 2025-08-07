@@ -1451,24 +1451,29 @@ class NewSession(StudySession):
         attempted_indices.add(current_question_index)
         is_correct = False
 
+        # Normalize 'k' alias to 'kubectl' for both AI and deterministic checks
+        normalized_command = user_command.strip()
+        if normalized_command.startswith('k '):
+            normalized_command = 'kubectl ' + normalized_command[2:]
+
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
             evaluator = AIEvaluator()
-            result = evaluator.evaluate_command(q, user_command)
+            result = evaluator.evaluate_command(q, normalized_command)
             is_correct = result.get('correct', False)
             reasoning = result.get('reasoning', 'No reasoning provided.')
-            
+
             status = 'Correct' if is_correct else 'Incorrect'
             print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
 
         except ImportError:
             print(f"{Fore.YELLOW}AI evaluator not available. Falling back to deterministic command check.{Style.RESET_ALL}")
-            if commands_equivalent(user_command, q.get('response', '')):
+            if commands_equivalent(normalized_command, q.get('response', '')):
                 is_correct = True
         except Exception as e:
             print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
             # Fallback to deterministic check on AI error
-            if commands_equivalent(user_command, q.get('response', '')):
+            if commands_equivalent(normalized_command, q.get('response', '')):
                 is_correct = True
 
         if is_correct:
