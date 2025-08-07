@@ -554,20 +554,6 @@ def main():
     if args.module:
         module_name = args.module.lower()
 
-        # Optional Rust-based command quiz for non-interactive (--num) runs
-        if module_name == 'kubernetes' and getattr(args, 'num', 0) > 0:
-            try:
-                from kubelingo.bridge import rust_bridge
-                if rust_bridge.is_available():
-                    success = rust_bridge.run_command_quiz(args)
-                    if success:
-                        return
-                    else:
-                        print("Rust command quiz execution failed")
-            except ImportError:
-                # Rust bridge not available, fall back to Python quiz
-                pass
-
         if module_name == 'kustom':
             module_name = 'custom'
 
