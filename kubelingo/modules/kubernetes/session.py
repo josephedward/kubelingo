@@ -473,13 +473,14 @@ class NewSession(StudySession):
                         print(f"{Fore.RED}Invalid input for AI questions.{Style.RESET_ALL}")
                         continue
                     generator = AIQuestionGenerator()
-                    q_list = generator.generate_topic_questions(topic, count)
-                    if not q_list:
+                    # generate_questions(subject, num_questions)
+                    questions = generator.generate_questions(topic, count)
+                    if not questions:
                         print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
                     else:
                         print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
-                        for i, q in enumerate(q_list, 1):
-                            print(f"{i}. {q}")
+                        for i, q in enumerate(questions, 1):
+                            print(f"{i}. {q.prompt}")
                     input("\nPress Enter to return to the menu…")
                     continue
 
