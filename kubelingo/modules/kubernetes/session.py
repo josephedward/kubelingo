@@ -753,11 +753,11 @@ class NewSession(StudySession):
             if is_interactive and args.num == 0 and total > 0:
                 try:
                     num_str = questionary.text(
-                        f"How many questions would you like? (Enter a number, or press Enter for all {total})",
-                        validate=lambda text: text.isdigit() or text == ""
+                        f"How many questions would you like? (1-{total}, or press Enter for all)",
+                        validate=lambda text: text == "" or (text.isdigit() and 0 < int(text) <= total)
                     ).ask()
 
-                    if num_str is None: # User cancelled with Ctrl+C
+                    if num_str is None:  # User cancelled with Ctrl+C
                         return # Exit the quiz session gracefully
 
                     if num_str and num_str.isdigit():
@@ -769,44 +769,22 @@ class NewSession(StudySession):
             # Determine how many questions to ask based on user input or defaults
             num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
             requested = num_arg if num_arg and num_arg > 0 else total
-            # Determine static questions to show, and compute AI extras needed
+            
+            if requested > total and total > 0:
+                print(f"\n{Fore.YELLOW}Warning: Requested {requested} questions, but only {total} are available. The number of questions will be limited to {total}.{Style.RESET_ALL}")
+                requested = total
+
+            # Determine static questions to show. AI generation is disabled.
             clones_needed = 0
-            if requested > total:
-                clones_needed = requested - total
-                if total > 0:
-                    print(f"\nRequested {requested} questions. Using {total} from quiz file and attempting to generate {clones_needed} more with AI.")
-                else:
-                    print(f"\nNo questions in file. Attempting to generate {clones_needed} with AI.")
-                static_to_show = list(questions)
+            if total > 0:
+                static_to_show = random.sample(questions, min(requested, total))
             else:
-                static_to_show = random.sample(questions, requested)
-            # If --list-questions, show the static + AI-generated questions and exit
+                static_to_show = []
+            # If --list-questions, show the static questions and exit
             if getattr(args, 'list_questions', False):
-                combined = []
-                # Show static in original order
-                combined.extend(static_to_show)
-                # If more needed, generate AI-backed questions
-                if clones_needed > 0:
-                    try:
-                        from kubelingo.modules.question_generator import AIQuestionGenerator as _AIQuestionGenerator
-                        generator = _AIQuestionGenerator()
-                        # Generate AI-backed questions for this quiz category
-                        subject = _get_subject_for_questions(questions[0]) if questions else ''
-                        ai_qs = generator.generate_questions(subject, clones_needed)
-                    except Exception as e:
-                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
-                        print(f"{Fore.RED}Error: Could not list AI-generated questions due to an issue with the AI service.{Style.RESET_ALL}")
-                        ai_qs = []
-                    # Append generated questions
-                    for q_item in ai_qs:
-                        # If Question object, extract prompt and validation
-                        if hasattr(q_item, '__dict__') and not isinstance(q_item, dict):
-                            combined.append(q_item.__dict__)
-                        else:
-                            combined.append(q_item)
                 # Print list
                 print("List of Questions:")
-                for idx, q_item in enumerate(combined, start=1):
+                for idx, q_item in enumerate(static_to_show, start=1):
                     # Support dict or Question object
                     if isinstance(q_item, dict):
                         prompt_text = q_item.get('prompt', '<no prompt>')
@@ -814,41 +792,7 @@ class NewSession(StudySession):
                         prompt_text = getattr(q_item, 'prompt', str(q_item))
                     print(f"{idx}. {prompt_text}")
                 return
-            # Questions for quiz: include AI-generated extras if needed
-            if clones_needed > 0:
-                if not ai_generation_enabled:
-                    print(f"\n{Fore.YELLOW}Requested {requested} questions, but only {total} are available and AI generation is disabled for this module.{Style.RESET_ALL}")
-                    ai_qs = []
-                # Inform user about AI-assisted question generation
-                else:
-                    print(f"\nGenerating {clones_needed} additional AI questions...")
-                    try:
-                        # ROADMAP: Store generated questions in a local database (e.g., SQLite)
-                        # to build a persistent, user-specific question bank. This would
-                        # reduce redundant API calls and allow for more sophisticated review
-                        # mechanisms.
-                        from kubelingo.modules.question_generator import AIQuestionGenerator as _AIQuestionGenerator
-                        generator = _AIQuestionGenerator()
-                        # Generate AI-backed questions for this quiz category
-                        subject = _get_subject_for_questions(questions[0]) if questions else ''
-                        ai_qs = generator.generate_questions(subject, clones_needed)
-                        generated = len(ai_qs)
-                        if generated < clones_needed:
-                            print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated} generated.{Style.RESET_ALL}")
-                    except Exception as e:
-                        self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
-                        print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}This may be due to a missing OPENAI_API_KEY or network issues.{Style.RESET_ALL}")
-                        ai_qs = []
-                # Assemble full question list
-                questions_to_ask = list(static_to_show)
-                for q_item in ai_qs:
-                    if hasattr(q_item, '__dict__') and not isinstance(q_item, dict):
-                        questions_to_ask.append(q_item.__dict__)
-                    else:
-                        questions_to_ask.append(q_item)
-            else:
-                questions_to_ask = static_to_show
+            questions_to_ask = static_to_show
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
@@ -882,49 +826,10 @@ class NewSession(StudySession):
             just_answered = False
             current_question_index = 0
             transcripts_by_index = {}
-            ai_questions_generated = 0
-            max_ai_questions = 5
             
-            while current_question_index <= len(questions_to_ask):
+            while current_question_index < len(questions_to_ask):
                 if current_question_index == len(questions_to_ask):
-                    if ai_questions_generated >= max_ai_questions:
-                        print(f"\n{Fore.YELLOW}You've reached the maximum limit of {max_ai_questions} AI-generated questions.{Style.RESET_ALL}")
-                        break
-
-                    try:
-                        another = questionary.confirm(
-                            "You've finished the questions. Would you like an AI-generated question?",
-                            default=False
-                        ).ask()
-                    except (KeyboardInterrupt, EOFError):
-                        another = False
-
-                    if another is None or not another:
-                        break
-                    
-                    if not ai_generation_enabled:
-                        print(f"\n{Fore.YELLOW}AI question generation is disabled for this module.{Style.RESET_ALL}")
-                        break
-
-                    print(f"\n{Fore.CYAN}Generating a new AI question... (Attempt {ai_questions_generated + 1}/{max_ai_questions}){Style.RESET_ALL}")
-
-                    if 'generator' not in locals():
-                        from kubelingo.modules.question_generator import AIQuestionGenerator as _AIQuestionGenerator
-                        generator = _AIQuestionGenerator()
-
-                    base_for_gen = [q for q in questions if q.get('type', 'command') == 'command'] or questions
-                    
-                    # Generate one AI-based follow-up question for this quiz category
-                    subject = _get_subject_for_questions(questions_to_ask[0]) if questions_to_ask else ""
-                    new_qs = generator.generate_questions(subject, 1)
-                    
-                    if new_qs:
-                        questions_to_ask.extend(new_qs)
-                        ai_questions_generated += 1
-                        total_questions = len(questions_to_ask)
-                    else:
-                        print(f"{Fore.RED}AI could not generate a unique question this time. Please try again later.{Style.RESET_ALL}")
-                        break
+                    break
                 # Clear the terminal for visual clarity between questions, unless just answered
                 if not just_answered:
                     try:
