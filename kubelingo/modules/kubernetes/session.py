@@ -11,7 +11,7 @@ import webbrowser
 from datetime import datetime
 import logging
 
-from kubelingo.database import get_questions_by_source_file, get_flagged_questions, update_review_status
+from kubelingo.database import get_questions_by_source_file, get_flagged_questions, update_review_status, add_question
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
 from difflib import SequenceMatcher, unified_diff
 try:
@@ -43,6 +43,7 @@ except ImportError:
     FileHistory = None
 
 from kubelingo.modules.base.session import StudySession, SessionManager
+from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from pathlib import Path
 import os
 
@@ -142,6 +143,22 @@ def check_dependencies(*commands):
         if not shutil.which(cmd):
             missing.append(cmd)
     return missing
+    
+def load_questions(file_path: str):
+    """Load quiz questions from a JSON file with sections of prompts."""
+    questions = []
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    except Exception:
+        return questions
+    for section in data or []:
+        category = section.get('category')
+        for item in section.get('prompts', []):
+            q = item.copy()
+            q['category'] = category
+            questions.append(q)
+    return questions
 
     
 class NewSession(StudySession):
