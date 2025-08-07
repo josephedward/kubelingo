@@ -55,7 +55,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_list_questions_flag_prints_all_questions_and_exits(
-        self, mock_shuffle, mock_stdout, mock_generate_questions, mock_load_questions
+        self, mock_stdout, mock_generate_questions, mock_load_questions
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
@@ -112,7 +112,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_auto_advances_after_checking_answer(
-        self, mock_shuffle, mock_stdout, mock_prompt, MockSessionManager, mock_check_answer, mock_load_questions
+        self, mock_stdout, mock_prompt, MockSessionManager, mock_check_answer, mock_load_questions
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
@@ -156,7 +156,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_ai_questions_are_generated_when_more_are_requested(
-        self, mock_shuffle, mock_stdout, mock_prompt, mock_generate_questions, mock_load_questions
+        self, mock_stdout, mock_prompt, mock_generate_questions, mock_load_questions
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions # 2 questions
