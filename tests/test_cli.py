@@ -86,9 +86,10 @@ def test_cli_legacy_docker_flag(mock_launch_container_sandbox, capsys):
     assert "deprecated" in captured.err.lower()
 
 
+@patch('kubelingo.database.get_db_connection')
 @patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
 @patch('kubelingo.bridge.rust_bridge')
-def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions):
+def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions, mock_get_db_connection):
     """Test that if Rust bridge succeeds, Python quiz does not run."""
     mock_rust_bridge.is_available.return_value = True
     mock_rust_bridge.run_command_quiz.return_value = True
@@ -100,9 +101,10 @@ def test_cli_k8s_quiz_rust_bridge_success(mock_rust_bridge, mock_load_questions)
     mock_load_questions.assert_not_called()
 
 
+@patch('kubelingo.database.get_db_connection')
 @patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
 @patch('kubelingo.bridge.rust_bridge')
-def test_cli_k8s_quiz_rust_bridge_fail_fallback(mock_rust_bridge, mock_load_questions, capsys):
+def test_cli_k8s_quiz_rust_bridge_fail_fallback(mock_rust_bridge, mock_load_questions, mock_get_db_connection, capsys):
     """Test that if Rust bridge fails, Python quiz runs as a fallback."""
     mock_rust_bridge.is_available.return_value = True
     mock_rust_bridge.run_command_quiz.return_value = False
@@ -116,9 +118,10 @@ def test_cli_k8s_quiz_rust_bridge_fail_fallback(mock_rust_bridge, mock_load_ques
     assert "Rust command quiz execution failed" in captured.out
 
 
+@patch('kubelingo.database.get_db_connection')
 @patch('kubelingo.modules.kubernetes.session.load_questions', return_value=[])
 @patch('kubelingo.bridge.rust_bridge')
-def test_cli_k8s_quiz_rust_bridge_unavailable_fallback(mock_rust_bridge, mock_load_questions, capsys):
+def test_cli_k8s_quiz_rust_bridge_unavailable_fallback(mock_rust_bridge, mock_load_questions, mock_get_db_connection, capsys):
     """Test that if Rust bridge is unavailable, Python quiz runs."""
     mock_rust_bridge.is_available.return_value = False
 
