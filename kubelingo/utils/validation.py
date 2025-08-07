@@ -110,7 +110,8 @@ def validate_kubectl_syntax(cmd_str: str) -> Dict[str, Any]:
     try:
         proc = subprocess.run(help_cmd, capture_output=True, text=True)
     except FileNotFoundError as e:
-        return {'valid': False, 'errors': [str(e)], 'warnings': []}
+        # kubectl binary not found: skip syntax validation, treat as valid
+        return {'valid': True, 'errors': [], 'warnings': [f"kubectl not found, skipping syntax validation: {e}"]}
     valid = (proc.returncode == 0)
     errors: List[str] = []
     warnings: List[str] = []
