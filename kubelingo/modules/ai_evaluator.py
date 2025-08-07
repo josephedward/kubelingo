@@ -211,9 +211,10 @@ Be lenient with whitespace and case unless the question implies sensitivity.
             except ImportError:
                 return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
 
-        # Load question prompt and category
+        # Load question prompt and category (ensure category is a string before lowercasing)
         prompt = question_data.get('prompt', '')
-        category = question_data.get('category', '').lower()
+        # Protect against None category values
+        category = (question_data.get('category') or '').lower()
         # Citation or source URL for LLM context
         source_url = question_data.get('source') or question_data.get('citation')
 
