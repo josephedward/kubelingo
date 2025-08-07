@@ -498,7 +498,8 @@ class NewSession(StudySession):
                 # Combine static and AI-generated questions
                 combined = list(static_questions)
                 if clones_needed > 0 and ai_generation_enabled:
-                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
+                    # Notify user of AI question generation for listing
+                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
                     try:
                         # Instantiate AI generator via module lookup to respect patches
                         import kubelingo.modules.question_generator as qg_module
@@ -744,7 +745,9 @@ class NewSession(StudySession):
                 static_to_show = random.sample(questions, requested) if total > 0 else []
             # Questions for quiz: include AI-generated extras if needed
             questions_to_ask = list(static_to_show)
+            # If requesting more questions than available, generate additional via AI
             if clones_needed > 0 and ai_generation_enabled:
+                print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
                 # AI question generation process:
                 # 1. Use existing quiz questions as few-shot examples.
                 # 2. Generate one question at a time, providing progress feedback to the user.
