@@ -31,7 +31,6 @@ class AIQuestionGenerator:
         subject: str,
         num_questions: int = 1,
         base_questions: List[Question] = None,
-        num_to_generate: int = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -135,12 +134,12 @@ class AIQuestionGenerator:
                     )
                 except Exception:
                     logger.warning(f"Failed to add AI-generated question '{qid}' to DB.")
-            if len(valid_questions) >= num_to_generate:
+            if len(valid_questions) >= num_questions:
                 break
-            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_to_generate} valid AI question(s); retrying...{Style.RESET_ALL}")
-        if len(valid_questions) < num_to_generate:
+            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
+        if len(valid_questions) < num_questions:
             print(f"{Fore.YELLOW}Warning: Could only generate {len(valid_questions)} AI question(s).{Style.RESET_ALL}")
-        return valid_questions[:num_to_generate]
+        return valid_questions[:num_questions]
     
     def generate_question(self, base_question: dict) -> dict:
         """

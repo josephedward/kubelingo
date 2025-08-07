@@ -508,9 +508,8 @@ class NewSession(StudySession):
                         # Generate AI-backed questions, including context of existing questions
                         ai_qs = generator.generate_questions(
                             subject,
-                            clones_needed,
-                            base_questions=static_questions,
-                            num_to_generate=clones_needed
+                            num_questions=clones_needed,
+                            base_questions=static_questions
                         )
                         # Append generated Question objects
                         combined.extend(ai_qs)
@@ -623,9 +622,8 @@ class NewSession(StudySession):
                         subject = _get_subject_for_questions(static_override[0]) if static_override else ''
                         ai_qs = generator.generate_questions(
                             subject,
-                            clones_needed,
-                            base_questions=static_override,
-                            num_to_generate=clones_needed
+                            num_questions=clones_needed,
+                            base_questions=static_override
                         )
                         for ai_q in ai_qs:
                             questions.append(asdict(ai_q))
@@ -805,9 +803,8 @@ class NewSession(StudySession):
                             # Pass existing good questions and newly generated ones as examples.
                             new_qs = generator.generate_questions(
                                 subject,
-                                1,
-                                base_questions=base_q_sample + generated_qs,
-                                num_to_generate=1
+                                num_questions=1,
+                                base_questions=base_q_sample + generated_qs
                             )
                             if not new_qs:
                                 self.logger.warning(f"AI generator returned no questions on attempt {attempt+1}.")
