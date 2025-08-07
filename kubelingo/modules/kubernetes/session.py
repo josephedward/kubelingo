@@ -805,6 +805,10 @@ class NewSession(StudySession):
                                     {'cmd': vs.cmd, 'matcher': vs.matcher}
                                     for vs in new_q.validation_steps
                                 ]
+                                # For command questions, if no validation steps are present, create one from the response.
+                                if new_q.type == 'command' and new_q.response and not vs_dicts:
+                                    vs_dicts.append({'cmd': new_q.response, 'matcher': {'exit_code': 0}})
+
                                 add_question(
                                     id=new_q.id,
                                     prompt=new_q.prompt,
@@ -815,6 +819,16 @@ class NewSession(StudySession):
                                     validation_steps=vs_dicts,
                                     validator=new_q.validator
                                 )
+                                # After adding a new question, update the backup database.
+                                try:
+                                    from kubelingo.utils.config import DATA_DIR
+                                    db_path = os.path.join(DATA_DIR, 'kubelingo.db')
+                                    backup_path = os.path.join(DATA_DIR, 'kubelingo.db.bak')
+                                    if os.path.exists(db_path):
+                                        shutil.copy2(db_path, backup_path)
+                                        self.logger.info(f"Database backup updated at: {backup_path}")
+                                except Exception as e:
+                                    self.logger.error(f"Could not create database backup: {e}")
                             except Exception as e:
                                 self.logger.error(f"Failed to persist AI-generated question {new_q.id}: {e}")
                             questions_to_ask.append(asdict(new_q))
