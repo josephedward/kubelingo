@@ -774,7 +774,7 @@ class NewSession(StudySession):
 
                     if action == "exit_app":
                         print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        return False
+                        sys.exit(0)
 
                     if action == "back":
                         quiz_backed_out = True
