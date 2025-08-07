@@ -654,7 +654,7 @@ class NewSession(StudySession):
             if getattr(args, 'list_questions', False):
                 combined = list(static_to_show)
                 # If more needed, generate AI-backed questions
-                if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
+            if clones_needed > 0 and ai_generation_enabled:
                     print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
                     try:
                         generator = AIQuestionGenerator()
