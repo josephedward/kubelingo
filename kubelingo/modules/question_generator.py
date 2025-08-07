@@ -37,6 +37,8 @@ class AIQuestionGenerator:
         Generate up to `num_questions` kubectl command questions about the given `subject`.
         Uses few-shot prompting with examples and validates syntax before returning.
         """
+        if num_to_generate is None:
+            num_to_generate = num_questions
         # Build few-shot prompt
         prompt_lines = ["You are a Kubernetes instructor."]
         if base_questions:
@@ -44,7 +46,7 @@ class AIQuestionGenerator:
             for ex in base_questions:
                 prompt_lines.append(f"- Prompt: {ex.prompt}")
                 prompt_lines.append(f"  Response: {ex.response}")
-        prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
+        prompt_lines.append(f"Create exactly {num_to_generate} new, distinct quiz questions about '{subject}'.")
         prompt_lines.append("Return ONLY a JSON array of objects with 'prompt' and 'response' keys.")
         ai_prompt = "\n".join(prompt_lines)
         logger.debug("AI few-shot prompt: %s", ai_prompt)

@@ -176,12 +176,10 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         mock_generate_questions.assert_called_once()
         call_args, call_kwargs = mock_generate_questions.call_args
 
-        # Compare based on question IDs to avoid issues with object mutation.
-        # The objects themselves can be modified by the session runner.
-        base_questions = call_kwargs.get('base_questions', [])
-        base_question_ids = {q.id for q in base_questions}
-        expected_ids = {q.id for q in self.static_questions}
-        self.assertEqual(base_question_ids, expected_ids)
+        # The `base_questions` kwarg should be the original static questions
+        passed_base_questions = call_kwargs.get('base_questions')
+        self.assertEqual(passed_base_questions, self.static_questions)
+
         self.assertEqual(call_kwargs.get('num_to_generate'), 1)
         
         # The quiz should start with 3 questions (2 static + 1 AI)
