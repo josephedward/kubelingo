@@ -277,8 +277,6 @@ class NewSession(StudySession):
 
         # 3. Study Mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
-        # 4. Generate AI Questions
-        choices.append({"name": "Generate AI Questions…", "value": "generate_ai_questions"})
 
         # 4. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
@@ -600,10 +598,39 @@ class NewSession(StudySession):
             if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
                 print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
                 try:
+                    from kubelingo.question import Question as QuestionObject, ValidationStep
                     generator = AIQuestionGenerator()
-                    # Generate AI-backed questions for this quiz category
+                    # Generate AI-backed questions, using existing questions as a few-shot prompt.
                     subject = _get_subject_for_questions(questions[0]) if questions else ''
-                    ai_qs = generator.generate_questions(subject, clones_needed)
+                    
+                    base_q_sample = []
+                    if questions:
+                        # Use a small, random sample of existing questions for few-shot prompting
+                        sample_dicts = random.sample(questions, min(len(questions), 3))
+                        for q_dict in sample_dicts:
+                            # Convert dict to Question, being careful with nested objects
+                            q_copy = q_dict.copy()
+                            if 'validation_steps' in q_copy:
+                                q_copy['validation_steps'] = [
+                                    vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
+                                    for vs in q_copy.get('validation_steps', [])
+                                ]
+                            
+                            # Filter for keys that are valid for the Question dataclass
+                            valid_args = {
+                                k: v for k, v in q_copy.items()
+                                if k in QuestionObject.__annotations__
+                            }
+                            try:
+                                base_q_sample.append(QuestionObject(**valid_args))
+                            except TypeError as e:
+                                self.logger.warning(f"Could not convert question dict to object for AI generation: {e}")
+
+                    ai_qs = generator.generate_questions(
+                        subject,
+                        clones_needed,
+                        base_questions=base_q_sample
+                    )
                     generated = len(ai_qs)
                     if generated < clones_needed:
                         print(f"{Fore.YELLOW}Warning: Could only generate {generated} unique AI question(s).{Style.RESET_ALL}")
