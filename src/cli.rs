@@ -30,6 +30,10 @@ pub fn run_pty_shell() -> anyhow::Result<()> {
         // Use `script` for robust transcripting. This captures everything, including
         // what happens inside editors like vim. It is more reliable than custom PTY handling.
         let mut command = Command::new("script");
+        // Set env vars to be inherited by the shell launched by `script`.
+        command.env("BASH_SILENCE_DEPRECATION_WARNING", "1");
+        command.env("PROMPT_COMMAND", "alias k=kubectl");
+
         if cfg!(target_os = "macos") {
             // BSD `script` (macOS) syntax: `script -q <file> <command> <args...>`
             command.args(["-q", &transcript_path, "bash", "--login"]);
@@ -61,6 +65,8 @@ pub fn run_pty_shell() -> anyhow::Result<()> {
     let mut cmd = CommandBuilder::new("bash");
     cmd.arg("--login");
     cmd.env("PS1", "(kubelingo-sandbox)$ ");
+    cmd.env("BASH_SILENCE_DEPRECATION_WARNING", "1");
+    cmd.env("PROMPT_COMMAND", "alias k=kubectl");
 
     let mut child = pair
         .slave
