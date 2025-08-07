@@ -23,7 +23,7 @@ def migrate():
     total_questions = 0
 
     # Discover all YAML files from the backup directory.
-    yaml_dir = Path(project_root) / 'question-data' / 'backup'
+    yaml_dir = Path(project_root) / 'question-data-backup' / 'yaml'
     
     yaml_files = []
     if yaml_dir.is_dir():
