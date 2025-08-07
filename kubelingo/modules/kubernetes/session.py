@@ -466,13 +466,15 @@ class NewSession(StudySession):
             print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
             print(f"{Fore.YELLOW}Without it, answer checking will rely on deterministic validation if available.{Style.RESET_ALL}")
 
-        is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+        # Determine if interactive mode is available (simplified: based on questionary availability)
+        is_interactive = bool(questionary)
 
         while True:
             # For each quiz, use a fresh copy of args and normalize question count
             args = copy.deepcopy(initial_args)
             args.num = getattr(args, 'num', getattr(args, 'num_questions', 0))
-            is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+            # Re-evaluate interactive availability
+            is_interactive = bool(questionary)
 
             start_time = datetime.now()
             # Unique session identifier for transcript storage
@@ -609,6 +611,25 @@ class NewSession(StudySession):
                     return
                 # AI generation is enabled by default when loading questions
                 ai_generation_enabled = True
+                # AI generation for interactive quizzes when more questions are requested
+                requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
+                if requested and requested > len(questions):
+                    clones_needed = requested - len(questions)
+                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
+                    try:
+                        import kubelingo.modules.question_generator as qg_module
+                        generator = qg_module.AIQuestionGenerator()
+                        subject = _get_subject_for_questions(static_override[0]) if static_override else ''
+                        ai_qs = generator.generate_questions(
+                            subject,
+                            clones_needed,
+                            base_questions=static_override,
+                            num_to_generate=clones_needed
+                        )
+                        for ai_q in ai_qs:
+                            questions.append(asdict(ai_q))
+                    except Exception:
+                        self.logger.error(f"Failed to generate AI questions for interactive quiz.", exc_info=True)
             else:
                 # Interactive mode: show menu to select quiz.
                 if not is_interactive:
@@ -781,7 +802,8 @@ class NewSession(StudySession):
                             new_qs = generator.generate_questions(
                                 subject,
                                 1,
-                                base_questions=base_q_sample + generated_qs
+                                base_questions=base_q_sample + generated_qs,
+                                num_to_generate=1
                             )
                             if not new_qs:
                                 self.logger.warning(f"AI generator returned no questions on attempt {attempt+1}.")
