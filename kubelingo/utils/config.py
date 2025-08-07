@@ -22,8 +22,9 @@ except Exception:
     # Could not create logs directory (permissions?), ignore
     pass
 
-# Data directories for built-in quiz files are inside the package
-DATA_DIR = os.path.join(PACKAGE_ROOT, 'question-data')
+# Data directories for built-in quiz files are located at the project root
+PROJECT_ROOT = os.path.abspath(os.path.join(PACKAGE_ROOT, os.pardir))
+DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 
 
 # --- Database ---
@@ -37,8 +38,8 @@ BACKUP_DATABASE_FILE = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'kubel
 # JSON files are in the package's data directory.
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
-# Built-in YAML-edit quiz data files are stored in the backup YAML directory, inside the package.
-YAML_QUIZ_DIR = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'yaml')
+# Built-in YAML-edit quiz data files are stored in the backup YAML directory at project root.
+YAML_QUIZ_DIR = os.path.join(PROJECT_ROOT, 'question-data-backup', 'yaml')
 # Updated to use the properly formatted 'yaml_exercises_quiz.yaml'
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Built-in Vim quiz data file (YAML-based quiz)
