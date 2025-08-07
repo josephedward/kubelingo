@@ -527,11 +527,16 @@ class NewSession(StudySession):
                 # Attempt to load questions from the database using the source file's basename
                 questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
-                    # Fallback to static loader using load_questions (tests may patch this)
+                    # Fallback to static loader if DB is empty or missing
                     try:
-                        static_qs = load_questions(args.file)
-                        # Convert Question objects to dicts if necessary
-                        questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
+                        _, ext = os.path.splitext(args.file)
+                        if ext.lower() in ('.yaml', '.yml'):
+                            from kubelingo.modules.yaml_loader import YAMLLoader
+                            loader = YAMLLoader()
+                            static_qs = loader.load_file(args.file)
+                            questions = [asdict(q) for q in static_qs]
+                        else:
+                            questions = []
                     except Exception as e:
                         self.logger.error(f"Failed to load static questions for '{args.file}': {e}")
                         questions = []
