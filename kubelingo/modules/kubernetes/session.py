@@ -687,30 +687,6 @@ class NewSession(StudySession):
                 static_to_show = list(questions)
             else:
                 static_to_show = random.sample(questions, requested) if total > 0 else []
-            # If --list-questions, show the static + AI-generated questions and exit
-            if getattr(args, 'list_questions', False):
-                combined = list(static_to_show)
-                # If more needed, generate AI-backed questions
-                if clones_needed > 0 and ai_generation_enabled:
-                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
-                    try:
-                        generator = AIQuestionGenerator()
-                        subject = _get_subject_for_questions(questions[0]) if questions else ''
-                        ai_qs = generator.generate_questions(subject, clones_needed)
-                        # Append generated questions (as dicts)
-                        for q_item in ai_qs:
-                            combined.append(asdict(q_item))
-                    except Exception as e:
-                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
-                        print(f"{Fore.RED}Error: Could not list AI-generated questions.{Style.RESET_ALL}")
-
-                # Print list
-                print("\nList of Questions:")
-                for idx, q_item in enumerate(combined, start=1):
-                    # Questions are always dicts at this point
-                    prompt_text = q_item.get('prompt', '<no prompt>')
-                    print(f"{idx}. {prompt_text}")
-                return
             # Questions for quiz: include AI-generated extras if needed
             questions_to_ask = list(static_to_show)
             if clones_needed > 0 and ai_generation_enabled:
