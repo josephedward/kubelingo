@@ -122,8 +122,11 @@ class AIQuestionGenerator:
     
     def generate_question(self, base_question: dict) -> dict:
         """
-        Generate a single AI-based question similar to a base question.
-        Delegates to the AI evaluator's generate_question method.
+        Generate a single AI-based question using the AIEvaluator.
+        Delegates to the underlying AIEvaluator and returns a question dict.
         """
-        # Use underlying AI evaluator to generate one question
-        return self.evaluator.generate_question(base_question)
+        try:
+            return self.evaluator.generate_question(base_question)
+        except Exception:
+            return {}
+    
