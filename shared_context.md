@@ -53,7 +53,7 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 **Phase 1: Unified Shell Experience** is largely complete. The core architecture for delivering all question types through a consistent shell-driven workflow is in place. Here's where we stand on the immediate next steps:
 
--   **[Completed] Customizable quiz length**: Users can now specify the number of questions with `-n/--num`. If fewer than available are requested, a random subset is chosen. If more are requested, the number of questions is capped at the maximum available.
+-   **[Completed] Customizable quiz length**: Users can now specify the number of questions with `-n/--num`. If fewer are requested, a random subset is chosen. If more are requested, the system can generate additional questions via AI.
 -   **[In Progress] Expand matcher support**: `exit_code`, `contains`, and `regex` matchers are implemented. JSONPath, YAML structure, and direct cluster state checks are still pending.
 -   **[Not Started] Add unit/integration tests**: No formal tests exist yet for `answer_checker` or the new UI flows. This is the highest priority next step to prevent regressions.
 -   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
@@ -571,12 +571,13 @@ You don’t have to “tell” the quiz which filename you used—all of the wir
 In either case, the question’s metadata (`initial_files`, `pre_shell_cmds`, and `validation_steps`) tells the sandbox what to seed and what to check. You just edit & apply as instructed; the quiz will pick up your work via those validation commands or by comparing the in-memory temp file.
 
 
-## Custom Quiz Length
+## Custom Quiz Length & AI Generation
 
 Kubelingo now supports customizing the number of questions via the `-n/--num` flag:
 
-- If the requested number (`-n N`) is less than or equal to the total available questions, Kubelingo picks a random subset of size N without replacement.
-- If N exceeds the total available questions, the number of questions will be capped at the maximum available for that quiz. A warning message will be displayed.
+- If the requested number (`-n N`) is less than or equal to the total available questions, Kubelingo picks a random subset of size N.
+- If N exceeds the total available questions, Kubelingo will attempt to generate the remaining questions using an AI model, provided an `OPENAI_API_KEY` is set. This allows for dynamically extending quizzes.
+- If AI generation is unavailable or fails, the quiz will proceed with the available static questions.
 
 ## Study Mode: AI-Guided Tutoring
 

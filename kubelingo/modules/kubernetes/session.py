@@ -784,8 +784,8 @@ class NewSession(StudySession):
             if is_interactive and args.num == 0 and total > 0:
                 try:
                     num_str = questionary.text(
-                        f"How many questions would you like? (1-{total}, or press Enter for all)",
-                        validate=lambda text: text == "" or (text.isdigit() and 0 < int(text) <= total)
+                        f"How many questions would you like? (Enter a number, or press Enter for all {total})",
+                        validate=lambda text: text.isdigit() or text == ""
                     ).ask()
 
                     if num_str is None:  # User cancelled with Ctrl+C
@@ -800,30 +800,71 @@ class NewSession(StudySession):
             # Determine how many questions to ask based on user input or defaults
             num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
             requested = num_arg if num_arg and num_arg > 0 else total
-            
-            if requested > total and total > 0:
-                print(f"\n{Fore.YELLOW}Warning: Requested {requested} questions, but only {total} are available. The number of questions will be limited to {total}.{Style.RESET_ALL}")
-                requested = total
-
-            # Determine static questions to show. AI generation is disabled.
+            # Determine static questions to show, and compute AI extras needed
             clones_needed = 0
-            if total > 0:
-                static_to_show = random.sample(questions, min(requested, total))
+            if requested > total:
+                clones_needed = requested - total
+                if total > 0:
+                    print(f"\nRequested {requested} questions. Using all {total} from the quiz and attempting to generate {clones_needed} more with AI.")
+                else:
+                    print(f"\nNo questions in file. Attempting to generate {clones_needed} with AI.")
+                static_to_show = list(questions)
             else:
-                static_to_show = []
-            # If --list-questions, show the static questions and exit
+                static_to_show = random.sample(questions, requested) if total > 0 else []
+            # If --list-questions, show the static + AI-generated questions and exit
             if getattr(args, 'list_questions', False):
+                combined = list(static_to_show)
+                # If more needed, generate AI-backed questions
+                if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
+                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
+                    try:
+                        generator = AIQuestionGenerator()
+                        subject = _get_subject_for_questions(questions[0]) if questions else ''
+                        ai_qs = generator.generate_questions(subject, clones_needed)
+                        # Append generated questions (as dicts)
+                        for q_item in ai_qs:
+                            combined.append(asdict(q_item))
+                    except Exception as e:
+                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
+                        print(f"{Fore.RED}Error: Could not list AI-generated questions.{Style.RESET_ALL}")
+
                 # Print list
-                print("List of Questions:")
-                for idx, q_item in enumerate(static_to_show, start=1):
-                    # Support dict or Question object
-                    if isinstance(q_item, dict):
-                        prompt_text = q_item.get('prompt', '<no prompt>')
-                    else:
-                        prompt_text = getattr(q_item, 'prompt', str(q_item))
+                print("\nList of Questions:")
+                for idx, q_item in enumerate(combined, start=1):
+                    # Questions are always dicts at this point
+                    prompt_text = q_item.get('prompt', '<no prompt>')
                     print(f"{idx}. {prompt_text}")
                 return
-            questions_to_ask = static_to_show
+            # Questions for quiz: include AI-generated extras if needed
+            if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
+                print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
+                try:
+                    generator = AIQuestionGenerator()
+                    # Generate AI-backed questions for this quiz category
+                    subject = _get_subject_for_questions(questions[0]) if questions else ''
+                    ai_qs = generator.generate_questions(subject, clones_needed)
+                    generated = len(ai_qs)
+                    if generated < clones_needed:
+                        print(f"{Fore.YELLOW}Warning: Could only generate {generated} unique AI question(s).{Style.RESET_ALL}")
+                    
+                    # Assemble full question list by converting Question objects to dicts
+                    questions_to_ask = list(static_to_show)
+                    for q_item in ai_qs:
+                        questions_to_ask.append(asdict(q_item))
+                except Exception as e:
+                    self.logger.error(f"Failed to generate AI questions: {e}", exc_info=True)
+                    print(f"{Fore.RED}AI question generation failed: {e}{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}This may be due to a missing or invalid OPENAI_API_KEY, or network issues.{Style.RESET_ALL}")
+                    questions_to_ask = static_to_show
+            else:
+                questions_to_ask = static_to_show
+
+            if clones_needed > 0 and (not ai_generation_enabled or not os.getenv('OPENAI_API_KEY')):
+                if not ai_generation_enabled:
+                    print(f"\n{Fore.YELLOW}AI question generation is disabled for this module.{Style.RESET_ALL}")
+                if not os.getenv('OPENAI_API_KEY'):
+                    print(f"\n{Fore.YELLOW}AI question generation requires an OPENAI_API_KEY.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Only the {len(static_to_show)} available question(s) will be used.{Style.RESET_ALL}")
 
             # If any questions require a live k8s environment, inform user about AI fallback if --docker is not enabled.
             if any(q.get('type') in ('live_k8s', 'live_k8s_edit') for q in questions_to_ask) and not args.docker:
