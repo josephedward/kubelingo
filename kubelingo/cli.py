@@ -531,7 +531,7 @@ def main():
             print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
             try:
                 from kubelingo.database import get_questions_by_source_file
-                questions = get_questions_by_source_file(args.file)
+                questions = get_questions_by_source_file(os.path.basename(args.file))
                 cats = sorted({q.get('category') for q in questions if q.get('category')})
                 print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
                 if cats:
