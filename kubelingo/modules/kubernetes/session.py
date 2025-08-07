@@ -1118,8 +1118,6 @@ class NewSession(StudySession):
                         use_text_input = q.get('type', 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
 
                         if use_text_input:
-                            if is_mocked_k8s:
-                                print(f"{Fore.CYAN}No-cluster mode: Please type the command to solve the problem.{Style.RESET_ALL}")
                             if is_ai_validator:
                                 print(f"{Fore.CYAN}AI evaluation mode: Please type the command to solve the problem.{Style.RESET_ALL}")
 
