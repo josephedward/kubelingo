@@ -9,7 +9,8 @@ import os
 
 # Import the function to be tested and the path to the data file from the CLI module.
 # This makes the test robust against changes in file locations.
-from kubelingo.modules.kubernetes.session import NewSession, YAML_QUESTIONS_FILE
+from kubelingo.modules.kubernetes.session import NewSession
+from kubelingo.utils.config import YAML_QUESTIONS_FILE
 
 
 @pytest.fixture
