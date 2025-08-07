@@ -585,6 +585,12 @@ class NewSession(StudySession):
             # Questions for quiz: include AI-generated extras if needed
             questions_to_ask = list(static_to_show)
             if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
+                # AI question generation process:
+                # 1. Use existing quiz questions as few-shot examples.
+                # 2. Generate one question at a time, providing progress feedback to the user.
+                # 3. Validate each generated question for completeness and syntactical correctness
+                #    (e.g., using `kubectl --dry-run=client` for command questions).
+                # 4. Retry generation up to `max_attempts_per_question` times if validation fails.
                 from kubelingo.question import Question as QuestionObject, ValidationStep
                 generator = AIQuestionGenerator()
                 subject = _get_subject_for_questions(questions[0]) if questions else ''
