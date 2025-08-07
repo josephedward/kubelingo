@@ -690,6 +690,8 @@ class NewSession(StudySession):
                     status_color = Fore.RED
 
                 print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                if q.get('context'):
+                    print(f"{Fore.CYAN}Context: {q['context']}{Style.RESET_ALL}")
                 print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                 while True:
@@ -1025,6 +1027,8 @@ class NewSession(StudySession):
                         
                         # Re-print question header after shell.
                         print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                        if q.get('context'):
+                            print(f"{Fore.CYAN}Context: {q['context']}{Style.RESET_ALL}")
                         print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
                         # After returning from shell, just continue to show the action menu again.
