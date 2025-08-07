@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 # Add project root to path to allow importing kubelingo modules
 # Use ROOT from config for a more reliable path
-from kubelingo.utils.config import ENABLED_QUIZZES, ROOT as project_root
+from kubelingo.utils.config import ENABLED_QUIZZES, ROOT as project_root, DATABASE_FILE, BACKUP_DATABASE_FILE
 sys.path.insert(0, str(project_root))
 from kubelingo.database import init_db, add_question
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -69,6 +69,17 @@ def migrate():
             print(f"Error processing file {file_path}: {e}")
 
     print(f"\nMigration complete. Total questions migrated: {total_questions}")
+    # Create or update the backup database with the migrated questions
+    try:
+        print(f"Backing up database to {BACKUP_DATABASE_FILE}...")
+        # Ensure backup directory exists
+        backup_dir = Path(BACKUP_DATABASE_FILE).parent
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        import shutil
+        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print(f"Backup database created at {BACKUP_DATABASE_FILE}")
+    except Exception as e:
+        print(f"Failed to backup database: {e}")
 
 
 if __name__ == "__main__":
