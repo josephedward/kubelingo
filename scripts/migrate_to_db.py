@@ -69,15 +69,34 @@ def migrate():
             print(f"Error processing file {file_path}: {e}")
 
     print(f"\nMigration complete. Total questions migrated: {total_questions}")
-    # Create or update the backup database with the migrated questions
+    # Backup the database only if new questions have been added since last backup
     try:
-        print(f"Backing up database to {BACKUP_DATABASE_FILE}...")
-        # Ensure backup directory exists
-        backup_dir = Path(BACKUP_DATABASE_FILE).parent
-        backup_dir.mkdir(parents=True, exist_ok=True)
-        import shutil
-        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-        print(f"Backup database created at {BACKUP_DATABASE_FILE}")
+        import sqlite3
+        # Count total questions in primary database
+        conn = sqlite3.connect(DATABASE_FILE)
+        total_primary = conn.cursor().execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+        conn.close()
+        backup_path = Path(BACKUP_DATABASE_FILE)
+        perform_backup = False
+        if not backup_path.exists():
+            perform_backup = True
+            print(f"Backup database not found at {BACKUP_DATABASE_FILE}, creating initial backup...")
+        else:
+            # Count questions in backup database
+            conn_bkp = sqlite3.connect(BACKUP_DATABASE_FILE)
+            total_backup = conn_bkp.cursor().execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+            conn_bkp.close()
+            if total_primary > total_backup:
+                perform_backup = True
+                print(f"New questions detected ({total_primary} > {total_backup}), updating backup database...")
+            else:
+                print("No new questions; backup database remains unchanged.")
+        if perform_backup:
+            backup_dir = backup_path.parent
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            import shutil
+            shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+            print(f"Backup database created/updated at {BACKUP_DATABASE_FILE}")
     except Exception as e:
         print(f"Failed to backup database: {e}")
 
