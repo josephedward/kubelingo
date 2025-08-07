@@ -58,7 +58,7 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 -   **[Not Started] Add unit/integration tests**: No formal tests exist yet for `answer_checker` or the new UI flows. This is the highest priority next step to prevent regressions.
 -   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
 -   **[Not Started] Improve API key handling**: An interactive prompt for the `OPENAI_API_KEY` has not been implemented.
--   **[Not Started] Persist AI-generated questions**: Introduce a local storage layer (e.g., SQLite database) to save all AI-generated questions. This will enable reuse, de-duplication across sessions, offline review, and analytics on question generation patterns.
+-   **[Completed] Persist AI-generated questions**: AI-generated questions are now automatically saved to a local SQLite database (`kubelingo.db`). This enables reuse and offline review. The implementation includes a `kubelingo/database.py` module for all database interactions and is rigorously tested in `tests/test_database.py` and `tests/modules/test_question_generator.py`.
 
 ## Recent Enhancements
 
