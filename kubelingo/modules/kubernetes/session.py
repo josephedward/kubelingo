@@ -12,7 +12,7 @@ from datetime import datetime
 import logging
 
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher, unified_diff
 try:
     import questionary
 except ImportError:
@@ -1252,7 +1252,28 @@ class NewSession(StudySession):
                                     correct_indices.discard(current_question_index)
                                     print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
                                     if correct_yaml_str:
-                                        print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
+                                        # Generate and print a diff for better feedback
+                                        diff = unified_diff(
+                                            correct_yaml_str.strip().splitlines(keepends=True),
+                                            user_yaml_str.strip().splitlines(keepends=True),
+                                            fromfile='expected.yaml',
+                                            tofile='your-answer.yaml',
+                                        )
+                                        diff_text = ''.join(diff)
+                                        if diff_text:
+                                            print(f"{Fore.CYAN}Showing differences (-expected, +yours):{Style.RESET_ALL}")
+                                            for line in diff_text.splitlines():
+                                                if line.startswith('+'):
+                                                    print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
+                                                elif line.startswith('-'):
+                                                    print(f"{Fore.RED}{line}{Style.RESET_ALL}")
+                                                elif line.startswith('@@'):
+                                                    print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
+                                                else:
+                                                    print(line)
+                                        else:
+                                            # is_yaml_subset can fail for structural reasons a diff doesn't show (e.g. list order)
+                                            print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
 
                             except yaml.YAMLError as e:
                                 correct_indices.discard(current_question_index)
