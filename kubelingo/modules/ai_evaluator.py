@@ -213,8 +213,9 @@ Be lenient with whitespace and case unless the question implies sensitivity.
 
         # Load question prompt and category (ensure category is a string before lowercasing)
         prompt = question_data.get('prompt', '')
-        # Protect against None category values
-        category = (question_data.get('category') or '').lower()
+        # Protect against None and non-string category values
+        raw_cat = question_data.get('category')
+        category = raw_cat.lower() if isinstance(raw_cat, str) else ''
         # Citation or source URL for LLM context
         source_url = question_data.get('source') or question_data.get('citation')
 
