@@ -1062,10 +1062,6 @@ class NewSession(StudySession):
 
                             # Auto-evaluate the answer
                             self._check_command_with_ai(q, answer, current_question_index, attempted_indices, correct_indices)
-                            # Always show reference URL after answering
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
@@ -1237,10 +1233,6 @@ class NewSession(StudySession):
                         expected_answer = q.get('response', '').strip()
                         if expected_answer:
                             print(f"{Fore.CYAN}Expected Answer: {expected_answer}{Style.RESET_ALL}")
-                        # Display source citation
-                        source_url = q.get('citation') or q.get('source')
-                        if source_url:
-                            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
                         # After evaluating command/AI, always advance to next question
                         if current_question_index == total_questions - 1:
@@ -1312,6 +1304,8 @@ class NewSession(StudySession):
         Helper to evaluate a command-based answer using the AI evaluator.
         """
         attempted_indices.add(current_question_index)
+        is_correct = False
+
         # Normalize common 'k' alias for short-circuit matching
         uc = user_command.strip()
         if uc == 'k':
@@ -1320,40 +1314,38 @@ class NewSession(StudySession):
             normalized = 'kubectl ' + uc[2:]
         else:
             normalized = uc
+
         # Short-circuit exact matches against the expected base command
         expected = q.get('response', '').strip()
         if expected and normalized == expected:
+            is_correct = True
+        else:
+            try:
+                from kubelingo.modules.ai_evaluator import AIEvaluator
+                evaluator = AIEvaluator()
+                result = evaluator.evaluate_command(q, user_command)
+                is_correct = result.get('correct', False)
+                reasoning = result.get('reasoning', 'No reasoning provided.')
+                
+                status = 'Correct' if is_correct else 'Incorrect'
+                print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
+
+            except ImportError:
+                print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+
+        if is_correct:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            # Always show one reference: override for Vim Commands
-            source_url = q.get('citation') or q.get('source')
-            if source_url:
-                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
-            return
-
-        try:
-            from kubelingo.modules.ai_evaluator import AIEvaluator
-            evaluator = AIEvaluator()
-            result = evaluator.evaluate_command(q, user_command)
-            is_correct = result.get('correct', False)
-            reasoning = result.get('reasoning', 'No reasoning provided.')
+        else:
+            correct_indices.discard(current_question_index)
+            print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
             
-            status = 'Correct' if is_correct else 'Incorrect'
-            print(f"{Fore.CYAN}AI Evaluation: {status} - {reasoning}{Style.RESET_ALL}")
-
-            if is_correct:
-                correct_indices.add(current_question_index)
-                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-            else:
-                correct_indices.discard(current_question_index)
-                print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-            
-            # The AI reasoning is expected to include the source and an explanation.
-
-        except ImportError:
-            print(f"{Fore.YELLOW}AI evaluator dependencies not installed. Cannot check command.{Style.RESET_ALL}")
-        except Exception as e:
-            print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
+        # The AI reasoning is expected to include the source, but we print it here for consistency.
+        source_url = q.get('citation') or q.get('source')
+        if source_url:
+            print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
     def _check_and_process_answer(self, args, q, result, current_question_index, attempted_indices, correct_indices):
         """
