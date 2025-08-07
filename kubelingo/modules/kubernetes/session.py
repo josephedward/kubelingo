@@ -490,7 +490,13 @@ class NewSession(StudySession):
                         import kubelingo.modules.question_generator as qg_module
                         generator = qg_module.AIQuestionGenerator()
                         subject = _get_subject_for_questions(static_questions[0]) if static_questions else ''
-                        ai_qs = generator.generate_questions(subject, clones_needed)
+                        # Generate AI-backed questions, including context of existing questions
+                        ai_qs = generator.generate_questions(
+                            subject,
+                            clones_needed,
+                            base_questions=static_questions,
+                            num_to_generate=clones_needed
+                        )
                         # Append generated Question objects
                         combined.extend(ai_qs)
                     except Exception as e:
