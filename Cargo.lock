@@ -323,14 +323,13 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "kubelingo"
-version = "0.1.10"
+version = "0.1.12"
 dependencies = [
  "anyhow",
  "clap",
  "dialoguer",
  "portable-pty",
  "pyo3",
- "pyo3-build-config 0.21.2",
  "regex",
  "serde",
  "serde_json",
@@ -535,20 +534,10 @@ dependencies = [
  "memoffset 0.9.1",
  "once_cell",
  "portable-atomic",
- "pyo3-build-config 0.24.1",
+ "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
-]
-
-[[package]]
-name = "pyo3-build-config"
-version = "0.21.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
-dependencies = [
- "once_cell",
- "target-lexicon 0.12.16",
 ]
 
 [[package]]
@@ -558,7 +547,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e27165889bd793000a098bb966adc4300c312497ea25cf7a690a9f0ac5aa5fc1"
 dependencies = [
  "once_cell",
- "target-lexicon 0.13.2",
+ "target-lexicon",
 ]
 
 [[package]]
@@ -568,7 +557,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05280526e1dbf6b420062f3ef228b78c0c54ba94e157f5cb724a609d0f2faabc"
 dependencies = [
  "libc",
- "pyo3-build-config 0.24.1",
+ "pyo3-build-config",
 ]
 
 [[package]]
@@ -591,7 +580,7 @@ checksum = "f4cf6faa0cbfb0ed08e89beb8103ae9724eb4750e3a78084ba4017cbe94f3855"
 dependencies = [
  "heck",
  "proc-macro2",
- "pyo3-build-config 0.24.1",
+ "pyo3-build-config",
  "quote",
  "syn",
 ]
@@ -830,12 +819,6 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
-
-[[package]]
-name = "target-lexicon"
-version = "0.12.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "target-lexicon"
