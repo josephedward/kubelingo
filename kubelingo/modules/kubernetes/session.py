@@ -1165,8 +1165,10 @@ class NewSession(StudySession):
                             if question_id:
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
+                                    q['review'] = False
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
+                                    q['review'] = True
 
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
@@ -1288,8 +1290,10 @@ class NewSession(StudySession):
                             if question_id:
                                 if current_question_index in correct_indices:
                                     self.session_manager.unmark_question_for_review(question_id)
+                                    q['review'] = False
                                 else:
                                     self.session_manager.mark_question_for_review(question_id)
+                                    q['review'] = True
 
                             # Display explanation if provided
                             if q.get('explanation'):
@@ -1318,8 +1322,10 @@ class NewSession(StudySession):
                         if question_id:
                             if current_question_index in correct_indices:
                                 self.session_manager.unmark_question_for_review(question_id)
+                                q['review'] = False
                             else:
                                 self.session_manager.mark_question_for_review(question_id)
+                                q['review'] = True
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
