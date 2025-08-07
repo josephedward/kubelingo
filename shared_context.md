@@ -64,6 +64,9 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 
 - [Added] **Kubectl Syntax Validation**: Introduced `validate_kubectl_syntax()` in `kubelingo/utils/validation.py`, which runs `kubectl <cmd> --help` client-side to catch unknown commands or flags and surfaces errors or warnings before executing or recording user input.
 - [Added] **YAML Manifest Structure Validation**: In the Vim-based YAML editor (`kubelingo/modules/kubernetes/vim_yaml_editor.py`), Kubelingo now applies `validate_yaml_structure()` on the edited manifest, printing any syntax or structure errors and warnings immediately after editing and before answer evaluation.
+-- [Improved] **Kubectl Syntax Skipping**: If the `kubectl` binary is not found on the PATH, `validate_kubectl_syntax()` now treats commands as valid (skipping the `--help` check) instead of rejecting them outright.
+-- [Improved] **Dry-Run Validation Fallback**: During AI-driven question generation, the `--dry-run=client` validation now catches `FileNotFoundError` and skips the validation step, preventing infinite retry loops when `kubectl` is missing.
+-- [Improved] **AI Question Key Flexibility**: `AIQuestionGenerator.generate_questions()` now accepts alternative JSON keys—`question`/`answer` and `q`/`a`—in addition to `prompt`/`response` to accommodate varied AI output shapes.
 
 ## Unified Terminal Quiz Refactor
 
