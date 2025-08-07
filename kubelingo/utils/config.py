@@ -1,24 +1,32 @@
 import os
 
-# Base directory for the project
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+# The root of the package
+PACKAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-# Data and logging directories
-DATA_DIR = os.path.join(ROOT, 'question-data')
-LOGS_DIR = os.path.join(ROOT, 'logs')
+# User-specific files (logs, history, database etc.) in home directory
+# to support installed package execution.
+HOME_DIR = os.path.expanduser("~")
+APP_DIR = os.path.join(HOME_DIR, ".kubelingo")
+LOGS_DIR = os.path.join(APP_DIR, 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+# Data directories for built-in quiz files are inside the package
+DATA_DIR = os.path.join(PACKAGE_ROOT, 'question-data')
+
 
 # --- Database ---
-DATABASE_FILE = os.path.join(DATA_DIR, 'kubelingo.db')
-# Secondary backup database: snapshot of original questions from migration
-BACKUP_DATABASE_FILE = os.path.join(ROOT, 'question-data-backup', 'kubelingo.db')
+# Writable database is stored in the user's app directory.
+DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
+# Secondary backup database: snapshot of original questions from migration, located in the package.
+BACKUP_DATABASE_FILE = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'kubelingo.db')
 
 # --- Quiz Data Files ---
 
-# JSON files
+# JSON files are in the package's data directory.
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
-# Built-in YAML-edit quiz data files are stored in the backup YAML directory
-YAML_QUIZ_DIR = os.path.join(ROOT, 'question-data-backup', 'yaml')
+# Built-in YAML-edit quiz data files are stored in the backup YAML directory, inside the package.
+YAML_QUIZ_DIR = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'yaml')
 # Updated to use the properly formatted 'yaml_exercises_quiz.yaml'
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Built-in Vim quiz data file (YAML-based quiz)
