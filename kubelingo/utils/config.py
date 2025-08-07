@@ -40,9 +40,10 @@ BACKUP_DATABASE_FILE = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'kubel
 JSON_DIR = os.path.join(DATA_DIR, 'json')
 DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
 # Built-in YAML-edit quiz data files are stored in the backup YAML directory at project root.
-YAML_QUIZ_DIR = os.path.join(PROJECT_ROOT, 'question-data-backup', 'yaml')
-# Updated to use the properly formatted 'yaml_exercises_quiz.yaml'
-YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
+# Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
+YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+# YAML editing quiz data file (in JSON format)
+YAML_QUESTIONS_FILE = os.path.join(JSON_DIR, 'yaml_quiz.json')
 # Built-in Vim quiz data file (YAML-based quiz)
 VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml')
