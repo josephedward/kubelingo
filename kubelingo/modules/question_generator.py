@@ -110,15 +110,6 @@ class AIQuestionGenerator:
                     type="command",
                     validator={"type": "ai", "expected": r},
                 ))
-                add_question(
-                    id=qid,
-                    prompt=p,
-                    source_file=source_file,
-                    response=r,
-                    category=subject,
-                    validator={"type": "ai", "expected": r},
-                    source="ai",
-                )
             if len(valid_questions) >= num_questions:
                 break
             print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
