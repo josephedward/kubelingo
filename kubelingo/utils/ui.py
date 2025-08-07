@@ -68,37 +68,10 @@ KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  ll
 
 
 def print_banner():
-    """Prints the Kubelingo ASCII banner."""
-    lines = ASCII_ART.strip('\n').splitlines()
-    if not lines:
-        return
-
-    center_width = max(len(line) for line in lines)
-
-    # Split point to color 'Kube' and 'Lingo' differently.
-    # This is an approximation based on the visual structure of the ASCII art.
-    split_point = 82
-
-    for line in lines:
-        kube_part = line[:split_point]
-        lingo_part = line[split_point:]
-        print(f"{Fore.CYAN}{kube_part}{Fore.MAGENTA}{lingo_part}{Style.RESET_ALL}")
-
-    subheader = "Kubernetes Studying Tool"
-
-    # Pimp out the subheader with alternating colors for a vibrant look
-    colors = [Fore.CYAN, Fore.GREEN, Fore.MAGENTA, Fore.YELLOW]
-    pimped_subheader = "".join(
-        f"{colors[i % len(colors)]}{char}" for i, char in enumerate(subheader)
-    )
-
-    # Center the pimped subheader manually to handle ANSI color codes
-    if center_width > len(subheader):
-        padding_total = center_width - len(subheader)
-        padding_left = padding_total // 2
-        print(f"{' ' * padding_left}{pimped_subheader}{Style.RESET_ALL}")
-    else:
-        print(f"{pimped_subheader}{Style.RESET_ALL}")
+    """Prints the Kubelingo banner."""
+    # Simplified banner for concise output
+    banner = "Kubelingo: Kubernetes Studying Tool"
+    print(banner)
 
 
 def show_session_type_help():
