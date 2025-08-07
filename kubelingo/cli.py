@@ -192,8 +192,10 @@ def main():
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
         # rewrite to explicit sandbox-mode flag
         sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
-    print_banner()
-    print()
+    # Only display banner when not showing help
+    if '--help' not in sys.argv and '-h' not in sys.argv:
+        print_banner()
+        print()
     # Attempt to load OpenAI API key from user config if not set
     import getpass
     from pathlib import Path
