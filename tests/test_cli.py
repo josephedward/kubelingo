@@ -6,6 +6,9 @@ import pytest
 from kubelingo.cli import main
 
 
+pytestmark = pytest.mark.filterwarnings("ignore:Can not control echo on the terminal")
+
+
 @patch('kubelingo.cli.show_history')
 def test_cli_history_argument(mock_show_history):
     """Test that `kubelingo --history` calls show_history()."""
