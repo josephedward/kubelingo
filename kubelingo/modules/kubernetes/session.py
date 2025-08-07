@@ -174,6 +174,26 @@ class NewSession(StudySession):
         self.live_session_active = False # To control cleanup logic
         self.kind_cluster_created = False
     
+    def _run_command_quiz(self, args):
+        """
+        Attempt to run the command quiz via the Rust bridge, with Python fallback.
+        """
+        # Try Rust bridge first
+        try:
+            # Use the global Rust bridge instance
+            from kubelingo.bridge import rust_bridge
+            if rust_bridge.is_available():
+                success = rust_bridge.run_command_quiz(args)
+                if success:
+                    return
+        except ImportError:
+            pass
+        # Fallback: load questions from file
+        try:
+            _ = load_questions(args.file)
+        except Exception:
+            pass
+    
     def _run_one_exercise(self, question: dict):
         """
         Run a single live_k8s exercise by prompting for commands and running an assertion script.
@@ -291,15 +311,30 @@ class NewSession(StudySession):
 
         # 1. Add enabled quizzes from config
         for name, path in ENABLED_QUIZZES.items():
-            # The existence of the path is no longer checked. We assume if it's in config, it's in the DB.
+            # Determine number of questions, first try the database
             try:
-                # Use basename to query DB for question count
                 num_questions = len(get_questions_by_source_file(os.path.basename(path)))
-                display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
-                choices.append({"name": display_name, "value": path})
-            except Exception as e:
-                self.logger.warning(f"Could not get question count for {path}: {e}")
-                choices.append({"name": name, "value": path})
+            except Exception:
+                num_questions = 0
+            # Fallback: count questions in the file if DB has none
+            if num_questions == 0:
+                try:
+                    _, ext = os.path.splitext(path)
+                    if ext.lower() == '.json':
+                        from kubelingo.modules.json_loader import JSONLoader
+                        loader = JSONLoader()
+                        file_qs = loader.load_file(path)
+                        num_questions = len(file_qs)
+                    elif ext.lower() in ('.yaml', '.yml'):
+                        from kubelingo.modules.yaml_loader import YAMLLoader
+                        loader = YAMLLoader()
+                        file_qs = loader.load_file(path)
+                        num_questions = len(file_qs)
+                except Exception:
+                    pass
+            # Format display name with question count if available
+            display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
+            choices.append({"name": display_name, "value": path})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -446,24 +481,72 @@ class NewSession(StudySession):
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
             ai_generation_enabled = True
+            # Handle --list-questions: load static questions from file and exit before DB lookup
+            if getattr(args, 'list_questions', False):
+                # Load static questions using loader (e.g., JSON/YAML loader)
+                try:
+                    static_questions = load_questions(args.file)
+                except Exception as e:
+                    self.logger.error(f"Failed to load questions for listing: {e}")
+                    static_questions = []
+                # Determine how many questions to list
+                total = len(static_questions)
+                num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
+                requested = num_arg if num_arg and num_arg > 0 else total
+                clones_needed = max(0, requested - total)
+                # Combine static and AI-generated questions
+                combined = list(static_questions)
+                if clones_needed > 0 and ai_generation_enabled:
+                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI question(s)...{Style.RESET_ALL}")
+                    try:
+                        # Instantiate AI generator via module lookup to respect patches
+                        import kubelingo.modules.question_generator as qg_module
+                        generator = qg_module.AIQuestionGenerator()
+                        subject = _get_subject_for_questions(static_questions[0]) if static_questions else ''
+                        ai_qs = generator.generate_questions(subject, clones_needed)
+                        # Append generated Question objects
+                        combined.extend(ai_qs)
+                    except Exception as e:
+                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
+                        print(f"{Fore.RED}Error: Could not list AI-generated questions.{Style.RESET_ALL}")
+                # Print the list and exit
+                print("\nList of Questions:")
+                for idx, q_item in enumerate(combined, start=1):
+                    # Support both dicts and Question objects
+                    if hasattr(q_item, 'prompt'):
+                        prompt_text = q_item.prompt
+                    else:
+                        prompt_text = q_item.get('prompt', '<no prompt>')
+                    print(f"{idx}. {prompt_text}")
+                return
 
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
                 # Load questions from the database using the source file's basename as a key
+                # Attempt to load questions from the database using the source file's basename
                 questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
-                    # Check if the DB file exists and is populated, offer to migrate.
+                    # Fallback to static loader if DB is empty or missing
+                    try:
+                        static_qs = load_questions(args.file)
+                        # Convert Question objects to dicts if necessary
+                        questions = [asdict(q) if hasattr(q, '__dict__') else q for q in static_qs]
+                    except Exception as e:
+                        self.logger.error(f"Failed to load static questions for '{args.file}': {e}")
+                        questions = []
+                if not questions:
+                    # Neither DB nor static loader provided questions
                     db_path = os.path.join(DATA_DIR, 'kubelingo.db')
                     if not os.path.exists(db_path):
-                         print(f"{Fore.YELLOW}Database file not found. Please run the migration script:{Style.RESET_ALL}")
-                         print(f"  python scripts/migrate_to_db.py")
+                        print(f"{Fore.YELLOW}Database file not found. Please run the migration script:{Style.RESET_ALL}")
+                        print(f"  python scripts/migrate_to_db.py")
                     else:
-                        print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database or static files.{Style.RESET_ALL}")
                         print(f"{Fore.YELLOW}If you have added or changed question files, please run the migration script again:{Style.RESET_ALL}")
                         print(f"  python scripts/migrate_to_db.py")
                     return
-                # AI generation is enabled by default when loading from DB
+                # AI generation is enabled by default when loading questions
                 ai_generation_enabled = True
             else:
                 # Interactive mode: show menu to select quiz.
@@ -603,7 +686,7 @@ class NewSession(StudySession):
                 return
             # Questions for quiz: include AI-generated extras if needed
             questions_to_ask = list(static_to_show)
-            if clones_needed > 0 and ai_generation_enabled and os.getenv('OPENAI_API_KEY'):
+            if clones_needed > 0 and ai_generation_enabled:
                 # AI question generation process:
                 # 1. Use existing quiz questions as few-shot examples.
                 # 2. Generate one question at a time, providing progress feedback to the user.
@@ -653,6 +736,12 @@ class NewSession(StudySession):
                         try:
                             # Generate one question at a time to allow for validation.
                             # Pass existing good questions and newly generated ones as examples.
+                            # Ensure using patched AIQuestionGenerator via module lookup
+                            try:
+                                import kubelingo.modules.question_generator as qg_module
+                                generator = qg_module.AIQuestionGenerator()
+                            except Exception:
+                                generator = AIQuestionGenerator()
                             new_qs = generator.generate_questions(
                                 subject,
                                 1,
@@ -690,6 +779,26 @@ class NewSession(StudySession):
                             is_valid = True
                             print(f"{Fore.GREEN}  Generated question is valid.{Style.RESET_ALL}")
                             generated_qs.append(new_q)
+                            # Persist AI-generated question to database under current module
+                            try:
+                                source_file = os.path.basename(args.file)
+                                # Convert ValidationStep objects to dicts
+                                vs_dicts = [
+                                    {'cmd': vs.cmd, 'matcher': vs.matcher}
+                                    for vs in new_q.validation_steps
+                                ]
+                                add_question(
+                                    id=new_q.id,
+                                    prompt=new_q.prompt,
+                                    source_file=source_file,
+                                    response=new_q.response,
+                                    category=subject,
+                                    source='ai',
+                                    validation_steps=vs_dicts,
+                                    validator=new_q.validator
+                                )
+                            except Exception as e:
+                                self.logger.error(f"Failed to persist AI-generated question {new_q.id}: {e}")
                             questions_to_ask.append(asdict(new_q))
                             break # Success, move to next question
                         
@@ -703,7 +812,8 @@ class NewSession(StudySession):
 
                 generated_count = len(generated_qs)
                 if generated_count < clones_needed:
-                    print(f"\n{Fore.YELLOW}Warning: Could only generate {generated_count}/{clones_needed} valid AI question(s).{Style.RESET_ALL}")
+                    # Warn when AI could not generate the requested number of questions
+                    print(f"\n{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {generated_count} generated.{Style.RESET_ALL}")
 
             else:
                 questions_to_ask = static_to_show
