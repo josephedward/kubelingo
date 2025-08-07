@@ -20,10 +20,6 @@ portable-pty = "0.8"
 anyhow = "1.0"
 tempfile = "3.20.0"
 
-[build-dependencies]
-# Enable resolve-config feature to access use_pyo3_cfgs in build script
-pyo3-build-config = { version = "0.21.2", features = ["resolve-config"] }
-
 [lib]
 name = "_native"
 crate-type = ["cdylib"]
