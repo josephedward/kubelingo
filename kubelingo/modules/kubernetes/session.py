@@ -1012,11 +1012,11 @@ class NewSession(StudySession):
                         if is_flagged:
                             self.session_manager.unmark_question_for_review(question_id)
                             q['review'] = False
-                            print(Fore.MAGENTA + "Question unflagged." + Style.RESET_ALL)
+                            print(f"{Fore.MAGENTA}This question has been removed from review.{Style.RESET_ALL}")
                         else:
                             self.session_manager.mark_question_for_review(question_id)
                             q['review'] = True
-                            print(Fore.MAGENTA + "Question flagged for review." + Style.RESET_ALL)
+                            print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
                         continue
 
                     if action == "answer":
@@ -1100,11 +1100,11 @@ class NewSession(StudySession):
                                     self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
                                     _update_review_in_yaml_file(source_file, question_id, review=False)
-                                else:
+                            else:
                                     self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
                                     _update_review_in_yaml_file(source_file, question_id, review=True)
-                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
+                                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
                                     finish_quiz = True
