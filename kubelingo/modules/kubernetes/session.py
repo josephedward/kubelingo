@@ -511,9 +511,24 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # Load questions from the database using the source file's basename as a key
-                # Attempt to load questions from the database using the source file's basename
-                questions = get_questions_by_source_file(os.path.basename(args.file))
+                # First, attempt to load questions via JSON-style loader (e.g., unified JSON quizzes)
+                try:
+                    static_override = load_questions(args.file)
+                except Exception as e:
+                    self.logger.error(f"Failed to load questions via JSON loader for '{args.file}': {e}")
+                    static_override = []
+                if static_override:
+                    # Convert Question objects or dicts into uniform dict format
+                    questions = []
+                    for q_item in static_override:
+                        if hasattr(q_item, 'id'):
+                            questions.append(asdict(q_item))
+                        else:
+                            questions.append(q_item)
+                    ai_generation_enabled = True
+                else:
+                    # Load questions from the database using the source file's basename as a key
+                    questions = get_questions_by_source_file(os.path.basename(args.file))
                 if not questions:
                     # If questions are not in the DB, load from file and persist them.
                     # This makes manual migration less critical and fixes issues with non-JSON files.
