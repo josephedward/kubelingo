@@ -328,37 +328,7 @@ class NewSession(StudySession):
 
         # 6. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
-        return choices, all_flagged
 
-        # 5. Session Type (disabled)
-        choices.append({"name": "Session Type (PTY/Docker)", "value": "session_type_disabled", "disabled": "Selection simplified"})
-        
-        # 6. Custom Quiz (disabled)
-        choices.append({"name": "Custom Quiz", "value": "custom_quiz_disabled", "disabled": "Coming soon"})
-        
-        choices.append(questionary.Separator("Other Quizzes (Coming Soon)"))
-        
-        if all_quiz_files:
-            seen_subjects = set()
-            # List additional quizzes; enable selected ones by default
-            enabled_files = {"kubectl_common_operations.yaml", "resource_reference.yaml"}
-            for file_path in all_quiz_files:
-                base = os.path.basename(file_path)
-                name = os.path.splitext(base)[0]
-                subject = humanize_module(name).strip()
-                if subject in seen_subjects:
-                    continue
-                seen_subjects.add(subject)
-                # Enable certain YAML quizzes, others are coming soon
-                if base in enabled_files:
-                    choices.append({"name": subject, "value": file_path})
-                else:
-                    choices.append({
-                        "name": subject,
-                        "value": file_path,
-                        "disabled": "Not yet implemented"
-                    })
-        
         if all_flagged:
             choices.append(questionary.Separator())
             choices.append({"name": f"Clear All {len(all_flagged)} Review Flags", "value": "clear_flags"})
