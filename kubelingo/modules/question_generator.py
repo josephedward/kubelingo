@@ -58,6 +58,9 @@ class AIQuestionGenerator:
         # Allow alias 'num_to_generate' for compatibility in calls
         if num_to_generate is not None:
             num_questions = num_to_generate
+        else:
+            # default to using num_questions when alias not provided
+            num_to_generate = num_questions
         valid_questions: List[Question] = []
         # Attempt generation up to max_attempts
         for attempt in range(1, self.max_attempts + 1):
