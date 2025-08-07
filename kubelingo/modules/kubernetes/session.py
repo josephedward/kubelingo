@@ -461,26 +461,6 @@ class NewSession(StudySession):
                 if selected == "study_mode":
                     self._run_study_mode_session()
                     continue
-                if selected == "generate_ai_questions":
-                    # Prompt user for count and topic
-                    try:
-                        count_str = questionary.text("Number of questions:").ask()
-                        topic = questionary.text("Topic:").ask()
-                        count = int(count_str)
-                    except Exception:
-                        print(f"{Fore.RED}Invalid input for AI questions.{Style.RESET_ALL}")
-                        continue
-                    generator = AIQuestionGenerator()
-                    # generate_questions(subject, num_questions)
-                    questions = generator.generate_questions(topic, count)
-                    if not questions:
-                        print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
-                    else:
-                        print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
-                        for i, q in enumerate(questions, 1):
-                            print(f"{i}. {q.prompt}")
-                    input("\nPress Enter to return to the menu…")
-                    continue
 
                 if selected == "help":
                     self._show_help()
