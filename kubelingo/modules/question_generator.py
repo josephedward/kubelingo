@@ -48,6 +48,12 @@ class AIQuestionGenerator:
         ai_prompt = "\n".join(prompt_lines)
         logger.debug("AI few-shot prompt: %s", ai_prompt)
 
+        source_file = "ai_generated"
+        if base_questions:
+            # If we have base questions, they all come from the same quiz.
+            # Use their source file so new questions are associated with that quiz.
+            source_file = getattr(base_questions[0], 'source_file', source_file)
+
         valid_questions: List[Question] = []
         # Attempt generation up to max_attempts
         for attempt in range(1, self.max_attempts + 1):
@@ -107,7 +113,7 @@ class AIQuestionGenerator:
                 add_question(
                     id=qid,
                     prompt=p,
-                    source_file="ai_generated",
+                    source_file=source_file,
                     response=r,
                     category=subject,
                     validator={"type": "ai", "expected": r},
