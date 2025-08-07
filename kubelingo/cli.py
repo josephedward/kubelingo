@@ -35,7 +35,8 @@ if __name__ == '__main__' and __package__ is None:
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
-    _get_quiz_files, _get_md_quiz_files, _get_yaml_quiz_files, get_all_flagged_questions, NewSession
+    get_all_flagged_questions,
+    NewSession,
 )
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
@@ -172,6 +173,12 @@ def main():
         return
 
     os.makedirs(LOGS_DIR, exist_ok=True)
+    # Initialize the questions database and ensure schema is up-to-date (adds 'review' column)
+    try:
+        from kubelingo.database import init_db
+        init_db()
+    except Exception:
+        pass
     # Initialize logging for both interactive and non-interactive modes
     import logging
     log_level = os.getenv('KUBELINGO_LOG_LEVEL', 'INFO').upper()
@@ -291,6 +298,10 @@ def main():
         help='Generate one AI-based question on a given topic (e.g. serviceaccount) and exit'
     )
     parser.add_argument(
+        '--ai-questions', nargs=2, metavar=('COUNT','TOPIC'),
+        help='Generate multiple AI-based questions: specify COUNT and TOPIC, then exit'
+    )
+    parser.add_argument(
         '--enrich-model', type=str, default='gpt-3.5-turbo',
         help='AI model to use for explanations and validation generation'
     )
@@ -359,6 +370,23 @@ def main():
         # Non-interactive mode
         args = parser.parse_args()
         # Handle on-demand AI-generated question and exit
+        if args.ai_questions:
+            # Generate multiple AI-based questions on a given topic
+            try:
+                count_str, topic = args.ai_questions
+                count = int(count_str)
+            except Exception:
+                print(f"{Fore.RED}Invalid usage: --ai-questions requires COUNT and TOPIC.{Style.RESET_ALL}")
+                return
+            generator = AIQuestionGenerator()
+            q_list = generator.generate_topic_questions(topic, count)
+            if not q_list:
+                print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
+                return
+            print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
+            for i, q in enumerate(q_list, 1):
+                print(f"{i}. {q}")
+            return
         if args.ai_question:
             topic = args.ai_question.strip()
             generator = AIQuestionGenerator()
