@@ -66,22 +66,30 @@ import logging  # for logging in exercises
 # Stub out AI evaluator to avoid heavy external dependencies
 
 def _get_subject_for_questions(q):
-    """Extracts the category/subject string for AI question generation."""
-    # Try dict form first
+    """
+    Extracts the category/subject string for AI question generation.
+    Handles both dicts and Question objects, and is safe against empty lists.
+    """
+    subject = ''
+    # Handle dicts from database/YAML
     if isinstance(q, dict):
-        subject = q.get('category') or (q.get('categories') or [None])[0] or ''
+        categories = q.get('categories')
+        if categories and isinstance(categories, list) and categories:
+            subject = categories[0]
         if not subject:
-            subject = q.get('metadata', {}).get('category', '')
-        return subject or ''
-    # Fallback for Question objects
-    subject = getattr(q, 'category', None) or ''
-    if not subject:
-        cats = getattr(q, 'categories', [])
-        if cats:
-            subject = cats[0]
-    if not subject:
-        meta = getattr(q, 'metadata', {})
-        subject = meta.get('category', '')
+            subject = q.get('category')
+        if not subject:
+            subject = q.get('metadata', {}).get('category')
+    # Handle Question objects for few-shot examples
+    else:
+        categories = getattr(q, 'categories', [])
+        if categories and isinstance(categories, list) and categories:
+            subject = categories[0]
+        if not subject:
+            subject = getattr(q, 'category', None)
+        if not subject:
+            subject = getattr(q, 'metadata', {}).get('category')
+    
     return subject or ''
 
 
@@ -606,7 +614,7 @@ class NewSession(StudySession):
                                     initial_files=q_dict.get('initial_files', {}),
                                     validation_steps=validation_steps,
                                     explanation=q_dict.get('explanation'),
-                                    categories=q_dict.get('categories', [q_dict.get('category', 'General')]),
+                                    categories=q_dict.get('categories') or [q_dict.get('category') or 'General'],
                                     difficulty=q_dict.get('difficulty'),
                                     metadata=q_dict.get('metadata', {})
                                 ))
