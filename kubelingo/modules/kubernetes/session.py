@@ -786,10 +786,10 @@ class NewSession(StudySession):
                 # Show static in original order
                 combined.extend(static_to_show)
                 # If more needed, generate AI-backed questions
-                    if clones_needed > 0:
-                        try:
-                            from kubelingo.modules.question_generator import AIQuestionGenerator as _AIQuestionGenerator
-                            generator = _AIQuestionGenerator()
+                if clones_needed > 0:
+                    try:
+                        from kubelingo.modules.question_generator import AIQuestionGenerator as _AIQuestionGenerator
+                        generator = _AIQuestionGenerator()
                         # Generate AI-backed questions for this quiz category
                         subject = _get_subject_for_questions(questions[0]) if questions else ''
                         ai_qs = generator.generate_questions(subject, clones_needed)
