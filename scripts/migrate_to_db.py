@@ -25,13 +25,19 @@ def migrate():
 
     # Discover all YAML files directly from the data directory to avoid stale paths in config.
     yaml_dir = project_root / 'question-data' / 'yaml'
-    yaml_files = list(yaml_dir.glob('**/*.yaml')) + list(yaml_dir.glob('**/*.yml'))
+    
+    yaml_files = []
+    if yaml_dir.is_dir():
+        for root, _, files in os.walk(yaml_dir):
+            for filename in files:
+                if filename.endswith(('.yaml', '.yml')):
+                    yaml_files.append(os.path.join(root, filename))
+    
     yaml_files = sorted(list(set(yaml_files))) # de-duplicate and sort
 
     print(f"Found {len(yaml_files)} unique YAML quiz files to migrate from {yaml_dir}.")
 
-    for file_path_obj in yaml_files:
-        file_path = str(file_path_obj)
+    for file_path in yaml_files:
         print(f"Processing {file_path}...")
         try:
             # Load questions as objects for structured data
