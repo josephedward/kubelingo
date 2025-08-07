@@ -35,4 +35,4 @@ def test_install_and_run_from_source(tmp_path: Path):
     )
 
     # Check for a string that is likely to be in the --help output.
-    assert "Usage: kubelingo" in result.stdout
+    assert "usage: kubelingo" in result.stdout
