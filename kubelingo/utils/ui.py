@@ -41,31 +41,64 @@ def humanize_module(name: str) -> str:
     return disp.replace('_', ' ').title()
 
 
-ASCII_ART = r"""
-#   # #   # ####  ##### #     ###  #   #  ####  ###  
-#  #  #   # #   # #     #      #   ##  # #     #   #  
-###   #   # ####  ###   #      #   # # # # ### #   #  
-#  #  #   # #   # #     #      #   #  ## #   # #   #  
-#   #  ###  ####  ##### #####  ###  #   #  ####  ###  
-"""
+ASCII_ART = r"""                                      bbbbbbbb
+KKKKKKKKK    KKKKKKK                  b::::::b                                lllllll   iiii
+K:::::::K    K:::::K                  b::::::b                                l:::::l  i::::i
+K:::::::K    K:::::K                  b::::::b                                l:::::l   iiii
+K:::::::K   K::::::K                   b:::::b                                l:::::l
+KK::::::K  K:::::KKKuuuuuu    uuuuuu   b:::::bbbbbbbbb        eeeeeeeeeeee     l::::l iiiiiii nnnn  nnnnnnnn       ggggggggg   ggggg   ooooooooooo
+  K:::::K K:::::K   u::::u    u::::u   b::::::::::::::bb    ee::::::::::::ee   l::::l i:::::i n:::nn::::::::nn    g:::::::::ggg::::g oo:::::::::::oo
+  K::::::K:::::K    u::::u    u::::u   b::::::::::::::::b  e::::::eeeee:::::ee l::::l  i::::i n::::::::::::::nn  g:::::::::::::::::go:::::::::::::::o
+  K:::::::::::K     u::::u    u::::u   b:::::bbbbb:::::::be::::::e     e:::::e l::::l  i::::i nn:::::::::::::::ng::::::ggggg::::::ggo:::::ooooo:::::o
+  K:::::::::::K     u::::u    u::::u   b:::::b    b::::::be:::::::eeeee::::::e l::::l  i::::i   n:::::nnnn:::::ng:::::g     g:::::g o::::o     o::::o
+  K::::::K:::::K    u::::u    u::::u   b:::::b     b:::::be:::::::::::::::::e  l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
+  K:::::K K:::::K   u::::u    u::::u   b:::::b     b:::::be::::::eeeeeeeeeee   l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
+KK::::::K  K:::::KKKu:::::uuuu:::::u   b:::::b     b:::::be:::::::e            l::::l  i::::i   n::::n    n::::ng::::::g    g:::::g o::::o     o::::o
+K:::::::K   K::::::Ku:::::::::::::::uu b:::::bbbbbb::::::be::::::::e          l::::::li::::::i  n::::n    n::::ng:::::::ggggg:::::g o:::::ooooo:::::o
+K:::::::K    K:::::K u:::::::::::::::u b::::::::::::::::b  e::::::::eeeeeeee  l::::::li::::::i  n::::n    n::::n g::::::::::::::::g o:::::::::::::::o
+K:::::::K    K:::::K  uu::::::::uu:::u b:::::::::::::::b    ee:::::::::::::e  l::::::li::::::i  n::::n    n::::n  gg::::::::::::::g  oo:::::::::::oo
+KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  lllllllliiiiiiii  nnnnnn    nnnnnn    gggggggg::::::g    ooooooooooo
+                                                                                                                            g:::::g
+                                                                                                                gggggg      g:::::g
+                                                                                                                g:::::gg   gg:::::g
+                                                                                                                 g::::::ggg:::::::g
+                                                                                                                  gg:::::::::::::g
+                                                                                                                    ggg::::::ggg
+                                                                                                                       gggggg                    """
 
 
 def print_banner():
     """Prints the Kubelingo ASCII banner."""
     lines = ASCII_ART.strip('\n').splitlines()
-    center_width = len(lines[0]) if lines else 0
+    if not lines:
+        return
+
+    center_width = max(len(line) for line in lines)
+
+    # Split point to color 'Kube' and 'Lingo' differently.
+    # This is an approximation based on the visual structure of the ASCII art.
+    split_point = 82
 
     for line in lines:
-        # Split between KUBE and LINGO for different colors
-        # KUBE part is 23 characters wide.
-        print(f"{Fore.CYAN}{line[:23]}{Fore.MAGENTA}{line[23:]}{Style.RESET_ALL}")
+        kube_part = line[:split_point]
+        lingo_part = line[split_point:]
+        print(f"{Fore.CYAN}{kube_part}{Fore.MAGENTA}{lingo_part}{Style.RESET_ALL}")
 
     subheader = "Kubernetes Studying Tool"
-    # Center the subheader based on the banner width
-    if center_width > 0:
-        print(f"{Fore.YELLOW}{subheader.center(center_width)}{Style.RESET_ALL}")
+
+    # Pimp out the subheader with alternating colors for a vibrant look
+    colors = [Fore.CYAN, Fore.GREEN, Fore.MAGENTA, Fore.YELLOW]
+    pimped_subheader = "".join(
+        f"{colors[i % len(colors)]}{char}" for i, char in enumerate(subheader)
+    )
+
+    # Center the pimped subheader manually to handle ANSI color codes
+    if center_width > len(subheader):
+        padding_total = center_width - len(subheader)
+        padding_left = padding_total // 2
+        print(f"{' ' * padding_left}{pimped_subheader}{Style.RESET_ALL}")
     else:
-        print(f"{Fore.YELLOW}{subheader}{Style.RESET_ALL}")
+        print(f"{pimped_subheader}{Style.RESET_ALL}")
 
 
 def show_session_type_help():
