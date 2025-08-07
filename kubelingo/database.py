@@ -3,9 +3,18 @@ import json
 from typing import Dict, Any, List, Optional
 from kubelingo.utils.config import DATABASE_FILE
 
+import os
+
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
+    # Ensure the database directory exists
+    db_dir = os.path.dirname(DATABASE_FILE)
+    if db_dir:
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except Exception:
+            pass
     conn = sqlite3.connect(DATABASE_FILE)
     conn.row_factory = sqlite3.Row
     return conn
