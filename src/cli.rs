@@ -17,26 +17,10 @@ pub struct Cli {
 pub enum Commands {
     /// Spawn a PTY-based shell with custom prompt
     Pty,
-    /// Kubernetes exercises
-    K8s {
-        #[command(subcommand)]
-        exercise: K8sExercise,
-    },
     /// Custom exercises
     Kustom {
         #[arg(long)]
         custom_file: Option<String>,
-    },
-}
-
-#[derive(Subcommand, Debug)]
-pub enum K8sExercise {
-    /// Command quiz
-    Quiz {
-        #[arg(short, long)]
-        num: Option<usize>,
-        #[arg(short, long)]
-        category: Option<String>,
     },
 }
 
