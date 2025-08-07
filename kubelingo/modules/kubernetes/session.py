@@ -319,6 +319,8 @@ class NewSession(StudySession):
 
         # 3. Study Mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
+        # 4. Generate AI Questions
+        choices.append({"name": "Generate AI Questions…", "value": "generate_ai_questions"})
 
         # 4. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
@@ -502,6 +504,25 @@ class NewSession(StudySession):
 
                 if selected == "study_mode":
                     self._run_study_mode_session()
+                    continue
+                if selected == "generate_ai_questions":
+                    # Prompt user for count and topic
+                    try:
+                        count_str = questionary.text("Number of questions:").ask()
+                        topic = questionary.text("Topic:").ask()
+                        count = int(count_str)
+                    except Exception:
+                        print(f"{Fore.RED}Invalid input for AI questions.{Style.RESET_ALL}")
+                        continue
+                    generator = AIQuestionGenerator()
+                    q_list = generator.generate_topic_questions(topic, count)
+                    if not q_list:
+                        print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
+                    else:
+                        print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
+                        for i, q in enumerate(q_list, 1):
+                            print(f"{i}. {q}")
+                    input("\nPress Enter to return to the menu…")
                     continue
 
                 if selected == "help":
