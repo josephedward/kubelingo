@@ -588,22 +588,29 @@ class NewSession(StudySession):
                         # Use a small, random sample of existing questions for few-shot prompting
                         sample_dicts = random.sample(questions, min(len(questions), 3))
                         for q_dict in sample_dicts:
-                            # Convert dict to Question, being careful with nested objects
-                            q_copy = q_dict.copy()
-                            if 'validation_steps' in q_copy:
-                                q_copy['validation_steps'] = [
-                                    vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
-                                    for vs in q_copy.get('validation_steps', [])
-                                ]
-                            
-                            # Filter for keys that are valid for the Question dataclass
-                            valid_args = {
-                                k: v for k, v in q_copy.items()
-                                if k in QuestionObject.__annotations__
-                            }
+                            # Manually construct Question object to provide as a few-shot example for AI.
+                            # This is more robust than filtering keys.
                             try:
-                                base_q_sample.append(QuestionObject(**valid_args))
-                            except TypeError as e:
+                                validation_steps = [
+                                    vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
+                                    for vs in q_dict.get('validation_steps', [])
+                                ]
+                                if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
+                                    validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
+
+                                base_q_sample.append(QuestionObject(
+                                    id=q_dict.get('id', ''),
+                                    prompt=q_dict.get('prompt', ''),
+                                    type=q_dict.get('type', ''),
+                                    pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
+                                    initial_files=q_dict.get('initial_files', {}),
+                                    validation_steps=validation_steps,
+                                    explanation=q_dict.get('explanation'),
+                                    categories=q_dict.get('categories', [q_dict.get('category', 'General')]),
+                                    difficulty=q_dict.get('difficulty'),
+                                    metadata=q_dict.get('metadata', {})
+                                ))
+                            except (TypeError, KeyError) as e:
                                 self.logger.warning(f"Could not convert question dict to object for AI generation: {e}")
 
                     ai_qs = generator.generate_questions(
