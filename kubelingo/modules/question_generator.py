@@ -10,6 +10,7 @@ from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax
 from kubelingo.utils.validation import validate_prompt_completeness
+from kubelingo.database import add_question
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,15 @@ class AIQuestionGenerator:
                     type="command",
                     validator={"type": "ai", "expected": r},
                 ))
+                add_question(
+                    id=qid,
+                    prompt=p,
+                    source_file="ai_generated",
+                    response=r,
+                    category=subject,
+                    validator={"type": "ai", "expected": r},
+                    source="ai",
+                )
             if len(valid_questions) >= num_questions:
                 break
             print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
