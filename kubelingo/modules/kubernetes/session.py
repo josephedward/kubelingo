@@ -819,9 +819,6 @@ class NewSession(StudySession):
                     print(f"\n{Fore.YELLOW}Requested {requested} questions, but only {total} are available and AI generation is disabled for this module.{Style.RESET_ALL}")
                     ai_qs = []
                 # Inform user about AI-assisted question generation
-                elif not os.getenv('OPENAI_API_KEY'):
-                    print(f"\n{Fore.RED}Cannot generate AI questions: OPENAI_API_KEY is not set.{Style.RESET_ALL}")
-                    ai_qs = []
                 else:
                     print(f"\nGenerating {clones_needed} additional AI questions...")
                     try:
@@ -990,7 +987,7 @@ class NewSession(StudySession):
                     choices.append({"name": "Exit App", "value": "exit_app"})
 
                     # Determine if interactive action selection is available
-                    action_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+                    action_interactive = bool(questionary)
                     if not action_interactive:
                         # Text fallback for action selection
                         print("\nActions:")
@@ -1003,12 +1000,19 @@ class NewSession(StudySession):
                             continue
                     else:
                         try:
-                            print()
-                            action = questionary.select(
-                                "Action:",
-                                choices=choices,
-                                use_indicator=True
-                            ).ask()
+                            answer = questionary.prompt([{
+                                "type": "select",
+                                "name": "action",
+                                "message": "Action:",
+                                "choices": choices
+                            }])
+                            action = answer.get("action")
+                            # Map display name to internal value if necessary
+                            if isinstance(action, str):
+                                for choice in choices:
+                                    if action == choice.get('name'):
+                                        action = choice.get('value')
+                                        break
                             if action is None:
                                 raise KeyboardInterrupt
                         except (EOFError, KeyboardInterrupt):
@@ -1021,7 +1025,7 @@ class NewSession(StudySession):
 
                     if action == "exit_app":
                         print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        sys.exit(0)
+                        return False
 
                     if action == "back":
                         quiz_backed_out = True
