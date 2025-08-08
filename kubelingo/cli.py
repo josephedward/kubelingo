@@ -45,6 +45,7 @@ from kubelingo.modules.kubernetes.session import (
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
+from kubelingo.modules.service_account_generator import ServiceAccountGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -272,7 +273,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes' or 'sandbox pty')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', or 'config')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -309,6 +310,14 @@ def main():
     parser.add_argument(
         '--ai-questions', nargs=2, metavar=('COUNT','TOPIC'),
         help='Generate multiple AI questions and exit.'
+    )
+    parser.add_argument(
+        '--ai-save', type=str, metavar='FILE',
+        help='Save AI-generated questions and answers to a JSON file.'
+    )
+    parser.add_argument(
+        '--generate-sa-questions', type=int, metavar='COUNT',
+        help='Generate COUNT static ServiceAccount questions and add to database.'
     )
     parser.add_argument(
         '--enrich-model', type=str, default='gpt-3.5-turbo',
@@ -378,6 +387,92 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
+        # Handle config commands: kubelingo config <view|set> openai [KEY]
+        from pathlib import Path
+        import getpass
+        from kubelingo.utils.config import APP_DIR
+        if args.command and len(args.command) > 0 and args.command[0] == 'config':
+            # config usage
+            cmd = args.command
+            if len(cmd) < 2:
+                print('Usage: kubelingo config <view|set> <property> [value]')
+                return
+            action = cmd[1]
+            # Only 'openai' property supported for now
+            if action == 'view':
+                if len(cmd) < 3:
+                    print('Usage: kubelingo config view <property>')
+                    return
+                prop = cmd[2].lower()
+                if prop in ('openai', 'api_key'):
+                    key_file = Path(APP_DIR) / 'api_key'
+                    if key_file.exists():
+                        try:
+                            val = key_file.read_text(encoding='utf-8').strip()
+                        except Exception:
+                            val = ''
+                        if val:
+                            print(f'OpenAI API key: {val}')
+                        else:
+                            print('OpenAI API key is not set.')
+                    else:
+                        print('OpenAI API key is not set.')
+                else:
+                    print(f"Unknown config property '{prop}'. Supported: openai")
+                return
+            elif action == 'set':
+                if len(cmd) >= 4:
+                    prop = cmd[2].lower()
+                    value = cmd[3]
+                elif len(cmd) == 3:
+                    prop = cmd[2].lower()
+                    # prompt for value if not provided
+                    if prop in ('openai', 'api_key'):
+                        value = getpass.getpass('Enter OpenAI API key: ').strip()
+                    else:
+                        print(f"Unknown config property '{prop}'. Supported: openai")
+                        return
+                else:
+                    print('Usage: kubelingo config set <property> [value]')
+                    return
+                if prop in ('openai', 'api_key'):
+                    try:
+                        cfg = Path(APP_DIR)
+                        cfg.mkdir(mode=0o700, parents=True, exist_ok=True)
+                        key_file = cfg / 'api_key'
+                        key_file.write_text(value, encoding='utf-8')
+                        os.chmod(str(key_file), 0o600)
+                        print('OpenAI API key saved.')
+                    except Exception as e:
+                        print(f'Failed to save OpenAI API key: {e}')
+                else:
+                    print(f"Unknown config property '{prop}'. Supported: openai")
+                return
+            else:
+                print(f"Unknown config action '{action}'. Use 'view' or 'set'.")
+                return
+        # Handle on-demand static ServiceAccount questions generation and exit
+        if args.generate_sa_questions:
+            generator = ServiceAccountGenerator()
+            questions = generator.generate_questions(args.generate_sa_questions)
+            from dataclasses import asdict
+            from kubelingo.database import add_question
+            # Add each question to the database
+            for q in questions:
+                qd = asdict(q)
+                category = qd.get('categories', [None])[0]
+                add_question(
+                    id=qd['id'],
+                    prompt=qd['prompt'],
+                    source_file='service_accounts',
+                    response=qd['metadata'].get('answer'),
+                    category=category,
+                    source='static',
+                    validation_steps=qd.get('validation_steps'),
+                    validator=qd.get('validator')
+                )
+            print(f"Added {len(questions)} ServiceAccount questions to database.")
+            return
         # Handle on-demand AI-generated question and exit
         if args.ai_questions:
             # Generate multiple AI-based questions on a given topic
@@ -388,14 +483,25 @@ def main():
                 print(f"{Fore.RED}Invalid usage: --ai-questions requires COUNT and TOPIC.{Style.RESET_ALL}")
                 return
             generator = AIQuestionGenerator()
-            # generate_questions returns a list of Question objects
             questions = generator.generate_questions(topic, count)
             if not questions:
                 print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
                 return
+            # Prepare items for display and optional saving
+            items = [{'question': q.prompt, 'answer': q.response} for q in questions]
+            # Save to file if requested
+            if args.ai_save:
+                out_path = args.ai_save
+                out_dir = os.path.dirname(out_path) or '.'
+                os.makedirs(out_dir, exist_ok=True)
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    json.dump(items, f, indent=2, ensure_ascii=False)
+                print(f"\n{Fore.GREEN}Saved {len(items)} items to {out_path}{Style.RESET_ALL}")
+            # Display generated questions and answers
             print(f"\n{Fore.CYAN}AI-generated questions on '{topic}':{Style.RESET_ALL}")
-            for i, q in enumerate(questions, 1):
-                print(f"{i}. {q.prompt}")
+            for idx, item in enumerate(items, start=1):
+                print(f"{idx}. Q: {item['question']}")
+                print(f"   A: {item['answer']}")
             return
         if args.ai_question:
             topic = args.ai_question.strip()

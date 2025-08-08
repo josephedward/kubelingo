@@ -5,6 +5,22 @@ try:
     import openai
 except ImportError:
     openai = None
+# If this module-level openai is our local stub (openai.py), try loading the real package
+import os, sys, importlib
+if openai is not None and hasattr(openai, '__file__'):
+    # Detect stub by filename
+    if os.path.basename(openai.__file__) == 'openai.py':
+        cwd = os.getcwd()
+        backup_path = list(sys.path)
+        # Remove current dir entries to avoid importing local stub
+        sys.path = [p for p in sys.path if p not in ('', cwd)]
+        try:
+            real_openai = importlib.import_module('openai')
+        except ImportError:
+            real_openai = openai
+        finally:
+            sys.path = backup_path
+        openai = real_openai
 
 
 KUBERNETES_TOPICS = {
@@ -31,7 +47,13 @@ class KubernetesStudyMode:
     def __init__(self, api_key: str):
         if openai is None:
             raise ImportError("openai package not found. Please install it with 'pip install openai'")
-        self.client = openai.OpenAI(api_key=api_key)
+        # Configure API key on the OpenAI module
+        try:
+            openai.api_key = api_key
+        except Exception as e:
+            raise ImportError(f"Failed to set OpenAI API key: {e}")
+        # Use OpenAI module directly for chat completions
+        self.openai = openai
         self.conversation_history = []
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
@@ -40,8 +62,8 @@ class KubernetesStudyMode:
 
         initial_message = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
 
-        response = self.client.chat.completions.create(
-            model="gpt-4",  # Use GPT-4 for better reasoning
+        response = self.openai.ChatCompletion.create(
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": initial_message}
@@ -63,7 +85,7 @@ class KubernetesStudyMode:
         """Continue the study conversation"""
         self.conversation_history.append({"role": "user", "content": user_input})
 
-        response = self.client.chat.completions.create(
+        response = self.openai.ChatCompletion.create(
             model="gpt-4",
             messages=self.conversation_history,
             temperature=0.7,
@@ -120,9 +142,12 @@ The question should:
 
 Format: Present the scenario, then ask "What questions would you ask first to troubleshoot this?" rather than asking for the direct solution."""
 
-        response = self.client.chat.completions.create(
+        response = self.openai.ChatCompletion.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": question_prompt}],
+            messages=[
+                {"role": "system", "content": "You are an expert Kubernetes instructor creating quiz questions."},
+                {"role": "user",   "content": question_prompt}
+            ],
             temperature=0.8,
             max_tokens=300
         )
