@@ -95,6 +95,7 @@ Example output format:
     chunks = [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
 
     all_generated_questions = []
+    existing_prompts_set = {p.strip().lower() for p in existing_prompts}
 
     for i, chunk in enumerate(chunks):
         print(f"Processing chunk {i+1}/{len(chunks)}...")
@@ -132,8 +133,14 @@ Please generate {num_questions_per_chunk} new questions from the text chunk abov
 
                 generated_questions = yaml.safe_load(content)
                 if isinstance(generated_questions, list):
-                    all_generated_questions.extend(generated_questions)
-                    print(f"Successfully generated {len(generated_questions)} questions from chunk {i+1}.")
+                    newly_added_count = 0
+                    for q in generated_questions:
+                        prompt_text = q.get('prompt', '').strip().lower()
+                        if prompt_text and prompt_text not in existing_prompts_set:
+                            all_generated_questions.append(q)
+                            existing_prompts_set.add(prompt_text)
+                            newly_added_count += 1
+                    print(f"Successfully generated and filtered {newly_added_count} new questions from chunk {i+1}.")
                 else:
                     print(f"Warning: AI returned non-list data for chunk {i+1}. Skipping.", file=sys.stderr)
             except (yaml.YAMLError, TypeError) as e:
