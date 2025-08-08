@@ -138,38 +138,34 @@ def show_history():
 
 
 def show_modules():
-    """Display available built-in and question-data modules."""
-    # Built-in modules
-    modules = discover_modules()
-    print(f"{Fore.CYAN}Built-in Modules:{Style.RESET_ALL}")
-    if modules:
-        for mod in modules:
-            print(Fore.YELLOW + mod + Style.RESET_ALL)
-    else:
-        print("No built-in modules found.")
-    # Question-data modules by source file
-    print(f"\n{Fore.CYAN}Question-data Modules (by file):{Style.RESET_ALL}")
-    # JSON modules
-    json_paths = JSONLoader().discover()
-    if json_paths:
-        print(Fore.CYAN + "  JSON:" + Style.RESET_ALL)
-        for p in json_paths:
-            name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
-    # Markdown modules
-    md_paths = MDLoader().discover()
-    if md_paths:
-        print(Fore.CYAN + "  Markdown:" + Style.RESET_ALL)
-        for p in md_paths:
-            name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
-    # YAML modules
-    yaml_paths = YAMLLoader().discover()
-    if yaml_paths:
-        print(Fore.CYAN + "  YAML:" + Style.RESET_ALL)
-        for p in yaml_paths:
-            name = os.path.splitext(os.path.basename(p))[0]
-            print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
+    """Display available DB-backed modules."""
+    print(f"{Fore.CYAN}Available quiz modules (from database):{Style.RESET_ALL}")
+    try:
+        from kubelingo.modules.db_loader import DBLoader
+        loader = DBLoader()
+        modules = loader.discover()
+        if not modules:
+            print(f"{Fore.YELLOW}No modules found in the database.{Style.RESET_ALL}")
+            print(f"You can populate it using 'kubelingo import-json' or 'kubelingo migrate-yaml'.")
+            return
+
+        grouped = {}
+        for mod_path in modules:
+            name, ext = os.path.splitext(os.path.basename(mod_path))
+            if not ext:  # Handle cases where source_file might not have an extension
+                ext = ".unknown"
+            ext = ext.lstrip('.').upper()
+            if ext not in grouped:
+                grouped[ext] = []
+            grouped[ext].append(humanize_module(name))
+
+        for ext, mods in sorted(grouped.items()):
+            print(f"  {Fore.GREEN}{ext}:{Style.RESET_ALL}")
+            for name in sorted(mods):
+                print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL}")
+
+    except Exception as e:
+        print(f"{Fore.RED}Failed to load modules from database: {e}{Style.RESET_ALL}")
 def handle_config_command(cmd):
     """Handles 'config' subcommands."""
     import getpass
@@ -372,6 +368,71 @@ def restore_yaml_from_backup():
     print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
 
 
+def import_json_to_db():
+    """Imports questions from JSON files into the database."""
+    print(f"{Fore.CYAN}Starting import of JSON questions into the database...{Style.RESET_ALL}")
+
+    from kubelingo.database import add_question
+    from kubelingo.modules.json_loader import JSONLoader
+    loader = JSONLoader()
+    json_files = loader.discover()
+
+    if not json_files:
+        print(f"{Fore.YELLOW}No JSON quiz files found in 'question-data/json' to import.{Style.RESET_ALL}")
+        return
+
+    total_imported = 0
+    total_files = 0
+    for file_path in json_files:
+        filename = os.path.basename(file_path)
+        print(f"  - Processing '{filename}'...")
+        try:
+            questions = loader.load_file(file_path)
+            if not questions:
+                print(f"    {Fore.YELLOW}No questions found, skipping.{Style.RESET_ALL}")
+                continue
+
+            for q_obj in questions:
+                q_dict = asdict(q_obj)
+                category = None
+                cats = q_dict.get('categories')
+                if cats and isinstance(cats, list) and cats:
+                    category = cats[0]
+                elif q_dict.get('category'):
+                    category = q_dict.get('category')
+
+                add_question(
+                    id=q_dict['id'],
+                    prompt=q_dict['prompt'],
+                    source_file=filename,
+                    response=q_dict.get('response'),
+                    category=category,
+                    source=q_dict.get('source'),
+                    validation_steps=q_dict.get('validation_steps'),
+                    validator=q_dict.get('validator'),
+                    review=q_dict.get('review', False)
+                )
+            total_imported += len(questions)
+            total_files += 1
+            print(f"    {Fore.GREEN}Imported {len(questions)} questions.{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.GREEN}Import complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
+    
+    # Backup the database after import
+    try:
+        from kubelingo.database import DATABASE_FILE
+        from kubelingo.utils.config import BACKUP_DATABASE_FILE
+        if os.path.exists(DATABASE_FILE):
+            os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
+            shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+            print(f"{Fore.CYAN}Database backup created at {BACKUP_DATABASE_FILE}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Failed to backup database: {e}{Style.RESET_ALL}")
+
+
 def manage_config_interactive():
     """Interactive prompt for managing configuration."""
     if questionary is None:
@@ -387,6 +448,8 @@ def manage_config_interactive():
                 {"name": "List configured clusters", "value": "list_clusters"},
                 {"name": "Add a new cluster connection", "value": "add_cluster"},
                 {"name": "Remove a cluster connection", "value": "remove_cluster"},
+                questionary.Separator("Data Management"),
+                {"name": "Import JSON quizzes into database", "value": "import_json"},
                 questionary.Separator(),
                 {"name": "Cancel", "value": "cancel"}
             ],
@@ -407,6 +470,8 @@ def manage_config_interactive():
             handle_config_command(['config', 'add', 'cluster'])
         elif action == 'remove_cluster':
             handle_config_command(['config', 'remove', 'cluster'])
+        elif action == 'import_json':
+            import_json_to_db()
 
         # Add a newline for better spacing after the operation
         print()
@@ -582,7 +647,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml', 'restore-yaml', 'import-json')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -805,6 +870,9 @@ def main():
                 return
             elif cmd_name == 'restore-yaml':
                 restore_yaml_from_backup()
+                return
+            elif cmd_name == 'import-json':
+                import_json_to_db()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
