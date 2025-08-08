@@ -102,6 +102,21 @@ def _update_review_status_in_db(question_id: str, review: bool):
         logging.getLogger().error(f"Failed to update review status in DB for QID {question_id}: {e}")
 
 
+def _update_question_source_in_db(question_id: str, source: str, logger):
+    """Updates the 'source' for a specific question in the database."""
+    if not question_id or not source:
+        return
+    try:
+        from kubelingo.database import get_db_connection
+        conn = get_db_connection()
+        conn.execute("UPDATE questions SET source = ? WHERE id = ?", (source, question_id))
+        conn.commit()
+        conn.close()
+        logger.info(f"Updated source for question {question_id} to: {source}")
+    except Exception as e:
+        logger.error(f"Failed to update source in DB for QID {question_id}: {e}")
+
+
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in the database."""
     try:
@@ -931,6 +946,21 @@ class NewSession(StudySession):
                     source_items.append(q['citation'])
                 if q.get('source'):
                     source_items.append(q['source'])
+
+                # If no source is found, try to find one with AI
+                if not source_items and os.getenv('OPENAI_API_KEY'):
+                    print(f"{Fore.YELLOW}Searching for a source URL...{Style.RESET_ALL}")
+                    try:
+                        from kubelingo.modules.ai_evaluator import AIEvaluator
+                        evaluator = AIEvaluator()
+                        ai_source = evaluator.find_source_for_question(q.get('prompt', ''))
+                        if ai_source:
+                            source_items.append(ai_source)
+                            q['source'] = ai_source # Update in-memory object
+                            _update_question_source_in_db(q.get('id'), ai_source, self.logger)
+                    except (ImportError, Exception) as e:
+                        self.logger.warning(f"AI source lookup failed: {e}")
+
                 for url in source_items:
                     print(f"{Fore.CYAN}Source: {url}{Style.RESET_ALL}")
 
