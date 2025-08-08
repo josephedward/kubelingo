@@ -106,19 +106,19 @@ This command provides a way to populate the Kubelingo database from `question-da
 
 **Functionality**:
 - **JSON Ingestion**: Recursively finds and parses all `.json` files in the `question-data/json` directory.
-- **Selective Clear**: With the `--clear` flag, it removes all questions originating from `.json` files before importing. This allows for a clean re-import of only the JSON-based quizzes without affecting YAML or Markdown questions. By default, it appends questions.
+- **Targeted Clear or Append**: By default, it removes only the questions from the database that originate from the specific JSON files being imported. This prevents accidental data loss when re-importing. Use the `--append` flag to skip this and add all questions from the source files, which may create duplicates if the questions already exist.
 - **Database Population**: Loads all questions from the JSON files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`).
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database.
 
 **Usage**:
 
-- To add or update questions from JSON files (default behavior):
+- To re-import questions from JSON files, clearing previous versions first (default behavior):
   ```bash
-  kubelingo db import-json
+  python3 scripts/import_json_to_db.py
   ```
-- To clear all existing JSON-sourced questions and re-import them:
+- To append questions from JSON files without clearing any existing questions:
   ```bash
-  kubelingo db import-json --clear
+  python3 scripts/import_json_to_db.py --append
   ```
 
 ## Current Architecture: The Unified Shell Experience
@@ -413,7 +413,7 @@ These exercises require users to perform actions in a live shell environment. Th
 This script provides a streamlined way to populate or reset the Kubelingo question database from a directory of YAML source files. It is the designated tool for seeding the database, aligning with the "database-first" architecture.
 
 **Functionality**:
-- **Clear or Append**: By default, it clears the entire `questions` table before importing to ensure a fresh start. Use the `--append` flag to skip this step and add new questions or update existing ones, preserving all other data.
+- **Targeted Clear or Append**: By default, it removes only the questions from the database that originate from the specific YAML files being imported. This prevents accidental data loss when re-importing a subset of questions. Use the `--append` flag to skip this and add all questions from the source files, which may create duplicates if the questions already exist.
 - **Comprehensive YAML Ingestion**: Recursively finds and parses all `.yaml` and `.yml` files. It can scan multiple source directories in a single run.
 - **Database Population**: Loads all questions from the YAML files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`). Because it uses `INSERT OR REPLACE`, existing questions with the same `id` will be updated.
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database at `question-data-backup/kubelingo.db.bak`, overwriting any previous backup.

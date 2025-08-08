@@ -1,98 +1,4 @@
 #!/usr/bin/env python3
-"""
-Import quiz questions from question-data/json into the Kubelingo database.
-
-Scans all JSON files under question-data/json, parses them via JSONLoader,
-and inserts/replaces each question into the live database (~/.kubelingo/kubelingo.db).
-Supports a --clear flag to delete existing JSON-sourced questions before import.
-After import, backs up the updated database to question-data-backup/kubelingo_original.db.
-"""
-import os
-import sys
-import argparse
-import shutil
-
-# Add project root to PYTHONPATH
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
-sys.path.insert(0, PROJECT_ROOT)
-
-from kubelingo.database import init_db, add_question, get_db_connection
-from kubelingo.modules.json_loader import JSONLoader
-from kubelingo.utils.config import DATA_DIR, BACKUP_DATABASE_FILE, DATABASE_FILE
-
-def clear_json_questions(conn):
-    """Delete all questions whose source_file ends with .json"""
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM questions WHERE source_file LIKE '%%.json'")
-    deleted = cursor.rowcount
-    conn.commit()
-    return deleted
-
-def main():
-    parser = argparse.ArgumentParser(
-        description='Import JSON quizzes into the Kubelingo DB'
-    )
-    parser.add_argument(
-        '--clear', action='store_true', help='Remove existing JSON quizzes before import'
-    )
-    args = parser.parse_args()
-
-    # Initialize live DB
-    init_db()
-    # Connect to DB
-    conn = get_db_connection()
-    total_processed = 0
-    # Optionally clear JSON questions
-    if args.clear:
-        deleted = clear_json_questions(conn)
-        print(f"Cleared {deleted} existing JSON-based questions.")
-
-    # Discover JSON files
-    json_dir = os.path.join(DATA_DIR, 'json')
-    if not os.path.isdir(json_dir):
-        print(f"JSON directory not found: {json_dir}")
-        return
-    loader = JSONLoader()
-    files = loader.discover()
-    for path in sorted(files):
-        name = os.path.basename(path)
-        print(f"Importing from {name}...")
-        try:
-            questions = loader.load_file(path)
-        except Exception as e:
-            print(f"  Failed to parse {name}: {e}")
-            continue
-        for q in questions:
-            # Serialize validation steps
-            vs = [ {'cmd': v.cmd, 'matcher': v.matcher} for v in q.validation_steps ]
-            validator = q.validator
-            try:
-                add_question(
-                    id=q.id,
-                    prompt=q.prompt,
-                    source_file=name,
-                    response=q.response,
-                    category=(q.categories[0] if q.categories else q.category),
-                    source='json',
-                    validation_steps=vs,
-                    validator=validator,
-                )
-                total_processed += 1
-            except Exception as e:
-                print(f"  Could not add {q.id}: {e}")
-    conn.close()
-    print(f"Imported {total_processed} questions from JSON files.")
-
-    # Backup updated DB
-    try:
-        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-        print(f"Backed up database to {BACKUP_DATABASE_FILE}")
-    except Exception as e:
-        print(f"Failed to backup database: {e}")
-
-if __name__ == '__main__':
-    main()#!/usr/bin/env python3
 
 import argparse
 import shutil
@@ -118,43 +24,28 @@ BACKUP_DIR = project_root / "question-data-backup"
 BACKUP_PATH = BACKUP_DIR / "kubelingo.db.bak"
 
 
-def clear_json_questions(conn):
-    """Deletes all existing questions sourced from JSON files."""
-    print("Clearing existing questions sourced from JSON files from the database...")
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM questions WHERE source_file LIKE '%.json'")
-        print("JSON-sourced questions cleared successfully.")
-    except Exception as e:
-        print(f"Error clearing JSON-sourced questions: {e}", file=sys.stderr)
-        raise
+def clear_questions_from_files(conn, source_file_names: list[str]):
+    """Deletes questions from the database that originate from a specific list of source files."""
+    if not source_file_names:
+        return
+    placeholders = ",".join("?" for _ in source_file_names)
+    sql = f"DELETE FROM questions WHERE source_file IN ({placeholders})"
+
+    print(f"Clearing existing questions from {len(source_file_names)} source files...")
+    cursor = conn.cursor()
+    cursor.execute(sql, source_file_names)
+    print(f"Cleared {cursor.rowcount} questions.")
 
 
-def import_questions_from_path(source_path: Path, loader: JSONLoader, conn) -> int:
-    """Loads all JSON files from a directory or a single file and writes them to the database."""
-    print(f"Searching for JSON files in '{source_path}'...")
-    if source_path.is_dir():
-        json_files = list(source_path.glob("**/*.json"))
-    elif source_path.is_file() and source_path.suffix in [".json"]:
-        json_files = [source_path]
-    else:
-        json_files = []
-
-    if not json_files:
-        print("No JSON files found.")
-        return 0
-
-    print(f"Found {len(json_files)} JSON files. Importing questions...")
-
+def import_json_questions_from_files(
+    all_json_files: list[Path], loader: JSONLoader, conn
+) -> int:
+    """Imports questions from a list of JSON files into the database."""
     total_imported = 0
-    for file_path in json_files:
+    for file_path in all_json_files:
         try:
             questions: list[Question] = loader.load_file(str(file_path))
             for q in questions:
-                # Based on the Question dataclass and database module, we call add_question
-                # with all available fields. getattr is used for safety with optional fields.
-                # Ensure list/dict fields default to empty containers instead of None to prevent
-                # database NULLs that can cause runtime errors.
                 validation_steps = getattr(q, "validation_steps", None)
                 pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
                 initial_files = getattr(q, "initial_files", None)
@@ -169,7 +60,7 @@ def import_questions_from_path(source_path: Path, loader: JSONLoader, conn) -> i
                     source=getattr(q, "source", None),
                     validation_steps=validation_steps or [],
                     validator=getattr(q, "validator", None),
-                    review=False,  # New questions are not marked for review by default
+                    review=False,
                     explanation=getattr(q, "explanation", None),
                     difficulty=getattr(q, "difficulty", None),
                     pre_shell_cmds=pre_shell_cmds or [],
@@ -182,7 +73,6 @@ def import_questions_from_path(source_path: Path, loader: JSONLoader, conn) -> i
             print(
                 f"  - ERROR processing file '{file_path.name}': {e}", file=sys.stderr
             )
-
     return total_imported
 
 
@@ -209,8 +99,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Import JSON quiz questions into the SQLite database and create a backup.",
         formatter_class=argparse.RawTextHelpFormatter,
-        epilog="This script is the canonical way to seed the database from JSON source files.\n"
-        "It uses the 'database-first' architecture described in shared_context.md.",
+        epilog="By default, this script removes existing questions from the database that originate\n"
+        "from the specified source files before re-importing them. Use --append to disable this.\n"
+        "It is the canonical way to seed the database from JSON source files.",
     )
     parser.add_argument(
         "--source-dir",
@@ -221,9 +112,9 @@ def main():
         "If not specified, defaults to scanning 'question-data/json'.",
     )
     parser.add_argument(
-        "--clear",
+        "--append",
         action="store_true",
-        help="Clear existing JSON-sourced questions from the database before importing.",
+        help="Append questions to the database instead of clearing questions from source files first.",
     )
     args = parser.parse_args()
 
@@ -233,23 +124,35 @@ def main():
             project_root / "question-data" / "json",
         ]
 
+    # Discover all JSON files from all source paths first
+    all_json_files = []
+    for path in source_paths:
+        if not path.exists():
+            print(f"Warning: Source path '{path}' does not exist. Skipping.", file=sys.stderr)
+            continue
+        if path.is_dir():
+            all_json_files.extend(list(path.glob("**/*.json")))
+        elif path.is_file() and path.suffix in [".json"]:
+            all_json_files.append(path)
+
+    if not all_json_files:
+        print("No JSON files found to import.")
+        return
+
+    print(f"Found {len(all_json_files)} JSON files to process.")
+
     loader = JSONLoader()
     conn = get_db_connection()
     total_imported = 0
 
     try:
-        if args.clear:
-            clear_json_questions(conn)
+        if not args.append:
+            source_file_names = [p.name for p in all_json_files]
+            clear_questions_from_files(conn, source_file_names)
 
-        for path in source_paths:
-            if not path.exists():
-                print(
-                    f"Warning: Source path '{path}' does not exist. Skipping.",
-                    file=sys.stderr,
-                )
-                continue
-            total_imported += import_yaml_questions_from_path(path, loader, conn)
-
+        total_imported = import_json_questions_from_files(
+            all_json_files, loader, conn
+        )
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
     except Exception as e:

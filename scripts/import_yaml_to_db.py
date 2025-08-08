@@ -26,6 +26,56 @@ BACKUP_PATH = BACKUP_DIR / "kubelingo.db.bak"
 
 
 
+def clear_questions_from_files(conn, source_file_names: list[str]):
+    """Deletes questions from the database that originate from a specific list of source files."""
+    if not source_file_names:
+        return
+    placeholders = ",".join("?" for _ in source_file_names)
+    sql = f"DELETE FROM questions WHERE source_file IN ({placeholders})"
+
+    print(f"Clearing existing questions from {len(source_file_names)} source files...")
+    cursor = conn.cursor()
+    cursor.execute(sql, source_file_names)
+    print(f"Cleared {cursor.rowcount} questions.")
+
+
+def import_yaml_questions_from_files(
+    all_yaml_files: list[Path], loader: YAMLLoader, conn
+) -> int:
+    """Imports questions from a list of YAML files into the database."""
+    total_imported = 0
+    for file_path in all_yaml_files:
+        try:
+            questions: list[Question] = loader.load_file(str(file_path))
+            for q in questions:
+                validation_steps = getattr(q, "validation_steps", None)
+                pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
+                initial_files = getattr(q, "initial_files", None)
+
+                add_question(
+                    conn,
+                    id=q.id,
+                    prompt=q.prompt,
+                    source_file=file_path.name,
+                    response=getattr(q, "response", None),
+                    category=getattr(q, "category", None),
+                    source=getattr(q, "source", None),
+                    validation_steps=validation_steps or [],
+                    validator=getattr(q, "validator", None),
+                    review=False,
+                    explanation=getattr(q, "explanation", None),
+                    difficulty=getattr(q, "difficulty", None),
+                    pre_shell_cmds=pre_shell_cmds or [],
+                    initial_files=initial_files or {},
+                    question_type=getattr(q, "question_type", "command"),
+                )
+            total_imported += len(questions)
+            print(f"  - Imported {len(questions)} questions from '{file_path.name}'.")
+        except Exception as e:
+            print(f"  - ERROR processing file '{file_path.name}': {e}", file=sys.stderr)
+    return total_imported
+
+
 def backup_database():
     """Backs up the live database to the version-controlled backup directory."""
     if not DB_PATH.exists():
@@ -100,48 +150,10 @@ def main():
 
     try:
         if not args.append:
-            # Delete only questions from the source files we are about to import
             source_file_names = [p.name for p in all_yaml_files]
-            if source_file_names:
-                placeholders = ','.join('?' for _ in source_file_names)
-                sql = f"DELETE FROM questions WHERE source_file IN ({placeholders})"
-                
-                print(f"Clearing existing questions from {len(source_file_names)} source files...")
-                cursor = conn.cursor()
-                cursor.execute(sql, source_file_names)
-                print(f"Cleared {cursor.rowcount} questions.")
+            clear_questions_from_files(conn, source_file_names)
 
-        # Import questions from all discovered files
-        for file_path in all_yaml_files:
-            try:
-                questions: list[Question] = loader.load_file(str(file_path))
-                for q in questions:
-                    validation_steps = getattr(q, "validation_steps", None)
-                    pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
-                    initial_files = getattr(q, "initial_files", None)
-
-                    add_question(
-                        conn,
-                        id=q.id,
-                        prompt=q.prompt,
-                        source_file=file_path.name,
-                        response=getattr(q, "response", None),
-                        category=getattr(q, "category", None),
-                        source=getattr(q, "source", None),
-                        validation_steps=validation_steps or [],
-                        validator=getattr(q, "validator", None),
-                        review=False,
-                        explanation=getattr(q, "explanation", None),
-                        difficulty=getattr(q, "difficulty", None),
-                        pre_shell_cmds=pre_shell_cmds or [],
-                        initial_files=initial_files or {},
-                        question_type=getattr(q, "question_type", "command"),
-                    )
-                total_imported += len(questions)
-                print(f"  - Imported {len(questions)} questions from '{file_path.name}'.")
-            except Exception as e:
-                print(f"  - ERROR processing file '{file_path.name}': {e}", file=sys.stderr)
-
+        total_imported = import_yaml_questions_from_files(all_yaml_files, loader, conn)
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
     except Exception as e:
