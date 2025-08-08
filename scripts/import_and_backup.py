@@ -44,7 +44,7 @@ def import_questions_from_yaml(source_dir: Path):
                 add_question(
                     id=q.id,
                     prompt=q.prompt,
-                    source_file=str(yaml_file.relative_to(project_root)),
+                    source_file=yaml_file.name,
                     response=q.response,
                     category=q.category,
                     source=source_url,
