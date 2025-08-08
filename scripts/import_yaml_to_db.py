@@ -103,6 +103,7 @@ def main():
         source_paths = [
             project_root / "question-data" / "yaml",
             project_root / "question-data" / "yaml-bak",
+            project_root / "question-data" / "manifests",
         ]
 
     # Discover all YAML files from all source paths first

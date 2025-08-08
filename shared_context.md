@@ -421,7 +421,7 @@ This script provides a streamlined way to populate or reset the Kubelingo questi
 **Usage**:
 The script is run from the command line. It can accept multiple source directories.
 
-- To add or update questions from all standard YAML source directories (`question-data/yaml` and `question-data/yaml-bak`):
+- To add or update questions from all standard YAML source directories (`question-data/yaml`, `question-data/yaml-bak`, and `question-data/manifests`):
   ```bash
   python3 scripts/import_yaml_to_db.py
   ```
