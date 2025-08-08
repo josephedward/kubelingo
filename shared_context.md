@@ -348,6 +348,26 @@ This script provides a way to generate new quiz questions using AI and save them
     --example-source-file kubectl_service_account_operations.yaml \
     --output-file question-data/yaml/ai_generated_sa_questions.yaml
   ```
+
+### `scripts/import_and_backup.py`
+
+This script provides a way to populate the Kubelingo database from a directory of YAML quiz files and then create a backup of the populated database. This is particularly useful for developers who are creating or updating quiz content in YAML format and need to load it into the application's database.
+
+**Functionality**:
+- **Import from YAML**: The script scans a specified directory for YAML files (`.yaml` or `.yml`), parses them using `YAMLLoader`, and inserts each question into the live SQLite database (`~/.kubelingo/kubelingo.db`). It uses `INSERT OR REPLACE` logic, so running it multiple times with the same questions will update them in place.
+- **Database Backup**: After importing all questions, the script creates a backup of the live database. It copies `~/.kubelingo/kubelingo.db` to `question-data-backup/kubelingo.db`, overwriting the previous backup. This ensures the version-controlled backup reflects the latest set of questions from the source YAML files.
+
+**Usage**:
+The script is run from the command line. It takes a `--source-dir` argument pointing to the directory with YAML files, which defaults to `/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak`.
+
+- To run with the default source directory:
+  ```bash
+  python3 scripts/import_and_backup.py
+  ```
+- To specify a different directory:
+  ```bash
+  python3 scripts/import_and_backup.py --source-dir /path/to/other/yaml/files
+  ```
   
 ### Testing & Observations
 - **Core Functionality**: The main quiz loop is stable. The PTY shell now correctly handles terminal input (including `vim` on macOS), resolving the garbled character issue.
