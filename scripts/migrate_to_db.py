@@ -61,7 +61,8 @@ def migrate():
                     'validation_steps': [asdict(step) for step in q.validation_steps],
                     'validator': q.validator,
                     'source_file': os.path.basename(file_path),
-                    'review': raw_q_data.get('review', False)
+                    'review': raw_q_data.get('review', False),
+                    'explanation': getattr(q, 'explanation', None)
                 }
                 add_question(**q_data)
             total_questions += len(questions_obj)

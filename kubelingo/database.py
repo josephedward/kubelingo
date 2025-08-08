@@ -42,6 +42,12 @@ def init_db():
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
+    # Add 'explanation' column if it doesn't exist for backward compatibility
+    try:
+        cursor.execute("ALTER TABLE questions ADD COLUMN explanation TEXT")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e):
+            raise
     conn.commit()
     conn.close()
 
@@ -55,7 +61,8 @@ def add_question(
     source: Optional[str] = None,
     validation_steps: Optional[List[Dict[str, Any]]] = None,
     validator: Optional[Dict[str, Any]] = None,
-    review: bool = False
+    review: bool = False,
+    explanation: Optional[str] = None
 ):
     """Adds or replaces a question in the database."""
     conn = get_db_connection()
@@ -66,8 +73,8 @@ def add_question(
     validator_json = json.dumps(validator) if validator is not None else None
 
     cursor.execute("""
-        INSERT OR REPLACE INTO questions (id, prompt, response, category, source, validation_steps, validator, source_file, review)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO questions (id, prompt, response, category, source, validation_steps, validator, source_file, review, explanation)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
         prompt,
@@ -77,7 +84,8 @@ def add_question(
         validation_steps_json,
         validator_json,
         source_file,
-        review
+        review,
+        explanation
     ))
     conn.commit()
     conn.close()
