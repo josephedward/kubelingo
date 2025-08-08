@@ -76,6 +76,21 @@ On first run—or whenever the live database is initialized or cleared—Kubelin
 
 After importing all quizzes into `~/.kubelingo/kubelingo.db`, Kubelingo writes a project-level backup at `question-data-backup/kubelingo_original.db`.
 
+### Importing JSON Quiz Files
+
+Quiz definitions in the `question-data/json/` directory are **not** loaded at startup. To import these JSON quizzes into your live database, run:
+```bash
+python3 scripts/import_json_to_db.py [--clear]
+```
+
+Use `--clear` to delete existing JSON-sourced questions before re-importing.  This script will:
+1. Scan each `.json` in `question-data/json/`.
+2. Parse via `JSONLoader` into `Question` objects.
+3. Add/update them in `~/.kubelingo/kubelingo.db` with `source='json'`.
+4. Backup the updated DB to `question-data-backup/kubelingo_original.db`.
+
+These JSON-based quizzes will then appear in the CLI menu alongside existing YAML and Markdown quizzes.
+
 ## Current Architecture: The Unified Shell Experience
 
 Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.

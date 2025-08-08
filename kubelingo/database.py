@@ -133,11 +133,14 @@ def add_question(
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     """Converts a database row into a question dictionary, deserializing JSON fields."""
     q_dict = dict(row)
+    # Deserialize validation_steps JSON into list, default to empty list
     if q_dict.get('validation_steps'):
         try:
             q_dict['validation_steps'] = json.loads(q_dict['validation_steps'])
         except (json.JSONDecodeError, TypeError):
             q_dict['validation_steps'] = []
+    else:
+        q_dict['validation_steps'] = []
     if q_dict.get('validator'):
         try:
             q_dict['validator'] = json.loads(q_dict['validator'])
@@ -145,6 +148,26 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
             q_dict['validator'] = {}
     # Ensure review is a boolean
     q_dict['review'] = bool(q_dict.get('review'))
+    # Deserialize pre_shell_cmds JSON into Python list
+    pre_cmds = q_dict.get('pre_shell_cmds')
+    if pre_cmds:
+        try:
+            q_dict['pre_shell_cmds'] = json.loads(pre_cmds)
+        except (json.JSONDecodeError, TypeError):
+            q_dict['pre_shell_cmds'] = []
+    else:
+        q_dict['pre_shell_cmds'] = []
+    # Deserialize initial_files JSON into Python dict
+    init_files = q_dict.get('initial_files')
+    if init_files:
+        try:
+            q_dict['initial_files'] = json.loads(init_files)
+        except (json.JSONDecodeError, TypeError):
+            q_dict['initial_files'] = {}
+    else:
+        q_dict['initial_files'] = {}
+    # Map question_type column to 'type' key for compatibility
+    q_dict['type'] = q_dict.get('question_type') or q_dict.get('type')
     return q_dict
 
 
