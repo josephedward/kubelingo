@@ -2,6 +2,7 @@ import sqlite3
 import json
 import os
 import shutil
+from dataclasses import asdict, is_dataclass
 from typing import Dict, Any, List, Optional
 from kubelingo.utils.config import DATABASE_FILE, BACKUP_DATABASE_FILE
 
@@ -83,7 +84,13 @@ def add_question(
     cursor = conn.cursor()
 
     # Serialize complex fields to JSON strings
-    validation_steps_json = json.dumps(validation_steps) if validation_steps is not None else None
+    validation_steps_json = None
+    if validation_steps is not None:
+        # Convert list of dataclass objects to list of dicts for JSON serialization
+        validation_steps_serializable = [
+            asdict(step) if is_dataclass(step) else step for step in validation_steps
+        ]
+        validation_steps_json = json.dumps(validation_steps_serializable)
     validator_json = json.dumps(validator) if validator is not None else None
     pre_shell_cmds_json = json.dumps(pre_shell_cmds) if pre_shell_cmds is not None else None
     initial_files_json = json.dumps(initial_files) if initial_files is not None else None
