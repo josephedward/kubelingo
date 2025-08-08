@@ -36,7 +36,7 @@ def clear_questions_table(conn):
         raise  # Re-raise to trigger rollback in main
 
 
-def import_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> int:
+def import_yaml_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> int:
     """Loads all YAML files from a directory or a single file and writes them to the database."""
     print(f"Searching for YAML files in '{source_path}'...")
     if source_path.is_dir():
