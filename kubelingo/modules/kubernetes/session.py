@@ -27,6 +27,7 @@ from kubelingo.utils.config import (
     VIM_HISTORY_FILE,
     ENABLED_QUIZZES,
 )
+from kubelingo.modules.yaml_loader import YAMLLoader
 
 try:
     from prompt_toolkit import PromptSession
@@ -300,19 +301,21 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add quizzes from the live database (single source of truth)
+        # 1. Add all quiz modules from the live database
         from kubelingo.modules.db_loader import DBLoader
-        loader = DBLoader()
-        for src in loader.discover():
-            mod_name = os.path.splitext(src)[0]
+        from kubelingo.utils.ui import humanize_module
+        import os
+        db_loader = DBLoader()
+        modules = db_loader.discover()
+        for src in modules:
+            mod_base = os.path.splitext(src)[0]
             try:
-                q_count = len(loader.load_file(src))
+                q_count = len(db_loader.load_file(src))
             except Exception as e:
                 self.logger.warning(f"Could not get question count for {src}: {e}")
                 q_count = 0
-            from kubelingo.utils.ui import humanize_module
-            label = humanize_module(mod_name)
-            display_name = f"{label} ({q_count} questions)" if q_count > 0 else label
+            name = humanize_module(mod_base)
+            display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
             choices.append({"name": display_name, "value": src})
 
         # 2. Review Flagged
