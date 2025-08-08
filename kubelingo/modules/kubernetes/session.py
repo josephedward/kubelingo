@@ -783,16 +783,6 @@ class NewSession(StudySession):
                                     validation_steps=vs_dicts,
                                     validator=new_q.validator
                                 )
-                                # After adding a new question, update the backup database.
-                                try:
-                                    from kubelingo.utils.config import DATA_DIR
-                                    db_path = os.path.join(DATA_DIR, 'kubelingo.db')
-                                    backup_path = os.path.join(DATA_DIR, 'kubelingo.db.bak')
-                                    if os.path.exists(db_path):
-                                        shutil.copy2(db_path, backup_path)
-                                        self.logger.info(f"Database backup updated at: {backup_path}")
-                                except Exception as e:
-                                    self.logger.error(f"Could not create database backup: {e}")
                             except Exception as e:
                                 self.logger.error(f"Failed to persist AI-generated question {new_q.id}: {e}")
                             questions_to_ask.append(asdict(new_q))
@@ -1730,65 +1720,6 @@ class NewSession(StudySession):
             self.cluster_name = None
             self.kubeconfig_path = None
 
-    def _run_yaml_editing_mode(self, args):
-        """
-        End-to-end YAML editing session: load YAML questions, launch Vim editor for each,
-        and validate via subprocess-run simulation.
-        """
-        print("=== Kubelingo YAML Editing Mode ===")
-        # Load raw YAML quiz data (YAML format)
-        if yaml is None:
-            print(f"{Fore.RED}Cannot load YAML questions: PyYAML is not installed.{Style.RESET_ALL}")
-            return
-        try:
-            with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
-                data = yaml.safe_load(f)
-        except Exception as e:
-            print(f"{Fore.RED}Error loading YAML questions: {e}{Style.RESET_ALL}")
-            return
-        # Flatten YAML edit questions, including simple and nested formats
-        questions = []
-        for section in data:
-            # Nested prompt sections
-            if isinstance(section, dict) and section.get('prompts'):
-                for p in section.get('prompts', []):
-                    if p.get('question_type') == 'yaml_edit':
-                        questions.append(p)
-            # Simple standalone questions
-            elif isinstance(section, dict) and section.get('prompt') and 'answer' in section:
-                questions.append({
-                    'prompt': section['prompt'],
-                    'starting_yaml': section.get('starting_yaml', ''),
-                    'correct_yaml': section.get('correct_yaml', section['answer']),
-                    'explanation': section.get('explanation', '')
-                })
-        total = len(questions)
-        if total == 0:
-            print(f"{Fore.YELLOW}No YAML editing questions found.{Style.RESET_ALL}")
-            return
-        editor = VimYamlEditor()
-        for idx, q in enumerate(questions, start=1):
-            prompt = q.get('prompt', '')
-            print(f"Exercise {idx}/{total}: {prompt}")
-            print(f"=== Exercise {idx}: {prompt} ===")
-            # Launch Vim-based YAML editor
-            starting = q.get('starting_yaml', '')
-            editor.edit_yaml_with_vim(starting, prompt=prompt)
-            # Success path (mocked editor returns exit code 0)
-            print("✅ Correct!")
-            # Explanation (always print, even if empty)
-            expl = q.get('explanation', '')
-            print(f"Explanation: {expl}")
-            # Prompt to continue except after last question
-            if idx < total:
-                try:
-                    cont = input("Continue? (y/N): ").strip().lower()
-                except (EOFError, KeyboardInterrupt):
-                    print()
-                    break
-                if cont != 'y':
-                    break
-        print("=== YAML Editing Session Complete ===")
 
     def cleanup(self):
         """Deletes the EKS or Kind cluster if one was created for a live session."""

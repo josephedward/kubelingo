@@ -271,7 +271,7 @@ To migrate all enabled quizzes (as listed in `kubelingo/utils/config.py`):
 ```bash
 scripts/migrate_to_db.py
 ```
-After migration, a backup of the database is created at `question-data-backup/kubelingo.db`.
+After migration, a backup of the database is created at `question-data-backup/kubelingo.db.bak`.
 - generate_validation
 - manage_questions
 - organize_question_data
