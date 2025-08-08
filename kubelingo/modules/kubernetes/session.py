@@ -305,7 +305,7 @@ class NewSession(StudySession):
         from kubelingo.utils.config import ENABLED_QUIZZES
         import os
 
-        for name, path in ENABLED_QUIZZES:
+        for name, path in ENABLED_QUIZZES.items():
             source_file = os.path.basename(path)
             try:
                 q_count = len(get_questions_by_source_file(source_file))
