@@ -306,6 +306,25 @@ These exercises require users to perform actions in a live shell environment. Th
 
 ## Data Management Scripts
 
+### `scripts/import_yaml_to_db.py`
+
+This script provides a streamlined way to populate or reset the Kubelingo question database from a directory of YAML source files. It is the designated tool for seeding the database, aligning with the "database-first" architecture.
+
+**Functionality**:
+- **Clears Database**: Before importing, it deletes all existing records from the `questions` table to ensure a clean slate.
+- **YAML Ingestion**: Recursively finds and parses all `.yaml` and `.yml` files in a specified source directory.
+- **Database Population**: Loads all questions from the YAML files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`).
+- **Automatic Backup**: After a successful import, it creates a backup of the newly populated database at `question-data-backup/kubelingo.db.bak`, overwriting any previous backup.
+
+**Usage**:
+The script is run from the command line and accepts a path to the source directory.
+
+- To import questions from a specific directory:
+  ```bash
+  python3 scripts/import_yaml_to_db.py --source-dir /path/to/your/yaml/files
+  ```
+- The default source directory is set to `/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak` as per the initial requirement.
+
 ### `scripts/organize_question_data.py`
 
 This script is a powerful, multi-purpose tool for maintaining the question database. It can organize files, de-duplicate questions, and use AI to generate missing explanations and validation steps.
