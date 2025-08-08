@@ -312,17 +312,16 @@ class NewSession(StudySession):
         choices = []
 
         # 1. Add enabled quizzes from config
-        loader = YAMLLoader()
         for name, path in ENABLED_QUIZZES.items():
             try:
-                # YAMLLoader now combines file and DB questions
-                num_questions = len(loader.load_file(path))
+                # Fetch question count from DB
+                q_count = len(get_questions_by_source_file(os.path.basename(path)))
             except Exception as e:
-                self.logger.warning(f"Could not load questions for {name}: {e}")
-                num_questions = 0
+                self.logger.warning(f"Could not get question count for {name}: {e}")
+                q_count = 0
             
             # Format display name with question count if available
-            display_name = f"{name} ({num_questions} questions)" if num_questions > 0 else name
+            display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
             choices.append({"name": display_name, "value": path})
 
         # 2. Review Flagged
@@ -549,65 +548,11 @@ class NewSession(StudySession):
                 else:
                     # Load questions from the database using the source file's basename as a key
                     questions = get_questions_by_source_file(os.path.basename(args.file))
-                if not questions:
-                    # If questions are not in the DB, load from file and persist them.
-                    # This makes manual migration less critical and fixes issues with non-JSON files.
-                    self.logger.info(f"No questions for '{os.path.basename(args.file)}' in DB, attempting to load from file...")
-                    try:
-                        file_path = args.file
-                        _, ext = os.path.splitext(file_path)
-                        loader = None
-                        if ext.lower() == '.json':
-                            loader = JSONLoader()
-                        elif ext.lower() in ('.yaml', '.yml'):
-                            loader = YAMLLoader()
-                        elif ext.lower() == '.md':
-                            loader = MDLoader()
-
-                        if loader:
-                            loaded_questions = loader.load_file(file_path)
-                            self.logger.info(f"Loaded {len(loaded_questions)} questions from '{os.path.basename(file_path)}'. Persisting to database.")
-                            # Persist loaded questions to the database
-                            for q_obj in loaded_questions:
-                                # The loader provides Question objects, convert to dict for DB
-                                q_dict = asdict(q_obj)
-                                # Extract category correctly from list or single value
-                                category = None
-                                if q_dict.get('categories'):
-                                    category = q_dict['categories'][0]
-                                elif q_dict.get('category'):
-                                    category = q_dict['category']
-
-                                add_question(
-                                    id=q_dict.get('id'),
-                                    prompt=q_dict.get('prompt'),
-                                    source_file=os.path.basename(file_path),
-                                    response=q_dict.get('response'),
-                                    category=category,
-                                    source=q_dict.get('source'),
-                                    validation_steps=q_dict.get('validation_steps'),
-                                    validator=q_dict.get('validator')
-                                )
-                            # Now that they are in DB, fetch them again to ensure consistent data structure.
-                            questions = get_questions_by_source_file(os.path.basename(args.file))
-                        else:
-                            self.logger.warning(f"No loader found for file type '{ext}'.")
-                            questions = []
-
-                    except Exception as e:
-                        self.logger.error(f"Failed to load or persist questions for '{args.file}': {e}", exc_info=True)
-                        questions = []
 
                 if not questions:
-                    # Neither DB nor static loader provided questions
-                    db_path = os.path.join(DATA_DIR, 'kubelingo.db')
-                    if not os.path.exists(db_path):
-                        print(f"{Fore.YELLOW}Database file not found. Please run the migration script:{Style.RESET_ALL}")
-                        print(f"  python scripts/migrate_to_db.py")
-                    else:
-                        print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database or static files.{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}If you have added or changed question files, please run the migration script again:{Style.RESET_ALL}")
-                        print(f"  python scripts/migrate_to_db.py")
+                    print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}If you have new or updated YAML quiz files, run the migration command:{Style.RESET_ALL}")
+                    print(f"  kubelingo migrate-yaml")
                     return
                 # AI generation is enabled by default when loading questions
                 ai_generation_enabled = True

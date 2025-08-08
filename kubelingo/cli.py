@@ -15,6 +15,7 @@ import os
 import logging
 import subprocess
 import shutil
+from dataclasses import asdict
 try:
     import readline  # Enable rich input editing, history, and arrow keys
 except ImportError:
@@ -67,7 +68,7 @@ import subprocess
 import os
 from kubelingo.utils.config import (
     LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE, VIM_QUESTIONS_FILE,
-    get_api_key, save_api_key, API_KEY_FILE
+    get_api_key, save_api_key, API_KEY_FILE, YAML_QUIZ_DIR, YAML_QUIZ_BACKUP_DIR
 )
 
 def show_history():
@@ -198,6 +199,67 @@ def handle_config_command(cmd):
             print("No API key provided. No changes made.")
     else:
         print(f"Unknown config action '{action}'. Use 'view' or 'set'.")
+
+
+def migrate_yaml_to_db():
+    """Migrates all questions from YAML files into the database and backs them up."""
+    print(f"{Fore.CYAN}Starting migration of YAML questions to database...{Style.RESET_ALL}")
+    
+    loader = YAMLLoader()
+    yaml_files = loader.discover()
+    
+    if not yaml_files:
+        print(f"{Fore.YELLOW}No YAML quiz files found to migrate in '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
+        return
+
+    os.makedirs(YAML_QUIZ_BACKUP_DIR, exist_ok=True)
+    
+    total_migrated = 0
+    total_files = 0
+    for file_path in yaml_files:
+        filename = os.path.basename(file_path)
+        print(f"  - Processing '{filename}'...")
+        try:
+            questions = loader.load_file(file_path)
+            if not questions:
+                print(f"    {Fore.YELLOW}No questions found in file, skipping.{Style.RESET_ALL}")
+                continue
+
+            for q_obj in questions:
+                q_dict = asdict(q_obj)
+                category = None
+                # Handle both list of categories and single category string
+                cats = q_dict.get('categories')
+                if cats and isinstance(cats, list) and cats:
+                    category = cats[0]
+                elif q_dict.get('category'):
+                    category = q_dict.get('category')
+                
+                # add_question will insert or update based on ID
+                add_question(
+                    id=q_dict['id'],
+                    prompt=q_dict['prompt'],
+                    source_file=filename,
+                    response=q_dict.get('response'),
+                    category=category,
+                    source=q_dict.get('source'),
+                    validation_steps=q_dict.get('validation_steps'),
+                    validator=q_dict.get('validator'),
+                    review=q_dict.get('review', False)
+                )
+            total_migrated += len(questions)
+            total_files += 1
+            print(f"    {Fore.GREEN}Migrated {len(questions)} questions.{Style.RESET_ALL}")
+
+            # Move file to backup
+            backup_path = os.path.join(YAML_QUIZ_BACKUP_DIR, filename)
+            shutil.move(file_path, backup_path)
+            print(f"    {Fore.CYAN}Backed up '{filename}' to '{YAML_QUIZ_BACKUP_DIR}'.{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.GREEN}Migration complete. Migrated {total_migrated} questions from {total_files} files.{Style.RESET_ALL}")
 
 
 def manage_config_interactive():
@@ -393,7 +455,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -556,6 +618,9 @@ def main():
                 return
             elif cmd_name == 'enrich-sources':
                 enrich_sources()
+                return
+            elif cmd_name == 'migrate-yaml':
+                migrate_yaml_to_db()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:

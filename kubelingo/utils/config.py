@@ -72,6 +72,7 @@ DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
 # Built-in YAML-edit quiz data files are stored in the backup YAML directory at project root.
 # Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
 # YAML editing quiz data file (YAML exercises)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Built-in Vim quiz data file (YAML-based quiz)
