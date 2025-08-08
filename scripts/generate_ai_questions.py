@@ -104,6 +104,11 @@ def main():
         if 'review' in q_dict:
             del q_dict['review']
 
+    # Ensure output directory exists
+    output_dir = os.path.dirname(args.output_file)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
     if os.path.exists(args.output_file):
         overwrite = input(f"File '{args.output_file}' already exists. Overwrite? (y/N): ").lower()
         if overwrite != 'y':
