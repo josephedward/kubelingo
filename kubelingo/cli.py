@@ -66,8 +66,15 @@ from pathlib import Path
 import subprocess
 import os
 from kubelingo.utils.config import (
-    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE, VIM_QUESTIONS_FILE,
-    get_api_key, save_api_key, API_KEY_FILE, YAML_QUIZ_DIR, YAML_QUIZ_BACKUP_DIR
+    LOGS_DIR,
+    HISTORY_FILE,
+    DEFAULT_DATA_FILE,
+    LOG_FILE,
+    get_api_key,
+    save_api_key,
+    API_KEY_FILE,
+    YAML_QUIZ_DIR,
+    YAML_QUIZ_BACKUP_DIR,
 )
 
 def show_history():
@@ -207,6 +214,11 @@ def migrate_yaml_to_db():
     from kubelingo.database import add_question
     loader = YAMLLoader()
     yaml_files = loader.discover()
+    # If no active YAML quiz files, restore from backup and re-discover
+    if not yaml_files and os.path.exists(YAML_QUIZ_BACKUP_DIR) and os.listdir(YAML_QUIZ_BACKUP_DIR):
+        print(f"{Fore.CYAN}No active YAML quiz files found; restoring from backup...{Style.RESET_ALL}")
+        restore_yaml_from_backup()
+        yaml_files = loader.discover()
     
     if not yaml_files:
         print(f"{Fore.YELLOW}No YAML quiz files found to migrate in '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
@@ -573,6 +585,48 @@ def main():
         if not session or not session.initialize():
             print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
             return
+        # Ensure database is seeded: if no backup DB exists, migrate source files into DB
+        from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
+        if not os.path.exists(BACKUP_DATABASE_FILE):
+            print(f"{Fore.CYAN}Seeding questions database from source files...{Style.RESET_ALL}")
+            try:
+                from kubelingo.database import init_db, add_question
+                from kubelingo.modules.json_loader import JSONLoader
+                from kubelingo.modules.yaml_loader import YAMLLoader
+                from kubelingo.modules.md_loader import MDLoader
+                from dataclasses import asdict
+                init_db(clear=True)
+                # Migrate JSON, YAML, and Markdown quizzes
+                for loader in (JSONLoader(), YAMLLoader(), MDLoader()):
+                    for file_path in loader.discover():
+                        try:
+                            questions = loader.load_file(file_path)
+                        except Exception:
+                            continue
+                        source_file = os.path.basename(file_path)
+                        for q in questions:
+                            steps = []
+                            if hasattr(q, 'validation_steps'):
+                                for step in q.validation_steps or []:
+                                    steps.append(asdict(step))
+                            validator = getattr(q, 'validator', None)
+                            add_question(
+                                id=q.id,
+                                prompt=q.prompt,
+                                source_file=source_file,
+                                response=getattr(q, 'response', None),
+                                category=(q.categories[0] if getattr(q, 'categories', None) else None),
+                                source=getattr(q, 'source', None),
+                                validation_steps=steps,
+                                validator=validator,
+                                review=getattr(q, 'review', False),
+                                explanation=getattr(q, 'explanation', None),
+                            )
+                # Create backup of newly seeded DB
+                os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
+                shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+            except Exception as e:
+                logger.warning(f"Automatic DB migration failed: {e}")
 
         try:
             while True:
