@@ -21,7 +21,7 @@ Kubelingo uses a SQLite database to store user progress, flagged questions, and 
 - **Live Database**: Located at `~/.kubelingo/kubelingo.db`. This is the active, writable database used at runtime. On development machines or CI contexts, this directory may appear under the project root as `.kubelingo/kubelingo.db` when the `$HOME` directory is set to the project folder.
 - **Pristine Question Backup**: A read-only, pristine snapshot of the original question bank is maintained at `question-data-backup/kubelingo_pristine.db`. On first run (or if the live database is missing/empty), Kubelingo automatically seeds the live database by copying this backup.
 
- - **Runtime Data Loading**: At runtime, Kubelingo no longer scans individual data source files (JSON, YAML, Markdown, or CSV) under the `question-data` directories. All quizzes are loaded exclusively from the live database (`~/.kubelingo/kubelingo.db`). The `question-data` folders and the backup database are only used for initial seeding or manual restoration.
+- **Runtime Data Loading**: At runtime, Kubelingo no longer scans individual data source files (JSON, YAML, Markdown, or CSV) under the `question-data` directories. All quizzes are loaded exclusively from the live database (`~/.kubelingo/kubelingo.db`). The `question-data` folders and the backup database are only used for initial seeding or manual restoration.
 
 The backup database is version-controlled and should not be modified directly. All day-to-day operations and question enrichment happen in the live database.
 

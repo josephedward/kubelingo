@@ -74,10 +74,9 @@ DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ai_generated_quiz.json')
 # Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-# YAML editing quiz data file (YAML exercises)
+  # YAML editing quiz data file (YAML exercises)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-# Vim editing quiz data file (Vim exercises)
-VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
+  # Vim editing quiz data file (Vim exercises)
 VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml')
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml')
@@ -93,13 +92,12 @@ KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_secre
 KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml')
 KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml')
 
-# Vim editing quiz data file (Vim exercises)
-VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
 
 
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
+    "Vim Quiz": VIM_QUESTIONS_FILE,
     "YAML Editing": YAML_QUESTIONS_FILE,
     "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
