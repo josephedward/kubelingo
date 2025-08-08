@@ -313,16 +313,16 @@ This script provides a way to generate new quiz questions using AI and save them
 
 **Functionality**:
 - **AI-Powered Generation**: Uses `AIQuestionGenerator` to create new questions on a specified subject.
-- **Example-Based Formatting**: Can take an existing quiz file as a set of few-shot examples to ensure the generated questions match the desired style, tone, and structure.
+- **Example-Based Formatting**: Can take an existing quiz from the database as a set of few-shot examples to ensure the generated questions match the desired style, tone, and structure.
 - **YAML Output**: Saves the generated questions to a specified YAML file. These questions can then be reviewed and added to the database using other migration scripts.
 
 **Usage**:
-- To generate 3 new questions about Service Accounts, using an existing quiz for context, and save them to a new file:
+- To generate 3 new questions about Service Accounts, using an existing quiz from the database for context, and save them to a new file:
   ```bash
   python scripts/generate_ai_questions.py \
     --subject "Kubernetes Service Accounts" \
     --num-questions 3 \
-    --example-file question-data/quizzes/kubectl_service_account_operations.yaml \
+    --example-source-file kubectl_service_account_operations.yaml \
     --output-file question-data/quizzes/ai_generated_sa_questions.yaml
   ```
   

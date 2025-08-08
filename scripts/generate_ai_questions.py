@@ -10,8 +10,9 @@ if project_root not in sys.path:
 
 # Use a try-except block for robustness in a script
 try:
+    from kubelingo.database import get_questions_by_source_file
     from kubelingo.modules.question_generator import AIQuestionGenerator
-    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.question import Question, ValidationStep
     from kubelingo.utils.ui import yaml
 except ImportError as e:
     print(f"Error: Failed to import kubelingo modules. Make sure you have run 'pip install -e .' from the project root. Details: {e}")
@@ -24,7 +25,7 @@ def main():
     )
     parser.add_argument("--subject", required=True, help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
     parser.add_argument("--num-questions", type=int, default=3, help="Number of questions to generate.")
-    parser.add_argument("--example-file", help="Path to a YAML file with example questions for context.")
+    parser.add_argument("--example-source-file", help="Filename of a quiz module (e.g., 'kubectl_service_account_operations.yaml') to use as a source of example questions from the database.")
     parser.add_argument(
         "--output-file",
         required=True,
@@ -40,13 +41,46 @@ def main():
         sys.exit(1)
 
     base_questions = []
-    if args.example_file:
-        if not os.path.exists(args.example_file):
-            print(f"Error: Example file not found at '{args.example_file}'")
-            sys.exit(1)
-        loader = YAMLLoader()
-        base_questions = loader.load_file(args.example_file)
-        print(f"Using {len(base_questions)} questions from '{args.example_file}' as examples.")
+    if args.example_source_file:
+        print(f"Loading example questions from source file '{args.example_source_file}' in the database...")
+        question_dicts = get_questions_by_source_file(args.example_source_file)
+
+        if not question_dicts:
+            print(f"Warning: No example questions found in the database for source file '{args.example_source_file}'.")
+        else:
+            # Convert question dicts from DB to Question objects for the generator
+            for q_dict in question_dicts:
+                try:
+                    validation_steps = [
+                        ValidationStep(**vs) for vs in q_dict.get('validation_steps', []) if vs
+                    ]
+                    
+                    # This logic is from kubernetes/session.py, it's a good fallback
+                    if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
+                        validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
+
+                    # Categories might be a list or a single string. The Question object expects a list.
+                    categories = q_dict.get('categories')
+                    if not categories:
+                        category_str = q_dict.get('category')
+                        categories = [category_str] if category_str else ['General']
+
+                    base_questions.append(Question(
+                        id=q_dict.get('id', ''),
+                        prompt=q_dict.get('prompt', ''),
+                        response=q_dict.get('response'),
+                        type=q_dict.get('type', ''),
+                        pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
+                        initial_files=q_dict.get('initial_files', {}),
+                        validation_steps=validation_steps,
+                        explanation=q_dict.get('explanation'),
+                        categories=categories,
+                        difficulty=q_dict.get('difficulty'),
+                        metadata=q_dict.get('metadata', {})
+                    ))
+                except (TypeError, KeyError) as e:
+                    print(f"Warning: Could not convert question dict from DB to Question object: {e}")
+            print(f"Using {len(base_questions)} questions from the database as examples.")
 
     generator = AIQuestionGenerator()
     
