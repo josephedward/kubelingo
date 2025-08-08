@@ -47,8 +47,6 @@ from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
-from kubelingo.modules.service_account_generator import ServiceAccountGenerator
-from kubelingo.modules.service_account_generator import ServiceAccountGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -554,9 +552,16 @@ def main():
                 from kubelingo.utils.config import ENABLED_QUIZZES
                 choices = []
                 for name, path in ENABLED_QUIZZES.items():
-                    # Fetch question count from DB
-                    from kubelingo.database import get_questions_by_source_file
-                    q_count = len(get_questions_by_source_file(os.path.basename(path)))
+                    # Determine question count via static loaders
+                    ext = os.path.splitext(path)[1].lower()
+                    q_list = []
+                    if ext == '.json':
+                        q_list = JSONLoader().load_file(path)
+                    elif ext in ('.yaml', '.yml'):
+                        q_list = YAMLLoader().load_file(path)
+                    elif ext in ('.md',):
+                        q_list = MDLoader().load_file(path)
+                    q_count = len(q_list)
                     choices.append({"name": f"{name} ({q_count} questions)", "value": path})
 
                 choices.append(questionary.Separator())
@@ -600,8 +605,10 @@ def main():
                     study_session = KubernetesStudyMode(api_key=api_key)
                     print(f"{Fore.CYAN}Starting Socratic study session on 'pods'... (Ctrl+C to exit){Style.RESET_ALL}")
                     print(study_session.start_study_session("pods"))
-                elif os.path.exists(action): # It's a quiz file path
+                else:
+                    # Any other selection is treated as a quiz (by source file in the DB)
                     current_args = argparse.Namespace(**vars(args))
+                    # action may be a path or a basename; set as file identifier for DB lookup
                     current_args.file = action
                     session.run_exercises(current_args)
             session.cleanup()
@@ -625,30 +632,9 @@ def main():
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
-            generator = ServiceAccountGenerator()
-            questions = generator.generate_questions(args.generate_sa_questions)
-            from dataclasses import asdict
-            from kubelingo.database import add_question
-            # Add each question to the database
-            added = 0
-            for q in questions:
-                qd = asdict(q)
-                category = qd.get('categories', [None])[0]
-                try:
-                    add_question(
-                        id=qd['id'],
-                        prompt=qd['prompt'],
-                        source_file='service_accounts',
-                        response=qd['metadata'].get('answer'),
-                        category=category,
-                        source='static',
-                        validation_steps=qd.get('validation_steps'),
-                        validator=qd.get('validator')
-                    )
-                    added += 1
-                except Exception as e:
-                    print(f"Warning: could not add question '{qd['id']}' to DB: {e}")
-            print(f"Requested {len(questions)} questions; successfully added {added} ServiceAccount questions to database.")
+            script = repo_root / 'scripts' / 'generate_service_account_questions.py'
+            cmd = [sys.executable, str(script), '-n', str(args.generate_sa_questions), '--to-db']
+            subprocess.run(cmd)
             return
         # Handle on-demand AI-generated question and exit
         if args.ai_questions:
@@ -811,12 +797,18 @@ def main():
                 # Add Exit option
                 choices.append({"name": "Exit", "value": "exit_app"})
                 # Display selection menu
-                questionary.select(
+                # Prompt user to select a Kubernetes exercise
+                choice = questionary.select(
                     "Choose a Kubernetes exercise:",
                     choices=choices,
                     use_indicator=True
                 ).ask()
-                return
+                # Exit if requested
+                if choice == 'exit_app':
+                    return
+                # Set the chosen quiz file for execution
+                args.file = choice
+                # Continue to run the selected quiz
 
         # Global flags handling (note: history and list-modules are handled earlier)
         if args.list_categories:
