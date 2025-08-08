@@ -92,20 +92,26 @@ To populate your database, use scripts like:
 
 These scripts will safely add or update questions in your live database.
 
-### Importing JSON Quiz Files
+### `scripts/import_json_to_db.py`
 
-Quiz definitions in the `question-data/json/` directory are **not** loaded at startup. To import these JSON quizzes into your live database, run:
-```bash
-python3 scripts/import_json_to_db.py [--clear]
-```
+This script provides a way to populate the Kubelingo database from `question-data/json`. It complements the YAML import script and is essential for loading all question modules.
 
-Use `--clear` to delete existing JSON-sourced questions before re-importing.  This script will:
-1. Scan each `.json` in `question-data/json/`.
-2. Parse via `JSONLoader` into `Question` objects.
-3. Add/update them in `~/.kubelingo/kubelingo.db` with `source='json'`.
-4. Backup the updated DB to `question-data-backup/kubelingo_original.db`.
+**Functionality**:
+- **JSON Ingestion**: Recursively finds and parses all `.json` files in the `question-data/json` directory.
+- **Selective Clear**: With the `--clear` flag, it removes all questions originating from `.json` files before importing. This allows for a clean re-import of only the JSON-based quizzes without affecting YAML or Markdown questions. By default, it appends questions.
+- **Database Population**: Loads all questions from the JSON files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`).
+- **Automatic Backup**: After a successful import, it creates a backup of the newly populated database.
 
-These JSON-based quizzes will then appear in the CLI menu alongside existing YAML and Markdown quizzes.
+**Usage**:
+
+- To add or update questions from JSON files (default behavior):
+  ```bash
+  python3 scripts/import_json_to_db.py
+  ```
+- To clear all existing JSON-sourced questions and re-import them:
+  ```bash
+  python3 scripts/import_json_to_db.py --clear
+  ```
 
 ## Current Architecture: The Unified Shell Experience
 
