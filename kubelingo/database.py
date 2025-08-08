@@ -16,27 +16,6 @@ def get_db_connection():
         except Exception:
             pass
 
-    # Seed database from backup if needed
-    seed_needed = False
-    if not os.path.exists(DATABASE_FILE):
-        seed_needed = True
-    else:
-        try:
-            temp_conn = sqlite3.connect(DATABASE_FILE)
-            temp_cursor = temp_conn.cursor()
-            temp_cursor.execute("SELECT COUNT(*) FROM questions")
-            count = temp_cursor.fetchone()[0]
-            temp_conn.close()
-            if count == 0:
-                seed_needed = True
-        except Exception:
-            seed_needed = True
-    if seed_needed and os.path.exists(BACKUP_DATABASE_FILE):
-        try:
-            shutil.copyfile(BACKUP_DATABASE_FILE, DATABASE_FILE)
-        except Exception:
-            pass
-
     conn = sqlite3.connect(DATABASE_FILE)
     conn.row_factory = sqlite3.Row
     return conn

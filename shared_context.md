@@ -41,7 +41,7 @@ Once migration is complete, the CLI will rely solely on the database for all qui
 ### Database Files Explained
 
 - **Live Database (`~/.kubelingo/kubelingo.db`)**: This is your active, personal database. It lives in your home directory and stores your progress, review flags, and any AI-generated questions.
-- **Original Questions Backup (`question-data-backup/kubelingo_original.db`)**: A version-controlled, read-only snapshot of the original question bank. On first run (or if the live database is missing or empty), Kubelingo automatically seeds the live database by copying this backup file.
+- **Original Questions Backup (`question-data-backup/kubelingo_original.db`)**: A version-controlled, read-only snapshot of the original question bank. The live database is no longer automatically seeded from this file. You must use the data management scripts (e.g., `scripts/import_yaml_to_db.py`, `scripts/import_json_to_db.py`) to populate your database. To prevent accidental data loss, automatic seeding on startup has been removed.
 
 - **User Data Backup (`question-data-backup/kubelingo.db.bak`)**: To protect your data, scripts that perform migrations will create a backup of your *live* database with a `.bak` extension. This backup is typically stored at `question-data-backup/kubelingo.db.bak`.
 
@@ -67,14 +67,15 @@ This deletion is committed immediately.  If you wish to back up your database be
 python3 scripts/restore_db_from_backup.py
 ```
 
-### Seeding from Legacy Question Sources
+### Seeding the Database Manually
 
-On first run—or whenever the live database is initialized or cleared—Kubelingo automatically imports quiz questions from the legacy `question-data/` directories into the live database. It scans:
-- JSON files under `question-data/json`
-- YAML files under both `question-data/yaml` and `question-data/yaml-bak`
-- Markdown files under `question-data/md`
+The live database at `~/.kubelingo/kubelingo.db` is **not** seeded automatically. You must manually populate it using the provided data management scripts. This ensures that the contents of your database are always under your direct control and prevents accidental data loss from automatic restores.
 
-After importing all quizzes into `~/.kubelingo/kubelingo.db`, Kubelingo writes a project-level backup at `question-data-backup/kubelingo_original.db`.
+To populate your database, use scripts like:
+- `scripts/import_yaml_to_db.py` to load questions from YAML files.
+- `scripts/import_json_to_db.py` to load questions from JSON files.
+
+These scripts will safely add or update questions in your live database.
 
 ### Importing JSON Quiz Files
 
