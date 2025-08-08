@@ -301,20 +301,18 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add all quiz modules from the configuration
-        from kubelingo.modules.db_loader import DBLoader
+        # 1. Add all enabled quiz modules from config
         from kubelingo.utils.config import ENABLED_QUIZZES
         import os
-        db_loader = DBLoader()
 
         for name, path in ENABLED_QUIZZES:
-            src = os.path.basename(path)
+            source_file = os.path.basename(path)
             try:
-                q_count = len(db_loader.load_file(src))
+                q_count = len(get_questions_by_source_file(source_file))
             except Exception as e:
-                self.logger.warning(f"Could not get question count for {src}: {e}")
+                self.logger.warning(f"Could not get question count for {source_file}: {e}")
                 q_count = 0
-            
+
             display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
             choices.append({"name": display_name, "value": path})
 
