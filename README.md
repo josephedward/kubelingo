@@ -24,6 +24,13 @@ Practice real-world Kubernetes scenarios by editing YAML manifests in your local
 kubelingo
 ```
 
+```bash
+# View your OpenAI API key
+kubelingo config view openai
+# Set your OpenAI API key
+kubelingo config set openai YOUR_KEY_HERE
+```
+
 From the menu, navigate to `K8s (preinstalled)` -> `YAML Editing Quiz`.
 
 ### How It Works
@@ -62,6 +69,13 @@ kubelingo --k8s --review-only
 
 # View performance history
 kubelingo --history
+```
+
+```bash
+# View your OpenAI API key
+kubelingo config view openai
+# Set your OpenAI API key
+kubelingo config set openai YOUR_KEY_HERE
 ```
 
 See `docs/ARCHITECTURE.md` for a high-level overview of the project structure.
@@ -244,6 +258,20 @@ Available commands:
 - generate_kubectl_ops
 - generate_resource_ref
 - generate_manifests
+
+## Migrating YAML Questions to SQLite Database
+
+When you add or update quiz questions as YAML files under `question-data/yaml/`, you need to import them into the SQLite database so they become the primary source for the quiz engine. The YAML files act as a backup.
+
+To migrate a specific file:
+```bash
+scripts/migrate_to_db.py --file question-data/yaml/simulator-namespaces.yaml
+```
+To migrate all enabled quizzes (as listed in `kubelingo/utils/config.py`):
+```bash
+scripts/migrate_to_db.py
+```
+After migration, a backup of the database is created at `question-data-backup/kubelingo.db`.
 - generate_validation
 - manage_questions
 - organize_question_data
