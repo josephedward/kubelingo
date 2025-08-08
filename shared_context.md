@@ -47,6 +47,26 @@ Once migration is complete, the CLI will rely solely on the database for all qui
 
 To restore your database, you can use the `scripts/restore_db_from_backup.py` script. It lets you choose whether to restore from your user data backup or start fresh from the original backup.
 
+### Duplicate Question Cleanup
+
+Over time, questions may be inadvertently imported more than once, leading to duplicates in the database.  To find and optionally remove them, use the dedicated script:
+
+```bash
+python3 scripts/find_duplicate_questions.py
+```
+
+This will list every prompt that appears in more than one row, showing its `rowid`, `id`, and `source_file` for each entry.  To delete the duplicate entries (keeping only the earliest row for each prompt), run:
+
+```bash
+python3 scripts/find_duplicate_questions.py --delete
+```
+
+This deletion is committed immediately.  If you wish to back up your database before or after cleanup, use:
+
+```bash
+python3 scripts/restore_db_from_backup.py
+```
+
 ### Seeding from Legacy Question Sources
 
 On first run—or whenever the live database is initialized or cleared—Kubelingo automatically imports quiz questions from the legacy `question-data/` directories into the live database. It scans:
@@ -807,6 +827,25 @@ python scripts/extract_pdf_questions.py "Killer Shell - Exam Simulators.pdf" -n 
 After running, you can list or play the new questions by invoking:
 ```bash
 kubelingo --quiz killershell
+```
+
+## Importing JSON-Based Questions
+
+To load questions defined in JSON under `question-data/json` into the live database:
+
+- A new script `scripts/import_json_to_db.py` is available. It:
+  - Discovers all `*.json` files under `question-data/json`.
+  - Uses `JSONLoader` to parse each file into `Question` objects.
+  - Inserts or replaces each question into your live SQLite DB (`~/.kubelingo/kubelingo.db`).
+  - Optionally clears existing questions with the `--clear` flag before import.
+
+Usage example:
+```bash
+# Import only JSON questions (appends to existing DB)
+python scripts/import_json_to_db.py
+
+# Clear all questions and re-import JSON sources
+python scripts/import_json_to_db.py --clear
 ```
 
 ## Enriching Unseen Questions from unified.json

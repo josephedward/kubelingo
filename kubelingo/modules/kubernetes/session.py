@@ -300,18 +300,20 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add enabled quizzes from config
-        for name, path in ENABLED_QUIZZES.items():
+        # 1. Add quizzes from the live database (single source of truth)
+        from kubelingo.modules.db_loader import DBLoader
+        loader = DBLoader()
+        for src in loader.discover():
+            mod_name = os.path.splitext(src)[0]
             try:
-                # Fetch question count from DB
-                q_count = len(get_questions_by_source_file(os.path.basename(path)))
+                q_count = len(loader.load_file(src))
             except Exception as e:
-                self.logger.warning(f"Could not get question count for {name}: {e}")
+                self.logger.warning(f"Could not get question count for {src}: {e}")
                 q_count = 0
-            
-            # Format display name with question count if available
-            display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
-            choices.append({"name": display_name, "value": path})
+            from kubelingo.utils.ui import humanize_module
+            label = humanize_module(mod_name)
+            display_name = f"{label} ({q_count} questions)" if q_count > 0 else label
+            choices.append({"name": display_name, "value": src})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -900,7 +902,14 @@ class NewSession(StudySession):
                     # Action menu options: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
                     choices = []
                     
-                    has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in q.get('validation_steps', []))
+                    # Safely iterate validation_steps (may be None)
+                    vs_list = q.get('validation_steps') or []
+                    has_kubectl_in_validation = any(
+                        'kubectl' in (
+                            vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')
+                        )
+                        for vs in vs_list
+                    )
                     question_needs_k8s = (
                         q.get('type') in ('live_k8s', 'live_k8s_edit') or
                         'kubectl' in q.get('prompt', '') or
@@ -1476,7 +1485,7 @@ class NewSession(StudySession):
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Your answer is incorrect.{Style.RESET_ALL}")
         # Show reference URL for this question
-        source_url = q.get('citation') or q.get('source')
+        source_url = getattr(q, 'citation', None) or getattr(q, 'source', None)
         if source_url:
             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
         # Show explanation if correct
@@ -1551,8 +1560,8 @@ class NewSession(StudySession):
         if source_url:
             print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
 
-        if is_correct and q.get('explanation'):
-            print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
+        if is_correct and getattr(q, 'explanation', None):
+            print(f"{Fore.CYAN}Explanation: {getattr(q, 'explanation')} {Style.RESET_ALL}")
         
         return is_correct
 
@@ -1588,14 +1597,22 @@ class NewSession(StudySession):
 
         needs_k8s = False
         for q in questions:
-            question_type = q.get('type', 'command')
-            # Determine if any question in the session needs a live cluster
-            has_pre = any('kubectl' in cmd for cmd in q.get('pre_shell_cmds', []))
+            # Determine question type
+            question_type = getattr(q, 'type', None) or 'command'
+            # Pre-shell commands (list)
+            pre_cmds = getattr(q, 'pre_shell_cmds', []) or []
+            has_pre = any(isinstance(cmd, str) and 'kubectl' in cmd for cmd in pre_cmds)
+            # Validation steps (list of ValidationStep or dict)
+            validation_steps = getattr(q, 'validation_steps', []) or []
             has_validation = any(
-                'kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', ''))
-                for vs in q.get('validation_steps', [])
+                'kubectl' in (
+                    vs.cmd if hasattr(vs, 'cmd') else (vs.get('cmd') if isinstance(vs, dict) else '')
+                )
+                for vs in validation_steps
             )
-            if (question_type in ('live_k8s', 'live_k8s_edit')
+            # If any question needs a live cluster, break
+            if (
+                question_type in ('live_k8s', 'live_k8s_edit')
                 or has_pre
                 or (question_type != 'command' and has_validation)
             ):
