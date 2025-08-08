@@ -2,6 +2,7 @@ import os
 import sys
 import yaml
 import shutil
+import argparse
 from pathlib import Path
 from dataclasses import asdict
 
@@ -16,6 +17,13 @@ from kubelingo.question import Question
 
 def migrate():
     """Migrates questions from YAML files to the SQLite database."""
+    parser = argparse.ArgumentParser(description="Migrates questions from YAML files to the SQLite database.")
+    parser.add_argument(
+        "--file",
+        help="Path to a specific YAML file to migrate. If not provided, migrates all files from ENABLED_QUIZZES."
+    )
+    args = parser.parse_args()
+
     print("Initializing database...")
     init_db()
     print("Database initialized.")
@@ -23,19 +31,24 @@ def migrate():
     yaml_loader = YAMLLoader()
     total_questions = 0
 
-    # Discover all YAML files from the backup directory.
-    yaml_dir = Path(project_root) / 'question-data-backup' / 'yaml'
-    
     yaml_files = []
-    if yaml_dir.is_dir():
-        for root, _, files in os.walk(yaml_dir):
-            for filename in files:
-                if filename.endswith(('.yaml', '.yml')):
-                    yaml_files.append(os.path.join(root, filename))
-    
-    yaml_files = sorted(list(set(yaml_files))) # de-duplicate and sort
+    if args.file:
+        if Path(args.file).exists():
+            yaml_files.append(args.file)
+        else:
+            print(f"Error: File not found at '{args.file}'")
+            return
+    else:
+        # Discover all YAML files from ENABLED_QUIZZES in config
+        print("Discovering quiz files from ENABLED_QUIZZES config...")
+        for path in ENABLED_QUIZZES.values():
+            full_path = project_root / path
+            if full_path.exists() and full_path.suffix in ('.yaml', '.yml'):
+                yaml_files.append(str(full_path))
 
-    print(f"Found {len(yaml_files)} unique YAML quiz files to migrate from {yaml_dir}.")
+    yaml_files = sorted(list(set(yaml_files)))  # de-duplicate and sort
+
+    print(f"Found {len(yaml_files)} unique YAML quiz files to migrate.")
 
     for file_path in yaml_files:
         print(f"Processing {file_path}...")
