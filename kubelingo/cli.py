@@ -550,19 +550,18 @@ def main():
         try:
             while True:
                 from kubelingo.utils.config import ENABLED_QUIZZES
+                from kubelingo.database import get_questions_by_source_file
                 choices = []
                 for name, path in ENABLED_QUIZZES.items():
-                    # Determine question count via static loaders
-                    ext = os.path.splitext(path)[1].lower()
-                    q_list = []
-                    if ext == '.json':
-                        q_list = JSONLoader().load_file(path)
-                    elif ext in ('.yaml', '.yml'):
-                        q_list = YAMLLoader().load_file(path)
-                    elif ext in ('.md',):
-                        q_list = MDLoader().load_file(path)
-                    q_count = len(q_list)
-                    choices.append({"name": f"{name} ({q_count} questions)", "value": path})
+                    # Fetch question count from DB
+                    try:
+                        q_count = len(get_questions_by_source_file(os.path.basename(path)))
+                    except Exception as e:
+                        logger.warning(f"Could not get question count for {name}: {e}")
+                        q_count = 0
+                    
+                    display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
+                    choices.append({"name": display_name, "value": path})
 
                 choices.append(questionary.Separator())
                 # Flagged questions
