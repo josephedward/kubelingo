@@ -850,6 +850,27 @@ python scripts/import_json_to_db.py
 python scripts/import_json_to_db.py --clear
 ```
 
+### Viewing and Running JSON-Based Quizzes
+
+Imported JSON quiz files do not show up in the `--quiz` menu (which is reserved for the enabled YAML quizzes). Instead:
+
+- To list all loaded quiz modules (including JSON, YAML, and MD sources):
+  ```bash
+  kubelingo --list-modules
+  # or equivalently
+  python scripts/list_db_modules.py
+  ```
+- To run a specific module directly, use the `--exercise-module` flag with the module name (the JSON filename without extension):
+  ```bash
+  # For JSON module 'ckad_quiz_data.json', run:
+  kubelingo --exercise-module ckad_quiz_data
+  ```
+- Alternatively, in Kubernetes shortcut mode (`--k8s`), you can select any DB module interactively:
+  ```bash
+  kubelingo --k8s
+  ```
+  Then pick from the full list of DB-backed quizzes.
+
 ## Enriching Unseen Questions from unified.json
 
 To verify which questions from `question-data/unified.json` are already present in the database and identify any _unseen_ prompts, use the `scripts/enrich_unseen_questions.py` utility. This script:
