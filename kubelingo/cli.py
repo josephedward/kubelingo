@@ -889,7 +889,6 @@ def main():
                 modules = loader.discover()
                 choices = []
                 from kubelingo.utils.ui import humanize_module
-                import os
                 for src in modules:
                     mod_name = os.path.splitext(src)[0]
                     choices.append({
