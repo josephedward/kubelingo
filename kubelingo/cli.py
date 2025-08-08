@@ -68,7 +68,6 @@ import os
 from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
-    DEFAULT_DATA_FILE,
     LOG_FILE,
     get_api_key,
     save_api_key,
@@ -471,8 +470,8 @@ def main():
                         help='Sandbox mode: pty (default), docker, or container.')
 
     # Core quiz options
-    parser.add_argument('-f', '--file', type=str, default=DEFAULT_DATA_FILE,
-                        help='Path to quiz data JSON file for command quiz')
+    parser.add_argument('-f', '--file', type=str, default=None,
+                        help='Path to quiz source file, used as an identifier to load from database.')
     parser.add_argument('-n', '--num', type=int, default=0,
                         help='Number of questions to ask (default: all)')
     parser.add_argument('--randomize', action='store_true',
@@ -913,7 +912,7 @@ def main():
 
         # If certain flags are used without a module, default to kubernetes
         if args.module is None and (
-            args.file != DEFAULT_DATA_FILE or args.num != 0 or args.category or args.review_only
+            args.file is not None or args.num != 0 or args.category or args.review_only
         ):
             args.module = 'kubernetes'
 
