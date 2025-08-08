@@ -42,6 +42,7 @@ def import_questions_from_yaml(source_dir: Path):
                 source_url = getattr(q, 'source', getattr(q, 'citation', None))
 
                 add_question(
+                    conn,
                     id=q.id,
                     prompt=q.prompt,
                     source_file=yaml_file.name,

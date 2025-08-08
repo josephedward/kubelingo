@@ -72,11 +72,19 @@ def init_db(clear: bool = False):
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
+    # Add other columns from Question model for compatibility
+    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type"]:
+        try:
+            cursor.execute(f"ALTER TABLE questions ADD COLUMN {col_name} TEXT")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" not in str(e):
+                raise
     conn.commit()
     conn.close()
 
 
 def add_question(
+    conn: sqlite3.Connection,
     id: str,
     prompt: str,
     source_file: str,
@@ -86,19 +94,24 @@ def add_question(
     validation_steps: Optional[List[Dict[str, Any]]] = None,
     validator: Optional[Dict[str, Any]] = None,
     review: bool = False,
-    explanation: Optional[str] = None
+    explanation: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    pre_shell_cmds: Optional[List[str]] = None,
+    initial_files: Optional[Dict[str, str]] = None,
+    question_type: Optional[str] = None
 ):
     """Adds or replaces a question in the database."""
-    conn = get_db_connection()
     cursor = conn.cursor()
 
     # Serialize complex fields to JSON strings
     validation_steps_json = json.dumps(validation_steps) if validation_steps is not None else None
     validator_json = json.dumps(validator) if validator is not None else None
+    pre_shell_cmds_json = json.dumps(pre_shell_cmds) if pre_shell_cmds is not None else None
+    initial_files_json = json.dumps(initial_files) if initial_files is not None else None
 
     cursor.execute("""
-        INSERT OR REPLACE INTO questions (id, prompt, response, category, source, validation_steps, validator, source_file, review, explanation)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO questions (id, prompt, response, category, source, validation_steps, validator, source_file, review, explanation, difficulty, pre_shell_cmds, initial_files, question_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
         prompt,
@@ -109,10 +122,12 @@ def add_question(
         validator_json,
         source_file,
         review,
-        explanation
+        explanation,
+        difficulty,
+        pre_shell_cmds_json,
+        initial_files_json,
+        question_type
     ))
-    conn.commit()
-    conn.close()
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
