@@ -1,4 +1,5 @@
 import json
+import re
 # Avoid importing llm at top-level to prevent segmentation faults when llm is installed but improperly configured.
 llm = None
 
@@ -83,6 +84,61 @@ Your response MUST be a JSON object with two keys:
             return json.loads(response)
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
+
+    def find_source_for_question(self, question_prompt: str):
+        """
+        Finds a documentation source URL for a given question prompt using an AI model.
+        """
+        global llm
+        use_llm = True
+        if llm is None:
+            try:
+                import llm as llm_module
+                llm = llm_module
+            except ImportError:
+                use_llm = False
+
+        system_prompt = (
+            "You are a Kubernetes documentation expert. Your task is to find the most relevant "
+            "official Kubernetes documentation URL for the user's question. The URL should be as specific as possible, "
+            "pointing to the exact page or anchor if possible. Respond ONLY with the URL, and nothing else."
+        )
+        user_content = f"Question: \"{question_prompt}\""
+        
+        response_text = None
+
+        # Attempt via llm package first
+        if use_llm:
+            try:
+                model = llm.get_model("gpt-4-turbo-preview")
+                response_text = model.prompt(
+                    user_content,
+                    system=system_prompt
+                ).text()
+            except Exception:
+                response_text = None
+        
+        # Fallback to openai
+        if response_text is None:
+            try:
+                import openai
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.2,
+                )
+                response_text = response.choices[0].message.content
+            except Exception:
+                return None
+        
+        if response_text:
+             url_match = re.search(r'(https?://[^\s]+)', response_text.strip())
+             if url_match:
+                 return url_match.group(1)
+        return None
 
     def generate_question(self, base_question: dict):
         """

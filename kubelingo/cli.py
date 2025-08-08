@@ -229,6 +229,73 @@ def manage_config_interactive():
         print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
 
 
+def enrich_sources():
+    """Finds and adds sources for questions without them."""
+    # Check for API key first
+    api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
+    if not api_key:
+        print(f"{Fore.RED}This feature requires an OpenAI API key. Please configure it first.{Style.RESET_ALL}")
+        manage_config_interactive()
+        api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
+        if not api_key:
+            return
+
+    from kubelingo.database import get_questions_by_source_file, add_question
+    from kubelingo.utils.config import ENABLED_QUIZZES
+    from kubelingo.modules.ai_evaluator import AIEvaluator
+
+    print(f"{Fore.CYAN}Starting source enrichment for all enabled quizzes...{Style.RESET_ALL}")
+    evaluator = AIEvaluator()
+
+    all_questions = []
+    for name, path in ENABLED_QUIZZES.items():
+        source_file = os.path.basename(path)
+        questions_from_db = get_questions_by_source_file(source_file)
+        print(f"Loaded {len(questions_from_db)} questions from '{name}'")
+        all_questions.extend(questions_from_db)
+
+    questions_to_update = [q for q in all_questions if not q.get('source')]
+
+    if not questions_to_update:
+        print(f"{Fore.GREEN}All questions already have sources. Nothing to do.{Style.RESET_ALL}")
+        return
+
+    print(f"\nFound {Fore.YELLOW}{len(questions_to_update)}{Style.RESET_ALL} questions without a source. Starting enrichment...\n")
+
+    updated_count = 0
+    failed_count = 0
+    for q in questions_to_update:
+        prompt = q.get('prompt')
+        print(f"  - Processing question ID {q['id']}: '{prompt[:60].strip()}...'")
+        source_url = evaluator.find_source_for_question(prompt)
+        if source_url:
+            print(f"    {Fore.GREEN}-> Found source: {source_url}{Style.RESET_ALL}")
+            try:
+                # add_question can be used to update existing questions by ID
+                add_question(
+                    id=q['id'],
+                    prompt=q['prompt'],
+                    source_file=q['source_file'],
+                    response=q.get('response'),
+                    category=q.get('category'),
+                    source=source_url,
+                    validation_steps=q.get('validation_steps'),
+                    validator=q.get('validator'),
+                    review=q.get('review', False)
+                )
+                updated_count += 1
+            except Exception as e:
+                print(f"    {Fore.RED}-> Failed to update question {q['id']} in DB: {e}{Style.RESET_ALL}")
+                failed_count += 1
+        else:
+            print(f"    {Fore.YELLOW}-> Could not find a source.{Style.RESET_ALL}")
+            failed_count += 1
+
+    print(f"\n{Fore.CYAN}Enrichment complete.{Style.RESET_ALL}")
+    print(f"  - {Fore.GREEN}Successfully updated: {updated_count}{Style.RESET_ALL}")
+    print(f"  - {Fore.RED}Failed or skipped: {failed_count}{Style.RESET_ALL}")
+
+
 # Legacy alias for cloud-mode static branch
 def main():
     # Prevent re-entrant execution inside a sandbox shell.
@@ -326,7 +393,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', or 'config')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -482,9 +549,14 @@ def main():
         # Non-interactive mode
         args = parser.parse_args()
         # Handle config commands: kubelingo config <view|set> openai [KEY]
-        if args.command and len(args.command) > 0 and args.command[0] == 'config':
-            handle_config_command(args.command)
-            return
+        if args.command and len(args.command) > 0:
+            cmd_name = args.command[0]
+            if cmd_name == 'config':
+                handle_config_command(args.command)
+                return
+            elif cmd_name == 'enrich-sources':
+                enrich_sources()
+                return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
             generator = ServiceAccountGenerator()
