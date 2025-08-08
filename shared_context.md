@@ -306,6 +306,25 @@ The script is highly configurable via command-line flags.
   ```
 - Improved error handling for OpenAI API connection issues has been added to provide clearer feedback on network problems.
 - The script's import logic is now robust, allowing it to be run as a standalone file. It unconditionally defines `project_root` at the top and inserts it into `sys.path`, fixing previous import errors.
+
+### `scripts/generate_ai_questions.py`
+
+This script provides a way to generate new quiz questions using AI and save them to a YAML file. It is useful for expanding quiz modules with new content that follows a consistent format.
+
+**Functionality**:
+- **AI-Powered Generation**: Uses `AIQuestionGenerator` to create new questions on a specified subject.
+- **Example-Based Formatting**: Can take an existing quiz file as a set of few-shot examples to ensure the generated questions match the desired style, tone, and structure.
+- **YAML Output**: Saves the generated questions to a specified YAML file. These questions can then be reviewed and added to the database using other migration scripts.
+
+**Usage**:
+- To generate 3 new questions about Service Accounts, using an existing quiz for context, and save them to a new file:
+  ```bash
+  python scripts/generate_ai_questions.py \
+    --subject "Kubernetes Service Accounts" \
+    --num-questions 3 \
+    --example-file question-data/quizzes/kubectl_service_account_operations.yaml \
+    --output-file question-data/quizzes/ai_generated_sa_questions.yaml
+  ```
   
 ### Testing & Observations
 - **Core Functionality**: The main quiz loop is stable. The PTY shell now correctly handles terminal input (including `vim` on macOS), resolving the garbled character issue.
