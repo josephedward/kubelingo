@@ -21,7 +21,7 @@ Kubelingo uses a SQLite database to store user progress, flagged questions, and 
 - **Live Database**: Located at `~/.kubelingo/kubelingo.db`. This is the active, writable database used at runtime. On development machines or CI contexts, this directory may appear under the project root as `.kubelingo/kubelingo.db` when the `$HOME` directory is set to the project folder.
 - **Pristine Question Backup**: A read-only, pristine snapshot of the original question bank is maintained at `question-data-backup/kubelingo_pristine.db`. On first run (or if the live database is missing/empty), Kubelingo automatically seeds the live database by copying this backup.
 
-  - **Runtime Data Loading**: At runtime, Kubelingo no longer scans individual data source files (JSON, YAML, Markdown, or CSV) under the `question-data` directories. All quizzes are loaded exclusively from the live database (`~/.kubelingo/kubelingo.db`). The `question-data` folders and the backup database are only used for initial seeding or manual restoration.
+ - **Runtime Data Loading**: At runtime, Kubelingo no longer scans individual data source files (JSON, YAML, Markdown, or CSV) under the `question-data` directories. All quizzes are loaded exclusively from the live database (`~/.kubelingo/kubelingo.db`). The `question-data` folders and the backup database are only used for initial seeding or manual restoration.
 
 The backup database is version-controlled and should not be modified directly. All day-to-day operations and question enrichment happen in the live database.
 
@@ -596,13 +596,21 @@ To ensure consistent experience across all YAML-based quizzes, each YAML file sh
 
 Nested `metadata:` blocks in YAML files are automatically flattened at runtime by the `YAMLLoader`, and legacy `question:` keys are normalized to `prompt:`. New quizzes should use the flat schema shown above to avoid relying on runtime transformations.
 
-## YAML-Only Quizzes and Refactored Flagging
+## Database-First Architecture
 
-To streamline the architecture and fully embrace a standardized data format, Kubelingo now exclusively uses YAML files for all quiz modules. The `JSONLoader` and `MDLoader` have been removed, simplifying the data loading pipeline and ensuring that all questions adhere to the standard YAML schema.
+To improve stability and simplify the architecture, Kubelingo now exclusively uses its SQLite database as the source of truth for all quizzes at runtime.
 
-The question flagging mechanism has also been refactored to be independent of the source file. Previously, flagging a question required its `data_file`, which created a dependency on legacy file structures. Flagging now operates on the unique `id` of each question, making the feature more robust and compatible with the unified, in-memory question database.
+- **No More Direct File Loading**: The application no longer reads questions directly from YAML, JSON, or Markdown files during a quiz session. All quiz content is fetched from the database.
+- **YAML as the Source Format**: The YAML files in `question-data/` remain the canonical, version-controlled source for all quiz content.
+- **Migration is Required**: Any changes or additions to the YAML quiz files must be imported into the database using a migration script to become available in the application.
 
-> **Fixed**: The question flagging mechanism is now fully `id`-based, resolving a `KeyError: 'category'` that occurred when flagging questions without a category (e.g., from the Vim quiz). The `SessionManager` now correctly derives the source file from the question `id`, removing the need to pass legacy parameters.
+This change eliminates a class of bugs related to file parsing and ensures a consistent, reliable data source for all parts of the application.
+
+## Database Backup & Restoration
+  
+- **User Database (Live)**: Kubelingo writes its question store to `~/.kubelingo/kubelingo.db` by default. This is the active database for your user, containing your progress and any AI-generated questions. In a development environment, this may be located at `./.kubelingo/kubelingo.db` inside the project folder.
+- **Project Backup (Source of Truth)**: The version-controlled file at `question-data-backup/kubelingo.db` is the pristine, read-only snapshot of all quizzes. It is used to seed your user database on first run. It should be considered the "factory default."
+- **Restore Script**: To reset your local progress and questions, you can use `scripts/restore_db_from_backup.py`. This script overwrites your local user database (`~/.kubelingo/kubelingo.db`) with the project backup, giving you a clean slate.
 
 ## How YAML Exercises Are Evaluated
 

@@ -50,11 +50,7 @@ import os
 
 
 from kubelingo.modules.base.loader import load_session
-from kubelingo.modules.json_loader import JSONLoader
-from kubelingo.modules.md_loader import MDLoader
-from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
-from dataclasses import asdict
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 # Existing import
 # Existing import
@@ -529,49 +525,35 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # Load questions from static files using appropriate loader
-                static_override = []
-                loader = None
-                ext = os.path.splitext(args.file)[1].lower()
-                if ext == '.json':
-                    loader = JSONLoader()
-                elif ext in ('.yaml', '.yml'):
-                    loader = YAMLLoader()
-                elif ext in ('.md', '.markdown'):
-                    loader = MDLoader()
-                if loader:
-                    try:
-                        static_override = loader.load_file(args.file)
-                    except Exception as e:
-                        self.logger.error(f"Failed to load questions via loader for '{args.file}': {e}")
-                        static_override = []
-                if static_override:
-                    questions = [asdict(q) for q in static_override]
-                    ai_generation_enabled = True
-                else:
-                    # Fallback: load questions from the database using the source file's basename
-                    questions = get_questions_by_source_file(os.path.basename(args.file))
+                # All questions are loaded from the database using the source file as a key.
+                questions = get_questions_by_source_file(os.path.basename(args.file))
 
                 if not questions:
                     print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
                     return
-                # AI generation is enabled by default when loading questions
-                ai_generation_enabled = True
+
                 # AI generation for interactive quizzes when more questions are requested
+                ai_generation_enabled = True
                 requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
                 if requested and requested > len(questions):
                     clones_needed = requested - len(questions)
                     print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
                     try:
+                        from kubelingo.question import Question as QuestionObject
                         import kubelingo.modules.question_generator as qg_module
                         generator = qg_module.AIQuestionGenerator()
-                        subject = _get_subject_for_questions(static_override[0]) if static_override else ''
+
+                        # Convert question dicts from DB to Question objects for the generator
+                        base_questions = [QuestionObject(**q) for q in questions]
+
+                        subject = _get_subject_for_questions(questions[0]) if questions else ''
                         ai_qs = generator.generate_questions(
                             subject,
                             num_questions=clones_needed,
-                            base_questions=static_override
+                            base_questions=base_questions
                         )
                         for ai_q in ai_qs:
+                            from dataclasses import asdict
                             questions.append(asdict(ai_q))
                     except Exception:
                         self.logger.error(f"Failed to generate AI questions for interactive quiz.", exc_info=True)
