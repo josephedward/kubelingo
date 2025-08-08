@@ -72,3 +72,45 @@
         - type: "exit_code"
           expected: 0
   explanation: "A Job manifest can be created using `kubectl create job --dry-run=client -o yaml`. The YAML should then be edited to set `completions`, `parallelism`, container name, and pod labels in the `template` section. The job is then created using `kubectl apply -f <file.yaml>`. The job's status can be monitored with `kubectl get job` and `kubectl describe job`."
+
+- id: ckad-sim::q5-sa-secret
+  prompt: "In namespace `neptune`, find the Secret associated with the ServiceAccount `neptune-sa-v2` and write its decoded token to the file `/opt/course/5/token`."
+  type: live_k8s_edit
+  category: "Configuration & Security"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create namespace neptune"
+    - "kubectl -n neptune create sa neptune-sa-v2"
+    - "kubectl -n neptune create secret generic neptune-secret-1 --from-literal=token=$(echo -n my-secret-token-value | base64)"
+    - "kubectl -n neptune annotate secret neptune-secret-1 kubernetes.io/service-account.name=neptune-sa-v2"
+    - "mkdir -p /opt/course/5"
+  validation_steps:
+    - cmd: "cat /opt/course/5/token"
+      matchers:
+        - type: "exact_match"
+          expected: "my-secret-token-value"
+  explanation: "First, find the secret associated with the ServiceAccount `neptune-sa-v2`. You can do this by listing secrets in the `neptune` namespace and checking their annotations (`k -n neptune get secrets -o yaml`). The secret with the annotation `kubernetes.io/service-account.name: neptune-sa-v2` is the correct one. Then, get the token from the secret's data, base64 decode it, and write it to the specified file. A quick way is `kubectl -n neptune get secret <secret-name> -o jsonpath='{.data.token}' | base64 --decode > /opt/course/5/token`."
+
+- id: ckad-sim::q6-readinessprobe
+  prompt: "Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`. The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a `periodSeconds` of 10. Create the pod and ensure it becomes ready."
+  type: live_k8s_edit
+  category: "Configuration & Security"
+  source: "https://killer.sh/ckad"
+  validation_steps:
+    - cmd: "kubectl get pod pod6 -o jsonpath='{.spec.containers[0].readinessProbe.initialDelaySeconds}'"
+      matchers:
+        - type: "exact_match"
+          expected: "5"
+    - cmd: "kubectl get pod pod6 -o jsonpath='{.spec.containers[0].readinessProbe.periodSeconds}'"
+      matchers:
+        - type: "exact_match"
+          expected: "10"
+    - cmd: "kubectl get pod pod6 -o jsonpath='{.spec.containers[0].command[2]}'"
+      matchers:
+        - type: "contains"
+          expected: "touch /tmp/ready && sleep 1d"
+    - cmd: "kubectl wait --for=condition=Ready pod/pod6 --timeout=30s"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+  explanation: "A pod manifest can be generated using `kubectl run pod6 --image=busybox:1.31.0 --command -- sh -c \"touch /tmp/ready && sleep 1d\" --dry-run=client -o yaml`. Then, edit the YAML to add the `readinessProbe` section to the container spec. The probe should have an `exec` action with the command, and the specified `initialDelaySeconds` and `periodSeconds`. Finally, create the pod with `kubectl apply -f <file.yaml>`. You can monitor its status with `kubectl get pod pod6 -w`."
