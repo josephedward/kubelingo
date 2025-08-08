@@ -14,29 +14,19 @@ The new quizzes are:
 
 These quizzes are integrated into the main application menu and can be invoked using the `--quiz` argument.
 
-## Database Configuration
+## Database is the Source of Truth
 
-Kubelingo uses up to three different database files. Understanding their roles is key to managing quiz data and user progress.
+**IMPORTANT**: At runtime, Kubelingo loads all quiz questions exclusively from a single SQLite database. It **does not** read individual JSON, YAML, or Markdown files from the `question-data/` directory. Those files should be considered legacy artifacts used only for seeding the database for the first time.
 
-1.  **Live User Database (`~/.kubelingo/kubelingo.db`)**
-    -   **Location**: `~/.kubelingo/kubelingo.db`
-    -   **Purpose**: This is the primary, writable database for the current user. It stores all user-specific data, including AI-generated questions, quiz history, and review flags.
-    -   **Lifecycle**: It is created on first run and is modified during application use. It is persistent across sessions.
+### Database Files Explained
 
-2.  **Pristine Question Database (`question-data-backup/kubelingo_pristine.db`)**
-    -   **Location**: `question-data-backup/kubelingo_pristine.db` (in the project repository)
-    -   **Purpose**: This is a **read-only**, version-controlled database containing the canonical "factory default" set of questions. It serves as the seed to create the user database on first run.
-    -   **Lifecycle**: It is part of the git repository and should only be updated via deliberate migration scripts when new built-in questions are added.
+- **Live Database (`~/.kubelingo/kubelingo.db`)**: This is your active, personal database. It lives in your home directory and stores your progress, review flags, and any AI-generated questions.
 
-3.  **User Data Backup (`question-data-backup/kubelingo.db`)**
-    -   **Location**: `question-data-backup/kubelingo.db` (in the project repository, but should be git-ignored)
-    -   **Purpose**: This file is a temporary backup of the **live user database**. Certain data-migration scripts create it to prevent data loss before they modify the live database.
-    -   **Lifecycle**: It is created on-demand by scripts and is not always present. It allows a user to restore their progress if a script fails.
+- **Pristine Backup (`question-data-backup/kubelingo_pristine.db`)**: A version-controlled, read-only copy of the original questions that ship with Kubelingo. It is used to automatically create your live database on first run if it doesn't exist.
 
-### Database Seeding and Restoration
+- **User Data Backup (`question-data-backup/kubelingo.db.bak`)**: To protect your data, scripts that perform migrations will create a backup of your *live* database with a `.bak` extension. This backup is typically stored at `question-data-backup/kubelingo.db.bak`.
 
--   **Seeding**: On first run, if `~/.kubelingo/kubelingo.db` does not exist, it is automatically created by copying the pristine database.
--   **Restoration**: You can manually restore your state using `scripts/restore_db_from_backup.py`. This script can restore from either the user data backup (to recover from a bad script run) or the pristine database (to get a fresh start).
+To restore your database, you can use the `scripts/restore_db_from_backup.py` script. It lets you choose whether to restore from your user data backup or start fresh from the pristine backup.
 
 ## Current Architecture: The Unified Shell Experience
 

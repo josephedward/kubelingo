@@ -25,7 +25,6 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    KILLERCODA_CSV_FILE,
     ENABLED_QUIZZES,
 )
 
