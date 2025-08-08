@@ -362,10 +362,13 @@ class NewSession(StudySession):
         # 4. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
         
-        # 5. Help
+        # 5. Manage Configuration
+        choices.append({"name": "Manage Configuration", "value": "config"})
+
+        # 6. Help
         choices.append({"name": "Help", "value": "help"})
 
-        # 6. Exit App
+        # 7. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
 
         
@@ -622,6 +625,12 @@ class NewSession(StudySession):
                 if selected == "view_history":
                     from kubelingo.cli import show_history
                     show_history()
+                    input("\nPress Enter to return to the menu...")
+                    continue
+
+                if selected == "config":
+                    from kubelingo.cli import manage_config_interactive
+                    manage_config_interactive()
                     input("\nPress Enter to return to the menu...")
                     continue
 
