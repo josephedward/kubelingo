@@ -48,6 +48,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
@@ -766,7 +767,8 @@ def main():
         # If unified exercise requested, load and list questions
         if args.exercise_module:
             questions = []
-            for loader in (JSONLoader(), MDLoader(), YAMLLoader()):
+            # Load from filesystem and database
+            for loader in (JSONLoader(), MDLoader(), YAMLLoader(), DBLoader()):
                 for path in loader.discover():
                     name = os.path.splitext(os.path.basename(path))[0]
                     if name == args.exercise_module:
