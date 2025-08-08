@@ -46,6 +46,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.service_account_generator import ServiceAccountGenerator
+from kubelingo.modules.service_account_generator import ServiceAccountGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
