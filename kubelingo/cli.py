@@ -807,12 +807,12 @@ def main():
                 logger.warning(f"Automatic DB migration failed: {e}")
 
         try:
-                while True:
-                    from kubelingo.utils.config import ENABLED_QUIZZES
-                    choices = []
-                    # List available Kubernetes quizzes without counts
-                    for name, path in ENABLED_QUIZZES.items():
-                        choices.append({"name": name, "value": path})
+            while True:
+                from kubelingo.utils.config import ENABLED_QUIZZES
+                choices = []
+                # List available Kubernetes quizzes without counts
+                for name, path in ENABLED_QUIZZES.items():
+                    choices.append({"name": name, "value": path})
 
                 choices.append(questionary.Separator())
                 # Flagged questions
