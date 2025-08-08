@@ -75,6 +75,7 @@ from kubelingo.utils.config import (
     YAML_QUIZ_BACKUP_DIR,
     get_cluster_configs,
     save_cluster_configs,
+    ENABLED_QUIZZES,
 )
 
 def show_history():
@@ -968,21 +969,13 @@ def main():
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                # Build menu choices from the questions database (not on-disk files)
-                from kubelingo.modules.db_loader import DBLoader
-                loader = DBLoader()
-                modules = loader.discover()
+                # Build menu choices from the configured quizzes
                 choices = []
-                from kubelingo.utils.ui import humanize_module
-                for src in modules:
-                    mod_name = os.path.splitext(src)[0]
-                    choices.append({
-                        "name": humanize_module(mod_name),
-                        "value": src
-                    })
+                for quiz_name, path in ENABLED_QUIZZES.items():
+                    choices.append({"name": quiz_name, "value": path})
                 # Add Exit option
                 choices.append({"name": "Exit", "value": "exit_app"})
-                # Prompt user to select a quiz from the DB
+                # Prompt user to select a quiz
                 choice = questionary.select(
                     "Choose a Kubernetes quiz module:",
                     choices=choices,
