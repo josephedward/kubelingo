@@ -128,11 +128,6 @@ KUBECTL_TOPIC_QUIZZES = {
     "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
 }
 
-COMPREHENSIVE_QUIZZES = {
-    "Kubernetes Review (with explanations)": os.path.join(YAML_QUIZ_DIR, 'kubernetes_with_explanations.yaml'),
-    "Master Review (all topics)": os.path.join(YAML_QUIZ_DIR, 'master_quiz_with_explanations.yaml'),
-}
-
 SIMULATOR_QUIZZES = {
     "CKAD Simulator": os.path.join(YAML_QUIZ_DIR, 'ckad_simulator.yaml'),
     "Killer Shell Practice": os.path.join(YAML_QUIZ_DIR, 'generated_from_killer_shell.yaml'),
@@ -143,7 +138,6 @@ SIMULATOR_QUIZZES = {
 ENABLED_QUIZZES = {}
 ENABLED_QUIZZES.update(CORE_SKILL_QUIZZES)
 ENABLED_QUIZZES.update(KUBECTL_TOPIC_QUIZZES)
-ENABLED_QUIZZES.update(COMPREHENSIVE_QUIZZES)
 ENABLED_QUIZZES.update(SIMULATOR_QUIZZES)
 
 # CSV files
