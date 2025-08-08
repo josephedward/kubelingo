@@ -530,29 +530,31 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # First, attempt to load questions via JSON-style loader (e.g., unified JSON quizzes)
-                try:
-                    static_override = load_questions(args.file)
-                except Exception as e:
-                    self.logger.error(f"Failed to load questions via JSON loader for '{args.file}': {e}")
-                    static_override = []
+                # Load questions from static files using appropriate loader
+                static_override = []
+                loader = None
+                ext = os.path.splitext(args.file)[1].lower()
+                if ext == '.json':
+                    loader = JSONLoader()
+                elif ext in ('.yaml', '.yml'):
+                    loader = YAMLLoader()
+                elif ext in ('.md', '.markdown'):
+                    loader = MDLoader()
+                if loader:
+                    try:
+                        static_override = loader.load_file(args.file)
+                    except Exception as e:
+                        self.logger.error(f"Failed to load questions via loader for '{args.file}': {e}")
+                        static_override = []
                 if static_override:
-                    # Convert Question objects or dicts into uniform dict format
-                    questions = []
-                    for q_item in static_override:
-                        if hasattr(q_item, 'id'):
-                            questions.append(asdict(q_item))
-                        else:
-                            questions.append(q_item)
+                    questions = [asdict(q) for q in static_override]
                     ai_generation_enabled = True
                 else:
-                    # Load questions from the database using the source file's basename as a key
+                    # Fallback: load questions from the database using the source file's basename
                     questions = get_questions_by_source_file(os.path.basename(args.file))
 
                 if not questions:
-                    print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}' in the database.{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}If you have new or updated YAML quiz files, run the migration command:{Style.RESET_ALL}")
-                    print(f"  kubelingo migrate-yaml")
+                    print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
                     return
                 # AI generation is enabled by default when loading questions
                 ai_generation_enabled = True
