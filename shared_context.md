@@ -29,8 +29,7 @@ python scripts/migrate_to_db.py
 This will:
 - Discover all `.yaml` and `.yml` files in both `question-data/yaml` and `question-data/yaml-bak`.
 - Insert or update each question into the live database (`~/.kubelingo/kubelingo.db`).
-- Create a new backup of your migrated database at `question-data-backup/kubelingo_original.db`.
- - Create a new backup of your migrated database at `question-data-backup/kubelingo.db`.
+- Create a new backup of your migrated database at `question-data-backup/kubelingo.db`.
 
 Once migration is complete, the CLI will rely solely on the database for all quizzes, and you can archive or remove the original YAML files if desired.
 
