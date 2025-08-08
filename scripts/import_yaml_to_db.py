@@ -123,10 +123,12 @@ def main():
     )
     parser.add_argument(
         "--source-dir",
-        dest="source_path",
+        dest="source_paths",
+        action="append",
         type=Path,
-        default=project_root / "question-data" / "yaml-bak",
-        help="The directory or single YAML file to import.",
+        help="A directory or single YAML file to import. Can be specified multiple times. "
+        "If not specified, defaults to scanning 'question-data/yaml' and "
+        "'question-data/yaml-bak'.",
     )
     parser.add_argument(
         "--append",
@@ -135,12 +137,12 @@ def main():
     )
     args = parser.parse_args()
 
-    if not args.source_path.exists():
-        print(
-            f"Warning: Source path '{args.source_path}' does not exist.",
-            file=sys.stderr,
-        )
-        sys.exit(0)
+    source_paths = args.source_paths
+    if not source_paths:
+        source_paths = [
+            project_root / "question-data" / "yaml",
+            project_root / "question-data" / "yaml-bak",
+        ]
 
     loader = YAMLLoader()
     conn = get_db_connection()
@@ -149,7 +151,16 @@ def main():
     try:
         if not args.append:
             clear_questions_table(conn)
-        total_imported = import_questions_from_path(args.source_path, loader, conn)
+
+        for path in source_paths:
+            if not path.exists():
+                print(
+                    f"Warning: Source path '{path}' does not exist. Skipping.",
+                    file=sys.stderr,
+                )
+                continue
+            total_imported += import_questions_from_path(path, loader, conn)
+
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
     except Exception as e:

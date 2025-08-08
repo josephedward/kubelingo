@@ -339,22 +339,25 @@ This script provides a streamlined way to populate or reset the Kubelingo questi
 
 **Functionality**:
 - **Clear or Append**: By default, it clears the entire `questions` table before importing to ensure a fresh start. Use the `--append` flag to skip this step and add new questions or update existing ones, preserving all other data.
-- **YAML Ingestion**: Recursively finds and parses all `.yaml` and `.yml` files in a specified source directory.
+- **Comprehensive YAML Ingestion**: Recursively finds and parses all `.yaml` and `.yml` files. It can scan multiple source directories in a single run.
 - **Database Population**: Loads all questions from the YAML files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`). Because it uses `INSERT OR REPLACE`, existing questions with the same `id` will be updated.
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database at `question-data-backup/kubelingo.db.bak`, overwriting any previous backup.
 
 **Usage**:
-The script is run from the command line and accepts a path to the source directory.
+The script is run from the command line. It can accept multiple source directories.
 
-- To clear the database and import questions from a specific directory:
+- To clear the database and import questions from all standard YAML source directories (`question-data/yaml` and `question-data/yaml-bak`):
   ```bash
-  python3 scripts/import_yaml_to_db.py --source-dir /path/to/your/yaml/files
+  python3 scripts/import_yaml_to_db.py
+  ```
+- To import from one or more specific directories:
+  ```bash
+  python3 scripts/import_yaml_to_db.py --source-dir /path/to/your/yaml/files --source-dir /another/path
   ```
 - To append new questions from a specific file or directory without clearing the database:
   ```bash
   python3 scripts/import_yaml_to_db.py --source-dir /path/to/new_yaml_files --append
   ```
-- The default source directory is set to `/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak` as per the initial requirement.
 
 ### `scripts/enrich_unseen_questions.py`
 
