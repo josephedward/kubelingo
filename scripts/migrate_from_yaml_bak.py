@@ -58,12 +58,12 @@ def main():
                     id=q.id,
                     prompt=q.prompt,
                     source_file=intended_source_file,
-                    response=q.response,
-                    category=q.category,
-                    source=q.source,
-                    validation_steps=q.validation_steps,
-                    validator=q.validator,
-                    explanation=q.explanation
+                    response=getattr(q, 'response', None),
+                    category=getattr(q, 'category', None),
+                    source=getattr(q, 'source', "https://kubernetes.io/docs/home/"),
+                    validation_steps=getattr(q, 'validation_steps', []),
+                    validator=getattr(q, 'validator', None),
+                    explanation=getattr(q, 'explanation', None)
                 )
             total_questions_added += len(questions)
             print(f"     Added {len(questions)} questions from {filename}.")

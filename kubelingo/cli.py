@@ -406,7 +406,6 @@ def enrich_sources():
 
 # Legacy alias for cloud-mode static branch
 def main():
-    import os
     # Prevent re-entrant execution inside a sandbox shell.
     if os.getenv('KUBELINGO_SANDBOX_ACTIVE') == '1':
         # This guard prevents the CLI from re-launching itself inside a sandbox
