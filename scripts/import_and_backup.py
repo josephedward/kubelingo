@@ -38,13 +38,16 @@ def import_questions_from_yaml(source_dir: Path):
             for q in questions:
                 validation_steps_dict = [asdict(step) for step in q.validation_steps] if q.validation_steps else None
 
+                # Accommodate questions that may be missing 'source' or use 'citation' instead.
+                source_url = getattr(q, 'source', getattr(q, 'citation', None))
+
                 add_question(
                     id=q.id,
                     prompt=q.prompt,
                     source_file=str(yaml_file.relative_to(project_root)),
                     response=q.response,
                     category=q.category,
-                    source=q.source,
+                    source=source_url,
                     validation_steps=validation_steps_dict,
                     validator=q.validator,
                     review=False  # Defaulting review to False
