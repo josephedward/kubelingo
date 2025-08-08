@@ -323,7 +323,7 @@ This script provides a way to generate new quiz questions using AI and save them
     --subject "Kubernetes Service Accounts" \
     --num-questions 3 \
     --example-source-file kubectl_service_account_operations.yaml \
-    --output-file question-data/quizzes/ai_generated_sa_questions.yaml
+    --output-file question-data/yaml/ai_generated_sa_questions.yaml
   ```
   
 ### Testing & Observations

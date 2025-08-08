@@ -49,7 +49,7 @@ def migrate():
             return
     else:
         # Discover all YAML/backup files in question-data/yaml
-        quiz_dir = project_root / 'question-data' / 'yaml'
+        quiz_dir = Path(project_root) / 'question-data' / 'yaml'
         print(f"Scanning quiz directory: {quiz_dir}")
         for pattern in ('*.yaml', '*.yml', '*.yaml.bak'):
             for p in quiz_dir.glob(pattern):

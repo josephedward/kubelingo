@@ -20,16 +20,20 @@ def main():
         print(f"Error: Source file not found at '{args.source}'")
         sys.exit(1)
         
-    if not os.path.exists(args.destination):
-        print(f"Error: Destination file not found at '{args.destination}'")
-        sys.exit(1)
+    dest_dir = os.path.dirname(args.destination)
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
 
     try:
         with open(args.source, 'r', encoding='utf-8') as f:
             source_questions = yaml.safe_load(f) or []
-        
-        with open(args.destination, 'r', encoding='utf-8') as f:
-            dest_questions = yaml.safe_load(f) or []
+
+        if os.path.exists(args.destination):
+            with open(args.destination, 'r', encoding='utf-8') as f:
+                dest_questions = yaml.safe_load(f) or []
+        else:
+            print(f"Warning: Destination file '{args.destination}' not found. It will be created.")
+            dest_questions = []
 
         if not isinstance(source_questions, list) or not isinstance(dest_questions, list):
             print("Error: Both source and destination files must contain a YAML list of questions.")
