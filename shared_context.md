@@ -19,7 +19,7 @@ These quizzes are integrated into the main application menu and can be invoked u
 Kubelingo uses a SQLite database to store user progress, flagged questions, and AI-generated questions.
 
 - **Live Database**: Located at `~/.kubelingo/kubelingo.db`. This is the active, writable database used at runtime. On development machines or CI contexts, this directory may appear under the project root as `.kubelingo/kubelingo.db` when the `$HOME` directory is set to the project folder.
-- **Backup Database**: A read-only snapshot of the original question bank is maintained in `question-data-backup/kubelingo.db`. On first run (or if an existing database is missing or empty), Kubelingo automatically seeds the live database by copying this backup file. Manual restoration can be performed via `scripts/restore_db_from_backup.py`.
+- **Pristine Question Backup**: A read-only, pristine snapshot of the original question bank is maintained at `question-data-backup/kubelingo_pristine.db`. On first run (or if the live database is missing/empty), Kubelingo automatically seeds the live database by copying this backup.
 
 The backup database is version-controlled and should not be modified directly. All day-to-day operations and question enrichment happen in the live database.
 
@@ -71,9 +71,9 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
   
 ## Database Backup & Restoration
   
-- **User Database**: Kubelingo writes its question store to `~/.kubelingo/kubelingo.db` by default.  This is the authoritative source for all quizzes.
-- **Project Backup**: Each time you migrate or enrich quizzes, a snapshot of your user DB is copied to `question-data-backup/kubelingo.db` under the project root.  This file is clearly named so you can restore a known good state.
-- **Restore Script**: Use `scripts/restore_db_from_backup.py` to overwrite your local `~/.kubelingo/kubelingo.db` with the project backup, ensuring you can always fall back to the last saved set of quizzes.
+- **User Database**: Kubelingo writes its question store to `~/.kubelingo/kubelingo.db` by default. This is the authoritative source for all quizzes.
+- **Project Backup**: To protect user data, scripts that enrich or migrate questions create a backup of the user database at `question-data-backup/kubelingo.db`. This file contains a snapshot of your database *before* the changes were applied.
+- **Restore Script**: Use `scripts/restore_db_from_backup.py` to overwrite your local `~/.kubelingo/kubelingo.db`. You can use this to restore from `question-data-backup/kubelingo.db` (your user data backup) or from `question-data-backup/kubelingo_pristine.db` (to start fresh with original questions).
 
 ## Recent Enhancements
 
