@@ -11,7 +11,6 @@ except ImportError:
 import json
 import argparse
 import sys
-import os
 import logging
 import subprocess
 import shutil
@@ -857,13 +856,14 @@ def main():
 
         # If unified exercise requested, load and list questions
         if args.exercise_module:
+            # Load quizzes from the live database only
+            from kubelingo.modules.db_loader import DBLoader
+            loader = DBLoader()
             questions = []
-            # Load from filesystem and database
-            for loader in (JSONLoader(), MDLoader(), YAMLLoader(), DBLoader()):
-                for path in loader.discover():
-                    name = os.path.splitext(os.path.basename(path))[0]
-                    if name == args.exercise_module:
-                        questions.extend(loader.load_file(path))
+            for src in loader.discover():
+                name = os.path.splitext(os.path.basename(src))[0]
+                if name == args.exercise_module:
+                    questions.extend(loader.load_file(src))
             if not questions:
                 print(f"No questions found for module '{args.exercise_module}'")
             else:
