@@ -448,6 +448,63 @@ def import_json_to_db():
     except Exception as e:
         print(f"{Fore.RED}Failed to backup database: {e}{Style.RESET_ALL}")
 
+def restore_db():
+    """Restore the live questions database from the read-only backup."""
+    import shutil
+    from kubelingo.utils.config import BACKUP_DATABASE_FILE, APP_DIR
+    backup_db = BACKUP_DATABASE_FILE
+    if not os.path.isfile(backup_db):
+        print(f"Backup DB not found at '{backup_db}'.")
+        return
+    os.makedirs(APP_DIR, exist_ok=True)
+    dst_db = os.path.join(APP_DIR, 'kubelingo.db')
+    try:
+        shutil.copy2(backup_db, dst_db)
+        print(f"Restored questions DB from '{backup_db}' to '{dst_db}'.")
+    except Exception as e:
+        print(f"Failed to restore DB: {e}")
+
+def find_duplicates_cmd(cmd):
+    """List and optionally delete duplicate quiz questions in the database."""
+    import sqlite3
+    from kubelingo.utils.config import DATABASE_FILE
+    delete = '--delete' in cmd
+    db_path = DATABASE_FILE
+    if not os.path.isfile(db_path):
+        print(f"Database file not found: {db_path}")
+        return
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT prompt, COUNT(*) as cnt FROM questions GROUP BY prompt HAVING cnt > 1"
+    )
+    dups = cursor.fetchall()
+    if not dups:
+        print("No duplicate prompts found in the database.")
+        conn.close()
+        return
+    total_deleted = 0
+    for prompt, count in dups:
+        print(f"Prompt duplicated {count} times: {prompt!r}")
+        cursor.execute(
+            "SELECT rowid, id, source_file FROM questions WHERE prompt = ? ORDER BY rowid",
+            (prompt,)
+        )
+        rows = cursor.fetchall()
+        for rowid, qid, src in rows:
+            print(f"  rowid={rowid}, id={qid}, source_file={src}")
+        if delete:
+            to_delete = [str(r[0]) for r in rows[1:]]
+            if to_delete:
+                placeholders = ",".join(to_delete)
+                conn.execute(f"DELETE FROM questions WHERE rowid IN ({placeholders})")
+                print(f"  Deleted {len(to_delete)} duplicates for this prompt.")
+                total_deleted += len(to_delete)
+    if delete:
+        conn.commit()
+        print(f"Total duplicates deleted: {total_deleted}")
+    conn.close()
+
 
 def manage_config_interactive():
     """Interactive prompt for managing configuration."""
