@@ -301,20 +301,27 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add all enabled quiz modules from config
+        # 1. Add all enabled quiz modules from config, grouped by category
         from kubelingo.utils.config import ENABLED_QUIZZES
         import os
 
-        for name, path in ENABLED_QUIZZES.items():
-            source_file = os.path.basename(path)
-            try:
-                q_count = len(get_questions_by_source_file(source_file))
-            except Exception as e:
-                self.logger.warning(f"Could not get question count for {source_file}: {e}")
-                q_count = 0
+        for group_name, quizzes in ENABLED_QUIZZES.items():
+            if questionary:
+                choices.append(questionary.Separator(f"--- {group_name} ---"))
+            
+            for name, path in quizzes.items():
+                source_file = os.path.basename(path)
+                try:
+                    q_count = len(get_questions_by_source_file(source_file))
+                except Exception as e:
+                    self.logger.warning(f"Could not get question count for {source_file}: {e}")
+                    q_count = 0
 
-            display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
-            choices.append({"name": display_name, "value": path})
+                display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
+                choices.append({"name": display_name, "value": path})
+
+        if questionary:
+            choices.append(questionary.Separator("---"))
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
