@@ -133,7 +133,7 @@ ENABLED_QUIZZES = {
     "Helm Basics Quiz": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
     "Vim (2)": os.path.join(YAML_QUIZ_DIR, 'vim.yaml'),
     "Yaml Quiz (2)": os.path.join(YAML_QUIZ_DIR, 'yaml_quiz_2.yaml'),
-    "Kubernetes With Explanations": os.path.join(YAML_QUIZ_DIR, 'kubernetes_with_explanations.yaml'),
+    "Kubernetes With Explanations": os.path.join(DATA_DIR, 'json', 'kubernetes_with_explanations.json'),
     "Kubernetes": os.path.join(YAML_QUIZ_DIR, 'kubernetes.yaml'),
     "Ai Generated Quiz": os.path.join(YAML_QUIZ_DIR, 'ai_generated_quiz.yaml'),
     "Master Quiz With Explanations": os.path.join(YAML_QUIZ_DIR, 'master_quiz_with_explanations.yaml'),
