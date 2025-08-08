@@ -64,11 +64,12 @@ def import_questions_from_yaml(source_dir: Path):
 
 def backup_database():
     """
-    Backs up the live database to the version-controlled backup location.
+    Backs up the live database to be the version-controlled 'source of truth'.
     """
     live_db_path = Path.home() / ".kubelingo" / "kubelingo.db"
     backup_dir = project_root / "question-data-backup"
-    backup_path = backup_dir / "kubelingo.db"
+    # This file is the canonical backup the app checks for to prevent re-seeding.
+    backup_path = backup_dir / "kubelingo_original.db"
 
     if not live_db_path.exists():
         print(f"Error: Live database not found at '{live_db_path}'. Cannot create backup.")
@@ -77,7 +78,7 @@ def backup_database():
     print(f"\nBacking up live database from '{live_db_path}' to '{backup_path}'...")
     backup_dir.mkdir(exist_ok=True)
     shutil.copy(live_db_path, backup_path)
-    print("Backup complete.")
+    print(f"Backup complete. '{backup_path.name}' is now the source for seeding the database on first run.")
 
 
 def main():

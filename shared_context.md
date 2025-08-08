@@ -389,7 +389,7 @@ This script provides a way to populate the Kubelingo database from a directory o
 
 **Functionality**:
 - **Import from YAML**: The script scans a specified directory for YAML files (`.yaml` or `.yml`), parses them using `YAMLLoader`, and inserts each question into the live SQLite database (`~/.kubelingo/kubelingo.db`). It uses `INSERT OR REPLACE` logic, so running it multiple times with the same questions will update them in place.
-- **Database Backup**: After importing all questions, the script creates a backup of the live database. It copies `~/.kubelingo/kubelingo.db` to `question-data-backup/kubelingo.db`, overwriting the previous backup. This ensures the version-controlled backup reflects the latest set of questions from the source YAML files.
+- **Database Backup**: After importing all questions, the script creates a backup of the live database. It copies `~/.kubelingo/kubelingo.db` to `question-data-backup/kubelingo_original.db`. This file serves as the canonical, version-controlled question bank. The main application uses this file to seed a user's local database on first run.
 
 **Usage**:
 The script is run from the command line. It takes a `--source-dir` argument pointing to the directory with YAML files, which defaults to `/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak`.
