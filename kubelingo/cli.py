@@ -497,6 +497,9 @@ def main():
                         help='Use AI for evaluation (needs OPENAI_API_KEY).')
     parser.add_argument('--start-cluster', action='store_true',
                         help='Start a temporary Kind cluster for the session.')
+    # Configuration management (API keys, cluster contexts)
+    parser.add_argument('--config', '-g', action='store_true',
+                        help='Enter configuration mode to set API keys or Kubernetes clusters.')
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
@@ -705,7 +708,11 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
-        # Handle config commands: kubelingo config <view|set> openai [KEY]
+        # If --config flag provided, launch interactive config
+        if getattr(args, 'config', False):
+            manage_config_interactive()
+            return
+        # Handle config subcommand: kubelingo config <view|set> openai [KEY]
         if args.command and len(args.command) > 0:
             cmd_name = args.command[0]
             if cmd_name == 'config':
