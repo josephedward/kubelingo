@@ -262,6 +262,32 @@ def migrate_yaml_to_db():
     print(f"\n{Fore.GREEN}Migration complete. Migrated {total_migrated} questions from {total_files} files.{Style.RESET_ALL}")
 
 
+def restore_yaml_from_backup():
+    """Restores YAML files from the backup directory to the active quiz directory."""
+    if not os.path.exists(YAML_QUIZ_BACKUP_DIR):
+        print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found. Nothing to restore.{Style.RESET_ALL}")
+        return
+
+    if not os.listdir(YAML_QUIZ_BACKUP_DIR):
+        print(f"{Fore.YELLOW}Backup directory is empty. Nothing to restore.{Style.RESET_ALL}")
+        return
+
+    print(f"{Fore.CYAN}Restoring YAML files from backup...{Style.RESET_ALL}")
+    os.makedirs(YAML_QUIZ_DIR, exist_ok=True)
+    
+    restored_count = 0
+    for filename in os.listdir(YAML_QUIZ_BACKUP_DIR):
+        backup_path = os.path.join(YAML_QUIZ_BACKUP_DIR, filename)
+        if os.path.isfile(backup_path) and filename.endswith(('.yaml', '.yml')):
+            dest_path = os.path.join(YAML_QUIZ_DIR, filename)
+            print(f"  - Restoring '{filename}'...")
+            shutil.move(backup_path, dest_path)
+            restored_count += 1
+    
+    print(f"\n{Fore.GREEN}Restore complete. Restored {restored_count} files to '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
+
+
 def manage_config_interactive():
     """Interactive prompt for managing API key."""
     if questionary is None:
@@ -455,7 +481,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -629,6 +655,9 @@ def main():
                 return
             elif cmd_name == 'migrate-yaml':
                 migrate_yaml_to_db()
+                return
+            elif cmd_name == 'restore-yaml':
+                restore_yaml_from_backup()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
