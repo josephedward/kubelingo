@@ -116,6 +116,11 @@ def main():
         default=Path("/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak"),
         help="The directory containing YAML quiz files to import.",
     )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Append questions to the database instead of clearing it first.",
+    )
     args = parser.parse_args()
 
     if not args.source_dir.is_dir():
@@ -130,7 +135,8 @@ def main():
     total_imported = 0
 
     try:
-        clear_questions_table(conn)
+        if not args.append:
+            clear_questions_table(conn)
         total_imported = import_questions_from_dir(args.source_dir, loader, conn)
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
