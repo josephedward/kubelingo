@@ -36,22 +36,25 @@ def import_questions_from_yaml(source_dir: Path):
         try:
             questions: list[Question] = loader.load_file(str(yaml_file))
             for q in questions:
-                validation_steps_dict = [asdict(step) for step in q.validation_steps] if q.validation_steps else None
-
-                # Accommodate questions that may be missing 'source' or use 'citation' instead.
-                source_url = getattr(q, 'source', getattr(q, 'citation', None))
+                # Prepare fields for add_question, using getattr for safety to prevent errors.
+                validation_steps = [asdict(s) for s in q.validation_steps] if getattr(q, 'validation_steps', None) else []
 
                 add_question(
                     conn,
                     id=q.id,
-                    prompt=q.prompt,
+                    prompt=getattr(q, "prompt", ""),
                     source_file=yaml_file.name,
-                    response=q.response,
-                    category=q.category,
-                    source=source_url,
-                    validation_steps=validation_steps_dict,
-                    validator=q.validator,
-                    review=False  # Defaulting review to False
+                    response=getattr(q, "response", None),
+                    category=getattr(q, "category", None),
+                    source=getattr(q, 'source', getattr(q, 'citation', None)),
+                    validation_steps=validation_steps,
+                    validator=getattr(q, "validator", None),
+                    review=False,
+                    explanation=getattr(q, "explanation", None),
+                    difficulty=getattr(q, "difficulty", None),
+                    pre_shell_cmds=getattr(q, "pre_shell_cmds", []),
+                    initial_files=getattr(q, "initial_files", {}),
+                    question_type=getattr(q, "type", "command")
                 )
                 question_count += 1
         except Exception as e:

@@ -78,12 +78,12 @@ def generate_questions_from_text(
     system_prompt = """You are an expert Kubernetes administrator and trainer creating quiz questions for the CKAD exam from a provided document.
 Your task is to generate new questions based on the text.
 The questions should be unique and not overlap with the provided list of existing questions.
-Output ONLY a YAML list of question objects. Each object must have 'id', 'question', 'answers' (a list), 'explanation', and 'source'. Use a generic source like 'Killer Shell PDF'.
+Output ONLY a YAML list of question objects. Each object must have 'id', 'prompt', 'answers' (a list), 'explanation', and 'source'. Use a generic source like 'Killer Shell PDF'.
 The 'id' should be unique, perhaps using a slug of the question.
 
 Example output format:
 - id: create-pod-with-image
-  question: How do you create a pod named 'nginx' with the image 'nginx:latest'?
+  prompt: How do you create a pod named 'nginx' with the image 'nginx:latest'?
   answers:
     - "kubectl run nginx --image=nginx:latest"
   explanation: "The 'kubectl run' command is used to create a pod from an image."
@@ -135,7 +135,8 @@ Please generate {num_questions_per_chunk} new questions from the text chunk abov
                 if isinstance(generated_questions, list):
                     newly_added_count = 0
                     for q in generated_questions:
-                        prompt_text = q.get('prompt', '').strip().lower()
+                        # Handle both 'prompt' and 'question' as possible keys from the AI
+                        prompt_text = q.get('prompt', q.get('question', '')).strip().lower()
                         if prompt_text and prompt_text not in existing_prompts_set:
                             all_generated_questions.append(q)
                             existing_prompts_set.add(prompt_text)
