@@ -8,6 +8,7 @@ try:
     load_dotenv()
 except ImportError:
     pass
+import os
 import json
 import argparse
 import sys
@@ -63,7 +64,6 @@ import subprocess
 repo_root = Path(__file__).resolve().parent.parent
 from pathlib import Path
 import subprocess
-import os
 from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
