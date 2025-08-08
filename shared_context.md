@@ -421,6 +421,31 @@ This script provides a way to generate new quiz questions using AI and save them
     --output-file question-data/yaml/ai_generated_sa_questions.yaml
   ```
 
+### `scripts/generate_from_pdf.py`
+
+This script provides a way to generate new quiz questions from a PDF document using AI. It is designed to expand the question bank by processing external materials like study guides while avoiding duplication with existing questions.
+
+**Functionality**:
+- **PDF Parsing**: Extracts text content from a given PDF file using the `PyMuPDF` library.
+- **Deduplication Context**: Fetches all existing question prompts from the live database to guide the AI in generating unique content.
+- **AI Generation**: Sends the extracted text in chunks to an AI model, instructing it to create new questions that are not present in the existing set.
+- **YAML Output**: Saves the generated questions to a YAML file for review. It does not modify the database directly.
+
+**Usage**:
+First, install the required dependencies:
+```bash
+pip install pymupdf openai
+```
+You must also have your `OPENAI_API_KEY` environment variable set.
+
+To run the script:
+```bash
+python3 scripts/generate_from_pdf.py \
+    --pdf-path /path/to/document.pdf \
+    --output-file question-data/yaml/generated_questions.yaml
+```
+After running, review the output YAML file, then use `scripts/import_yaml_to_db.py` to add the new questions to the database.
+
 ### `scripts/import_and_backup.py`
 
 This script provides a way to populate the Kubelingo database from a directory of YAML quiz files and then create a backup of the populated database. This is particularly useful for developers who are creating or updating quiz content in YAML format and need to load it into the application's database.
