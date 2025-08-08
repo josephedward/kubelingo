@@ -138,6 +138,14 @@ SIMULATOR_QUIZZES = {
     "Killer Shell Practice": os.path.join(YAML_QUIZ_DIR, 'generated_from_killer_shell.yaml'),
 }
 
+# --- Enabled Quizzes (legacy alias for interactive menus and CLI fallback) ---
+# Combines all quiz groups for backward compatibility
+ENABLED_QUIZZES = {}
+ENABLED_QUIZZES.update(CORE_SKILL_QUIZZES)
+ENABLED_QUIZZES.update(KUBECTL_TOPIC_QUIZZES)
+ENABLED_QUIZZES.update(COMPREHENSIVE_QUIZZES)
+ENABLED_QUIZZES.update(SIMULATOR_QUIZZES)
+
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
 # Killercoda CKAD CSV quiz file
