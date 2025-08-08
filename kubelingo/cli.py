@@ -837,13 +837,26 @@ def main():
             return
 
         if args.quiz:
-            from kubelingo.utils.config import ENABLED_QUIZZES
-            if args.quiz in ENABLED_QUIZZES:
-                args.file = ENABLED_QUIZZES[args.quiz]
+            # Dynamically discover available quiz modules from the database for --quiz
+            try:
+                from kubelingo.modules.db_loader import DBLoader
+                from kubelingo.utils.ui import humanize_module
+                loader = DBLoader()
+                modules = loader.discover()
+                quiz_map = {}
+                for src in modules:
+                    # Human-readable name from module base
+                    base = os.path.splitext(os.path.basename(src))[0]
+                    name = humanize_module(base)
+                    quiz_map[name] = src
+            except Exception:
+                quiz_map = {}
+            if args.quiz in quiz_map:
+                args.file = quiz_map[args.quiz]
             else:
                 parser.error(
                     f"Quiz '{args.quiz}' not found. "
-                    f"Available quizzes: {', '.join(ENABLED_QUIZZES.keys())}"
+                    f"Available quizzes: {', '.join(quiz_map.keys())}"
                 )
 
         # If a quiz is selected without specifying the number of questions, ask interactively.
@@ -952,12 +965,30 @@ def main():
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                # Build menu choices from the configured quizzes
-                choices = []
-                for quiz_name, path in ENABLED_QUIZZES.items():
-                    choices.append({"name": quiz_name, "value": path})
-                # Add Exit option
-                choices.append({"name": "Exit", "value": "exit_app"})
+                # Dynamically build menu choices from database-backed quiz modules
+                try:
+                    # Use global os; discover DB-backed quiz modules
+                    from kubelingo.modules.db_loader import DBLoader
+                    from kubelingo.utils.ui import humanize_module
+                    loader = DBLoader()
+                    modules = loader.discover()
+                    choices = []
+                    for src in modules:
+                        base = os.path.splitext(os.path.basename(src))[0]
+                        name = humanize_module(base)
+                        try:
+                            count = len(loader.load_file(src))
+                        except Exception:
+                            count = 0
+                        display = f"{name} ({count} questions)" if count > 0 else name
+                        choices.append({"name": display, "value": src})
+                    # Add Exit option
+                    choices.append({"name": "Exit", "value": "exit_app"})
+                except Exception:
+                    # Fallback to static mapping if dynamic discovery fails
+                    from kubelingo.utils.config import ENABLED_QUIZZES
+                    choices = [{"name": k, "value": v} for k, v in ENABLED_QUIZZES.items()]
+                    choices.append({"name": "Exit", "value": "exit_app"})
                 # Prompt user to select a quiz
                 choice = questionary.select(
                     "Choose a Kubernetes quiz module:",
