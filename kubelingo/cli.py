@@ -41,6 +41,7 @@ from kubelingo.modules.kubernetes.session import (
     get_all_flagged_questions,
     NewSession,
 )
+from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 # Unified question-data loaders (question-data/{json,md,yaml})
 from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
@@ -161,15 +162,73 @@ def show_modules():
         for p in yaml_paths:
             name = os.path.splitext(os.path.basename(p))[0]
             print(f"    {Fore.YELLOW}{humanize_module(name)}{Style.RESET_ALL} -> {p}")
-    
+def handle_config_command(cmd):
+    """Handles 'config' subcommands."""
+    import getpass
+    if len(cmd) < 3 or cmd[2].lower() not in ('openai', 'api_key'):
+        print("Usage: kubelingo config <view|set> openai [KEY]")
+        if len(cmd) >= 3:
+            print(f"Unknown config property '{cmd[2]}'. Supported: openai")
+        return
+
+    action = cmd[1].lower()
+    if action == 'view':
+        key = get_api_key()
+        if key:
+            print(f'OpenAI API key: {key}')
+        else:
+            print('OpenAI API key is not set.')
+    elif action == 'set':
+        value = None
+        if len(cmd) >= 4:
+            value = cmd[3]
+        else:
+            try:
+                value = getpass.getpass('Enter OpenAI API key: ').strip()
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                return
+
+        if value:
+            if save_api_key(value):
+                print('OpenAI API key saved.')
+            else:
+                print('Failed to save OpenAI API key.')
+        else:
+            print("No API key provided. No changes made.")
+    else:
+        print(f"Unknown config action '{action}'. Use 'view' or 'set'.")
 
 
+def manage_config_interactive():
+    """Interactive prompt for managing API key."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+    try:
+        action = questionary.select(
+            "What would you like to do?",
+            choices=[
+                {"name": "View current OpenAI API key", "value": "view"},
+                {"name": "Set/Update OpenAI API key", "value": "set"},
+                questionary.Separator(),
+                {"name": "Cancel", "value": "cancel"}
+            ],
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "cancel":
+            print("Operation cancelled.")
+            return
+
+        handle_config_command(['config', action, 'openai'])
+        # Add a newline for better spacing after the operation
+        print()
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
 
 
-
-
-
-    
 # Legacy alias for cloud-mode static branch
 def main():
     # Prevent re-entrant execution inside a sandbox shell.
@@ -340,84 +399,91 @@ def main():
     # For bare invocation (no flags or commands), present an interactive menu.
     # Otherwise, parse arguments from command line.
     if len(sys.argv) == 1:
-        # Interactive mode. We'll build up `args` manually.
-        # Initialize args with defaults.
+        # Interactive mode.
         args = argparse.Namespace(
             file=None, num=0, randomize=False, category=None, list_categories=False,
             history=False, review_only=False, ai_eval=False, command=[], list_modules=False,
             custom_file=None, exercises=None, cluster_context=None, live=False, k8s_mode=False,
-            pty=False, docker=False, sandbox_mode=None, exercise_module=None, module=None,
+            pty=True, docker=False, sandbox_mode='pty', exercise_module=None, module='kubernetes',
             start_cluster=False
         )
-        is_interactive = questionary and sys.stdin.isatty() and sys.stdout.isatty()
+
+        if not (questionary and sys.stdin.isatty() and sys.stdout.isatty()):
+            print("Interactive mode requires 'questionary' package and an interactive terminal.")
+            return
+
+        logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
+        logger = logging.getLogger()
+        session = load_session(args.module, logger)
+        if not session or not session.initialize():
+            print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
+            return
 
         try:
-            # For interactive mode, we skip session/quiz type selection and go
-            # directly to the unified Kubernetes quiz menu.
-            # We default to PTY mode as the distinction is not currently relevant.
-            args.pty = True
-            args.docker = False
-            args.module = 'kubernetes'
-            # Clear file to trigger interactive selection within the module.
-            args.file = None
+            while True:
+                from kubelingo.utils.config import ENABLED_QUIZZES
+                choices = []
+                for name, path in ENABLED_QUIZZES.items():
+                    # Fetch question count from DB
+                    from kubelingo.database import get_questions_by_source_file
+                    q_count = len(get_questions_by_source_file(os.path.basename(path)))
+                    choices.append({"name": f"{name} ({q_count} questions)", "value": path})
 
-            logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-            logger = logging.getLogger()
+                choices.append(questionary.Separator())
+                # Flagged questions
+                flagged = get_all_flagged_questions()
+                if flagged:
+                    choices.append({"name": f"Review {len(flagged)} Flagged Questions", "value": "review_flagged"})
+                # Study mode
+                choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
+                choices.append(questionary.Separator())
+                choices.append({"name": "Manage API Key", "value": "config"})
+                choices.append({"name": "View Session History", "value": "history"})
+                choices.append({"name": "Help", "value": "help"})
+                choices.append({"name": "Exit App", "value": "exit_app"})
 
-            session = load_session(args.module, logger)
-            if session:
-                init_ok = session.initialize()
-                if not init_ok:
-                    print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
-                    return
-                # run_exercises will now show the main menu and loop internally.
-                session.run_exercises(args)
-                session.cleanup()
-            else:
-                print(Fore.RED + f"Failed to load module '{args.module}'." + Style.RESET_ALL)
+                action = questionary.select(
+                    "Choose a Kubernetes exercise:",
+                    choices=choices,
+                    use_indicator=True
+                ).ask()
+
+                if action is None or action == 'exit_app':
+                    print(f"{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
+                    break
+                elif action == "history":
+                    show_history()
+                elif action == "help":
+                    show_quiz_type_help()
+                elif action == "config":
+                    manage_config_interactive()
+                elif action == 'review_flagged':
+                    current_args = argparse.Namespace(**vars(args))
+                    current_args.review_only = True
+                    session.run_exercises(current_args)
+                elif action == 'study_mode':
+                    api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
+                    if not api_key:
+                        print(f"{Fore.RED}Study Mode requires an OpenAI API key.{Style.RESET_ALL}")
+                        manage_config_interactive()
+                        continue
+                    study_session = KubernetesStudyMode(api_key=api_key)
+                    print(f"{Fore.CYAN}Starting Socratic study session on 'pods'... (Ctrl+C to exit){Style.RESET_ALL}")
+                    print(study_session.start_study_session("pods"))
+                elif os.path.exists(action): # It's a quiz file path
+                    current_args = argparse.Namespace(**vars(args))
+                    current_args.file = action
+                    session.run_exercises(current_args)
+            session.cleanup()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
-            return
+        return
     else:
         # Non-interactive mode
         args = parser.parse_args()
         # Handle config commands: kubelingo config <view|set> openai [KEY]
-        import getpass
         if args.command and len(args.command) > 0 and args.command[0] == 'config':
-            cmd = args.command
-            if len(cmd) < 3 or cmd[2].lower() not in ('openai', 'api_key'):
-                print("Usage: kubelingo config <view|set> openai [KEY]")
-                if len(cmd) >= 3:
-                    print(f"Unknown config property '{cmd[2]}'. Supported: openai")
-                return
-
-            action = cmd[1].lower()
-            if action == 'view':
-                key = get_api_key()
-                if key:
-                    print(f'OpenAI API key: {key}')
-                else:
-                    print('OpenAI API key is not set.')
-            elif action == 'set':
-                value = None
-                if len(cmd) >= 4:
-                    value = cmd[3]
-                else:
-                    try:
-                        value = getpass.getpass('Enter OpenAI API key: ').strip()
-                    except (EOFError, KeyboardInterrupt):
-                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
-                        return
-
-                if value:
-                    if save_api_key(value):
-                        print('OpenAI API key saved.')
-                    else:
-                        print('Failed to save OpenAI API key.')
-                else:
-                    print("No API key provided. No changes made.")
-            else:
-                print(f"Unknown config action '{action}'. Use 'view' or 'set'.")
+            handle_config_command(args.command)
             return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
