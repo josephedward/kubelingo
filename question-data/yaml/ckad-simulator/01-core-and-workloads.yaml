@@ -1,0 +1,74 @@
+- id: ckad-sim::q1-namespaces
+  prompt: "Get the list of all Namespaces in the cluster and save the output to `/opt/course/1/namespaces`. The list can contain other columns like `STATUS` or `AGE`."
+  type: live_k8s_edit
+  category: "Core Concepts"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "mkdir -p /opt/course/1"
+  validation_steps:
+    - cmd: "grep -q default /opt/course/1/namespaces"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+    - cmd: "grep -q kube-system /opt/course/1/namespaces"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+  explanation: "The command `kubectl get namespaces` or its short form `k get ns` lists all namespaces. The output can be redirected to a file using `> /path/to/file`."
+
+- id: ckad-sim::q2-pods
+  prompt: "Create a single Pod named `pod1` of image `httpd:2.4.41-alpine` in Namespace `default`. The container must be named `pod1-container`. Then, write a command that outputs the status of this pod into the file `/opt/course/2/pod1-status-command.sh`."
+  type: live_k8s_edit
+  category: "Core Concepts"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "mkdir -p /opt/course/2"
+  validation_steps:
+    - cmd: "kubectl get pod pod1 -o jsonpath='{.spec.containers[0].name}'"
+      matchers:
+        - type: "exact_match"
+          expected: "pod1-container"
+    - cmd: "kubectl get pod pod1 -o jsonpath='{.spec.containers[0].image}'"
+      matchers:
+        - type: "exact_match"
+          expected: "httpd:2.4.41-alpine"
+    - cmd: "sh /opt/course/2/pod1-status-command.sh"
+      matchers:
+        - type: "contains"
+          expected: "Running"
+  explanation: "A Pod can be created imperatively with `kubectl run` and `--dry-run=client -o yaml` to generate a manifest. The manifest can then be edited to meet specific requirements like the container name. A command to check the pod's status can use `kubectl describe pod <pod_name>` and `grep`, or `kubectl get pod <pod_name>` with a `jsonpath` expression like `{.status.phase}`. This command is then saved to the required file."
+
+- id: ckad-sim::q3-job
+  prompt: "Create a Job manifest at `/opt/course/3/job.yaml`. The Job, named `neb-new-job` in namespace `neptune`, should run the command `sleep 2 && echo done` with image `busybox:1.31.0`. It should have a total of 3 completions, with 2 running in parallel. Pods created by the Job must have the label `id: awesome-job`, and the container should be named `neb-new-job-container`. After creating the manifest, apply it to start the Job."
+  type: live_k8s_edit
+  category: "Workload Management"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create namespace neptune"
+    - "mkdir -p /opt/course/3"
+  validation_steps:
+    - cmd: "kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.completions}'"
+      matchers:
+        - type: "exact_match"
+          expected: "3"
+    - cmd: "kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.parallelism}'"
+      matchers:
+        - type: "exact_match"
+          expected: "2"
+    - cmd: "kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.template.metadata.labels.id}'"
+      matchers:
+        - type: "exact_match"
+          expected: "awesome-job"
+    - cmd: "kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.template.spec.containers[0].name}'"
+      matchers:
+        - type: "exact_match"
+          expected: "neb-new-job-container"
+    - cmd: "test -f /opt/course/3/job.yaml"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+    - cmd: "kubectl -n neptune get job neb-new-job"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+  explanation: "A Job manifest can be created using `kubectl create job --dry-run=client -o yaml`. The YAML should then be edited to set `completions`, `parallelism`, container name, and pod labels in the `template` section. The job is then created using `kubectl apply -f <file.yaml>`. The job's status can be monitored with `kubectl get job` and `kubectl describe job`."
