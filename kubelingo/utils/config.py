@@ -126,8 +126,19 @@ KUBECTL_TOPIC_QUIZZES = {
     "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
     "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
     "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+}
+  
+# Simulator-specific quizzes
+SIMULATOR_QUIZZES = {
     "CKAD Simulator": os.path.join(YAML_QUIZ_DIR, 'ckad_simulator.yaml'),
     "Killer Shell Practice": os.path.join(YAML_QUIZ_DIR, 'generated_from_killer_shell.yaml'),
+}
+
+# Comprehensive multi-topic and AI-generated quiz sets
+COMPREHENSIVE_QUIZZES = {
+    "AI Generated Quiz": os.path.join(YAML_QUIZ_DIR, 'ai_generated_quiz.yaml'),
+    "Kubernetes With Explanations": os.path.join(YAML_QUIZ_DIR, 'kubernetes_with_explanations.yaml'),
+    "Master Quiz With Explanations": os.path.join(YAML_QUIZ_DIR, 'master_quiz_with_explanations.yaml'),
 }
 
 # --- Enabled Quizzes (legacy alias for interactive menus and CLI fallback) ---
@@ -135,6 +146,8 @@ KUBECTL_TOPIC_QUIZZES = {
 ENABLED_QUIZZES = {}
 ENABLED_QUIZZES.update(CORE_SKILL_QUIZZES)
 ENABLED_QUIZZES.update(KUBECTL_TOPIC_QUIZZES)
+ENABLED_QUIZZES.update(COMPREHENSIVE_QUIZZES)
+ENABLED_QUIZZES.update(SIMULATOR_QUIZZES)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
