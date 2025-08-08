@@ -958,6 +958,27 @@ class NewSession(StudySession):
                 if q.get('context'):
                     print(f"{Fore.CYAN}Context: {q['context']}{Style.RESET_ALL}")
                 print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                # Display source links if available
+                source_items = []
+                # Links may be provided directly or within metadata
+                meta_links = q.get('metadata', {}).get('links') if isinstance(q.get('metadata'), dict) else None
+                if meta_links:
+                    if isinstance(meta_links, list):
+                        source_items.extend(meta_links)
+                    else:
+                        source_items.append(meta_links)
+                # Also consider top-level fields
+                if q.get('links'):
+                    if isinstance(q['links'], list):
+                        source_items.extend(q['links'])
+                    else:
+                        source_items.append(q['links'])
+                if q.get('citation'):
+                    source_items.append(q['citation'])
+                if q.get('source'):
+                    source_items.append(q['source'])
+                for url in source_items:
+                    print(f"{Fore.CYAN}Source: {url}{Style.RESET_ALL}")
 
                 while True:
                     is_flagged = q.get('review', False)
@@ -1390,9 +1411,25 @@ class NewSession(StudySession):
                                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
 
                             # Display source citation
-                            source_url = q.get('citation') or q.get('source')
-                            if source_url:
-                                print(f"{Fore.CYAN}Reference: {source_url}{Style.RESET_ALL}")
+                            # Display source links if available
+                            source_items = []
+                            meta_links = q.get('metadata', {}).get('links') if isinstance(q.get('metadata'), dict) else None
+                            if meta_links:
+                                if isinstance(meta_links, list):
+                                    source_items.extend(meta_links)
+                                else:
+                                    source_items.append(meta_links)
+                            if q.get('links'):
+                                if isinstance(q['links'], list):
+                                    source_items.extend(q['links'])
+                                else:
+                                    source_items.append(q['links'])
+                            if q.get('citation'):
+                                source_items.append(q['citation'])
+                            if q.get('source'):
+                                source_items.append(q['source'])
+                            for url in source_items:
+                                print(f"{Fore.CYAN}Reference: {url}{Style.RESET_ALL}")
 
                             # After evaluating YAML edits, always advance to next question
                             if current_question_index == total_questions - 1:
