@@ -29,15 +29,15 @@ python scripts/migrate_to_db.py
 This will:
 - Discover all `.yaml` and `.yml` files in both `question-data/yaml` and `question-data/yaml-bak`.
 - Insert or update each question into the live database (`~/.kubelingo/kubelingo.db`).
-- Create a new backup of your migrated database at `question-data-backup/kubelingo.db`.
+- Create a new backup of your migrated database at `question-data-backup/kubelingo_original.db`.
+ - Create a new backup of your migrated database at `question-data-backup/kubelingo.db`.
 
 Once migration is complete, the CLI will rely solely on the database for all quizzes, and you can archive or remove the original YAML files if desired.
 
 ### Database Files Explained
 
 - **Live Database (`~/.kubelingo/kubelingo.db`)**: This is your active, personal database. It lives in your home directory and stores your progress, review flags, and any AI-generated questions.
-
-- **Original Backup (`question-data-backup/kubelingo_original.db`)**: A version-controlled, read-only snapshot of the original question bank. On first run (or if the live database is missing or empty), Kubelingo automatically seeds the live database by copying this backup file.
+- **Backup Database (`question-data-backup/kubelingo.db`)**: A version-controlled, read-only snapshot of the original question bank. On first run (or if the live database is missing or empty), Kubelingo automatically seeds the live database by copying this backup file.
 
 - **User Data Backup (`question-data-backup/kubelingo.db.bak`)**: To protect your data, scripts that perform migrations will create a backup of your *live* database with a `.bak` extension. This backup is typically stored at `question-data-backup/kubelingo.db.bak`.
 
@@ -50,7 +50,7 @@ On first run—or whenever the live database is initialized or cleared—Kubelin
 - YAML files under both `question-data/yaml` and `question-data/yaml-bak`
 - Markdown files under `question-data/md`
 
-After importing all quizzes into `~/.kubelingo/kubelingo.db`, Kubelingo writes a project-level backup at `question-data-backup/kubelingo_original.db`.
+After importing all quizzes into `~/.kubelingo/kubelingo.db`, Kubelingo writes a project-level backup at `question-data-backup/kubelingo.db`.
 
 ## Current Architecture: The Unified Shell Experience
 
