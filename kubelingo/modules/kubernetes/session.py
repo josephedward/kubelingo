@@ -301,22 +301,22 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add all quiz modules from the live database
+        # 1. Add all quiz modules from the configuration
         from kubelingo.modules.db_loader import DBLoader
-        from kubelingo.utils.ui import humanize_module
+        from kubelingo.utils.config import ENABLED_QUIZZES
         import os
         db_loader = DBLoader()
-        modules = db_loader.discover()
-        for src in modules:
-            mod_base = os.path.splitext(src)[0]
+
+        for name, path in ENABLED_QUIZZES:
+            src = os.path.basename(path)
             try:
                 q_count = len(db_loader.load_file(src))
             except Exception as e:
                 self.logger.warning(f"Could not get question count for {src}: {e}")
                 q_count = 0
-            name = humanize_module(mod_base)
+            
             display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
-            choices.append({"name": display_name, "value": src})
+            choices.append({"name": display_name, "value": path})
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
