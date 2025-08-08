@@ -1454,8 +1454,8 @@ class NewSession(StudySession):
             per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
 
             print(f"\n{Fore.CYAN}=== Quiz Complete ==={Style.RESET_ALL}")
-            score = (correct_count / asked_count * 100) if asked_count > 0 else 0
-            print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{asked_count}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
+            score = (correct_count / total_questions * 100) if total_questions > 0 else 0
+            print(f"You got {Fore.GREEN}{correct_count}{Style.RESET_ALL} out of {Fore.YELLOW}{total_questions}{Style.RESET_ALL} correct ({Fore.CYAN}{score:.1f}%{Style.RESET_ALL}).")
             print(f"Time taken: {Fore.CYAN}{duration}{Style.RESET_ALL}")
             
             history_args = copy.deepcopy(args)
