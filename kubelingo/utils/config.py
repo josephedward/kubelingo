@@ -30,9 +30,9 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 
 
 # --- Database ---
-# Writable database is stored in the user's app directory.
+# Writable database is stored in the user's app directory (~/.kubelingo/kubelingo.db).
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
-# Secondary backup database: snapshot of original questions from migration, located in the project root.
+# Backup (shipped) database: read-only snapshot of the original question bank, used to seed new installs.
 BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo.db')
 
 
@@ -68,13 +68,15 @@ def get_api_key() -> Optional[str]:
 
 # JSON files are in the package's data directory.
 JSON_DIR = os.path.join(DATA_DIR, 'json')
-DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ckad_quiz_data.json')
+# Default JSON quiz data file (initial command quiz)
+DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ai_generated_quiz.json')
 # Built-in YAML-edit quiz data files are stored in the backup YAML directory at project root.
 # Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
 # YAML editing quiz data file (YAML exercises)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
+VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml')
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml')
 # Renamed syntax quiz from kubectl_syntax_quiz.yaml

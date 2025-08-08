@@ -14,6 +14,15 @@ The new quizzes are:
 
 These quizzes are integrated into the main application menu and can be invoked using the `--quiz` argument.
 
+## Database Storage and Backup
+
+Kubelingo uses a SQLite database to store user progress, flagged questions, and AI-generated questions.
+
+- **Live Database**: Located at `~/.kubelingo/kubelingo.db`. This is the active, writable database used at runtime. On development machines or CI contexts, this directory may appear under the project root as `.kubelingo/kubelingo.db` when the `$HOME` directory is set to the project folder.
+- **Backup Database**: A read-only snapshot of the original question bank is maintained in `question-data-backup/kubelingo.db`. On first run (or if an existing database is missing or empty), Kubelingo automatically seeds the live database by copying this backup file. Manual restoration can be performed via `scripts/restore_db_from_backup.py`.
+
+The backup database is version-controlled and should not be modified directly. All day-to-day operations and question enrichment happen in the live database.
+
 ## Current Architecture: The Unified Shell Experience
 
 Kubelingo delivers every quiz question—whether command, manifest/YAML edit, or Vim exercise—via one consistent shell-driven workflow. This was achieved through a major refactor that unified the user experience.
@@ -59,6 +68,12 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
 -   **[Not Started] Flesh out AI-based evaluation**: The foundation for transcript-based evaluation is present, but the `llm` integration for a "second opinion" has not been started.
 -   **[Not Started] Improve API key handling**: An interactive prompt for the `OPENAI_API_KEY` has not been implemented.
 -   **[Completed] Persist AI-generated questions**: AI-generated questions are now automatically saved to a local SQLite database (`kubelingo.db`). This enables reuse and offline review. The implementation includes a `kubelingo/database.py` module for all database interactions and is rigorously tested in `tests/test_database.py` and `tests/modules/test_question_generator.py`.
+  
+## Database Backup & Restoration
+  
+- **User Database**: Kubelingo writes its question store to `~/.kubelingo/kubelingo.db` by default.  This is the authoritative source for all quizzes.
+- **Project Backup**: Each time you migrate or enrich quizzes, a snapshot of your user DB is copied to `question-data-backup/kubelingo.db` under the project root.  This file is clearly named so you can restore a known good state.
+- **Restore Script**: Use `scripts/restore_db_from_backup.py` to overwrite your local `~/.kubelingo/kubelingo.db` with the project backup, ensuring you can always fall back to the last saved set of quizzes.
 
 ## Recent Enhancements
 
