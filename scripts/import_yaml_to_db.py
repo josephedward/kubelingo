@@ -96,6 +96,11 @@ def main():
         "If not specified, defaults to scanning 'question-data/yaml' and "
         "'question-data/yaml-bak'.",
     )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear all questions from the database before importing. Use with caution.",
+    )
     args = parser.parse_args()
 
     source_paths = args.source_paths
@@ -127,6 +132,18 @@ def main():
     loader = YAMLLoader()
     conn = get_db_connection()
     total_imported = 0
+
+    if args.clear:
+        print("Clearing all questions from the database...")
+        try:
+            conn.execute("DELETE FROM questions")
+            conn.commit()
+            print("Database cleared successfully.")
+        except Exception as e:
+            conn.rollback()
+            print(f"Error clearing database: {e}", file=sys.stderr)
+            conn.close()
+            return
 
     try:
         total_imported = import_yaml_questions_from_files(all_yaml_files, loader, conn)
