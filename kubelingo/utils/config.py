@@ -66,51 +66,29 @@ def get_api_key() -> Optional[str]:
 
 # --- Quiz Data Files ---
 
-# JSON files are in the package's data directory.
-JSON_DIR = os.path.join(DATA_DIR, 'json')
-# Default JSON quiz data file (initial command quiz)
-DEFAULT_DATA_FILE = os.path.join(JSON_DIR, 'ai_generated_quiz.json')
-# Built-in YAML-edit quiz data files are stored in the backup YAML directory at project root.
 # Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-  # YAML editing quiz data file (YAML exercises)
-YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-  # Vim editing quiz data file (Vim exercises)
-VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
-KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml')
-KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml')
-# Renamed syntax quiz from kubectl_syntax_quiz.yaml
-KUBECTL_BASIC_SYNTAX_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml')
-HELM_BASICS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml')
-KUBECTL_SHELL_SETUP_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_shell_setup_quiz.yaml')
-KUBECTL_POD_MANAGEMENT_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml')
-KUBECTL_DEPLOYMENT_MANAGEMENT_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml')
-KUBECTL_NAMESPACE_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml')
-KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml')
-KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml')
-KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml')
-KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml')
-
 
 
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
+# The file paths are used as unique identifiers to query the database.
 ENABLED_QUIZZES = {
-    "Vim Quiz": VIM_QUESTIONS_FILE,
-    "YAML Editing": YAML_QUESTIONS_FILE,
-    "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
-    "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
-    "Kubectl Resource Types": KUBECTL_RESOURCE_TYPES_QUIZ_FILE,
-    "Helm Basics": HELM_BASICS_QUIZ_FILE,
-    "Kubectl Shell Setup": KUBECTL_SHELL_SETUP_QUIZ_FILE,
-    "Kubectl Pod Management": KUBECTL_POD_MANAGEMENT_QUIZ_FILE,
-    "Kubectl Deployment Management": KUBECTL_DEPLOYMENT_MANAGEMENT_QUIZ_FILE,
-    "Kubectl Namespace Operations": KUBECTL_NAMESPACE_OPERATIONS_QUIZ_FILE,
-    "Kubectl ConfigMap Operations": KUBECTL_CONFIGMAP_OPERATIONS_QUIZ_FILE,
-    "Kubectl Secret Management": KUBECTL_SECRET_MANAGEMENT_QUIZ_FILE,
-    "Kubectl Service Account Operations": KUBECTL_SERVICE_ACCOUNT_OPS_QUIZ_FILE,
-    "Kubectl Additional Commands": KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE,
+    "Vim Quiz": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
+    "YAML Editing": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+    "Kubectl Basic Syntax": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+    "Kubectl Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
+    "Kubectl Resource Types": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
+    "Kubectl Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_shell_setup_quiz.yaml'),
+    "Kubectl Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
+    "Kubectl Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
+    "Kubectl Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Kubectl ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "Kubectl Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
+    "Kubectl Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml'),
+    "Kubectl Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
 }
 
 # CSV files
