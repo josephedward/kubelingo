@@ -783,20 +783,12 @@ def main():
                 logger.warning(f"Automatic DB migration failed: {e}")
 
         try:
-            while True:
-                from kubelingo.utils.config import ENABLED_QUIZZES
-                from kubelingo.database import get_questions_by_source_file
-                choices = []
-                for name, path in ENABLED_QUIZZES.items():
-                    # Fetch question count from DB
-                    try:
-                        q_count = len(get_questions_by_source_file(os.path.basename(path)))
-                    except Exception as e:
-                        logger.warning(f"Could not get question count for {name}: {e}")
-                        q_count = 0
-                    
-                    display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
-                    choices.append({"name": display_name, "value": path})
+                while True:
+                    from kubelingo.utils.config import ENABLED_QUIZZES
+                    choices = []
+                    # List available Kubernetes quizzes without counts
+                    for name, path in ENABLED_QUIZZES.items():
+                        choices.append({"name": name, "value": path})
 
                 choices.append(questionary.Separator())
                 # Flagged questions
@@ -1030,8 +1022,17 @@ def main():
         if args.k8s_mode:
             # Shortcut to display the main Kubernetes quiz menu and exit
             args.module = 'kubernetes'
-            # Only interactive when no other quiz flags are present
-            if args.num == 0 and not args.category and not args.review_only and not args.list_categories and not args.exercise_module:
+            # Only interactive when no other quiz flags are present and in an interactive terminal
+            if (
+                args.num == 0
+                and not args.category
+                and not args.review_only
+                and not args.list_categories
+                and not args.exercise_module
+                and questionary
+                and sys.stdin.isatty()
+                and sys.stdout.isatty()
+            ):
                 # Configure logging
                 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
                 logger = logging.getLogger()
