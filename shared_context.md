@@ -21,6 +21,8 @@ Kubelingo uses a SQLite database to store user progress, flagged questions, and 
 - **Live Database**: Located at `~/.kubelingo/kubelingo.db`. This is the active, writable database used at runtime. On development machines or CI contexts, this directory may appear under the project root as `.kubelingo/kubelingo.db` when the `$HOME` directory is set to the project folder.
 - **Pristine Question Backup**: A read-only, pristine snapshot of the original question bank is maintained at `question-data-backup/kubelingo_pristine.db`. On first run (or if the live database is missing/empty), Kubelingo automatically seeds the live database by copying this backup.
 
+  - **Runtime Data Loading**: At runtime, Kubelingo no longer scans individual data source files (JSON, YAML, Markdown, or CSV) under the `question-data` directories. All quizzes are loaded exclusively from the live database (`~/.kubelingo/kubelingo.db`). The `question-data` folders and the backup database are only used for initial seeding or manual restoration.
+
 The backup database is version-controlled and should not be modified directly. All day-to-day operations and question enrichment happen in the live database.
 
 ## Current Architecture: The Unified Shell Experience
@@ -115,6 +117,17 @@ In both cases, the question’s metadata (`initial_files`, `pre_shell_cmds`, `va
   - Cons: Slower startup, requires Docker.
 
 Use PTY for quick local quizzes, Docker for safe, reproducible environments.
+
+## Database Files
+
+Kubelingo uses a local SQLite database to store quiz questions, AI-generated content, history, and flags.
+- **Primary database**: `$HOME/.kubelingo/kubelingo.db`
+  - This file lives in your home directory (in `.kubelingo/`) and holds your active quiz data, including any AI-generated questions and review flags.
+- **Backup database**: `<PROJECT_ROOT>/question-data-backup/kubelingo.db`
+  - A read-only snapshot of the original, pristine set of quiz questions before any migrations or user edits.
+  - On first run (or if the primary database is missing or contains no questions), Kubelingo will automatically copy this backup into your primary database location to seed your quiz content.
+
+If you ever need to reset your local database to the original quiz set, simply delete or move the `$HOME/.kubelingo/kubelingo.db` file and restart Kubelingo. The application will detect the missing database and reseed from the backup file above.
 
 ### How YAML Quiz File Handling Works
 
