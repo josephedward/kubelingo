@@ -1115,7 +1115,7 @@ class NewSession(StudySession):
                             current_question_index += 1
                             break
                         
-                        has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in q.get('validation_steps', []))
+                        has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in (q.get('validation_steps') or []))
                         question_needs_k8s = (
                             q.get('type') in ('live_k8s', 'live_k8s_edit') or
                             'kubectl' in q.get('prompt', '') or
