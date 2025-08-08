@@ -106,7 +106,7 @@ This script provides a way to populate the Kubelingo database from `question-dat
 
 **Functionality**:
 - **JSON Ingestion**: Recursively finds and parses all `.json` files in the `question-data/json` directory.
-- **Append by Default**: By default, this script appends questions to the database. This is the safest option to prevent accidental data loss. Because questions are inserted with `INSERT OR REPLACE`, existing questions with the same `id` will be updated in-place. Use the `--clear` flag to first remove all questions originating from the specific source files being imported.
+    - **Selective Clear**: With the `--clear` flag, it removes all questions originating from `.json` files before importing. This allows for a clean re-import of only the JSON-based quizzes without affecting YAML or Markdown questions. By default, it appends questions.
 - **Database Population**: Loads all questions from the JSON files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`).
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database.
 
