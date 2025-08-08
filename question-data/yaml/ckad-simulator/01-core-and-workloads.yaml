@@ -114,3 +114,149 @@
         - type: "exit_code"
           expected: 0
   explanation: "A pod manifest can be generated using `kubectl run pod6 --image=busybox:1.31.0 --command -- sh -c \"touch /tmp/ready && sleep 1d\" --dry-run=client -o yaml`. Then, edit the YAML to add the `readinessProbe` section to the container spec. The probe should have an `exec` action with the command, and the specified `initialDelaySeconds` and `periodSeconds`. Finally, create the pod with `kubectl apply -f <file.yaml>`. You can monitor its status with `kubectl get pod pod6 -w`."
+
+- id: ckad-sim::q4-helm-install
+  prompt: "In namespace `mercury`, install a new Helm release named `internal-issue-report-apache` from the `bitnami/apache` chart. The Deployment created by the chart should have 2 replicas. Assume the `bitnami` repository has already been added and updated."
+  type: live_k8s_edit
+  category: "Helm"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create namespace mercury"
+    - "helm repo add bitnami https://charts.bitnami.com/bitnami"
+    - "helm repo update"
+  validation_steps:
+    - cmd: "helm -n mercury status internal-issue-report-apache"
+      matchers:
+        - type: "contains"
+          expected: "STATUS: deployed"
+    - cmd: "kubectl -n mercury get deploy internal-issue-report-apache -o jsonpath='{.spec.replicas}'"
+      matchers:
+        - type: "exact_match"
+          expected: "2"
+  explanation: "Use `helm install <release-name> <chart-name> --namespace <ns> --set <key>=<value>`. In this case, the command is `helm install internal-issue-report-apache bitnami/apache --namespace mercury --set replicaCount=2`. You can find the correct key (`replicaCount`) for setting replicas by using `helm show values bitnami/apache`."
+
+- id: ckad-sim::q7-move-pod
+  prompt: "A pod named `webserver-sat-003` in namespace `saturn` needs to be moved to namespace `neptune`. The pod is identifiable by the annotation `description: this is the server for the E-Commerce System my-happy-shop`. Export its YAML, modify it to run in the `neptune` namespace, apply the new manifest, and then delete the original pod from `saturn`."
+  type: live_k8s_edit
+  category: "Core Concepts"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create ns saturn"
+    - "kubectl create ns neptune"
+    - |
+      cat <<EOF | kubectl apply -f -
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: webserver-sat-003
+        namespace: saturn
+        labels:
+          id: webserver-sat-003
+        annotations:
+          description: 'this is the server for the E-Commerce System my-happy-shop'
+      spec:
+        containers:
+        - name: webserver-sat
+          image: nginx:1.16.1-alpine
+      EOF
+  validation_steps:
+    - cmd: "kubectl -n neptune get pod webserver-sat-003 -o jsonpath='{.metadata.namespace}'"
+      matchers:
+        - type: "exact_match"
+          expected: "neptune"
+    - cmd: "! kubectl -n saturn get pod webserver-sat-003"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+  explanation: "The process involves exporting the Pod's YAML using `kubectl get pod <pod-name> -n <namespace> -o yaml`. Then, edit the file to change the `namespace` field and remove runtime-injected fields like `status`, `resourceVersion`, `uid`, and `creationTimestamp`. After saving the cleaned YAML, create the Pod in the new namespace with `kubectl apply -f <file.yaml>` and delete the original pod with `kubectl delete pod <pod-name> -n <old-namespace>`."
+
+- id: ckad-sim::q8-rollout-undo
+  prompt: "A deployment named `api-new-c32` in namespace `neptune` is failing after a recent update due to an image with a typo (`ngnix` instead of `nginx`). Check the deployment's history and roll back to the previous working revision."
+  type: live_k8s_edit
+  category: "Workload Management"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create ns neptune"
+    - "kubectl -n neptune create deploy api-new-c32 --image=nginx:1.16.1"
+    - "kubectl -n neptune wait --for=condition=available deploy/api-new-c32 --timeout=60s"
+    - "kubectl -n neptune set image deploy/api-new-c32 nginx=ngnix:1.16.3"
+  validation_steps:
+    - cmd: "kubectl -n neptune wait --for=condition=available deploy/api-new-c32 --timeout=30s"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+    - cmd: "kubectl -n neptune get deploy api-new-c32 -o jsonpath='{.spec.template.spec.containers[0].image}'"
+      matchers:
+        - type: "exact_match"
+          expected: "nginx:1.16.1"
+  explanation: "Use `kubectl -n neptune rollout history deployment <name>` to see revisions. To find the error, `kubectl -n neptune describe pod <pod-name>` on one of the failing pods will show an `ImagePullBackOff` error. To fix this, use `kubectl -n neptune rollout undo deployment <name>` to revert to the previous, working revision."
+
+- id: ckad-sim::q9-pod-to-deployment
+  prompt: "A single pod `holy-api` is running in namespace `pluto`. Convert it into a high-availability Deployment named `holy-api` with 3 replicas. The original pod's definition is available at `/opt/course/9/holy-api-pod.yaml`. The new Deployment must add a `securityContext` to the container, setting `allowPrivilegeEscalation: false` and `privileged: false`. Save the final Deployment manifest to `/opt/course/9/holy-api-deployment.yaml`, create the Deployment, and delete the original pod."
+  type: live_k8s_edit
+  category: "Workload Management"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create ns pluto"
+    - "mkdir -p /opt/course/9"
+    - |
+      cat <<'EOF' > /opt/course/9/holy-api-pod.yaml
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        labels:
+          id: holy-api
+        name: holy-api
+      spec:
+        containers:
+        - env:
+          - name: CACHE_KEY_1
+            value: b&MTCi0=[T66RXm!jO@
+          - name: CACHE_KEY_2
+            value: PCAILGej5Ld@Q%{Q1=#
+          - name: CACHE_KEY_3
+            value: 2qz-]2OJlWDSTn_;RFQ
+          image: nginx:1.17.3-alpine
+          name: holy-api-container
+          volumeMounts:
+          - mountPath: /cache1
+            name: cache-volume1
+          - mountPath: /cache2
+            name: cache-volume2
+          - mountPath: /cache3
+            name: cache-volume3
+        volumes:
+        - emptyDir: {}
+          name: cache-volume1
+        - emptyDir: {}
+          name: cache-volume2
+        - emptyDir: {}
+          name: cache-volume3
+      EOF
+    - "kubectl -n pluto apply -f /opt/course/9/holy-api-pod.yaml"
+  validation_steps:
+    - cmd: "kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.replicas}'"
+      matchers:
+        - type: "exact_match"
+          expected: "3"
+    - cmd: "kubectl -n pluto wait --for=condition=available deploy/holy-api --timeout=60s"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+    - cmd: "kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation}'"
+      matchers:
+        - type: "exact_match"
+          expected: "false"
+    - cmd: "kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.template.spec.containers[0].securityContext.privileged}'"
+      matchers:
+        - type: "exact_match"
+          expected: "false"
+    - cmd: "test -f /opt/course/9/holy-api-deployment.yaml"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+    - cmd: "! kubectl -n pluto get pod holy-api"
+      matchers:
+        - type: "exit_code"
+          expected: 0
+  explanation: "Start by creating a Deployment manifest based on the pod definition in `/opt/course/9/holy-api-pod.yaml`. Change `kind: Pod` to `kind: Deployment` and `apiVersion: v1` to `apiVersion: apps/v1`. Wrap the pod's `spec` and `metadata` inside a `template` field. Add `replicas: 3` and a `selector` to the top-level `spec`. Add the required `securityContext`. Finally, apply the new manifest and delete the old pod."
