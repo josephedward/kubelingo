@@ -57,10 +57,9 @@ def import_questions_from_dir(directory: Path, loader: YAMLLoader, conn) -> int:
                 # Based on the Question dataclass and database module, we call add_question
                 # with all available fields. getattr is used for safety with optional fields.
                 add_question(
-                    conn,
                     id=q.id,
                     prompt=q.prompt,
-                    source_file=str(file_path.relative_to(project_root)),
+                    source_file=file_path.name,
                     response=getattr(q, "response", None),
                     category=getattr(q, "category", None),
                     source=getattr(q, "source", None),

@@ -261,6 +261,7 @@ Every question is represented as a dictionary with the following core fields:
 
 - `id`: A unique identifier for the question (e.g., `vim_quiz_data::0`).
 - `question`: The prompt text displayed to the user.
+- `source_file`: The base name of the YAML file the question came from (e.g., `vim_quiz.yaml`). This is a critical field used by the application to group questions into quizzes.
 - `source`: A URL pointing to relevant documentation.
 - `explanation`: A brief explanation of the correct answer.
 - `answers`: A list of acceptable correct answers (for command-based questions).
