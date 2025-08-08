@@ -24,74 +24,6 @@ BACKUP_DIR = project_root / "question-data-backup"
 BACKUP_PATH = BACKUP_DIR / "kubelingo.db.bak"
 
 
-def clear_questions_table(conn):
-    """Deletes all existing questions from the database to prepare for a fresh import."""
-    print("Clearing existing questions from the database...")
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM questions")
-        print("Questions table cleared successfully.")
-    except Exception as e:
-        print(f"Error clearing questions table: {e}", file=sys.stderr)
-        raise  # Re-raise to trigger rollback in main
-
-
-def import_yaml_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> int:
-    """Loads all YAML files from a directory or a single file and writes them to the database."""
-    print(f"Searching for YAML files in '{source_path}'...")
-    if source_path.is_dir():
-        yaml_files = list(source_path.glob("**/*.yaml")) + list(
-            source_path.glob("**/*.yml")
-        )
-    elif source_path.is_file() and source_path.suffix in [".yaml", ".yml"]:
-        yaml_files = [source_path]
-    else:
-        yaml_files = []
-
-    if not yaml_files:
-        print("No YAML files found.")
-        return 0
-
-    print(f"Found {len(yaml_files)} YAML files. Importing questions...")
-
-    total_imported = 0
-    for file_path in yaml_files:
-        try:
-            questions: list[Question] = loader.load_file(str(file_path))
-            for q in questions:
-                # Based on the Question dataclass and database module, we call add_question
-                # with all available fields. getattr is used for safety with optional fields.
-                # Ensure list/dict fields default to empty containers instead of None to prevent
-                # database NULLs that can cause runtime errors.
-                validation_steps = getattr(q, "validation_steps", None)
-                pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
-                initial_files = getattr(q, "initial_files", None)
-
-                add_question(
-                    conn,
-                    id=q.id,
-                    prompt=q.prompt,
-                    source_file=file_path.name,
-                    response=getattr(q, "response", None),
-                    category=getattr(q, "category", None),
-                    source=getattr(q, "source", None),
-                    validation_steps=validation_steps or [],
-                    validator=getattr(q, "validator", None),
-                    review=False,  # New questions are not marked for review by default
-                    explanation=getattr(q, "explanation", None),
-                    difficulty=getattr(q, "difficulty", None),
-                    pre_shell_cmds=pre_shell_cmds or [],
-                    initial_files=initial_files or {},
-                    question_type=getattr(q, "question_type", "command"),
-                )
-            total_imported += len(questions)
-            print(f"  - Imported {len(questions)} questions from '{file_path.name}'.")
-        except Exception as e:
-            print(
-                f"  - ERROR processing file '{file_path.name}': {e}", file=sys.stderr
-            )
-
-    return total_imported
 
 
 def backup_database():
@@ -117,9 +49,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Import YAML quiz questions into the SQLite database and create a backup.",
         formatter_class=argparse.RawTextHelpFormatter,
-        epilog="This script clears the existing questions table before importing new ones.\n"
-        "It is the canonical way to seed the database from YAML source files.\n"
-        "It uses the 'database-first' architecture described in shared_context.md.",
+        epilog="By default, this script removes existing questions from the database that originate\n"
+        "from the specified source files before re-importing them. Use --append to disable this.\n"
+        "It is the canonical way to seed the database from YAML source files.",
     )
     parser.add_argument(
         "--source-dir",
@@ -133,7 +65,7 @@ def main():
     parser.add_argument(
         "--append",
         action="store_true",
-        help="Append questions to the database instead of clearing it first.",
+        help="Append questions to the database instead of clearing questions from source files first.",
     )
     args = parser.parse_args()
 
@@ -144,22 +76,71 @@ def main():
             project_root / "question-data" / "yaml-bak",
         ]
 
+    # Discover all YAML files from all source paths first
+    all_yaml_files = []
+    for path in source_paths:
+        if not path.exists():
+            print(f"Warning: Source path '{path}' does not exist. Skipping.", file=sys.stderr)
+            continue
+        if path.is_dir():
+            all_yaml_files.extend(list(path.glob("**/*.yaml")))
+            all_yaml_files.extend(list(path.glob("**/*.yml")))
+        elif path.is_file() and path.suffix in [".yaml", ".yml"]:
+            all_yaml_files.append(path)
+
+    if not all_yaml_files:
+        print("No YAML files found to import.")
+        return
+
+    print(f"Found {len(all_yaml_files)} YAML files to process.")
+
     loader = YAMLLoader()
     conn = get_db_connection()
     total_imported = 0
 
     try:
         if not args.append:
-            clear_questions_table(conn)
+            # Delete only questions from the source files we are about to import
+            source_file_names = [p.name for p in all_yaml_files]
+            if source_file_names:
+                placeholders = ','.join('?' for _ in source_file_names)
+                sql = f"DELETE FROM questions WHERE source_file IN ({placeholders})"
+                
+                print(f"Clearing existing questions from {len(source_file_names)} source files...")
+                cursor = conn.cursor()
+                cursor.execute(sql, source_file_names)
+                print(f"Cleared {cursor.rowcount} questions.")
 
-        for path in source_paths:
-            if not path.exists():
-                print(
-                    f"Warning: Source path '{path}' does not exist. Skipping.",
-                    file=sys.stderr,
-                )
-                continue
-            total_imported += import_yaml_questions_from_path(path, loader, conn)
+        # Import questions from all discovered files
+        for file_path in all_yaml_files:
+            try:
+                questions: list[Question] = loader.load_file(str(file_path))
+                for q in questions:
+                    validation_steps = getattr(q, "validation_steps", None)
+                    pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
+                    initial_files = getattr(q, "initial_files", None)
+
+                    add_question(
+                        conn,
+                        id=q.id,
+                        prompt=q.prompt,
+                        source_file=file_path.name,
+                        response=getattr(q, "response", None),
+                        category=getattr(q, "category", None),
+                        source=getattr(q, "source", None),
+                        validation_steps=validation_steps or [],
+                        validator=getattr(q, "validator", None),
+                        review=False,
+                        explanation=getattr(q, "explanation", None),
+                        difficulty=getattr(q, "difficulty", None),
+                        pre_shell_cmds=pre_shell_cmds or [],
+                        initial_files=initial_files or {},
+                        question_type=getattr(q, "question_type", "command"),
+                    )
+                total_imported += len(questions)
+                print(f"  - Imported {len(questions)} questions from '{file_path.name}'.")
+            except Exception as e:
+                print(f"  - ERROR processing file '{file_path.name}': {e}", file=sys.stderr)
 
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
