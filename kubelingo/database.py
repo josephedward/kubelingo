@@ -20,10 +20,12 @@ def get_db_connection():
     return conn
 
 
-def init_db():
+def init_db(clear: bool = False):
     """Initializes the database and creates/updates the questions table."""
     conn = get_db_connection()
     cursor = conn.cursor()
+    if clear:
+        cursor.execute("DROP TABLE IF EXISTS questions")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,

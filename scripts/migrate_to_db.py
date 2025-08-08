@@ -22,11 +22,19 @@ def migrate():
         "--file",
         help="Path to a specific YAML file to migrate. If not provided, migrates all files from ENABLED_QUIZZES."
     )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear the existing database before migrating. Use for a full restore."
+    )
     args = parser.parse_args()
 
     print("Initializing database...")
-    init_db()
-    print("Database initialized.")
+    init_db(clear=args.clear)
+    if args.clear:
+        print("Database cleared and re-initialized.")
+    else:
+        print("Database initialized.")
 
     yaml_loader = YAMLLoader()
     total_questions = 0
