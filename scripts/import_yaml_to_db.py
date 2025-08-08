@@ -24,21 +24,6 @@ BACKUP_DIR = project_root / "question-data-backup"
 BACKUP_PATH = BACKUP_DIR / "kubelingo.db.bak"
 
 
-
-
-def clear_questions_from_files(conn, source_file_names: list[str]):
-    """Deletes questions from the database that originate from a specific list of source files."""
-    if not source_file_names:
-        return
-    placeholders = ",".join("?" for _ in source_file_names)
-    sql = f"DELETE FROM questions WHERE source_file IN ({placeholders})"
-
-    print(f"Clearing existing questions from {len(source_file_names)} source files...")
-    cursor = conn.cursor()
-    cursor.execute(sql, source_file_names)
-    print(f"Cleared {cursor.rowcount} questions.")
-
-
 def import_yaml_questions_from_files(
     all_yaml_files: list[Path], loader: YAMLLoader, conn
 ) -> int:
@@ -99,9 +84,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Import YAML quiz questions into the SQLite database and create a backup.",
         formatter_class=argparse.RawTextHelpFormatter,
-        epilog="By default, this script appends questions to the database. `INSERT OR REPLACE` is used,\n"
-        "so existing questions will be updated in-place. Use the --clear flag to first remove\n"
-        "all questions originating from the source files being imported.",
+        epilog="This script appends new questions or updates existing ones in the database. `INSERT OR REPLACE` is used,\n"
+        "so existing questions with the same ID will be updated in-place. Questions are never deleted.",
     )
     parser.add_argument(
         "--source-dir",
@@ -111,11 +95,6 @@ def main():
         help="A directory or single YAML file to import. Can be specified multiple times. "
         "If not specified, defaults to scanning 'question-data/yaml' and "
         "'question-data/yaml-bak'.",
-    )
-    parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="DANGER: First clear all questions from the given source files before importing.",
     )
     args = parser.parse_args()
 
@@ -149,10 +128,6 @@ def main():
     total_imported = 0
 
     try:
-        if args.clear:
-            source_file_names = [p.name for p in all_yaml_files]
-            clear_questions_from_files(conn, source_file_names)
-
         total_imported = import_yaml_questions_from_files(all_yaml_files, loader, conn)
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
