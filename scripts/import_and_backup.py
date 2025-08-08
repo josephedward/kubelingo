@@ -99,8 +99,11 @@ def main():
 
     source_path = Path(args.source_dir)
     if not source_path.is_dir():
-        print(f"Error: Source directory '{source_path}' does not exist or is not a directory.")
-        sys.exit(1)
+        print(
+            f"Warning: Source directory '{source_path}' does not exist or is not a directory.",
+            file=sys.stderr,
+        )
+        sys.exit(0)
 
     questions_imported = import_questions_from_yaml(source_path)
     if questions_imported > 0:

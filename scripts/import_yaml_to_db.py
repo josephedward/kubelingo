@@ -125,10 +125,10 @@ def main():
 
     if not args.source_dir.is_dir():
         print(
-            f"ERROR: Source directory '{args.source_dir}' does not exist or is not a directory.",
+            f"Warning: Source directory '{args.source_dir}' does not exist or is not a directory.",
             file=sys.stderr,
         )
-        sys.exit(1)
+        sys.exit(0)
 
     loader = YAMLLoader()
     conn = get_db_connection()
