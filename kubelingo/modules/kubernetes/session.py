@@ -1021,7 +1021,6 @@ class NewSession(StudySession):
                     # Toggle flag for review
                     choices.append({"name": flag_option_text, "value": "flag"})
                     choices.append({"name": "Exit Quiz", "value": "back"})
-                    choices.append({"name": "Exit App", "value": "exit_app"})
 
                     # Determine if interactive action selection (questionary.prompt) is available
                     action_interactive = hasattr(questionary, 'prompt')
@@ -1059,10 +1058,6 @@ class NewSession(StudySession):
                             per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
                             self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
                             return False
-
-                    if action == "exit_app":
-                        print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                        return
 
                     if action == "back":
                         return
