@@ -1,5 +1,6 @@
 import os
-from typing import Optional
+import json
+from typing import Optional, Dict, Any
 
 # The root of the package
 # The root of the package
@@ -40,6 +41,10 @@ BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubel
 API_KEY_FILE = os.path.join(APP_DIR, 'api_key')
 
 
+# --- Cluster Configuration ---
+CLUSTER_CONFIG_FILE = os.path.join(APP_DIR, 'clusters.json')
+
+
 def save_api_key(key: str) -> bool:
     """Saves the OpenAI API key to the config file."""
     try:
@@ -62,6 +67,32 @@ def get_api_key() -> Optional[str]:
         except Exception:
             pass
     return None
+
+
+def save_cluster_configs(configs: Dict[str, Any]) -> bool:
+    """Saves cluster configurations to a JSON file."""
+    try:
+        os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
+        with open(CLUSTER_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(configs, f, indent=2)
+        os.chmod(CLUSTER_CONFIG_FILE, 0o600)
+        return True
+    except Exception:
+        return False
+
+
+def get_cluster_configs() -> Dict[str, Any]:
+    """Retrieves cluster configurations from the JSON file."""
+    if os.path.exists(CLUSTER_CONFIG_FILE):
+        try:
+            with open(CLUSTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                content = f.read()
+                return json.loads(content) if content else {}
+        except (json.JSONDecodeError, FileNotFoundError):
+            return {}
+        except Exception:
+            pass
+    return {}
 
 
 # --- Quiz Data Files ---

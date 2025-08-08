@@ -73,6 +73,8 @@ from kubelingo.utils.config import (
     API_KEY_FILE,
     YAML_QUIZ_DIR,
     YAML_QUIZ_BACKUP_DIR,
+    get_cluster_configs,
+    save_cluster_configs,
 )
 
 def show_history():
@@ -308,7 +310,7 @@ def restore_yaml_from_backup():
 
 
 def manage_config_interactive():
-    """Interactive prompt for managing API key."""
+    """Interactive prompt for managing configuration."""
     if questionary is None:
         print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
         return
@@ -316,8 +318,12 @@ def manage_config_interactive():
         action = questionary.select(
             "What would you like to do?",
             choices=[
-                {"name": "View current OpenAI API key", "value": "view"},
-                {"name": "Set/Update OpenAI API key", "value": "set"},
+                {"name": "View current OpenAI API key", "value": "view_openai"},
+                {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                questionary.Separator("Kubernetes Clusters"),
+                {"name": "List configured clusters", "value": "list_clusters"},
+                {"name": "Add a new cluster connection", "value": "add_cluster"},
+                {"name": "Remove a cluster connection", "value": "remove_cluster"},
                 questionary.Separator(),
                 {"name": "Cancel", "value": "cancel"}
             ],
@@ -328,7 +334,17 @@ def manage_config_interactive():
             print("Operation cancelled.")
             return
 
-        handle_config_command(['config', action, 'openai'])
+        if action == 'view_openai':
+            handle_config_command(['config', 'view', 'openai'])
+        elif action == 'set_openai':
+            handle_config_command(['config', 'set', 'openai'])
+        elif action == 'list_clusters':
+            handle_config_command(['config', 'list', 'cluster'])
+        elif action == 'add_cluster':
+            handle_config_command(['config', 'add', 'cluster'])
+        elif action == 'remove_cluster':
+            handle_config_command(['config', 'remove', 'cluster'])
+
         # Add a newline for better spacing after the operation
         print()
 
@@ -662,7 +678,7 @@ def main():
                 # Study mode
                 choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
                 choices.append(questionary.Separator())
-                choices.append({"name": "Manage API Key", "value": "config"})
+                choices.append({"name": "Manage Configuration", "value": "config"})
                 choices.append({"name": "View Session History", "value": "history"})
                 choices.append({"name": "Help", "value": "help"})
                 choices.append({"name": "Exit App", "value": "exit_app"})
