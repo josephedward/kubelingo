@@ -1598,17 +1598,15 @@ class NewSession(StudySession):
         needs_k8s = False
         for q in questions:
             # Determine question type
-            question_type = getattr(q, 'type', None) or 'command'
+            question_type = q.get('type') or 'command'
             # Pre-shell commands (list)
-            pre_cmds = getattr(q, 'pre_shell_cmds', []) or []
-            has_pre = any(isinstance(cmd, str) and 'kubectl' in cmd for cmd in pre_cmds)
+            pre_cmds = q.get('pre_shell_cmds') or []
+            has_pre = any('kubectl' in cmd for cmd in pre_cmds if isinstance(cmd, str))
             # Validation steps (list of ValidationStep or dict)
-            validation_steps = getattr(q, 'validation_steps', []) or []
+            validation_steps = q.get('validation_steps') or []
             has_validation = any(
-                'kubectl' in (
-                    vs.cmd if hasattr(vs, 'cmd') else (vs.get('cmd') if isinstance(vs, dict) else '')
-                )
-                for vs in validation_steps
+                'kubectl' in (vs.get('cmd') or '')
+                for vs in validation_steps if isinstance(vs, dict)
             )
             # If any question needs a live cluster, break
             if (
