@@ -55,6 +55,14 @@ To see which quiz modules exist in the database (including those imported from J
 ```bash
 python3 scripts/list_db_modules.py
 ```
+This will list each module by name along with the number of questions it contains, for example:
+```
+Available DB quiz modules (module_name: question count):
+ - kubectl_pod_management_quiz: 8
+ - kubectl_operations_quiz: 44
+ - kubectl_additional_commands_quiz: 42
+ ...
+```
 
 Once you have the module name (e.g. `master_quiz`), launch it directly with:
 ```bash
