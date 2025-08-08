@@ -205,6 +205,7 @@ def migrate_yaml_to_db():
     """Migrates all questions from YAML files into the database and backs them up."""
     print(f"{Fore.CYAN}Starting migration of YAML questions to database...{Style.RESET_ALL}")
     
+    from kubelingo.database import add_question
     loader = YAMLLoader()
     yaml_files = loader.discover()
     
