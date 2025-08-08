@@ -75,8 +75,6 @@ YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
 # YAML editing quiz data file (YAML exercises)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-# Built-in Vim quiz data file (YAML-based quiz)
-VIM_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml')
 KUBECTL_OPERATIONS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml')
 KUBECTL_RESOURCE_TYPES_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml')
 # Renamed syntax quiz from kubectl_syntax_quiz.yaml
@@ -95,7 +93,6 @@ KUBECTL_ADDITIONAL_COMMANDS_QUIZ_FILE = os.path.join(YAML_QUIZ_DIR, 'kubectl_add
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu.
 ENABLED_QUIZZES = {
-    "Vim Quiz": VIM_QUESTIONS_FILE,
     "YAML Editing": YAML_QUESTIONS_FILE,
     "Kubectl Basic Syntax": KUBECTL_BASIC_SYNTAX_QUIZ_FILE,
     "Kubectl Operations": KUBECTL_OPERATIONS_QUIZ_FILE,
