@@ -36,12 +36,17 @@ def clear_questions_table(conn):
         raise  # Re-raise to trigger rollback in main
 
 
-def import_questions_from_dir(directory: Path, loader: YAMLLoader, conn) -> int:
-    """Loads all YAML files from a directory and writes them to the database."""
-    print(f"Searching for YAML files in '{directory}'...")
-    yaml_files = list(directory.glob("**/*.yaml")) + list(
-        directory.glob("**/*.yml")
-    )
+def import_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> int:
+    """Loads all YAML files from a directory or a single file and writes them to the database."""
+    print(f"Searching for YAML files in '{source_path}'...")
+    if source_path.is_dir():
+        yaml_files = list(source_path.glob("**/*.yaml")) + list(
+            source_path.glob("**/*.yml")
+        )
+    elif source_path.is_file() and source_path.suffix in [".yaml", ".yml"]:
+        yaml_files = [source_path]
+    else:
+        yaml_files = []
 
     if not yaml_files:
         print("No YAML files found.")
@@ -111,10 +116,10 @@ def main():
         "It uses the 'database-first' architecture described in shared_context.md.",
     )
     parser.add_argument(
-        "--source-dir",
+        "--source-path",
         type=Path,
         default=Path("/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak"),
-        help="The directory containing YAML quiz files to import.",
+        help="The directory or single YAML file to import.",
     )
     parser.add_argument(
         "--append",
@@ -123,9 +128,9 @@ def main():
     )
     args = parser.parse_args()
 
-    if not args.source_dir.is_dir():
+    if not args.source_path.exists():
         print(
-            f"Warning: Source directory '{args.source_dir}' does not exist or is not a directory.",
+            f"Warning: Source path '{args.source_path}' does not exist.",
             file=sys.stderr,
         )
         sys.exit(0)
@@ -137,7 +142,7 @@ def main():
     try:
         if not args.append:
             clear_questions_table(conn)
-        total_imported = import_questions_from_dir(args.source_dir, loader, conn)
+        total_imported = import_questions_from_path(args.source_path, loader, conn)
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
     except Exception as e:
