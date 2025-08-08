@@ -271,6 +271,15 @@ def migrate_yaml_to_db():
             print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
 
     print(f"\n{Fore.GREEN}Migration complete. Migrated {total_migrated} questions from {total_files} files.{Style.RESET_ALL}")
+    # Backup the live database after migration
+    try:
+        from kubelingo.database import DATABASE_FILE
+        from kubelingo.utils.config import BACKUP_DATABASE_FILE
+        os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
+        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print(f"{Fore.CYAN}Database backup created at {BACKUP_DATABASE_FILE}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Failed to backup database: {e}{Style.RESET_ALL}")
 
 
 def restore_yaml_from_backup():
@@ -397,6 +406,7 @@ def enrich_sources():
 
 # Legacy alias for cloud-mode static branch
 def main():
+    import os
     # Prevent re-entrant execution inside a sandbox shell.
     if os.getenv('KUBELINGO_SANDBOX_ACTIVE') == '1':
         # This guard prevents the CLI from re-launching itself inside a sandbox
@@ -874,24 +884,31 @@ def main():
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                # Build menu choices from enabled quizzes
-                from kubelingo.utils.config import ENABLED_QUIZZES
-                choices = [{"name": name, "value": path} for name, path in ENABLED_QUIZZES.items()]
+                # Build menu choices from the questions database (not on-disk files)
+                from kubelingo.modules.db_loader import DBLoader
+                loader = DBLoader()
+                modules = loader.discover()
+                choices = []
+                from kubelingo.utils.ui import humanize_module
+                import os
+                for src in modules:
+                    mod_name = os.path.splitext(src)[0]
+                    choices.append({
+                        "name": humanize_module(mod_name),
+                        "value": src
+                    })
                 # Add Exit option
                 choices.append({"name": "Exit", "value": "exit_app"})
-                # Display selection menu
-                # Prompt user to select a Kubernetes exercise
+                # Prompt user to select a quiz from the DB
                 choice = questionary.select(
-                    "Choose a Kubernetes exercise:",
+                    "Choose a Kubernetes quiz module:",
                     choices=choices,
                     use_indicator=True
                 ).ask()
-                # Exit if requested
                 if choice == 'exit_app':
                     return
-                # Set the chosen quiz file for execution
-                args.file = choice
-                # Continue to run the selected quiz
+                # Set the selected module for unified exercise
+                args.exercise_module = os.path.splitext(choice)[0]
 
         # Global flags handling (note: history and list-modules are handled earlier)
         if args.list_categories:
