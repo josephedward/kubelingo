@@ -25,7 +25,6 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    ENABLED_QUIZZES,
 )
 from kubelingo.modules.yaml_loader import YAMLLoader
 
@@ -298,6 +297,7 @@ class NewSession(StudySession):
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
         all_flagged = get_all_flagged_questions()
+        missing_deps = check_dependencies('docker', 'kubectl')
         
         choices = []
 
@@ -311,12 +311,21 @@ class NewSession(StudySession):
         import os
 
         # Helper to add a group of quizzes to the choices list
-        def add_quiz_group(group_title, quiz_dict):
-            # Do not add separator if there are no quizzes in the group
+        def add_quiz_group(group_title, quiz_dict, required_deps=None):
             if not quiz_dict:
                 return
+
+            deps_unavailable = []
+            if required_deps:
+                deps_unavailable = [dep for dep in required_deps if dep in missing_deps]
+
+            separator_text = f"--- {group_title} ---"
+            if deps_unavailable:
+                separator_text += f" (requires {', '.join(deps_unavailable)})"
+
             if questionary:
-                choices.append(questionary.Separator(f"--- {group_title} ---"))
+                choices.append(questionary.Separator(separator_text))
+            
             for name, path in quiz_dict.items():
                 source_file = os.path.basename(path)
                 try:
@@ -324,14 +333,19 @@ class NewSession(StudySession):
                 except Exception as e:
                     self.logger.warning(f"Could not get question count for {source_file}: {e}")
                     q_count = 0
-
+                
                 display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
-                choices.append({"name": display_name, "value": path})
+                choice_item = {"name": display_name, "value": path}
+                
+                if deps_unavailable:
+                    choice_item['disabled'] = f"Missing: {', '.join(deps_unavailable)}"
+                
+                choices.append(choice_item)
 
         add_quiz_group("Core Skills", CORE_SKILL_QUIZZES)
         add_quiz_group("Kubectl by Topic", KUBECTL_TOPIC_QUIZZES)
         add_quiz_group("Comprehensive Reviews", COMPREHENSIVE_QUIZZES)
-        add_quiz_group("Simulators", SIMULATOR_QUIZZES)
+        add_quiz_group("Simulators", SIMULATOR_QUIZZES, required_deps=['docker', 'kubectl'])
         
         if questionary:
             choices.append(questionary.Separator("--- Session Management ---"))

@@ -112,22 +112,20 @@ DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'kubernetes.json')
 CORE_SKILL_QUIZZES = {
     "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
     "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
-    "General YAML Quiz": os.path.join(YAML_QUIZ_DIR, 'yaml_quiz.yaml'),
     "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
 }
 
 KUBECTL_TOPIC_QUIZZES = {
-    "Basic Syntax": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
-    "Shell Environment": os.path.join(YAML_QUIZ_DIR, 'kubectl_shell_setup_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
     "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
     "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
-    "ConfigMap Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
     "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
-    "Namespace Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
-    "Service Account Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_operations.yaml'),
+    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_operations.yaml'),
     "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
     "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
-    "Resource Types": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
 }
 
 COMPREHENSIVE_QUIZZES = {
@@ -138,8 +136,6 @@ COMPREHENSIVE_QUIZZES = {
 SIMULATOR_QUIZZES = {
     "CKAD Simulator": os.path.join(YAML_QUIZ_DIR, 'ckad_simulator.yaml'),
     "Killer Shell Practice": os.path.join(YAML_QUIZ_DIR, 'generated_from_killer_shell.yaml'),
-    "Pod Scenarios": os.path.join(YAML_QUIZ_DIR, 'simulator-pods.yaml'),
-    "Namespace Scenarios": os.path.join(YAML_QUIZ_DIR, 'simulator-namespaces.yaml'),
 }
 
 # CSV files
