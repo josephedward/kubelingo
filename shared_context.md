@@ -100,25 +100,25 @@ To populate your database, use scripts like:
 
 These scripts will safely add or update questions in your live database.
 
-### `kubelingo db import-json`
+### `scripts/import_json_to_db.py`
 
-This command provides a way to populate the Kubelingo database from `question-data/json`. It complements the YAML import command and is essential for loading all question modules.
+This script provides a way to populate the Kubelingo database from `question-data/json`. It complements the YAML import script and is essential for loading all question modules.
 
 **Functionality**:
 - **JSON Ingestion**: Recursively finds and parses all `.json` files in the `question-data/json` directory.
-- **Targeted Clear or Append**: By default, it removes only the questions from the database that originate from the specific JSON files being imported. This prevents accidental data loss when re-importing. Use the `--append` flag to skip this and add all questions from the source files, which may create duplicates if the questions already exist.
+- **Append by Default**: By default, this script appends questions to the database. This is the safest option to prevent accidental data loss. Because questions are inserted with `INSERT OR REPLACE`, existing questions with the same `id` will be updated in-place. Use the `--clear` flag to first remove all questions originating from the specific source files being imported.
 - **Database Population**: Loads all questions from the JSON files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`).
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database.
 
 **Usage**:
 
-- To re-import questions from JSON files, clearing previous versions first (default behavior):
+- To add or update questions from JSON files (default behavior):
   ```bash
   python3 scripts/import_json_to_db.py
   ```
-- To append questions from JSON files without clearing any existing questions:
+- To clear existing JSON-sourced questions and re-import them:
   ```bash
-  python3 scripts/import_json_to_db.py --append
+  python3 scripts/import_json_to_db.py --clear
   ```
 
 ## Current Architecture: The Unified Shell Experience
@@ -413,7 +413,7 @@ These exercises require users to perform actions in a live shell environment. Th
 This script provides a streamlined way to populate or reset the Kubelingo question database from a directory of YAML source files. It is the designated tool for seeding the database, aligning with the "database-first" architecture.
 
 **Functionality**:
-- **Targeted Clear or Append**: By default, it removes only the questions from the database that originate from the specific YAML files being imported. This prevents accidental data loss when re-importing a subset of questions. Use the `--append` flag to skip this and add all questions from the source files, which may create duplicates if the questions already exist.
+- **Append by Default**: By default, this script appends questions to the database. This is the safest option to prevent accidental data loss. Because questions are inserted with `INSERT OR REPLACE`, existing questions with the same `id` will be updated in-place. Use the `--clear` flag to first remove all questions originating from the specific source files being imported.
 - **Comprehensive YAML Ingestion**: Recursively finds and parses all `.yaml` and `.yml` files. It can scan multiple source directories in a single run.
 - **Database Population**: Loads all questions from the YAML files and inserts them into the live SQLite database (`~/.kubelingo/kubelingo.db`). Because it uses `INSERT OR REPLACE`, existing questions with the same `id` will be updated.
 - **Automatic Backup**: After a successful import, it creates a backup of the newly populated database at `question-data-backup/kubelingo.db.bak`, overwriting any previous backup.
@@ -421,7 +421,7 @@ This script provides a streamlined way to populate or reset the Kubelingo questi
 **Usage**:
 The script is run from the command line. It can accept multiple source directories.
 
-- To clear the database and import questions from all standard YAML source directories (`question-data/yaml` and `question-data/yaml-bak`):
+- To add or update questions from all standard YAML source directories (`question-data/yaml` and `question-data/yaml-bak`):
   ```bash
   python3 scripts/import_yaml_to_db.py
   ```
@@ -429,9 +429,9 @@ The script is run from the command line. It can accept multiple source directori
   ```bash
   python3 scripts/import_yaml_to_db.py --source-dir /path/to/your/yaml/files --source-dir /another/path
   ```
-- To append new questions from a specific file or directory without clearing the database:
+- To clear existing questions from source files before re-importing them:
   ```bash
-  python3 scripts/import_yaml_to_db.py --source-dir /path/to/new_yaml_files --append
+  python3 scripts/import_yaml_to_db.py --clear
   ```
 
 ### `scripts/enrich_unseen_questions.py`

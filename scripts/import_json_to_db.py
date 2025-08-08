@@ -99,9 +99,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Import JSON quiz questions into the SQLite database and create a backup.",
         formatter_class=argparse.RawTextHelpFormatter,
-        epilog="By default, this script removes existing questions from the database that originate\n"
-        "from the specified source files before re-importing them. Use --append to disable this.\n"
-        "It is the canonical way to seed the database from JSON source files.",
+        epilog="By default, this script appends questions to the database. `INSERT OR REPLACE` is used,\n"
+        "so existing questions will be updated in-place. Use the --clear flag to first remove\n"
+        "all questions originating from the source files being imported.",
     )
     parser.add_argument(
         "--source-dir",
@@ -112,9 +112,9 @@ def main():
         "If not specified, defaults to scanning 'question-data/json'.",
     )
     parser.add_argument(
-        "--append",
+        "--clear",
         action="store_true",
-        help="Append questions to the database instead of clearing questions from source files first.",
+        help="DANGER: First clear all questions from the given source files before importing.",
     )
     args = parser.parse_args()
 
@@ -146,7 +146,7 @@ def main():
     total_imported = 0
 
     try:
-        if not args.append:
+        if args.clear:
             source_file_names = [p.name for p in all_json_files]
             clear_questions_from_files(conn, source_file_names)
 
