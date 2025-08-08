@@ -305,7 +305,6 @@ class NewSession(StudySession):
         from kubelingo.utils.config import (
             CORE_SKILL_QUIZZES,
             KUBECTL_TOPIC_QUIZZES,
-            SIMULATOR_QUIZZES,
         )
         import os
 
@@ -343,7 +342,6 @@ class NewSession(StudySession):
 
         add_quiz_group("Core Skills", CORE_SKILL_QUIZZES)
         add_quiz_group("Kubectl by Topic", KUBECTL_TOPIC_QUIZZES)
-        add_quiz_group("Simulators", SIMULATOR_QUIZZES, required_deps=['docker', 'kubectl'])
         
         if questionary:
             choices.append(questionary.Separator("--- Session Management ---"))

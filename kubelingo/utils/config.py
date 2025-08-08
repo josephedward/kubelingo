@@ -126,9 +126,6 @@ KUBECTL_TOPIC_QUIZZES = {
     "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
     "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
     "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
-}
-
-SIMULATOR_QUIZZES = {
     "CKAD Simulator": os.path.join(YAML_QUIZ_DIR, 'ckad_simulator.yaml'),
     "Killer Shell Practice": os.path.join(YAML_QUIZ_DIR, 'generated_from_killer_shell.yaml'),
 }
@@ -138,7 +135,6 @@ SIMULATOR_QUIZZES = {
 ENABLED_QUIZZES = {}
 ENABLED_QUIZZES.update(CORE_SKILL_QUIZZES)
 ENABLED_QUIZZES.update(KUBECTL_TOPIC_QUIZZES)
-ENABLED_QUIZZES.update(SIMULATOR_QUIZZES)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
