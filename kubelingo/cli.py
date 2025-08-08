@@ -48,6 +48,7 @@ from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -376,77 +377,6 @@ def restore_yaml_from_backup():
     print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
 
 
-def import_json_to_db():
-    """Imports questions from JSON files into the database."""
-    print(f"{Fore.CYAN}Starting import of JSON questions into the database...{Style.RESET_ALL}")
-
-    from kubelingo.database import add_question, get_db_connection
-    from kubelingo.modules.json_loader import JSONLoader
-    loader = JSONLoader()
-    json_files = loader.discover()
-
-    if not json_files:
-        print(f"{Fore.YELLOW}No JSON quiz files found in 'question-data/json' to import.{Style.RESET_ALL}")
-        return
-
-    conn = get_db_connection()
-    if not conn:
-        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
-        return
-
-    total_imported = 0
-    total_files = 0
-    for file_path in json_files:
-        filename = os.path.basename(file_path)
-        print(f"  - Processing '{filename}'...")
-        try:
-            questions = loader.load_file(file_path)
-            if not questions:
-                print(f"    {Fore.YELLOW}No questions found, skipping.{Style.RESET_ALL}")
-                continue
-
-            for q_obj in questions:
-                q_dict = asdict(q_obj)
-                category = None
-                cats = q_dict.get('categories')
-                if cats and isinstance(cats, list) and cats:
-                    category = cats[0]
-                elif q_dict.get('category'):
-                    category = q_dict.get('category')
-
-                add_question(
-                    conn,
-                    id=q_dict['id'],
-                    prompt=q_dict['prompt'],
-                    source_file=filename,
-                    response=q_dict.get('response'),
-                    category=category,
-                    source=q_dict.get('source'),
-                    validation_steps=q_dict.get('validation_steps'),
-                    validator=q_dict.get('validator'),
-                    review=q_dict.get('review', False)
-                )
-            conn.commit()
-            total_imported += len(questions)
-            total_files += 1
-            print(f"    {Fore.GREEN}Imported {len(questions)} questions.{Style.RESET_ALL}")
-
-        except Exception as e:
-            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
-
-    conn.close()
-    print(f"\n{Fore.GREEN}Import complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
-
-    # Backup the database after import
-    try:
-        from kubelingo.database import DATABASE_FILE
-        from kubelingo.utils.config import BACKUP_DATABASE_FILE
-        if os.path.exists(DATABASE_FILE):
-            os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
-            shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-            print(f"{Fore.CYAN}Database backup created at {BACKUP_DATABASE_FILE}{Style.RESET_ALL}")
-    except Exception as e:
-        print(f"{Fore.RED}Failed to backup database: {e}{Style.RESET_ALL}")
 
 def restore_db():
     """Restore the live questions database from the read-only backup."""
@@ -728,7 +658,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'enrich-sources', 'migrate-yaml', 'restore-yaml', 'import-json')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'db', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -820,104 +750,10 @@ def main():
         if not session or not session.initialize():
             print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
             return
-        # Ensure database is seeded: if no backup DB exists, migrate source files into DB
-        from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
-        if not os.path.exists(BACKUP_DATABASE_FILE):
-            print(f"{Fore.CYAN}Seeding questions database from source files...{Style.RESET_ALL}")
-            try:
-                from kubelingo.database import init_db, add_question
-                from kubelingo.modules.json_loader import JSONLoader
-                from kubelingo.modules.yaml_loader import YAMLLoader
-                from kubelingo.modules.md_loader import MDLoader
-                from dataclasses import asdict
-                init_db(clear=True)
-                # Migrate JSON, YAML, and Markdown quizzes
-                for loader in (JSONLoader(), YAMLLoader(), MDLoader()):
-                    for file_path in loader.discover():
-                        try:
-                            questions = loader.load_file(file_path)
-                        except Exception:
-                            continue
-                        source_file = os.path.basename(file_path)
-                        for q in questions:
-                            steps = []
-                            if hasattr(q, 'validation_steps'):
-                                for step in q.validation_steps or []:
-                                    steps.append(asdict(step))
-                            validator = getattr(q, 'validator', None)
-                            add_question(
-                                id=q.id,
-                                prompt=q.prompt,
-                                source_file=source_file,
-                                response=getattr(q, 'response', None),
-                                category=(q.categories[0] if getattr(q, 'categories', None) else None),
-                                source=getattr(q, 'source', None),
-                                validation_steps=steps,
-                                validator=validator,
-                                review=getattr(q, 'review', False),
-                                explanation=getattr(q, 'explanation', None),
-                            )
-                # Create backup of newly seeded DB
-                os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
-                shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-            except Exception as e:
-                logger.warning(f"Automatic DB migration failed: {e}")
 
         try:
-            while True:
-                from kubelingo.utils.config import ENABLED_QUIZZES
-                choices = []
-                # List available Kubernetes quizzes without counts
-                for name, path in ENABLED_QUIZZES.items():
-                    choices.append({"name": name, "value": path})
-
-                choices.append(questionary.Separator())
-                # Flagged questions
-                flagged = get_all_flagged_questions()
-                if flagged:
-                    choices.append({"name": f"Review {len(flagged)} Flagged Questions", "value": "review_flagged"})
-                # Study mode
-                choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
-                choices.append(questionary.Separator())
-                choices.append({"name": "Manage Configuration", "value": "config"})
-                choices.append({"name": "View Session History", "value": "history"})
-                choices.append({"name": "Help", "value": "help"})
-                choices.append({"name": "Exit App", "value": "exit_app"})
-
-                action = questionary.select(
-                    "Choose a Kubernetes exercise:",
-                    choices=choices,
-                    use_indicator=True
-                ).ask()
-
-                if action is None or action == 'exit_app':
-                    print(f"{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
-                    break
-                elif action == "history":
-                    show_history()
-                elif action == "help":
-                    show_quiz_type_help()
-                elif action == "config":
-                    manage_config_interactive()
-                elif action == 'review_flagged':
-                    current_args = argparse.Namespace(**vars(args))
-                    current_args.review_only = True
-                    session.run_exercises(current_args)
-                elif action == 'study_mode':
-                    api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
-                    if not api_key:
-                        print(f"{Fore.RED}Study Mode requires an OpenAI API key.{Style.RESET_ALL}")
-                        manage_config_interactive()
-                        continue
-                    study_session = KubernetesStudyMode(api_key=api_key)
-                    print(f"{Fore.CYAN}Starting Socratic study session on 'pods'... (Ctrl+C to exit){Style.RESET_ALL}")
-                    print(study_session.start_study_session("pods"))
-                else:
-                    # Any other selection is treated as a quiz (by source file in the DB)
-                    current_args = argparse.Namespace(**vars(args))
-                    # action may be a path or a basename; set as file identifier for DB lookup
-                    current_args.file = action
-                    session.run_exercises(current_args)
+            # For bare 'kubelingo' invocations, the session runner will present a DB-driven menu.
+            session.run_exercises(args)
             session.cleanup()
         except (KeyboardInterrupt, EOFError):
             print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
@@ -943,9 +779,6 @@ def main():
                 return
             elif cmd_name == 'restore-yaml':
                 restore_yaml_from_backup()
-                return
-            elif cmd_name == 'import-json':
-                import_json_to_db()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
