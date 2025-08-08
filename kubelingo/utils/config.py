@@ -32,8 +32,8 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
-# Read-only backup of pristine, original questions. Used to seed the user's DB on first run.
-BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_pristine.db')
+# Read-only backup of original questions. Used to seed the user's DB on first run.
+BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_original.db')
 
 
 # --- API Keys ---
