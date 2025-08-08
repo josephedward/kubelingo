@@ -64,7 +64,8 @@ from pathlib import Path
 import subprocess
 import os
 from kubelingo.utils.config import (
-    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE, VIM_QUESTIONS_FILE
+    LOGS_DIR, HISTORY_FILE, DEFAULT_DATA_FILE, LOG_FILE, VIM_QUESTIONS_FILE,
+    get_api_key, save_api_key, API_KEY_FILE
 )
 
 def show_history():
@@ -200,34 +201,26 @@ def main():
     if sys.stdout.isatty() and sys.stdin.isatty() and '--help' not in sys.argv and '-h' not in sys.argv:
         print_banner()
         print()
-    # Attempt to load OpenAI API key from user config if not set
+    # Load OpenAI API key from config file or prompt user if not set
     import getpass
-    from pathlib import Path
+    is_help_request = '--help' in sys.argv or '-h' in sys.argv
+    is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
+
     if not os.getenv('OPENAI_API_KEY'):
-        cfg_dir = Path.home() / '.kubelingo'
-        key_file = cfg_dir / 'api_key'
-        if key_file.exists():
+        api_key = get_api_key()
+        if api_key:
+            os.environ['OPENAI_API_KEY'] = api_key
+        elif not is_help_request and not is_config_command and sys.stdin.isatty():
             try:
-                key = key_file.read_text(encoding='utf-8').strip()
-                if key:
-                    os.environ['OPENAI_API_KEY'] = key
-            except Exception:
-                pass
-    # Prompt for key if still missing and not requesting help
-    if not os.getenv('OPENAI_API_KEY') and '--help' not in sys.argv and '-h' not in sys.argv:
-        try:
-            prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
-        except Exception:
-            prompt = ''
-        if prompt:
-            try:
-                cfg_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-                key_file.write_text(prompt.strip(), encoding='utf-8')
-                os.chmod(str(key_file), 0o600)
-                os.environ['OPENAI_API_KEY'] = prompt.strip()
-                print(f"{Fore.GREEN}OpenAI API key saved to {key_file}{Style.RESET_ALL}")
-            except Exception as e:
-                print(f"{Fore.RED}Failed to save API key: {e}{Style.RESET_ALL}")
+                prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
+                if prompt:
+                    if save_api_key(prompt):
+                        os.environ['OPENAI_API_KEY'] = prompt.strip()
+                        print(f"{Fore.GREEN}OpenAI API key saved to {API_KEY_FILE}{Style.RESET_ALL}")
+                    else:
+                        print(f"{Fore.RED}Failed to save API key.{Style.RESET_ALL}")
+            except (EOFError, KeyboardInterrupt):
+                print(f"\n{Fore.YELLOW}Skipping API key setup.{Style.RESET_ALL}")
     # Warn prominently if no OpenAI API key is available (skip when showing help)
     if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('OPENAI_API_KEY'):
         print(f"{Fore.RED}AI explanations are disabled: no OpenAI API key provided.{Style.RESET_ALL}")
@@ -388,69 +381,43 @@ def main():
         # Non-interactive mode
         args = parser.parse_args()
         # Handle config commands: kubelingo config <view|set> openai [KEY]
-        from pathlib import Path
         import getpass
-        from kubelingo.utils.config import APP_DIR
         if args.command and len(args.command) > 0 and args.command[0] == 'config':
-            # config usage
             cmd = args.command
-            if len(cmd) < 2:
-                print('Usage: kubelingo config <view|set> <property> [value]')
+            if len(cmd) < 3 or cmd[2].lower() not in ('openai', 'api_key'):
+                print("Usage: kubelingo config <view|set> openai [KEY]")
+                if len(cmd) >= 3:
+                    print(f"Unknown config property '{cmd[2]}'. Supported: openai")
                 return
-            action = cmd[1]
-            # Only 'openai' property supported for now
+
+            action = cmd[1].lower()
             if action == 'view':
-                if len(cmd) < 3:
-                    print('Usage: kubelingo config view <property>')
-                    return
-                prop = cmd[2].lower()
-                if prop in ('openai', 'api_key'):
-                    key_file = Path(APP_DIR) / 'api_key'
-                    if key_file.exists():
-                        try:
-                            val = key_file.read_text(encoding='utf-8').strip()
-                        except Exception:
-                            val = ''
-                        if val:
-                            print(f'OpenAI API key: {val}')
-                        else:
-                            print('OpenAI API key is not set.')
-                    else:
-                        print('OpenAI API key is not set.')
+                key = get_api_key()
+                if key:
+                    print(f'OpenAI API key: {key}')
                 else:
-                    print(f"Unknown config property '{prop}'. Supported: openai")
-                return
+                    print('OpenAI API key is not set.')
             elif action == 'set':
+                value = None
                 if len(cmd) >= 4:
-                    prop = cmd[2].lower()
                     value = cmd[3]
-                elif len(cmd) == 3:
-                    prop = cmd[2].lower()
-                    # prompt for value if not provided
-                    if prop in ('openai', 'api_key'):
-                        value = getpass.getpass('Enter OpenAI API key: ').strip()
-                    else:
-                        print(f"Unknown config property '{prop}'. Supported: openai")
-                        return
                 else:
-                    print('Usage: kubelingo config set <property> [value]')
-                    return
-                if prop in ('openai', 'api_key'):
                     try:
-                        cfg = Path(APP_DIR)
-                        cfg.mkdir(mode=0o700, parents=True, exist_ok=True)
-                        key_file = cfg / 'api_key'
-                        key_file.write_text(value, encoding='utf-8')
-                        os.chmod(str(key_file), 0o600)
+                        value = getpass.getpass('Enter OpenAI API key: ').strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                        return
+
+                if value:
+                    if save_api_key(value):
                         print('OpenAI API key saved.')
-                    except Exception as e:
-                        print(f'Failed to save OpenAI API key: {e}')
+                    else:
+                        print('Failed to save OpenAI API key.')
                 else:
-                    print(f"Unknown config property '{prop}'. Supported: openai")
-                return
+                    print("No API key provided. No changes made.")
             else:
                 print(f"Unknown config action '{action}'. Use 'view' or 'set'.")
-                return
+            return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
             generator = ServiceAccountGenerator()
@@ -458,20 +425,25 @@ def main():
             from dataclasses import asdict
             from kubelingo.database import add_question
             # Add each question to the database
+            added = 0
             for q in questions:
                 qd = asdict(q)
                 category = qd.get('categories', [None])[0]
-                add_question(
-                    id=qd['id'],
-                    prompt=qd['prompt'],
-                    source_file='service_accounts',
-                    response=qd['metadata'].get('answer'),
-                    category=category,
-                    source='static',
-                    validation_steps=qd.get('validation_steps'),
-                    validator=qd.get('validator')
-                )
-            print(f"Added {len(questions)} ServiceAccount questions to database.")
+                try:
+                    add_question(
+                        id=qd['id'],
+                        prompt=qd['prompt'],
+                        source_file='service_accounts',
+                        response=qd['metadata'].get('answer'),
+                        category=category,
+                        source='static',
+                        validation_steps=qd.get('validation_steps'),
+                        validator=qd.get('validator')
+                    )
+                    added += 1
+                except Exception as e:
+                    print(f"Warning: could not add question '{qd['id']}' to DB: {e}")
+            print(f"Requested {len(questions)} questions; successfully added {added} ServiceAccount questions to database.")
             return
         # Handle on-demand AI-generated question and exit
         if args.ai_questions:

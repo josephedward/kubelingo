@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 # The root of the package
 # The root of the package
@@ -33,6 +34,35 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
 # Secondary backup database: snapshot of original questions from migration, located in the package.
 BACKUP_DATABASE_FILE = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'kubelingo.db')
+
+
+# --- API Keys ---
+API_KEY_FILE = os.path.join(APP_DIR, 'api_key')
+
+
+def save_api_key(key: str) -> bool:
+    """Saves the OpenAI API key to the config file."""
+    try:
+        os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
+        with open(API_KEY_FILE, 'w', encoding='utf-8') as f:
+            f.write(key.strip())
+        os.chmod(API_KEY_FILE, 0o600)
+        return True
+    except Exception:
+        return False
+
+
+def get_api_key() -> Optional[str]:
+    """Retrieves the OpenAI API key from the config file."""
+    if os.path.exists(API_KEY_FILE):
+        try:
+            with open(API_KEY_FILE, 'r', encoding='utf-8') as f:
+                key = f.read().strip()
+                return key if key else None
+        except Exception:
+            pass
+    return None
+
 
 # --- Quiz Data Files ---
 

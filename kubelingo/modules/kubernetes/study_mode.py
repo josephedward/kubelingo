@@ -44,14 +44,18 @@ KUBERNETES_TOPICS = {
 
 
 class KubernetesStudyMode:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str = None):
         if openai is None:
             raise ImportError("openai package not found. Please install it with 'pip install openai'")
-        # Configure API key on the OpenAI module
-        try:
-            openai.api_key = api_key
-        except Exception as e:
-            raise ImportError(f"Failed to set OpenAI API key: {e}")
+        
+        if api_key:
+            # Configure API key on the OpenAI module if provided
+            try:
+                openai.api_key = api_key
+            except Exception as e:
+                raise ImportError(f"Failed to set OpenAI API key: {e}")
+        # If api_key is not provided, the openai library will use the
+        # OPENAI_API_KEY environment variable if it is set.
         # Use OpenAI module directly for chat completions
         self.openai = openai
         self.conversation_history = []
