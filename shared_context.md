@@ -330,6 +330,35 @@ The script is run from the command line and accepts a path to the source directo
   ```
 - The default source directory is set to `/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak` as per the initial requirement.
 
+### `scripts/enrich_unseen_questions.py`
+
+This script is designed to expand the question database by leveraging a source file of potential questions. It identifies questions that are not yet in the database and uses AI to generate fully-formed quiz items from them.
+
+**Functionality**:
+- **Database Check**: Connects to the live database (`~/.kubelingo/kubelingo.db`) and fetches all existing question prompts.
+- **Source Analysis**: Reads a source JSON file (e.g., `question-data/unified.json`) containing a list of questions.
+- **Identifies New Content**: Compares prompts from the source file against the database and identifies questions that are "unseen".
+- **AI-Powered Generation**: For each unseen question, it uses `AIQuestionGenerator` to create a complete, well-structured question object.
+- **YAML Output**: Saves the newly generated questions to a YAML file, ready for review and subsequent import into the database.
+
+**Usage**:
+The script is intended to be run from the command line.
+
+- To generate 5 new questions from the default source file and save them:
+  ```bash
+  python3 scripts/enrich_unseen_questions.py --num-questions 5
+  ```
+- To perform a dry run that lists unseen questions without calling the AI:
+  ```bash
+  python3 scripts/enrich_unseen_questions.py --dry-run
+  ```
+- To specify a different source or output file:
+  ```bash
+  python3 scripts/enrich_unseen_questions.py \
+    --source-file /path/to/source.json \
+    --output-file /path/to/output.yaml
+  ```
+
 ### `scripts/organize_question_data.py`
 
 This script is a powerful, multi-purpose tool for maintaining the question database. It can organize files, de-duplicate questions, and use AI to generate missing explanations and validation steps.
