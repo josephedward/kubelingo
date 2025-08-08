@@ -2,12 +2,14 @@
   {
     "id": "ckad_questions::0",
     "prompt": "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.",
-    "type": "command",
-    "pre_shell_cmds": [],
+    "type": "live_k8s",
+    "pre_shell_cmds": [
+      "kubectl create namespace limit --dry-run=client -o yaml | kubectl apply -f -"
+    ],
     "initial_files": {},
     "validation_steps": [
       {
-        "cmd": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: resource-checker\n  namespace: limit\nspec:\n  containers:\n  - name: my-container\n    image: httpd:alpine\n    resources:\n      requests:\n        cpu: 30m\n        memory: 30Mi\n      limits:\n        cpu: 300m\n        memory: 30Mi",
+        "cmd": "#!/bin/bash\nset -e\n# Wait for pod to be running\nkubectl wait --for=condition=Ready pod/resource-checker -n limit --timeout=60s > /dev/null\n# Check image\nIMAGE=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].image}')\nif [ \"$IMAGE\" != \"httpd:alpine\" ]; then exit 1; fi\n# Check container name\nCNAME=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].name}')\nif [ \"$CNAME\" != \"my-container\" ]; then exit 1; fi\n# Check requests\nCPU_REQ=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.cpu}')\nif [ \"$CPU_REQ\" != \"30m\" ]; then exit 1; fi\nMEM_REQ=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.memory}')\nif [ \"$MEM_REQ\" != \"30Mi\" ]; then exit 1; fi\n# Check limits\nCPU_LIM=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.cpu}')\nif [ \"$CPU_LIM\" != \"300m\" ]; then exit 1; fi\nMEM_LIM=$(kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.memory}')\nif [ \"$MEM_LIM\" != \"30Mi\" ]; then exit 1; fi\necho \"Pod validation successful\"",
         "matcher": {
           "exit_code": 0
         }
@@ -87,18 +89,14 @@
     "id": "vim_quiz_data::0",
     "prompt": "Enter insert mode at cursor",
     "type": "command",
-    "pre_shell_cmds": [],
-    "initial_files": {},
-    "validation_steps": [
-      {
-        "cmd": "i",
-        "matcher": {
-          "exit_code": 0
-        }
-      }
+    "answers": [
+      "i"
     ],
-    "explanation": null,
-    "categories": [],
+    "validation_steps": [],
+    "explanation": "The 'i' command switches Vim from Normal mode to Insert mode at the current cursor position.",
+    "categories": [
+      "Vim Commands"
+    ],
     "difficulty": null,
     "metadata": {
       "category": "Vim Commands",
