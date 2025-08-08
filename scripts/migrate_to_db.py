@@ -41,18 +41,19 @@ def migrate():
 
     yaml_files = []
     if args.file:
-        if Path(args.file).exists():
-            yaml_files.append(args.file)
+        p = Path(args.file)
+        if p.exists():
+            yaml_files.append(str(p))
         else:
             print(f"Error: File not found at '{args.file}'")
             return
     else:
-        # Discover all YAML files from ENABLED_QUIZZES in config
-        print("Discovering quiz files from ENABLED_QUIZZES config...")
-        for path in ENABLED_QUIZZES.values():
-            full_path = project_root / path
-            if full_path.exists() and full_path.suffix in ('.yaml', '.yml'):
-                yaml_files.append(str(full_path))
+        # Discover all YAML/backup files in question-data/yaml
+        quiz_dir = project_root / 'question-data' / 'yaml'
+        print(f"Scanning quiz directory: {quiz_dir}")
+        for pattern in ('*.yaml', '*.yml', '*.yaml.bak'):
+            for p in quiz_dir.glob(pattern):
+                yaml_files.append(str(p))
 
     yaml_files = sorted(list(set(yaml_files)))  # de-duplicate and sort
 
