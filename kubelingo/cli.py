@@ -269,8 +269,8 @@ def handle_config_command(cmd):
 def migrate_yaml_to_db():
     """Migrates all questions from YAML files into the database and backs them up."""
     print(f"{Fore.CYAN}Starting migration of YAML questions to database...{Style.RESET_ALL}")
-    
-    from kubelingo.database import add_question
+
+    from kubelingo.database import add_question, get_db_connection
     loader = YAMLLoader()
     yaml_files = loader.discover()
     # If no active YAML quiz files, restore from backup and re-discover
@@ -278,13 +278,18 @@ def migrate_yaml_to_db():
         print(f"{Fore.CYAN}No active YAML quiz files found; restoring from backup...{Style.RESET_ALL}")
         restore_yaml_from_backup()
         yaml_files = loader.discover()
-    
+
     if not yaml_files:
         print(f"{Fore.YELLOW}No YAML quiz files found to migrate in '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
         return
 
     os.makedirs(YAML_QUIZ_BACKUP_DIR, exist_ok=True)
-    
+
+    conn = get_db_connection()
+    if not conn:
+        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
+        return
+
     total_migrated = 0
     total_files = 0
     for file_path in yaml_files:
@@ -305,9 +310,10 @@ def migrate_yaml_to_db():
                     category = cats[0]
                 elif q_dict.get('category'):
                     category = q_dict.get('category')
-                
+
                 # add_question will insert or update based on ID
                 add_question(
+                    conn,
                     id=q_dict['id'],
                     prompt=q_dict['prompt'],
                     source_file=filename,
@@ -318,6 +324,7 @@ def migrate_yaml_to_db():
                     validator=q_dict.get('validator'),
                     review=q_dict.get('review', False)
                 )
+            conn.commit()
             total_migrated += len(questions)
             total_files += 1
             print(f"    {Fore.GREEN}Migrated {len(questions)} questions.{Style.RESET_ALL}")
@@ -330,6 +337,7 @@ def migrate_yaml_to_db():
         except Exception as e:
             print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
 
+    conn.close()
     print(f"\n{Fore.GREEN}Migration complete. Migrated {total_migrated} questions from {total_files} files.{Style.RESET_ALL}")
     # Backup the live database after migration
     try:
@@ -372,13 +380,18 @@ def import_json_to_db():
     """Imports questions from JSON files into the database."""
     print(f"{Fore.CYAN}Starting import of JSON questions into the database...{Style.RESET_ALL}")
 
-    from kubelingo.database import add_question
+    from kubelingo.database import add_question, get_db_connection
     from kubelingo.modules.json_loader import JSONLoader
     loader = JSONLoader()
     json_files = loader.discover()
 
     if not json_files:
         print(f"{Fore.YELLOW}No JSON quiz files found in 'question-data/json' to import.{Style.RESET_ALL}")
+        return
+
+    conn = get_db_connection()
+    if not conn:
+        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
         return
 
     total_imported = 0
@@ -402,6 +415,7 @@ def import_json_to_db():
                     category = q_dict.get('category')
 
                 add_question(
+                    conn,
                     id=q_dict['id'],
                     prompt=q_dict['prompt'],
                     source_file=filename,
@@ -412,6 +426,7 @@ def import_json_to_db():
                     validator=q_dict.get('validator'),
                     review=q_dict.get('review', False)
                 )
+            conn.commit()
             total_imported += len(questions)
             total_files += 1
             print(f"    {Fore.GREEN}Imported {len(questions)} questions.{Style.RESET_ALL}")
@@ -419,8 +434,9 @@ def import_json_to_db():
         except Exception as e:
             print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
 
+    conn.close()
     print(f"\n{Fore.GREEN}Import complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
-    
+
     # Backup the database after import
     try:
         from kubelingo.database import DATABASE_FILE
@@ -491,7 +507,7 @@ def enrich_sources():
         if not api_key:
             return
 
-    from kubelingo.database import get_questions_by_source_file, add_question
+    from kubelingo.database import get_questions_by_source_file, add_question, get_db_connection
     from kubelingo.utils.config import ENABLED_QUIZZES
     from kubelingo.modules.ai_evaluator import AIEvaluator
 
@@ -513,6 +529,11 @@ def enrich_sources():
 
     print(f"\nFound {Fore.YELLOW}{len(questions_to_update)}{Style.RESET_ALL} questions without a source. Starting enrichment...\n")
 
+    conn = get_db_connection()
+    if not conn:
+        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
+        return
+
     updated_count = 0
     failed_count = 0
     for q in questions_to_update:
@@ -524,6 +545,7 @@ def enrich_sources():
             try:
                 # add_question can be used to update existing questions by ID
                 add_question(
+                    conn,
                     id=q['id'],
                     prompt=q['prompt'],
                     source_file=q['source_file'],
@@ -534,6 +556,7 @@ def enrich_sources():
                     validator=q.get('validator'),
                     review=q.get('review', False)
                 )
+                conn.commit()
                 updated_count += 1
             except Exception as e:
                 print(f"    {Fore.RED}-> Failed to update question {q['id']} in DB: {e}{Style.RESET_ALL}")
@@ -542,6 +565,7 @@ def enrich_sources():
             print(f"    {Fore.YELLOW}-> Could not find a source.{Style.RESET_ALL}")
             failed_count += 1
 
+    conn.close()
     print(f"\n{Fore.CYAN}Enrichment complete.{Style.RESET_ALL}")
     print(f"  - {Fore.GREEN}Successfully updated: {updated_count}{Style.RESET_ALL}")
     print(f"  - {Fore.RED}Failed or skipped: {failed_count}{Style.RESET_ALL}")
