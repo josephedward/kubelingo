@@ -362,6 +362,29 @@ The script is intended to be run from the command line.
     --source-file /path/to/source.json \
     --output-file /path/to/output.yaml
   ```
+  - By default, when no `--output-file` is provided, the generated questions are saved to `question-data/yaml/ai_generated_new_questions.yaml`.
+
+### `scripts/find_duplicate_questions.py`
+
+This script identifies duplicate quiz questions in the live database based on identical prompts. It lists all duplicate entries and, with the `--delete` flag, can remove duplicates while preserving the first occurrence.
+
+**Functionality**:
+- Connects to the live database (default `~/.kubelingo/kubelingo.db`).
+- Finds prompts appearing more than once.
+- Displays `rowid`, `id`, and `source_file` for each duplicate entry.
+- With `--delete`, deletes duplicate rows, keeping the earliest entry for each prompt.
+
+**Usage**:
+
+- To list duplicate questions without deleting:
+  ```bash
+  python3 scripts/find_duplicate_questions.py
+  ```
+
+- To remove duplicates while keeping the first entry of each prompt:
+  ```bash
+  python3 scripts/find_duplicate_questions.py --delete
+  ```
 
 ### `scripts/organize_question_data.py`
 
@@ -764,3 +787,48 @@ You can extend Kubelingo with a “Study Mode” that transforms it into a Socra
   - Use `gpt-3.5-turbo` for cost-effective interactions and reserve `gpt-4` for complex reasoning tasks.
   - Ensure the tutor always ends responses with a guiding question, never full solutions.
   - Persist study session transcripts under `logs/study_sessions/` for later review.
+
+## Importing Questions from Killer Shell Exam Simulators PDF
+
+To extend the quiz with questions derived from the PDF `Killer Shell - Exam Simulators.pdf`:
+
+- A new script `scripts/extract_pdf_questions.py` has been added. It:
+  - Uses `pdftotext` to extract text content from the specified PDF.
+  - Invokes the AI question generator to produce a user-defined number of candidate questions.
+  - Verifies each generated prompt against the existing SQLite database (`~/.kubelingo/kubelingo.db`) to avoid duplicates.
+  - Inserts only new, unique questions into the live database under the `killershell` category and marks their `source_file` as the PDF name.
+  - Does not move or delete any existing database files or YAML backups.
+
+Usage:
+```bash
+python scripts/extract_pdf_questions.py "Killer Shell - Exam Simulators.pdf" -n 5
+```
+
+After running, you can list or play the new questions by invoking:
+```bash
+kubelingo --quiz killershell
+```
+
+## Enriching Unseen Questions from unified.json
+
+To verify which questions from `question-data/unified.json` are already present in the database and identify any _unseen_ prompts, use the `scripts/enrich_unseen_questions.py` utility. This script:
+  - Loads all prompts from `question-data/unified.json`.
+  - Queries the live SQLite database (`~/.kubelingo/kubelingo.db`) for existing questions.
+  - Reports unseen prompts and, if requested, can invoke the AI question generator to create new questions based on those prompts.
+
+Dry-run mode (no changes, list unseen prompts):
+```bash
+python3 scripts/enrich_unseen_questions.py --dry-run
+```
+
+To generate up to N new AI-based questions for unseen prompts (requires OpenAI API key and PyYAML):
+```bash
+export OPENAI_API_KEY=your_key_here
+pip install pyyaml
+python3 scripts/enrich_unseen_questions.py --num-questions N
+```
+Generated questions are saved to `question-data/yaml/ai_generated_new_questions.yaml` in YAML format.
+
+**Important**:
+  - Do not delete or move any database files under `~/.kubelingo/` or backup files in `question-data-backup/`. These are required for seeding, state tracking, and prompt comparison.
+  - The script handles missing PyYAML only for dry-run mode; installing PyYAML is necessary for writing the output YAML file.
