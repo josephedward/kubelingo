@@ -32,8 +32,8 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 # --- Database ---
 # Writable database is stored in the user's app directory.
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
-# Secondary backup database: snapshot of original questions from migration, located in the package.
-BACKUP_DATABASE_FILE = os.path.join(PACKAGE_ROOT, 'question-data-backup', 'kubelingo.db')
+# Secondary backup database: snapshot of original questions from migration, located in the project root.
+BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo.db')
 
 
 # --- API Keys ---
