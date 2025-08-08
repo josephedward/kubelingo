@@ -61,6 +61,12 @@ def import_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> i
             for q in questions:
                 # Based on the Question dataclass and database module, we call add_question
                 # with all available fields. getattr is used for safety with optional fields.
+                # Ensure list/dict fields default to empty containers instead of None to prevent
+                # database NULLs that can cause runtime errors.
+                validation_steps = getattr(q, "validation_steps", None)
+                pre_shell_cmds = getattr(q, "pre_shell_cmds", None)
+                initial_files = getattr(q, "initial_files", None)
+
                 add_question(
                     conn,
                     id=q.id,
@@ -69,13 +75,13 @@ def import_questions_from_path(source_path: Path, loader: YAMLLoader, conn) -> i
                     response=getattr(q, "response", None),
                     category=getattr(q, "category", None),
                     source=getattr(q, "source", None),
-                    validation_steps=getattr(q, "validation_steps", None) or [],
+                    validation_steps=validation_steps or [],
                     validator=getattr(q, "validator", None),
                     review=False,  # New questions are not marked for review by default
                     explanation=getattr(q, "explanation", None),
                     difficulty=getattr(q, "difficulty", None),
-                    pre_shell_cmds=getattr(q, "pre_shell_cmds", None) or [],
-                    initial_files=getattr(q, "initial_files", None) or {},
+                    pre_shell_cmds=pre_shell_cmds or [],
+                    initial_files=initial_files or {},
                     question_type=getattr(q, "question_type", "command"),
                 )
             total_imported += len(questions)
@@ -116,9 +122,10 @@ def main():
         "It uses the 'database-first' architecture described in shared_context.md.",
     )
     parser.add_argument(
-        "--source-path",
+        "--source-dir",
+        dest="source_path",
         type=Path,
-        default=Path("/Users/user/Documents/GitHub/kubelingo/question-data/yaml-bak"),
+        default=project_root / "question-data" / "yaml-bak",
         help="The directory or single YAML file to import.",
     )
     parser.add_argument(
