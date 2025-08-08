@@ -159,7 +159,7 @@ def main():
                     file=sys.stderr,
                 )
                 continue
-            total_imported += import_questions_from_path(path, loader, conn)
+            total_imported += import_yaml_questions_from_path(path, loader, conn)
 
         conn.commit()
         print(f"\nTransaction committed. Imported a total of {total_imported} questions.")
