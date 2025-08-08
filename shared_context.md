@@ -100,9 +100,9 @@ To populate your database, use scripts like:
 
 These scripts will safely add or update questions in your live database.
 
-### `scripts/import_json_to_db.py`
+### `kubelingo db import-json`
 
-This script provides a way to populate the Kubelingo database from `question-data/json`. It complements the YAML import script and is essential for loading all question modules.
+This command provides a way to populate the Kubelingo database from `question-data/json`. It complements the YAML import command and is essential for loading all question modules.
 
 **Functionality**:
 - **JSON Ingestion**: Recursively finds and parses all `.json` files in the `question-data/json` directory.
@@ -114,11 +114,11 @@ This script provides a way to populate the Kubelingo database from `question-dat
 
 - To add or update questions from JSON files (default behavior):
   ```bash
-  python3 scripts/import_json_to_db.py
+  kubelingo db import-json
   ```
 - To clear all existing JSON-sourced questions and re-import them:
   ```bash
-  python3 scripts/import_json_to_db.py --clear
+  kubelingo db import-json --clear
   ```
 
 ## Current Architecture: The Unified Shell Experience
