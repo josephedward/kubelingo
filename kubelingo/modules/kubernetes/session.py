@@ -301,15 +301,23 @@ class NewSession(StudySession):
         
         choices = []
 
-        # 1. Add all enabled quiz modules from config, grouped by category
-        from kubelingo.utils.config import ENABLED_QUIZZES
+        # 1. Add all enabled quiz modules from config, grouped by theme
+        from kubelingo.utils.config import (
+            CORE_SKILL_QUIZZES,
+            KUBECTL_TOPIC_QUIZZES,
+            COMPREHENSIVE_QUIZZES,
+            SIMULATOR_QUIZZES,
+        )
         import os
 
-        for group_name, quizzes in ENABLED_QUIZZES.items():
+        # Helper to add a group of quizzes to the choices list
+        def add_quiz_group(group_title, quiz_dict):
+            # Do not add separator if there are no quizzes in the group
+            if not quiz_dict:
+                return
             if questionary:
-                choices.append(questionary.Separator(f"--- {group_name} ---"))
-            
-            for name, path in quizzes.items():
+                choices.append(questionary.Separator(f"--- {group_title} ---"))
+            for name, path in quiz_dict.items():
                 source_file = os.path.basename(path)
                 try:
                     q_count = len(get_questions_by_source_file(source_file))
@@ -320,8 +328,13 @@ class NewSession(StudySession):
                 display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
                 choices.append({"name": display_name, "value": path})
 
+        add_quiz_group("Core Skills", CORE_SKILL_QUIZZES)
+        add_quiz_group("Kubectl by Topic", KUBECTL_TOPIC_QUIZZES)
+        add_quiz_group("Comprehensive Reviews", COMPREHENSIVE_QUIZZES)
+        add_quiz_group("Simulators", SIMULATOR_QUIZZES)
+        
         if questionary:
-            choices.append(questionary.Separator("---"))
+            choices.append(questionary.Separator("--- Session Management ---"))
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
