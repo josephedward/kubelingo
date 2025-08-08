@@ -26,6 +26,11 @@ If you have legacy quiz definitions in YAML format under `question-data/yaml` or
 python scripts/migrate_to_db.py
 ```
 
+You can also use the built-in CLI command:
+```bash
+kubelingo migrate-yaml
+```
+
 This will:
 - Discover all `.yaml` and `.yml` files in both `question-data/yaml` and `question-data/yaml-bak`.
 - Insert or update each question into the live database (`~/.kubelingo/kubelingo.db`).
