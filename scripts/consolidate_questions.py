@@ -1,7 +1,10 @@
 import os
 import sys
 import shutil
-import yaml
+try:
+    import yaml
+except ImportError:
+    yaml = None
 from dataclasses import asdict
 
 # Add project root to path to allow imports from kubelingo
