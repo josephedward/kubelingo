@@ -267,6 +267,69 @@ def handle_config_command(cmd):
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
 
+def import_json_to_db():
+    """Imports all questions from JSON files into the database."""
+    print(f"{Fore.CYAN}Starting import of JSON questions to database...{Style.RESET_ALL}")
+
+    from kubelingo.database import add_question, get_db_connection
+    loader = JSONLoader()
+    json_files = loader.discover()
+
+    if not json_files:
+        print(f"{Fore.YELLOW}No JSON quiz files found to import.{Style.RESET_ALL}")
+        return
+
+    conn = get_db_connection()
+    if not conn:
+        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
+        return
+
+    total_imported = 0
+    total_files = 0
+    for file_path in json_files:
+        filename = os.path.basename(file_path)
+        print(f"  - Processing '{filename}'...")
+        try:
+            questions = loader.load_file(file_path)
+            if not questions:
+                print(f"    {Fore.YELLOW}No questions found in file, skipping.{Style.RESET_ALL}")
+                continue
+
+            for q_obj in questions:
+                q_dict = asdict(q_obj)
+                category = None
+                # Handle both list of categories and single category string
+                cats = q_dict.get('categories')
+                if cats and isinstance(cats, list) and cats:
+                    category = cats[0]
+                elif q_dict.get('category'):
+                    category = q_dict.get('category')
+
+                # add_question will insert or update based on ID
+                add_question(
+                    conn,
+                    id=q_dict['id'],
+                    prompt=q_dict['prompt'],
+                    source_file=filename,
+                    response=q_dict.get('response'),
+                    category=category,
+                    source=q_dict.get('source'),
+                    validation_steps=q_dict.get('validation_steps'),
+                    validator=q_dict.get('validator'),
+                    review=q_dict.get('review', False)
+                )
+            conn.commit()
+            total_imported += len(questions)
+            total_files += 1
+            print(f"    {Fore.GREEN}Imported {len(questions)} questions.{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
+
+    conn.close()
+    print(f"\n{Fore.GREEN}Import complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
+
+
 def migrate_yaml_to_db():
     """Migrates all questions from YAML files into the database and backs them up."""
     print(f"{Fore.CYAN}Starting migration of YAML questions to database...{Style.RESET_ALL}")
