@@ -48,12 +48,15 @@ def migrate():
             print(f"Error: File not found at '{args.file}'")
             return
     else:
-        # Discover all YAML/backup files in question-data/yaml
-        quiz_dir = Path(project_root) / 'question-data' / 'yaml'
-        print(f"Scanning quiz directory: {quiz_dir}")
-        for pattern in ('*.yaml', '*.yml', '*.yaml.bak'):
-            for p in quiz_dir.glob(pattern):
-                yaml_files.append(str(p))
+        # Discover all YAML/backup files in the configured data directories (yaml and yaml-bak)
+        for subdir in ('yaml', 'yaml-bak'):
+            quiz_dir = Path(DATA_DIR) / subdir
+            print(f"Scanning quiz directory: {quiz_dir}")
+            if not quiz_dir.is_dir():
+                continue
+            for pattern in ('*.yaml', '*.yml', '*.yaml.bak'):
+                for p in quiz_dir.glob(pattern):
+                    yaml_files.append(str(p))
 
     yaml_files = sorted(list(set(yaml_files)))  # de-duplicate and sort
 
@@ -94,13 +97,14 @@ def migrate():
 
     print(f"\nMigration complete. Total questions migrated: {total_questions}")
 
-    # Create a backup of the newly migrated database.
+    # Create a backup of the newly migrated database, clearly named in the repo
     try:
-        db_path = os.path.join(DATA_DIR, 'kubelingo.db')
-        backup_path = os.path.join(DATA_DIR, 'kubelingo.db.bak')
-        if os.path.exists(db_path):
-            shutil.copy2(db_path, backup_path)
-            print(f"Created a backup of the database at: {backup_path}")
+        from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE as USER_DB_FILE
+        backup_dir = os.path.dirname(BACKUP_DATABASE_FILE)
+        os.makedirs(backup_dir, exist_ok=True)
+        # Copy the active user DB (~/.kubelingo/kubelingo.db) into project backup
+        shutil.copy2(USER_DB_FILE, BACKUP_DATABASE_FILE)
+        print(f"Created a backup of the questions database at: {BACKUP_DATABASE_FILE}")
     except Exception as e:
         print(f"Could not create database backup: {e}")
 
