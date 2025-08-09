@@ -46,23 +46,16 @@ class YAMLLoader(BaseLoader):
             for section in raw:
                 if isinstance(section, dict) and 'prompts' in section and isinstance(section['prompts'], list):
                     for prompt in section['prompts']:
-                        entry = {}
-                        # Map YAML edit question type
-                        if 'question_type' in prompt:
-                            entry['type'] = prompt['question_type']
-                        # Prompt text
-                        if 'prompt' in prompt:
-                            entry['prompt'] = prompt.get('prompt')
-                        # Starting YAML content
-                        if 'starting_yaml' in prompt:
-                            entry['initial_yaml'] = prompt.get('starting_yaml')
-                        # Correct YAML content
-                        if 'correct_yaml' in prompt:
-                            entry['correct_yaml'] = prompt.get('correct_yaml')
-                        # Explanation
-                        if 'explanation' in prompt:
-                            entry['explanation'] = prompt.get('explanation')
-                        # Inherit category from section
+                        # Copy all data from prompt to preserve all fields
+                        entry = prompt.copy()
+
+                        # Map legacy keys
+                        if 'question_type' in entry:
+                            entry['type'] = entry.pop('question_type')
+                        if 'starting_yaml' in entry:
+                            entry['initial_yaml'] = entry.pop('starting_yaml')
+
+                        # Inherit category from section, overriding any on the prompt
                         if 'category' in section:
                             entry['category'] = section.get('category')
                         flattened.append(entry)
