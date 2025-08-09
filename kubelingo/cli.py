@@ -1034,9 +1034,9 @@ def main():
                     for base, srcs in base_map.items():
                         ext = os.path.splitext(srcs[0])[1].lstrip('.') or 'unknown'
                         ext_groups[ext.upper()].append(base)
-                        choices = []
-                        # Prepend static YAML Editing option
-                        choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
+                    choices = []
+                    # Prepend static YAML Editing option
+                    choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
                     # Build menu: extension groups, unique base entries
                     for ext in sorted(ext_groups.keys()):
                         choices.append(questionary.Separator(f"=== {ext} Quizzes ==="))
