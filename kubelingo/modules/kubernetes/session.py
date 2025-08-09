@@ -147,6 +147,30 @@ def _update_question_source_in_db(question_id: str, source: str, logger):
         logger.error(f"Failed to update source in DB for QID {question_id}: {e}")
 
 
+def _get_all_source_files():
+    """Returns a list of all unique source files from the database."""
+    from kubelingo.database import get_db_connection
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT source_file FROM questions WHERE source_file IS NOT NULL ORDER BY source_file")
+    sources = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return sources
+
+
+def _get_questions_by_type(question_type: str) -> list[dict]:
+    """Loads all questions of a specific type from the database."""
+    import sqlite3
+    from kubelingo.database import get_db_connection
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions WHERE type = ?", (question_type,))
+    questions = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return questions
+
+
 def _clear_all_review_flags(logger):
     """Removes 'review' flag from all questions in the database."""
     try:
@@ -341,32 +365,12 @@ class NewSession(StudySession):
     
     def _run_yaml_editing_mode(self, args):
         """
-        Runs the YAML editing exercises defined in the YAML questions file.
+        Runs the YAML editing exercises.
         """
-        from kubelingo.utils.config import YAML_QUESTIONS_FILE
-        import yaml as pyyaml
         from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
-        # Load YAML quiz data
-        try:
-            with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
-                data = pyyaml.safe_load(f)
-        except Exception as e:
-            print(f"Failed to load YAML quiz data: {e}")
-            return
-        # Flatten questions for yaml_edit and standalone entries
-        prompts = []
-        for section in data or []:
-            if isinstance(section, dict) and section.get('prompts'):
-                for item in section.get('prompts', []):
-                    if item.get('question_type') == 'yaml_edit':
-                        prompts.append(item)
-            elif isinstance(section, dict) and section.get('prompt') and 'answer' in section:
-                prompts.append({
-                    'prompt': section['prompt'],
-                    'starting_yaml': section.get('starting_yaml', ''),
-                    'correct_yaml': section.get('correct_yaml', section.get('answer', '')),
-                    'explanation': section.get('explanation', '')
-                })
+
+        # Load YAML editing questions from the database
+        prompts = _get_questions_by_type('yaml_edit') + _get_questions_by_type('yaml_author')
         total = len(prompts)
         if total == 0:
             print("No YAML editing exercises found.")
@@ -394,59 +398,44 @@ class NewSession(StudySession):
         missing_deps = check_dependencies('docker', 'kubectl')
         
         choices = []
+        if questionary:
+            choices.append(questionary.Separator("--- Quizzes ---"))
 
-        # 1. Add all enabled quiz modules from config, grouped by theme
-        try:
-            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-        except ImportError:
-            BASIC_QUIZZES = {}
-            COMMAND_QUIZZES = {}
-            MANIFEST_QUIZZES = {}
-        import os
-
-        # Helper to add a group of quizzes to the choices list and display it
-        def add_quiz_group(group_title, quiz_dict, required_deps=None):
-            if not quiz_dict:
-                return
-
-            deps_unavailable = []
-            if required_deps:
-                deps_unavailable = [dep for dep in required_deps if dep in missing_deps]
-
-            separator_text = f"--- {group_title} ---"
-            if deps_unavailable:
-                separator_text += f" (requires {', '.join(deps_unavailable)})"
-
-            if questionary:
-                choices.append(questionary.Separator(separator_text))
+        # Add all quizzes from the database
+        all_sources = _get_all_source_files()
+        for source_file in all_sources:
+            try:
+                q_count = len(_get_solvable_questions(source_file))
+            except Exception as e:
+                self.logger.warning(f"Could not get question count for {source_file}: {e}")
+                q_count = 0
             
-            for name, path in quiz_dict.items():
-                source_file = os.path.basename(path)
-                try:
-                    q_count = len(_get_solvable_questions(source_file))
-                except Exception as e:
-                    self.logger.warning(f"Could not get question count for {source_file}: {e}")
-                    q_count = 0
-                
-                display_name = f"{name} ({q_count} questions)"
-                choice_item = {"name": display_name, "value": path}
-                
-                if deps_unavailable:
-                    choice_item['disabled'] = f"Missing: {', '.join(deps_unavailable)}"
-                elif q_count == 0:
-                    choice_item['disabled'] = "No questions available"
-                
-                choices.append(choice_item)
+            # Use humanize_module to create a nice display name
+            display_name = f"{humanize_module(source_file)} ({q_count} questions)"
+            choice_item = {"name": display_name, "value": source_file}
+            
+            if q_count == 0:
+                choice_item['disabled'] = "No questions available"
+            
+            choices.append(choice_item)
 
-        # Basic exercises and Socratic Tutor
-        add_quiz_group("Basic Exercises", BASIC_QUIZZES)
+        # Add YAML Editing mode as a special quiz type
+        yaml_q_count = len(_get_questions_by_type('yaml_edit')) + len(_get_questions_by_type('yaml_author'))
+        if yaml_q_count > 0:
+            choices.append({
+                "name": f"YAML Editing Mode ({yaml_q_count} questions)",
+                "value": "yaml_editing_mode"
+            })
+
+        # Socratic Tutor
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
-
-        # Command-based exercises
-        add_quiz_group("Command-Based Exercises", COMMAND_QUIZZES)
-
-        # Manifest-based exercises: YAML editing
-        add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
+        
+        # Review flagged questions
+        flagged_count = len(all_flagged)
+        review_choice = {"name": f"Review Flagged Questions ({flagged_count})", "value": "review"}
+        if flagged_count == 0:
+            review_choice['disabled'] = "No questions flagged for review"
+        choices.append(review_choice)
 
         # Settings section (configuration)
         if questionary:
@@ -709,6 +698,10 @@ class NewSession(StudySession):
 
                 if selected == "study_mode":
                     self._run_study_mode_session()
+                    continue
+
+                if selected == "yaml_editing_mode":
+                    self._run_yaml_editing_mode(args)
                     continue
 
                 if selected == "help":

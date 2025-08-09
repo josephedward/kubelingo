@@ -120,35 +120,8 @@ def main():
             print(f"    ! Could not archive {os.path.basename(f_path)}: {e}")
     print(f"  => Archived {archived_count} files.")
 
-    # 5. Group questions and write to new YAML files
-    print("\n[Step 5/6] Writing consolidated YAML files...")
-    # Ensure YAML directory is clean and exists
-    if os.path.isdir(YAML_DIR):
-        shutil.rmtree(YAML_DIR)
-    os.makedirs(YAML_DIR, exist_ok=True)
-
-    grouped_by_file = {}
-    for q in questions_list:
-        source_file = q.source_file or 'uncategorized.yaml'
-        # Sanitize filenames
-        base, _ = os.path.splitext(source_file)
-        new_filename = f"{base.replace(' ', '_').lower()}.yaml"
-        if new_filename not in grouped_by_file:
-            grouped_by_file[new_filename] = []
-        grouped_by_file[new_filename].append(q)
-
-    for filename, questions in grouped_by_file.items():
-        # Convert Question objects to dictionaries for YAML serialization
-        questions_dict = [asdict(q) for q in questions]
-        output_path = os.path.join(YAML_DIR, filename)
-        print(f"  - Writing {len(questions)} questions to {os.path.relpath(output_path, PROJECT_ROOT)}")
-        with open(output_path, 'w', encoding='utf-8') as f:
-            yaml.dump({'questions': questions_dict}, f, default_flow_style=False, sort_keys=False)
-
-    print(f"  => Wrote {len(grouped_by_file)} YAML files.")
-
-    # 6. Rebuild backup database from new YAML files
-    print("\n[Step 6/6] Rebuilding backup database...")
+    # 5. Rebuild backup database from all loaded questions
+    print("\n[Step 5/6] Rebuilding backup database...")
     from kubelingo.utils import config
     # Use MASTER_DATABASE_FILE for the target to be consistent with config
     backup_target = config.MASTER_DATABASE_FILE
@@ -163,20 +136,25 @@ def main():
         init_db(clear=True) # Create a fresh, empty DB
         conn = get_db_connection()
 
-        loader = YAMLLoader()
-        yaml_files = loader.discover() # This will now search in the clean YAML_DIR
-        for file_path in yaml_files:
-            filename = os.path.basename(file_path)
-            questions = loader.load_file(file_path)
-            for q_obj in questions:
-                q_dict = asdict(q_obj)
-                add_question(conn=conn, **q_dict)
+        for q_obj in questions_list:
+            q_dict = asdict(q_obj)
+            add_question(conn=conn, **q_dict)
+        
         conn.commit()
         conn.close()
-        print(f"  => Successfully rebuilt backup database at {backup_target}")
+        print(f"  => Successfully rebuilt backup database with {len(questions_list)} questions.")
     finally:
         # Restore original DB path
         config.DATABASE_FILE = original_db_file
+
+    # 6. Clean up empty directories
+    print("\n[Step 6/6] Cleaning up empty source directories...")
+    # After archiving, some directories like 'json/', 'md/', 'yaml/' might be empty.
+    for dir_name in ['json', 'md', 'yaml', 'manifests', 'solutions']:
+        path_to_check = os.path.join(DATA_DIR, dir_name)
+        if os.path.isdir(path_to_check) and not os.listdir(path_to_check):
+            print(f"  - Removing empty directory: {os.path.relpath(path_to_check, PROJECT_ROOT)}")
+            shutil.rmtree(path_to_check)
 
     print("\n--- Consolidation Complete! ---")
     print("Your question sources have been unified into `kubelingo/question-data/yaml/`.")
