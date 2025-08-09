@@ -34,8 +34,12 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
-# Read-only backup of original questions. Used to seed the user's DB on first run.
-BACKUP_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_original.db')
+# Read-only master backup of original questions. Used to seed the user's DB on first run.
+MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db')
+# Secondary backup for redundancy.
+SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db.bak')
+# Legacy alias for backward compatibility during transition.
+BACKUP_DATABASE_FILE = MASTER_DATABASE_FILE
 
 
 # --- API Keys ---
@@ -98,63 +102,28 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # --- Quiz Data Files ---
 
-# Built-in YAML quiz data files directory. This is the canonical source for all questions.
+# Single, consolidated directory for all source-of-truth YAML quiz files.
+# This is the primary source for building the master database.
+YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-backups')
+
+# The active directory for YAML files that loaders will use.
+# For developers, this might be a working directory. For users, this can be populated
+# from the backup source.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
-# Default YAML quiz file for editing mode.
+
+# Default YAML quiz file for editing mode (example of a specific file)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-# Deprecated backup YAML directory (legacy 'yaml-bak'), now consolidated into YAML_QUIZ_DIR
+
+# All other data formats and redundant backup directories are deprecated.
 YAML_QUIZ_BACKUP_DIR = ''
-# Deprecated manifests directory, now consolidated into YAML_QUIZ_DIR
 MANIFESTS_QUIZ_DIR = ''
 
 
 # --- Enabled Quizzes ---
-# Quizzes that appear as primary options in the interactive menu, grouped by theme.
-# The file paths are used as unique identifiers to query the database.
-# Foundational concepts, vim, and shell usage.
-BASIC_QUIZZES = {
-    "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
-    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
-    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
-    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
-}
-
-# All kubectl and other command-line tool quizzes.
-COMMAND_QUIZZES = {
-    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
-    "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
-    "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
-    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
-    "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
-    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
-    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_operations.yaml'),
-    "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
-}
-
-# Creating and editing YAML manifests.
-# The consolidation script will move these files into the main YAML directory.
-MANIFEST_QUIZZES = {
-    "YAML Editing Practice (General)": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
-    "YAML Editing Practice (Pods)": os.path.join(YAML_QUIZ_DIR, 'pods_manifests.yaml'),
-    "YAML Editing Practice (Deployments)": os.path.join(YAML_QUIZ_DIR, 'deployments_manifests.yaml'),
-    "YAML Editing Practice (ConfigMaps)": os.path.join(YAML_QUIZ_DIR, 'configmaps_manifests.yaml'),
-    "YAML Editing Practice (Services)": os.path.join(YAML_QUIZ_DIR, 'services_manifests.yaml'),
-}
-  
-# Comprehensive multi-topic and AI-generated quiz sets
-COMPREHENSIVE_QUIZZES = {
-    "AI Generated Quiz": os.path.join(YAML_QUIZ_DIR, 'ai_generated_quiz.yaml'),
-    "Kubernetes With Explanations": os.path.join(YAML_QUIZ_DIR, 'kubernetes_with_explanations.yaml'),
-    "Master Quiz With Explanations": os.path.join(YAML_QUIZ_DIR, 'master_quiz_with_explanations.yaml'),
-}
-
-# --- Enabled Quizzes (legacy alias for interactive menus and CLI fallback) ---
-# Combines all quiz groups for backward compatibility
+# This dictionary is now simplified. The loaders will discover quizzes directly
+# from the database. This list can be used as a fallback or for specific UI grouping if needed.
+# For now, we'll keep it simple. It can be populated dynamically from discovered quizzes.
 ENABLED_QUIZZES = {}
-ENABLED_QUIZZES.update(BASIC_QUIZZES)
-ENABLED_QUIZZES.update(COMMAND_QUIZZES)
-ENABLED_QUIZZES.update(MANIFEST_QUIZZES)
-ENABLED_QUIZZES.update(COMPREHENSIVE_QUIZZES)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')

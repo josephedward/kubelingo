@@ -25,17 +25,28 @@ def get_db_connection():
 def init_db(clear: bool = False):
     """Initializes the database and creates/updates the questions table."""
     # First-run seeding: if the user database does not exist, create it from
-    # the backup to ensure it's populated with the initial set of questions.
-    if not os.path.exists(DATABASE_FILE) and os.path.exists(BACKUP_DATABASE_FILE):
-        try:
-            db_dir = os.path.dirname(DATABASE_FILE)
-            if db_dir:
-                os.makedirs(db_dir, exist_ok=True)
-            shutil.copy2(BACKUP_DATABASE_FILE, DATABASE_FILE)
-        except Exception:
-            # If seeding fails, continue to create an empty DB.
-            # The user can try to restore manually later.
-            pass
+    # the master backup to ensure it's populated with the initial set of questions.
+    if not os.path.exists(DATABASE_FILE):
+        from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
+        master_found = os.path.exists(MASTER_DATABASE_FILE)
+        secondary_found = os.path.exists(SECONDARY_MASTER_DATABASE_FILE)
+
+        backup_to_use = None
+        if master_found:
+            backup_to_use = MASTER_DATABASE_FILE
+        elif secondary_found:
+            backup_to_use = SECONDARY_MASTER_DATABASE_FILE
+
+        if backup_to_use:
+            try:
+                db_dir = os.path.dirname(DATABASE_FILE)
+                if db_dir:
+                    os.makedirs(db_dir, exist_ok=True)
+                shutil.copy2(backup_to_use, DATABASE_FILE)
+            except Exception:
+                # If seeding fails, continue to create an empty DB.
+                # The user can try to restore manually later.
+                pass
 
     conn = get_db_connection()
     cursor = conn.cursor()

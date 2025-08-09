@@ -44,11 +44,9 @@ from kubelingo.modules.kubernetes.session import (
 )
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 # Unified question-data loaders (question-data/{json,md,yaml})
-from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
-from kubelingo.modules.json_loader import JSONLoader
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -323,35 +321,21 @@ def restore_db():
     """
     import shutil
     from kubelingo.database import init_db
-    from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
+    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE, DATABASE_FILE
 
-    backup_db_path = BACKUP_DATABASE_FILE
+    backup_db_path = None
+    if os.path.isfile(MASTER_DATABASE_FILE):
+        backup_db_path = MASTER_DATABASE_FILE
+    elif os.path.isfile(SECONDARY_MASTER_DATABASE_FILE):
+        backup_db_path = SECONDARY_MASTER_DATABASE_FILE
+
+    if not backup_db_path:
+        print(f"{Fore.RED}No master database backups found to restore from.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Looked for '{MASTER_DATABASE_FILE}' and '{SECONDARY_MASTER_DATABASE_FILE}'.{Style.RESET_ALL}")
+        print("You may need to run the build script first: python3 scripts/build_question_db.py")
+        return
+
     print(f"{Fore.CYAN}Attempting to merge questions from backup: {backup_db_path}{Style.RESET_ALL}")
-
-    # Fallback: check for project-local backup if config path missing
-    if not os.path.isfile(backup_db_path):
-        try:
-            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
-        except Exception:
-            git_root = None
-        alt_backup = None
-        if git_root:
-            alt_backup = os.path.join(git_root, 'question-data-backup', os.path.basename(backup_db_path))
-
-        if alt_backup and os.path.isfile(alt_backup):
-            backup_db_path = alt_backup
-            print(f"{Fore.CYAN}Found backup database at: {backup_db_path}{Style.RESET_ALL}")
-        else:
-            # Fallback to cwd if git-based path fails
-            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db_path))
-            if os.path.isfile(alt_backup):
-                backup_db_path = alt_backup
-                print(f"{Fore.CYAN}Found backup database at: {backup_db_path}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Backup DB not found at '{BACKUP_DATABASE_FILE}' or '{alt_backup}'.{Style.RESET_ALL}")
-                if git_root:
-                    print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
-                return
 
     # Simply overwrite the live database with the backup copy
     from kubelingo.utils.config import DATABASE_FILE
@@ -541,7 +525,6 @@ def manage_troubleshooting_interactive():
         from pathlib import Path
         choices = []
         choices.append(questionary.Separator("=== Troubleshooting ==="))
-        choices.append({"name": "Rebuild database from YAML source files", "value": "rebuild_db"})
         choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
         choices.append(questionary.Separator("Maintenance"))
         choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
@@ -555,9 +538,7 @@ def manage_troubleshooting_interactive():
         action = questionary.select("Select a troubleshooting action:", choices=choices, use_indicator=True).ask()
         if not action or action == "cancel":
             return
-        if action == "rebuild_db":
-            rebuild_db_from_yaml()
-        elif action == "restore_db":
+        if action == "restore_db":
             restore_db()
         elif action == "find_duplicates":
             find_duplicates_cmd([])
