@@ -49,8 +49,6 @@ DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
 MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_original.db')
 # Secondary backup for redundancy (fallback).
 SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo.db')
-# Legacy alias for compatibility.
-BACKUP_DATABASE_FILE = MASTER_DATABASE_FILE
 
 
 # --- API Keys ---

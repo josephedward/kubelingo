@@ -4,7 +4,7 @@ import os
 import shutil
 from dataclasses import asdict, is_dataclass
 from typing import Dict, Any, List, Optional
-from kubelingo.utils.config import DATABASE_FILE, BACKUP_DATABASE_FILE
+from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE
 
 
 def get_db_connection():
