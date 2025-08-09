@@ -1018,7 +1018,8 @@ def main():
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                # Dynamically build and group menu choices from database-backed quiz modules
+                    # Dynamically build and group menu choices from database-backed quiz modules
+                    choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
                 try:
                     from collections import defaultdict
                     from kubelingo.modules.db_loader import DBLoader
@@ -1036,6 +1037,8 @@ def main():
                         ext = os.path.splitext(srcs[0])[1].lstrip('.') or 'unknown'
                         ext_groups[ext.upper()].append(base)
                     choices = []
+                    # Prepend static YAML Editing option
+                    choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
                     # Build menu: extension groups, unique base entries
                     for ext in sorted(ext_groups.keys()):
                         choices.append(questionary.Separator(f"=== {ext} Quizzes ==="))
