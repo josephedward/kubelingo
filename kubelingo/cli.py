@@ -96,7 +96,7 @@ def show_history():
     # Filter to only quizzes currently enabled
     enabled = set()
     from kubelingo.utils.config import ENABLED_QUIZZES
-    for _, path in ENABLED_QUIZZES:
+    for path in ENABLED_QUIZZES.values():
         enabled.add(os.path.basename(path))
     # Include legacy JSON default if used
     # Filter history entries
