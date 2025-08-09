@@ -948,15 +948,8 @@ def main():
         if args.k8s_mode:
             # Shortcut to display the main Kubernetes quiz menu and exit
             args.module = 'kubernetes'
-            # Only interactive when no other quiz flags are present
-            if (
-                args.num == 0
-                and not args.category
-                and not args.review_only
-                and not args.list_categories
-                and not args.exercise_module
-                and questionary
-            ):
+            # Always interactive for --k8s shortcut
+            if True:
                 # Configure logging
                 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
                 logger = logging.getLogger()
