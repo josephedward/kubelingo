@@ -1,165 +1,66 @@
-# Vim Commands Quiz Manifest
-# Each entry contains a question (prompt), a solution file, and optionally a source URL.
+"""
+Vim Commands Quiz Manifest
+
+Each entry contains a question (prompt) and the source material for the answer.
+"""
 ---
 - id: vim_quiz_data::0
-  prompt: "Enter insert mode at cursor"
-  answers: ["i"]
-  explanation: "insert before the cursor"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Enter insert mode at cursor"
+  solution_file: "yaml/solutions/vim_quiz/0.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::1
-  prompt: "Append text after cursor"
-  answers: ["a"]
-  explanation: "insert (append) after the cursor"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Append text after cursor"
+  solution_file: "yaml/solutions/vim_quiz/1.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::2
-  prompt: "Open a new line below the current line"
-  answers: ["o"]
-  explanation: "append (open) a new line below the current line"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Open a new line below the current line"
+  solution_file: "yaml/solutions/vim_quiz/2.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::3
-  prompt: "Save file and quit"
-  answers: [":wq", ":x", "ZZ"]
-  explanation: "write (save) and quit"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Save file and quit"
+  solution_file: "yaml/solutions/vim_quiz/3.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::4
-  prompt: "Exit without saving changes"
-  answers: [":q!", "ZQ"]
-  explanation: "quit and throw away unsaved changes"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Exit without saving changes"
+  solution_file: "yaml/solutions/vim_quiz/4.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::5
-  prompt: "Save file without exiting"
-  answers: [":w"]
-  explanation: "write (save) the file, but don't exit"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Save file without exiting"
+  solution_file: "yaml/solutions/vim_quiz/5.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::6
-  prompt: "Delete current line"
-  answers: ["dd"]
-  explanation: "delete (cut) a line"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Delete current line"
+  solution_file: "yaml/solutions/vim_quiz/6.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::7
-  prompt: "Copy current line (yank)"
-  answers: ["yy"]
-  explanation: "yank (copy) a line"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Copy current line (yank)"
+  solution_file: "yaml/solutions/vim_quiz/7.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::8
-  prompt: "Paste after cursor"
-  answers: ["p"]
-  explanation: "put (paste) the clipboard after cursor"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Paste after cursor"
+  solution_file: "yaml/solutions/vim_quiz/8.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::9
-  prompt: "Undo last change"
-  answers: ["u"]
-  explanation: "undo"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Undo last change"
+  solution_file: "yaml/solutions/vim_quiz/9.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::10
-  prompt: "Search forward for 'pattern'"
-  answers: ["/pattern"]
-  explanation: "search for pattern"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Search forward for 'pattern'"
+  solution_file: "yaml/solutions/vim_quiz/10.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::11
-  prompt: "Find next search occurrence"
-  answers: ["n"]
-  explanation: "repeat search in same direction"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Find next search occurrence"
+  solution_file: "yaml/solutions/vim_quiz/11.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::12
-  prompt: "Go to top of file"
-  answers: ["gg"]
-  explanation: "go to the first line of the document"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Go to top of file"
+  solution_file: "yaml/solutions/vim_quiz/12.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::13
-  prompt: "Go to end of file"
-  answers: ["G"]
-  explanation: "go to the last line of the document"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Go to end of file"
+  solution_file: "yaml/solutions/vim_quiz/13.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
 - id: vim_quiz_data::14
-  prompt: "Go to line 10"
-  answers: [":10", "10gg", "10G"]
-  explanation: "go to line N (e.g. 5gg or 5G)"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::15
-  prompt: "Exit insert mode"
-  answers: ["<Esc>", "<C-c>"]
-  explanation: "exit insert mode"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::17
-  prompt: "Redo the last undone change"
-  answers: ["<C-r>"]
-  explanation: "redo"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::18
-  prompt: "Enter visual mode"
-  answers: ["v"]
-  explanation: "start visual mode, mark lines, then do a command (like y-yank)"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::19
-  prompt: "Enter visual line mode"
-  answers: ["V"]
-  explanation: "start linewise visual mode"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::20
-  prompt: "Enter visual block mode"
-  answers: ["<C-v>"]
-  explanation: "start visual block mode"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::21
-  prompt: "Enter replace mode"
-  answers: ["R"]
-  explanation: "replace more than one character, until ESC is pressed"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::22
-  prompt: "Move to the next word"
-  answers: ["w"]
-  explanation: "jump forwards to the start of a word"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::23
-  prompt: "Move to the previous word"
-  answers: ["b"]
-  explanation: "jump backwards to the start of a word"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::24
-  prompt: "Move to the end of the word"
-  answers: ["e"]
-  explanation: "jump forwards to the end of a word"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::25
-  prompt: "Move to the first character of the line"
-  answers: ["0"]
-  explanation: "jump to the start of the line"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::26
-  prompt: "Move to the end of the line"
-  answers: ["$"]
-  explanation: "jump to the end of the line"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
-- id: vim_quiz_data::27
-  prompt: "Jump to matching bracket"
-  answers: ["%"]
-  explanation: "move cursor to matching character (default supported pairs: '()', '{}', '[]')"
-  source: "https://www.vim.org/docs.php"
-  validation_steps: []
+  question: "Go to line 10"
+  solution_file: "yaml/solutions/vim_quiz/14.yaml"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
