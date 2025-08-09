@@ -102,8 +102,12 @@ def validate_kubectl_syntax(cmd_str: str) -> Dict[str, Any]:
         parts = shlex.split(cmd_str)
     except ValueError:
         return {'valid': False, 'errors': ["Failed to parse command string."], 'warnings': []}
+
+    if not parts or parts[0].lower() not in ('kubectl', 'k'):
+        return {'valid': False, 'errors': ["Command must start with 'kubectl' or 'k'."], 'warnings': []}
+
     # Handle 'k' alias
-    if parts and parts[0] == 'k':
+    if parts and parts[0].lower() == 'k':
         parts[0] = 'kubectl'
     # Append --help to trigger syntax checking
     help_cmd = parts + ['--help']
