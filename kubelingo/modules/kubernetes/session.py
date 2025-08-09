@@ -45,7 +45,7 @@ import os
 
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.question_generator import AIQuestionGenerator
-from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
+from kubelingo.utils.validation import commands_equivalent, is_yaml_subset, validate_yaml_structure
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
@@ -1108,56 +1108,77 @@ class NewSession(StudySession):
                     if action == "answer":
                         # Support YAML editing and authoring questions
                         if q.get('type') in ('yaml_edit', 'yaml_author'):
+                            # Launch Vim for editing
                             editor = VimYamlEditor()
                             starting_yaml = q.get('starting_yaml', '')
                             parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
-                            user_yaml_str = ''
-                            if parsed is not None:
-                                if yaml and hasattr(yaml, 'safe_dump'):
-                                    try:
-                                        user_yaml_str = yaml.safe_dump(parsed, default_flow_style=False)
-                                    except Exception:
-                                        user_yaml_str = str(parsed)
-                                else:
+                            if parsed is None:
+                                # Editing cancelled
+                                continue
+                            # Serialize back to YAML string
+                            if yaml and hasattr(yaml, 'safe_dump'):
+                                try:
+                                    user_yaml_str = yaml.safe_dump(parsed, default_flow_style=False)
+                                except Exception:
                                     user_yaml_str = str(parsed)
+                            else:
+                                user_yaml_str = str(parsed)
                             transcripts_by_index[current_question_index] = user_yaml_str
-                            # Automatically grade the YAML and show diff if incorrect
                             attempted_indices.add(current_question_index)
+                            # 1. Syntax & structure validation
+                            struct = validate_yaml_structure(user_yaml_str)
+                            for err in struct.get('errors', []):
+                                print(f"{Fore.RED}YAML validation error: {err}{Style.RESET_ALL}")
+                            for warn in struct.get('warnings', []):
+                                print(f"{Fore.YELLOW}YAML validation warning: {warn}{Style.RESET_ALL}")
+                            if not struct.get('valid'):
+                                print(f"{Fore.RED}YAML structure invalid. Please retry editing.{Style.RESET_ALL}")
+                                continue
+                            # 2. Compare to expected manifest
                             correct_yaml_str = q.get('correct_yaml') or q.get('answer', '')
                             if not correct_yaml_str:
-                                print(f"{Fore.YELLOW}Warning: No correct answer defined for this question. Cannot check.{Style.RESET_ALL}")
+                                print(f"{Fore.YELLOW}Warning: No correct answer defined. Skipping check.{Style.RESET_ALL}")
+                                continue
+                            # Structural subset check
+                            if is_yaml_subset(subset_yaml_str=correct_yaml_str, superset_yaml_str=user_yaml_str):
+                                correct_indices.add(current_question_index)
+                                print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
                             else:
-                                try:
-                                    user_obj = yaml.safe_load(user_yaml_str)
-                                    if user_obj is None:
-                                        user_obj = {}
-                                    correct_obj = yaml.safe_load(correct_yaml_str)
-                                    if is_yaml_subset(subset_yaml_str=correct_yaml_str, superset_yaml_str=user_yaml_str):
-                                        correct_indices.add(current_question_index)
-                                        print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
-                                    else:
-                                        correct_indices.discard(current_question_index)
-                                        print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
-                                        diff = unified_diff(
-                                            correct_yaml_str.strip().splitlines(keepends=True),
-                                            user_yaml_str.strip().splitlines(keepends=True),
-                                            fromfile='expected.yaml',
-                                            tofile='your-answer.yaml',
-                                        )
-                                        diff_text = ''.join(diff)
-                                        if diff_text:
-                                            print(f"{Fore.CYAN}Showing differences (-expected, +yours):{Style.RESET_ALL}")
-                                            for line in diff_text.splitlines():
-                                                if line.startswith('+'):
-                                                    print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
-                                                elif line.startswith('-'):
-                                                    print(f"{Fore.RED}{line}{Style.RESET_ALL}")
-                                                elif line.startswith('@@'):
-                                                    print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
-                                                else:
-                                                    print(line)
+                                correct_indices.discard(current_question_index)
+                                # Use AI evaluator if available for flexible grading
+                                if os.getenv('OPENAI_API_KEY'):
+                                    try:
+                                        from kubelingo.modules.ai_evaluator import AIEvaluator
+                                        evaluator = AIEvaluator()
+                                        ai_res = evaluator.evaluate(q, user_yaml_str, vim_log=None)
+                                        status = 'Correct' if ai_res.get('correct') else 'Incorrect'
+                                        print(f"{Fore.CYAN}AI Evaluation: {status} - {ai_res.get('reasoning','')}{Style.RESET_ALL}")
+                                        if ai_res.get('correct'):
+                                            correct_indices.add(current_question_index)
                                         else:
-                                            print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
+                                            correct_indices.discard(current_question_index)
+                                    except Exception as e:
+                                        print(f"{Fore.YELLOW}AI evaluation failed: {e}. Showing structural diff.{Style.RESET_ALL}")
+                                # Show diff for manual review
+                                diff = unified_diff(
+                                    correct_yaml_str.strip().splitlines(keepends=True),
+                                    user_yaml_str.strip().splitlines(keepends=True),
+                                    fromfile='expected.yaml', tofile='your-answer.yaml'
+                                )
+                                diff_text = ''.join(diff)
+                                if diff_text:
+                                    print(f"{Fore.CYAN}Differences (-expected, +yours):{Style.RESET_ALL}")
+                                    for line in diff_text.splitlines():
+                                        if line.startswith('+'):
+                                            print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
+                                        elif line.startswith('-'):
+                                            print(f"{Fore.RED}{line}{Style.RESET_ALL}")
+                                        elif line.startswith('@@'):
+                                            print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
+                                        else:
+                                            print(line)
+                                else:
+                                    print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
                                 except Exception as e:
                                     print(f"{Fore.RED}Failed to check YAML: {e}{Style.RESET_ALL}")
                             # Auto-flag or unflag based on correctness
@@ -1523,10 +1544,20 @@ class NewSession(StudySession):
         attempted_indices.add(current_question_index)
         is_correct = False
 
-        # Normalize 'k' alias to 'kubectl' for both AI and deterministic checks
+        # Normalize 'k' alias to 'kubectl'
         normalized_command = user_command.strip()
         if normalized_command.startswith('k '):
             normalized_command = 'kubectl ' + normalized_command[2:]
+        # Syntax validation (dry-run via --help)
+        from kubelingo.utils.validation import validate_kubectl_syntax
+        syntax = validate_kubectl_syntax(normalized_command)
+        for err in syntax.get('errors', []):
+            print(f"{Fore.RED}Syntax error: {err}{Style.RESET_ALL}")
+        for warn in syntax.get('warnings', []):
+            print(f"{Fore.YELLOW}Syntax warning: {warn}{Style.RESET_ALL}")
+        if not syntax.get('valid'):
+            print(f"{Fore.RED}Command syntax invalid. Please retry.{Style.RESET_ALL}")
+            return
 
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
@@ -1540,13 +1571,18 @@ class NewSession(StudySession):
 
         except ImportError:
             print(f"{Fore.YELLOW}AI evaluator not available. Falling back to deterministic command check.{Style.RESET_ALL}")
-            if commands_equivalent(normalized_command, q.get('response', '')):
-                is_correct = True
+            # Check against all acceptable answers
+            for ans in q.get('answers', []):
+                if commands_equivalent(normalized_command, ans):
+                    is_correct = True
+                    break
         except Exception as e:
             print(f"{Fore.RED}An error occurred during AI evaluation: {e}{Style.RESET_ALL}")
             # Fallback to deterministic check on AI error
-            if commands_equivalent(normalized_command, q.get('response', '')):
-                is_correct = True
+            for ans in q.get('answers', []):
+                if commands_equivalent(normalized_command, ans):
+                    is_correct = True
+                    break
 
         if is_correct:
             correct_indices.add(current_question_index)
