@@ -1018,8 +1018,6 @@ def main():
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                    # Dynamically build and group menu choices from database-backed quiz modules
-                    choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
                 try:
                     from collections import defaultdict
                     from kubelingo.modules.db_loader import DBLoader
