@@ -532,7 +532,6 @@ def manage_config_interactive():
         ).ask()
 
         if action is None or action == "cancel":
-            print("Operation cancelled.")
             return
 
         if action == 'view_openai':
@@ -552,7 +551,9 @@ def manage_config_interactive():
         print()
 
     except (KeyboardInterrupt, EOFError):
-        print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
+        # A newline is needed to prevent the next prompt from appearing on the same line.
+        print()
+        return
 
 def manage_troubleshooting_interactive():
     """Interactive prompt for troubleshooting operations."""
@@ -577,7 +578,6 @@ def manage_troubleshooting_interactive():
         choices.append({"name": "Cancel", "value": "cancel"})
         action = questionary.select("Select a troubleshooting action:", choices=choices, use_indicator=True).ask()
         if not action or action == "cancel":
-            print("Operation cancelled.")
             return
         if action == "migrate_yaml":
             migrate_yaml_to_db()
@@ -600,7 +600,9 @@ def manage_troubleshooting_interactive():
             subprocess.run([sys.executable, str(script)], check=False)
         print()
     except (KeyboardInterrupt, EOFError):
-        print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
+        # A newline is needed to prevent the next prompt from appearing on the same line.
+        print()
+        return
 
 
 def enrich_sources():
