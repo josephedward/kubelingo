@@ -1740,16 +1740,17 @@ class NewSession(StudySession):
         normalized_command = user_command.strip()
         if normalized_command.startswith('k '):
             normalized_command = 'kubectl ' + normalized_command[2:]
-        # Syntax validation (dry-run via --help)
-        from kubelingo.utils.validation import validate_kubectl_syntax
-        syntax = validate_kubectl_syntax(normalized_command)
-        for err in syntax.get('errors', []):
-            print(f"{Fore.RED}Syntax error: {err}{Style.RESET_ALL}")
-        for warn in syntax.get('warnings', []):
-            print(f"{Fore.YELLOW}Syntax warning: {warn}{Style.RESET_ALL}")
-        if not syntax.get('valid'):
-            print(f"{Fore.RED}Command syntax invalid. Please retry.{Style.RESET_ALL}")
-            return
+        # If it's a kubectl command, perform syntax validation.
+        if normalized_command.startswith('kubectl '):
+            from kubelingo.utils.validation import validate_kubectl_syntax
+            syntax = validate_kubectl_syntax(normalized_command)
+            for err in syntax.get('errors', []):
+                print(f"{Fore.RED}Syntax error: {err}{Style.RESET_ALL}")
+            for warn in syntax.get('warnings', []):
+                print(f"{Fore.YELLOW}Syntax warning: {warn}{Style.RESET_ALL}")
+            if not syntax.get('valid'):
+                print(f"{Fore.RED}Command syntax invalid. Please retry.{Style.RESET_ALL}")
+                return
 
         try:
             from kubelingo.modules.ai_evaluator import AIEvaluator
