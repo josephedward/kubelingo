@@ -76,8 +76,15 @@ def import_all_questions(conn):
             print(f"  - Loading file: {file_path.name}")
             try:
                 questions: list[Question] = loader.load_file(str(file_path))
+                if not questions:
+                    continue
                 for q in questions:
-                    add_question(conn, **asdict(q))
+                    q_dict = asdict(q)
+                    # The Question dataclass uses 'type', but the DB schema and
+                    # add_question function use 'question_type'. We remap it here.
+                    if 'type' in q_dict:
+                        q_dict['question_type'] = q_dict.pop('type')
+                    add_question(conn, **q_dict)
                     total_questions_imported += 1
             except Exception as e:
                 print(f"    Error processing file {file_path.name}: {e}")
