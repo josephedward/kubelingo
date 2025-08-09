@@ -427,11 +427,13 @@ class NewSession(StudySession):
                     self.logger.warning(f"Could not get question count for {source_file}: {e}")
                     q_count = 0
                 
-                display_name = f"{name} ({q_count} questions)" if q_count > 0 else name
+                display_name = f"{name} ({q_count} questions)"
                 choice_item = {"name": display_name, "value": path}
                 
                 if deps_unavailable:
                     choice_item['disabled'] = f"Missing: {', '.join(deps_unavailable)}"
+                elif q_count == 0:
+                    choice_item['disabled'] = "No questions available"
                 
                 choices.append(choice_item)
 
