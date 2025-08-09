@@ -155,8 +155,10 @@ class VimYamlEditor:
             if (not used_fallback) and yaml and hasattr(yaml, 'safe_load'):
                 try:
                     parsed = yaml.safe_load(content)
+                    if parsed is None:
+                        parsed = {}
                 except Exception as e:
-                    print(f"\033[31mFailed to parse YAML: {e}\033[0m")
+                    print(f"\03-31mFailed to parse YAML: {e}\033[0m")
                     return None
                 # Only accept mappings or sequences
                 if not isinstance(parsed, (dict, list)):
@@ -218,10 +220,10 @@ class VimYamlEditor:
         Returns True if the user produces expected YAML, False otherwise.
         """
         prompt = question.get('prompt', '')
-        starting = question.get('starting_yaml', '')
+        starting = question.get('starting_yaml')
         expected_raw = question.get('correct_yaml', '') or question.get('answer', '')
 
-        if not starting:
+        if starting is None or (isinstance(starting, str) and not starting.strip()):
             prompt_lower = prompt.lower()
             if 'deployment' in prompt_lower:
                 starting = self.create_yaml_exercise('deployment')
