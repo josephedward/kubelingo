@@ -267,16 +267,16 @@ def handle_config_command(cmd):
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
 
-def import_json_to_db():
-    """Imports all questions from JSON files into the database."""
-    print(f"{Fore.CYAN}Starting import of JSON questions to database...{Style.RESET_ALL}")
+def rebuild_db_from_yaml():
+    """Wipes and rebuilds the questions database from all YAML source files."""
+    print(f"{Fore.CYAN}Rebuilding database from YAML source files...{Style.RESET_ALL}")
 
     from kubelingo.database import add_question, get_db_connection
-    loader = JSONLoader()
-    json_files = loader.discover()
+    loader = YAMLLoader()
+    yaml_files = loader.discover()
 
-    if not json_files:
-        print(f"{Fore.YELLOW}No JSON quiz files found to import.{Style.RESET_ALL}")
+    if not yaml_files:
+        print(f"{Fore.YELLOW}No YAML quiz files found in '{YAML_QUIZ_DIR}'. Nothing to do.{Style.RESET_ALL}")
         return
 
     conn = get_db_connection()
@@ -284,14 +284,16 @@ def import_json_to_db():
         print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
         return
 
+    # Wipe existing questions
+    conn.execute("DELETE FROM questions")
+    conn.commit()
+    print("  - Cleared existing questions from the database.")
+
     total_imported = 0
     total_files = 0
-    for file_path in json_files:
+    for file_path in yaml_files:
         filename = os.path.basename(file_path)
         print(f"  - Processing '{filename}'...")
-        # Remove existing questions for this file to avoid duplicates from previous imports
-        conn.execute("DELETE FROM questions WHERE source_file = ?", (filename,))
-        conn.commit()
         try:
             questions = loader.load_file(file_path)
             if not questions:
@@ -300,27 +302,8 @@ def import_json_to_db():
 
             for q_obj in questions:
                 q_dict = asdict(q_obj)
-                category = None
-                # Handle both list of categories and single category string
-                cats = q_dict.get('categories')
-                if cats and isinstance(cats, list) and cats:
-                    category = cats[0]
-                elif q_dict.get('category'):
-                    category = q_dict.get('category')
+                add_question(conn, **q_dict)
 
-                # add_question will insert or update based on ID
-                add_question(
-                    conn,
-                    id=q_dict['id'],
-                    prompt=q_dict['prompt'],
-                    source_file=filename,
-                    response=q_dict.get('response'),
-                    category=category,
-                    source=q_dict.get('source'),
-                    validation_steps=q_dict.get('validation_steps'),
-                    validator=q_dict.get('validator'),
-                    review=q_dict.get('review', False)
-                )
             conn.commit()
             total_imported += len(questions)
             total_files += 1
@@ -330,154 +313,7 @@ def import_json_to_db():
             print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
 
     conn.close()
-    print(f"\n{Fore.GREEN}Import complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
-
-
-def migrate_yaml_to_db():
-    """Migrates all questions from YAML files into the database and backs them up."""
-    print(f"{Fore.CYAN}Starting migration of YAML questions to database...{Style.RESET_ALL}")
-
-    from kubelingo.database import add_question, get_db_connection
-    loader = YAMLLoader()
-    yaml_files = loader.discover()
-    # If no active YAML quiz files, restore from backup and re-discover
-    if not yaml_files and os.path.exists(YAML_QUIZ_BACKUP_DIR) and os.listdir(YAML_QUIZ_BACKUP_DIR):
-        print(f"{Fore.CYAN}No active YAML quiz files found; restoring from backup...{Style.RESET_ALL}")
-        restore_yaml_from_backup()
-        yaml_files = loader.discover()
-
-    if not yaml_files:
-        print(f"{Fore.YELLOW}No YAML quiz files found to migrate in '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
-        return
-
-    os.makedirs(YAML_QUIZ_BACKUP_DIR, exist_ok=True)
-
-    conn = get_db_connection()
-    if not conn:
-        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
-        return
-
-    total_migrated = 0
-    total_files = 0
-    for file_path in yaml_files:
-        filename = os.path.basename(file_path)
-        print(f"  - Processing '{filename}'...")
-        # Remove existing questions for this file to avoid duplicates from previous migrations
-        conn.execute("DELETE FROM questions WHERE source_file = ?", (filename,))
-        conn.commit()
-        try:
-            questions = loader.load_file(file_path)
-            if not questions:
-                print(f"    {Fore.YELLOW}No questions found in file, skipping.{Style.RESET_ALL}")
-                continue
-
-            for q_obj in questions:
-                q_dict = asdict(q_obj)
-                category = None
-                # Handle both list of categories and single category string
-                cats = q_dict.get('categories')
-                if cats and isinstance(cats, list) and cats:
-                    category = cats[0]
-                elif q_dict.get('category'):
-                    category = q_dict.get('category')
-
-                # add_question will insert or update based on ID
-                add_question(
-                    conn,
-                    id=q_dict['id'],
-                    prompt=q_dict['prompt'],
-                    source_file=filename,
-                    response=q_dict.get('response'),
-                    category=category,
-                    source=q_dict.get('source'),
-                    validation_steps=q_dict.get('validation_steps'),
-                    validator=q_dict.get('validator'),
-                    review=q_dict.get('review', False)
-                )
-            conn.commit()
-            total_migrated += len(questions)
-            total_files += 1
-            print(f"    {Fore.GREEN}Migrated {len(questions)} questions.{Style.RESET_ALL}")
-
-            # Move file to backup
-            backup_path = os.path.join(YAML_QUIZ_BACKUP_DIR, filename)
-            shutil.move(file_path, backup_path)
-            print(f"    {Fore.CYAN}Backed up '{filename}' to '{YAML_QUIZ_BACKUP_DIR}'.{Style.RESET_ALL}")
-
-        except Exception as e:
-            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
-
-    conn.close()
-    print(f"\n{Fore.GREEN}Migration complete. Migrated {total_migrated} questions from {total_files} files.{Style.RESET_ALL}")
-    # Backup the live database after migration
-    try:
-        from kubelingo.database import DATABASE_FILE
-        from kubelingo.utils.config import BACKUP_DATABASE_FILE
-        os.makedirs(os.path.dirname(BACKUP_DATABASE_FILE), exist_ok=True)
-        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
-        print(f"{Fore.CYAN}Database backup created at {BACKUP_DATABASE_FILE}{Style.RESET_ALL}")
-    except Exception as e:
-        print(f"{Fore.RED}Failed to backup database: {e}{Style.RESET_ALL}")
-
-
-def restore_yaml_from_backup():
-    """Restores YAML files from the backup directory to the active quiz directory."""
-    # Determine backup directory (primary or fallback via git or local repo)
-    backup_dir = YAML_QUIZ_BACKUP_DIR
-    if not os.path.isdir(backup_dir) or not os.listdir(backup_dir):
-        # Attempt to locate repo root via git for backup
-        try:
-            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
-        except Exception:
-            git_root = None
-        alt_backup = None
-        if git_root:
-            alt_backup = os.path.join(git_root, 'question-data', 'yaml-bak')
-
-        if alt_backup and os.path.isdir(alt_backup) and os.listdir(alt_backup):
-            backup_dir = alt_backup
-            print(f"{Fore.CYAN}Using backup directory: {backup_dir}{Style.RESET_ALL}")
-        else:
-            # Fallback to cwd if git-based path fails
-            alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
-            if os.path.isdir(alt_backup) and os.listdir(alt_backup):
-                backup_dir = alt_backup
-                print(f"{Fore.CYAN}Using backup directory: {backup_dir}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found or empty. Nothing to restore.{Style.RESET_ALL}")
-                return
-
-    # Determine destination directory (primary or fallback via git or local repo)
-    dest_dir = YAML_QUIZ_DIR
-    if not os.path.isdir(dest_dir):
-        # Attempt to locate repo root via git for destination
-        try:
-            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
-        except Exception:
-            git_root = None
-        if git_root and os.path.isdir(os.path.join(git_root, 'question-data', 'yaml')):
-            dest_dir = os.path.join(git_root, 'question-data', 'yaml')
-        else:
-            dest_dir = os.path.join(os.getcwd(), 'question-data', 'yaml')
-    os.makedirs(dest_dir, exist_ok=True)
-
-    print(f"{Fore.CYAN}Restoring YAML files from backup directory '{backup_dir}'...{Style.RESET_ALL}")
-    restored_count = 0
-    for root, _, files in os.walk(backup_dir):
-        for filename in files:
-            if not filename.lower().endswith(('.yaml', '.yml')):
-                continue
-            src = os.path.join(root, filename)
-            # Preserve subdirectory structure relative to backup_dir
-            rel_path = os.path.relpath(src, backup_dir)
-            dst = os.path.join(dest_dir, rel_path)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            print(f"  - Copying '{rel_path}' to '{dst}'...")
-            shutil.copy2(src, dst)
-            restored_count += 1
-
-    print(f"\n{Fore.GREEN}Restore complete. Restored {restored_count} files to '{dest_dir}'.{Style.RESET_ALL}")
-    print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
+    print(f"\n{Fore.GREEN}Database rebuild complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
    
 def restore_all():
     """Performs full restore of primary DB, YAML and JSON quizzes into the database."""
@@ -741,8 +577,6 @@ def manage_config_interactive():
                 {"name": "List configured clusters", "value": "list_clusters"},
                 {"name": "Add a new cluster connection", "value": "add_cluster"},
                 {"name": "Remove a cluster connection", "value": "remove_cluster"},
-                questionary.Separator("Data Management"),
-                {"name": "Import JSON quizzes into database", "value": "import_json"},
                 questionary.Separator(),
                 {"name": "Cancel", "value": "cancel"}
             ],
@@ -762,8 +596,6 @@ def manage_config_interactive():
             handle_config_command(['config', 'add', 'cluster'])
         elif action == 'remove_cluster':
             handle_config_command(['config', 'remove', 'cluster'])
-        elif action == 'import_json':
-            import_json_to_db()
 
         # Add a newline for better spacing after the operation
         print()
@@ -782,8 +614,7 @@ def manage_troubleshooting_interactive():
         from pathlib import Path
         choices = []
         choices.append(questionary.Separator("=== Troubleshooting ==="))
-        choices.append({"name": "Migrate YAML quizzes into database", "value": "migrate_yaml"})
-        choices.append({"name": "Restore YAML files from backup", "value": "restore_yaml"})
+        choices.append({"name": "Rebuild database from YAML source files", "value": "rebuild_db"})
         choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
         choices.append(questionary.Separator("Maintenance"))
         choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
@@ -797,10 +628,8 @@ def manage_troubleshooting_interactive():
         action = questionary.select("Select a troubleshooting action:", choices=choices, use_indicator=True).ask()
         if not action or action == "cancel":
             return
-        if action == "migrate_yaml":
-            migrate_yaml_to_db()
-        elif action == "restore_yaml":
-            restore_yaml_from_backup()
+        if action == "rebuild_db":
+            rebuild_db_from_yaml()
         elif action == "restore_db":
             restore_db()
         elif action == "find_duplicates":
@@ -998,7 +827,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',

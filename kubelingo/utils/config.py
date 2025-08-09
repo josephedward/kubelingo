@@ -98,16 +98,10 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # --- Quiz Data Files ---
 
-# Built-in YAML quiz data files directory (primary backup for all questions)
+# Built-in YAML quiz data files directory. This is the canonical source for all questions.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
-# Default YAML quiz file for editing mode
+# Default YAML quiz file for editing mode.
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-# Backup YAML directory no longer used (consolidated into yaml/)
-YAML_QUIZ_BACKUP_DIR = ''  # legacy 'yaml-bak' retired
-# Manifest directory retired; all manifests consolidated into YAML quiz directory
-MANIFESTS_QUIZ_DIR = ''
-# Default JSON quiz file for command quiz mode (legacy loader)
-DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'kubernetes.json')
 
 
 # --- Enabled Quizzes ---
@@ -134,12 +128,13 @@ COMMAND_QUIZZES = {
 }
 
 # Creating and editing YAML manifests.
+# The consolidation script will move these files into the main YAML directory.
 MANIFEST_QUIZZES = {
     "YAML Editing Practice (General)": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
-    "YAML Editing Practice (Pods)": os.path.join(MANIFESTS_QUIZ_DIR, 'pods_manifests.yaml'),
-    "YAML Editing Practice (Deployments)": os.path.join(MANIFESTS_QUIZ_DIR, 'deployments_manifests.yaml'),
-    "YAML Editing Practice (ConfigMaps)": os.path.join(MANIFESTS_QUIZ_DIR, 'configmaps_manifests.yaml'),
-    "YAML Editing Practice (Services)": os.path.join(MANIFESTS_QUIZ_DIR, 'services_manifests.yaml'),
+    "YAML Editing Practice (Pods)": os.path.join(YAML_QUIZ_DIR, 'pods_manifests.yaml'),
+    "YAML Editing Practice (Deployments)": os.path.join(YAML_QUIZ_DIR, 'deployments_manifests.yaml'),
+    "YAML Editing Practice (ConfigMaps)": os.path.join(YAML_QUIZ_DIR, 'configmaps_manifests.yaml'),
+    "YAML Editing Practice (Services)": os.path.join(YAML_QUIZ_DIR, 'services_manifests.yaml'),
 }
   
 # Comprehensive multi-topic and AI-generated quiz sets
