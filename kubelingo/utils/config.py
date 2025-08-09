@@ -102,6 +102,10 @@ def get_cluster_configs() -> Dict[str, Any]:
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 # Default YAML quiz file for editing mode.
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
+# Deprecated backup YAML directory (legacy 'yaml-bak'), now consolidated into YAML_QUIZ_DIR
+YAML_QUIZ_BACKUP_DIR = ''
+# Deprecated manifests directory, now consolidated into YAML_QUIZ_DIR
+MANIFESTS_QUIZ_DIR = ''
 
 
 # --- Enabled Quizzes ---
