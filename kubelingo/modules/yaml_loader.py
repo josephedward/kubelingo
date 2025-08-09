@@ -9,21 +9,23 @@ except ImportError:
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
+from kubelingo.utils.config import YAML_QUIZ_DIR, YAML_QUIZ_BACKUP_DIR
 
 class YAMLLoader(BaseLoader):
-    """Discovers and parses YAML question modules."""
-    DATA_DIR = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), '..', '..', 'question-data', 'yaml')
-    )
+    """Discovers and parses YAML question modules from both the primary and backup YAML directories."""
+    # Primary and backup YAML quiz directories
+    PRIMARY_DIR = YAML_QUIZ_DIR
+    BACKUP_DIR = YAML_QUIZ_BACKUP_DIR
 
     def discover(self) -> List[str]:
-        if not os.path.isdir(self.DATA_DIR):
-            return []
-        return [
-            os.path.join(self.DATA_DIR, fname)
-            for fname in os.listdir(self.DATA_DIR)
-            if fname.endswith(('.yaml', '.yml'))
-        ]
+        paths: List[str] = []
+        for directory in (self.PRIMARY_DIR, self.BACKUP_DIR):
+            if not directory or not os.path.isdir(directory):
+                continue
+            for fname in os.listdir(directory):
+                if fname.endswith(('.yaml', '.yml')):
+                    paths.append(os.path.join(directory, fname))
+        return sorted(paths)
 
     def load_file(self, path: str) -> List[Question]:
         # Load and normalize YAML file into Question objects
@@ -81,20 +83,27 @@ class YAMLLoader(BaseLoader):
         module = module or os.path.splitext(os.path.basename(path))[0]
         questions: List[Question] = []
         # Flat list of question dicts
+        # Flat list of question dicts: allow explicit 'id' in item or fallback to module::index
         if isinstance(raw, list) and raw and isinstance(raw[0], dict):
             for idx, item in enumerate(raw):
-                qid = f"{module}::{idx}"
-                # Determine validation steps from YAML only
+                # Use explicit id if provided, else default to module::index
+                qid = item.get('id') or f"{module}::{idx}"
+                # Determine validation steps: explicit validations, then legacy 'answer'/'response', then 'answers' list
                 steps_data = item.get('validation_steps', []) or item.get('validations', [])
                 validation_steps = [
                     ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
                     for v in steps_data
                 ]
-                # Legacy: Use 'answer' or 'response' as fallback
+                # Legacy fallback: use 'answer' or 'response'
                 if not validation_steps:
                     cmd = item.get('answer') or item.get('response')
                     if cmd:
                         validation_steps.append(ValidationStep(cmd=cmd, matcher={}))
+                # Fallback: use 'answers' list entries as individual validation steps
+                if not validation_steps and 'answers' in item and isinstance(item.get('answers'), list):
+                    for ans in item.get('answers'):
+                        if isinstance(ans, str) and ans:
+                            validation_steps.append(ValidationStep(cmd=ans, matcher={}))
 
                 initial_files = item.get('initial_files', {})
                 if not initial_files and 'initial_yaml' in item:
@@ -103,6 +112,8 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
+                    # Include any provided correct YAML for edit questions
+                    correct_yaml=item.get('correct_yaml'),
                     prompt=item.get('prompt', ''),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
@@ -117,12 +128,13 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'answer', 'response', 'review'
+                            'answer', 'response', 'review', 'correct_yaml'
                         )
                     }
                 ))
             return questions
         # Fallback to standard 'questions' key in dict
+        # Fallback to standard 'questions' key in dict: support explicit 'id'
         if isinstance(raw, dict) and 'questions' in raw:
             for idx, item in enumerate(raw.get('questions', [])):
                 if isinstance(item, dict):
@@ -135,7 +147,8 @@ class YAMLLoader(BaseLoader):
                         for k, v in nested.items():
                             if k not in item:
                                 item[k] = v
-                qid = f"{module}::{idx}"
+                # Use explicit id if provided, else default to module::index
+                qid = item.get('id') or f"{module}::{idx}"
                 # Populate new schema, falling back to legacy fields
                 steps_data = item.get('validation_steps') or item.get('validations', [])
                 validation_steps = [
@@ -149,6 +162,8 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
+                    # Include any provided correct YAML
+                    correct_yaml=item.get('correct_yaml'),
                     prompt=(item.get('prompt') or item.get('question', '')),
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
@@ -163,7 +178,7 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'review'
+                            'review', 'correct_yaml'
                         )
                     }
                 ))
