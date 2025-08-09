@@ -478,39 +478,71 @@ def restore_yaml_from_backup():
 
 
 def restore_db():
-    """Restore the live questions database from the read-only backup."""
-    import shutil
-    from kubelingo.utils.config import BACKUP_DATABASE_FILE, APP_DIR
-    backup_db = BACKUP_DATABASE_FILE
-    print(f"{Fore.CYAN}Attempting to restore database from: {backup_db}{Style.RESET_ALL}")
+    """
+    Merges questions from the backup into the live database.
+    This is an additive process: it inserts new questions from the backup and
+    updates existing ones if they share the same ID. It never deletes data.
+    """
+    import sqlite3
+    from kubelingo.database import init_db
+    from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
+
+    backup_db_path = BACKUP_DATABASE_FILE
+    print(f"{Fore.CYAN}Attempting to merge questions from backup: {backup_db_path}{Style.RESET_ALL}")
+
     # Fallback: check for project-local backup if config path missing
-    if not os.path.isfile(backup_db):
-        # Attempt to locate repo root via git, then look for backup there
+    if not os.path.isfile(backup_db_path):
         try:
             git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
         except Exception:
             git_root = None
         alt_backup = None
         if git_root:
-            alt_backup = os.path.join(git_root, 'question-data-backup', os.path.basename(backup_db))
-        # Fallback to cwd if git fails
+            alt_backup = os.path.join(git_root, 'question-data-backup', os.path.basename(backup_db_path))
         if not alt_backup or not os.path.isfile(alt_backup):
-            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db))
+            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db_path))
         if os.path.isfile(alt_backup):
-            backup_db = alt_backup
-            print(f"{Fore.CYAN}Found backup database at: {backup_db}{Style.RESET_ALL}")
+            backup_db_path = alt_backup
+            print(f"{Fore.CYAN}Found backup database at: {backup_db_path}{Style.RESET_ALL}")
         else:
-            print(f"{Fore.RED}Backup DB not found at '{backup_db}' or '{alt_backup}'.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Backup DB not found at '{BACKUP_DATABASE_FILE}' or '{alt_backup}'.{Style.RESET_ALL}")
             if git_root:
                 print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
             return
-    os.makedirs(APP_DIR, exist_ok=True)
-    dst_db = os.path.join(APP_DIR, 'kubelingo.db')
+
+    # Ensure live DB and its tables are created before trying to merge.
+    init_db()
+    live_db_path = DATABASE_FILE
+
     try:
-        shutil.copy2(backup_db, dst_db)
-        print(f"{Fore.GREEN}Successfully restored questions DB to '{dst_db}'.{Style.RESET_ALL}")
+        conn = sqlite3.connect(live_db_path)
+        cursor = conn.cursor()
+
+        # Get count before merge
+        cursor.execute("SELECT COUNT(*) FROM questions")
+        count_before = cursor.fetchone()[0]
+
+        # Attach backup DB and merge questions using INSERT OR REPLACE.
+        # This adds new questions and updates existing ones based on primary key (id).
+        cursor.execute("ATTACH DATABASE ? AS backup_db", (backup_db_path,))
+        cursor.execute("INSERT OR REPLACE INTO main.questions SELECT * FROM backup_db.questions")
+        conn.commit()
+        cursor.execute("DETACH DATABASE backup_db")
+
+        # Get count after merge
+        cursor.execute("SELECT COUNT(*) FROM questions")
+        count_after = cursor.fetchone()[0]
+        conn.close()
+
+        added_or_updated = count_after - count_before
+        print(f"{Fore.GREEN}Successfully merged questions from backup.{Style.RESET_ALL}")
+        if added_or_updated > 0:
+            print(f"  - Added or updated {added_or_updated} question(s).")
+        else:
+            print(f"  - Your database is already up-to-date with the backup.")
+        print(f"  - Total questions in your database: {count_after}.")
     except Exception as e:
-        print(f"{Fore.RED}Failed to restore DB: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to merge database: {e}{Style.RESET_ALL}")
 
 def find_duplicates_cmd(cmd):
     """List and optionally delete duplicate quiz questions in the database."""
@@ -582,7 +614,7 @@ def manage_questions_interactive():
             },
             {"name": "Enrich all questions with sources (uses AI)", "value": "enrich_sources"},
             questionary.Separator("--- Data Recovery ---"),
-            {"name": "Restore original questions from backup (overwrites all changes)", "value": "restore_db"},
+            {"name": "Merge questions from original backup (additive)", "value": "restore_db"},
             questionary.Separator(),
             {"name": "Cancel", "value": "cancel"}
         ]
@@ -607,15 +639,15 @@ def manage_questions_interactive():
             enrich_sources()
         elif action == "restore_db":
             confirmed = questionary.confirm(
-                "This will replace your current database with the original questions. "
-                "All progress, flagged questions, and AI-generated content will be lost. "
+                "This will add questions from the original backup to your database. "
+                "AI-generated and custom questions will not be affected. "
                 "Are you sure you want to continue?",
                 default=False
             ).ask()
             if confirmed:
                 restore_db()
             else:
-                print(f"{Fore.YELLOW}Restore cancelled.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Merge cancelled.{Style.RESET_ALL}")
 
         print()
 
@@ -682,7 +714,7 @@ def manage_troubleshooting_interactive():
         choices.append(questionary.Separator("=== Troubleshooting ==="))
         choices.append({"name": "Migrate YAML quizzes into database", "value": "migrate_yaml"})
         choices.append({"name": "Restore YAML files from backup", "value": "restore_yaml"})
-        choices.append({"name": "Restore database from backup", "value": "restore_db"})
+        choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
         choices.append(questionary.Separator("Maintenance"))
         choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
         choices.append({"name": "Delete duplicate questions", "value": "delete_duplicates"})
