@@ -367,8 +367,9 @@ class NewSession(StudySession):
 
         # 1. Add all enabled quiz modules from config, grouped by theme
         from kubelingo.utils.config import (
-            CORE_SKILL_QUIZZES,
-            KUBECTL_TOPIC_QUIZZES,
+            BASIC_QUIZZES,
+            COMMAND_QUIZZES,
+            MANIFEST_QUIZZES,
         )
         import os
 
@@ -404,25 +405,15 @@ class NewSession(StudySession):
                 
                 choices.append(choice_item)
 
-        # Basic exercises: foundational Q&A and Socratic Tutor
-        basic_quiz_keys = ("General Operations", "Resource Types Reference")
-        basic_quizzes = {k: v for k, v in KUBECTL_TOPIC_QUIZZES.items()
-                         if k in basic_quiz_keys}
-        add_quiz_group("Basic Exercises", basic_quizzes)
-        # Add Socratic Tutor under Basic exercises
+        # Basic exercises and Socratic Tutor
+        add_quiz_group("Basic Exercises", BASIC_QUIZZES)
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
 
-        # Manifest-based exercises: YAML and Vim editing
-        manifest_quizzes = {k: v for k, v in CORE_SKILL_QUIZZES.items()
-                             if k in ("Vim Practice", "YAML Editing Practice")}
-        add_quiz_group("Manifest-Based Exercises", manifest_quizzes)
+        # Command-based exercises
+        add_quiz_group("Command-Based Exercises", COMMAND_QUIZZES)
 
-        # Command-based exercises: Helm plus kubectl topics (excluding basic group)
-        command_quizzes = {k: v for k, v in CORE_SKILL_QUIZZES.items()
-                             if k not in ("Vim Practice", "YAML Editing Practice")}
-        command_quizzes.update({k: v for k, v in KUBECTL_TOPIC_QUIZZES.items()
-                                if k not in basic_quiz_keys})
-        add_quiz_group("Command-Based Exercises", command_quizzes)
+        # Manifest-based exercises: YAML editing
+        add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
 
         # Settings section
         if questionary:

@@ -109,23 +109,29 @@ DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'kubernetes.json')
 # --- Enabled Quizzes ---
 # Quizzes that appear as primary options in the interactive menu, grouped by theme.
 # The file paths are used as unique identifiers to query the database.
-CORE_SKILL_QUIZZES = {
+# Foundational concepts, vim, and shell usage.
+BASIC_QUIZZES = {
     "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
-    "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
-    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
+    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
 }
 
-KUBECTL_TOPIC_QUIZZES = {
-    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+# All kubectl and other command-line tool quizzes.
+COMMAND_QUIZZES = {
+    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
     "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
     "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
     "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
     "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
     "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
     "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_operations.yaml'),
-    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
     "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
-    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+}
+
+# Creating and editing YAML manifests.
+MANIFEST_QUIZZES = {
+    "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
 }
   
 # Comprehensive multi-topic and AI-generated quiz sets
@@ -138,8 +144,9 @@ COMPREHENSIVE_QUIZZES = {
 # --- Enabled Quizzes (legacy alias for interactive menus and CLI fallback) ---
 # Combines all quiz groups for backward compatibility
 ENABLED_QUIZZES = {}
-ENABLED_QUIZZES.update(CORE_SKILL_QUIZZES)
-ENABLED_QUIZZES.update(KUBECTL_TOPIC_QUIZZES)
+ENABLED_QUIZZES.update(BASIC_QUIZZES)
+ENABLED_QUIZZES.update(COMMAND_QUIZZES)
+ENABLED_QUIZZES.update(MANIFEST_QUIZZES)
 ENABLED_QUIZZES.update(COMPREHENSIVE_QUIZZES)
 
 # CSV files
