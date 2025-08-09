@@ -468,30 +468,39 @@ def find_duplicates_cmd(cmd):
         return
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    # Only consider duplicates within the same source_file (so distinct quizzes are not collapsed)
     cursor.execute(
-        "SELECT prompt, COUNT(*) as cnt FROM questions GROUP BY prompt HAVING cnt > 1"
+        "SELECT prompt, source_file, COUNT(*) as cnt"
+        " FROM questions"
+        " GROUP BY prompt, source_file"
+        " HAVING cnt > 1"
     )
-    dups = cursor.fetchall()
+    dups = cursor.fetchall()  # each is (prompt, source_file, cnt)
     if not dups:
         print("No duplicate prompts found in the database.")
         conn.close()
         return
     total_deleted = 0
-    for prompt, count in dups:
-        print(f"Prompt duplicated {count} times: {prompt!r}")
+    for prompt, src_file, count in dups:
+        print(f"Prompt duplicated {count} times in {src_file}: {prompt!r}")
+        # Select only duplicates within this source_file
         cursor.execute(
-            "SELECT rowid, id, source_file FROM questions WHERE prompt = ? ORDER BY rowid",
-            (prompt,)
+            "SELECT rowid, id, source_file"
+            " FROM questions"
+            " WHERE prompt = ? AND source_file = ?"
+            " ORDER BY rowid",
+            (prompt, src_file)
         )
         rows = cursor.fetchall()
         for rowid, qid, src in rows:
             print(f"  rowid={rowid}, id={qid}, source_file={src}")
         if delete:
+            # Keep the first entry, delete the rest within this source_file group
             to_delete = [str(r[0]) for r in rows[1:]]
             if to_delete:
                 placeholders = ",".join(to_delete)
                 conn.execute(f"DELETE FROM questions WHERE rowid IN ({placeholders})")
-                print(f"  Deleted {len(to_delete)} duplicates for this prompt.")
+                print(f"  Deleted {len(to_delete)} duplicate(s) for prompt in {src_file}.")
                 total_deleted += len(to_delete)
     if delete:
         conn.commit()
@@ -542,6 +551,54 @@ def manage_config_interactive():
         # Add a newline for better spacing after the operation
         print()
 
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
+
+def manage_troubleshooting_interactive():
+    """Interactive prompt for troubleshooting operations."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+    try:
+        from pathlib import Path
+        choices = []
+        choices.append(questionary.Separator("=== Troubleshooting ==="))
+        choices.append({"name": "Migrate YAML quizzes into database", "value": "migrate_yaml"})
+        choices.append({"name": "Restore YAML files from backup", "value": "restore_yaml"})
+        choices.append({"name": "Restore database from backup", "value": "restore_db"})
+        choices.append(questionary.Separator("Maintenance"))
+        choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
+        choices.append({"name": "Delete duplicate questions", "value": "delete_duplicates"})
+        choices.append({"name": "Normalize DB source_file paths", "value": "update_source_paths"})
+        choices.append(questionary.Separator("File Checks"))
+        choices.append({"name": "Check documentation links", "value": "check_docs_links"})
+        choices.append({"name": "Check quiz YAML formatting", "value": "check_quiz_formatting"})
+        choices.append(questionary.Separator())
+        choices.append({"name": "Cancel", "value": "cancel"})
+        action = questionary.select("Select a troubleshooting action:", choices=choices, use_indicator=True).ask()
+        if not action or action == "cancel":
+            print("Operation cancelled.")
+            return
+        if action == "migrate_yaml":
+            migrate_yaml_to_db()
+        elif action == "restore_yaml":
+            restore_yaml_from_backup()
+        elif action == "restore_db":
+            restore_db()
+        elif action == "find_duplicates":
+            find_duplicates_cmd([])
+        elif action == "delete_duplicates":
+            find_duplicates_cmd(["--delete"])
+        elif action == "update_source_paths":
+            script = Path(__file__).resolve().parent.parent / "scripts" / "update_db_source_paths.py"
+            subprocess.run([sys.executable, str(script)], check=False)
+        elif action == "check_docs_links":
+            script = Path(__file__).resolve().parent.parent / "scripts" / "check_docs_links.py"
+            subprocess.run([sys.executable, str(script)], check=False)
+        elif action == "check_quiz_formatting":
+            script = Path(__file__).resolve().parent.parent / "scripts" / "check_quiz_formatting.py"
+            subprocess.run([sys.executable, str(script)], check=False)
+        print()
     except (KeyboardInterrupt, EOFError):
         print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
 
