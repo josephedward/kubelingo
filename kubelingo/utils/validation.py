@@ -214,19 +214,33 @@ def validate_prompt_completeness(cmd_str: str, prompt: str) -> Dict[str, Any]:
         return {'valid': False, 'errors': ['Failed to parse command string for prompt validation.']}
     errors: list[str] = []
     prompt_l = prompt.lower()
-    # Determine resource name position: skip kubectl/k, verb, and resource type
+    # Determine resource name: find the first positional argument after the verb and type.
+    # This logic needs to be robust against flags appearing before the resource name.
     idx = 0
     if tokens and tokens[0].lower() in ('kubectl', 'k'):
-        idx = 1
+        idx = 1  # Skip 'kubectl' or 'k'
     if idx < len(tokens):
-        idx += 1  # skip verb
+        idx += 1  # Skip verb
     if idx < len(tokens) and not tokens[idx].startswith('-'):
-        idx += 1  # skip resource type
-    # resource name
-    if idx < len(tokens) and not tokens[idx].startswith('-'):
-        resource_name = tokens[idx]
-        if resource_name.lower() not in prompt_l:
-            errors.append(f"Resource name '{resource_name}' missing from prompt")
+        idx += 1  # Skip resource type
+
+    # Find the resource name, skipping over any flags and their arguments.
+    while idx < len(tokens):
+        tok = tokens[idx]
+        if tok.startswith('-'):
+            known_flags_with_args = {'-n', '--namespace', '-f', '--filename'}
+            if '=' in tok:
+                idx += 1  # Skip --flag=value
+            elif tok in known_flags_with_args and idx + 1 < len(tokens) and not tokens[idx+1].startswith('-'):
+                idx += 2  # Skip flag and its value
+            else:
+                idx += 1  # Skip boolean flag
+        else:
+            # Found a positional argument, assume it's the resource name
+            resource_name = tokens[idx]
+            if resource_name.lower() not in prompt_l:
+                errors.append(f"Resource name '{resource_name}' missing from prompt")
+            break  # Assume only one resource name
     # flag values: namespace, filename
     for i, tok in enumerate(tokens):
         # namespace flags
