@@ -1179,8 +1179,6 @@ class NewSession(StudySession):
                                             print(line)
                                 else:
                                     print(f"{Fore.CYAN}Expected YAML (your answer must contain this structure):{Style.RESET_ALL}\n{correct_yaml_str.strip()}")
-                                except Exception as e:
-                                    print(f"{Fore.RED}Failed to check YAML: {e}{Style.RESET_ALL}")
                             # Auto-flag or unflag based on correctness
                             question_id = q.get('id')
                             if question_id:
