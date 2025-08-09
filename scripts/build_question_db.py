@@ -106,6 +106,16 @@ def main():
     """
     print("--- Building Kubelingo Master Question Database ---")
 
+    # Safety Check: Ensure the source YAML directory exists before proceeding.
+    source_path = Path(YAML_BACKUPS_DIR)
+    if not source_path.is_dir():
+        print(f"\n{'-'*60}")
+        print(f"Error: Source directory for questions not found.")
+        print(f"Path: '{source_path}'")
+        print("Please ensure this directory exists and contains your YAML quiz files.")
+        print(f"{'-'*60}\n")
+        sys.exit(1)
+
     # Step 1: Clear the existing live database for a clean build.
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
     if os.path.exists(DATABASE_FILE):
@@ -116,7 +126,6 @@ def main():
 
     # Step 2: Import all questions from the unified YAML backup directory.
     print(f"\nStep 2: Importing questions from '{YAML_BACKUPS_DIR}'...")
-    source_path = Path(YAML_BACKUPS_DIR)
     questions_imported = import_questions_from_yaml(source_path)
 
     # Step 3: Create backups if import was successful.
