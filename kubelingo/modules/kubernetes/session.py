@@ -434,17 +434,16 @@ class NewSession(StudySession):
             review_text = f"Review {len(all_flagged)} Flagged Questions"
         choices.append({"name": review_text, "value": "review"})
 
-
-        # 4. View Session History
+        # 3. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
         
-        # 5. Manage Configuration
+        # 4. Manage Configuration
         choices.append({"name": "Manage Configuration", "value": "config"})
 
-        # 6. Help
+        # 5. Help
         choices.append({"name": "Help", "value": "help"})
 
-        # 7. Exit App
+        # 6. Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
 
         
