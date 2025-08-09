@@ -1027,34 +1027,36 @@ class NewSession(StudySession):
                     # Action menu options: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz.
                     choices = []
                     
-                    # Safely iterate validation_steps (may be None)
-                    vs_list = q.get('validation_steps') or []
-                    has_kubectl_in_validation = any(
-                        'kubectl' in (
-                            vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')
-                        )
-                        for vs in vs_list
-                    )
-                    question_needs_k8s = (
-                        q.get('type') in ('live_k8s', 'live_k8s_edit') or
-                        'kubectl' in q.get('prompt', '') or
-                        has_kubectl_in_validation
-                    )
-                    is_mocked_k8s = question_needs_k8s and not args.docker
-                    validator = q.get('validator')
-                    is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                    is_shell_mode = False  # shell disabled for all question types except live cluster flows
-                    # Determine if the question should use text input (no separate shell). For commands, Vim, no-cluster, or AI validator, use inline input.
-                    use_text_input = (q.get('type') or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
-                    # Primary action
-                    if use_text_input:
-                        answer_option_text = "Answer Question"
+                    # Determine interaction mode based on question type first.
+                    # This dictates how the user will answer (Vim, text prompt, or shell).
+                    q_type = q.get('type')
+                    interaction_mode = 'shell'  # Default for live k8s exercises
+                    if q_type in ('yaml_edit', 'yaml_author'):
+                        interaction_mode = 'vim'
                     else:
-                        answer_option_text = "Work on Answer"
-                        if is_shell_mode:
-                            answer_option_text += " (in Shell)"
-                    choices.append({"name": answer_option_text, "value": "answer"})
-                    if not use_text_input:
+                        has_kubectl_in_validation = any(
+                            'kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', ''))
+                            for vs in (q.get('validation_steps') or [])
+                        )
+                        question_needs_k8s = (
+                            q_type in ('live_k8s', 'live_k8s_edit') or
+                            'kubectl' in q.get('prompt', '') or
+                            has_kubectl_in_validation
+                        )
+                        is_mocked_k8s = question_needs_k8s and not args.docker
+                        validator = q.get('validator')
+                        is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+
+                        if (q_type or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator:
+                            interaction_mode = 'text_input'
+
+                    # Build primary action choices based on the interaction mode.
+                    if interaction_mode == 'vim':
+                        choices.append({"name": "Edit Manifest", "value": "answer"})
+                    elif interaction_mode == 'text_input':
+                        choices.append({"name": "Answer Question", "value": "answer"})
+                    else:  # 'shell'
+                        choices.append({"name": "Work on Answer (in Shell)", "value": "answer"})
                         choices.append({"name": "Check Answer", "value": "check"})
 
                     # Show Visit Source if a citation or source URL is provided, or for Vim commands
@@ -1166,9 +1168,30 @@ class NewSession(StudySession):
                         continue
 
                     if action == "answer":
-                        # Support YAML editing and authoring questions
-                        if q.get('type') in ('yaml_edit', 'yaml_author'):
-                            # Launch Vim for editing
+                        # Determine interaction mode to route to the correct logic.
+                        q_type = q.get('type')
+                        interaction_mode = 'shell'  # Default for live k8s exercises
+                        if q_type in ('yaml_edit', 'yaml_author'):
+                            interaction_mode = 'vim'
+                        else:
+                            has_kubectl_in_validation = any(
+                                'kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', ''))
+                                for vs in (q.get('validation_steps') or [])
+                            )
+                            question_needs_k8s = (
+                                q_type in ('live_k8s', 'live_k8s_edit') or
+                                'kubectl' in q.get('prompt', '') or
+                                has_kubectl_in_validation
+                            )
+                            is_mocked_k8s = question_needs_k8s and not args.docker
+                            validator = q.get('validator')
+                            is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+                            
+                            if (q_type or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator:
+                                interaction_mode = 'text_input'
+
+                        if interaction_mode == 'vim':
+                            # Launch Vim for editing YAML manifests
                             editor = VimYamlEditor()
                             starting_yaml = q.get('starting_yaml', '')
                             parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
@@ -1264,20 +1287,7 @@ class NewSession(StudySession):
                             current_question_index += 1
                             break
                         
-                        has_kubectl_in_validation = any('kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', '')) for vs in (q.get('validation_steps') or []))
-                        question_needs_k8s = (
-                            q.get('type') in ('live_k8s', 'live_k8s_edit') or
-                            'kubectl' in q.get('prompt', '') or
-                            has_kubectl_in_validation
-                        )
-                        is_mocked_k8s = question_needs_k8s and not args.docker
-                        # Detect AI-based semantic validator
-                        validator = q.get('validator')
-                        is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
-                        use_text_input = (q.get('type') or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator
-
-                        if use_text_input:
-
+                        elif interaction_mode == 'text_input':
                             # Get previous answer to pre-fill the prompt
                             previous_answer = str(transcripts_by_index.get(current_question_index, ''))
 
@@ -1338,52 +1348,53 @@ class NewSession(StudySession):
                                 # On incorrect answer, loop back to the action menu for the same question.
                                 continue
 
-                        from kubelingo.sandbox import run_shell_with_setup
-                        from kubelingo.question import Question, ValidationStep
-                        
-                        validation_steps = [
-                            vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
-                            for vs in q.get('validation_steps', [])
-                        ]
-                        if not validation_steps and q.get('type') == 'command' and q.get('response'):
-                            validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
+                        else:  # 'shell'
+                            from kubelingo.sandbox import run_shell_with_setup
+                            from kubelingo.question import Question, ValidationStep
+                            
+                            validation_steps = [
+                                vs if isinstance(vs, ValidationStep) else ValidationStep(**vs)
+                                for vs in q.get('validation_steps', [])
+                            ]
+                            if not validation_steps and q.get('type') == 'command' and q.get('response'):
+                                validation_steps.append(ValidationStep(cmd=q['response'], matcher={'exit_code': 0}))
 
-                        question_obj = Question(
-                            id=q.get('id', ''),
-                            prompt=q.get('prompt', ''),
-                            type=q.get('type', ''),
-                            pre_shell_cmds=q.get('pre_shell_cmds', []),
-                            initial_files=q.get('initial_files', {}),
-                            validation_steps=validation_steps,
-                            explanation=q.get('explanation'),
-                            categories=q.get('categories', [q.get('category', 'General')]),
-                            difficulty=q.get('difficulty'),
-                            metadata=q.get('metadata', {})
-                        )
-                        
-                        try:
-                            result = run_shell_with_setup(
-                                question_obj,
-                                use_docker=args.docker,
-                                ai_eval=getattr(args, 'ai_eval', False)
+                            question_obj = Question(
+                                id=q.get('id', ''),
+                                prompt=q.get('prompt', ''),
+                                type=q.get('type', ''),
+                                pre_shell_cmds=q.get('pre_shell_cmds', []),
+                                initial_files=q.get('initial_files', {}),
+                                validation_steps=validation_steps,
+                                explanation=q.get('explanation'),
+                                categories=q.get('categories', [q.get('category', 'General')]),
+                                difficulty=q.get('difficulty'),
+                                metadata=q.get('metadata', {})
                             )
-                            transcripts_by_index[current_question_index] = result
-                        except Exception as e:
-                            print(f"\n{Fore.RED}An error occurred while setting up the exercise environment.{Style.RESET_ALL}")
-                            print(f"{Fore.YELLOW}This might be due to a failed setup command in the question data (pre_shell_cmds).{Style.RESET_ALL}")
-                            print(f"{Fore.CYAN}Details: {e}{Style.RESET_ALL}")
-                            # Loop back to the action menu without proceeding.
-                            continue
-                        
-                        # Re-print question header after shell.
-                        print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
-                        if q.get('context'):
-                            print(f"{Fore.CYAN}Context: {q['context']}{Style.RESET_ALL}")
-                        print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
+                            
+                            try:
+                                result = run_shell_with_setup(
+                                    question_obj,
+                                    use_docker=args.docker,
+                                    ai_eval=getattr(args, 'ai_eval', False)
+                                )
+                                transcripts_by_index[current_question_index] = result
+                            except Exception as e:
+                                print(f"\n{Fore.RED}An error occurred while setting up the exercise environment.{Style.RESET_ALL}")
+                                print(f"{Fore.YELLOW}This might be due to a failed setup command in the question data (pre_shell_cmds).{Style.RESET_ALL}")
+                                print(f"{Fore.CYAN}Details: {e}{Style.RESET_ALL}")
+                                # Loop back to the action menu without proceeding.
+                                continue
+                            
+                            # Re-print question header after shell.
+                            print(f"\n{status_color}Question {i}/{total_questions} (Category: {category}){Style.RESET_ALL}")
+                            if q.get('context'):
+                                print(f"{Fore.CYAN}Context: {q['context']}{Style.RESET_ALL}")
+                            print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
 
-                        # After returning from shell, just continue to show the action menu again.
-                        # The user can then explicitly select "Check Answer".
-                        continue
+                            # After returning from shell, just continue to show the action menu again.
+                            # The user can then explicitly select "Check Answer".
+                            continue
                     
                     if action == "check":
                         result = transcripts_by_index.get(current_question_index)
