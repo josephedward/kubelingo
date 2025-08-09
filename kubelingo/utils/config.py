@@ -98,60 +98,9 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # --- Quiz Data Files ---
 
-# Source directories for various question formats.
-JSON_QUIZ_DIR = os.path.join(DATA_DIR, 'json')
-MD_QUIZ_DIR = os.path.join(DATA_DIR, 'md')
+# The canonical source for all question data is the collection of YAML files
+# in this directory. The database is seeded from these files on first run.
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
-MANIFESTS_DIR = os.path.join(DATA_DIR, 'manifests')  # Contains more YAML questions
-MANIFESTS_QUIZ_DIR = MANIFESTS_DIR
-
-# Backups directory for original YAML exercises
-YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-
-# Default YAML quiz file for editing mode (example of a specific file)
-YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-# Default JSON quiz file for command quiz mode
-DEFAULT_DATA_FILE = os.path.join(JSON_QUIZ_DIR, 'kubernetes.json')
- 
-# --- Interactive Quiz Modules ---
-# Definitions for organizing quizzes into menu groups.
-# Foundational concepts, vim, and shell usage.
-BASIC_QUIZZES = {
-    "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
-    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
-    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
-    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
-}
-
-# All kubectl and other command-line tool quizzes.
-COMMAND_QUIZZES = {
-    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
-    "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
-    "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
-    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
-    "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
-    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
-    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml'),
-    "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
-}
-
-# Manifest-based quizzes: YAML editing exercises.
-MANIFEST_QUIZZES = {
-    "YAML Editing Exercises": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
-    "YAML Quiz": os.path.join(YAML_QUIZ_DIR, 'yaml_quiz.yaml'),
-}
-
-# Combine all quizzes for the interactive menu.
-ENABLED_QUIZZES = {}
-ENABLED_QUIZZES.update(BASIC_QUIZZES)
-ENABLED_QUIZZES.update(COMMAND_QUIZZES)
-ENABLED_QUIZZES.update(MANIFEST_QUIZZES)
-
-# Legacy quiz definitions consolidated into new interactive menu blocks above.
-
-
-  # (Removed duplicate legacy quiz definitions)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
