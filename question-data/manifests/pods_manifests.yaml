@@ -1,7 +1,7 @@
 - id: manifests::pods::add-env-var
   prompt: "Edit the pod manifest to add an environment variable `GREETING` with the value `Hello World` to the `nginx` container."
   type: yaml_edit
-  category: "YAML Editing Practice - Pods"
+  category: "YAML Editing Practice"
   initial_files:
     pod.yaml: |
       apiVersion: v1
@@ -27,7 +27,7 @@
 - id: manifests::pods::add-volume-mount
   prompt: "Edit the pod manifest to mount a volume named `workdir` at path `/app/data`. The volume should be an `emptyDir`."
   type: yaml_edit
-  category: "YAML Editing Practice - Pods"
+  category: "YAML Editing Practice"
   initial_files:
     pod.yaml: |
       apiVersion: v1
@@ -55,3 +55,41 @@
       volumes:
       - name: workdir
         emptyDir: {}
+- id: manifests::pods::readiness-probe
+  prompt: "A Pod needs a readiness probe. Edit the Pod manifest for `pod6` to add a readiness probe that executes `cat /tmp/ready`. The probe should have an `initialDelaySeconds` of 5 and a `periodSeconds` of 10. The Pod's command should be `touch /tmp/ready && sleep 1d`."
+  type: yaml_edit
+  category: "YAML Editing Practice"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod6
+      spec:
+        containers:
+        - name: pod6
+          image: busybox:1.31.0
+          command:
+          - "sh"
+          - "-c"
+          - "touch /tmp/ready && sleep 1d"
+  correct_yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod6
+    spec:
+      containers:
+      - name: pod6
+        image: busybox:1.31.0
+        command:
+        - "sh"
+        - "-c"
+        - "touch /tmp/ready && sleep 1d"
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 10

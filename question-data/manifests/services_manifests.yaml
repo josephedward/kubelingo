@@ -1,7 +1,7 @@
 - id: manifests::services::change-port
   prompt: "Edit the Service manifest to change the `targetPort` from 80 to 8080."
   type: yaml_edit
-  category: "YAML Editing Practice - Services"
+  category: "YAML Editing Practice"
   initial_files:
     service.yaml: |
       apiVersion: v1
