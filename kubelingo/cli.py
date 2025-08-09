@@ -422,20 +422,39 @@ def migrate_yaml_to_db():
 
 def restore_yaml_from_backup():
     """Restores YAML files from the backup directory to the active quiz directory."""
-    # Determine backup directory (primary or fallback to local repo)
+    # Determine backup directory (primary or fallback via git or local repo)
     backup_dir = YAML_QUIZ_BACKUP_DIR
     if not os.path.isdir(backup_dir) or not os.listdir(backup_dir):
-        alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
+        # Attempt to locate repo root via git for backup
+        try:
+            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            git_root = None
+        alt_backup = None
+        if git_root:
+            alt_backup = os.path.join(git_root, 'question-data', 'yaml-bak')
+        # Fallback to cwd if git fails
+        if not alt_backup or not (os.path.isdir(alt_backup) and os.listdir(alt_backup)):
+            alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
         if os.path.isdir(alt_backup) and os.listdir(alt_backup):
             backup_dir = alt_backup
+            print(f"{Fore.CYAN}Using backup directory: {backup_dir}{Style.RESET_ALL}")
         else:
             print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found or empty. Nothing to restore.{Style.RESET_ALL}")
             return
 
-    # Determine destination directory (primary or fallback to local repo)
+    # Determine destination directory (primary or fallback via git or local repo)
     dest_dir = YAML_QUIZ_DIR
     if not os.path.isdir(dest_dir):
-        dest_dir = os.path.join(os.getcwd(), 'question-data', 'yaml')
+        # Attempt to locate repo root via git for destination
+        try:
+            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            git_root = None
+        if git_root and os.path.isdir(os.path.join(git_root, 'question-data', 'yaml')):
+            dest_dir = os.path.join(git_root, 'question-data', 'yaml')
+        else:
+            dest_dir = os.path.join(os.getcwd(), 'question-data', 'yaml')
     os.makedirs(dest_dir, exist_ok=True)
 
     print(f"{Fore.CYAN}Restoring YAML files from backup directory '{backup_dir}'...{Style.RESET_ALL}")
@@ -464,12 +483,27 @@ def restore_db():
     from kubelingo.utils.config import BACKUP_DATABASE_FILE, APP_DIR
     backup_db = BACKUP_DATABASE_FILE
     print(f"{Fore.CYAN}Attempting to restore database from: {backup_db}{Style.RESET_ALL}")
+    # Fallback: check for project-local backup if config path missing
     if not os.path.isfile(backup_db):
-        print(f"{Fore.RED}Backup DB not found at '{backup_db}'. Cannot restore.{Style.RESET_ALL}")
-        # Add hint for users who might not have the file after a git pull
-        if 'site-packages' not in backup_db:
-             print(f"{Fore.YELLOW}Hint: If you've just updated, you may need to reinstall the package for data files to be available.{Style.RESET_ALL}")
-        return
+        # Attempt to locate repo root via git, then look for backup there
+        try:
+            git_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            git_root = None
+        alt_backup = None
+        if git_root:
+            alt_backup = os.path.join(git_root, 'question-data-backup', os.path.basename(backup_db))
+        # Fallback to cwd if git fails
+        if not alt_backup or not os.path.isfile(alt_backup):
+            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db))
+        if os.path.isfile(alt_backup):
+            backup_db = alt_backup
+            print(f"{Fore.CYAN}Found backup database at: {backup_db}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Backup DB not found at '{backup_db}' or '{alt_backup}'.{Style.RESET_ALL}")
+            if git_root:
+                print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
+            return
     os.makedirs(APP_DIR, exist_ok=True)
     dst_db = os.path.join(APP_DIR, 'kubelingo.db')
     try:
