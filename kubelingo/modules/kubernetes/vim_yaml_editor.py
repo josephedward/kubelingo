@@ -53,6 +53,18 @@ class VimYamlEditor:
                     }
                 }
             }
+        if exercise_type == "service":
+            name = data.get("name", "my-service")
+            labels = data.get("selector", {"app": "MyApp"})
+            return {
+                "apiVersion": "v1",
+                "kind": "Service",
+                "metadata": {"name": name},
+                "spec": {
+                    "selector": labels,
+                    "ports": [{"protocol": "TCP", "port": 80, "targetPort": 9376}]
+                }
+            }
         raise ValueError(f"Unknown exercise type: {exercise_type}")
     
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", prompt=None, _vim_args=None, _timeout=300):
@@ -215,6 +227,8 @@ class VimYamlEditor:
                 starting = self.create_yaml_exercise('deployment')
             elif 'pod' in prompt_lower:
                 starting = self.create_yaml_exercise('pod')
+            elif 'service' in prompt_lower:
+                starting = self.create_yaml_exercise('service')
 
         while True:
             print(f"\n=== Exercise {index}: {prompt} ===")
@@ -241,6 +255,7 @@ class VimYamlEditor:
             if expected_raw:
                 is_correct = is_yaml_subset(subset_yaml_str=expected_raw, superset_yaml_str=user_yaml_str)
             else:
+                print(f"{Fore.YELLOW}Warning: No correct answer defined. Skipping check.{Style.RESET_ALL}")
                 is_correct = True
             if is_correct:
                 print("✅ Correct!")
