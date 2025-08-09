@@ -348,59 +348,47 @@ Updated interactive CLI quiz session to:
     - **Pure YAML Comparison (`type: yaml_edit`)**: For these questions, the quiz opens a temporary file in `vim` with a starting template. After editing, the final YAML is compared directly against the question's `correct_yaml` definition. This flow does not require a live cluster.
 - Next steps: write unit/integration tests for matcher logic and the `answer_checker` module.
 
-## Standardized Quiz Formats
+## Core Quiz Architecture: Three Question Modalities
 
-To provide a consistent experience and enable robust, reusable evaluation logic, all quiz questions are being standardized on a unified schema. This ensures that every question, regardless of type, can be processed by the same quiz engine and take advantage of features like AI evaluation and transcript-based validation.
+To provide a clear and robust learning path, Kubelingo's architecture is centered around three distinct question modalities. This structure ensures that the application can support a wide range of exercises, from conceptual knowledge checks to hands-on, manifest-based challenges. The database schema and application logic must align with these three categories.
 
-### Core Question Schema
+### 1. Conceptual Questions
 
-Every question is represented as a dictionary with the following core fields:
+This modality focuses on open-ended, knowledge-based questions designed to foster a deep understanding of Kubernetes concepts, operations, and resources. It serves as the foundation for a "Socratic" tutoring experience.
 
-- `id`: A unique identifier for the question (e.g., `vim_quiz_data::0`).
-- `question`: The prompt text displayed to the user.
-- `source_file`: The base name of the YAML file the question came from (e.g., `vim_quiz.yaml`). This is a critical field used by the application to group questions into quizzes.
-- `source`: A URL pointing to relevant documentation.
-- `explanation`: A brief explanation of the correct answer.
-- `answers`: A list of acceptable correct answers (for command-based questions).
-- `validation_steps`: A list of commands and matchers to verify success (for shell-based exercises).
+- **Purpose**: Test theoretical knowledge and reasoning.
+- **Examples**: "Explain the role of an init container," "What is the difference between a Service and an Ingress?"
+- **User Interaction**: The user provides a text-based explanation.
+- **Evaluation**: The answer is evaluated by an AI model for conceptual accuracy and completeness. There is no syntactic validation.
+- **Schema Fields**: `id`, `question`, `source`, `explanation` (model answer).
 
-### Quiz Types
+### 2. Command-Based Questions
 
-#### 1. Command-Based Quizzes (e.g., Vim, `kubectl` commands)
+This modality tests the user's ability to formulate and execute single-line commands for tools like `kubectl`, `helm`, and `vim`.
 
-These quizzes test knowledge of single commands. They use the `answers` field to list correct responses and can be evaluated quickly by the AI. To ensure they are handled by the unified quiz runner, they include an empty `validation_steps` list.
+- **Purpose**: Test practical, imperative command-line skills.
+- **Examples**: "Delete a pod named 'my-pod' forcefully," "How do you undo the last change in Vim?"
+- **User Interaction**: The user submits a single command.
+- **Evaluation**: Answers are evaluated for both conceptual correctness and syntactical validity.
+  - **Conceptual**: An AI evaluator checks if the command achieves the desired outcome, understanding aliases and alternative flags (e.g., `kubectl get po` vs. `kubectl get pods`).
+  - **Syntactic**: A pre-flight check (e.g., `kubectl --dry-run=client`, or a linter) validates the command's syntax before execution or final evaluation.
+- **Schema Fields**: `id`, `question`, `answers` (list of valid commands), `source`, `explanation`.
 
-**Example (`vim_quiz.yaml`):**
-```yaml
-- id: vim_quiz_data::6
-  question: "Delete current line"
-  answers:
-    - "dd"
-  explanation: "Deletes the entire line under the cursor in Vim's normal mode."
-  source: "https://vimdoc.sourceforge.net/"
-  validation_steps: []
-```
+### 3. Manifest-Based Exercises (Vim-centric)
 
-#### 2. Shell-Based Exercises (e.g., Live Kubernetes Manifest Editing)
+**This modality is the centerpiece of the Kubelingo learning experience.** It focuses on the declarative, real-world task of authoring and editing Kubernetes YAML manifests. The Vim editor is central to this workflow.
 
-These exercises require users to perform actions in a live shell environment. They use `pre_shell_cmds`, `initial_files`, and `validation_steps` to set up the environment and validate the outcome.
+- **Purpose**: Develop proficiency in creating and modifying Kubernetes objects declaratively.
+- **User Interaction**: The user is placed directly into a Vim session to work on a YAML file.
+- **Sub-types**:
+  - **Creation from Scratch**: The user is given a prompt and an empty file (e.g., `pod.yaml`) and must write the complete manifest.
+  - **Editing from a Template**: The user is provided with a starter manifest containing errors or missing fields that must be corrected or completed.
+- **Evaluation**:
+  - For pure YAML editing (`yaml_edit` type), the resulting file content is compared against a correct YAML structure.
+  - For live cluster exercises (`live_k8s_edit` type), the user applies the manifest, and validation steps are run against the cluster to check the outcome (e.g., `kubectl get pod my-pod -o jsonpath='{.spec.replicas}'`).
+- **Schema Fields**: `id`, `question`, `initial_files` (for templates), `correct_yaml` (for comparison), `validation_steps` (for cluster checks), `source`, `explanation`.
 
-**Example (Conceptual):**
-```yaml
-- id: k8s_quiz::5
-  question: "Create a new ConfigMap named 'my-config' with the data 'key=value'."
-  pre_shell_cmds: []
-  initial_files: {}
-  validation_steps:
-    - cmd: "kubectl get configmap my-config -o jsonpath='{.data.key}'"
-      matchers:
-        - type: "exact_match"
-          expected: "value"
-```
-
-### Standardization Efforts
-
-- The `vim_quiz.yaml` file has been migrated to this new standardized format, replacing the legacy `solution_file` field with `answers` and `explanation`. This aligns it with the unified quiz engine and enables more flexible evaluation.
+This clear categorization guides all future development, ensuring that the architecture remains focused on delivering a high-quality, multifaceted learning experience with a strong emphasis on practical, manifest-driven skills.
 
 ## Data Management Scripts
 
