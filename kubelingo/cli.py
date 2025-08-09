@@ -952,10 +952,6 @@ def main():
             elif cmd_name == 'restore-all':
                 restore_all()
                 return
-            elif cmd_name == 'restore-all':
-                # Full recovery: restore DB, restore YAML & JSON quizzes
-                restore_all()
-                return
             elif cmd_name == 'questions':
                 manage_questions_interactive()
                 return
