@@ -88,3 +88,75 @@
   prompt: "Go to line 10"
   response: "10G"
   source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::15
+  type: command
+  category: "Vim Commands"
+  prompt: "Move to the end of the word"
+  response: "e"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::16
+  type: command
+  category: "Vim Commands"
+  prompt: "Enter visual line mode"
+  response: "V"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::17
+  type: command
+  category: "Vim Commands"
+  prompt: "Enter replace mode"
+  response: "R"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::18
+  type: command
+  category: "Vim Commands"
+  prompt: "Exit insert mode"
+  response: "Esc"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::19
+  type: command
+  category: "Vim Commands"
+  prompt: "Move to the end of the line"
+  response: "$"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::20
+  type: command
+  category: "Vim Commands"
+  prompt: "Move to the previous word"
+  response: "b"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::21
+  type: command
+  category: "Vim Commands"
+  prompt: "Enter visual block mode"
+  response: "Ctrl-V"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::22
+  type: command
+  category: "Vim Commands"
+  prompt: "Move to the first character of the line"
+  response: "0"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::23
+  type: command
+  category: "Vim Commands"
+  prompt: "Move to the next word"
+  response: "w"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::24
+  type: command
+  category: "Vim Commands"
+  prompt: "Enter visual mode"
+  response: "v"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::25
+  type: command
+  category: "Vim Commands"
+  prompt: "Jump to matching bracket"
+  response: "%"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
+- id: vim_quiz_data::26
+  type: command
+  category: "Vim Commands"
+  prompt: "Redo the last undone change"
+  response: "Ctrl-R"
+  source: "https://www.vim.page/vim-commands-cheat-sheet"
