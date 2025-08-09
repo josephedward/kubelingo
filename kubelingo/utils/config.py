@@ -35,7 +35,30 @@ QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
 # These paths are preserved to allow the one-time consolidation script to find the old files.
 # They are not used by the main application or build script.
+YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
+# --- Interactive Quiz Modules ---
+# Definitions for organizing quizzes into menu groups.
+BASIC_QUIZZES = {
+    "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
+    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+}
+COMMAND_QUIZZES = {
+    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
+    "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
+    "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
+    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
+    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml'),
+    "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
+}
+MANIFEST_QUIZZES = {
+    "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+}
 
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db

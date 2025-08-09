@@ -399,38 +399,63 @@ class NewSession(StudySession):
         missing_deps = check_dependencies('docker', 'kubectl')
         
         choices = []
-        if questionary:
-            choices.append(questionary.Separator("--- Quizzes ---"))
 
-        # Add all quizzes from the database
-        all_sources = _get_all_source_files()
-        for source_file in all_sources:
-            try:
-                q_count = len(_get_solvable_questions(source_file))
-            except Exception as e:
-                self.logger.warning(f"Could not get question count for {source_file}: {e}")
+        # 1. Add all enabled quiz modules from config, grouped by theme
+        try:
+            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        except ImportError:
+            BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES = {}, {}, {}
+
+        # Helper to add a group of quizzes to the choices list and display it
+        def add_quiz_group(group_title, quiz_dict, required_deps=None):
+            if not quiz_dict:
+                return
+
+            deps_unavailable = [dep for dep in required_deps if dep in missing_deps] if required_deps else []
+            separator_text = f"--- {group_title} ---"
+            if deps_unavailable:
+                separator_text += f" (requires {', '.join(deps_unavailable)})"
+
+            if questionary:
+                choices.append(questionary.Separator(separator_text))
+            
+            for name, path in quiz_dict.items():
                 q_count = 0
-            
-            # Use humanize_module to create a nice display name
-            display_name = f"{humanize_module(source_file)} ({q_count} questions)"
-            choice_item = {"name": display_name, "value": source_file}
-            
-            if q_count == 0:
-                choice_item['disabled'] = "No questions available"
-            
-            choices.append(choice_item)
+                is_disabled = False
+                disabled_reason = ""
+                if not os.path.exists(path):
+                    is_disabled = True
+                    disabled_reason = "File not found"
+                else:
+                    try:
+                        loader = YAMLLoader()
+                        q_count = len(loader.load_file(path))
+                    except Exception as e:
+                        self.logger.warning(f"Could not load quiz file {path}: {e}")
+                        q_count = 0
+                
+                display_name = f"{name} ({q_count} questions)"
+                choice_item = {"name": display_name, "value": path}
+                
+                if deps_unavailable:
+                    choice_item['disabled'] = f"Missing: {', '.join(deps_unavailable)}"
+                elif q_count == 0 and not is_disabled:
+                    choice_item['disabled'] = "No questions available"
+                elif is_disabled:
+                    choice_item['disabled'] = disabled_reason
+                
+                choices.append(choice_item)
 
-        # Add YAML Editing mode as a special quiz type
-        yaml_q_count = len(_get_questions_by_type('yaml_edit')) + len(_get_questions_by_type('yaml_author'))
-        if yaml_q_count > 0:
-            choices.append({
-                "name": f"YAML Editing Mode ({yaml_q_count} questions)",
-                "value": "yaml_editing_mode"
-            })
-
-        # Socratic Tutor
+        # Basic exercises and Socratic Tutor
+        add_quiz_group("Basic Exercises", BASIC_QUIZZES)
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
-        
+
+        # Command-based exercises
+        add_quiz_group("Command-Based Exercises", COMMAND_QUIZZES)
+
+        # Manifest-based exercises: YAML editing
+        add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
+
         # Review flagged questions
         flagged_count = len(all_flagged)
         review_choice = {"name": f"Review Flagged Questions ({flagged_count})", "value": "review"}
@@ -442,19 +467,13 @@ class NewSession(StudySession):
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
 
-        # API Keys
+        # API Keys, Clusters, etc.
         choices.append({"name": "API Keys", "value": "api_keys"})
-        # Clusters configuration
         choices.append({"name": "Clusters", "value": "clusters"})
-        # Questions management (Import/Generate)
         choices.append({"name": "Questions", "value": "questions"})
-        # Troubleshooting tasks
         choices.append({"name": "Troubleshooting", "value": "troubleshooting"})
-        # Help
         choices.append({"name": "Help", "value": "help"})
-        # Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
-
         
         return choices, all_flagged
 
@@ -643,11 +662,25 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # All questions are loaded from the database using the source file as a key.
-                questions = _get_solvable_questions(os.path.basename(args.file))
+                # Load questions from the specified YAML file.
+                from dataclasses import asdict
+                try:
+                    loader = YAMLLoader()
+                    # loader returns Question objects, convert them to dicts for the rest of the logic
+                    questions_as_obj = loader.load_file(args.file)
+                    questions = [asdict(q) for q in questions_as_obj]
+                except FileNotFoundError:
+                    print(f"{Fore.RED}Error: Quiz file not found at '{args.file}'.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}The YAML files may have been moved or deleted by the consolidation script.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Check the 'question-data-archive' directory to restore them.{Style.RESET_ALL}")
+                    return
+                except Exception as e:
+                    self.logger.error(f"Failed to load questions from {args.file}: {e}")
+                    print(f"{Fore.RED}Error loading questions from '{args.file}'. See logs for details.{Style.RESET_ALL}")
+                    return
 
                 if not questions:
-                    print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}No questions found in '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
                     return
 
                 # AI generation for interactive quizzes when more questions are requested
