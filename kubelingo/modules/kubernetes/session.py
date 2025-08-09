@@ -455,7 +455,7 @@ class NewSession(StudySession):
                 
                 choices.append(choice_item)
 
-        # Basic exercises and Socratic Tutor
+        # Basic exercises
         add_quiz_group("Basic Exercises", BASIC_QUIZZES)
 
         # Command-based exercises
