@@ -23,6 +23,12 @@ def migrate():
         help="Path to a specific YAML file to migrate. If not provided, migrates all files from ENABLED_QUIZZES."
     )
     parser.add_argument(
+        "--source-dir",
+        action="append",
+        dest="source_dirs",
+        help="Specific directory to scan for YAML files. Can be used multiple times. Overrides default directories."
+    )
+    parser.add_argument(
         "--clear",
         action="store_true",
         help="Clear the existing database before migrating. Use for a full restore."
@@ -48,9 +54,20 @@ def migrate():
             print(f"Error: File not found at '{args.file}'")
             return
     else:
-        # Discover all YAML/backup files in the configured data directories (yaml and yaml-bak)
-        for subdir in ('yaml', 'yaml-bak'):
-            quiz_dir = Path(DATA_DIR) / subdir
+        source_paths = []
+        if args.source_dirs:
+            for d in args.source_dirs:
+                p = Path(d)
+                if p.is_dir():
+                    source_paths.append(p)
+                else:
+                    print(f"Warning: Provided source directory not found, skipping: {d}")
+        else:
+            # Default directories, as per documentation
+            for subdir in ('yaml', 'yaml-bak', 'manifests'):
+                source_paths.append(Path(DATA_DIR) / subdir)
+
+        for quiz_dir in source_paths:
             print(f"Scanning quiz directory: {quiz_dir}")
             if not quiz_dir.is_dir():
                 continue
