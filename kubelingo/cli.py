@@ -463,16 +463,20 @@ def restore_db():
     import shutil
     from kubelingo.utils.config import BACKUP_DATABASE_FILE, APP_DIR
     backup_db = BACKUP_DATABASE_FILE
+    print(f"{Fore.CYAN}Attempting to restore database from: {backup_db}{Style.RESET_ALL}")
     if not os.path.isfile(backup_db):
-        print(f"Backup DB not found at '{backup_db}'.")
+        print(f"{Fore.RED}Backup DB not found at '{backup_db}'. Cannot restore.{Style.RESET_ALL}")
+        # Add hint for users who might not have the file after a git pull
+        if 'site-packages' not in backup_db:
+             print(f"{Fore.YELLOW}Hint: If you've just updated, you may need to reinstall the package for data files to be available.{Style.RESET_ALL}")
         return
     os.makedirs(APP_DIR, exist_ok=True)
     dst_db = os.path.join(APP_DIR, 'kubelingo.db')
     try:
         shutil.copy2(backup_db, dst_db)
-        print(f"Restored questions DB from '{backup_db}' to '{dst_db}'.")
+        print(f"{Fore.GREEN}Successfully restored questions DB to '{dst_db}'.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"Failed to restore DB: {e}")
+        print(f"{Fore.RED}Failed to restore DB: {e}{Style.RESET_ALL}")
 
 def find_duplicates_cmd(cmd):
     """List and optionally delete duplicate quiz questions in the database."""
@@ -523,6 +527,67 @@ def find_duplicates_cmd(cmd):
         conn.commit()
         print(f"Total duplicates deleted: {total_deleted}")
     conn.close()
+
+
+def manage_questions_interactive():
+    """Interactive prompt for managing questions."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+    try:
+        from kubelingo.database import get_flagged_questions
+        flagged_questions = get_flagged_questions()
+        flagged_count = len(flagged_questions)
+
+        choices = [
+            questionary.Separator("--- Question Management ---"),
+            {
+                "name": f"List flagged questions for review ({flagged_count} flagged)",
+                "value": "list_flagged",
+                "disabled": flagged_count == 0
+            },
+            {"name": "Enrich all questions with sources (uses AI)", "value": "enrich_sources"},
+            questionary.Separator("--- Data Recovery ---"),
+            {"name": "Restore original questions from backup (overwrites all changes)", "value": "restore_db"},
+            questionary.Separator(),
+            {"name": "Cancel", "value": "cancel"}
+        ]
+        action = questionary.select(
+            "Select a question management action:",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "cancel":
+            return
+
+        if action == "list_flagged":
+            if not flagged_questions:
+                print(f"{Fore.YELLOW}No questions are currently flagged for review.{Style.RESET_ALL}")
+                return
+            print(f"{Fore.CYAN}Questions flagged for review:{Style.RESET_ALL}")
+            for q in flagged_questions:
+                source_info = f"({q['source_file']})" if q.get('source_file') else ""
+                print(f"  - [{q['id']}] {q['prompt']} {source_info}")
+        elif action == "enrich_sources":
+            enrich_sources()
+        elif action == "restore_db":
+            confirmed = questionary.confirm(
+                "This will replace your current database with the original questions. "
+                "All progress, flagged questions, and AI-generated content will be lost. "
+                "Are you sure you want to continue?",
+                default=False
+            ).ask()
+            if confirmed:
+                restore_db()
+            else:
+                print(f"{Fore.YELLOW}Restore cancelled.{Style.RESET_ALL}")
+
+        print()
+
+    except (KeyboardInterrupt, EOFError):
+        print()
+        return
 
 
 def manage_config_interactive():
@@ -797,7 +862,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'db', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'migrate-yaml', 'restore-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -918,6 +983,9 @@ def main():
                 return
             elif cmd_name == 'restore-yaml':
                 restore_yaml_from_backup()
+                return
+            elif cmd_name == 'questions':
+                manage_questions_interactive()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
