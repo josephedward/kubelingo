@@ -1,0 +1,82 @@
+- id: manifests::deployments::increase-replicas
+  prompt: "Edit the deployment manifest to increase the number of replicas to 3."
+  type: yaml_edit
+  category: "YAML Editing Practice - Deployments"
+  initial_files:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.14.2
+  correct_yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-deployment
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:1.14.2
+- id: manifests::deployments::change-image
+  prompt: "Edit the deployment manifest to change the container image from `nginx:1.14.2` to `nginx:1.16.1`."
+  type: yaml_edit
+  category: "YAML Editing Practice - Deployments"
+  initial_files:
+    deployment.yaml: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.14.2
+  correct_yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-deployment
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+        spec:
+          containers:
+          - name: nginx
+            image: nginx:1.16.1

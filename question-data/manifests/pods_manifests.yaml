@@ -1,0 +1,57 @@
+- id: manifests::pods::add-env-var
+  prompt: "Edit the pod manifest to add an environment variable `GREETING` with the value `Hello World` to the `nginx` container."
+  type: yaml_edit
+  category: "YAML Editing Practice - Pods"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: my-pod
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:1.14.2
+  correct_yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: my-pod
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        env:
+        - name: GREETING
+          value: "Hello World"
+- id: manifests::pods::add-volume-mount
+  prompt: "Edit the pod manifest to mount a volume named `workdir` at path `/app/data`. The volume should be an `emptyDir`."
+  type: yaml_edit
+  category: "YAML Editing Practice - Pods"
+  initial_files:
+    pod.yaml: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: my-pod-with-volume
+      spec:
+        containers:
+        - name: my-container
+          image: busybox
+          command: ["sleep", "3600"]
+  correct_yaml: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: my-pod-with-volume
+    spec:
+      containers:
+      - name: my-container
+        image: busybox
+        command: ["sleep", "3600"]
+        volumeMounts:
+        - name: workdir
+          mountPath: /app/data
+      volumes:
+      - name: workdir
+        emptyDir: {}
