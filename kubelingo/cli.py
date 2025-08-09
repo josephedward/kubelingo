@@ -265,63 +265,15 @@ def handle_config_command(cmd):
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
 
-def rebuild_db_from_yaml():
-    """Wipes and rebuilds the questions database from all YAML source files."""
-    print(f"{Fore.CYAN}Rebuilding database from YAML source files...{Style.RESET_ALL}")
-
-    from kubelingo.database import add_question, get_db_connection
-    loader = YAMLLoader()
-    yaml_files = loader.discover()
-
-    if not yaml_files:
-        print(f"{Fore.YELLOW}No YAML quiz files found in '{YAML_QUIZ_DIR}'. Nothing to do.{Style.RESET_ALL}")
-        return
-
-    conn = get_db_connection()
-    if not conn:
-        print(f"{Fore.RED}Failed to get database connection.{Style.RESET_ALL}")
-        return
-
-    # Wipe existing questions
-    conn.execute("DELETE FROM questions")
-    conn.commit()
-    print("  - Cleared existing questions from the database.")
-
-    total_imported = 0
-    total_files = 0
-    for file_path in yaml_files:
-        filename = os.path.basename(file_path)
-        print(f"  - Processing '{filename}'...")
-        try:
-            questions = loader.load_file(file_path)
-            if not questions:
-                print(f"    {Fore.YELLOW}No questions found in file, skipping.{Style.RESET_ALL}")
-                continue
-
-            for q_obj in questions:
-                q_dict = asdict(q_obj)
-                add_question(conn, **q_dict)
-
-            conn.commit()
-            total_imported += len(questions)
-            total_files += 1
-            print(f"    {Fore.GREEN}Imported {len(questions)} questions.{Style.RESET_ALL}")
-
-        except Exception as e:
-            print(f"    {Fore.RED}Failed to process '{filename}': {e}{Style.RESET_ALL}")
-
-    conn.close()
-    print(f"\n{Fore.GREEN}Database rebuild complete. Imported {total_imported} questions from {total_files} files.{Style.RESET_ALL}")
-   
 def restore_db():
     """
     Merges questions from the backup into the live database.
     This is an additive process: it inserts new questions from the backup and
     updates existing ones if they share the same ID. It never deletes data.
     """
-    import shutil
-    from kubelingo.database import init_db
-    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE, DATABASE_FILE
+    import sqlite3
+    from kubelingo.database import get_db_connection
+    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
 
     backup_db_path = None
     if os.path.isfile(MASTER_DATABASE_FILE):
@@ -335,31 +287,26 @@ def restore_db():
         print("You may need to run the build script first: python3 scripts/build_question_db.py")
         return
 
-    print(f"{Fore.CYAN}Attempting to merge questions from backup: {backup_db_path}{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Merging questions from backup: {backup_db_path}{Style.RESET_ALL}")
 
-    # Simply overwrite the live database with the backup copy
-    from kubelingo.utils.config import DATABASE_FILE
-    os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
     try:
-        # Remove existing live DB so copy can succeed
-        if os.path.exists(DATABASE_FILE):
-            os.remove(DATABASE_FILE)
-    except Exception:
-        pass
-    try:
-        shutil.copy2(backup_db_path, DATABASE_FILE)
-        print(f"{Fore.GREEN}Restored questions database to '{DATABASE_FILE}'.{Style.RESET_ALL}")
+        live_conn = get_db_connection()
+        # Attach backup DB to live DB connection
+        live_conn.execute("ATTACH DATABASE ? AS backup_db", (backup_db_path,))
+        # Use INSERT OR REPLACE to merge.
+        # This will add new questions and update existing ones with the same ID.
+        live_conn.execute("""
+            INSERT OR REPLACE INTO main.questions
+            SELECT * FROM backup_db.questions
+        """)
+        live_conn.commit()
+        # Detach backup DB
+        live_conn.execute("DETACH DATABASE backup_db")
+        live_conn.close()
+        print(f"{Fore.GREEN}Successfully merged questions from backup.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to merge database: {e}{Style.RESET_ALL}")
 
-def restore_all():
-    """
-    Full restore: Rebuilds the live database from the canonical YAML source files.
-    This is the most comprehensive way to ensure your quizzes are up-to-date.
-    """
-    print(f"{Fore.CYAN}Starting full restore...{Style.RESET_ALL}")
-    rebuild_db_from_yaml()
-    print(f"{Fore.GREEN}Full restore complete.{Style.RESET_ALL}")
 
 def find_duplicates_cmd(cmd):
     """List and optionally delete duplicate quiz questions in the database."""
@@ -850,9 +797,6 @@ def main():
                 return
             elif cmd_name == 'enrich-sources':
                 enrich_sources()
-                return
-            elif cmd_name == 'restore-all':
-                restore_all()
                 return
             elif cmd_name == 'questions':
                 manage_questions_interactive()
