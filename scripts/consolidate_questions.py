@@ -18,13 +18,22 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'kubelingo', 'question-data')
 ARCHIVE_DIR = os.path.join(PROJECT_ROOT, 'kubelingo', 'question-data-archive')
 YAML_DIR = os.path.join(DATA_DIR, 'yaml')
-JSON_DIR = os.path.join(DATA_DIR, 'json')
-MD_DIR = os.path.join(DATA_DIR, 'md')
-MANIFESTS_DIR = os.path.join(DATA_DIR, 'manifests')
-SOLUTIONS_DIR = os.path.join(DATA_DIR, 'solutions')
 
-BACKUP_DB_DIR = os.path.join(PROJECT_ROOT, 'kubelingo', 'question-data-backup')
-BACKUP_DB_FILE = os.path.join(BACKUP_DB_DIR, 'kubelingo_original.db')
+def find_all_question_files(search_paths):
+    """Recursively finds all potential question files in a list of directories."""
+    all_files = set()
+    for path in search_paths:
+        if not os.path.isdir(path):
+            continue
+        for root, _, files in os.walk(path):
+            for f in files:
+                if f.lower().endswith(('.json', '.yaml', '.yml', '.md')):
+                    # Exclude known non-question files
+                    if f.lower() in ['readme.md', '.ds_store']:
+                        continue
+                    all_files.add(os.path.join(root, f))
+    return sorted(list(all_files))
+
 
 def main():
     """
@@ -34,33 +43,48 @@ def main():
     print("--- Starting Question Consolidation ---")
 
     # 1. Load all questions from all sources
-    print("\n[Step 1/5] Loading questions from all sources...")
-    all_questions = []
-    loaders = {
-        'JSON': (JSONLoader(), JSON_DIR),
-        'YAML': (YAMLLoader(), YAML_DIR),
-        'Manifests(YAML)': (YAMLLoader(), MANIFESTS_DIR),
-        'MD': (MDLoader(), MD_DIR),
-    }
+    print("\n[Step 1/6] Finding all question files...")
+    # Search in the main data directory AND the archive directory to find all possible sources
+    search_paths = [DATA_DIR, ARCHIVE_DIR]
+    question_files = find_all_question_files(search_paths)
 
-    for name, (loader, path) in loaders.items():
-        if not os.path.isdir(path):
-            continue
-        print(f"  -> Searching in {name} directory: {path}")
-        try:
-            files = loader.discover()
-            for f in files:
-                if os.path.basename(f) in ['README.md']: continue
-                print(f"    - Loading {os.path.basename(f)}")
+    if not question_files:
+        print("  -> No question files found. Nothing to do.")
+        return
+
+    print(f"  -> Found {len(question_files)} potential question files.")
+
+    print("\n[Step 2/6] Loading questions from all sources...")
+    all_questions = []
+    processed_files = []
+
+    json_loader = JSONLoader()
+    yaml_loader = YAMLLoader()
+    md_loader = MDLoader()
+
+    for f in question_files:
+        loader = None
+        if f.lower().endswith('.json'):
+            loader = json_loader
+        elif f.lower().endswith(('.yaml', '.yml')):
+            loader = yaml_loader
+        elif f.lower().endswith('.md'):
+            loader = md_loader
+
+        if loader:
+            try:
+                # Use relpath for cleaner logging
+                print(f"    - Loading {os.path.relpath(f, PROJECT_ROOT)}")
                 questions = loader.load_file(f)
                 all_questions.extend(questions)
-        except Exception as e:
-            print(f"    Could not load from {name} loader: {e}")
+                processed_files.append(f)
+            except Exception as e:
+                print(f"    ! Could not load from {os.path.basename(f)}: {e}")
 
-    print(f"  => Loaded a total of {len(all_questions)} questions.")
+    print(f"  => Loaded a total of {len(all_questions)} questions from {len(processed_files)} files.")
 
-    # 2. Deduplicate questions
-    print("\n[Step 2/5] Deduplicating questions...")
+    # 3. Deduplicate questions
+    print("\n[Step 3/6] Deduplicating questions...")
     unique_questions = {}
     for q in all_questions:
         # Use prompt for uniqueness, but keep first-seen ID
@@ -70,21 +94,45 @@ def main():
     questions_list = list(unique_questions.values())
     print(f"  => Found {len(questions_list)} unique questions.")
 
-    # 3. Group questions and write to new YAML files
-    print("\n[Step 3/5] Writing consolidated YAML files...")
-    # Clear out old YAML files before writing new ones.
-    if os.path.isdir(YAML_DIR):
-        for item in os.listdir(YAML_DIR):
-            os.remove(os.path.join(YAML_DIR, item))
+    # 4. Archive old question source files BEFORE writing new ones
+    print(f"\n[Step 4/6] Archiving {len(processed_files)} processed source files...")
+    os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
+    archived_count = 0
+    for f_path in processed_files:
+        try:
+            # Determine a safe destination path within the archive
+            base_dir_for_relpath = DATA_DIR if f_path.startswith(os.path.abspath(DATA_DIR)) else ARCHIVE_DIR
+            relative_path = os.path.relpath(f_path, base_dir_for_relpath)
+            dest_path = os.path.join(ARCHIVE_DIR, relative_path)
+
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+            # If the destination already exists (e.g. from a previous run),
+            # we can just remove the source. Otherwise, move it.
+            if os.path.abspath(f_path) != os.path.abspath(dest_path):
+                if os.path.exists(dest_path):
+                     os.remove(f_path)
+                else:
+                    shutil.move(f_path, dest_path)
+                archived_count += 1
+        except Exception as e:
+            print(f"    ! Could not archive {os.path.basename(f_path)}: {e}")
+    print(f"  => Archived {archived_count} files.")
+
+    # 5. Group questions and write to new YAML files
+    print("\n[Step 5/6] Writing consolidated YAML files...")
+    # Ensure YAML directory is clean and exists
+    if os.path.isdir(YAML_DIR):
+        shutil.rmtree(YAML_DIR)
     os.makedirs(YAML_DIR, exist_ok=True)
-    
+
     grouped_by_file = {}
     for q in questions_list:
         source_file = q.source_file or 'uncategorized.yaml'
         # Sanitize filenames
         base, _ = os.path.splitext(source_file)
-        new_filename = f"{base}.yaml"
+        new_filename = f"{base.replace(' ', '_').lower()}.yaml"
         if new_filename not in grouped_by_file:
             grouped_by_file[new_filename] = []
         grouped_by_file[new_filename].append(q)
@@ -93,43 +141,30 @@ def main():
         # Convert Question objects to dictionaries for YAML serialization
         questions_dict = [asdict(q) for q in questions]
         output_path = os.path.join(YAML_DIR, filename)
-        print(f"  - Writing {len(questions)} questions to {output_path}")
+        print(f"  - Writing {len(questions)} questions to {os.path.relpath(output_path, PROJECT_ROOT)}")
         with open(output_path, 'w', encoding='utf-8') as f:
             yaml.dump({'questions': questions_dict}, f, default_flow_style=False, sort_keys=False)
 
     print(f"  => Wrote {len(grouped_by_file)} YAML files.")
-    
-    # 4. Archive old question source directories
-    print("\n[Step 4/5] Archiving old question data...")
-    os.makedirs(ARCHIVE_DIR, exist_ok=True)
-    
-    to_archive = [JSON_DIR, MD_DIR, MANIFESTS_DIR, SOLUTIONS_DIR]
-    for path in to_archive:
-        if os.path.isdir(path):
-            dest = os.path.join(ARCHIVE_DIR, os.path.basename(path))
-            if os.path.exists(dest):
-                shutil.rmtree(dest)
-            print(f"  - Archiving {path} to {dest}")
-            shutil.move(path, dest)
 
-    print("  => Archiving complete.")
-
-    # 5. Rebuild backup database from new YAML files
-    print("\n[Step 5/5] Rebuilding backup database...")
-    if os.path.exists(BACKUP_DB_FILE):
-        os.remove(BACKUP_DB_FILE)
+    # 6. Rebuild backup database from new YAML files
+    print("\n[Step 6/6] Rebuilding backup database...")
+    from kubelingo.utils import config
+    # Use MASTER_DATABASE_FILE for the target to be consistent with config
+    backup_target = config.MASTER_DATABASE_FILE
+    if os.path.exists(backup_target):
+        os.remove(backup_target)
     
     # Temporarily set the main DB path to our backup file
-    from kubelingo.utils import config
     original_db_file = config.DATABASE_FILE
-    config.DATABASE_FILE = BACKUP_DB_FILE
+    config.DATABASE_FILE = backup_target
 
     try:
         init_db(clear=True) # Create a fresh, empty DB
         conn = get_db_connection()
 
         loader = YAMLLoader()
-        yaml_files = loader.discover()
+        yaml_files = loader.discover() # This will now search in the clean YAML_DIR
         for file_path in yaml_files:
             filename = os.path.basename(file_path)
             questions = loader.load_file(file_path)
@@ -138,7 +173,7 @@ def main():
                 add_question(conn=conn, **q_dict)
         conn.commit()
         conn.close()
-        print(f"  => Successfully rebuilt backup database at {BACKUP_DB_FILE}")
+        print(f"  => Successfully rebuilt backup database at {backup_target}")
     finally:
         # Restore original DB path
         config.DATABASE_FILE = original_db_file
