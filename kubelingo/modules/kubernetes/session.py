@@ -1080,8 +1080,11 @@ class NewSession(StudySession):
                             url = "https://kubernetes.io/docs/reference/kubectl/#resource-types"
 
                         if url:
-                            print(f"Opening documentation at {url} ...")
-                            webbrowser.open(url)
+                            if url.startswith('http'):
+                                print(f"Opening documentation at {url} ...")
+                                webbrowser.open(url)
+                            else:
+                                print(f"{Fore.YELLOW}Cannot open source: not a valid URL ('{url}').{Style.RESET_ALL}")
                         else:
                             print(f"{Fore.YELLOW}No source URL defined for this question.{Style.RESET_ALL}")
                         continue
