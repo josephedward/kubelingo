@@ -1,5 +1,5 @@
 """
-Loader for YAML-based question files under question-data/yaml.
+Loader for YAML-based question files.
 """
 import os
 try:
@@ -9,12 +9,12 @@ except ImportError:
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
-from kubelingo.utils.config import YAML_QUIZ_DIR
+from kubelingo.utils.config import QUESTIONS_DIR
 
 class YAMLLoader(BaseLoader):
     """Discovers and parses YAML question modules."""
     # Primary YAML quiz directory
-    PRIMARY_DIR = YAML_QUIZ_DIR
+    PRIMARY_DIR = QUESTIONS_DIR
 
     def discover(self) -> List[str]:
         """Discovers YAML files in the primary quiz directory."""
