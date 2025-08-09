@@ -55,15 +55,43 @@ class VimYamlEditor:
             }
         if exercise_type == "service":
             name = data.get("name", "my-service")
-            labels = data.get("selector", {"app": "MyApp"})
+            selector = data.get("selector", {"app": "MyApp"})
+            ports = data.get("ports", [{"protocol": "TCP", "port": 80, "targetPort": 80}])
+            svc_type = data.get("type", "ClusterIP")
             return {
                 "apiVersion": "v1",
                 "kind": "Service",
                 "metadata": {"name": name},
-                "spec": {
-                    "selector": labels,
-                    "ports": [{"protocol": "TCP", "port": 80, "targetPort": 9376}]
-                }
+                "spec": {"type": svc_type, "selector": selector, "ports": ports}
+            }
+        if exercise_type == "configmap":
+            name = data.get("name", "my-configmap")
+            cm_data = data.get("data", {"key": "value"})
+            return {
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {"name": name},
+                "data": cm_data
+            }
+        if exercise_type == "secret":
+            name = data.get("name", "my-secret")
+            secret_type = data.get("type", "Opaque")
+            sec_data = data.get("data", {"key": "value"})
+            return {
+                "apiVersion": "v1",
+                "kind": "Secret",
+                "metadata": {"name": name},
+                "type": secret_type,
+                "data": sec_data
+            }
+        if exercise_type == "ingress":
+            name = data.get("name", "my-ingress")
+            rules = data.get("rules", [{"host": "example.com", "http": {"paths": [{"path": "/", "backend": {"serviceName": "my-service", "servicePort": 80}}]}}])
+            return {
+                "apiVersion": "networking.k8s.io/v1",
+                "kind": "Ingress",
+                "metadata": {"name": name},
+                "spec": {"rules": rules}
             }
         raise ValueError(f"Unknown exercise type: {exercise_type}")
     
@@ -231,6 +259,14 @@ class VimYamlEditor:
                 starting = self.create_yaml_exercise('pod')
             elif 'service' in prompt_lower:
                 starting = self.create_yaml_exercise('service')
+            elif 'configmap' in prompt_lower:
+                starting = self.create_yaml_exercise('configmap')
+            elif 'secret' in prompt_lower:
+                starting = self.create_yaml_exercise('secret')
+            elif 'ingress' in prompt_lower:
+                starting = self.create_yaml_exercise('ingress')
+            else:
+                starting = {}
 
         while True:
             print(f"\n=== Exercise {index}: {prompt} ===")
