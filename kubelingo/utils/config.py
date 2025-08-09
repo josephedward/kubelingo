@@ -26,6 +26,12 @@ except Exception:
 
 # Data directories for built-in quiz files are located at the project root.
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
+# Directories for question data formats
+JSON_QUIZ_DIR = os.path.join(DATA_DIR, 'json')
+MD_QUIZ_DIR = os.path.join(DATA_DIR, 'md')
+YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
+MANIFESTS_QUIZ_DIR = os.path.join(DATA_DIR, 'manifests')
 
 
 # --- Database ---

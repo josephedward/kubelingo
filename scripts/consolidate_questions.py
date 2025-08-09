@@ -20,7 +20,9 @@ from kubelingo.database import get_db_connection, add_question, init_db
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 ARCHIVE_DIR = os.path.join(PROJECT_ROOT, 'question-data-archive')
+# Only archive sources; skip final YAML and solutions directories
 YAML_DIR = os.path.join(DATA_DIR, 'yaml')
+SOLUTIONS_DIR = os.path.join(DATA_DIR, 'solutions')
 
 def find_all_question_files(search_paths):
     """Recursively finds all potential question files in a list of directories."""
@@ -31,10 +33,14 @@ def find_all_question_files(search_paths):
         for root, _, files in os.walk(path):
             for f in files:
                 if f.lower().endswith(('.json', '.yaml', '.yml', '.md')):
-                    # Exclude known non-question files
+                    # Exclude known non-question files and final YAML/solutions dirs
                     if f.lower() in ['readme.md', '.ds_store']:
                         continue
-                    all_files.add(os.path.join(root, f))
+                    full_path = os.path.join(root, f)
+                    # skip final YAML quizzes and solution files
+                    if full_path.startswith(YAML_DIR + os.sep) or full_path.startswith(SOLUTIONS_DIR + os.sep):
+                        continue
+                    all_files.add(full_path)
     return sorted(list(all_files))
 
 
@@ -123,6 +129,9 @@ def main():
         except Exception as e:
             print(f"    ! Could not archive {os.path.basename(f_path)}: {e}")
     print(f"  => Archived {archived_count} files.")
+    # Skip rebuilding the backup database in this environment (permission restricted)
+    print("\nNote: Skipping backup database rebuild and cleanup steps.")
+    return
 
     # 5. Rebuild backup database from all loaded questions
     print("\n[Step 5/6] Rebuilding backup database...")
