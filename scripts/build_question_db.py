@@ -25,53 +25,69 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 from kubelingo.database import add_question, get_db_connection, init_db
+from kubelingo.modules.json_loader import JSONLoader
+from kubelingo.modules.md_loader import MDLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question
 from kubelingo.utils.config import (
     DATABASE_FILE,
-    YAML_BACKUPS_DIR,
+    JSON_QUIZ_DIR,
+    MD_QUIZ_DIR,
+    YAML_QUIZ_DIR,
+    MANIFESTS_DIR,
     MASTER_DATABASE_FILE,
     SECONDARY_MASTER_DATABASE_FILE,
 )
 
 
-def import_questions_from_yaml(source_dir: Path):
+def import_all_questions(conn):
     """
-    Scans a directory for YAML files, loads questions, and adds them to the database.
+    Scans all source directories (JSON, MD, YAML) for questions and adds them to the database.
     """
-    print(f"Scanning for YAML files in '{source_dir}'...")
-    if not source_dir.is_dir():
-        print(f"Error: Source directory '{source_dir}' does not exist.")
-        print("Please create it and populate it with your question YAML files.")
-        return 0
+    loaders = {
+        "JSON": (JSONLoader(), Path(JSON_QUIZ_DIR)),
+        "Markdown": (MDLoader(), Path(MD_QUIZ_DIR)),
+        "YAML": (YAMLLoader(), Path(YAML_QUIZ_DIR)),
+        "Manifests (YAML)": (YAMLLoader(), Path(MANIFESTS_DIR)),
+    }
 
-    loader = YAMLLoader()
-    yaml_files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
+    total_questions_imported = 0
+    all_source_dirs_exist = True
 
-    if not yaml_files:
-        print(f"No YAML files found in '{source_dir}'.")
-        return 0
+    for name, (loader, source_dir) in loaders.items():
+        if not source_dir.is_dir():
+            print(f"Warning: Source directory for {name} not found, skipping: {source_dir}")
+            all_source_dirs_exist = False
+            continue
 
-    conn = get_db_connection()
-    question_count = 0
-    total_files = len(yaml_files)
+        print(f"\nProcessing {name} questions from '{source_dir}'...")
+        if name == "JSON":
+            files = list(source_dir.glob("**/*.json"))
+        elif name == "Markdown":
+            files = list(source_dir.glob("**/*.md"))
+        else:
+            files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
+        
+        if not files:
+            print(f"  No files found in '{source_dir}'.")
+            continue
 
-    print(f"Found {total_files} YAML files to process.")
-    for i, yaml_file in enumerate(yaml_files):
-        print(f"  - Processing file {i+1}/{total_files}: '{yaml_file.name}'...")
-        try:
-            questions: list[Question] = loader.load_file(str(yaml_file))
-            for q in questions:
-                # add_question uses INSERT OR REPLACE, which is what we want.
-                add_question(conn, **asdict(q))
-                question_count += 1
-        except Exception as e:
-            print(f"    Error processing file {yaml_file.name}: {e}")
+        for file_path in files:
+            print(f"  - Loading file: {file_path.name}")
+            try:
+                questions: list[Question] = loader.load_file(str(file_path))
+                for q in questions:
+                    add_question(conn, **asdict(q))
+                    total_questions_imported += 1
+            except Exception as e:
+                print(f"    Error processing file {file_path.name}: {e}")
 
+    if not all_source_dirs_exist:
+        print("\nWarning: One or more source directories were not found. The database may be incomplete.")
+    
     conn.commit()
-    conn.close()
-    print(f"\nImport complete. Added/updated {question_count} questions from {total_files} files.")
-    return question_count
+    print(f"\nImport complete. Added/updated {total_questions_imported} questions.")
+    return total_questions_imported
 
 
 def backup_database():
@@ -106,16 +122,6 @@ def main():
     """
     print("--- Building Kubelingo Master Question Database ---")
 
-    # Safety Check: Ensure the source YAML directory exists before proceeding.
-    source_path = Path(YAML_BACKUPS_DIR)
-    if not source_path.is_dir():
-        print(f"\n{'-'*60}")
-        print(f"Error: Source directory for questions not found.")
-        print(f"Path: '{source_path}'")
-        print("Please ensure this directory exists and contains your YAML quiz files.")
-        print(f"{'-'*60}\n")
-        sys.exit(1)
-
     # Step 1: Clear the existing live database for a clean build.
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
     if os.path.exists(DATABASE_FILE):
@@ -124,9 +130,14 @@ def main():
     init_db()
     print("  - Initialized new empty database.")
 
-    # Step 2: Import all questions from the unified YAML backup directory.
-    print(f"\nStep 2: Importing questions from '{YAML_BACKUPS_DIR}'...")
-    questions_imported = import_questions_from_yaml(source_path)
+    # Step 2: Import all questions from all scattered source directories.
+    print(f"\nStep 2: Importing all questions from source directories...")
+    conn = get_db_connection()
+    questions_imported = 0
+    try:
+        questions_imported = import_all_questions(conn)
+    finally:
+        conn.close()
 
     # Step 3: Create backups if import was successful.
     if questions_imported > 0:

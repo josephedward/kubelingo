@@ -102,27 +102,21 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # --- Quiz Data Files ---
 
-# Single, consolidated directory for all source-of-truth YAML quiz files.
-# This is the primary source for building the master database.
-YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-backups')
-
-# The active directory for YAML files that loaders will use.
-# For developers, this might be a working directory. For users, this can be populated
-# from the backup source.
+# Source directories for various question formats.
+JSON_QUIZ_DIR = os.path.join(DATA_DIR, 'json')
+MD_QUIZ_DIR = os.path.join(DATA_DIR, 'md')
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+MANIFESTS_DIR = os.path.join(DATA_DIR, 'manifests')  # Contains more YAML questions
+
+# This will be the destination for the consolidated YAML files.
+YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-backups')
 
 # Default YAML quiz file for editing mode (example of a specific file)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
-# All other data formats and redundant backup directories are deprecated.
-YAML_QUIZ_BACKUP_DIR = ''
-MANIFESTS_QUIZ_DIR = ''
-
 
 # --- Enabled Quizzes ---
-# This dictionary is now simplified. The loaders will discover quizzes directly
-# from the database. This list can be used as a fallback or for specific UI grouping if needed.
-# For now, we'll keep it simple. It can be populated dynamically from discovered quizzes.
+# This dictionary can be used for UI elements, but the database is the source of truth.
 ENABLED_QUIZZES = {}
 
 # CSV files
