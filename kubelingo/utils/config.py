@@ -2,10 +2,11 @@ import os
 import json
 from typing import Optional, Dict, Any
 
+# The absolute path to the project root directory, which contains the 'kubelingo' package and 'scripts'.
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 # The root of the package
-# The root of the package
-# The absolute path to the package root directory
-PACKAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+PACKAGE_ROOT = os.path.join(PROJECT_ROOT, 'kubelingo')
 # Legacy alias for backward compatibility
 ROOT = PACKAGE_ROOT
 
@@ -14,8 +15,8 @@ ROOT = PACKAGE_ROOT
 HOME_DIR = os.path.expanduser("~")
 # Directory for user-specific app files (e.g., database)
 APP_DIR = os.path.join(HOME_DIR, ".kubelingo")
-# Logs directory located within the package root (for history and logging)
-LOGS_DIR = os.path.join(PACKAGE_ROOT, 'logs')
+# Logs directory located within the project root
+LOGS_DIR = os.path.join(PROJECT_ROOT, 'logs')
 try:
     os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOGS_DIR, exist_ok=True)
@@ -23,9 +24,7 @@ except Exception:
     # Could not create directories (permissions?), ignore
     pass
 
-# Data directories for built-in quiz files are located at the project root,
-# making them accessible after installation.
-PROJECT_ROOT = os.path.dirname(PACKAGE_ROOT)
+# Data directories for built-in quiz files are located at the project root.
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 
 

@@ -46,6 +46,7 @@ def main():
     print("\n[Step 1/6] Finding all question files...")
     # Search in the main data directory AND the archive directory to find all possible sources
     search_paths = [DATA_DIR, ARCHIVE_DIR]
+    print(f"  -> Searching in paths: {search_paths}")
     question_files = find_all_question_files(search_paths)
 
     if not question_files:
