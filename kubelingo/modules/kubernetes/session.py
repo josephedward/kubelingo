@@ -165,7 +165,8 @@ def _get_questions_by_type(question_type: str) -> list[dict]:
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM questions WHERE type = ?", (question_type,))
+    # The DB column storing the question type is 'question_type'
+    cursor.execute("SELECT * FROM questions WHERE question_type = ?", (question_type,))
     questions = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return questions
