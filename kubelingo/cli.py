@@ -289,6 +289,9 @@ def import_json_to_db():
     for file_path in json_files:
         filename = os.path.basename(file_path)
         print(f"  - Processing '{filename}'...")
+        # Remove existing questions for this file to avoid duplicates from previous imports
+        conn.execute("DELETE FROM questions WHERE source_file = ?", (filename,))
+        conn.commit()
         try:
             questions = loader.load_file(file_path)
             if not questions:
@@ -359,6 +362,9 @@ def migrate_yaml_to_db():
     for file_path in yaml_files:
         filename = os.path.basename(file_path)
         print(f"  - Processing '{filename}'...")
+        # Remove existing questions for this file to avoid duplicates from previous migrations
+        conn.execute("DELETE FROM questions WHERE source_file = ?", (filename,))
+        conn.commit()
         try:
             questions = loader.load_file(file_path)
             if not questions:
@@ -416,27 +422,38 @@ def migrate_yaml_to_db():
 
 def restore_yaml_from_backup():
     """Restores YAML files from the backup directory to the active quiz directory."""
-    if not os.path.exists(YAML_QUIZ_BACKUP_DIR):
-        print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found. Nothing to restore.{Style.RESET_ALL}")
-        return
+    # Determine backup directory (primary or fallback to local repo)
+    backup_dir = YAML_QUIZ_BACKUP_DIR
+    if not os.path.isdir(backup_dir) or not os.listdir(backup_dir):
+        alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
+        if os.path.isdir(alt_backup) and os.listdir(alt_backup):
+            backup_dir = alt_backup
+        else:
+            print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found or empty. Nothing to restore.{Style.RESET_ALL}")
+            return
 
-    if not os.listdir(YAML_QUIZ_BACKUP_DIR):
-        print(f"{Fore.YELLOW}Backup directory is empty. Nothing to restore.{Style.RESET_ALL}")
-        return
+    # Determine destination directory (primary or fallback to local repo)
+    dest_dir = YAML_QUIZ_DIR
+    if not os.path.isdir(dest_dir):
+        dest_dir = os.path.join(os.getcwd(), 'question-data', 'yaml')
+    os.makedirs(dest_dir, exist_ok=True)
 
-    print(f"{Fore.CYAN}Restoring YAML files from backup...{Style.RESET_ALL}")
-    os.makedirs(YAML_QUIZ_DIR, exist_ok=True)
-    
+    print(f"{Fore.CYAN}Restoring YAML files from backup directory '{backup_dir}'...{Style.RESET_ALL}")
     restored_count = 0
-    for filename in os.listdir(YAML_QUIZ_BACKUP_DIR):
-        backup_path = os.path.join(YAML_QUIZ_BACKUP_DIR, filename)
-        if os.path.isfile(backup_path) and filename.endswith(('.yaml', '.yml')):
-            dest_path = os.path.join(YAML_QUIZ_DIR, filename)
-            print(f"  - Restoring '{filename}'...")
-            shutil.move(backup_path, dest_path)
+    for root, _, files in os.walk(backup_dir):
+        for filename in files:
+            if not filename.lower().endswith(('.yaml', '.yml')):
+                continue
+            src = os.path.join(root, filename)
+            # Preserve subdirectory structure relative to backup_dir
+            rel_path = os.path.relpath(src, backup_dir)
+            dst = os.path.join(dest_dir, rel_path)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            print(f"  - Copying '{rel_path}' to '{dst}'...")
+            shutil.copy2(src, dst)
             restored_count += 1
-    
-    print(f"\n{Fore.GREEN}Restore complete. Restored {restored_count} files to '{YAML_QUIZ_DIR}'.{Style.RESET_ALL}")
+
+    print(f"\n{Fore.GREEN}Restore complete. Restored {restored_count} files to '{dest_dir}'.{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
 
 
