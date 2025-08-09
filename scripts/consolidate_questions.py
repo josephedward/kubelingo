@@ -15,8 +15,8 @@ from kubelingo.database import get_db_connection, add_question, init_db
 
 # --- Configuration ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-DATA_DIR = os.path.join(PROJECT_ROOT, 'kubelingo', 'question-data')
-ARCHIVE_DIR = os.path.join(PROJECT_ROOT, 'kubelingo', 'question-data-archive')
+DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
+ARCHIVE_DIR = os.path.join(PROJECT_ROOT, 'question-data-archive')
 YAML_DIR = os.path.join(DATA_DIR, 'yaml')
 
 def find_all_question_files(search_paths):

@@ -71,10 +71,8 @@ from kubelingo.utils.config import (
     save_api_key,
     API_KEY_FILE,
     YAML_QUIZ_DIR,
-    YAML_QUIZ_BACKUP_DIR,
     get_cluster_configs,
     save_cluster_configs,
-    ENABLED_QUIZZES,
 )
 
 def show_history():
@@ -90,17 +88,6 @@ def show_history():
         return
     if not isinstance(history, list) or not history:
         print("No quiz history available.")
-        return
-    # Filter to only quizzes currently enabled
-    enabled = set()
-    from kubelingo.utils.config import ENABLED_QUIZZES
-    for path in ENABLED_QUIZZES.values():
-        enabled.add(os.path.basename(path))
-    # Include legacy JSON default if used
-    # Filter history entries
-    history = [h for h in history if h.get('data_file') in enabled]
-    if not history:
-        print("No quiz history for current modules.")
         return
     print("Quiz History:")
     for entry in history:
@@ -518,20 +505,13 @@ def enrich_sources():
         if not api_key:
             return
 
-    from kubelingo.database import get_questions_by_source_file, add_question, get_db_connection
-    from kubelingo.utils.config import ENABLED_QUIZZES
+    from kubelingo.database import get_all_questions, add_question, get_db_connection
     from kubelingo.modules.ai_evaluator import AIEvaluator
 
-    print(f"{Fore.CYAN}Starting source enrichment for all enabled quizzes...{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Starting source enrichment for all questions in the database...{Style.RESET_ALL}")
     evaluator = AIEvaluator()
 
-    all_questions = []
-    for name, path in ENABLED_QUIZZES.items():
-        source_file = os.path.basename(path)
-        questions_from_db = get_questions_by_source_file(source_file)
-        print(f"Loaded {len(questions_from_db)} questions from '{name}'")
-        all_questions.extend(questions_from_db)
-
+    all_questions = get_all_questions()
     questions_to_update = [q for q in all_questions if not q.get('source')]
 
     if not questions_to_update:
@@ -1015,14 +995,10 @@ def main():
                     # Exit option
                     choices.append(questionary.Separator())
                     choices.append({"name": "Exit", "value": "exit_app"})
-                except Exception:
-                    # Fallback to static quizzes if discovery fails
-                    from kubelingo.utils.config import ENABLED_QUIZZES
-                    choices = []
-                    for k, v in ENABLED_QUIZZES.items():
-                        base = os.path.splitext(os.path.basename(v))[0]
-                        choices.append({"name": k, "value": base})
-                    choices.append({"name": "Exit", "value": "exit_app"})
+                except Exception as e:
+                    print(f"{Fore.RED}Could not build dynamic quiz menu: {e}{Style.RESET_ALL}")
+                    # Fallback to an empty list and exit if DB fails
+                    choices = [{"name": "Exit", "value": "exit_app"}]
                 # Prompt user to select a quiz
                 choice = questionary.select(
                     "Choose a Kubernetes quiz module:",

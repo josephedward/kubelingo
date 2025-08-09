@@ -220,6 +220,16 @@ def get_flagged_questions() -> List[Dict[str, Any]]:
     return [_row_to_question_dict(row) for row in rows]
 
 
+def get_all_questions() -> List[Dict[str, Any]]:
+    """Fetches all questions from the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions")
+    rows = cursor.fetchall()
+    conn.close()
+    return [_row_to_question_dict(row) for row in rows]
+
+
 def update_review_status(question_id: str, review: bool):
     """Updates the review status of a question in the database."""
     conn = get_db_connection()

@@ -8,8 +8,6 @@ from typing import Optional, Dict, Any
 PACKAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 # Legacy alias for backward compatibility
 ROOT = PACKAGE_ROOT
-# Legacy alias for backward compatibility
-ROOT = PACKAGE_ROOT
 
 # User-specific files (logs, history, database etc.) in home directory
 # to support installed package execution.
@@ -38,8 +36,6 @@ DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
 MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db')
 # Secondary backup for redundancy.
 SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db.bak')
-# Legacy alias for backward compatibility during transition.
-BACKUP_DATABASE_FILE = MASTER_DATABASE_FILE
 
 
 # --- API Keys ---
@@ -117,6 +113,40 @@ YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-bak')
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Default JSON quiz file for command quiz mode
 DEFAULT_DATA_FILE = os.path.join(JSON_QUIZ_DIR, 'kubernetes.json')
+ 
+# --- Interactive Quiz Modules ---
+# Definitions for organizing quizzes into menu groups.
+# Foundational concepts, vim, and shell usage.
+BASIC_QUIZZES = {
+    "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
+    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+}
+
+# All kubectl and other command-line tool quizzes.
+COMMAND_QUIZZES = {
+    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
+    "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
+    "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
+    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
+    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml'),
+    "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
+}
+
+# Manifest-based quizzes: YAML editing exercises.
+MANIFEST_QUIZZES = {
+    "YAML Editing Exercises": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+    "YAML Quiz": os.path.join(YAML_QUIZ_DIR, 'yaml_quiz.yaml'),
+}
+
+# Combine all quizzes for the interactive menu.
+ENABLED_QUIZZES = {}
+ENABLED_QUIZZES.update(BASIC_QUIZZES)
+ENABLED_QUIZZES.update(COMMAND_QUIZZES)
+ENABLED_QUIZZES.update(MANIFEST_QUIZZES)
 
 # Legacy quiz definitions consolidated into new interactive menu blocks above.
 
@@ -126,7 +156,6 @@ DEFAULT_DATA_FILE = os.path.join(JSON_QUIZ_DIR, 'kubernetes.json')
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
 # Killercoda CKAD CSV quiz file
-KILLERCODA_CSV_FILE = os.path.join(CSV_DIR, 'killercoda-ckad_072425.csv')
 KILLERCODA_CSV_FILE = os.path.join(CSV_DIR, 'killercoda-ckad_072425.csv')
 
 # --- History and Logging ---
