@@ -1092,24 +1092,28 @@ class NewSession(StudySession):
                     choices = []
                     
                     # Determine interaction mode based on question type first.
-                    # This dictates how the user will answer (Vim, text prompt, or shell).
+                    # YAML edits always use Vim to allow manifest-only validation (no live cluster).
                     q_type = q.get('type')
-                    interaction_mode = 'shell'  # Default for live k8s exercises
+                    interaction_mode = 'shell'
                     if q_type in ('yaml_edit', 'yaml_author'):
                         interaction_mode = 'vim'
                     else:
-                        has_kubectl_in_validation = any(
+                        # For command and live-K8s questions, default to shell; switch to text_input when appropriate.
+                        has_kubectl = any(
                             'kubectl' in (vs.get('cmd') if isinstance(vs, dict) else getattr(vs, 'cmd', ''))
                             for vs in (q.get('validation_steps') or [])
                         )
                         question_needs_k8s = (
                             q_type in ('live_k8s', 'live_k8s_edit') or
                             'kubectl' in q.get('prompt', '') or
-                            has_kubectl_in_validation
+                            has_kubectl
                         )
                         is_mocked_k8s = question_needs_k8s and not args.docker
                         validator = q.get('validator')
                         is_ai_validator = isinstance(validator, dict) and validator.get('type') == 'ai'
+                        # Use text_input for simple commands, Vim-commands, mocked k8s, or AI-validated
+                        if (q_type or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator:
+                            interaction_mode = 'text_input'
 
                         if (q_type or 'command') == 'command' or q.get('category') == 'Vim Commands' or is_mocked_k8s or is_ai_validator:
                             interaction_mode = 'text_input'
@@ -1258,14 +1262,29 @@ class NewSession(StudySession):
                             # Launch Vim for editing YAML manifests, injecting a default skeleton if none provided
                             editor = VimYamlEditor()
                             # get any supplied starting YAML (may be empty)
-                            starting_yaml = q.get('starting_yaml', '')
-                            # if no starting YAML, fall back to a basic manifest based on resource kind in prompt
+                            starting_yaml = q.get('starting_yaml') or ''
+                            # if no starting YAML, try initial_files defined in quiz
+                            if not starting_yaml and q.get('initial_files'):
+                                files = q.get('initial_files') or {}
+                                if files:
+                                    starting_yaml = next(iter(files.values()))
+                            # if still no starting YAML, fall back to a basic manifest based on resource kind in prompt
                             if not starting_yaml:
                                 prompt_lower = (q.get('prompt') or '').lower()
                                 if 'deployment' in prompt_lower:
                                     starting_yaml = editor.create_yaml_exercise('deployment')
                                 elif 'pod' in prompt_lower:
                                     starting_yaml = editor.create_yaml_exercise('pod')
+                                elif 'service' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('service')
+                                elif 'configmap' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('configmap')
+                                elif 'secret' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('secret')
+                                elif 'ingress' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('ingress')
+                                else:
+                                    starting_yaml = {}
                             # open the editor
                             parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
                             if parsed is None:
