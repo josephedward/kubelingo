@@ -9,22 +9,23 @@ except ImportError:
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
-from kubelingo.utils.config import YAML_QUIZ_DIR, YAML_QUIZ_BACKUP_DIR
+from kubelingo.utils.config import YAML_QUIZ_DIR
 
 class YAMLLoader(BaseLoader):
-    """Discovers and parses YAML question modules from both the primary and backup YAML directories."""
-    # Primary and backup YAML quiz directories
+    """Discovers and parses YAML question modules."""
+    # Primary YAML quiz directory
     PRIMARY_DIR = YAML_QUIZ_DIR
-    BACKUP_DIR = YAML_QUIZ_BACKUP_DIR
 
     def discover(self) -> List[str]:
+        """Discovers YAML files in the primary quiz directory."""
         paths: List[str] = []
-        for directory in (self.PRIMARY_DIR, self.BACKUP_DIR):
-            if not directory or not os.path.isdir(directory):
-                continue
-            for fname in os.listdir(directory):
-                if fname.endswith(('.yaml', '.yml')):
-                    paths.append(os.path.join(directory, fname))
+        directory = self.PRIMARY_DIR
+        if not directory or not os.path.isdir(directory):
+            return []
+
+        for fname in os.listdir(directory):
+            if fname.endswith(('.yaml', '.yml')):
+                paths.append(os.path.join(directory, fname))
         return sorted(paths)
 
     def load_file(self, path: str) -> List[Question]:
