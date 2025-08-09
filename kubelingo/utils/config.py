@@ -25,8 +25,9 @@ except Exception:
     # Could not create directories (permissions?), ignore
     pass
 
-# Data directories for built-in quiz files are located at the project root
-PROJECT_ROOT = os.path.abspath(os.path.join(PACKAGE_ROOT, os.pardir))
+# Data directories for built-in quiz files are located within the package,
+# making them accessible after installation.
+PROJECT_ROOT = PACKAGE_ROOT
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 
 

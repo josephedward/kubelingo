@@ -24,6 +24,19 @@ def get_db_connection():
 
 def init_db(clear: bool = False):
     """Initializes the database and creates/updates the questions table."""
+    # First-run seeding: if the user database does not exist, create it from
+    # the backup to ensure it's populated with the initial set of questions.
+    if not os.path.exists(DATABASE_FILE) and os.path.exists(BACKUP_DATABASE_FILE):
+        try:
+            db_dir = os.path.dirname(DATABASE_FILE)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
+            shutil.copy2(BACKUP_DATABASE_FILE, DATABASE_FILE)
+        except Exception:
+            # If seeding fails, continue to create an empty DB.
+            # The user can try to restore manually later.
+            pass
+
     conn = get_db_connection()
     cursor = conn.cursor()
     if clear:
