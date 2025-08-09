@@ -102,6 +102,7 @@ YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 # Default YAML quiz file for editing mode
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
+MANIFESTS_QUIZ_DIR = os.path.join(DATA_DIR, 'manifests')
 # Default JSON quiz file for command quiz mode (legacy loader)
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'kubernetes.json')
 
@@ -131,7 +132,11 @@ COMMAND_QUIZZES = {
 
 # Creating and editing YAML manifests.
 MANIFEST_QUIZZES = {
-    "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+    "YAML Editing Practice (General)": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+    "YAML Editing Practice (Pods)": os.path.join(MANIFESTS_QUIZ_DIR, 'pods_manifests.yaml'),
+    "YAML Editing Practice (Deployments)": os.path.join(MANIFESTS_QUIZ_DIR, 'deployments_manifests.yaml'),
+    "YAML Editing Practice (ConfigMaps)": os.path.join(MANIFESTS_QUIZ_DIR, 'configmaps_manifests.yaml'),
+    "YAML Editing Practice (Services)": os.path.join(MANIFESTS_QUIZ_DIR, 'services_manifests.yaml'),
 }
   
 # Comprehensive multi-topic and AI-generated quiz sets
