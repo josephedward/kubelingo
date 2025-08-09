@@ -948,7 +948,7 @@ def main():
         if args.k8s_mode:
             # Shortcut to display the main Kubernetes quiz menu and exit
             args.module = 'kubernetes'
-            # Only interactive when no other quiz flags are present and in an interactive terminal
+            # Only interactive when no other quiz flags are present
             if (
                 args.num == 0
                 and not args.category
@@ -956,34 +956,57 @@ def main():
                 and not args.list_categories
                 and not args.exercise_module
                 and questionary
-                and sys.stdin.isatty()
-                and sys.stdout.isatty()
             ):
                 # Configure logging
                 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
                 logger = logging.getLogger()
                 # Load session for side-effects (history, flags)
                 load_session('kubernetes', logger)
-                # Dynamically build menu choices from database-backed quiz modules
+                # Dynamically build and group menu choices from database-backed quiz modules
                 try:
+                    from collections import defaultdict
                     from kubelingo.modules.db_loader import DBLoader
                     from kubelingo.utils.ui import humanize_module
                     loader = DBLoader()
-                    modules = loader.discover()
-                    choices = []
-                    for src in modules:
+                    files = sorted(loader.discover())
+                    # Map each quiz basename to its source files
+                    base_map = defaultdict(list)
+                    for src in files:
                         base = os.path.splitext(os.path.basename(src))[0]
-                        name = humanize_module(base)
-                        try:
-                            count = len(loader.load_file(src))
-                        except Exception:
-                            count = 0
-                        display = f"{name} ({count} questions)" if count > 0 else name
-                        choices.append({"name": display, "value": src})
+                        base_map[base].append(src)
+                    # Group basenames by extension of their first source
+                    ext_groups = defaultdict(list)
+                    for base, srcs in base_map.items():
+                        ext = os.path.splitext(srcs[0])[1].lstrip('.') or 'unknown'
+                        ext_groups[ext.upper()].append(base)
+                    choices = []
+                    # Build menu: extension groups, unique base entries
+                    for ext in sorted(ext_groups.keys()):
+                        choices.append(questionary.Separator(f"=== {ext} Quizzes ==="))
+                        for base in sorted(ext_groups[ext]):
+                            # Sum question counts across all source variants
+                            total = 0
+                            for src in base_map[base]:
+                                try:
+                                    total += len(loader.load_file(src))
+                                except Exception:
+                                    pass
+                            # Skip quizzes with no questions
+                            if total == 0:
+                                continue
+                            name = humanize_module(base)
+                            display = f"{name} ({total} questions)"
+                            choices.append({"name": display, "value": base})
+                    # Exit option
+                    choices.append(questionary.Separator())
                     choices.append({"name": "Exit", "value": "exit_app"})
                 except Exception:
+                    # Fallback to static quizzes if discovery fails
                     from kubelingo.utils.config import ENABLED_QUIZZES
-                    choices = [{"name": k, "value": v} for k, v in ENABLED_QUIZZES.items()]
+                    choices = []
+                    for k, v in ENABLED_QUIZZES.items():
+                        base = os.path.splitext(os.path.basename(v))[0]
+                        choices.append({"name": k, "value": base})
                     choices.append({"name": "Exit", "value": "exit_app"})
                 # Prompt user to select a quiz
                 choice = questionary.select(
@@ -993,8 +1016,8 @@ def main():
                 ).ask()
                 if choice == 'exit_app':
                     return
-                # Set the selected module for unified exercise
-                args.exercise_module = os.path.splitext(choice)[0]
+                # Set the selected module for unified exercise (base name matches DBLoader.discover())
+                args.exercise_module = choice
 
         # Global flags handling (note: history and list-modules are handled earlier)
         if args.list_categories:
