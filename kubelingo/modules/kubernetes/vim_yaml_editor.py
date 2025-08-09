@@ -28,6 +28,31 @@ class VimYamlEditor:
                 "metadata": {"name": name, "labels": labels},
                 "spec": {"containers": [{"name": container_name, "image": image, "ports": ports}]}
             }
+        if exercise_type == "deployment":
+            name = data.get("name", "nginx-deployment")
+            labels = data.get("labels", {"app": "nginx"})
+            container_name = data.get("container_name", "nginx")
+            image = data.get("image", "nginx:1.14.2")
+            replicas = data.get("replicas", 1)
+            return {
+                "apiVersion": "apps/v1",
+                "kind": "Deployment",
+                "metadata": {"name": name, "labels": labels},
+                "spec": {
+                    "replicas": replicas,
+                    "selector": {"matchLabels": labels},
+                    "template": {
+                        "metadata": {"labels": labels},
+                        "spec": {
+                            "containers": [{
+                                "name": container_name,
+                                "image": image,
+                                "ports": [{"containerPort": 80}]
+                            }]
+                        }
+                    }
+                }
+            }
         raise ValueError(f"Unknown exercise type: {exercise_type}")
     
     def edit_yaml_with_vim(self, yaml_content, filename="exercise.yaml", prompt=None, _vim_args=None, _timeout=300):
@@ -183,6 +208,14 @@ class VimYamlEditor:
         prompt = question.get('prompt', '')
         starting = question.get('starting_yaml', '')
         expected_raw = question.get('correct_yaml', '') or question.get('answer', '')
+
+        if not starting:
+            prompt_lower = prompt.lower()
+            if 'deployment' in prompt_lower:
+                starting = self.create_yaml_exercise('deployment')
+            elif 'pod' in prompt_lower:
+                starting = self.create_yaml_exercise('pod')
+
         while True:
             print(f"\n=== Exercise {index}: {prompt} ===")
             result_obj = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml", prompt=prompt)
