@@ -107,17 +107,21 @@ JSON_QUIZ_DIR = os.path.join(DATA_DIR, 'json')
 MD_QUIZ_DIR = os.path.join(DATA_DIR, 'md')
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 MANIFESTS_DIR = os.path.join(DATA_DIR, 'manifests')  # Contains more YAML questions
+MANIFESTS_QUIZ_DIR = MANIFESTS_DIR
 
-# This will be the destination for the consolidated YAML files.
-YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-backups')
+# Backups directory for original YAML exercises
+YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
+YAML_BACKUPS_DIR = os.path.join(DATA_DIR, 'yaml-bak')
 
 # Default YAML quiz file for editing mode (example of a specific file)
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
+# Default JSON quiz file for command quiz mode
+DEFAULT_DATA_FILE = os.path.join(JSON_QUIZ_DIR, 'kubernetes.json')
+
+# Legacy quiz definitions consolidated into new interactive menu blocks above.
 
 
-# --- Enabled Quizzes ---
-# This dictionary can be used for UI elements, but the database is the source of truth.
-ENABLED_QUIZZES = {}
+  # (Removed duplicate legacy quiz definitions)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
