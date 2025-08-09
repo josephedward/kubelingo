@@ -396,14 +396,15 @@ class NewSession(StudySession):
         choices = []
 
         # 1. Add all enabled quiz modules from config, grouped by theme
-        from kubelingo.utils.config import (
-            BASIC_QUIZZES,
-            COMMAND_QUIZZES,
-            MANIFEST_QUIZZES,
-        )
+        try:
+            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        except ImportError:
+            BASIC_QUIZZES = {}
+            COMMAND_QUIZZES = {}
+            MANIFEST_QUIZZES = {}
         import os
 
-        # Helper to add a group of quizzes to the choices list
+        # Helper to add a group of quizzes to the choices list and display it
         def add_quiz_group(group_title, quiz_dict, required_deps=None):
             if not quiz_dict:
                 return

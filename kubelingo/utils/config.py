@@ -36,6 +36,8 @@ DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
 MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db')
 # Secondary backup for redundancy.
 SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_master.db.bak')
+# Legacy alias for backward compatibility.
+BACKUP_DATABASE_FILE = MASTER_DATABASE_FILE
 
 
 # --- API Keys ---
@@ -100,7 +102,47 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # The canonical source for all question data is the collection of YAML files
 # in this directory. The database is seeded from these files on first run.
+# Directory for primary YAML quiz files
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+# Backup directory for legacy YAML quiz files (optional)
+YAML_QUIZ_BACKUP_DIR = ''
+# Default YAML questions file for editing and unified quiz mode
+# Default YAML questions file for editing and unified quiz mode
+YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
+
+# --- Interactive Quiz Modules ---
+# Definitions for organizing quizzes into menu groups.
+# Foundational concepts, vim, and shell usage.
+BASIC_QUIZZES = {
+    "Vim Practice": os.path.join(YAML_QUIZ_DIR, 'vim_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(YAML_QUIZ_DIR, 'kubectl_basic_syntax_quiz.yaml'),
+    "General Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_operations_quiz.yaml'),
+    "Resource Types Reference": os.path.join(YAML_QUIZ_DIR, 'kubectl_resource_types.yaml'),
+}
+
+# All kubectl and other command-line tool quizzes.
+COMMAND_QUIZZES = {
+    "Helm Basics": os.path.join(YAML_QUIZ_DIR, 'helm_basics_quiz.yaml'),
+    "Pod Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_pod_management_quiz.yaml'),
+    "Deployment Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_deployment_management_quiz.yaml'),
+    "ConfigMap Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "Secret Management": os.path.join(YAML_QUIZ_DIR, 'kubectl_secret_management_quiz.yaml'),
+    "Namespace Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Service Account Operations": os.path.join(YAML_QUIZ_DIR, 'kubectl_service_account_ops_quiz.yaml'),
+    "Additional Commands": os.path.join(YAML_QUIZ_DIR, 'kubectl_additional_commands_quiz.yaml'),
+}
+
+# Manifest-based quizzes: YAML editing exercises.
+MANIFEST_QUIZZES = {
+    "YAML Editing Exercises": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
+    "YAML Quiz": os.path.join(YAML_QUIZ_DIR, 'yaml_quiz.yaml'),
+}
+
+# Combine all quizzes for the interactive menu.
+ENABLED_QUIZZES = {}
+ENABLED_QUIZZES.update(BASIC_QUIZZES)
+ENABLED_QUIZZES.update(COMMAND_QUIZZES)
+ENABLED_QUIZZES.update(MANIFEST_QUIZZES)
 
 # CSV files
 CSV_DIR = os.path.join(DATA_DIR, 'csv')
