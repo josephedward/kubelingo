@@ -53,7 +53,7 @@ def init_db(clear: bool = False):
         if "duplicate column name" not in str(e):
             raise
     # Add other columns from Question model for compatibility
-    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type"]:
+    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type", "answers", "correct_yaml"]:
         try:
             cursor.execute(f"ALTER TABLE questions ADD COLUMN {col_name} TEXT")
         except sqlite3.OperationalError as e:
@@ -78,7 +78,9 @@ def add_question(
     difficulty: Optional[str] = None,
     pre_shell_cmds: Optional[List[str]] = None,
     initial_files: Optional[Dict[str, str]] = None,
-    question_type: Optional[str] = None
+    question_type: Optional[str] = None,
+    answers: Optional[List[str]] = None,
+    correct_yaml: Optional[str] = None
 ):
     """Adds or replaces a question in the database."""
     cursor = conn.cursor()
@@ -94,10 +96,15 @@ def add_question(
     validator_json = json.dumps(validator) if validator is not None else None
     pre_shell_cmds_json = json.dumps(pre_shell_cmds) if pre_shell_cmds is not None else None
     initial_files_json = json.dumps(initial_files) if initial_files is not None else None
+    answers_json = json.dumps(answers) if answers is not None else None
 
     cursor.execute("""
-        INSERT OR REPLACE INTO questions (id, prompt, response, category, source, validation_steps, validator, source_file, review, explanation, difficulty, pre_shell_cmds, initial_files, question_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO questions (
+            id, prompt, response, category, source,
+            validation_steps, validator, source_file, review,
+            explanation, difficulty, pre_shell_cmds, initial_files,
+            question_type, answers, correct_yaml
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
         prompt,
@@ -112,21 +119,22 @@ def add_question(
         difficulty,
         pre_shell_cmds_json,
         initial_files_json,
-        question_type
+        question_type,
+        answers_json,
+        correct_yaml
     ))
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     """Converts a database row into a question dictionary, deserializing JSON fields."""
     q_dict = dict(row)
-    # Deserialize validation_steps JSON into list, default to empty list
-    if q_dict.get('validation_steps'):
+    # Deserialize validation_steps JSON into list (leave as None if not set)
+    vs_raw = q_dict.get('validation_steps')
+    if vs_raw is not None:
         try:
-            q_dict['validation_steps'] = json.loads(q_dict['validation_steps'])
+            q_dict['validation_steps'] = json.loads(vs_raw)
         except (json.JSONDecodeError, TypeError):
             q_dict['validation_steps'] = []
-    else:
-        q_dict['validation_steps'] = []
     if q_dict.get('validator'):
         try:
             q_dict['validator'] = json.loads(q_dict['validator'])
@@ -152,6 +160,17 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
             q_dict['initial_files'] = {}
     else:
         q_dict['initial_files'] = {}
+    # Deserialize answers JSON into Python list
+    answers_data = q_dict.get('answers')
+    if answers_data:
+        try:
+            q_dict['answers'] = json.loads(answers_data)
+        except (json.JSONDecodeError, TypeError):
+            q_dict['answers'] = []
+    else:
+        q_dict['answers'] = []
+    # Extract correct_yaml column
+    q_dict['correct_yaml'] = q_dict.get('correct_yaml')
     # Map question_type column to 'type' key for compatibility
     q_dict['type'] = q_dict.get('question_type') or q_dict.get('type')
     return q_dict
