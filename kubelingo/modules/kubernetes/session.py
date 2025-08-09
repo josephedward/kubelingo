@@ -415,26 +415,21 @@ class NewSession(StudySession):
         # Manifest-based exercises: YAML editing
         add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
 
-        # Settings section
+        # Settings section (configuration)
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
 
-        # 2. Review Flagged
-        review_text = "Review Flagged Questions"
-        if all_flagged:
-            review_text = f"Review {len(all_flagged)} Flagged Questions"
-        choices.append({"name": review_text, "value": "review"})
-
-        # 3. View Session History
-        choices.append({"name": "View Session History", "value": "view_history"})
-        
-        # 4. Manage Configuration
-        choices.append({"name": "Manage Configuration", "value": "config"})
-
-        # 5. Help
+        # API Keys
+        choices.append({"name": "API Keys", "value": "api_keys"})
+        # Clusters configuration
+        choices.append({"name": "Clusters", "value": "clusters"})
+        # Questions management (Import/Generate)
+        choices.append({"name": "Questions", "value": "questions"})
+        # Troubleshooting tasks
+        choices.append({"name": "Troubleshooting", "value": "troubleshooting"})
+        # Help
         choices.append({"name": "Help", "value": "help"})
-
-        # 6. Exit App
+        # Exit App
         choices.append({"name": "Exit App", "value": "exit_app"})
 
         
@@ -687,17 +682,69 @@ class NewSession(StudySession):
                     self._show_help()
                     input("\nPress Enter to return to the menu...")
                     continue
-                # View past session history
-                if selected == "view_history":
-                    from kubelingo.cli import show_history
-                    show_history()
-                    input("\nPress Enter to return to the menu...")
+                # Settings submenus: API Keys, Clusters, Questions
+                if selected == "api_keys":
+                    from kubelingo.cli import handle_config_command
+                    sub = questionary.select(
+                        "Manage API Keys:",
+                        choices=[
+                            {"name": "View current OpenAI API key", "value": "view_openai"},
+                            {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                            questionary.Separator(),
+                            {"name": "Back", "value": "back"},
+                        ],
+                        use_indicator=True
+                    ).ask()
+                    if sub == "view_openai":
+                        handle_config_command(["config", "view", "openai"])
+                    elif sub == "set_openai":
+                        handle_config_command(["config", "set", "openai"])
+                    input("\nPress Enter to return to menu...")
                     continue
-
-                if selected == "config":
-                    from kubelingo.cli import manage_config_interactive
-                    manage_config_interactive()
-                    input("\nPress Enter to return to the menu...")
+                if selected == "clusters":
+                    from kubelingo.cli import handle_config_command
+                    sub = questionary.select(
+                        "Kubernetes Clusters:",
+                        choices=[
+                            {"name": "List configured clusters", "value": "list_clusters"},
+                            {"name": "Add a new cluster connection", "value": "add_cluster"},
+                            {"name": "Remove a cluster connection", "value": "remove_cluster"},
+                            questionary.Separator(),
+                            {"name": "Back", "value": "back"},
+                        ],
+                        use_indicator=True
+                    ).ask()
+                    if sub == "list_clusters":
+                        handle_config_command(["config", "list", "cluster"] )
+                    elif sub == "add_cluster":
+                        handle_config_command(["config", "add", "cluster"] )
+                    elif sub == "remove_cluster":
+                        handle_config_command(["config", "remove", "cluster"] )
+                    input("\nPress Enter to return to menu...")
+                    continue
+                if selected == "questions":
+                    from kubelingo.cli import import_json_to_db
+                    sub = questionary.select(
+                        "Questions Management:",
+                        choices=[
+                            {"name": "Import JSON quizzes into database", "value": "import_json"},
+                            {"name": "Generate Questions", "value": "generate_questions", "disabled": "Not implemented"},
+                            questionary.Separator(),
+                            {"name": "Back", "value": "back"},
+                        ],
+                        use_indicator=True
+                    ).ask()
+                    # Handle sub-menu selection
+                    if sub == "import_json":
+                        import_json_to_db()
+                        input("\nPress Enter to return to menu...")
+                    # Return to main menu for 'back' or any other selection
+                    continue
+                # Troubleshooting operations
+                if selected == "troubleshooting":
+                    from kubelingo.cli import manage_troubleshooting_interactive
+                    manage_troubleshooting_interactive()
+                    input("\nPress Enter to return to menu...")
                     continue
 
 
@@ -1191,9 +1238,18 @@ class NewSession(StudySession):
                                 interaction_mode = 'text_input'
 
                         if interaction_mode == 'vim':
-                            # Launch Vim for editing YAML manifests
+                            # Launch Vim for editing YAML manifests, injecting a default skeleton if none provided
                             editor = VimYamlEditor()
+                            # get any supplied starting YAML (may be empty)
                             starting_yaml = q.get('starting_yaml', '')
+                            # if no starting YAML, fall back to a basic manifest based on resource kind in prompt
+                            if not starting_yaml:
+                                prompt_lower = (q.get('prompt') or '').lower()
+                                if 'deployment' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('deployment')
+                                elif 'pod' in prompt_lower:
+                                    starting_yaml = editor.create_yaml_exercise('pod')
+                            # open the editor
                             parsed = editor.edit_yaml_with_vim(starting_yaml, prompt=q.get('prompt', ''))
                             if parsed is None:
                                 # Editing cancelled
