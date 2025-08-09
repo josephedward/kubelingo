@@ -6,6 +6,7 @@ except ImportError:
     yaml = None
 
 from kubelingo.utils.config import LOGS_DIR
+from kubelingo.utils.validation import is_yaml_subset
 
 # Directory to store per-question transcripts
 TRANSCRIPTS_DIR = os.path.join(LOGS_DIR, 'transcripts')
@@ -63,55 +64,6 @@ def load_transcript(qid: str) -> str:
         except Exception:
             return ''
     return ''
-
-def _is_yaml_subset(subset_yaml_str: str, superset_yaml_str: str) -> bool:
-    """
-    Checks if one YAML object is a structural subset of another.
-    It parses both YAML strings and recursively compares them.
-    - All keys and values in subset must exist in superset.
-    - Lists are handled specially: each item in subset list must find a matching
-      item in superset list. For list of dicts, matching is done by checking if
-      an item in superset is a superset of an item in subset.
-    - It ignores extra keys in superset.
-    """
-    try:
-        subset = yaml.safe_load(subset_yaml_str)
-        superset = yaml.safe_load(superset_yaml_str)
-    except yaml.YAMLError:
-        return False
-
-    if subset is None:
-        return True
-
-    if superset is None:
-        return False
-
-    def _compare(sub, super_):
-        if isinstance(sub, dict):
-            if not isinstance(super_, dict): return False
-            for k, v in sub.items():
-                if k not in super_ or not _compare(v, super_[k]):
-                    return False
-            return True
-        elif isinstance(sub, list):
-            if not isinstance(super_, list): return False
-            
-            super_copy = list(super_)
-            for sub_item in sub:
-                found_match = False
-                for i, super_item in enumerate(super_copy):
-                    if _compare(sub_item, super_item):
-                        super_copy.pop(i)
-                        found_match = True
-                        break
-                if not found_match:
-                    return False
-            return True
-        else:
-            return str(sub) == str(super_)
-
-    return _compare(subset, superset)
-
 
 def evaluate_transcript(transcript_path: str, validation_steps) -> (bool, list):
     """
@@ -195,7 +147,7 @@ def check_answer(q: dict) -> (bool, list):
             is_k8s_yaml = 'apiVersion:' in expected_text and 'kind:' in expected_text
 
             if is_k8s_yaml:
-                if _is_yaml_subset(expected_text, transcript):
+                if is_yaml_subset(expected_text, transcript):
                     passed = True
                 else:
                     reason = "YAML content does not match the required structure."

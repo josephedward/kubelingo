@@ -6,6 +6,7 @@ import difflib
 
 from kubelingo.utils.validation import validate_yaml_structure, is_yaml_subset
 from kubelingo.utils.ui import Fore, Style, yaml
+from kubelingo.modules.kubernetes.answer_checker import check_answer, save_transcript
 
 
 class VimYamlEditor:
@@ -244,12 +245,13 @@ class VimYamlEditor:
     def run_yaml_edit_question(self, question, index=None):
         """
         Runs a single YAML editing exercise with retry logic.
-        question should have 'prompt', 'starting_yaml', 'correct_yaml', 'explanation'.
+        question should have 'prompt', 'starting_yaml', 'correct_yaml' or 'validation_steps', and 'explanation'.
         Returns True if the user produces expected YAML, False otherwise.
         """
         prompt = question.get('prompt', '')
         starting = question.get('starting_yaml')
         expected_raw = question.get('correct_yaml', '') or question.get('answer', '')
+        validation_steps = question.get('validation_steps') or question.get('validations')
 
         if starting is None or (isinstance(starting, str) and not starting.strip()):
             prompt_lower = prompt.lower()
@@ -273,12 +275,12 @@ class VimYamlEditor:
             result_obj = self.edit_yaml_with_vim(starting, f"exercise-{index}.yaml", prompt=prompt)
             if result_obj is None:
                 return False
-            # Serialize edited content back to YAML string
+
             try:
                 user_yaml_str = yaml.safe_dump(result_obj, default_flow_style=False)
             except Exception:
                 user_yaml_str = str(result_obj)
-            # 1) Validate syntax & basic structure
+
             validation = validate_yaml_structure(user_yaml_str)
             for err in validation.get('errors', []):
                 print(f"{Fore.RED}YAML validation error: {err}{Style.RESET_ALL}")
@@ -288,43 +290,68 @@ class VimYamlEditor:
                 print(f"{Fore.RED}YAML structure invalid. Please correct errors in Vim and retry.{Style.RESET_ALL}")
                 starting = user_yaml_str
                 continue
-            # 2) Compare against expected manifest using subset matching
+
             is_correct = False
-            if expected_raw:
+            details = []
+            if question.get('id'):
+                save_transcript(question['id'], user_yaml_str)
+
+            if validation_steps:
+                is_correct, details = check_answer(question)
+            elif expected_raw:
                 is_correct = is_yaml_subset(subset_yaml_str=expected_raw, superset_yaml_str=user_yaml_str)
             else:
                 print(f"{Fore.YELLOW}Warning: No correct answer defined. Skipping check.{Style.RESET_ALL}")
                 is_correct = True
+
             if is_correct:
                 print("✅ Correct!")
                 if question.get('explanation'):
                     print(f"{Fore.CYAN}Explanation: {question['explanation']}{Style.RESET_ALL}")
+                if details:
+                    print(f"\n{Fore.CYAN}--- Validation Details ---{Style.RESET_ALL}")
+                    for detail in details:
+                        color = Fore.GREEN if detail.startswith("PASS") else Fore.YELLOW
+                        print(f"{color}{detail}{Style.RESET_ALL}")
                 return True
-            # Incorrect: show diff and retry prompt
-            print("❌ YAML does not match expected output.")
-            diff = difflib.unified_diff(
-                expected_raw.strip().splitlines(keepends=True),
-                user_yaml_str.strip().splitlines(keepends=True),
-                fromfile='expected.yaml', tofile='your-answer.yaml'
-            )
-            diff_text = ''.join(diff)
-            if diff_text:
-                print(f"{Fore.CYAN}Differences (-expected, +yours):{Style.RESET_ALL}")
-                for line in diff_text.splitlines():
-                    if line.startswith('+'):
-                        print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
-                    elif line.startswith('-'):
-                        print(f"{Fore.RED}{line}{Style.RESET_ALL}")
-                    elif line.startswith('@@'):
-                        print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
-                    else:
-                        print(line)
+
+            # Incorrect: show diff or validation errors and retry
+            if details:
+                print("❌ Validation checks failed.")
+                print(f"\n{Fore.CYAN}--- Validation Failures ---{Style.RESET_ALL}")
+                for detail in details:
+                    if detail.startswith("FAIL"):
+                        print(f"{Fore.RED}{detail}{Style.RESET_ALL}")
+            elif expected_raw:
+                print("❌ YAML does not match expected output.")
+                diff = difflib.unified_diff(
+                    expected_raw.strip().splitlines(keepends=True),
+                    user_yaml_str.strip().splitlines(keepends=True),
+                    fromfile='expected.yaml', tofile='your-answer.yaml'
+                )
+                diff_text = ''.join(diff)
+                if diff_text:
+                    print(f"{Fore.CYAN}Differences (-expected, +yours):{Style.RESET_ALL}")
+                    for line in diff_text.splitlines():
+                        if line.startswith('+'):
+                            print(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
+                        elif line.startswith('-'):
+                            print(f"{Fore.RED}{line}{Style.RESET_ALL}")
+                        elif line.startswith('@@'):
+                            print(f"{Fore.CYAN}{line}{Style.RESET_ALL}")
+                        else:
+                            print(line)
+            else:
+                 print("❌ YAML does not match expected output.")
+
             try:
                 retry = input("Try again? (y/N): ").strip().lower().startswith('y')
             except (EOFError, KeyboardInterrupt):
                 retry = False
+
             if not retry:
-                print("\nExpected solution:")
-                print(expected_raw)
+                if expected_raw:
+                    print("\nExpected solution:")
+                    print(expected_raw)
                 return False
             starting = user_yaml_str
