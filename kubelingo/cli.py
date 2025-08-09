@@ -433,15 +433,19 @@ def restore_yaml_from_backup():
         alt_backup = None
         if git_root:
             alt_backup = os.path.join(git_root, 'question-data', 'yaml-bak')
-        # Fallback to cwd if git fails
-        if not alt_backup or not (os.path.isdir(alt_backup) and os.listdir(alt_backup)):
-            alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
-        if os.path.isdir(alt_backup) and os.listdir(alt_backup):
+
+        if alt_backup and os.path.isdir(alt_backup) and os.listdir(alt_backup):
             backup_dir = alt_backup
             print(f"{Fore.CYAN}Using backup directory: {backup_dir}{Style.RESET_ALL}")
         else:
-            print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found or empty. Nothing to restore.{Style.RESET_ALL}")
-            return
+            # Fallback to cwd if git-based path fails
+            alt_backup = os.path.join(os.getcwd(), 'question-data', 'yaml-bak')
+            if os.path.isdir(alt_backup) and os.listdir(alt_backup):
+                backup_dir = alt_backup
+                print(f"{Fore.CYAN}Using backup directory: {backup_dir}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.YELLOW}Backup directory '{YAML_QUIZ_BACKUP_DIR}' not found or empty. Nothing to restore.{Style.RESET_ALL}")
+                return
 
     # Determine destination directory (primary or fallback via git or local repo)
     dest_dir = YAML_QUIZ_DIR
@@ -499,16 +503,21 @@ def restore_db():
         alt_backup = None
         if git_root:
             alt_backup = os.path.join(git_root, 'question-data-backup', os.path.basename(backup_db_path))
-        if not alt_backup or not os.path.isfile(alt_backup):
-            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db_path))
-        if os.path.isfile(alt_backup):
+
+        if alt_backup and os.path.isfile(alt_backup):
             backup_db_path = alt_backup
             print(f"{Fore.CYAN}Found backup database at: {backup_db_path}{Style.RESET_ALL}")
         else:
-            print(f"{Fore.RED}Backup DB not found at '{BACKUP_DATABASE_FILE}' or '{alt_backup}'.{Style.RESET_ALL}")
-            if git_root:
-                print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
-            return
+            # Fallback to cwd if git-based path fails
+            alt_backup = os.path.join(os.getcwd(), 'question-data-backup', os.path.basename(backup_db_path))
+            if os.path.isfile(alt_backup):
+                backup_db_path = alt_backup
+                print(f"{Fore.CYAN}Found backup database at: {backup_db_path}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}Backup DB not found at '{BACKUP_DATABASE_FILE}' or '{alt_backup}'.{Style.RESET_ALL}")
+                if git_root:
+                    print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
+                return
 
     # Ensure live DB and its tables are created before trying to merge.
     init_db()
