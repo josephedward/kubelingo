@@ -308,6 +308,55 @@ class NewSession(StudySession):
             print(f"\n{Fore.RED}An error occurred during the study session: {e}{Style.RESET_ALL}")
 
         input("\nPress Enter to return to the menu...")
+    
+    def _run_yaml_editing_mode(self, args):
+        """
+        Runs the YAML editing exercises defined in the YAML questions file.
+        """
+        from kubelingo.utils.config import YAML_QUESTIONS_FILE
+        import yaml as pyyaml
+        from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
+        # Load YAML quiz data
+        try:
+            with open(YAML_QUESTIONS_FILE, 'r', encoding='utf-8') as f:
+                data = pyyaml.safe_load(f)
+        except Exception as e:
+            print(f"Failed to load YAML quiz data: {e}")
+            return
+        # Flatten questions for yaml_edit and standalone entries
+        prompts = []
+        for section in data or []:
+            if isinstance(section, dict) and section.get('prompts'):
+                for item in section.get('prompts', []):
+                    if item.get('question_type') == 'yaml_edit':
+                        prompts.append(item)
+            elif isinstance(section, dict) and section.get('prompt') and 'answer' in section:
+                prompts.append({
+                    'prompt': section['prompt'],
+                    'starting_yaml': section.get('starting_yaml', ''),
+                    'correct_yaml': section.get('correct_yaml', section.get('answer', '')),
+                    'explanation': section.get('explanation', '')
+                })
+        total = len(prompts)
+        if total == 0:
+            print("No YAML editing exercises found.")
+            return
+        print("=== Kubelingo YAML Editing Mode ===")
+        editor = VimYamlEditor()
+        for idx, q in enumerate(prompts, start=1):
+            prompt_text = q.get('prompt', '').strip()
+            print(f"Exercise {idx}/{total}: {prompt_text}")
+            # Run the editing exercise
+            editor.run_yaml_edit_question(q, index=idx)
+            # Prompt to continue to next exercise
+            if idx < total:
+                try:
+                    cont = input("Continue? (y/N): ").strip().lower().startswith('y')
+                except (EOFError, KeyboardInterrupt):
+                    cont = False
+                if not cont:
+                    break
+        print("=== YAML Editing Session Complete ===")
 
     def _build_interactive_menu_choices(self):
         """Helper to construct the list of choices for the interactive menu."""
@@ -355,11 +404,29 @@ class NewSession(StudySession):
                 
                 choices.append(choice_item)
 
-        add_quiz_group("Core Skills", CORE_SKILL_QUIZZES)
-        add_quiz_group("Kubectl by Topic", KUBECTL_TOPIC_QUIZZES)
-        
+        # Basic exercises: foundational Q&A and Socratic Tutor
+        basic_quiz_keys = ("General Operations", "Resource Types Reference")
+        basic_quizzes = {k: v for k, v in KUBECTL_TOPIC_QUIZZES.items()
+                         if k in basic_quiz_keys}
+        add_quiz_group("Basic Exercises", basic_quizzes)
+        # Add Socratic Tutor under Basic exercises
+        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
+
+        # Manifest-based exercises: YAML and Vim editing
+        manifest_quizzes = {k: v for k, v in CORE_SKILL_QUIZZES.items()
+                             if k in ("Vim Practice", "YAML Editing Practice")}
+        add_quiz_group("Manifest-Based Exercises", manifest_quizzes)
+
+        # Command-based exercises: Helm plus kubectl topics (excluding basic group)
+        command_quizzes = {k: v for k, v in CORE_SKILL_QUIZZES.items()
+                             if k not in ("Vim Practice", "YAML Editing Practice")}
+        command_quizzes.update({k: v for k, v in KUBECTL_TOPIC_QUIZZES.items()
+                                if k not in basic_quiz_keys})
+        add_quiz_group("Command-Based Exercises", command_quizzes)
+
+        # Settings section
         if questionary:
-            choices.append(questionary.Separator("--- Session Management ---"))
+            choices.append(questionary.Separator("--- Settings ---"))
 
         # 2. Review Flagged
         review_text = "Review Flagged Questions"
@@ -367,8 +434,6 @@ class NewSession(StudySession):
             review_text = f"Review {len(all_flagged)} Flagged Questions"
         choices.append({"name": review_text, "value": "review"})
 
-        # 3. Study Mode
-        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
 
         # 4. View Session History
         choices.append({"name": "View Session History", "value": "view_history"})
@@ -1051,7 +1116,9 @@ class NewSession(StudySession):
                             return False
 
                     if action == "back":
-                        return
+                        # User chose to exit the current quiz; return to quiz selection menu
+                        quiz_backed_out = True
+                        break
                     
                     if action == "next":
                         current_question_index += 1
