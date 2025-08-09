@@ -39,9 +39,7 @@ def import_questions(conn, source_dir: Path):
             if not questions_data:
                 continue
             for q_dict in questions_data:
-                # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
-                if 'type' in q_dict:
-                    q_dict['question_type'] = q_dict.pop('type')
+                # The 'type' field in YAML maps directly to the 'type' column in the DB.
                 add_question(conn, **q_dict)
                 question_count += 1
     

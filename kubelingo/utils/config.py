@@ -35,11 +35,6 @@ QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
 # These paths are preserved to allow the one-time consolidation script to find the old files.
 # They are not used by the main application or build script.
-JSON_QUIZ_DIR       = os.path.join(DATA_DIR, 'json')
-MD_QUIZ_DIR         = os.path.join(DATA_DIR, 'md')
-YAML_QUIZ_DIR       = os.path.join(DATA_DIR, 'yaml')
-YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-MANIFESTS_QUIZ_DIR  = os.path.join(DATA_DIR, 'manifests')
 
 
 # --- Database ---
