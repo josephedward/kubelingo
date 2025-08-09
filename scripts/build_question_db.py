@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
 """
-Builds the Kubelingo master question database from all source YAML files.
-
-This script provides the canonical workflow for developers to create the distributable
-database from the consolidated YAML question sources. It performs these key actions:
-
-1.  Clears the existing live user database (`~/.kubelingo/kubelingo.db`) to ensure a fresh build.
-2.  Discovers all YAML files in the unified backup directory (`question-data/yaml-backups`).
-3.  Loads all questions from these files and inserts them into the live database.
-4.  Creates two immutable, version-controlled backups of the newly populated database:
-    - `question-data-backup/kubelingo_master.db` (primary)
-    - `question-data-backup/kubelingo_master.db.bak` (secondary)
-
-These backup files are used to seed new installations of the application.
+Builds the Kubelingo master question database from the consolidated YAML files
+in the 'question-data/questions' directory.
 """
 import os
 import shutil
 import sys
-from dataclasses import asdict
+import yaml
 from pathlib import Path
 
 # Ensure the project root is in the Python path
@@ -25,82 +14,43 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 from kubelingo.database import add_question, get_db_connection, init_db
-from kubelingo.modules.json_loader import JSONLoader
-from kubelingo.modules.md_loader import MDLoader
-from kubelingo.modules.yaml_loader import YAMLLoader
-from kubelingo.question import Question
 from kubelingo.utils.config import (
     DATABASE_FILE,
-    JSON_QUIZ_DIR,
-    MD_QUIZ_DIR,
-    YAML_QUIZ_DIR,
-    MANIFESTS_DIR,
+    QUESTIONS_DIR,
     MASTER_DATABASE_FILE,
     SECONDARY_MASTER_DATABASE_FILE,
 )
 
+def import_questions(conn, source_dir: Path):
+    """Loads all questions from YAML files in the source directory and adds them to the database."""
+    print(f"Scanning for YAML files in '{source_dir}'...")
+    files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
 
-def import_all_questions(conn):
-    """
-    Scans all source directories (JSON, MD, YAML) for questions and adds them to the database.
-    """
-    loaders = {
-        "JSON": (JSONLoader(), Path(JSON_QUIZ_DIR)),
-        "Markdown": (MDLoader(), Path(MD_QUIZ_DIR)),
-        "YAML": (YAMLLoader(), Path(YAML_QUIZ_DIR)),
-        "Manifests (YAML)": (YAMLLoader(), Path(MANIFESTS_DIR)),
-    }
+    if not files:
+        print(f"Error: No YAML files found in '{source_dir}'.")
+        print("Please run 'python3 scripts/consolidate_questions.py' first.")
+        return 0
 
-    total_questions_imported = 0
-    all_source_dirs_exist = True
-
-    for name, (loader, source_dir) in loaders.items():
-        if not source_dir.is_dir():
-            print(f"Warning: Source directory for {name} not found, skipping: {source_dir}")
-            all_source_dirs_exist = False
-            continue
-
-        print(f"\nProcessing {name} questions from '{source_dir}'...")
-        if name == "JSON":
-            files = list(source_dir.glob("**/*.json"))
-        elif name == "Markdown":
-            files = list(source_dir.glob("**/*.md"))
-        else:
-            files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
-        
-        if not files:
-            print(f"  No files found in '{source_dir}'.")
-            continue
-
-        for file_path in files:
-            print(f"  - Loading file: {file_path.name}")
-            try:
-                questions: list[Question] = loader.load_file(str(file_path))
-                if not questions:
-                    continue
-                for q in questions:
-                    q_dict = asdict(q)
-                    # The Question dataclass uses 'type', but the DB schema and
-                    # add_question function use 'question_type'. We remap it here.
-                    if 'type' in q_dict:
-                        q_dict['question_type'] = q_dict.pop('type')
-                    add_question(conn, **q_dict)
-                    total_questions_imported += 1
-            except Exception as e:
-                print(f"    Error processing file {file_path.name}: {e}")
-
-    if not all_source_dirs_exist:
-        print("\nWarning: One or more source directories were not found. The database may be incomplete.")
+    question_count = 0
+    for file_path in files:
+        print(f"  - Processing '{file_path.name}'...")
+        with open(file_path, 'r', encoding='utf-8') as f:
+            questions_data = yaml.safe_load(f)
+            if not questions_data:
+                continue
+            for q_dict in questions_data:
+                # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
+                if 'type' in q_dict:
+                    q_dict['question_type'] = q_dict.pop('type')
+                add_question(conn, **q_dict)
+                question_count += 1
     
     conn.commit()
-    print(f"\nImport complete. Added/updated {total_questions_imported} questions.")
-    return total_questions_imported
-
+    print(f"\nImport complete. Added/updated {question_count} questions.")
+    return question_count
 
 def backup_database():
-    """
-    Backs up the live database to create the immutable, version-controlled master copies.
-    """
+    """Backs up the live database to create the master copies."""
     live_db_path = Path(DATABASE_FILE)
     backup_master_path = Path(MASTER_DATABASE_FILE)
     backup_secondary_path = Path(SECONDARY_MASTER_DATABASE_FILE)
@@ -111,25 +61,24 @@ def backup_database():
 
     print(f"\nBacking up live database from '{live_db_path}'...")
     backup_master_path.parent.mkdir(exist_ok=True)
-
-    # Create primary master backup
     shutil.copy(live_db_path, backup_master_path)
     print(f"  - Created primary master backup: '{backup_master_path}'")
-
-    # Create secondary master backup
     shutil.copy(live_db_path, backup_secondary_path)
     print(f"  - Created secondary master backup: '{backup_secondary_path}'")
-
-    print("\nBackup complete. These files will be used to seed new application installations.")
-
+    print("\nBackup complete.")
 
 def main():
-    """
-    Main function to run the import and backup process.
-    """
+    """Main function to run the build and backup process."""
     print("--- Building Kubelingo Master Question Database ---")
 
-    # Step 1: Clear the existing live database for a clean build.
+    source_path = Path(QUESTIONS_DIR)
+    if not source_path.is_dir() or not any(source_path.iterdir()):
+        print(f"\nError: Consolidated questions directory not found or is empty.")
+        print(f"Path: '{source_path}'")
+        print("Please run the consolidation script first:")
+        print("  python3 scripts/consolidate_questions.py")
+        sys.exit(1)
+
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
     if os.path.exists(DATABASE_FILE):
         os.remove(DATABASE_FILE)
@@ -137,16 +86,14 @@ def main():
     init_db()
     print("  - Initialized new empty database.")
 
-    # Step 2: Import all questions from all scattered source directories.
-    print(f"\nStep 2: Importing all questions from source directories...")
+    print(f"\nStep 2: Importing questions from '{source_path}'...")
     conn = get_db_connection()
     questions_imported = 0
     try:
-        questions_imported = import_all_questions(conn)
+        questions_imported = import_questions(conn, source_path)
     finally:
         conn.close()
 
-    # Step 3: Create backups if import was successful.
     if questions_imported > 0:
         print(f"\nStep 3: Creating master database backups...")
         backup_database()
@@ -154,7 +101,6 @@ def main():
         print("\nNo questions were imported. Skipping database backup.")
 
     print("\n--- Build process finished. ---")
-
 
 if __name__ == "__main__":
     main()

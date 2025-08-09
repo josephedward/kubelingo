@@ -26,12 +26,20 @@ except Exception:
 
 # Data directories for built-in quiz files are located at the project root.
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
-# Directories for question data formats
-JSON_QUIZ_DIR = os.path.join(DATA_DIR, 'json')
-MD_QUIZ_DIR = os.path.join(DATA_DIR, 'md')
-YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+
+# The single, consolidated directory for all question data after running the consolidation script.
+# The build_question_db.py script will use this as the sole source.
+QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
+
+
+# --- Legacy Data Directories (used ONLY by the consolidation script) ---
+# These paths are preserved to allow the one-time consolidation script to find the old files.
+# They are not used by the main application or build script.
+JSON_QUIZ_DIR       = os.path.join(DATA_DIR, 'json')
+MD_QUIZ_DIR         = os.path.join(DATA_DIR, 'md')
+YAML_QUIZ_DIR       = os.path.join(DATA_DIR, 'yaml')
 YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-MANIFESTS_QUIZ_DIR = os.path.join(DATA_DIR, 'manifests')
+MANIFESTS_QUIZ_DIR  = os.path.join(DATA_DIR, 'manifests')
 
 
 # --- Database ---
