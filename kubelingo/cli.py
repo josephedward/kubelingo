@@ -478,6 +478,56 @@ def restore_yaml_from_backup():
 
     print(f"\n{Fore.GREEN}Restore complete. Restored {restored_count} files to '{dest_dir}'.{Style.RESET_ALL}")
     print(f"{Fore.YELLOW}You should now run 'kubelingo migrate-yaml' to load these questions into the database.{Style.RESET_ALL}")
+   
+def restore_all():
+    """Performs full restore of primary DB, YAML and JSON quizzes into the database."""
+    # Locate project and data directories
+    repo_root = Path(__file__).resolve().parent.parent
+    qd = repo_root / 'question-data'
+    # Restore primary database from original backup
+    print(f"{Fore.CYAN}Restoring primary database from original backup...{Style.RESET_ALL}")
+    from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
+    os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
+    try:
+        shutil.copy2(BACKUP_DATABASE_FILE, DATABASE_FILE)
+        print(f"{Fore.GREEN}Copied {BACKUP_DATABASE_FILE} to {DATABASE_FILE}.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
+    # Restore JSON quizzes
+    print(f"{Fore.CYAN}Restoring JSON quizzes...{Style.RESET_ALL}")
+    json_src_dirs = [qd / 'json', qd / 'archive' / 'json']
+    json_dst = qd / 'json'
+    json_dst.mkdir(parents=True, exist_ok=True)
+    for src in json_src_dirs:
+        if src and src.exists():
+            for f in src.glob('*.json'):
+                dst = json_dst / f.name
+                if not dst.exists():
+                    shutil.copy2(str(f), str(dst))
+    # Restore YAML quizzes
+    print(f"{Fore.CYAN}Restoring YAML quizzes...{Style.RESET_ALL}")
+    yaml_src_dirs = [qd / 'yaml-bak', qd / 'manifests', qd / 'archive' / 'yaml-bak', qd / 'archive' / 'manifests']
+    yaml_dst = qd / 'yaml'
+    yaml_dst.mkdir(parents=True, exist_ok=True)
+    for src in yaml_src_dirs:
+        if src and src.exists():
+            for f in src.glob('*.yaml'):
+                dst = yaml_dst / f.name
+                if not dst.exists():
+                    shutil.copy2(str(f), str(dst))
+    # Import all YAML questions into DB
+    print(f"{Fore.CYAN}Importing YAML questions into database...{Style.RESET_ALL}")
+    try:
+        import_json = False
+        # Use built-in importer
+        from kubelingo.cli import import_yaml_to_db, import_json_to_db
+        import_yaml_to_db()
+        # Import JSON quizzes
+        print(f"{Fore.CYAN}Importing JSON questions into database...{Style.RESET_ALL}")
+        import_json_to_db()
+    except Exception as e:
+        print(f"{Fore.RED}Error during import: {e}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}Full restore complete. Your primary DB and question bank are now up-to-date.{Style.RESET_ALL}")
 
 
 
@@ -487,7 +537,7 @@ def restore_db():
     This is an additive process: it inserts new questions from the backup and
     updates existing ones if they share the same ID. It never deletes data.
     """
-    import sqlite3
+    import shutil
     from kubelingo.database import init_db
     from kubelingo.utils.config import BACKUP_DATABASE_FILE, DATABASE_FILE
 
@@ -519,39 +569,50 @@ def restore_db():
                     print(f"{Fore.YELLOW}Hint: Ensure 'question-data-backup/kubelingo_original.db' exists in your repo root ({git_root}).{Style.RESET_ALL}")
                 return
 
-    # Ensure live DB and its tables are created before trying to merge.
-    init_db()
-    live_db_path = DATABASE_FILE
-
+    # Simply overwrite the live database with the backup copy
+    from kubelingo.utils.config import DATABASE_FILE
+    os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
     try:
-        conn = sqlite3.connect(live_db_path)
-        cursor = conn.cursor()
-
-        # Get count before merge
-        cursor.execute("SELECT COUNT(*) FROM questions")
-        count_before = cursor.fetchone()[0]
-
-        # Attach backup DB and merge questions using INSERT OR REPLACE.
-        # This adds new questions and updates existing ones based on primary key (id).
-        cursor.execute("ATTACH DATABASE ? AS backup_db", (backup_db_path,))
-        cursor.execute("INSERT OR REPLACE INTO main.questions SELECT * FROM backup_db.questions")
-        conn.commit()
-        cursor.execute("DETACH DATABASE backup_db")
-
-        # Get count after merge
-        cursor.execute("SELECT COUNT(*) FROM questions")
-        count_after = cursor.fetchone()[0]
-        conn.close()
-
-        added_or_updated = count_after - count_before
-        print(f"{Fore.GREEN}Successfully merged questions from backup.{Style.RESET_ALL}")
-        if added_or_updated > 0:
-            print(f"  - Added or updated {added_or_updated} question(s).")
-        else:
-            print(f"  - Your database is already up-to-date with the backup.")
-        print(f"  - Total questions in your database: {count_after}.")
+        # Remove existing live DB so copy can succeed
+        if os.path.exists(DATABASE_FILE):
+            os.remove(DATABASE_FILE)
+    except Exception:
+        pass
+    try:
+        shutil.copy2(backup_db_path, DATABASE_FILE)
+        print(f"{Fore.GREEN}Restored questions database to '{DATABASE_FILE}'.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Failed to merge database: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
+
+def restore_all():
+    """
+    Full restore: merge backup DB, restore all YAML quizzes, migrate YAML and JSON quizzes into the database.
+    """
+    # 1) Restore questions DB from backup
+    restore_db()
+    # 2) Copy all backed-up YAML quizzes into active YAML directory
+    from kubelingo.utils.config import YAML_QUIZ_DIR, YAML_QUIZ_BACKUP_DIR, DATA_DIR
+    import shutil
+    dest = YAML_QUIZ_DIR
+    os.makedirs(dest, exist_ok=True)
+    # Backup folder and manifests folder
+    paths = [YAML_QUIZ_BACKUP_DIR, os.path.join(DATA_DIR, 'manifests')]
+    print(f"{Fore.CYAN}Copying YAML quizzes into active dir: {dest}{Style.RESET_ALL}")
+    for p in paths:
+        if os.path.isdir(p):
+            for fname in os.listdir(p):
+                if fname.lower().endswith(('.yaml', '.yml')):
+                    src = os.path.join(p, fname)
+                    dst = os.path.join(dest, fname)
+                    print(f"  - {fname}")
+                    shutil.copy2(src, dst)
+    # 3) Load YAML quizzes into DB
+    print(f"{Fore.CYAN}Migrating YAML quizzes into database...{Style.RESET_ALL}")
+    migrate_yaml_to_db()
+    # 4) Load JSON quizzes into DB
+    print(f"{Fore.CYAN}Importing JSON quizzes into database...{Style.RESET_ALL}")
+    import_json_to_db()
+    print(f"{Fore.GREEN}Full restore complete.{Style.RESET_ALL}")
 
 def find_duplicates_cmd(cmd):
     """List and optionally delete duplicate quiz questions in the database."""
@@ -1058,6 +1119,13 @@ def main():
                 return
             elif cmd_name == 'restore-yaml':
                 restore_yaml_from_backup()
+                return
+            elif cmd_name == 'restore-all':
+                restore_all()
+                return
+            elif cmd_name == 'restore-all':
+                # Full recovery: restore DB, restore YAML & JSON quizzes
+                restore_all()
                 return
             elif cmd_name == 'questions':
                 manage_questions_interactive()

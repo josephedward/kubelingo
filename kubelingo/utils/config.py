@@ -98,12 +98,14 @@ def get_cluster_configs() -> Dict[str, Any]:
 
 # --- Quiz Data Files ---
 
-# Built-in YAML-edit quiz data files are stored in the question-data 'yaml' directory.
+# Built-in YAML quiz data files directory (primary backup for all questions)
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 # Default YAML quiz file for editing mode
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-YAML_QUIZ_BACKUP_DIR = os.path.join(DATA_DIR, 'yaml-bak')
-MANIFESTS_QUIZ_DIR = os.path.join(DATA_DIR, 'manifests')
+# Backup YAML directory no longer used (consolidated into yaml/)
+YAML_QUIZ_BACKUP_DIR = ''  # legacy 'yaml-bak' retired
+# Manifest directory retired; all manifests consolidated into YAML quiz directory
+MANIFESTS_QUIZ_DIR = ''
 # Default JSON quiz file for command quiz mode (legacy loader)
 DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'json', 'kubernetes.json')
 
