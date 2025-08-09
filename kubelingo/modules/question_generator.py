@@ -8,8 +8,7 @@ import re
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
-from kubelingo.utils.validation import validate_kubectl_syntax
-from kubelingo.utils.validation import validate_prompt_completeness
+from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
 
 logger = logging.getLogger(__name__)
@@ -31,6 +30,7 @@ class AIQuestionGenerator:
         subject: str,
         num_questions: int = 1,
         base_questions: List[Question] = None,
+        category: str = "Command",
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -38,13 +38,26 @@ class AIQuestionGenerator:
         """
         # Build few-shot prompt
         prompt_lines = ["You are a Kubernetes instructor."]
-        if base_questions:
-            prompt_lines.append("Here are example questions and answers:")
-            for ex in base_questions:
-                prompt_lines.append(f"- Prompt: {ex.prompt}")
-                prompt_lines.append(f"  Response: {ex.response}")
+        q_type = "command"
+        response_description = "the kubectl command"
+
+        if category == "Manifest":
+            q_type = "yaml_author"
+            prompt_lines.append("Your task is to create questions that require writing a full Kubernetes YAML manifest.")
+            response_description = "the full, correct YAML manifest"
+        elif category == "Basic":
+            q_type = "socratic"
+            prompt_lines.append("Your task is to create conceptual questions about Kubernetes.")
+            response_description = "a concise, correct answer for reference"
+        else:  # Command
+            if base_questions:
+                prompt_lines.append("Here are example questions and answers:")
+                for ex in base_questions:
+                    prompt_lines.append(f"- Prompt: {ex.prompt}")
+                    prompt_lines.append(f"  Response: {ex.response}")
+
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
-        prompt_lines.append("Return ONLY a JSON array of objects with 'prompt' and 'response' keys.")
+        prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt' and 'response' keys. The 'response' should contain {response_description}.")
         ai_prompt = "\n".join(prompt_lines)
         logger.debug("AI few-shot prompt: %s", ai_prompt)
 
@@ -98,10 +111,21 @@ class AIQuestionGenerator:
                 r = obj.get("response") or obj.get("answer") or obj.get("a")
                 if not p or not r:
                     continue
-                if not validate_kubectl_syntax(r).get("valid"):
-                    continue
-                if not validate_prompt_completeness(r, p).get("valid"):
-                    continue
+
+                if q_type == "command":
+                    if not validate_kubectl_syntax(r).get("valid"):
+                        continue
+                    if not validate_prompt_completeness(r, p).get("valid"):
+                        continue
+                elif q_type == "yaml_author":
+                    if not validate_yaml_structure(r).get("valid"):
+                        logger.warning(f"Skipping AI-generated YAML question with invalid syntax: {p}")
+                        continue
+
+                validator_dict = {"type": "ai", "expected": r}
+                if q_type == "yaml_author":
+                    validator_dict = {"type": "yaml_subset", "expected": r}
+
                 qid = f"ai-gen-{uuid.uuid4()}"
                 # Create question object
                 question = Question(
@@ -109,8 +133,8 @@ class AIQuestionGenerator:
                     prompt=p,
                     category=subject,
                     response=r,
-                    type="command",
-                    validator={"type": "ai", "expected": r},
+                    type=q_type,
+                    validator=validator_dict,
                 )
                 valid_questions.append(question)
                 # Persist the generated question to the database

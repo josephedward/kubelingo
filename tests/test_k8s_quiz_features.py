@@ -1,5 +1,6 @@
 import logging
 import unittest
+import json
 from argparse import Namespace
 from io import StringIO
 from unittest.mock import patch, MagicMock
@@ -10,6 +11,7 @@ from kubelingo.question import Question
 # These imports are based on the provided file summaries.
 # They might need to be adjusted if the structure is different.
 from kubelingo.modules.kubernetes.session import NewSession
+from kubelingo.modules.question_generator import AIQuestionGenerator
 
 
 class KubernetesQuizFeaturesTest(unittest.TestCase):
@@ -197,3 +199,75 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         self.assertIn("File: dummy.yaml, Questions: 3", output)
         self.assertIn("Question 1/3", output)
         mock_prompt.assert_called_once()
+
+    @patch('builtins.print')
+    @patch('kubelingo.modules.question_generator.add_question')
+    @patch('openai.ChatCompletion.create')
+    def test_ai_generator_can_create_manifest_questions(self, mock_create, mock_add_question, mock_print):
+        # Arrange
+        ai_response_json = json.dumps([
+            {
+                "prompt": "Create a ConfigMap named 'my-cm' with data 'key: value'.",
+                "response": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-cm\ndata:\n  key: value"
+            }
+        ])
+        # This test patches openai.ChatCompletion.create, which requires the 'openai' package to be installed in the test environment.
+        mock_create.return_value.choices = [MagicMock(message=MagicMock(content=ai_response_json))]
+
+        generator = AIQuestionGenerator()
+
+        # Act
+        questions = generator.generate_questions(
+            subject="ConfigMap",
+            num_questions=1,
+            category="Manifest"
+        )
+
+        # Assert
+        self.assertEqual(len(questions), 1)
+        q = questions[0]
+        self.assertEqual(q.type, "yaml_author")
+        self.assertIn("apiVersion: v1", q.response)
+        self.assertEqual(q.validator.get("type"), "yaml_subset")
+
+        # Check that the AI prompt was constructed correctly
+        mock_create.assert_called_once()
+        call_args = mock_create.call_args.kwargs
+        system_prompt = call_args['messages'][0]['content']
+        self.assertIn("YAML manifest", system_prompt)
+
+    @patch('builtins.print')
+    @patch('kubelingo.modules.question_generator.add_question')
+    @patch('openai.ChatCompletion.create')
+    def test_ai_generator_can_create_socratic_questions(self, mock_create, mock_add_question, mock_print):
+        # Arrange
+        ai_response_json = json.dumps([
+            {
+                "prompt": "What is the purpose of a Service in Kubernetes?",
+                "response": "A Service in Kubernetes is an abstract way to expose an application running on a set of Pods as a network service."
+            }
+        ])
+        # This test patches openai.ChatCompletion.create, which requires the 'openai' package to be installed in the test environment.
+        mock_create.return_value.choices = [MagicMock(message=MagicMock(content=ai_response_json))]
+
+        generator = AIQuestionGenerator()
+
+        # Act
+        questions = generator.generate_questions(
+            subject="Service",
+            num_questions=1,
+            category="Basic"
+        )
+
+        # Assert
+        self.assertEqual(len(questions), 1)
+        q = questions[0]
+        self.assertEqual(q.type, "socratic")
+        self.assertIn("expose an application", q.response)
+        self.assertEqual(q.validator.get("type"), "ai")
+
+        # Check that the AI prompt was constructed correctly
+        mock_create.assert_called_once()
+        call_args = mock_create.call_args.kwargs
+        system_prompt = call_args['messages'][0]['content']
+        self.assertIn("conceptual questions", system_prompt)

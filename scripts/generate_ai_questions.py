@@ -24,6 +24,12 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--subject", required=True, help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
+    parser.add_argument(
+        "--category",
+        choices=['Basic', 'Command', 'Manifest'],
+        default='Command',
+        help="Category of questions to generate. 'Basic' for conceptual (socratic), 'Command' for kubectl commands, 'Manifest' for YAML authoring."
+    )
     parser.add_argument("--num-questions", type=int, default=3, help="Number of questions to generate.")
     parser.add_argument("--example-source-file", help="Filename of a quiz module (e.g., 'kubectl_service_account_operations.yaml') to use as a source of example questions from the database.")
     parser.add_argument(
@@ -88,7 +94,8 @@ def main():
     new_questions = generator.generate_questions(
         subject=args.subject,
         num_questions=args.num_questions,
-        base_questions=base_questions
+        base_questions=base_questions,
+        category=args.category
     )
 
     if not new_questions:
