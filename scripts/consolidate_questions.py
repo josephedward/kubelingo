@@ -161,10 +161,9 @@ def main():
             shutil.rmtree(path_to_check)
 
     print("\n--- Consolidation Complete! ---")
-    print("Your question sources have been unified into `kubelingo/question-data/yaml/`.")
-    print("Old sources are archived in `kubelingo/question-data-archive/`.")
-    print("The backup database has been rebuilt from the new YAML files.")
-    print("\nYou should now commit these changes to your repository.")
+    print("All question sources have been consolidated into the master database.")
+    print("Old source files have been moved to `question-data-archive/`.")
+    print("\nYou should now commit the changes to your repository.")
 
 if __name__ == '__main__':
     main()
