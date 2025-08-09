@@ -400,6 +400,15 @@ class NewSession(StudySession):
         
         choices = []
 
+        # Review flagged questions
+        flagged_count = len(all_flagged)
+        review_choice = {"name": f"Review Flagged Questions ({flagged_count})", "value": "review"}
+        if flagged_count == 0:
+            review_choice['disabled'] = "No questions flagged for review"
+        choices.append(review_choice)
+
+        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
+
         # 1. Add all enabled quiz modules from config, grouped by theme
         try:
             from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
@@ -448,20 +457,12 @@ class NewSession(StudySession):
 
         # Basic exercises and Socratic Tutor
         add_quiz_group("Basic Exercises", BASIC_QUIZZES)
-        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
 
         # Command-based exercises
         add_quiz_group("Command-Based Exercises", COMMAND_QUIZZES)
 
         # Manifest-based exercises: YAML editing
         add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
-
-        # Review flagged questions
-        flagged_count = len(all_flagged)
-        review_choice = {"name": f"Review Flagged Questions ({flagged_count})", "value": "review"}
-        if flagged_count == 0:
-            review_choice['disabled'] = "No questions flagged for review"
-        choices.append(review_choice)
 
         # Settings section (configuration)
         if questionary:
