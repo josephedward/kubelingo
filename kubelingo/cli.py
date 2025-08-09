@@ -943,12 +943,6 @@ def main():
             elif cmd_name == 'enrich-sources':
                 enrich_sources()
                 return
-            elif cmd_name == 'migrate-yaml':
-                migrate_yaml_to_db()
-                return
-            elif cmd_name == 'restore-yaml':
-                restore_yaml_from_backup()
-                return
             elif cmd_name == 'restore-all':
                 restore_all()
                 return
