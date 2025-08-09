@@ -46,6 +46,7 @@ import os
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset, validate_yaml_structure
+from kubelingo.question import Question
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
@@ -83,6 +84,35 @@ def _get_subject_for_questions(q):
     return subject or ''
 
 
+def _get_solvable_questions(source_file: str) -> list[dict]:
+    """Loads questions from DB, de-duplicates, and filters for solvability."""
+    db_questions = get_questions_by_source_file(source_file)
+    logger = logging.getLogger(__name__)
+
+    seen_prompts = set()
+    unique_questions = []
+    for q_dict in db_questions:
+        prompt = q_dict.get('prompt', '').strip()
+        if prompt and prompt not in seen_prompts:
+            unique_questions.append(q_dict)
+            seen_prompts.add(prompt)
+
+    if len(db_questions) != len(unique_questions):
+        logger.debug(f"Removed {len(db_questions) - len(unique_questions)} duplicate questions for {source_file}.")
+
+    solvable_questions = []
+    for q_dict in unique_questions:
+        try:
+            # Create Question object to leverage is_solvable method
+            q_obj = Question(**q_dict)
+            if q_obj.is_solvable():
+                solvable_questions.append(q_dict)
+            else:
+                logger.debug(f"Skipping unsolvable question (ID: {q_dict.get('id')})")
+        except TypeError as e:
+            logger.warning(f"Skipping question due to invalid data (ID: {q_dict.get('id')}): {e}")
+
+    return solvable_questions
 
 
 def get_all_flagged_questions():
@@ -392,7 +422,7 @@ class NewSession(StudySession):
             for name, path in quiz_dict.items():
                 source_file = os.path.basename(path)
                 try:
-                    q_count = len(get_questions_by_source_file(source_file))
+                    q_count = len(_get_solvable_questions(source_file))
                 except Exception as e:
                     self.logger.warning(f"Could not get question count for {source_file}: {e}")
                     q_count = 0
@@ -621,7 +651,7 @@ class NewSession(StudySession):
                 questions = get_all_flagged_questions()
             elif args.file:
                 # All questions are loaded from the database using the source file as a key.
-                questions = get_questions_by_source_file(os.path.basename(args.file))
+                questions = _get_solvable_questions(os.path.basename(args.file))
 
                 if not questions:
                     print(f"{Fore.YELLOW}No questions found for '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
@@ -762,20 +792,7 @@ class NewSession(StudySession):
                 # Selection recorded; restart loop to load the chosen quiz
                 continue
 
-            # De-duplicate questions based on the prompt text to avoid redundancy.
-            # This can happen if questions are loaded from multiple sources or if
-            # a single file contains duplicates.
-            seen_prompts = set()
-            unique_questions = []
-            for q in questions:
-                prompt = q.get('prompt', '').strip()
-                if prompt and prompt not in seen_prompts:
-                    unique_questions.append(q)
-                    seen_prompts.add(prompt)
-            
-            if len(questions) != len(unique_questions):
-                self.logger.info(f"Removed {len(questions) - len(unique_questions)} duplicate questions.")
-            questions = unique_questions
+            # De-duplication and solvability checks are now handled in _get_solvable_questions
 
             if args.review_only and not questions:
                 print(Fore.YELLOW + "No questions flagged for review found." + Style.RESET_ALL)

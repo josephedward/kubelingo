@@ -84,3 +84,28 @@ class Question:
             if steps:
                 self.validation_steps = steps
 
+    def is_solvable(self) -> bool:
+        """
+        Determines if a question has enough information to be answered and validated.
+        """
+        if self.type in ('yaml_author', 'yaml_edit'):
+            # These need a definitive correct YAML to compare against.
+            return bool(self.correct_yaml)
+
+        if self.type == 'command':
+            # Command questions can be validated against a list of acceptable commands
+            # or through specific validation steps. `answers` holds the commands.
+            return bool(self.answers or self.validation_steps)
+
+        if self.type in ('live_k8s', 'live_k8s_edit'):
+            # Live exercises require explicit steps to validate the state of the cluster.
+            return bool(self.validation_steps)
+
+        if self.type == 'socratic':
+            # Socratic questions are conversational and don't have a simple solvable state.
+            return True
+
+        # Default to unsolvable for unknown or unspecified types.
+        # This includes cases where `type` is None or an empty string.
+        return False
+
