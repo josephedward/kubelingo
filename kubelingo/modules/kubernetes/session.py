@@ -25,6 +25,7 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
+    ENABLED_QUIZZES,
 )
 from kubelingo.modules.yaml_loader import YAMLLoader
 
@@ -409,60 +410,27 @@ class NewSession(StudySession):
 
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
 
-        # 1. Add all enabled quiz modules from config, grouped by theme
-        try:
-            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-        except ImportError:
-            BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES = {}, {}, {}
-
-        # Helper to add a group of quizzes to the choices list and display it
-        def add_quiz_group(group_title, quiz_dict, required_deps=None):
-            if not quiz_dict:
-                return
-
-            deps_unavailable = [dep for dep in required_deps if dep in missing_deps] if required_deps else []
-            separator_text = f"--- {group_title} ---"
-            if deps_unavailable:
-                separator_text += f" (requires {', '.join(deps_unavailable)})"
-
-            if questionary:
-                choices.append(questionary.Separator(separator_text))
-            
-            for name, path in quiz_dict.items():
-                q_count = 0
-                is_disabled = False
-                disabled_reason = ""
-                if not os.path.exists(path):
-                    is_disabled = True
-                    disabled_reason = "File not found"
-                else:
-                    try:
-                        loader = YAMLLoader()
-                        q_count = len(loader.load_file(path))
-                    except Exception as e:
-                        self.logger.warning(f"Could not load quiz file {path}: {e}")
-                        q_count = 0
-                
-                display_name = f"{name} ({q_count} questions)"
-                choice_item = {"name": display_name, "value": path}
-                
-                if deps_unavailable:
-                    choice_item['disabled'] = f"Missing: {', '.join(deps_unavailable)}"
-                elif q_count == 0 and not is_disabled:
-                    choice_item['disabled'] = "No questions available"
-                elif is_disabled:
-                    choice_item['disabled'] = disabled_reason
-                
-                choices.append(choice_item)
-
-        # Basic exercises
-        add_quiz_group("Basic Exercises", BASIC_QUIZZES)
-
-        # Command-based exercises
-        add_quiz_group("Command-Based Exercises", COMMAND_QUIZZES)
-
-        # Manifest-based exercises: YAML editing
-        add_quiz_group("Manifest-Based Exercises", MANIFEST_QUIZZES)
+        # Add all enabled quizzes from config
+        for name, path in ENABLED_QUIZZES.items():
+            q_count = 0
+            is_disabled = False
+            disabled_reason = ""
+            if not os.path.exists(path):
+                is_disabled = True
+                disabled_reason = "File not found"
+            else:
+                try:
+                    loader = YAMLLoader()
+                    q_count = len(loader.load_file(path))
+                except Exception as e:
+                    self.logger.warning(f"Could not load quiz file {path}: {e}")
+            display_name = f"{name} ({q_count} questions)"
+            choice_item = {"name": display_name, "value": path}
+            if is_disabled:
+                choice_item["disabled"] = disabled_reason
+            elif q_count == 0:
+                choice_item["disabled"] = "No questions available"
+            choices.append(choice_item)
 
         # Settings section (configuration)
         if questionary:
