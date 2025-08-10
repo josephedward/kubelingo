@@ -445,7 +445,7 @@ class NewSession(StudySession):
             {"name": "Cluster Configuration", "value": "__clusters__"},
             {"name": "Troubleshooting", "value": "__troubleshooting__"},
             {"name": "Help Documentation", "value": "__help__"},
-            {"name": "Exit App", "value": "__exit__"},
+            {"name": "Exit the App", "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
 
