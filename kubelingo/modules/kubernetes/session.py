@@ -409,9 +409,9 @@ class NewSession(StudySession):
 
         # Append each section in fixed order
         for header, entries in [
-            ('--- Basic/Open-Ended ---', sections['Basic/Open-Ended']),
-            ('--- Command-Based/Syntax ---', sections['Command-Based/Syntax']),
-            ('--- Manifests ---', sections['Manifests']),
+            ('--- Basic Exercises ---', sections['Basic/Open-Ended']),
+            ('--- Command-Based Exercises ---', sections['Command-Based/Syntax']),
+            ('--- Manifest-Based Exercises ---', sections['Manifests']),
         ]:
             if entries:
                 choices.append(questionary.Separator(header))
