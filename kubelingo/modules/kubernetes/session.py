@@ -389,37 +389,38 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Basic/Open-Ended Exercises ---
-        loader = DBLoader()
+        # --- Basic Exercises --- (static YAML quizzes)
+        from kubelingo.modules.yaml_loader import YAMLLoader
         from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        yaml_loader = YAMLLoader()
         if questionary:
             choices.append(questionary.Separator('--- Basic Exercises ---'))
-        for name, src in BASIC_QUIZZES.items():
+        for title, src in BASIC_QUIZZES.items():
             try:
-                count = len(loader.load_file(src) or [])
+                count = len(yaml_loader.load_file(src) or [])
             except Exception:
                 count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": src})
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
 
-        # --- Command-Based Exercises ---
+        # --- Command-Based Exercises --- (static YAML quizzes)
         if questionary:
             choices.append(questionary.Separator('--- Command-Based Exercises ---'))
-        for name, src in COMMAND_QUIZZES.items():
+        for title, src in COMMAND_QUIZZES.items():
             try:
-                count = len(loader.load_file(src) or [])
+                count = len(yaml_loader.load_file(src) or [])
             except Exception:
                 count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": src})
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
 
-        # --- Manifest-Based Exercises ---
+        # --- Manifest-Based Exercises --- (static YAML quizzes)
         if questionary:
             choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
-        for name, src in MANIFEST_QUIZZES.items():
+        for title, src in MANIFEST_QUIZZES.items():
             try:
-                count = len(loader.load_file(src) or [])
+                count = len(yaml_loader.load_file(src) or [])
             except Exception:
                 count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": src})
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
 
         # --- Settings Section ---
         if questionary:
