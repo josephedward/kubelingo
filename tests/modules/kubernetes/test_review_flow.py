@@ -68,42 +68,6 @@ def setup_quiz_files(tmp_path):
         }
 
 
-@pytest.mark.skip(reason="YAML functionality not yet implemented")
-def test_get_quiz_files(setup_quiz_files):
-    """Tests that _get_quiz_files discovers correct files and excludes special ones."""
-    quiz_files = k8s_session._get_quiz_files()
-
-    # The behavior of _get_quiz_files appears to have changed to include vim quizzes.
-    assert len(quiz_files) == 3
-    assert os.path.basename(setup_quiz_files['quiz1']) in [os.path.basename(p) for p in quiz_files]
-    assert os.path.basename(setup_quiz_files['quiz2']) in [os.path.basename(p) for p in quiz_files]
-    assert os.path.basename(setup_quiz_files['vim']) in [os.path.basename(p) for p in quiz_files]
-
-
-@pytest.mark.skip(reason="YAML functionality not yet implemented")
-def test_clear_all_review_flags(setup_quiz_files, mock_logger):
-    """Tests that clearing flags removes them from all relevant files."""
-    # Pre-condition check: ensure flags exist
-    with open(setup_quiz_files['quiz1'], 'r') as f:
-        assert 'review' in json.load(f)[0]['prompts'][0]
-    with open(setup_quiz_files['vim'], 'r') as f:
-        assert 'review' in json.load(f)[0]['prompts'][0]
-
-    # Call the function to be tested
-    k8s_session._clear_all_review_flags(mock_logger)
-
-    # Check quiz1.json - flag should be gone
-    with open(setup_quiz_files['quiz1'], 'r') as f:
-        data = json.load(f)
-    assert 'review' not in data[0]['prompts'][0]
-
-    # Check vim_quiz.json - flag should be gone
-    with open(setup_quiz_files['vim'], 'r') as f:
-        data = json.load(f)
-    assert 'review' not in data[0]['prompts'][0]
-
-
-
 
 def test_history_file_location_constants():
     """Verify that history-related constants point to the correct logs/ directory."""

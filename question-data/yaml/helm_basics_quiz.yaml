@@ -122,11 +122,11 @@ questions:
     prompt: "Uninstall the Helm release internal-issue-report-apiv1 in the mercury namespace."
     response: "helm -n mercury uninstall internal-issue-report-apiv1"
   - id: helm-q17
-    category: "Helm Basics"
+    category: "Helm Repositories"
     prompt: "Update the Helm chart repositories."
     response: "helm repo update"
   - id: helm-q18
-    category: "Helm Basics"
+    category: "Helm Repositories"
     prompt: "Search the Bitnami repository for all available nginx chart versions."
     response: "helm search repo nginx --versions"
   - id: helm-q19
