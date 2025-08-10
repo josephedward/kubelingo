@@ -1359,11 +1359,9 @@ class NewSession(StudySession):
                             question_id = q.get('id')
                             if question_id:
                                 if current_question_index in correct_indices:
-                                    self.session_manager.unmark_question_for_review(question_id)
                                     q['review'] = False
                                     _update_review_status_in_db(question_id, review=False)
                                 else:
-                                    self.session_manager.mark_question_for_review(question_id)
                                     q['review'] = True
                                     _update_review_status_in_db(question_id, review=True)
                                     print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
