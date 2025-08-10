@@ -375,54 +375,58 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        try:
-            # Initialize YAML loader for quiz counts
-            from kubelingo.modules.yaml_loader import YAMLLoader
-            loader = YAMLLoader()
-            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        # Build menu strictly from DB-backed quizzes, grouped by question type
+        loader = DBLoader()
+        # Review Flagged Questions
+        if all_flagged:
+            choices.append({"name": f"Review Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
+        # Study Mode (Socratic Tutor)
+        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-            # Review flagged questions
-            choices.append({
-                "name": f"Review Flagged Questions ({len(all_flagged)})",
-                "value": "__flagged__",
-                "disabled": "No questions flagged for review" if not all_flagged else None
-            })
-            # Study mode
-            choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
+        # Group quizzes by their primary question type
+        sections = {"Basic/Open-Ended": [], "Command-Based/Syntax": [], "Manifests": []}
+        for src in loader.discover():
+            try:
+                qs = loader.load_file(src) or []
+                count = len(qs)
+            except Exception:
+                qs = []
+                count = 0
+            if count == 0:
+                continue
+            qtype = getattr(qs[0], 'type', '')
+            if qtype == 'socratic':
+                sect = 'Basic/Open-Ended'
+            elif qtype == 'command':
+                sect = 'Command-Based/Syntax'
+            elif qtype in ('yaml_author', 'yaml_edit', 'live_k8s', 'live_k8s_edit'):
+                sect = 'Manifests'
+            else:
+                sect = 'Command-Based/Syntax'
+            base = os.path.splitext(os.path.basename(src))[0]
+            name = humanize_module(base)
+            sections[sect].append({"name": f"{name} ({count} questions)", "value": src})
 
-            # Group quizzes into fixed categories
-            quiz_configs = {
-                "--- Basic/Open-Ended ---": BASIC_QUIZZES,
-                "--- Command-Based/Syntax ---": COMMAND_QUIZZES,
-                "--- Manifests ---": MANIFEST_QUIZZES,
-            }
+        # Append each section in fixed order
+        for header, entries in [
+            ('--- Basic/Open-Ended ---', sections['Basic/Open-Ended']),
+            ('--- Command-Based/Syntax ---', sections['Command-Based/Syntax']),
+            ('--- Manifests ---', sections['Manifests']),
+        ]:
+            if entries:
+                choices.append(questionary.Separator(header))
+                choices.extend(entries)
 
-            for separator, quizzes in quiz_configs.items():
-                # Add menu separator if interactive UI is available
-                if questionary and hasattr(questionary, 'Separator'):
-                # Add menu separator if interactive UI is available
-                if questionary and hasattr(questionary, 'Separator'):
-                    choices.append(questionary.Separator(separator))
-                for name, path in quizzes.items():
-                    try:
-                        count = len(loader.load_file(path))
-                    except Exception:
-                        count = 0
-                    choices.append({"name": f"{name} ({count} questions)", "value": path})
-
-            # Settings
-            if questionary and hasattr(questionary, 'Separator'):
-                choices.append(questionary.Separator("--- Settings ---"))
-            choices.extend([
-                {"name": "API Keys", "value": "__api_keys__"},
-                {"name": "Clusters", "value": "__clusters__"},
-                {"name": "Questions", "value": "__questions__"},
-                {"name": "Troubleshooting", "value": "__troubleshooting__"},
-                {"name": "Help", "value": "__help__"},
-                {"name": "Exit App", "value": "__exit__"},
-            ])
-        except Exception as e:
-            self.logger.error(f"Failed to build interactive menu choices: {e}")
+        # Settings
+        choices.append(questionary.Separator('--- Settings ---'))
+        choices.extend([
+            {"name": "API Keys", "value": "__api_keys__"},
+            {"name": "Clusters", "value": "__clusters__"},
+            {"name": "Questions", "value": "__questions__"},
+            {"name": "Troubleshooting", "value": "__troubleshooting__"},
+            {"name": "Help", "value": "__help__"},
+            {"name": "Exit App", "value": "__exit__"},
+        ])
         return choices, bool(all_flagged)
 
     def _show_static_help(self):
