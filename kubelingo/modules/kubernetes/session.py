@@ -26,6 +26,8 @@ from kubelingo.utils.config import (
     VIM_HISTORY_FILE,
 )
 from kubelingo.modules.db_loader import DBLoader
+from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
 
 try:
     from prompt_toolkit import PromptSession
@@ -389,9 +391,10 @@ class NewSession(StudySession):
             "value": "__study__"
         })
 
-        # --- Basic Section: Open-Ended questions ---
+        # --- Basic Section: Open-Ended exercises ---
         if questionary:
-            choices.append(questionary.Separator('--- Basic ---'))
+            # Group open-ended quizzes under Basic/Open-Ended section
+            choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
         yaml_loader = YAMLLoader()
         for title, path in BASIC_QUIZZES.items():
             try:
@@ -402,7 +405,8 @@ class NewSession(StudySession):
 
         # --- Command Section: Syntax quizzes ---
         if questionary:
-            choices.append(questionary.Separator('--- Command ---'))
+            # Group command-based quizzes under Command-Based/Syntax section
+            choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
         for title, path in COMMAND_QUIZZES.items():
             try:
                 count = len(yaml_loader.load_file(path) or [])
@@ -410,9 +414,10 @@ class NewSession(StudySession):
                 count = 0
             choices.append({"name": f"{title} ({count} questions)", "value": path})
 
-        # --- Manifest Section: Vim/YAML exercises ---
+        # --- Manifest Section: Vim/YAML editing exercises ---
         if questionary:
-            choices.append(questionary.Separator('--- Manifest ---'))
+            # Group manifest editing quizzes under Manifest-Based section
+            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
         for title, path in MANIFEST_QUIZZES.items():
             try:
                 count = len(yaml_loader.load_file(path) or [])
