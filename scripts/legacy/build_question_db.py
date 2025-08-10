@@ -22,7 +22,7 @@ from kubelingo.utils.config import (
     SECONDARY_MASTER_DATABASE_FILE,
 )
 
-def import_questions(conn, source_dir: Path):
+def import_questions(source_dir: Path):
     """Loads all questions from YAML files in the source directory and adds them to the database."""
     print(f"Scanning for YAML files in '{source_dir}'...")
     files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
@@ -63,10 +63,8 @@ def import_questions(conn, source_dir: Path):
                     q_dict['question_type'] = q_type
 
                 q_dict['source_file'] = file_path.name
-                add_question(conn=conn, **q_dict)
+                add_question(**q_dict)
                 question_count += 1
-    
-    conn.commit()
     print(f"\nImport complete. Added/updated {question_count} questions.")
     return question_count
 
@@ -108,12 +106,8 @@ def main():
     print("  - Initialized new empty database.")
 
     print(f"\nStep 2: Importing questions from '{source_path}'...")
-    conn = get_db_connection()
     questions_imported = 0
-    try:
-        questions_imported = import_questions(conn, source_path)
-    finally:
-        conn.close()
+    questions_imported = import_questions(source_path)
 
     if questions_imported > 0:
         print(f"\nStep 3: Creating master database backups...")

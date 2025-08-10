@@ -133,8 +133,9 @@ def add_question(
     conn: sqlite3.Connection = None
 ):
     """Adds or replaces a question in the database."""
+    close_conn = conn is None
     # Open connection if not provided
-    if conn is None:
+    if close_conn:
         conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -179,6 +180,9 @@ def add_question(
     ))
     # Commit the insertion to the database
     conn.commit()
+
+    if close_conn:
+        conn.close()
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
