@@ -13,8 +13,8 @@ ROOT = PROJECT_ROOT
 # User-specific files (logs, history, database etc.) in home directory
 # to support installed package execution.
 HOME_DIR = os.path.expanduser("~")
-# Directory for user-specific app files (e.g., database)
-APP_DIR = os.path.join(HOME_DIR, ".kubelingo")
+# By default use project-local .kubelingo directory to ensure write access
+APP_DIR = os.path.join(PROJECT_ROOT, ".kubelingo")
 # Logs directory located within the project root
 LOGS_DIR = os.path.join(PROJECT_ROOT, 'logs')
 try:
