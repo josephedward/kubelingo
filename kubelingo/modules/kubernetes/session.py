@@ -24,6 +24,9 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
+    BASIC_QUIZZES,
+    COMMAND_QUIZZES,
+    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -376,9 +379,6 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        # Use fixed quiz definitions from config
-        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-
         # --- Review Section ---
         if questionary:
             choices.append(questionary.Separator("--- Review ---"))
@@ -389,35 +389,46 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Quiz Sections ---
-        quiz_configs = {
-            "--- Basic Exercises ---": BASIC_QUIZZES,
-            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
-            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
-        }
+        # --- Basic/Open-Ended Exercises ---
+        db_loader = DBLoader()
+        if questionary:
+            choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
+        for title, src in BASIC_QUIZZES.items():
+            try:
+                count = len(db_loader.load_file(src) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
 
-        for separator, quizzes in quiz_configs.items():
-            if questionary:
-                choices.append(questionary.Separator(separator))
-            for name, path in quizzes.items():
-                try:
-                    # Get questions from DB using the basename of the path
-                    source_file = os.path.basename(path)
-                    count = len(get_questions_by_source_file(source_file))
-                except Exception:
-                    count = 0
-                choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # --- Command-Based/Syntax Exercises ---
+        if questionary:
+            choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
+        for title, src in COMMAND_QUIZZES.items():
+            try:
+                count = len(db_loader.load_file(src) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
+
+        # --- Manifest-Based Exercises ---
+        if questionary:
+            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
+        for title, src in MANIFEST_QUIZZES.items():
+            try:
+                count = len(db_loader.load_file(src) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{title} ({count} questions)", "value": src})
 
         # --- Settings Section ---
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
         choices.extend([
-            {"name": "API Keys", "value": "__api_keys__"},
+            {"name": "API Keys",               "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Questions", "value": "__questions__"},
-            {"name": "Troubleshooting", "value": "__troubleshooting__"},
-            {"name": "Help Documentation", "value": "__help__"},
-            {"name": "Exit the App", "value": "__exit__"},
+            {"name": "Troubleshooting",       "value": "__troubleshooting__"},
+            {"name": "Help Documentation",    "value": "__help__"},
+            {"name": "Exit App",              "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
 
