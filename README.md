@@ -2,7 +2,7 @@
 
 [![Kubelingo CI](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
 
-kubelingo is a modular CLI package for mastering `kubectl` commands, Kubernetes YAML editing, and cloud-backed EKS exercises.
+kubelingo is a modular CLI package for mastering `kubectl` commands and Kubernetes YAML editing.
 
 ## Features
 
@@ -152,7 +152,7 @@ maturin publish
 - Rust toolchain (install from [rustup.rs](https://rustup.rs/))
 - `pip` and `maturin`
 - Vim (with `+clientserver` support for integration tests) or preferred editor (set via `$EDITOR`)
-- `kubectl`, `eksctl` (for command validation and cloud exercises)
+- `kubectl` (for command validation)
 - Go and GoSandbox CLI (for cloud exercises)
   
 ### Container Sandbox Mode
