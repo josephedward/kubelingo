@@ -29,13 +29,16 @@ class DBLoader(BaseLoader):
         questions: List[Question] = []
         for row in rows:
             qd = _row_to_question_dict(row)
+            # Deserialize validation steps
             steps: List[ValidationStep] = []
             for v in qd.get('validation_steps', []):
                 steps.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
+            # Determine question type from DB column 'question_type' or fallback to legacy 'type'
+            qtype = qd.get('question_type') or qd.get('type') or 'command'
             question = Question(
                 id=qd['id'],
                 prompt=qd.get('prompt', ''),
-                type=qd.get('type', 'command'),
+                type=qtype,
                 pre_shell_cmds=qd.get('pre_shell_cmds', []),
                 initial_files=qd.get('initial_files', {}),
                 validation_steps=steps,
