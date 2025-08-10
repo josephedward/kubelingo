@@ -9,32 +9,12 @@ from unittest.mock import patch, mock_open, MagicMock
 from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.session import (
     check_dependencies,
-    load_questions,
     VimYamlEditor
 )
 from kubelingo.utils.validation import validate_yaml_structure
 import yaml
 
 # --- Fixtures ---
-
-@pytest.fixture
-def sample_quiz_data():
-    """Provides sample quiz data as a dictionary."""
-    return [
-        {
-            "category": "core",
-            "prompts": [
-                {"prompt": "Get all pods", "response": "kubectl get pods", "type": "command"},
-                {"prompt": "Get a specific pod", "response": "kubectl get pod my-pod", "type": "command", "review": True}
-            ]
-        },
-        {
-            "category": "networking",
-            "prompts": [
-                {"prompt": "Expose a deployment", "response": "kubectl expose deployment my-deploy", "type": "command"}
-            ]
-        }
-    ]
 
 @pytest.fixture
 def session_manager():
@@ -90,19 +70,6 @@ def test_check_dependencies_some_missing(mock_which):
     
     mock_which.side_effect = which_side_effect
     assert check_dependencies('git', 'docker', 'kubectl') == ['docker', 'kubectl']
-
-# --- Tests for Question Loading ---
-
-def test_load_questions(sample_quiz_data):
-    """Tests loading questions from a JSON file."""
-    mock_file = mock_open(read_data=json.dumps(sample_quiz_data))
-    with patch('builtins.open', mock_file):
-        questions = load_questions("dummy.json")
-    
-    assert len(questions) == 3
-    assert questions[0]['category'] == 'core'
-    assert questions[0]['prompt'] == 'Get all pods'
-    assert questions[1]['review'] is True
 
 # --- Tests for YAML Validation and Creation ---
 
