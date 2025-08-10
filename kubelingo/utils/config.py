@@ -45,22 +45,22 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 BASIC_QUIZZES = {
     "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
     "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
-    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types.yaml'),
+    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types_reference.yaml'),
 }
 COMMAND_QUIZZES = {
     # Basic syntax and shell setup commands moved here
-    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'basic_syntax.yaml'),
+    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_shell_setup.yaml'),
     "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
     "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
     "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'configmap_operations.yaml'),
     "Secret Management": os.path.join(QUESTIONS_DIR, 'secret_management.yaml'),
     "Namespace Operations": os.path.join(QUESTIONS_DIR, 'namespace_operations.yaml'),
-    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'service_account_ops.yaml'),
+    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'service_account_operations.yaml'),
     "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
 }
 MANIFEST_QUIZZES = {
-    "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing.yaml'),
+    "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing_practice.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
 ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
