@@ -9,9 +9,8 @@ from kubelingo.cli import main
 pytestmark = pytest.mark.filterwarnings("ignore:Can not control echo on the terminal")
 
 
-@patch('kubelingo.cli.load_session')
 @patch('questionary.select')
-def test_yaml_editing_is_in_main_menu(mock_select, mock_load_session):
+def test_yaml_editing_is_in_main_menu(mock_select):
     """
     Verify that 'YAML Editing' appears in the interactive quiz menu
     and that 'YAML Exercises' is not present.
@@ -44,6 +43,7 @@ def test_yaml_editing_is_in_main_menu(mock_select, mock_load_session):
         elif isinstance(choice, dict) and 'name' in choice:
             choice_names.append(choice['name'])
 
-    assert "YAML Editing" in choice_names
-    assert "YAML Exercises" not in choice_names
+    # The manifest-based quiz is labeled 'YAML Editing Practice'
+    assert any(name.startswith("YAML Editing") for name in choice_names)
+    assert not any(name.startswith("YAML Exercises") for name in choice_names)
     assert "Exit" in choice_names
