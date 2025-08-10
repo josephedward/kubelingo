@@ -420,21 +420,21 @@ class NewSession(StudySession):
         basic = sections.get(QuestionCategory.OPEN_ENDED.value, [])
         if basic:
             if questionary:
-                choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
+                choices.append(questionary.Separator('--- Basic ---'))
             choices.extend(basic)
 
         # --- Command-Based/Syntax Exercises ---
         cmd_section = sections.get(QuestionCategory.COMMAND.value, [])
         if cmd_section:
             if questionary:
-                choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
+                choices.append(questionary.Separator('--- Command ---'))
             choices.extend(cmd_section)
 
         # --- Manifest-Based Exercises ---
         manifest = sections.get(QuestionCategory.MANIFEST.value, [])
         if manifest:
             if questionary:
-                choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
+                choices.append(questionary.Separator('--- Manifest-Based ---'))
             choices.extend(manifest)
 
         # Settings Section
