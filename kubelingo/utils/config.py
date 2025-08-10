@@ -5,10 +5,10 @@ from typing import Optional, Dict, Any
 # The absolute path to the project root directory, which contains the 'kubelingo' package and 'scripts'.
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-# The root of the package
+# The root of the package (package directory)
 PACKAGE_ROOT = os.path.join(PROJECT_ROOT, 'kubelingo')
-# Legacy alias for backward compatibility
-ROOT = PACKAGE_ROOT
+# Legacy alias for backward compatibility: now points to project root
+ROOT = PROJECT_ROOT
 
 # User-specific files (logs, history, database etc.) in home directory
 # to support installed package execution.
@@ -26,10 +26,15 @@ except Exception:
 
 # Data directories for built-in quiz files are located at the project root.
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
+# Default data file for command quiz fallback
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'unified.json')
 
 # The single, consolidated directory for all question data after running the consolidation script.
 # The build_question_db.py script will use this as the sole source.
 QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
+
+# Default data file for JSON-based quizzes (used for command quiz Python fallback)
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'unified.json')
 
 
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
@@ -60,6 +65,8 @@ COMMAND_QUIZZES = {
 MANIFEST_QUIZZES = {
     "YAML Editing Practice": os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml'),
 }
+## Aggregate all enabled quizzes for interactive selection
+ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
