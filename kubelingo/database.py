@@ -88,7 +88,6 @@ def init_db(clear: bool = False):
 
 
 def add_question(
-    conn: sqlite3.Connection,
     id: str,
     prompt: str,
     source_file: str,
@@ -104,9 +103,13 @@ def add_question(
     initial_files: Optional[Dict[str, str]] = None,
     question_type: Optional[str] = None,
     answers: Optional[List[str]] = None,
-    correct_yaml: Optional[str] = None
+    correct_yaml: Optional[str] = None,
+    conn: sqlite3.Connection = None
 ):
     """Adds or replaces a question in the database."""
+    # Open connection if not provided
+    if conn is None:
+        conn = get_db_connection()
     cursor = conn.cursor()
 
     # Serialize complex fields to JSON strings
@@ -147,6 +150,8 @@ def add_question(
         answers_json,
         correct_yaml
     ))
+    # Commit the insertion to the database
+    conn.commit()
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
