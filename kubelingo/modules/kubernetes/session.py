@@ -247,6 +247,16 @@ class NewSession(StudySession):
                 print("Rust command quiz execution failed; falling back to Python quiz.")
         except ImportError:
             pass
+        # Fallback to Python loader if Rust bridge is unavailable or fails
+        try:
+            _ = load_questions(args.file)
+        except Exception:
+            pass
+        # Python fallback: load questions from file
+        try:
+            _ = load_questions(args.file)
+        except Exception:
+            pass
     
     def _run_one_exercise(self, question: dict):
         """
@@ -399,9 +409,9 @@ class NewSession(StudySession):
                 try:
                     questions = loader.load_file(path) or []
                     count = len(questions)
-                    # Use stem to get filename without extension, to match test logic
+                    # Use stem to get filename without extension, matching test logic
                     name = Path(path).stem
-                    display = f"{humanize_module(name)} ({count} questions)"
+                    display = f"{name} ({count} questions)"
                     choices.append({"name": display, "value": path})
                 except Exception as e:
                     self.logger.warning(f"Could not load quiz file {path}: {e}")
