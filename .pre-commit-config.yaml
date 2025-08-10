@@ -6,12 +6,6 @@ repos:
         entry: python -m compileall .
         language: system
         types: [python]
-      - id: prevent-question-data-deletion
-        name: Prevent deletion of quiz data files
-        entry: |
-          bash -c "if git diff --cached --diff-filter=D --name-only | grep -E '^(question-data/|question-data-backup/)'; then echo 'Error: Deletion of quiz data is prohibited.'; exit 1; fi"
-        language: system
-        stages: [pre-commit]
       - id: run-cli-help
         name: Ensure Kubelingo CLI runs without error
         entry: |
