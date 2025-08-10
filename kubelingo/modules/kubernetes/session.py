@@ -388,35 +388,26 @@ class NewSession(StudySession):
         # Study Mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Basic Exercises
-        choices.append(questionary.Separator("--- Basic Exercises ---"))
-        for name, path in BASIC_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
+        quiz_configs = {
+            "--- Basic Exercises ---": BASIC_QUIZZES,
+            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
+            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+        }
 
-        # Command-Based Exercises
-        choices.append(questionary.Separator("--- Command-Based Exercises ---"))
-        for name, path in COMMAND_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
-
-        # Manifest-Based Exercises
-        choices.append(questionary.Separator("--- Manifest-Based Exercises ---"))
-        for name, path in MANIFEST_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
+        for separator_text, quizzes in quiz_configs.items():
+            if quizzes:
+                if questionary:
+                    choices.append(questionary.Separator(separator_text))
+                for name, path in quizzes.items():
+                    try:
+                        count = len(loader.load_file(path) or [])
+                    except Exception:
+                        count = 0
+                    choices.append({"name": f"{name} ({count} questions)", "value": path})
 
         # Settings
-        choices.append(questionary.Separator('--- Settings ---'))
+        if questionary:
+            choices.append(questionary.Separator('--- Settings ---'))
         choices.extend([
             {"name": "API Keys", "value": "__api_keys__"},
             {"name": "Clusters", "value": "__clusters__"},
