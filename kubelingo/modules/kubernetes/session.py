@@ -202,22 +202,6 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
     
-def load_questions(file_path: str):
-    """Load quiz questions from a JSON file with sections of prompts."""
-    questions = []
-    try:
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-    except Exception:
-        return questions
-    for section in data or []:
-        category = section.get('category')
-        for item in section.get('prompts', []):
-            q = item.copy()
-            q['category'] = category
-            questions.append(q)
-    return questions
-    
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
 
@@ -246,11 +230,6 @@ class NewSession(StudySession):
                 # Rust bridge available but failed; notify and fallback
                 print("Rust command quiz execution failed; falling back to Python quiz.")
         except ImportError:
-            pass
-        # Fallback to Python loader if Rust bridge is unavailable or fails
-        try:
-            _ = load_questions(args.file)
-        except Exception:
             pass
     
     def _run_one_exercise(self, question: dict):
