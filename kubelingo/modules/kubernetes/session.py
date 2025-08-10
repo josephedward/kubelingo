@@ -376,8 +376,9 @@ class NewSession(StudySession):
         choices = []
 
         try:
-            # Initialize DB loader for quiz counts
-            loader = DBLoader()
+            # Initialize YAML loader for quiz counts
+            from kubelingo.modules.yaml_loader import YAMLLoader
+            loader = YAMLLoader()
             from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
 
             # Review flagged questions
@@ -397,6 +398,8 @@ class NewSession(StudySession):
             }
 
             for separator, quizzes in quiz_configs.items():
+                # Add menu separator if interactive UI is available
+                if questionary and hasattr(questionary, 'Separator'):
                 # Add menu separator if interactive UI is available
                 if questionary and hasattr(questionary, 'Separator'):
                     choices.append(questionary.Separator(separator))
