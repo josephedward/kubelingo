@@ -202,6 +202,22 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
     
+def load_questions(file_path: str):
+    """Load quiz questions from a JSON file with sections of prompts."""
+    questions = []
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    except Exception:
+        return questions
+    for section in data or []:
+        category = section.get('category')
+        for item in section.get('prompts', []):
+            q = item.copy()
+            q['category'] = category
+            questions.append(q)
+    return questions
+    
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
 
@@ -375,22 +391,15 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        try:
-            loader = YAMLLoader()
-            quiz_files = loader.discover()
-
-            for path in quiz_files:
-                try:
-                    questions = loader.load_file(path) or []
-                    count = len(questions)
-                    # Use stem to get filename without extension, to match test logic
-                    name = Path(path).stem
-                    display = f"{name} ({count} questions)"
-                    choices.append({"name": display, "value": path})
-                except Exception as e:
-                    self.logger.warning(f"Could not load quiz file {path}: {e}")
-        except Exception as e:
-            self.logger.error(f"Failed to discover YAML quiz files: {e}")
+        # Include all enabled quizzes with question counts
+        for name, path in ENABLED_QUIZZES.items():
+            try:
+                questions = YAMLLoader().load_file(path) or []
+                count = len(questions)
+            except Exception:
+                count = 0
+            display = f"{name} ({count} questions)"
+            choices.append({"name": display, "value": path})
 
         # Include flagged questions option if any
         if all_flagged:
