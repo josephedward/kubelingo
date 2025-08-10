@@ -1,5 +1,4 @@
 import csv
-import json
 import os
 import random
 import shutil
@@ -204,23 +203,6 @@ def check_dependencies(*commands):
             missing.append(cmd)
     return missing
     
-def load_questions(file_path: str):
-    """Load quiz questions from a JSON file with sections of prompts."""
-    questions = []
-    try:
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-    except Exception:
-        return questions
-    for section in data or []:
-        category = section.get('category')
-        for item in section.get('prompts', []):
-            q = item.copy()
-            q['category'] = category
-            questions.append(q)
-    return questions
-
-    
 class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
 
@@ -249,11 +231,6 @@ class NewSession(StudySession):
                 # Rust bridge available but failed; notify and fallback
                 print("Rust command quiz execution failed; falling back to Python quiz.")
         except ImportError:
-            pass
-        # Fallback: load questions from file
-        try:
-            _ = load_questions(args.file)
-        except Exception:
             pass
     
     def _run_one_exercise(self, question: dict):
@@ -587,7 +564,8 @@ class NewSession(StudySession):
             if getattr(args, 'list_questions', False):
                 # Load static questions using loader (e.g., JSON/YAML loader)
                 try:
-                    static_questions = load_questions(args.file)
+                    loader = YAMLLoader()
+                    static_questions = loader.load_file(args.file)
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for listing: {e}")
                     static_questions = []
@@ -753,21 +731,15 @@ class NewSession(StudySession):
                     input("\nPress Enter to return to menu...")
                     continue
                 if selected == "questions":
-                    from kubelingo.cli import import_json_to_db
                     sub = questionary.select(
                         "Questions Management:",
                         choices=[
-                            {"name": "Import JSON quizzes into database", "value": "import_json"},
                             {"name": "Generate Questions", "value": "generate_questions", "disabled": "Not implemented"},
                             questionary.Separator(),
                             {"name": "Back", "value": "back"},
                         ],
                         use_indicator=True
                     ).ask()
-                    # Handle sub-menu selection
-                    if sub == "import_json":
-                        import_json_to_db()
-                        input("\nPress Enter to return to menu...")
                     # Return to main menu for 'back' or any other selection
                     continue
                 # Troubleshooting operations
