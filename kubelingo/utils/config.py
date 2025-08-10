@@ -25,7 +25,10 @@ except Exception:
     pass
 
 # Data directories for built-in quiz files are located at the project root.
+# Data directories for built-in quiz files are located at the project root.
 DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
+# Default data file for JSON-based quizzes (used for command quiz Python fallback)
+DEFAULT_DATA_FILE = os.path.join(DATA_DIR, 'unified.json')
 
 # The single, consolidated directory for all question data after running the consolidation script.
 # The build_question_db.py script will use this as the sole source.
