@@ -399,8 +399,8 @@ class NewSession(StudySession):
                 choices.append(questionary.Separator(separator))
                 for name, path in quizzes.items():
                     try:
-                        # Load questions via DBLoader to preserve all quizzes
-                        count = len(loader.load_file(path) or [])
+                        source_file = os.path.basename(path)
+                        count = len(get_questions_by_source_file(source_file))
                     except Exception:
                         count = 0
                     choices.append({"name": f"{name} ({count} questions)", "value": path})
