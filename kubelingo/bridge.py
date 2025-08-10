@@ -25,10 +25,8 @@ class RustBridge:
         return None
     
     def is_available(self):
-        # Allow disabling Rust integration via environment variable
-        if os.getenv("KUBELINGO_DISABLE_RUST", "").lower() in ("1", "true", "yes"):
-            return False
-        return self.rust_binary is not None
+        # Disable Rust integration by default to ensure Python fallback and avoid external binary execution
+        return False
     
     def run_pty_shell(self) -> bool:
         """Delegate PTY shell spawning to Rust CLI if available"""
