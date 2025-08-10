@@ -90,6 +90,54 @@
       expected: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
     links:
     - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q8
+  prompt: Get detailed information about a pod named 'nginx'
+  type: command
+  metadata:
+    id: pod-mgmt-q8
+    category: Pod Management
+    response: kubectl describe pod nginx
+    validator:
+      type: ai
+      expected: kubectl describe pod nginx
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_describe/
+- id: pod-mgmt-q10
+  prompt: Delete a pod named 'nginx'
+  type: command
+  metadata:
+    id: pod-mgmt-q10
+    category: Pod Management
+    response: kubectl delete pod nginx
+    validator:
+      type: ai
+      expected: kubectl delete pod nginx
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_delete/
+- id: pod-mgmt-q11
+  prompt: View the logs for a pod named 'webapp'
+  type: command
+  metadata:
+    id: pod-mgmt-q11
+    category: Pod Management
+    response: kubectl logs webapp
+    validator:
+      type: ai
+      expected: kubectl logs webapp
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/
+- id: pod-mgmt-q12
+  prompt: Execute the 'env' command in a pod named 'nginx'
+  type: command
+  metadata:
+    id: pod-mgmt-q12
+    category: Pod Management
+    response: kubectl exec nginx -- env
+    validator:
+      type: ai
+      expected: kubectl exec nginx -- env
+    links:
+    - https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#executing-commands-in-a-container
 - id: pod-mgmt-q9
   prompt: Create a temporary, interactive pod named 'curl1' using the 'curlimages/curl'
     image to run a curl command against an internal service at 10.244.0.4

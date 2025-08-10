@@ -91,6 +91,24 @@
     links:
     - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,with%20all%20the%20new%20updates
 - id: deploy-mgmt-q11
+  prompt: View the details of a specific revision (e.g., 2) of a deployment named 'webapp'
+  type: command
+  metadata:
+    id: deploy-mgmt-q11
+    category: Deployment Management
+    response: kubectl rollout history deployment/webapp --revision=2
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#checking-rollout-history-of-a-deployment
+- id: deploy-mgmt-q12
+  prompt: Delete a deployment named 'frontend'
+  type: command
+  metadata:
+    id: deploy-mgmt-q12
+    category: Deployment Management
+    response: kubectl delete deployment frontend
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#deleting-a-deployment
+- id: deploy-mgmt-q11
   prompt: Roll back a deployment named 'webapp' to revision 2
   type: command
   metadata:
