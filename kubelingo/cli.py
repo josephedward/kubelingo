@@ -308,6 +308,9 @@ def restore_db():
         os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
         shutil.copy2(backup_db_path, DATABASE_FILE)
         print(f"{Fore.GREEN}Restored questions database to '{DATABASE_FILE}'.{Style.RESET_ALL}")
+        # After restoring, ensure schema is up-to-date.
+        from kubelingo.database import init_db
+        init_db()
     except Exception as e:
         print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
 
