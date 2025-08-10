@@ -16,7 +16,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from kubelingo.database import init_db, add_question
 from kubelingo.modules.yaml_loader import YAMLLoader
-from kubelingo.utils.config import DATA_DIR
+from kubelingo.utils.config import DATA_DIR, QUESTIONS_DIR
 from dataclasses import asdict
 
 def main():
@@ -24,7 +24,8 @@ def main():
     init_db()
     loader = YAMLLoader()
     # Scan both primary and backup YAML quiz directories
-    dirs = [Path(DATA_DIR) / 'yaml', Path(DATA_DIR) / 'yaml-bak']
+    # Include both the new questions directory and legacy YAML directories
+    dirs = [Path(QUESTIONS_DIR), Path(DATA_DIR) / 'yaml', Path(DATA_DIR) / 'yaml-bak']
     total_added = 0
     for yaml_dir in dirs:
         if not yaml_dir.is_dir():
