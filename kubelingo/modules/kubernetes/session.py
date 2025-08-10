@@ -24,9 +24,6 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -389,38 +386,43 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Basic Exercises --- (static YAML quizzes)
-        from kubelingo.modules.yaml_loader import YAMLLoader
-        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-        yaml_loader = YAMLLoader()
-        if questionary:
-            choices.append(questionary.Separator('--- Basic Exercises ---'))
-        for title, src in BASIC_QUIZZES.items():
+        # Load all quizzes from the database and group by schema_category
+        loader = DBLoader()
+        sections = {
+            QuestionCategory.OPEN_ENDED.value: [],
+            QuestionCategory.COMMAND.value: [],
+            QuestionCategory.MANIFEST.value: [],
+        }
+        for src in loader.discover():
             try:
-                count = len(yaml_loader.load_file(src) or [])
+                qs = loader.load_file(src) or []
             except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
-
-        # --- Command-Based Exercises --- (static YAML quizzes)
-        if questionary:
-            choices.append(questionary.Separator('--- Command-Based Exercises ---'))
-        for title, src in COMMAND_QUIZZES.items():
-            try:
-                count = len(yaml_loader.load_file(src) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
-
-        # --- Manifest-Based Exercises --- (static YAML quizzes)
-        if questionary:
-            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
-        for title, src in MANIFEST_QUIZZES.items():
-            try:
-                count = len(yaml_loader.load_file(src) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
+                qs = []
+            count = len(qs)
+            if count == 0:
+                continue
+            sect = getattr(qs[0], 'schema_category', None)
+            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
+            name = humanize_module(os.path.splitext(os.path.basename(src))[0])
+            sections.setdefault(sect_key, []).append({
+                "name": f"{name} ({count} questions)",
+                "value": src
+            })
+        # Sort and append each category section in order
+        display_labels = {
+            QuestionCategory.OPEN_ENDED.value: 'Basic/Open-Ended Exercises',
+            QuestionCategory.COMMAND.value: 'Command-Based/Syntax Exercises',
+            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
+        }
+        for cat in [QuestionCategory.OPEN_ENDED.value,
+                    QuestionCategory.COMMAND.value,
+                    QuestionCategory.MANIFEST.value]:
+            entries = sections.get(cat, [])
+            if entries:
+                if questionary:
+                    choices.append(questionary.Separator(f"--- {display_labels[cat]} ---"))
+                entries.sort(key=lambda e: e["name"].lower())
+                choices.extend(entries)
 
         # --- Settings Section ---
         if questionary:
