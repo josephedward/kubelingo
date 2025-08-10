@@ -10,10 +10,11 @@ import yaml
 from pathlib import Path
 
 # Ensure the project root is in the Python path
-project_root = Path(__file__).resolve().parent.parent
+project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from kubelingo.database import add_question, get_db_connection, init_db
+from kubelingo.question import QuestionCategory
 from kubelingo.utils.config import (
     DATABASE_FILE,
     QUESTIONS_DIR,
@@ -39,9 +40,21 @@ def import_questions(conn, source_dir: Path):
             if not questions_data:
                 continue
             for q_dict in questions_data:
+                # Set schema_category based on the question type
+                q_type = q_dict.get('type', 'command')
+                if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
+                    q_dict['schema_category'] = QuestionCategory.MANIFEST.value
+                elif q_type == 'socratic':
+                    q_dict['schema_category'] = QuestionCategory.OPEN_ENDED.value
+                else:  # command, etc.
+                    q_dict['schema_category'] = QuestionCategory.COMMAND.value
+
                 # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
                 if 'type' in q_dict:
                     q_dict['question_type'] = q_dict.pop('type')
+                else:
+                    q_dict['question_type'] = q_type
+
                 add_question(conn, **q_dict)
                 question_count += 1
     
