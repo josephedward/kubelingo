@@ -4,7 +4,7 @@ Tests for quiz configuration to ensure enabled quiz files exist and no duplicate
 import os
 import pytest
 
-from kubelingo.utils.config import ENABLED_QUIZZES
+from kubelingo.config import ENABLED_QUIZZES
 
 def test_enabled_quiz_paths_exist():
     """Ensure each enabled quiz path in config points to an existing file."""

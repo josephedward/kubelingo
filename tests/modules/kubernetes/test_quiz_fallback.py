@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import logging
 
 from kubelingo.modules.kubernetes.session import NewSession
-from kubelingo.utils.config import DEFAULT_DATA_FILE
+from kubelingo.config import DEFAULT_DATA_FILE
 
 
 @patch('kubelingo.modules.kubernetes.session.load_questions')
