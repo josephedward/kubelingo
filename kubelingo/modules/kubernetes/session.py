@@ -389,43 +389,37 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Dynamic discovery of all quizzes from the database, grouped by schema_category
+        # --- Basic/Open-Ended Exercises ---
         loader = DBLoader()
-        sections = {
-            QuestionCategory.OPEN_ENDED.value: [],
-            QuestionCategory.COMMAND.value: [],
-            QuestionCategory.MANIFEST.value: [],
-        }
-        display_labels = {
-            QuestionCategory.OPEN_ENDED.value: 'Basic/Open-Ended Exercises',
-            QuestionCategory.COMMAND.value: 'Command-Based/Syntax Exercises',
-            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
-        }
-        for src in loader.discover():
+        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        if questionary:
+            choices.append(questionary.Separator('--- Basic Exercises ---'))
+        for name, src in BASIC_QUIZZES.items():
             try:
-                qs = loader.load_file(src) or []
-                count = len(qs)
+                count = len(loader.load_file(src) or [])
             except Exception:
-                qs = []
                 count = 0
-            if count == 0:
-                continue
-            sect = getattr(qs[0], 'schema_category', None)
-            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
-            if sect_key not in sections:
-                sect_key = QuestionCategory.COMMAND.value
-            base = os.path.splitext(os.path.basename(src))[0]
-            name = humanize_module(base)
-            sections[sect_key].append({"name": f"{name} ({count} questions)", "value": src})
-        # Append each category section in fixed order
-        for cat in [QuestionCategory.OPEN_ENDED.value,
-                    QuestionCategory.COMMAND.value,
-                    QuestionCategory.MANIFEST.value]:
-            entries = sections.get(cat, [])
-            if entries:
-                if questionary:
-                    choices.append(questionary.Separator(f"--- {display_labels[cat]} ---"))
-                choices.extend(entries)
+            choices.append({"name": f"{name} ({count} questions)", "value": src})
+
+        # --- Command-Based Exercises ---
+        if questionary:
+            choices.append(questionary.Separator('--- Command-Based Exercises ---'))
+        for name, src in COMMAND_QUIZZES.items():
+            try:
+                count = len(loader.load_file(src) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": src})
+
+        # --- Manifest-Based Exercises ---
+        if questionary:
+            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
+        for name, src in MANIFEST_QUIZZES.items():
+            try:
+                count = len(loader.load_file(src) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": src})
 
         # --- Settings Section ---
         if questionary:
