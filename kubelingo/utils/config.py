@@ -42,6 +42,7 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
 # --- Interactive Quiz Modules ---
 # Definitions for organizing quizzes into menu groups.
+## Quiz groupings
 BASIC_QUIZZES = {
     "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
     "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
@@ -61,6 +62,8 @@ COMMAND_QUIZZES = {
 MANIFEST_QUIZZES = {
     "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing.yaml'),
 }
+## For backward compatibility, alias OPEN_ENDED_QUIZZES to BASIC_QUIZZES
+OPEN_ENDED_QUIZZES = BASIC_QUIZZES
 ## Aggregate all enabled quizzes for interactive selection
 ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 
