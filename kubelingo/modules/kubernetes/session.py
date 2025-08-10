@@ -375,47 +375,45 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        # Build menu strictly from DB-backed quizzes, grouped by question type
+        # Build menu from configured quizzes directly
         loader = DBLoader()
-        # Review Flagged Questions
+        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+
+        # Review flagged questions
         if all_flagged:
-            choices.append({"name": f"Review Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
-        # Study Mode (Socratic Tutor)
+            choices.append({
+                "name": f"Review Flagged Questions ({len(all_flagged)})",
+                "value": "__flagged__"
+            })
+        # Study Mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Group quizzes by their primary question type
-        sections = {"Basic/Open-Ended": [], "Command-Based/Syntax": [], "Manifests": []}
-        for src in loader.discover():
+        # Basic Exercises
+        choices.append(questionary.Separator("--- Basic Exercises ---"))
+        for name, path in BASIC_QUIZZES.items():
             try:
-                qs = loader.load_file(src) or []
-                count = len(qs)
+                count = len(loader.load_file(path) or [])
             except Exception:
-                qs = []
                 count = 0
-            if count == 0:
-                continue
-            qtype = getattr(qs[0], 'type', '')
-            if qtype == 'socratic':
-                sect = 'Basic/Open-Ended'
-            elif qtype == 'command':
-                sect = 'Command-Based/Syntax'
-            elif qtype in ('yaml_author', 'yaml_edit', 'live_k8s', 'live_k8s_edit'):
-                sect = 'Manifests'
-            else:
-                sect = 'Command-Based/Syntax'
-            base = os.path.splitext(os.path.basename(src))[0]
-            name = humanize_module(base)
-            sections[sect].append({"name": f"{name} ({count} questions)", "value": src})
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
 
-        # Append each section in fixed order
-        for header, entries in [
-            ('--- Basic Exercises ---', sections['Basic/Open-Ended']),
-            ('--- Command-Based Exercises ---', sections['Command-Based/Syntax']),
-            ('--- Manifest-Based Exercises ---', sections['Manifests']),
-        ]:
-            if entries:
-                choices.append(questionary.Separator(header))
-                choices.extend(entries)
+        # Command-Based Exercises
+        choices.append(questionary.Separator("--- Command-Based Exercises ---"))
+        for name, path in COMMAND_QUIZZES.items():
+            try:
+                count = len(loader.load_file(path) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
+
+        # Manifest-Based Exercises
+        choices.append(questionary.Separator("--- Manifest-Based Exercises ---"))
+        for name, path in MANIFEST_QUIZZES.items():
+            try:
+                count = len(loader.load_file(path) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
 
         # Settings
         choices.append(questionary.Separator('--- Settings ---'))
