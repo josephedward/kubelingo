@@ -84,9 +84,10 @@ def test_progressive_yaml_exercise_e2e_success(editor):
 
     # Verify that the editor was opened with the correct content at each stage
     assert mock_edit.call_count == 2
+    # Verify calls include the prompt parameter for each step
     mock_edit.assert_has_calls([
-        call(starting_pod_yaml_str, 'step-1.yaml'),
-        call(step1_edited_pod_dict, 'step-2.yaml')
+        call(starting_pod_yaml_str, 'step-1.yaml', prompt=exercise_steps[0]['prompt']),
+        call(step1_edited_pod_dict, 'step-2.yaml', prompt=exercise_steps[1]['prompt'])
     ])
 
 
