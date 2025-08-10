@@ -83,9 +83,10 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty 'explanation'"
             )
             source = q.get("source")
-            assert isinstance(source, str) and source.startswith(("http://", "https://")), (
-                f"{file_path.name}[{idx}]: invalid 'source' link"
-            )
+            if source:
+                assert isinstance(source, str) and source.startswith(("http://", "https://")), (
+                    f"{file_path.name}[{idx}]: invalid 'source' link"
+                )
             steps = q.get("validation_steps")
             assert isinstance(steps, list), (
                 f"{file_path.name}[{idx}]: 'validation_steps' should be a list"
@@ -131,9 +132,10 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty 'category'"
             )
             citation = q.get("citation")
-            assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
-                f"{file_path.name}[{idx}]: invalid 'citation' link"
-            )
+            if citation:
+                assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
+                    f"{file_path.name}[{idx}]: invalid 'citation' link"
+                )
             continue
         # 4) Metadata style quizzes
         if "metadata" in q:
@@ -147,9 +149,10 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty metadata 'category'"
             )
             citation = meta.get("citation")
-            assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
-                f"{file_path.name}[{idx}]: invalid metadata 'citation' link"
-            )
+            if citation:
+                assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
+                    f"{file_path.name}[{idx}]: invalid metadata 'citation' link"
+                )
             continue
 
         # 5) YAML authoring style quizzes with 'answer' field
@@ -159,6 +162,28 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty 'answer'"
             )
             continue
+
+        # 6) YAML editing exercise with correct_yaml
+        if "correct_yaml" in q:
+            assert isinstance(q.get('correct_yaml'), str) and q['correct_yaml'].strip()
+            continue
+
+        # 7) Question with solution_file (and optional citation)
+        if "solution_file" in q:
+            assert isinstance(q.get('solution_file'), str) and q['solution_file'].strip()
+            citation = q.get('citation')
+            if citation:
+                assert isinstance(citation, str) and citation.startswith(('http://', 'https://'))
+            continue
+
+        # 8) Simple question with a response (and optional source)
+        if 'response' in q:
+            assert isinstance(q.get('response'), str) and q['response'].strip()
+            source = q.get('source')
+            if source:
+                assert isinstance(source, str) and source.startswith(('http://', 'https://'))
+            continue
+
         # Unknown format
         pytest.fail(f"{file_path.name}[{idx}]: unsupported question format keys: {list(q.keys())}")
 

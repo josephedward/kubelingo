@@ -54,12 +54,13 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         defaults.update(kwargs)
         return Namespace(**defaults)
 
+    @patch('os.path.exists', return_value=True)
     @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
     @patch('kubelingo.modules.question_generator.AIQuestionGenerator.generate_questions')
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_list_questions_flag_prints_all_questions_and_exits(
-        self, mock_stdout, mock_generate_questions, mock_load_questions
+        self, mock_stdout, mock_generate_questions, mock_load_questions, mock_exists
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
@@ -80,12 +81,13 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         # And it should not start the interactive quiz
         self.assertNotIn("Starting Kubelingo Quiz", output)
 
+    @patch('os.path.exists', return_value=True)
     @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
     @patch('kubelingo.modules.question_generator.AIQuestionGenerator')
     @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     def test_ai_generation_failure_shows_warning_and_continues(
-        self, mock_stdout, mock_prompt, MockAIGenerator, mock_load_questions
+        self, mock_stdout, mock_prompt, MockAIGenerator, mock_load_questions, mock_exists
     ):
         # Arrange: Mimic the user-provided log where AI generation fails
         mock_load_questions.return_value = self.static_questions
@@ -109,6 +111,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         self.assertIn("File: dummy.yaml, Questions: 2", output)
         mock_prompt.assert_called_once() # Verify interactive quiz started
 
+    @patch('os.path.exists', return_value=True)
     @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
     @patch('kubelingo.modules.kubernetes.session.NewSession._check_command_with_ai')
     @patch('kubelingo.modules.kubernetes.session.PromptSession')
@@ -116,7 +119,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_auto_advances_on_correct_answer(
-        self, mock_stdout, mock_prompt, MockPromptSession, mock_check_command, mock_load_questions
+        self, mock_stdout, mock_prompt, MockPromptSession, mock_check_command, mock_load_questions, mock_exists
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions
@@ -161,13 +164,14 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         self.assertEqual(mock_prompt.call_count, 2)
 
 
+    @patch('os.path.exists', return_value=True)
     @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
     @patch('kubelingo.modules.question_generator.AIQuestionGenerator.generate_questions')
     @patch('questionary.prompt')
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
     def test_ai_questions_are_generated_when_more_are_requested(
-        self, mock_stdout, mock_prompt, mock_generate_questions, mock_load_questions
+        self, mock_stdout, mock_prompt, mock_generate_questions, mock_load_questions, mock_exists
     ):
         # Arrange
         mock_load_questions.return_value = self.static_questions # 2 questions
