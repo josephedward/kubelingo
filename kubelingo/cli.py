@@ -597,6 +597,12 @@ def main():
         init_db()
     except Exception:
         pass
+    # Ensure all YAML question files are imported into the database (immutable master copy)
+    try:
+        migrate_script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
+        subprocess.run([sys.executable, str(migrate_script)], check=False)
+    except Exception:
+        pass
     # Initialize logging for both interactive and non-interactive modes
     import logging
     log_level = os.getenv('KUBELINGO_LOG_LEVEL', 'INFO').upper()
@@ -682,7 +688,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot')")
+                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -803,6 +809,11 @@ def main():
                 return
             elif cmd_name == 'troubleshoot':
                 handle_troubleshoot(args.command[1:])
+                return
+            elif cmd_name == 'migrate-yaml':
+                # Import all YAML quiz questions into the database
+                script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
+                subprocess.run([sys.executable, str(script)])
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
