@@ -410,20 +410,21 @@ class NewSession(StudySession):
 
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
 
-        # Add all enabled quizzes from config
-        for name, path in ENABLED_QUIZZES.items():
+        # Add all quizzes discovered in the YAML questions directory
+        loader = YAMLLoader()
+        for path in loader.discover():
+            name = os.path.splitext(os.path.basename(path))[0]
             q_count = 0
             is_disabled = False
             disabled_reason = ""
-            if not os.path.exists(path):
+            try:
+                questions = loader.load_file(path) or []
+                q_count = len(questions)
+            except FileNotFoundError:
                 is_disabled = True
                 disabled_reason = "File not found"
-            else:
-                try:
-                    loader = YAMLLoader()
-                    q_count = len(loader.load_file(path))
-                except Exception as e:
-                    self.logger.warning(f"Could not load quiz file {path}: {e}")
+            except Exception as e:
+                self.logger.warning(f"Could not load quiz file {path}: {e}")
             display_name = f"{name} ({q_count} questions)"
             choice_item = {"name": display_name, "value": path}
             if is_disabled:
