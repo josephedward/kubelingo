@@ -12,16 +12,14 @@ except ImportError:
     pexpect = None
 
 
-@pytest.mark.skip(reason="Skipping end-to-end installation test in offline environment")
 @pytest.mark.skipif(pexpect is None, reason="pexpect is not installed. Run 'pip install pexpect'")
 @pytest.mark.e2e
-def test_pypi_install_and_openai_key_prompt(tmp_path: Path):
+def test_source_install_and_openai_key_prompt(tmp_path: Path):
     """
-    An end-to-end test that installs the latest version of kubelingo from
-    PyPI into a temporary virtual environment and verifies that the
-    interactive prompt for an OpenAI API key works as expected.
+    An end-to-end test that installs kubelingo from local source and verifies
+    that the interactive prompt for an OpenAI API key works as expected.
 
-    This test is marked as 'e2e' and can be slow due to network operations.
+    This test is marked as 'e2e' and can be slow.
     It requires the 'pexpect' library.
     """
     venv_dir = tmp_path / "venv"
@@ -30,15 +28,15 @@ def test_pypi_install_and_openai_key_prompt(tmp_path: Path):
     print(f"\nCreating virtual environment in {venv_dir}...")
     venv.create(venv_dir, with_pip=True, clear=True)
 
-    # 2. Install the package from PyPI.
+    # 2. Install the package from source.
     pip_executable = venv_dir / "bin" / "pip"
-    print("Installing kubelingo from PyPI...")
+    print("Installing kubelingo from source...")
     install_result = subprocess.run(
-        [str(pip_executable), "install", "kubelingo"],
+        [str(pip_executable), "install", "."],
         capture_output=True, text=True, check=False, timeout=300
     )
     assert install_result.returncode == 0, (
-        f"Failed to install kubelingo from PyPI.\n"
+        f"Failed to install kubelingo from source.\n"
         f"STDOUT:\n{install_result.stdout}\n"
         f"STDERR:\n{install_result.stderr}"
     )

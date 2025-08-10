@@ -11,7 +11,6 @@ from kubelingo.question import Question
 # These imports are based on the provided file summaries.
 # They might need to be adjusted if the structure is different.
 import pytest
-pytest.skip("Skipping Kubernetes quiz features tests after removing JSON quiz fallback", allow_module_level=True)
 from kubelingo.modules.kubernetes.session import NewSession
 from kubelingo.modules.question_generator import AIQuestionGenerator
 

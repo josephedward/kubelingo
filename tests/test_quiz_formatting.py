@@ -13,20 +13,16 @@ QUIZ_DIR = Path(__file__).resolve().parent.parent / "question-data" / "yaml"
 ID_REGEX = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 
 def get_quiz_files():
-    """Yield all quiz YAML files (those with 'quiz' in the filename), excluding yaml_quiz.yaml."""
+    """Yield all quiz YAML files (those with 'quiz' in the filename)."""
     return (
         p for p in QUIZ_DIR.glob("*quiz*.yaml")
-        if p.is_file() and p.name != 'yaml_quiz.yaml'
+        if p.is_file() and p.name != 'master_quiz_with_explanations.yaml'
     )
 
 def load_yaml(file_path):
     """Load YAML from file_path using safe_load."""
     try:
-        raw = file_path.read_text(encoding="utf-8")
-        # Skip any leading non-YAML content before the first document start
-        if '---' in raw:
-            raw = raw.split('---', 1)[1]
-        data = yaml.safe_load(raw)
+        data = yaml.safe_load(file_path.read_text(encoding="utf-8"))
         return data if data is not None else {}
     except yaml.YAMLError as e:
         pytest.fail(f"YAML parsing error in {file_path.name}: {e}")
