@@ -389,36 +389,51 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Basic/Open-Ended Exercises ---
-        db_loader = DBLoader()
-        if questionary:
-            choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
-        for title, src in BASIC_QUIZZES.items():
+        # Dynamic discovery of all quizzes grouped by schema_category
+        loader = DBLoader()
+        sections = {
+            QuestionCategory.OPEN_ENDED.value: [],
+            QuestionCategory.COMMAND.value: [],
+            QuestionCategory.MANIFEST.value: [],
+        }
+        for src in loader.discover():
             try:
-                count = len(db_loader.load_file(src) or [])
+                qs = loader.load_file(src) or []
             except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
+                qs = []
+            count = len(qs)
+            if count == 0:
+                continue
+            sect = getattr(qs[0], 'schema_category', None)
+            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
+            if sect_key not in sections:
+                sect_key = QuestionCategory.COMMAND.value
+            name = humanize_module(os.path.splitext(os.path.basename(src))[0])
+            sections[sect_key].append({'name': f'{name} ({count} questions)', 'value': src})
+        # Sort quizzes in each category by display name
+        for entries in sections.values():
+            entries.sort(key=lambda e: e['name'].lower())
+
+        # --- Basic/Open-Ended Exercises ---
+        basic = sections[QuestionCategory.OPEN_ENDED.value]
+        if basic:
+            if questionary:
+                choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
+            choices.extend(basic)
 
         # --- Command-Based/Syntax Exercises ---
-        if questionary:
-            choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
-        for title, src in COMMAND_QUIZZES.items():
-            try:
-                count = len(db_loader.load_file(src) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
+        cmd_section = sections[QuestionCategory.COMMAND.value]
+        if cmd_section:
+            if questionary:
+                choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
+            choices.extend(cmd_section)
 
         # --- Manifest-Based Exercises ---
-        if questionary:
-            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
-        for title, src in MANIFEST_QUIZZES.items():
-            try:
-                count = len(db_loader.load_file(src) or [])
-            except Exception:
-                count = 0
-            choices.append({"name": f"{title} ({count} questions)", "value": src})
+        manifest = sections[QuestionCategory.MANIFEST.value]
+        if manifest:
+            if questionary:
+                choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
+            choices.extend(manifest)
 
         # --- Settings Section ---
         if questionary:

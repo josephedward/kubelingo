@@ -42,12 +42,14 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
 # --- Interactive Quiz Modules ---
 # Definitions for organizing quizzes into menu groups.
+# Basic/Open-Ended exercises (single-term or AI-evaluated answers)
 BASIC_QUIZZES = {
     "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
+    "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
     "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
 }
+# Command-based/syntax exercises (kubectl, helm, etc.)
 COMMAND_QUIZZES = {
-    "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
     "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_shell_setup.yaml'),
     "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
