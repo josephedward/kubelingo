@@ -38,8 +38,8 @@ def init_db(clear: bool = False):
     # the master backup to ensure it's populated with the initial set of questions.
     if not os.path.exists(DATABASE_FILE):
         from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
-        master_found = os.path.exists(MASTER_DATABASE_FILE)
-        secondary_found = os.path.exists(SECONDARY_MASTER_DATABASE_FILE)
+        master_found = os.path.exists(MASTER_DATABASE_FILE) and os.path.getsize(MASTER_DATABASE_FILE) > 0
+        secondary_found = os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0
 
         backup_to_use = None
         if master_found:
