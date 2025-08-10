@@ -372,57 +372,23 @@ class NewSession(StudySession):
         print("=== YAML Editing Session Complete ===")
 
     def _build_interactive_menu_choices(self):
-        """Helper to construct the list of choices for the interactive menu."""
+        """Build the list of available quizzes for the interactive menu."""
         all_flagged = get_all_flagged_questions()
-        missing_deps = check_dependencies('docker', 'kubectl')
-        
         choices = []
-
-        # Review flagged questions
-        flagged_count = len(all_flagged)
-        review_choice = {"name": f"Review Flagged Questions ({flagged_count})", "value": "review"}
-        if flagged_count == 0:
-            review_choice['disabled'] = "No questions flagged for review"
-        choices.append(review_choice)
-
-        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "study_mode"})
-
-        # Add all quizzes discovered in the YAML questions directory
-        loader = YAMLLoader()
-        for path in loader.discover():
-            name = os.path.splitext(os.path.basename(path))[0]
-            q_count = 0
-            is_disabled = False
-            disabled_reason = ""
+        # Enumerate enabled quizzes and count questions
+        for name, path in ENABLED_QUIZZES.items():
             try:
+                loader = YAMLLoader()
                 questions = loader.load_file(path) or []
-                q_count = len(questions)
-            except FileNotFoundError:
-                is_disabled = True
-                disabled_reason = "File not found"
-            except Exception as e:
-                self.logger.warning(f"Could not load quiz file {path}: {e}")
-            display_name = f"{name} ({q_count} questions)"
-            choice_item = {"name": display_name, "value": path}
-            if is_disabled:
-                choice_item["disabled"] = disabled_reason
-            elif q_count == 0:
-                choice_item["disabled"] = "No questions available"
-            choices.append(choice_item)
-
-        # Settings section (configuration)
-        if questionary:
-            choices.append(questionary.Separator("--- Settings ---"))
-
-        # API Keys, Clusters, etc.
-        choices.append({"name": "API Keys", "value": "api_keys"})
-        choices.append({"name": "Clusters", "value": "clusters"})
-        choices.append({"name": "Questions", "value": "questions"})
-        choices.append({"name": "Troubleshooting", "value": "troubleshooting"})
-        choices.append({"name": "Help", "value": "help"})
-        choices.append({"name": "Exit App", "value": "exit_app"})
-        
-        return choices, all_flagged
+                count = len(questions)
+            except Exception:
+                count = 0
+            display = f"{name} ({count} questions)"
+            choices.append({"name": display, "value": path})
+        # Include flagged questions option if any
+        if all_flagged:
+            choices.insert(0, {"name": f"Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
+        return choices, bool(all_flagged)
 
     def _show_static_help(self):
         """Displays a static, hardcoded help menu as a fallback."""
