@@ -12,6 +12,12 @@ repos:
           bash -c "python -m kubelingo.cli --help"
         language: system
         types: [python]
+      - id: prevent-yaml-data-deletion
+        name: Prevent deletion of yaml quiz data files
+        entry: |-
+          bash -c "if git diff --cached --diff-filter=D --name-only | grep -E '^(question-data/|question-data-backup/).*\\.ya?ml$'; then echo 'Error: Deletion of YAML quiz data is prohibited.'; exit 1; fi"
+        language: system
+        stages: [pre-commit]
       - id: forbid-generated-yaml
         name: Forbid committing generated YAML quiz data
         entry: bash -c 'echo "Error: Attempting to commit generated YAML quiz data. These files should not be in version control." && exit 1'
