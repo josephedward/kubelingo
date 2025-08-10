@@ -45,7 +45,7 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 BASIC_QUIZZES = {
     "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
     "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
-    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types_reference.yaml'),
+    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
 }
 COMMAND_QUIZZES = {
     "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_shell_setup.yaml'),
