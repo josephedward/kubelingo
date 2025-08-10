@@ -24,6 +24,9 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
+    BASIC_QUIZZES,
+    COMMAND_QUIZZES,
+    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
