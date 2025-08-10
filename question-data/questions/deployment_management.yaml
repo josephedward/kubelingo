@@ -90,3 +90,21 @@
     response: kubectl rollout resume deployment/frontend
     links:
     - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,with%20all%20the%20new%20updates
+- id: deploy-mgmt-q11
+  prompt: Roll back a deployment named 'webapp' to revision 2
+  type: command
+  metadata:
+    id: deploy-mgmt-q11
+    category: Deployment Management
+    response: kubectl rollout undo deployment/webapp --to-revision=2
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,to%20a%20specific%20revision
+- id: deploy-mgmt-q12
+  prompt: View detailed information about a deployment named 'frontend'
+  type: command
+  metadata:
+    id: deploy-mgmt-q12
+    category: Deployment Management
+    response: kubectl describe deployment frontend
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_describe/
