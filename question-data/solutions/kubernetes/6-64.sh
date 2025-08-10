@@ -1,1 +1,0 @@
-kubectl explain pods

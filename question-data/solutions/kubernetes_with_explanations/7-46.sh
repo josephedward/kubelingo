@@ -1,1 +1,0 @@
-kubectl logs busybox -f

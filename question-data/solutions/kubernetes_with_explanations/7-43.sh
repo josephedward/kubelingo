@@ -1,1 +1,0 @@
-kubectl edit deployment frontend

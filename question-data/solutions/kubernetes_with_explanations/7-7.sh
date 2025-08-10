@@ -1,1 +1,0 @@
-kubectl describe namespace dev

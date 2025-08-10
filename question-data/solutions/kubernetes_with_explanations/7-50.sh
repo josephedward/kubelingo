@@ -1,1 +1,0 @@
-kubectl describe pod busybox

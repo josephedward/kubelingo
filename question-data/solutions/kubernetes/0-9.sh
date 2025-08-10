@@ -1,1 +1,0 @@
-kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}' | grep 'app-config' && kubectl get pod config-pod -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}' | grep '/etc/config'
