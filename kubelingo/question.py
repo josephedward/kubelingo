@@ -2,7 +2,15 @@
 Question schema for unified live exercise mode.
 """
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional
+
+
+class QuestionCategory(str, Enum):
+    """The three core categories for all questions."""
+    OPEN_ENDED = "Basic/Open-Ended"
+    COMMAND = "Command-Based/Syntax"
+    MANIFEST = "Manifests"
 
 @dataclass
 class ValidationStep:
@@ -30,6 +38,8 @@ class Question:
     prompt: str
     # Question modality
     type: str = 'command'
+    # The schema category this question belongs to.
+    schema_category: "QuestionCategory" = field(init=False)
 
     # --- Modality-specific fields ---
     # For `command` questions
@@ -58,6 +68,17 @@ class Question:
     validation: List[Any] = field(default_factory=list)
 
     def __post_init__(self):
+        # Derive schema_category from question type for schema enforcement
+        if self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
+            self.schema_category = QuestionCategory.MANIFEST
+        elif self.type in ('command', 'live_k8s'):
+            self.schema_category = QuestionCategory.COMMAND
+        elif self.type == 'socratic':
+            self.schema_category = QuestionCategory.OPEN_ENDED
+        else:
+            # Default for unknown or legacy types.
+            self.schema_category = QuestionCategory.COMMAND
+
         # Map legacy category → categories
         if self.category and not self.categories:
             self.categories = [self.category]

@@ -42,13 +42,12 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
 # --- Interactive Quiz Modules ---
 # Definitions for organizing quizzes into menu groups.
-BASIC_QUIZZES = {
-    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
-    "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
+OPEN_ENDED_QUIZZES = {
     "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types_reference.yaml'),
 }
 COMMAND_QUIZZES = {
-    # Basic syntax and shell setup commands moved here
+    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
+    "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
     "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_shell_setup.yaml'),
     "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
@@ -63,7 +62,7 @@ MANIFEST_QUIZZES = {
     "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing_practice.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
-ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
+ENABLED_QUIZZES = {**OPEN_ENDED_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db

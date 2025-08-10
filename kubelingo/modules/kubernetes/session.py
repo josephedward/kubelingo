@@ -930,7 +930,8 @@ class NewSession(StudySession):
                                     category=subject,
                                     source='ai',
                                     validation_steps=vs_dicts,
-                                    validator=new_q.validator
+                                    validator=new_q.validator,
+                                    schema_category=new_q.schema_category
                                 )
                             except Exception as e:
                                 self.logger.error(f"Failed to persist AI-generated question {new_q.id}: {e}")

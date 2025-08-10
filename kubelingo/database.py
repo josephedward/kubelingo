@@ -83,6 +83,15 @@ def init_db(clear: bool = False):
         except sqlite3.OperationalError as e:
             if "duplicate column name" not in str(e):
                 raise
+    # Add schema_category with CHECK constraint for data integrity
+    try:
+        from kubelingo.question import QuestionCategory
+        categories = f"('{QuestionCategory.OPEN_ENDED.value}', '{QuestionCategory.COMMAND.value}', '{QuestionCategory.MANIFEST.value}')"
+        cursor.execute(f"ALTER TABLE questions ADD COLUMN schema_category TEXT CHECK(schema_category IN {categories})")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e):
+            raise
+
     conn.commit()
     conn.close()
 
@@ -104,6 +113,7 @@ def add_question(
     question_type: Optional[str] = None,
     answers: Optional[List[str]] = None,
     correct_yaml: Optional[str] = None,
+    schema_category: Optional[str] = None,
     conn: sqlite3.Connection = None
 ):
     """Adds or replaces a question in the database."""
@@ -130,8 +140,8 @@ def add_question(
             id, prompt, response, category, source,
             validation_steps, validator, source_file, review,
             explanation, difficulty, pre_shell_cmds, initial_files,
-            question_type, answers, correct_yaml
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            question_type, answers, correct_yaml, schema_category
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
         prompt,
@@ -148,7 +158,8 @@ def add_question(
         initial_files_json,
         question_type,
         answers_json,
-        correct_yaml
+        correct_yaml,
+        schema_category
     ))
     # Commit the insertion to the database
     conn.commit()
@@ -202,6 +213,8 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     q_dict['correct_yaml'] = q_dict.get('correct_yaml')
     # Map question_type column to 'type' key for compatibility
     q_dict['type'] = q_dict.get('question_type') or q_dict.get('type')
+    # Add schema_category if it exists
+    q_dict['schema_category'] = q_dict.get('schema_category')
     return q_dict
 
 
