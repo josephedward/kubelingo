@@ -24,13 +24,9 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
-from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
 
 try:
     from prompt_toolkit import PromptSession
@@ -390,43 +386,43 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Dynamic discovery of all quizzes, grouped by schema_category
-        yaml_loader = YAMLLoader()
+        # Dynamic discovery of all quizzes from the database, grouped by schema_category
+        loader = DBLoader()
         sections = {
             QuestionCategory.OPEN_ENDED.value: [],
             QuestionCategory.COMMAND.value: [],
             QuestionCategory.MANIFEST.value: [],
         }
-        for path in yaml_loader.discover():
+        display_labels = {
+            QuestionCategory.OPEN_ENDED.value: 'Basic/Open-Ended Exercises',
+            QuestionCategory.COMMAND.value: 'Command-Based/Syntax Exercises',
+            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
+        }
+        for src in loader.discover():
             try:
-                qs = yaml_loader.load_file(path) or []
+                qs = loader.load_file(src) or []
                 count = len(qs)
             except Exception:
                 qs = []
                 count = 0
-            sect = getattr(qs[0], 'schema_category', None) if qs else None
+            if count == 0:
+                continue
+            sect = getattr(qs[0], 'schema_category', None)
             sect_key = sect.value if sect else QuestionCategory.COMMAND.value
             if sect_key not in sections:
                 sect_key = QuestionCategory.COMMAND.value
-            name = humanize_module(os.path.splitext(os.path.basename(path))[0])
-            sections[sect_key].append({"name": f"{name} ({count} questions)", "value": path})
-        for lst in sections.values():
-            lst.sort(key=lambda e: e['name'].lower())
-
-        # --- Basic/Open-Ended Exercises ---
-        if questionary:
-            choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
-        choices.extend(sections[QuestionCategory.OPEN_ENDED.value])
-
-        # --- Command-Based/Syntax Exercises ---
-        if questionary:
-            choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
-        choices.extend(sections[QuestionCategory.COMMAND.value])
-
-        # --- Manifest-Based Exercises ---
-        if questionary:
-            choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
-        choices.extend(sections[QuestionCategory.MANIFEST.value])
+            base = os.path.splitext(os.path.basename(src))[0]
+            name = humanize_module(base)
+            sections[sect_key].append({"name": f"{name} ({count} questions)", "value": src})
+        # Append each category section in fixed order
+        for cat in [QuestionCategory.OPEN_ENDED.value,
+                    QuestionCategory.COMMAND.value,
+                    QuestionCategory.MANIFEST.value]:
+            entries = sections.get(cat, [])
+            if entries:
+                if questionary:
+                    choices.append(questionary.Separator(f"--- {display_labels[cat]} ---"))
+                choices.extend(entries)
 
         # --- Settings Section ---
         if questionary:
@@ -434,10 +430,9 @@ class NewSession(StudySession):
         choices.extend([
             {"name": "API Keys", "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Questions", "value": "__questions__"},
             {"name": "Troubleshooting", "value": "__troubleshooting__"},
             {"name": "Help Documentation", "value": "__help__"},
-            {"name": "Exit App", "value": "__exit__"},
+            {"name": "Exit the App", "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
 
