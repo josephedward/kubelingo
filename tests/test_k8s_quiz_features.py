@@ -55,7 +55,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         return Namespace(**defaults)
 
     @patch('os.path.exists', return_value=True)
-    @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
+    @patch('kubelingo.modules.kubernetes.session.YAMLLoader')
     @patch('kubelingo.modules.question_generator.AIQuestionGenerator.generate_questions')
     @patch('sys.stdout', new_callable=StringIO)
     @patch('random.shuffle', lambda x: x)
@@ -112,7 +112,7 @@ class KubernetesQuizFeaturesTest(unittest.TestCase):
         mock_prompt.assert_called_once() # Verify interactive quiz started
 
     @patch('os.path.exists', return_value=True)
-    @patch('kubelingo.modules.kubernetes.session.YAMLLoader.load_file')
+    @patch('kubelingo.modules.kubernetes.session.YAMLLoader')
     @patch('kubelingo.modules.kubernetes.session.NewSession._check_command_with_ai')
     @patch('kubelingo.modules.kubernetes.session.PromptSession')
     @patch('questionary.prompt')

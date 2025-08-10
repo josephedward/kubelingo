@@ -20,7 +20,7 @@ def test_build_interactive_menu_shows_question_counts(mock_get_flagged, mock_yam
     test_quiz_choice = next((c for c in choices if c['value'] == "/path/to/kubectl_basics.yaml"), None)
 
     assert test_quiz_choice is not None
-    assert test_quiz_choice['name'] == "kubectl_basics (10 questions)"
+    assert test_quiz_choice['name'] == "Kubectl Basics (10 questions)"
 
     # Verify that the loader's methods were called correctly
     mock_loader_instance.discover.assert_called_once()

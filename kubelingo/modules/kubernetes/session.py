@@ -252,11 +252,6 @@ class NewSession(StudySession):
             _ = load_questions(args.file)
         except Exception:
             pass
-        # Python fallback: load questions from file
-        try:
-            _ = load_questions(args.file)
-        except Exception:
-            pass
     
     def _run_one_exercise(self, question: dict):
         """
