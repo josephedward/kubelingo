@@ -22,7 +22,10 @@ def get_quiz_files():
 def load_yaml(file_path):
     """Load YAML from file_path using safe_load."""
     try:
-        data = yaml.safe_load(file_path.read_text(encoding="utf-8"))
+        content = file_path.read_text(encoding="utf-8")
+        if not content.strip():
+            return {}
+        data = yaml.safe_load(content)
         return data if data is not None else {}
     except yaml.YAMLError as e:
         pytest.fail(f"YAML parsing error in {file_path.name}: {e}")
