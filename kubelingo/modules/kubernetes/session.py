@@ -377,13 +377,15 @@ class NewSession(StudySession):
 
         try:
             loader = YAMLLoader()
-            # Iterate over enabled quizzes defined in configuration
-            from kubelingo.utils.config import ENABLED_QUIZZES
-            for display_name, path in ENABLED_QUIZZES.items():
+            quiz_files = loader.discover()
+
+            for path in quiz_files:
                 try:
                     questions = loader.load_file(path) or []
                     count = len(questions)
-                    display = f"{display_name} ({count} questions)"
+                    # Use stem to get filename without extension, to match test logic
+                    name = Path(path).stem
+                    display = f"{humanize_module(name)} ({count} questions)"
                     choices.append({"name": display, "value": path})
                 except Exception as e:
                     self.logger.warning(f"Could not load quiz file {path}: {e}")

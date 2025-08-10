@@ -126,7 +126,7 @@ def test_question_entries_format(file_path):
                     f"{file_path.name}[{idx}]: link '{link}' should start with http:// or https://"
                 )
             continue
-        # 3) Simple style with top-level 'response' and optional 'citation'
+        # 3) Simple style with top-level 'response' and optional 'citation'/'source'
         if "response" in q and "category" in q and not any(k in q for k in ["answers", "links", "metadata"]):
             resp = q.get("response")
             assert isinstance(resp, str) and resp.strip(), (
@@ -136,10 +136,10 @@ def test_question_entries_format(file_path):
             assert isinstance(cat, str) and cat.strip(), (
                 f"{file_path.name}[{idx}]: missing or empty 'category'"
             )
-            citation = q.get("citation")
-            if citation:
+            citation = q.get("citation") or q.get("source")
+            if citation:  # citation/source is optional
                 assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
-                    f"{file_path.name}[{idx}]: invalid 'citation' link"
+                    f"{file_path.name}[{idx}]: invalid 'citation' or 'source' link"
                 )
             continue
         # 4) Metadata style quizzes
@@ -154,7 +154,7 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty metadata 'category'"
             )
             citation = meta.get("citation")
-            if citation:
+            if citation: # citation is optional in this format
                 assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
                     f"{file_path.name}[{idx}]: invalid metadata 'citation' link"
                 )
