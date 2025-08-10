@@ -24,6 +24,9 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
+    BASIC_QUIZZES,
+    COMMAND_QUIZZES,
+    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -747,6 +750,18 @@ class NewSession(StudySession):
                     elif sub == "remove_cluster":
                         handle_config_command(["config", "remove", "cluster"] )
                     input("\nPress Enter to return to menu...")
+                    continue
+                if selected == "__questions__":
+                    sub = questionary.select(
+                        "Questions Management:",
+                        choices=[
+                            {"name": "Generate Questions", "value": "generate_questions", "disabled": "Not implemented"},
+                            questionary.Separator(),
+                            {"name": "Back", "value": "back"},
+                        ],
+                        use_indicator=True
+                    ).ask()
+                    # Return to main menu for 'back' or any other selection
                     continue
                 # Troubleshooting operations
                 if selected == "__troubleshooting__":
