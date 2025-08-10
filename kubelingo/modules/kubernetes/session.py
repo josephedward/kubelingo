@@ -374,16 +374,24 @@ class NewSession(StudySession):
         """Build the list of available quizzes for the interactive menu."""
         all_flagged = get_all_flagged_questions()
         choices = []
-        # Enumerate enabled quizzes and count questions
-        for name, path in ENABLED_QUIZZES.items():
-            try:
-                loader = YAMLLoader()
-                questions = loader.load_file(path) or []
-                count = len(questions)
-            except Exception:
-                count = 0
-            display = f"{name} ({count} questions)"
-            choices.append({"name": display, "value": path})
+
+        try:
+            loader = YAMLLoader()
+            quiz_files = loader.discover()
+
+            for path in quiz_files:
+                try:
+                    questions = loader.load_file(path) or []
+                    count = len(questions)
+                    # Use stem to get filename without extension, to match test logic
+                    name = Path(path).stem
+                    display = f"{name} ({count} questions)"
+                    choices.append({"name": display, "value": path})
+                except Exception as e:
+                    self.logger.warning(f"Could not load quiz file {path}: {e}")
+        except Exception as e:
+            self.logger.error(f"Failed to discover YAML quiz files: {e}")
+
         # Include flagged questions option if any
         if all_flagged:
             choices.insert(0, {"name": f"Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
