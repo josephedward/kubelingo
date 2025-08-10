@@ -17,7 +17,13 @@ def get_db_connection():
         except Exception:
             pass
 
-    conn = sqlite3.connect(DATABASE_FILE)
+    # Attempt connection to user-specific database; fallback to project-local if unavailable
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+    except Exception:
+        # Fallback to a local DB in the current working directory
+        fallback = os.path.join(os.getcwd(), 'kubelingo.db')
+        conn = sqlite3.connect(fallback)
     conn.row_factory = sqlite3.Row
     return conn
 
