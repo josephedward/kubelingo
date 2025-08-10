@@ -33,9 +33,18 @@ class YAMLLoader(BaseLoader):
         if yaml is None:
             # PyYAML is required to load YAML quiz files
             return []
-        # Load all YAML documents, take the first non-empty doc
+        # Load file content, strip any leading non-YAML docstrings before '---'
         with open(path, encoding='utf-8') as f:
-            docs = list(yaml.safe_load_all(f))
+            content = f.read()
+        # If Python-style docstring or other preamble exists, skip to first '---'
+        if '---' in content:
+            lines = content.splitlines()
+            for idx, line in enumerate(lines):
+                if line.strip() == '---':
+                    content = '\n'.join(lines[idx:])
+                    break
+        # Parse all YAML documents
+        docs = list(yaml.safe_load_all(content))
         raw = docs[0] if docs else {}
         # If first document is not question data (e.g., a docstring), use second
         if not isinstance(raw, (list, dict)) and len(docs) > 1:
@@ -113,7 +122,6 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=q_type,
-                    schema_category=schema_category,
                     # Include any provided correct YAML for edit questions
                     correct_yaml=item.get('correct_yaml'),
                     prompt=item.get('prompt', ''),
@@ -130,7 +138,7 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'answer', 'response', 'review', 'correct_yaml', 'schema_category'
+                            'answer', 'response', 'review', 'correct_yaml'
                         )
                     }
                 ))
@@ -171,7 +179,6 @@ class YAMLLoader(BaseLoader):
                 questions.append(Question(
                     id=qid,
                     type=q_type,
-                    schema_category=schema_category,
                     # Include any provided correct YAML
                     correct_yaml=item.get('correct_yaml'),
                     prompt=(item.get('prompt') or item.get('question', '')),
@@ -188,7 +195,7 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'review', 'correct_yaml', 'schema_category'
+                            'review', 'correct_yaml'
                         )
                     }
                 ))
