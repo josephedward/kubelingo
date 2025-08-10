@@ -376,6 +376,9 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
+        # Use fixed quiz definitions from config
+        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+
         # --- Review Section ---
         if questionary:
             choices.append(questionary.Separator("--- Review ---"))
@@ -386,43 +389,24 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Load all quizzes from the database and group by schema_category
-        loader = DBLoader()
-        sections = {
-            QuestionCategory.OPEN_ENDED.value: [],
-            QuestionCategory.COMMAND.value: [],
-            QuestionCategory.MANIFEST.value: [],
+        # --- Quiz Sections ---
+        quiz_configs = {
+            "--- Basic Exercises ---": BASIC_QUIZZES,
+            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
+            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
         }
-        for src in loader.discover():
-            try:
-                qs = loader.load_file(src) or []
-            except Exception:
-                qs = []
-            count = len(qs)
-            if count == 0:
-                continue
-            sect = getattr(qs[0], 'schema_category', None)
-            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
-            name = humanize_module(os.path.splitext(os.path.basename(src))[0])
-            sections.setdefault(sect_key, []).append({
-                "name": f"{name} ({count} questions)",
-                "value": src
-            })
-        # Sort and append each category section in order
-        display_labels = {
-            QuestionCategory.OPEN_ENDED.value: 'Basic/Open-Ended Exercises',
-            QuestionCategory.COMMAND.value: 'Command-Based/Syntax Exercises',
-            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
-        }
-        for cat in [QuestionCategory.OPEN_ENDED.value,
-                    QuestionCategory.COMMAND.value,
-                    QuestionCategory.MANIFEST.value]:
-            entries = sections.get(cat, [])
-            if entries:
-                if questionary:
-                    choices.append(questionary.Separator(f"--- {display_labels[cat]} ---"))
-                entries.sort(key=lambda e: e["name"].lower())
-                choices.extend(entries)
+
+        for separator, quizzes in quiz_configs.items():
+            if questionary:
+                choices.append(questionary.Separator(separator))
+            for name, path in quizzes.items():
+                try:
+                    # Get questions from DB using the basename of the path
+                    source_file = os.path.basename(path)
+                    count = len(get_questions_by_source_file(source_file))
+                except Exception:
+                    count = 0
+                choices.append({"name": f"{name} ({count} questions)", "value": path})
 
         # --- Settings Section ---
         if questionary:
@@ -430,6 +414,7 @@ class NewSession(StudySession):
         choices.extend([
             {"name": "API Keys", "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
+            {"name": "Questions", "value": "__questions__"},
             {"name": "Troubleshooting", "value": "__troubleshooting__"},
             {"name": "Help Documentation", "value": "__help__"},
             {"name": "Exit the App", "value": "__exit__"},
