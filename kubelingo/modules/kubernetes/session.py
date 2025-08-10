@@ -45,7 +45,7 @@ import os
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset, validate_yaml_structure
-from kubelingo.question import Question
+from kubelingo.question import Question, QuestionCategory
 # Existing import
 # Existing import
 from .vim_yaml_editor import VimYamlEditor
@@ -374,46 +374,77 @@ class NewSession(StudySession):
         """Build the list of available quizzes for the interactive menu."""
         all_flagged = get_all_flagged_questions()
         choices = []
-
-        # Build menu from configured quizzes directly
         loader = DBLoader()
-        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-
-        # Review flagged questions
+        # Group review-related options under a 'Review' section
+        if questionary:
+            choices.append(questionary.Separator('--- Review ---'))
+        # Review Flagged Questions
         if all_flagged:
             choices.append({
                 "name": f"Review Flagged Questions ({len(all_flagged)})",
                 "value": "__flagged__"
             })
-        # Study Mode
+        # Study Mode (Socratic Tutor)
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        quiz_configs = {
-            "--- Basic Exercises ---": BASIC_QUIZZES,
-            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
-            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+        # Load and group quizzes by schema_category
+        sections = {
+            QuestionCategory.OPEN_ENDED.value: [],
+            QuestionCategory.COMMAND.value: [],
+            QuestionCategory.MANIFEST.value: [],
         }
+        for src in loader.discover():
+            try:
+                qs = loader.load_file(src) or []
+                count = len(qs)
+            except Exception:
+                qs = []
+                count = 0
+            if count == 0:
+                continue
+            sect = getattr(qs[0], 'schema_category', None)
+            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
+            if sect_key not in sections:
+                sect_key = QuestionCategory.COMMAND.value
+            base = os.path.splitext(os.path.basename(src))[0]
+            name = humanize_module(base)
+            sections[sect_key].append({
+                "name": f"{name} ({count} questions)",
+                "value": src
+            })
+        # Sort quizzes in each category by display name
+        for entries in sections.values():
+            entries.sort(key=lambda e: e['name'].lower())
 
-        for separator_text, quizzes in quiz_configs.items():
-            if quizzes:
-                if questionary:
-                    choices.append(questionary.Separator(separator_text))
-                for name, path in quizzes.items():
-                    try:
-                        count = len(loader.load_file(path) or [])
-                    except Exception:
-                        count = 0
-                    choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # --- Basic/Open-Ended Exercises ---
+        basic = sections.get(QuestionCategory.OPEN_ENDED.value, [])
+        if basic:
+            if questionary:
+                choices.append(questionary.Separator('--- Basic/Open-Ended Exercises ---'))
+            choices.extend(basic)
 
-        # Settings
+        # --- Command-Based/Syntax Exercises ---
+        cmd_section = sections.get(QuestionCategory.COMMAND.value, [])
+        if cmd_section:
+            if questionary:
+                choices.append(questionary.Separator('--- Command-Based/Syntax Exercises ---'))
+            choices.extend(cmd_section)
+
+        # --- Manifest-Based Exercises ---
+        manifest = sections.get(QuestionCategory.MANIFEST.value, [])
+        if manifest:
+            if questionary:
+                choices.append(questionary.Separator('--- Manifest-Based Exercises ---'))
+            choices.extend(manifest)
+
+        # Settings Section
         if questionary:
             choices.append(questionary.Separator('--- Settings ---'))
         choices.extend([
             {"name": "API Keys", "value": "__api_keys__"},
-            {"name": "Clusters", "value": "__clusters__"},
-            {"name": "Questions", "value": "__questions__"},
+            {"name": "Cluster Configuration", "value": "__clusters__"},
             {"name": "Troubleshooting", "value": "__troubleshooting__"},
-            {"name": "Help", "value": "__help__"},
+            {"name": "Help Documentation", "value": "__help__"},
             {"name": "Exit App", "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
