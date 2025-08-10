@@ -389,24 +389,27 @@ class NewSession(StudySession):
             # Study mode
             choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
+            # Group quizzes into fixed categories
             quiz_configs = {
-                "--- Basic Exercises ---": BASIC_QUIZZES,
-                "--- Command-Based Exercises ---": COMMAND_QUIZZES,
-                "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+                "--- Basic/Open-Ended ---": BASIC_QUIZZES,
+                "--- Command-Based/Syntax ---": COMMAND_QUIZZES,
+                "--- Manifests ---": MANIFEST_QUIZZES,
             }
 
             for separator, quizzes in quiz_configs.items():
-                choices.append(questionary.Separator(separator))
+                # Add menu separator if interactive UI is available
+                if questionary and hasattr(questionary, 'Separator'):
+                    choices.append(questionary.Separator(separator))
                 for name, path in quizzes.items():
                     try:
-                        source_file = os.path.basename(path)
-                        count = len(get_questions_by_source_file(source_file))
+                        count = len(loader.load_file(path))
                     except Exception:
                         count = 0
                     choices.append({"name": f"{name} ({count} questions)", "value": path})
 
             # Settings
-            choices.append(questionary.Separator("--- Settings ---"))
+            if questionary and hasattr(questionary, 'Separator'):
+                choices.append(questionary.Separator("--- Settings ---"))
             choices.extend([
                 {"name": "API Keys", "value": "__api_keys__"},
                 {"name": "Clusters", "value": "__clusters__"},
