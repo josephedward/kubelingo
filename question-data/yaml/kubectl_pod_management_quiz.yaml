@@ -81,3 +81,22 @@ questions:
     expected: "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4"
   links:
   - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q10
+  category: Pod Management
+  prompt: Create a pod named pod1 with image httpd:2.4.41-alpine and output YAML only.
+  response: kubectl run pod1 --image=httpd:2.4.41-alpine --dry-run=client -o yaml
+- id: pod-mgmt-q11
+  category: Pod Management
+  prompt: Force delete a pod named webserver-sat-003 in the saturn namespace.
+  response: kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0
+- id: pod-mgmt-q12
+  category: Pod Management
+  prompt: Print the status phase of pod pod1 in the default namespace using a jsonpath query.
+  response: 'kubectl -n default get pod pod1 -o jsonpath="{.status.phase}"'
+- id: pod-mgmt-q13
+  category: Pod Management
+  prompt: Add a security context to the container in deployment holy-api (namespace pluto) to disable privilege escalation and privileged mode.
+  response: |
+    securityContext:
+      allowPrivilegeEscalation: false
+      privileged: false

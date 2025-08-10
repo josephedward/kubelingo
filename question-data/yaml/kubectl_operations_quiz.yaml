@@ -308,3 +308,105 @@
     response: "kubectl wait"
     category: "Kubectl Operations"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+- id: operations::create-service-clusterip
+  question: "Generate a ClusterIP service YAML named project-plt-6cc-svc in namespace pluto listening on port 3333 and forwarding to port 80."
+  type: command
+  metadata:
+    response: "kubectl -n pluto create service clusterip project-plt-6cc-svc --tcp 3333:80 --dry-run=client -o yaml"
+    category: "Service Management"
+- id: operations::create-job
+  question: "Generate a job YAML named neb-new-job in namespace neptune using image busybox:1.31.0 that runs the command 'sleep 2 && echo done'."
+  type: command
+  metadata:
+    response: "kubectl -n neptune create job neb-new-job --image=busybox:1.31.0 --dry-run=client -o yaml -- sh -c \"sleep 2 && echo done\""
+    category: "Job Management"
+- id: operations::edit-job
+  question: "Modify the job manifest to set completions to 3, parallelism to 2, and add a label id=awesome-job to the pod template."
+  type: yaml_edit
+  metadata:
+    response: |
+      spec:
+        completions: 3
+        parallelism: 2
+        template:
+          metadata:
+            labels:
+              id: awesome-job
+    category: "Job Management"
+- id: operations::create-pv
+  question: "Create a PersistentVolume named earth-project-earthflower-pv with capacity 2Gi, access mode ReadWriteOnce, using hostPath /Volumes/Data."
+  type: yaml_author
+  metadata:
+    response: |
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: earth-project-earthflower-pv
+      spec:
+        capacity:
+          storage: 2Gi
+        accessModes:
+          - ReadWriteOnce
+        hostPath:
+          path: "/Volumes/Data"
+    category: "Volume Management"
+- id: operations::create-pvc
+  question: "Create a PersistentVolumeClaim named earth-project-earthflower-pvc in the earth namespace requesting 2Gi of storage with access mode ReadWriteOnce."
+  type: yaml_author
+  metadata:
+    response: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: earth-project-earthflower-pvc
+        namespace: earth
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+    category: "Volume Management"
+- id: operations::mount-pvc
+  question: "Mount the PersistentVolumeClaim earth-project-earthflower-pvc at /tmp/project-data in a container."
+  type: yaml_edit
+  metadata:
+    response: |
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: earth-project-earthflower-pvc
+      volumeMounts:
+        - name: data
+          mountPath: /tmp/project-data
+    category: "Volume Management"
+- id: operations::create-storageclass
+  question: "Create a StorageClass named moon-retain that uses the 'moon-retainer' provisioner and has a Retain reclaim policy."
+  type: yaml_author
+  metadata:
+    response: |
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: moon-retain
+      provisioner: moon-retainer
+      reclaimPolicy: Retain
+    category: "Volume Management"
+- id: operations::create-pvc-with-storageclass
+  question: "Create a PersistentVolumeClaim named moon-pvc-126 in the moon namespace requesting 3Gi with access mode ReadWriteOnce using StorageClass moon-retain."
+  type: yaml_author
+  metadata:
+    response: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: moon-pvc-126
+        namespace: moon
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 3Gi
+        storageClassName: moon-retain
+    category: "Volume Management"

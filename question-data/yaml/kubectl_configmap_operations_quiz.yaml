@@ -78,3 +78,7 @@ questions:
     links:
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data"
       - "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to"
+  - id: cm-ops-q11
+    category: "ConfigMap Operations"
+    prompt: "Create a configmap named configmap-web-moon-html in namespace moon from the file /opt/course/15/web-moon.html with key index.html."
+    response: "kubectl -n moon create configmap configmap-web-moon-html --from-file=index.html=/opt/course/15/web-moon.html"
