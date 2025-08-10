@@ -39,7 +39,7 @@ class Question:
     # Question modality
     type: str = 'command'
     # The schema category this question belongs to.
-    schema_category: "QuestionCategory" = field(init=False)
+    schema_category: Optional["QuestionCategory"] = None
 
     # --- Modality-specific fields ---
     # For `command` questions
@@ -68,16 +68,17 @@ class Question:
     validation: List[Any] = field(default_factory=list)
 
     def __post_init__(self):
-        # Derive schema_category from question type for schema enforcement
-        if self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
-            self.schema_category = QuestionCategory.MANIFEST
-        elif self.type in ('command', 'live_k8s'):
-            self.schema_category = QuestionCategory.COMMAND
-        elif self.type == 'socratic':
-            self.schema_category = QuestionCategory.OPEN_ENDED
-        else:
-            # Default for unknown or legacy types.
-            self.schema_category = QuestionCategory.COMMAND
+        # Derive schema_category from question type for schema enforcement if not provided
+        if self.schema_category is None:
+            if self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
+                self.schema_category = QuestionCategory.MANIFEST
+            elif self.type in ('command', 'live_k8s'):
+                self.schema_category = QuestionCategory.COMMAND
+            elif self.type == 'socratic':
+                self.schema_category = QuestionCategory.OPEN_ENDED
+            else:
+                # Default for unknown or legacy types.
+                self.schema_category = QuestionCategory.COMMAND
 
         # Map legacy category → categories
         if self.category and not self.categories:
