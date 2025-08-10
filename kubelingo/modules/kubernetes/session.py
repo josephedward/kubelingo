@@ -375,77 +375,60 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
         loader = DBLoader()
-        # Group review-related options under a 'Review' section
+        # --- Review ---: Flagged Questions and Socratic Tutor
         if questionary:
             choices.append(questionary.Separator('--- Review ---'))
-        # Review Flagged Questions
-        if all_flagged:
-            choices.append({
-                "name": f"Review Flagged Questions ({len(all_flagged)})",
-                "value": "__flagged__"
-            })
+        # Review Flagged Questions (count shown)
+        choices.append({
+            "name": f"Review Flagged Questions ({len(all_flagged)})",
+            "value": "__flagged__"
+        })
         # Study Mode (Socratic Tutor)
-        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
+        choices.append({
+            "name": "Study Mode (Socratic Tutor)",
+            "value": "__study__"
+        })
 
-        # Load and group quizzes by schema_category
-        sections = {
-            QuestionCategory.OPEN_ENDED.value: [],
-            QuestionCategory.COMMAND.value: [],
-            QuestionCategory.MANIFEST.value: [],
-        }
-        for src in loader.discover():
+        # --- Basic Section: Open-Ended questions ---
+        if questionary:
+            choices.append(questionary.Separator('--- Basic ---'))
+        yaml_loader = YAMLLoader()
+        for title, path in BASIC_QUIZZES.items():
             try:
-                qs = loader.load_file(src) or []
-                count = len(qs)
+                count = len(yaml_loader.load_file(path) or [])
             except Exception:
-                qs = []
                 count = 0
-            if count == 0:
-                continue
-            sect = getattr(qs[0], 'schema_category', None)
-            sect_key = sect.value if sect else QuestionCategory.COMMAND.value
-            if sect_key not in sections:
-                sect_key = QuestionCategory.COMMAND.value
-            base = os.path.splitext(os.path.basename(src))[0]
-            name = humanize_module(base)
-            sections[sect_key].append({
-                "name": f"{name} ({count} questions)",
-                "value": src
-            })
-        # Sort quizzes in each category by display name
-        for entries in sections.values():
-            entries.sort(key=lambda e: e['name'].lower())
+            choices.append({"name": f"{title} ({count} questions)", "value": path})
 
-        # --- Basic/Open-Ended Exercises ---
-        basic = sections.get(QuestionCategory.OPEN_ENDED.value, [])
-        if basic:
-            if questionary:
-                choices.append(questionary.Separator('--- Basic ---'))
-            choices.extend(basic)
+        # --- Command Section: Syntax quizzes ---
+        if questionary:
+            choices.append(questionary.Separator('--- Command ---'))
+        for title, path in COMMAND_QUIZZES.items():
+            try:
+                count = len(yaml_loader.load_file(path) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{title} ({count} questions)", "value": path})
 
-        # --- Command-Based/Syntax Exercises ---
-        cmd_section = sections.get(QuestionCategory.COMMAND.value, [])
-        if cmd_section:
-            if questionary:
-                choices.append(questionary.Separator('--- Command ---'))
-            choices.extend(cmd_section)
+        # --- Manifest Section: Vim/YAML exercises ---
+        if questionary:
+            choices.append(questionary.Separator('--- Manifest ---'))
+        for title, path in MANIFEST_QUIZZES.items():
+            try:
+                count = len(yaml_loader.load_file(path) or [])
+            except Exception:
+                count = 0
+            choices.append({"name": f"{title} ({count} questions)", "value": path})
 
-        # --- Manifest-Based Exercises ---
-        manifest = sections.get(QuestionCategory.MANIFEST.value, [])
-        if manifest:
-            if questionary:
-                choices.append(questionary.Separator('--- Manifest-Based ---'))
-            choices.extend(manifest)
-
-        # Settings Section
+        # --- Settings ---
         if questionary:
             choices.append(questionary.Separator('--- Settings ---'))
         choices.extend([
-            {"name": "API Keys", "value": "__api_keys__"},
+            {"name": "API Keys",               "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Troubleshooting", "value": "__troubleshooting__"},
-            {"name": "Help Documentation", "value": "__help__"},
-            {"name": "Exit the App", "value": "__exit__"},
+            {"name": "Troubleshooting",       "value": "__troubleshooting__"},
+            {"name": "Help Documentation",    "value": "__help__"},
+            {"name": "Exit App",              "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
 
