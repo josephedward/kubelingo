@@ -672,6 +672,11 @@ class NewSession(StudySession):
                     return
 
                 choices, flagged_questions = self._build_interactive_menu_choices()
+
+                if not choices:
+                    print(f"\n{Fore.YELLOW}No quizzes are available.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Please check your question database or add custom quizzes.{Style.RESET_ALL}")
+                    return
                 
                 print() # Add a blank line for spacing before the menu
                 selected = questionary.select(
