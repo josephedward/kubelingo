@@ -14,6 +14,7 @@ repos:
         stages: [pre-commit]
       - id: run-cli-help
         name: Ensure Kubelingo CLI runs without error
-        entry: bash -c "python -m kubelingo.cli --help"
+        entry: |
+          bash -c "python -m kubelingo.cli --help"
         language: system
         types: [python]
