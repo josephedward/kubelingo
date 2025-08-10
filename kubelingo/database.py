@@ -24,6 +24,16 @@ def get_db_connection():
 
 def init_db(clear: bool = False):
     """Initializes the database and creates/updates the questions table."""
+    # If clearing, physically remove the DB file to trigger re-seeding from master.
+    # This ensures "clear" means "reset to original state" not "create empty DB".
+    if clear and os.path.exists(DATABASE_FILE):
+        try:
+            os.remove(DATABASE_FILE)
+        except OSError:
+            # If removal fails (e.g., permissions), we'll fall back to the old
+            # behavior of dropping the table, which is better than nothing.
+            pass
+
     # First-run seeding: if the user database does not exist, create it from
     # the master backup to ensure it's populated with the initial set of questions.
     if not os.path.exists(DATABASE_FILE):
