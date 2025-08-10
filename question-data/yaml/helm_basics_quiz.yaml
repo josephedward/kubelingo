@@ -137,27 +137,3 @@ questions:
     category: "Helm Basics"
     prompt: "Install the Bitnami Apache chart as release internal-issue-report-apache in namespace mercury with 2 replicas and image debug enabled."
     response: "helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2 --set image.debug=true"
-  - id: helm-q15
-    category: "Helm Basics"
-    prompt: "List all Helm releases in the mercury namespace."
-    response: "helm -n mercury ls"
-  - id: helm-q16
-    category: "Helm Basics"
-    prompt: "Uninstall the Helm release internal-issue-report-apiv1 in the mercury namespace."
-    response: "helm -n mercury uninstall internal-issue-report-apiv1"
-  - id: helm-q17
-    category: "Helm Repositories"
-    prompt: "Update the Helm chart repositories."
-    response: "helm repo update"
-  - id: helm-q18
-    category: "Helm Repositories"
-    prompt: "Search the Bitnami repository for all available nginx chart versions."
-    response: "helm search repo nginx --versions"
-  - id: helm-q19
-    category: "Helm Basics"
-    prompt: "Upgrade the Helm release internal-issue-report-apiv2 in namespace mercury to the latest nginx chart."
-    response: "helm -n mercury upgrade internal-issue-report-apiv2 bitnami/nginx"
-  - id: helm-q20
-    category: "Helm Basics"
-    prompt: "Install the Bitnami Apache chart as release internal-issue-report-apache in namespace mercury with 2 replicas and image debug enabled."
-    response: "helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2 --set image.debug=true"
