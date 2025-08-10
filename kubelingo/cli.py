@@ -43,8 +43,7 @@ from kubelingo.modules.kubernetes.session import (
     NewSession,
 )
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
-# Unified question-data loaders (question-data/{json,md,yaml})
-from kubelingo.modules.md_loader import MDLoader
+# Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.modules.db_loader import DBLoader
