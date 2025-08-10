@@ -1337,10 +1337,13 @@ class NewSession(StudySession):
                             # Auto-flag or unflag based on correctness
                             question_id = q.get('id')
                             if question_id:
-                                if current_question_index not in correct_indices:
-                                    q['review'] = True
-                                    _update_review_status_in_db(question_id, review=True)
-                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
+                                is_correct = current_question_index in correct_indices
+                                new_review_status = not is_correct
+                                if q.get('review', False) != new_review_status:
+                                    q['review'] = new_review_status
+                                    _update_review_status_in_db(question_id, new_review_status)
+                                    if new_review_status:
+                                        print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
                             # Show explanation and reference if available
                             if q.get('explanation'):
                                 print(f"{Fore.CYAN}Explanation: {q['explanation']}{Style.RESET_ALL}")
@@ -1394,10 +1397,13 @@ class NewSession(StudySession):
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
-                                if current_question_index not in correct_indices:
-                                    q['review'] = True
-                                    _update_review_status_in_db(question_id, review=True)
-                                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
+                                is_correct = current_question_index in correct_indices
+                                new_review_status = not is_correct
+                                if q.get('review', False) != new_review_status:
+                                    q['review'] = new_review_status
+                                    _update_review_status_in_db(question_id, new_review_status)
+                                    if new_review_status:
+                                        print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
                             if current_question_index in correct_indices:
                                 if current_question_index == total_questions - 1:
                                     finish_quiz = True
@@ -1534,13 +1540,13 @@ class NewSession(StudySession):
                             # Auto-flagging logic
                             question_id = q.get('id')
                             if question_id:
-                                if current_question_index in correct_indices:
-                                    q['review'] = False
-                                    _update_review_status_in_db(question_id, review=False)
-                                else:
-                                    q['review'] = True
-                                    _update_review_status_in_db(question_id, review=True)
-                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
+                                is_correct = current_question_index in correct_indices
+                                new_review_status = not is_correct
+                                if q.get('review', False) != new_review_status:
+                                    q['review'] = new_review_status
+                                    _update_review_status_in_db(question_id, new_review_status)
+                                    if new_review_status:
+                                        print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                             # Display explanation if provided
                             if q.get('explanation'):
@@ -1583,10 +1589,13 @@ class NewSession(StudySession):
                         # Auto-flag wrong answers, unflag correct ones by question ID
                         question_id = q.get('id')
                         if question_id:
-                            if current_question_index not in correct_indices:
-                                q['review'] = True
-                                _update_review_status_in_db(question_id, review=True)
-                                print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
+                            is_correct = current_question_index in correct_indices
+                            new_review_status = not is_correct
+                            if q.get('review', False) != new_review_status:
+                                q['review'] = new_review_status
+                                _update_review_status_in_db(question_id, new_review_status)
+                                if new_review_status:
+                                    print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
 
                         # Display the expected answer for reference
                         expected_answer = q.get('response', '').strip()
@@ -1718,7 +1727,9 @@ class NewSession(StudySession):
             # Automatically flag incorrect question for review
             question_id = q.get('id')
             if question_id:
-                self.session_manager.mark_question_for_review(question_id)
+                _update_review_status_in_db(question_id, not is_correct)
+                if not is_correct:
+                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
         # Show reference URL for this question
         source_url = getattr(q, 'citation', None) or getattr(q, 'source', None)
         if source_url:
@@ -1792,7 +1803,9 @@ class NewSession(StudySession):
             # Automatically flag incorrect question for review
             question_id = q.get('id') if isinstance(q, dict) else getattr(q, 'id', None)
             if question_id:
-                self.session_manager.mark_question_for_review(question_id)
+                _update_review_status_in_db(question_id, not is_correct)
+                if not is_correct:
+                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
 
         # Always show source URL and explanation if available, for consistency.
         source_url = q.get('citation') or q.get('source')

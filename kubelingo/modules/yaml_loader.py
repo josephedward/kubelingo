@@ -8,7 +8,7 @@ except ImportError:
     yaml = None
 from typing import List
 from kubelingo.modules.base_loader import BaseLoader
-from kubelingo.question import Question, ValidationStep
+from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.utils.config import QUESTIONS_DIR
 
 class YAMLLoader(BaseLoader):
@@ -103,9 +103,17 @@ class YAMLLoader(BaseLoader):
                 if not initial_files and 'initial_yaml' in item:
                     initial_files['exercise.yaml'] = item['initial_yaml']
 
+                q_type = item.get('type') or 'command'
+                schema_category = QuestionCategory.COMMAND
+                if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
+                    schema_category = QuestionCategory.MANIFEST
+                elif q_type == 'socratic':
+                    schema_category = QuestionCategory.OPEN_ENDED
+
                 questions.append(Question(
                     id=qid,
-                    type=item.get('type') or 'command',
+                    type=q_type,
+                    schema_category=schema_category,
                     # Include any provided correct YAML for edit questions
                     correct_yaml=item.get('correct_yaml'),
                     prompt=item.get('prompt', ''),
@@ -122,7 +130,7 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'answer', 'response', 'review', 'correct_yaml'
+                            'answer', 'response', 'review', 'correct_yaml', 'schema_category'
                         )
                     }
                 ))
@@ -153,9 +161,17 @@ class YAMLLoader(BaseLoader):
                 if not initial_files and 'initial_yaml' in item:
                     initial_files['exercise.yaml'] = item['initial_yaml']
 
+                q_type = item.get('type') or 'command'
+                schema_category = QuestionCategory.COMMAND
+                if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
+                    schema_category = QuestionCategory.MANIFEST
+                elif q_type == 'socratic':
+                    schema_category = QuestionCategory.OPEN_ENDED
+
                 questions.append(Question(
                     id=qid,
-                    type=item.get('type') or 'command',
+                    type=q_type,
+                    schema_category=schema_category,
                     # Include any provided correct YAML
                     correct_yaml=item.get('correct_yaml'),
                     prompt=(item.get('prompt') or item.get('question', '')),
@@ -172,7 +188,7 @@ class YAMLLoader(BaseLoader):
                             'prompt', 'runner', 'initial_cmds', 'initial_yaml',
                             'validations', 'explanation', 'categories', 'difficulty',
                             'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'review', 'correct_yaml'
+                            'review', 'correct_yaml', 'schema_category'
                         )
                     }
                 ))
