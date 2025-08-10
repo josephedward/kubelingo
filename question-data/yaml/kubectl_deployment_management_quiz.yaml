@@ -67,3 +67,11 @@ questions:
     category: "Deployment Management"
     prompt: "Restart the deployment web-moon in the moon namespace."
     response: "kubectl -n moon rollout restart deployment web-moon"
+  - id: deploy-mgmt-q11
+    category: "Deployment Management"
+    prompt: "Roll back the deployment api-new-c32 in namespace neptune to the previous revision."
+    response: "kubectl -n neptune rollout undo deployment api-new-c32"
+  - id: deploy-mgmt-q12
+    category: "Deployment Management"
+    prompt: "Restart the deployment web-moon in the moon namespace."
+    response: "kubectl -n moon rollout restart deployment web-moon"
