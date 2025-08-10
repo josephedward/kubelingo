@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch, call
 
-pytestmark = pytest.mark.skip(reason="YAML editing feature not enabled")
 try:
     import yaml
 except ImportError:

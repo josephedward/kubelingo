@@ -7,7 +7,6 @@ import pytest
 
 
 @pytest.mark.e2e
-@pytest.mark.skip(reason="Skipping packaging test in offline environment")
 def test_install_and_run_from_source(tmp_path: Path):
     """
     Tests that the package can be installed from source using pip
