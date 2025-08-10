@@ -164,6 +164,24 @@ def test_question_entries_format(file_path):
                 f"{file_path.name}[{idx}]: missing or empty 'answer'"
             )
             continue
+        # 5b) Live Kubernetes editing exercises
+        if q.get('type') in ('live_k8s', 'live_k8s_edit'):
+            # initial_files must be a dict of filename to content
+            init_files = q.get('initial_files')
+            assert isinstance(init_files, dict) and init_files, (
+                f"{file_path.name}[{idx}]: 'initial_files' should be a non-empty dict"
+            )
+            # validation_steps must be a list of steps
+            steps = q.get('validation_steps')
+            assert isinstance(steps, list) and steps, (
+                f"{file_path.name}[{idx}]: 'validation_steps' should be a non-empty list"
+            )
+            # explanation should be present
+            explanation = q.get('explanation')
+            assert isinstance(explanation, str) and explanation.strip(), (
+                f"{file_path.name}[{idx}]: missing or empty 'explanation'"
+            )
+            continue
 
         # 6) YAML editing exercise with correct_yaml
         if "correct_yaml" in q:
