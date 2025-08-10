@@ -40,6 +40,13 @@ def import_questions(conn, source_dir: Path):
             if not questions_data:
                 continue
             for q_dict in questions_data:
+                # Flatten metadata, giving preference to top-level keys
+                if 'metadata' in q_dict and isinstance(q_dict['metadata'], dict):
+                    metadata = q_dict.pop('metadata')
+                    for k, v in metadata.items():
+                        if k not in q_dict:
+                            q_dict[k] = v
+
                 # Set schema_category based on the question type
                 q_type = q_dict.get('type', 'command')
                 if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
@@ -55,7 +62,7 @@ def import_questions(conn, source_dir: Path):
                 else:
                     q_dict['question_type'] = q_type
 
-                add_question(conn, **q_dict)
+                add_question(conn=conn, **q_dict)
                 question_count += 1
     
     conn.commit()
