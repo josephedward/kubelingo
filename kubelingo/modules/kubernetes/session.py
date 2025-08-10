@@ -1326,10 +1326,7 @@ class NewSession(StudySession):
                             # Auto-flag or unflag based on correctness
                             question_id = q.get('id')
                             if question_id:
-                                if current_question_index in correct_indices:
-                                    q['review'] = False
-                                    _update_review_status_in_db(question_id, review=False)
-                                else:
+                                if current_question_index not in correct_indices:
                                     q['review'] = True
                                     _update_review_status_in_db(question_id, review=True)
                                     print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
@@ -1386,10 +1383,7 @@ class NewSession(StudySession):
                             # Auto-flag wrong answers, unflag correct ones
                             question_id = q.get('id')
                             if question_id:
-                                if current_question_index in correct_indices:
-                                    q['review'] = False
-                                    _update_review_status_in_db(question_id, review=False)
-                                else:
+                                if current_question_index not in correct_indices:
                                     q['review'] = True
                                     _update_review_status_in_db(question_id, review=True)
                                     print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
@@ -1578,10 +1572,7 @@ class NewSession(StudySession):
                         # Auto-flag wrong answers, unflag correct ones by question ID
                         question_id = q.get('id')
                         if question_id:
-                            if current_question_index in correct_indices:
-                                q['review'] = False
-                                _update_review_status_in_db(question_id, review=False)
-                            else:
+                            if current_question_index not in correct_indices:
                                 q['review'] = True
                                 _update_review_status_in_db(question_id, review=True)
                                 print(f"{Fore.MAGENTA}Question flagged for review.{Style.RESET_ALL}")
