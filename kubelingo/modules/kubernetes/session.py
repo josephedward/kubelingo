@@ -708,24 +708,20 @@ class NewSession(StudySession):
                 if selected is None:
                     return # User cancelled (e.g., Ctrl+C)
 
-                if selected == "exit_app":
+                if selected == "__exit__":
                     print(f"\n{Fore.YELLOW}Exiting app. Goodbye!{Style.RESET_ALL}")
                     sys.exit(0)
 
-                if selected == "study_mode":
+                if selected == "__study__":
                     self._run_study_mode_session()
                     continue
 
-                if selected == "yaml_editing_mode":
-                    self._run_yaml_editing_mode(args)
-                    continue
-
-                if selected == "help":
+                if selected == "__help__":
                     self._show_help()
                     input("\nPress Enter to return to the menu...")
                     continue
                 # Settings submenus: API Keys, Clusters, Questions
-                if selected == "api_keys":
+                if selected == "__api_keys__":
                     from kubelingo.cli import handle_config_command
                     sub = questionary.select(
                         "Manage API Keys:",
@@ -743,7 +739,7 @@ class NewSession(StudySession):
                         handle_config_command(["config", "set", "openai"])
                     input("\nPress Enter to return to menu...")
                     continue
-                if selected == "clusters":
+                if selected == "__clusters__":
                     from kubelingo.cli import handle_config_command
                     sub = questionary.select(
                         "Kubernetes Clusters:",
@@ -764,20 +760,8 @@ class NewSession(StudySession):
                         handle_config_command(["config", "remove", "cluster"] )
                     input("\nPress Enter to return to menu...")
                     continue
-                if selected == "questions":
-                    sub = questionary.select(
-                        "Questions Management:",
-                        choices=[
-                            {"name": "Generate Questions", "value": "generate_questions", "disabled": "Not implemented"},
-                            questionary.Separator(),
-                            {"name": "Back", "value": "back"},
-                        ],
-                        use_indicator=True
-                    ).ask()
-                    # Return to main menu for 'back' or any other selection
-                    continue
                 # Troubleshooting operations
-                if selected == "troubleshooting":
+                if selected == "__troubleshooting__":
                     from kubelingo.cli import manage_troubleshooting_interactive
                     manage_troubleshooting_interactive()
                     input("\nPress Enter to return to menu...")
@@ -791,7 +775,7 @@ class NewSession(StudySession):
                     # This option was disabled, so loop back to the menu.
                     continue
 
-                if selected == 'review':
+                if selected == '__flagged__':
                     initial_args.review_only = True
                 else:
                     initial_args.file = selected
