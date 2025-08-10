@@ -377,20 +377,18 @@ class NewSession(StudySession):
 
         try:
             loader = YAMLLoader()
-            quiz_files = loader.discover()
-
-            for path in quiz_files:
+            # Use configured quiz modules for interactive menu
+            from kubelingo.utils.config import ENABLED_QUIZZES
+            for display_name, path in ENABLED_QUIZZES.items():
                 try:
                     questions = loader.load_file(path) or []
                     count = len(questions)
-                    # Use stem to get filename without extension, to match test logic
-                    name = Path(path).stem
-                    display = f"{humanize_module(name)} ({count} questions)"
+                    display = f"{display_name} ({count} questions)"
                     choices.append({"name": display, "value": path})
                 except Exception as e:
                     self.logger.warning(f"Could not load quiz file {path}: {e}")
         except Exception as e:
-            self.logger.error(f"Failed to discover YAML quiz files: {e}")
+            self.logger.error(f"Failed to build interactive menu choices: {e}")
 
         # Include flagged questions option if any
         if all_flagged:
