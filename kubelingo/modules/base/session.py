@@ -60,62 +60,12 @@ class SessionManager:
             print(Fore.RED + f"Error saving quiz history: {e}" + Style.RESET_ALL)
 
     def _update_review_status(self, question_id: str, review: bool):
-        """Sets or removes the review flag for a given question ID in its source YAML."""
-        if yaml is None:
-            self.logger.error("Cannot update review status: PyYAML not installed")
-            return
-
+        """Updates the 'review' flag for a question in the SQLite database."""
         try:
-            module, _ = question_id.split('::', 1)
-        except (ValueError, IndexError):
-            self.logger.error(f"Invalid question ID format for review flagging: {question_id}")
-            return
-
-        # Derive the expected path in question-data/yaml
-        data_file = os.path.join(DATA_DIR, 'yaml', f"{module}.yaml")
-
-        if not os.path.exists(data_file):
-            self.logger.error(f"Could not find source file for question {question_id}: {data_file}")
-            return
-
-        try:
-            with open(data_file, 'r') as f:
-                questions = yaml.safe_load(f)
+            from kubelingo.database import update_review_status
+            update_review_status(question_id, review)
         except Exception as e:
-            self.logger.error(f"Error opening YAML file for review flagging: {e}")
-            return
-
-        if not isinstance(questions, list):
-            self.logger.error(f"Invalid format in {data_file}: expected a list of questions.")
-            return
-
-        question_found = False
-        changed = False
-        for item in questions:
-            if isinstance(item, dict) and item.get('id') == question_id:
-                question_found = True
-                if review:
-                    if not item.get('review'):
-                        item['review'] = True
-                        changed = True
-                else:  # unflag
-                    if 'review' in item:
-                        del item['review']
-                        changed = True
-                break
-        
-        if not question_found:
-            self.logger.error(f"Question with ID {question_id} not found in {data_file}")
-            return
-
-        if not changed:
-            return
-
-        try:
-            with open(data_file, 'w') as f:
-                yaml.safe_dump(questions, f, sort_keys=False)
-        except Exception as e:
-            self.logger.error(f"Error writing YAML file when updating review status: {e}")
+            self.logger.error(f"Failed to update review status in DB for QID {question_id}: {e}")
 
     def mark_question_for_review(self, question_id: str):
         """Adds 'review': True to the matching question in its source YAML file."""
