@@ -62,7 +62,7 @@ MANIFEST_QUIZZES = {
     "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
-ENABLED_QUIZZES = {**OPEN_ENDED_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
+ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
