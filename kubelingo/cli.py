@@ -967,66 +967,10 @@ def main():
 
         # Handle --k8s shortcut
         if args.k8s_mode:
-            # Shortcut to display the main Kubernetes quiz menu and exit
             args.module = 'kubernetes'
-            # Always interactive for --k8s shortcut
-            if True:
-                # Configure logging
-                logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-                logger = logging.getLogger()
-                # Load session for side-effects (history, flags)
-                load_session('kubernetes', logger)
-                try:
-                    from collections import defaultdict
-                    from kubelingo.modules.db_loader import DBLoader
-                    from kubelingo.utils.ui import humanize_module
-                    loader = DBLoader()
-                    files = sorted(loader.discover())
-                    # Map each quiz basename to its source files
-                    base_map = defaultdict(list)
-                    for src in files:
-                        base = os.path.splitext(os.path.basename(src))[0]
-                        base_map[base].append(src)
-                    # Group basenames by extension of their first source
-                    ext_groups = defaultdict(list)
-                    for base, srcs in base_map.items():
-                        ext = os.path.splitext(srcs[0])[1].lstrip('.') or 'unknown'
-                        ext_groups[ext.upper()].append(base)
-                    choices = []
-                    # Prepend static YAML Editing option
-                    choices.append({"name": "YAML Editing", "value": "__yaml_editing__"})
-                    # Build menu: extension groups, unique base entries
-                    for ext in sorted(ext_groups.keys()):
-                        choices.append(questionary.Separator(f"=== {ext} Quizzes ==="))
-                        for base in sorted(ext_groups[ext]):
-                            # Sum question counts across all source variants
-                            total = 0
-                            for src in base_map[base]:
-                                try:
-                                    total += len(loader.load_file(src))
-                                except Exception:
-                                    pass
-                            # Always show quizzes, even if zero questions
-                            name = humanize_module(base)
-                            display = f"{name} ({total} questions)"
-                            choices.append({"name": display, "value": base})
-                    # Exit option
-                    choices.append(questionary.Separator())
-                    choices.append({"name": "Exit", "value": "exit_app"})
-                except Exception as e:
-                    print(f"{Fore.RED}Could not build dynamic quiz menu: {e}{Style.RESET_ALL}")
-                    # Fallback to an empty list and exit if DB fails
-                    choices = [{"name": "Exit", "value": "exit_app"}]
-                # Prompt user to select a quiz
-                choice = questionary.select(
-                    "Choose a Kubernetes quiz module:",
-                    choices=choices,
-                    use_indicator=True
-                ).ask()
-                if choice == 'exit_app':
-                    return
-                # Set the selected module for unified exercise (base name matches DBLoader.discover())
-                args.exercise_module = choice
+            # This flag now acts as a shortcut to the main interactive quiz menu,
+            # which is handled by the module's session runner.
+            # The logic will fall through to the module execution block at the end.
 
         # Global flags handling (note: history and list-modules are handled earlier)
         if args.list_categories:

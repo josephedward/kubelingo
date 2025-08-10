@@ -375,48 +375,46 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        # Use database loader for quizzes, preserving all modules
-        loader = DBLoader()
-        # Review flagged questions
-        if all_flagged:
-            choices.append({"name": f"Review Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
-        # Study mode
-        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
-        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
-        # Basic Exercises
-        choices.append(questionary.Separator("--- Basic Exercises ---"))
-        for name, path in BASIC_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path))
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
-        # Command-Based Exercises
-        choices.append(questionary.Separator("--- Command-Based Exercises ---"))
-        for name, path in COMMAND_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path))
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
-        # Manifest-Based Exercises
-        choices.append(questionary.Separator("--- Manifest-Based Exercises ---"))
-        for name, path in MANIFEST_QUIZZES.items():
-            try:
-                count = len(loader.load_file(path))
-            except Exception:
-                count = 0
-            choices.append({"name": f"{name} ({count} questions)", "value": path})
-        # Settings
-        choices.append(questionary.Separator("--- Settings ---"))
-        choices.extend([
-            {"name": "API Keys", "value": "__api_keys__"},
-            {"name": "Clusters", "value": "__clusters__"},
-            {"name": "Questions", "value": "__questions__"},
-            {"name": "Troubleshooting", "value": "__troubleshooting__"},
-            {"name": "Help", "value": "__help__"},
-            {"name": "Exit App", "value": "__exit__"},
-        ])
+        try:
+            from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+
+            # Review flagged questions
+            choices.append({
+                "name": f"Review Flagged Questions ({len(all_flagged)})",
+                "value": "__flagged__",
+                "disabled": "No questions flagged for review" if not all_flagged else None
+            })
+            # Study mode
+            choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
+
+            quiz_configs = {
+                "--- Basic Exercises ---": BASIC_QUIZZES,
+                "--- Command-Based Exercises ---": COMMAND_QUIZZES,
+                "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+            }
+
+            for separator, quizzes in quiz_configs.items():
+                choices.append(questionary.Separator(separator))
+                for name, path in quizzes.items():
+                    try:
+                        source_file = os.path.basename(path)
+                        count = len(get_questions_by_source_file(source_file))
+                    except Exception:
+                        count = 0
+                    choices.append({"name": f"{name} ({count} questions)", "value": path})
+
+            # Settings
+            choices.append(questionary.Separator("--- Settings ---"))
+            choices.extend([
+                {"name": "API Keys", "value": "__api_keys__"},
+                {"name": "Clusters", "value": "__clusters__"},
+                {"name": "Questions", "value": "__questions__"},
+                {"name": "Troubleshooting", "value": "__troubleshooting__"},
+                {"name": "Help", "value": "__help__"},
+                {"name": "Exit App", "value": "__exit__"},
+            ])
+        except Exception as e:
+            self.logger.error(f"Failed to build interactive menu choices: {e}")
         return choices, bool(all_flagged)
 
     def _show_static_help(self):
