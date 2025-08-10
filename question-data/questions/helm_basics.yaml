@@ -1,0 +1,118 @@
+- id: helm-q1
+  prompt: What is the command to create a basic Helm chart named `my-chart`?
+  type: command
+  explanation: 'Use `helm create <chart-name>` to create a new Helm chart with a default
+    structure. For example, `helm create my-chart` creates a directory named `my-chart`
+    with the necessary files.
+
+    '
+  metadata:
+    id: helm-q1
+    category: Helm Basics
+    response: helm create my-chart
+    links:
+    - https://helm.sh/docs/helm/helm_create/
+- id: helm-q2
+  prompt: How do you install the Helm chart located in `./my-chart` with the release
+    name `my-release`?
+  type: command
+  explanation: 'Use `helm install <release-name> <chart-path>` to deploy an application.
+    For example, `helm install my-release ./my-chart` installs the chart located in
+    the `./my-chart` directory with the release name `my-release`.
+
+    '
+  metadata:
+    id: helm-q2
+    category: Helm Basics
+    response: helm install my-release ./my-chart
+    links:
+    - https://helm.sh/docs/helm/helm_install/
+- id: helm-q3
+  prompt: How do you find all pending Helm deployments across all namespaces?
+  type: command
+  explanation: 'To list all pending Helm releases in every namespace, run `helm list
+    --pending -A`. The `-A` or `--all-namespaces` flag is used to list releases across
+    all namespaces.
+
+    '
+  metadata:
+    id: helm-q3
+    category: Helm Basics
+    response: helm list --pending -A
+    links:
+    - https://helm.sh/docs/helm/helm_list/
+- id: helm-q4
+  prompt: How can you uninstall a Helm release named `my-release`?
+  type: command
+  explanation: 'To uninstall a release, use `helm uninstall <release_name>`. If the
+    release is in another namespace, use the `-n <namespace>` flag. This removes all
+    Kubernetes resources associated with the release.
+
+    '
+  metadata:
+    id: helm-q4
+    category: Helm Basics
+    response: helm uninstall my-release
+    links:
+    - https://helm.sh/docs/helm/helm_uninstall/
+- id: helm-q5
+  prompt: How do you upgrade an existing Helm release named `my-release` using the
+    chart in `./my-chart`?
+  type: command
+  explanation: 'The correct command is `helm upgrade my-release ./my-chart`. An answer
+    like `helm release upgrade` is incomplete and uses incorrect syntax. The `upgrade`
+    command requires the release name and the path to the chart.
+
+    '
+  metadata:
+    id: helm-q5
+    category: Helm Basics
+    response: helm upgrade my-release ./my-chart
+    links:
+    - https://helm.sh/docs/helm/helm_upgrade/
+- id: helm-q11
+  prompt: Assuming the `bitnami` repository has been added, what command downloads
+    the `wordpress` chart from it without installing it?
+  type: command
+  explanation: 'Use `helm pull [repo/chartname]` to download a chart to your local
+    directory. Use the `--untar` flag to extract the chart after downloading.
+
+    '
+  metadata:
+    id: helm-q11
+    category: Helm Basics
+    response: helm pull bitnami/wordpress
+    links:
+    - https://helm.sh/docs/helm/helm_pull/
+- id: helm-q13
+  prompt: Assuming the `bitnami` repository has been added, how do you print the contents
+    of the `values.yaml` for the `bitnami/node` chart?
+  type: command
+  explanation: '`helm show values <chart>` displays the contents of the `values.yaml`
+    file for a given chart. For example: `helm show values bitnami/node`.
+
+    '
+  metadata:
+    id: helm-q13
+    category: Helm Basics
+    response: helm show values bitnami/node
+    links:
+    - https://helm.sh/docs/helm/helm_show/
+- id: helm-q14
+  prompt: Assuming the `bitnami` repository has been added, how do you install the
+    `bitnami/node` chart as a release named `my-node`, setting the `replicaCount`
+    value to 5?
+  type: command
+  explanation: 'You can override values in a chart''s `values.yaml` file at installation
+    time using the `--set` flag. First, find the relevant key (e.g., with `helm show
+    values bitnami/node | grep -i replica`). Then, install the chart with the override:
+    `helm install my-node bitnami/node --set replicaCount=5`.
+
+    '
+  metadata:
+    id: helm-q14
+    category: Helm Basics
+    response: helm install my-node bitnami/node --set replicaCount=5
+    links:
+    - https://artifacthub.io/packages/helm/bitnami/node
+    - https://helm.sh/docs/helm/helm_install/

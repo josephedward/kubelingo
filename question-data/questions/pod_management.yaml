@@ -1,0 +1,107 @@
+- id: pod-mgmt-q1
+  prompt: Create a pod named nginx using the nginx image and expose port 80
+  type: command
+  metadata:
+    id: pod-mgmt-q1
+    category: Pod Management
+    response: kubectl run nginx --image=nginx --port=80
+    validator:
+      type: ai
+      expected: kubectl run nginx --image=nginx --port=80
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,port%3D5701
+- id: pod-mgmt-q2
+  prompt: Create a pod named busybox using the busybox image that runs the command
+    'sleep 3600'
+  type: command
+  metadata:
+    id: pod-mgmt-q2
+    category: Pod Management
+    response: kubectl run busybox --image=busybox -- sleep 3600
+    validator:
+      type: ai
+      expected: kubectl run busybox --image=busybox -- sleep 3600
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
+- id: pod-mgmt-q3
+  prompt: Generate a YAML definition file for a pod named nginx, using the nginx image,
+    without creating it
+  type: command
+  review: true
+  metadata:
+    id: pod-mgmt-q3
+    category: Pod Management
+    response: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
+    validator:
+      type: ai
+      expected: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
+- id: pod-mgmt-q4
+  prompt: Create a pod named 'nginx' that runs the latest nginx image and sets an
+    environment variable DB_URL=postgresql://db
+  type: command
+  review: true
+  metadata:
+    id: pod-mgmt-q4
+    category: Pod Management
+    response: kubectl run nginx --image=nginx --env="DB_URL=postgresql://db"
+    validator:
+      type: ai
+      expected: kubectl run nginx --image=nginx --env="DB_URL=postgresql://db"
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,env%3D%22POD_NAMESPACE%3Ddefault
+- id: pod-mgmt-q5
+  prompt: Extract the YAML definition of a running pod named 'webapp' in the 'development'
+    namespace
+  type: command
+  metadata:
+    id: pod-mgmt-q5
+    category: Pod Management
+    response: kubectl get pod webapp -n development -o yaml > webapp.yaml
+    validator:
+      type: ai
+      expected: kubectl get pod webapp -n development -o yaml > webapp.yaml
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20deployment%20my,Get%20a%20pod%27s%20YAML
+- id: pod-mgmt-q6
+  prompt: Create a pod named nginx using the nginx image and set labels app=web and
+    tier=frontend
+  type: command
+  metadata:
+    id: pod-mgmt-q6
+    category: Pod Management
+    response: kubectl run nginx --image=nginx --labels="app=web,tier=frontend"
+    validator:
+      type: ai
+      expected: kubectl run nginx --image=nginx --labels="app=web,tier=frontend"
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,labels%3D%22app%3Dhazelcast%2Cenv%3Dprod
+- id: pod-mgmt-q7
+  prompt: Create an interactive temporary pod named 'my-shell' using the Ubuntu image
+    to troubleshoot cluster issues
+  type: command
+  metadata:
+    id: pod-mgmt-q7
+    category: Pod Management
+    response: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
+    validator:
+      type: ai
+      expected: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q9
+  prompt: Create a temporary, interactive pod named 'curl1' using the 'curlimages/curl'
+    image to run a curl command against an internal service at 10.244.0.4
+  type: command
+  metadata:
+    id: pod-mgmt-q9
+    category: Pod Management
+    response: kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never
+      -- curl 10.244.0.4
+    validator:
+      type: ai
+      expected: kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never
+        -- curl 10.244.0.4
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever

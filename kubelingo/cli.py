@@ -251,6 +251,34 @@ def handle_config_command(cmd):
     else:
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
+# Troubleshooting scripts runner
+def handle_troubleshoot(cmd_args):
+    """List and run troubleshooting scripts from the scripts directory."""
+    scripts_dir = repo_root / 'scripts'
+    try:
+        # Include only Python and shell scripts for troubleshooting
+        scripts = [p for p in scripts_dir.iterdir() if p.is_file() and p.suffix in ('.py', '.sh')]
+    except Exception as e:
+        print(f"{Fore.RED}Error accessing scripts directory: {e}{Style.RESET_ALL}")
+        return
+
+    mapping = {p.stem: p for p in scripts}
+    if not cmd_args:
+        print(f"{Fore.CYAN}Available troubleshooting scripts:{Style.RESET_ALL}")
+        for name in sorted(mapping):
+            print(f"  {name}")
+        return
+
+    script_name = cmd_args[0]
+    if script_name not in mapping:
+        print(f"{Fore.RED}Unknown script '{script_name}'. Available: {', '.join(sorted(mapping))}{Style.RESET_ALL}")
+        return
+
+    script_path = mapping[script_name]
+    runner = [sys.executable] if script_path.suffix == '.py' else ['bash']
+    cmd = runner + [str(script_path)] + cmd_args[1:]
+    subprocess.run(cmd)
+
 
 def restore_db():
     """
@@ -276,23 +304,14 @@ def restore_db():
 
     print(f"{Fore.CYAN}Merging questions from backup: {backup_db_path}{Style.RESET_ALL}")
 
+    # Overwrite live database with the backup copy
+    from kubelingo.utils.config import DATABASE_FILE
     try:
-        live_conn = get_db_connection()
-        # Attach backup DB to live DB connection
-        live_conn.execute("ATTACH DATABASE ? AS backup_db", (backup_db_path,))
-        # Use INSERT OR REPLACE to merge.
-        # This will add new questions and update existing ones with the same ID.
-        live_conn.execute("""
-            INSERT OR REPLACE INTO main.questions
-            SELECT * FROM backup_db.questions
-        """)
-        live_conn.commit()
-        # Detach backup DB
-        live_conn.execute("DETACH DATABASE backup_db")
-        live_conn.close()
-        print(f"{Fore.GREEN}Successfully merged questions from backup.{Style.RESET_ALL}")
+        os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
+        shutil.copy2(backup_db_path, DATABASE_FILE)
+        print(f"{Fore.GREEN}Restored questions database to '{DATABASE_FILE}'.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Failed to merge database: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
 
 
 def find_duplicates_cmd(cmd):
@@ -662,7 +681,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources')")
+                        help="Command to run (e.g. 'kubernetes', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -780,6 +799,9 @@ def main():
                 return
             elif cmd_name == 'questions':
                 manage_questions_interactive()
+                return
+            elif cmd_name == 'troubleshoot':
+                handle_troubleshoot(args.command[1:])
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:

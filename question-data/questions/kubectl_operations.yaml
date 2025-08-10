@@ -1,0 +1,492 @@
+- id: operations::alpha
+  prompt: List the available commands that correspond to alpha features, which are
+    not enabled in Kubernetes clusters by default.
+  type: command
+  validation_steps:
+  - cmd: kubectl alpha
+    matcher: {}
+  metadata:
+    id: operations::alpha
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::annotate
+  prompt: Add or update the annotations of one or more resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl annotate
+    matcher: {}
+  metadata:
+    id: operations::annotate
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::api-resources
+  prompt: List the API resources that are available.
+  type: command
+  validation_steps:
+  - cmd: kubectl api-resources
+    matcher: {}
+  metadata:
+    id: operations::api-resources
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::api-versions
+  prompt: List the API versions that are available.
+  type: command
+  validation_steps:
+  - cmd: kubectl api-versions
+    matcher: {}
+  metadata:
+    id: operations::api-versions
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::apply
+  prompt: Apply a configuration change to a resource from a file or stdin.
+  type: command
+  validation_steps:
+  - cmd: kubectl apply
+    matcher: {}
+  metadata:
+    id: operations::apply
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::attach
+  prompt: Attach to a running container either to view the output stream or interact
+    with the container (stdin).
+  type: command
+  validation_steps:
+  - cmd: kubectl attach
+    matcher: {}
+  metadata:
+    id: operations::attach
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::auth
+  prompt: Inspect authorization.
+  type: command
+  validation_steps:
+  - cmd: kubectl auth
+    matcher: {}
+  metadata:
+    id: operations::auth
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::autoscale
+  prompt: Automatically scale the set of pods that are managed by a replication controller.
+  type: command
+  validation_steps:
+  - cmd: kubectl autoscale
+    matcher: {}
+  metadata:
+    id: operations::autoscale
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::certificate
+  prompt: Modify certificate resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl certificate
+    matcher: {}
+  metadata:
+    id: operations::certificate
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::cluster-info
+  prompt: Display endpoint information about the master and services in the cluster.
+  type: command
+  validation_steps:
+  - cmd: kubectl cluster-info
+    matcher: {}
+  metadata:
+    id: operations::cluster-info
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::completion
+  prompt: Output shell completion code for the specified shell (bash or zsh).
+  type: command
+  validation_steps:
+  - cmd: kubectl completion
+    matcher: {}
+  metadata:
+    id: operations::completion
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::config
+  prompt: Modifies kubeconfig files. See the individual subcommands for details.
+  type: command
+  validation_steps:
+  - cmd: kubectl config
+    matcher: {}
+  metadata:
+    id: operations::config
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::convert
+  prompt: Convert config files between different API versions. Both YAML and JSON
+    formats are accepted.
+  type: command
+  validation_steps:
+  - cmd: kubectl convert
+    matcher: {}
+  metadata:
+    id: operations::convert
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::cordon
+  prompt: Mark node as unschedulable.
+  type: command
+  validation_steps:
+  - cmd: kubectl cordon
+    matcher: {}
+  metadata:
+    id: operations::cordon
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::cp
+  prompt: Copy files and directories to and from containers.
+  type: command
+  validation_steps:
+  - cmd: kubectl cp
+    matcher: {}
+  metadata:
+    id: operations::cp
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::create
+  prompt: Create one or more resources from a file or stdin.
+  type: command
+  validation_steps:
+  - cmd: kubectl create
+    matcher: {}
+  metadata:
+    id: operations::create
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::delete
+  prompt: Delete resources either from a file, stdin, or specifying label selectors,
+    names, resource selectors, or resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl delete
+    matcher: {}
+  metadata:
+    id: operations::delete
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::describe
+  prompt: Display the detailed state of one or more resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl describe
+    matcher: {}
+  metadata:
+    id: operations::describe
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::diff
+  prompt: Diff file or stdin against live configuration.
+  type: command
+  validation_steps:
+  - cmd: kubectl diff
+    matcher: {}
+  metadata:
+    id: operations::diff
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::drain
+  prompt: Drain node in preparation for maintenance.
+  type: command
+  validation_steps:
+  - cmd: kubectl drain
+    matcher: {}
+  metadata:
+    id: operations::drain
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::edit
+  prompt: Edit and update the definition of one or more resources on the server by
+    using the default editor.
+  type: command
+  validation_steps:
+  - cmd: kubectl edit
+    matcher: {}
+  metadata:
+    id: operations::edit
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::events
+  prompt: List events
+  type: command
+  validation_steps:
+  - cmd: kubectl events
+    matcher: {}
+  metadata:
+    id: operations::events
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::exec
+  prompt: Execute a command against a container in a pod.
+  type: command
+  validation_steps:
+  - cmd: kubectl exec
+    matcher: {}
+  metadata:
+    id: operations::exec
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::explain
+  prompt: Get documentation of various resources. For instance pods, nodes, services,
+    etc.
+  type: command
+  validation_steps:
+  - cmd: kubectl explain
+    matcher: {}
+  metadata:
+    id: operations::explain
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::expose
+  prompt: Expose a replication controller, service, or pod as a new Kubernetes service.
+  type: command
+  validation_steps:
+  - cmd: kubectl expose
+    matcher: {}
+  metadata:
+    id: operations::expose
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::get
+  prompt: List one or more resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl get
+    matcher: {}
+  metadata:
+    id: operations::get
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::kustomize
+  prompt: List a set of API resources generated from instructions in a kustomization.yaml
+    file.
+  type: command
+  validation_steps:
+  - cmd: kubectl kustomize
+    matcher: {}
+  metadata:
+    id: operations::kustomize
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::label
+  prompt: Add or update the labels of one or more resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl label
+    matcher: {}
+  metadata:
+    id: operations::label
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::logs
+  prompt: Print the logs for a container in a pod.
+  type: command
+  validation_steps:
+  - cmd: kubectl logs
+    matcher: {}
+  metadata:
+    id: operations::logs
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::options
+  prompt: List of global command-line options, which apply to all commands.
+  type: command
+  validation_steps:
+  - cmd: kubectl options
+    matcher: {}
+  metadata:
+    id: operations::options
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::patch
+  prompt: Update one or more fields of a resource by using the strategic merge patch
+    process.
+  type: command
+  validation_steps:
+  - cmd: kubectl patch
+    matcher: {}
+  metadata:
+    id: operations::patch
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::plugin
+  prompt: Provides utilities for interacting with plugins.
+  type: command
+  validation_steps:
+  - cmd: kubectl plugin
+    matcher: {}
+  metadata:
+    id: operations::plugin
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::port-forward
+  prompt: Forward one or more local ports to a pod.
+  type: command
+  validation_steps:
+  - cmd: kubectl port-forward
+    matcher: {}
+  metadata:
+    id: operations::port-forward
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::proxy
+  prompt: Run a proxy to the Kubernetes API server.
+  type: command
+  validation_steps:
+  - cmd: kubectl proxy
+    matcher: {}
+  metadata:
+    id: operations::proxy
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::replace
+  prompt: Replace a resource from a file or stdin.
+  type: command
+  validation_steps:
+  - cmd: kubectl replace
+    matcher: {}
+  metadata:
+    id: operations::replace
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::rollout
+  prompt: Manage the rollout of a resource.
+  type: command
+  validation_steps:
+  - cmd: kubectl rollout
+    matcher: {}
+  metadata:
+    id: operations::rollout
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::run
+  prompt: Run a specified image on the cluster.
+  type: command
+  validation_steps:
+  - cmd: kubectl run
+    matcher: {}
+  metadata:
+    id: operations::run
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::scale
+  prompt: Update the size of the specified replication controller.
+  type: command
+  validation_steps:
+  - cmd: kubectl scale
+    matcher: {}
+  metadata:
+    id: operations::scale
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::set
+  prompt: Configure application resources.
+  type: command
+  validation_steps:
+  - cmd: kubectl set
+    matcher: {}
+  metadata:
+    id: operations::set
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::taint
+  prompt: Update the taints on one or more nodes.
+  type: command
+  validation_steps:
+  - cmd: kubectl taint
+    matcher: {}
+  metadata:
+    id: operations::taint
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::top
+  prompt: Display Resource (CPU/Memory/Storage) usage of pod or node.
+  type: command
+  validation_steps:
+  - cmd: kubectl top
+    matcher: {}
+  metadata:
+    id: operations::top
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::uncordon
+  prompt: Mark node as schedulable.
+  type: command
+  validation_steps:
+  - cmd: kubectl uncordon
+    matcher: {}
+  metadata:
+    id: operations::uncordon
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::version
+  prompt: Display the Kubernetes version running on the client and server.
+  type: command
+  validation_steps:
+  - cmd: kubectl version
+    matcher: {}
+  metadata:
+    id: operations::version
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations
+- id: operations::wait
+  prompt: 'Experimental: Wait for a specific condition on one or many resources.'
+  type: command
+  validation_steps:
+  - cmd: kubectl wait
+    matcher: {}
+  metadata:
+    id: operations::wait
+    type: command
+    category: Kubectl Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#operations

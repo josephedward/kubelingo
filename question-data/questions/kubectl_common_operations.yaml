@@ -1,0 +1,378 @@
+- id: apply::service
+  prompt: Create a service using the definition in example-service.yaml
+  type: command
+  validation_steps:
+  - cmd: kubectl apply -f example-service.yaml
+    matcher: {}
+  metadata:
+    id: apply::service
+    type: command
+    validator:
+      type: ai
+      expected: kubectl apply -f example-service.yaml
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: apply::controller
+  prompt: Create a replication controller using the definition in example-controller.yaml
+  type: command
+  validation_steps:
+  - cmd: kubectl apply -f example-controller.yaml
+    matcher: {}
+  metadata:
+    id: apply::controller
+    type: command
+    validator:
+      type: ai
+      expected: kubectl apply -f example-controller.yaml
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: apply::directory
+  prompt: Create the objects defined in all files within a directory
+  type: command
+  validation_steps:
+  - cmd: kubectl apply -f <directory>
+    matcher: {}
+  metadata:
+    id: apply::directory
+    type: command
+    validator:
+      type: ai
+      expected: kubectl apply -f <directory>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::pods
+  prompt: List all pods in plain-text output format
+  type: command
+  validation_steps:
+  - cmd: kubectl get pods
+    matcher: {}
+  metadata:
+    id: get::pods
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get pods
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::pods-wide
+  prompt: List all pods and include additional information such as node name
+  type: command
+  validation_steps:
+  - cmd: kubectl get pods -o wide
+    matcher: {}
+  metadata:
+    id: get::pods-wide
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get pods -o wide
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::rc
+  prompt: List the replication controller with the specified name using alias
+  type: command
+  validation_steps:
+  - cmd: kubectl get rc <rc-name>
+    matcher: {}
+  metadata:
+    id: get::rc
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get rc <rc-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::rc-svc
+  prompt: List all replication controllers and services together
+  type: command
+  validation_steps:
+  - cmd: kubectl get rc,services
+    matcher: {}
+  metadata:
+    id: get::rc-svc
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get rc,services
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::ds
+  prompt: List all daemon sets
+  type: command
+  validation_steps:
+  - cmd: kubectl get ds
+    matcher: {}
+  metadata:
+    id: get::ds
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get ds
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: get::pods-node
+  prompt: List all pods running on node server01
+  type: command
+  validation_steps:
+  - cmd: kubectl get pods --field-selector=spec.nodeName=server01
+    matcher: {}
+  metadata:
+    id: get::pods-node
+    type: command
+    validator:
+      type: ai
+      expected: kubectl get pods --field-selector=spec.nodeName=server01
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: describe::node
+  prompt: Display the details of the node with name <node-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl describe nodes <node-name>
+    matcher: {}
+  metadata:
+    id: describe::node
+    type: command
+    validator:
+      type: ai
+      expected: kubectl describe nodes <node-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: describe::pod
+  prompt: Display the details of the pod with name <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl describe pods/<pod-name>
+    matcher: {}
+  metadata:
+    id: describe::pod
+    type: command
+    validator:
+      type: ai
+      expected: kubectl describe pods/<pod-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: describe::pods-rc
+  prompt: Display the details of all pods managed by the replication controller <rc-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl describe pods <rc-name>
+    matcher: {}
+  metadata:
+    id: describe::pods-rc
+    type: command
+    validator:
+      type: ai
+      expected: kubectl describe pods <rc-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: describe::pods
+  prompt: Describe all pods
+  type: command
+  validation_steps:
+  - cmd: kubectl describe pods
+    matcher: {}
+  metadata:
+    id: describe::pods
+    type: command
+    validator:
+      type: ai
+      expected: kubectl describe pods
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: delete::pod-file
+  prompt: Delete a pod using the definition in pod.yaml
+  type: command
+  validation_steps:
+  - cmd: kubectl delete -f pod.yaml
+    matcher: {}
+  metadata:
+    id: delete::pod-file
+    type: command
+    validator:
+      type: ai
+      expected: kubectl delete -f pod.yaml
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: delete::label
+  prompt: Delete all pods and services with label '<label-key>=<label-value>'
+  type: command
+  validation_steps:
+  - cmd: kubectl delete pods,services -l <label-key>=<label-value>
+    matcher: {}
+  metadata:
+    id: delete::label
+    type: command
+    validator:
+      type: ai
+      expected: kubectl delete pods,services -l <label-key>=<label-value>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: delete::all-pods
+  prompt: Delete all pods, including uninitialized ones
+  type: command
+  validation_steps:
+  - cmd: kubectl delete pods --all
+    matcher: {}
+  metadata:
+    id: delete::all-pods
+    type: command
+    validator:
+      type: ai
+      expected: kubectl delete pods --all
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: exec::date
+  prompt: Get output of 'date' from pod <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl exec <pod-name> -- date
+    matcher: {}
+  metadata:
+    id: exec::date
+    type: command
+    validator:
+      type: ai
+      expected: kubectl exec <pod-name> -- date
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: exec::date-container
+  prompt: Get output of 'date' in container <container-name> of pod <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl exec <pod-name> -c <container-name> -- date
+    matcher: {}
+  metadata:
+    id: exec::date-container
+    type: command
+    validator:
+      type: ai
+      expected: kubectl exec <pod-name> -c <container-name> -- date
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: exec::bash
+  prompt: Open an interactive bash shell in pod <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl exec -ti <pod-name> -- /bin/bash
+    matcher: {}
+  metadata:
+    id: exec::bash
+    type: command
+    validator:
+      type: ai
+      expected: kubectl exec -ti <pod-name> -- /bin/bash
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: logs::snapshot
+  prompt: Return a snapshot of logs from pod <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl logs <pod-name>
+    matcher: {}
+  metadata:
+    id: logs::snapshot
+    type: command
+    validator:
+      type: ai
+      expected: kubectl logs <pod-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: logs::stream
+  prompt: Stream logs from pod <pod-name>
+  type: command
+  validation_steps:
+  - cmd: kubectl logs -f <pod-name>
+    matcher: {}
+  metadata:
+    id: logs::stream
+    type: command
+    validator:
+      type: ai
+      expected: kubectl logs -f <pod-name>
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: diff::file
+  prompt: View a diff of resources in pod.json
+  type: command
+  validation_steps:
+  - cmd: kubectl diff -f pod.json
+    matcher: {}
+  metadata:
+    id: diff::file
+    type: command
+    validator:
+      type: ai
+      expected: kubectl diff -f pod.json
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: diff::stdin
+  prompt: View a diff reading file from stdin
+  type: command
+  validation_steps:
+  - cmd: kubectl diff -f -
+    matcher: {}
+  metadata:
+    id: diff::stdin
+    type: command
+    validator:
+      type: ai
+      expected: kubectl diff -f -
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: plugin::invoke
+  prompt: Invoke the plugin named 'hello'
+  type: command
+  validation_steps:
+  - cmd: kubectl hello
+    matcher: {}
+  metadata:
+    id: plugin::invoke
+    type: command
+    validator:
+      type: ai
+      expected: kubectl hello
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: plugin::list
+  prompt: List available kubectl-compatible plugins
+  type: command
+  validation_steps:
+  - cmd: kubectl plugin list
+    matcher: {}
+  metadata:
+    id: plugin::list
+    type: command
+    validator:
+      type: ai
+      expected: kubectl plugin list
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: plugin::list-warning
+  prompt: What warning does 'kubectl plugin list' show when a plugin is not executable?
+  type: command
+  validation_steps:
+  - cmd: 'warning: <plugin-path> identified as a plugin, but it is not executable'
+    matcher: {}
+  metadata:
+    id: plugin::list-warning
+    type: command
+    validator:
+      type: ai
+      expected: 'warning: <plugin-path> identified as a plugin, but it is not executable'
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: plugin::whoami
+  prompt: Invoke the plugin named 'whoami'
+  type: command
+  validation_steps:
+  - cmd: kubectl whoami
+    matcher: {}
+  metadata:
+    id: plugin::whoami
+    type: command
+    validator:
+      type: ai
+      expected: kubectl whoami
+    category: Kubectl Common Operations
+    citation: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations

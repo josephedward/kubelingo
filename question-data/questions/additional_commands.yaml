@@ -1,0 +1,386 @@
+- id: add-cmds-q1
+  prompt: Create an alias 'k' for 'kubectl'
+  type: command
+  metadata:
+    id: add-cmds-q1
+    category: Additional Commands
+    response: alias k=kubectl
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
+- id: add-cmds-q2
+  prompt: Enable kubectl autocompletion for bash
+  type: command
+  metadata:
+    id: add-cmds-q2
+    category: Additional Commands
+    response: source <(kubectl completion bash)
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=BASH
+- id: add-cmds-q3
+  prompt: Add kubectl autocompletion to ~/.bashrc
+  type: command
+  metadata:
+    id: add-cmds-q3
+    category: Additional Commands
+    response: echo "source <(kubectl completion bash)" >> ~/.bashrc
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
+- id: add-cmds-q4
+  prompt: Set the KUBECONFIG environment variable to /home/user/config
+  type: command
+  metadata:
+    id: add-cmds-q4
+    category: Additional Commands
+    response: export KUBECONFIG=/home/user/config
+    links:
+    - https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
+- id: add-cmds-q5
+  prompt: Check the kubectl client and server versions
+  type: command
+  metadata:
+    id: add-cmds-q5
+    category: Additional Commands
+    response: kubectl version
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server
+- id: add-cmds-q6
+  prompt: Create a namespace named dev
+  type: command
+  metadata:
+    id: add-cmds-q6
+    category: Additional Commands
+    response: kubectl create namespace dev
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace
+- id: add-cmds-q7
+  prompt: List all namespaces
+  type: command
+  metadata:
+    id: add-cmds-q7
+    category: Additional Commands
+    response: kubectl get namespaces
+    links:
+    - https://kubernetes.io/docs/tasks/administer-cluster/namespaces/#:~:text=Viewing%20namespaces
+- id: add-cmds-q8
+  prompt: Describe namespace dev
+  type: command
+  metadata:
+    id: add-cmds-q8
+    category: Additional Commands
+    response: kubectl describe namespace dev
+    links:
+    - https://kubernetes.io/docs/tasks/administer-cluster/namespaces/#:~:text=You%20can%20also%20get%20the,of%20a%20specific%20namespace%20using
+- id: add-cmds-q9
+  prompt: Delete namespace dev
+  type: command
+  metadata:
+    id: add-cmds-q9
+    category: Additional Commands
+    response: kubectl delete namespace dev
+    links:
+    - https://kubernetes.io/docs/tasks/administer-cluster/namespaces/#:~:text=Delete%20a%20namespace%20with
+- id: add-cmds-q10
+  prompt: Create a deployment named frontend using image nginx:1.14
+  type: command
+  metadata:
+    id: add-cmds-q10
+    category: Additional Commands
+    response: kubectl create deployment frontend --image=nginx:1.14
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=,image%3Dbusybox
+- id: add-cmds-q11
+  prompt: List all deployments
+  type: command
+  metadata:
+    id: add-cmds-q11
+    category: Additional Commands
+    response: kubectl get deployments
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
+- id: add-cmds-q12
+  prompt: Describe deployment frontend
+  type: command
+  metadata:
+    id: add-cmds-q12
+    category: Additional Commands
+    response: kubectl describe deployment frontend
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,0
+- id: add-cmds-q13
+  prompt: Scale deployment frontend to 3 replicas
+  type: command
+  metadata:
+    id: add-cmds-q13
+    category: Additional Commands
+    response: kubectl scale deployment frontend --replicas=3
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20scale%20a%20Deployment,by%20using%20the%20following%20command
+- id: add-cmds-q14
+  prompt: Roll back the deployment frontend to the previous version
+  type: command
+  metadata:
+    id: add-cmds-q14
+    category: Additional Commands
+    response: kubectl rollout undo deployment frontend
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=1,rollback%20to%20the%20previous%20revision
+- id: add-cmds-q15
+  prompt: Restart the deployment frontend
+  type: command
+  metadata:
+    id: add-cmds-q15
+    category: Additional Commands
+    response: kubectl rollout restart deployment frontend
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20set%20image%20deployment%2Ffrontend%20www%3Dimage%3Av2,Xem%20tr%E1%BA%A1ng
+- id: add-cmds-q16
+  prompt: Delete deployment frontend
+  type: command
+  metadata:
+    id: add-cmds-q16
+    category: Additional Commands
+    response: kubectl delete deployment frontend
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=The%20output%20is%20similar%20to,this
+- id: add-cmds-q17
+  prompt: Run a pod named busybox with image busybox that runs indefinitely
+  type: command
+  metadata:
+    id: add-cmds-q17
+    category: Additional Commands
+    response: kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep
+      3600"
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+    - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
+- id: add-cmds-q18
+  prompt: List all pods
+  type: command
+  metadata:
+    id: add-cmds-q18
+    category: Additional Commands
+    response: kubectl get pods
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
+- id: add-cmds-q19
+  prompt: Describe pod busybox
+  type: command
+  metadata:
+    id: add-cmds-q19
+    category: Additional Commands
+    response: kubectl describe pod busybox
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
+- id: add-cmds-q20
+  prompt: Delete pod busybox
+  type: command
+  metadata:
+    id: add-cmds-q20
+    category: Additional Commands
+    response: kubectl delete pod busybox
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
+- id: add-cmds-q21
+  prompt: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc
+  type: command
+  metadata:
+    id: add-cmds-q21
+    category: Additional Commands
+    response: kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+- id: add-cmds-q22
+  prompt: List all services
+  type: command
+  metadata:
+    id: add-cmds-q22
+    category: Additional Commands
+    response: kubectl get services
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
+- id: add-cmds-q23
+  prompt: Describe service frontend-svc
+  type: command
+  metadata:
+    id: add-cmds-q23
+    category: Additional Commands
+    response: kubectl describe service frontend-svc
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
+- id: add-cmds-q24
+  prompt: Delete service frontend-svc
+  type: command
+  metadata:
+    id: add-cmds-q24
+    category: Additional Commands
+    response: kubectl delete service frontend-svc
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+- id: add-cmds-q25
+  prompt: Create a ConfigMap named app-config from file config.yaml
+  type: command
+  metadata:
+    id: add-cmds-q25
+    category: Additional Commands
+    response: kubectl create configmap app-config --from-file=config.yaml
+    links:
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)
+- id: add-cmds-q26
+  prompt: List all ConfigMaps
+  type: command
+  metadata:
+    id: add-cmds-q26
+    category: Additional Commands
+    response: kubectl get configmaps
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
+- id: add-cmds-q27
+  prompt: Describe configmap app-config
+  type: command
+  metadata:
+    id: add-cmds-q27
+    category: Additional Commands
+    response: kubectl describe configmap app-config
+    links:
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard
+- id: add-cmds-q28
+  prompt: Delete configmap app-config
+  type: command
+  metadata:
+    id: add-cmds-q28
+    category: Additional Commands
+    response: kubectl delete configmap app-config
+    links:
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Before%20proceeding%2C%20clean%20up%20some,of%20the%20ConfigMaps%20you%20made
+- id: add-cmds-q29
+  prompt: Create a generic secret named db-secret with literal username and password
+  type: command
+  metadata:
+    id: add-cmds-q29
+    category: Additional Commands
+    response: kubectl create secret generic db-secret --from-literal=username=admin
+      --from-literal=password=secret
+    links:
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
+- id: add-cmds-q30
+  prompt: List all secrets
+  type: command
+  metadata:
+    id: add-cmds-q30
+    category: Additional Commands
+    response: kubectl get secrets
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+- id: add-cmds-q31
+  prompt: Describe secret db-secret
+  type: command
+  metadata:
+    id: add-cmds-q31
+    category: Additional Commands
+    response: kubectl describe secret db-secret
+    links:
+    - https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
+- id: add-cmds-q32
+  prompt: Delete secret db-secret
+  type: command
+  metadata:
+    id: add-cmds-q32
+    category: Additional Commands
+    response: kubectl delete secret db-secret
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng
+- id: add-cmds-q33
+  prompt: Create a ServiceAccount named default-sa
+  type: command
+  metadata:
+    id: add-cmds-q33
+    category: Additional Commands
+    response: kubectl create serviceaccount default-sa
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+- id: add-cmds-q34
+  prompt: List all ServiceAccounts
+  type: command
+  metadata:
+    id: add-cmds-q34
+    category: Additional Commands
+    response: kubectl get serviceaccounts
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+- id: add-cmds-q35
+  prompt: Describe serviceaccount default-sa
+  type: command
+  metadata:
+    id: add-cmds-q35
+    category: Additional Commands
+    response: kubectl describe serviceaccount default-sa
+    links:
+    - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
+- id: add-cmds-q36
+  prompt: Delete serviceaccount default-sa
+  type: command
+  metadata:
+    id: add-cmds-q36
+    category: Additional Commands
+    response: kubectl delete serviceaccount default-sa
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+- id: add-cmds-q37
+  prompt: Label pod busybox with env=prod
+  type: command
+  metadata:
+    id: add-cmds-q37
+    category: Additional Commands
+    response: kubectl label pod busybox env=prod
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: add-cmds-q38
+  prompt: Remove the label env from pod busybox
+  type: command
+  metadata:
+    id: add-cmds-q38
+    category: Additional Commands
+    response: kubectl label pod busybox env-
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: add-cmds-q39
+  prompt: Annotate deployment frontend with description=test
+  type: command
+  metadata:
+    id: add-cmds-q39
+    category: Additional Commands
+    response: kubectl annotate deployment frontend description=test
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: add-cmds-q40
+  prompt: Remove the annotation description from deployment frontend
+  type: command
+  metadata:
+    id: add-cmds-q40
+    category: Additional Commands
+    response: kubectl annotate deployment frontend description-
+    links:
+    - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng
+- id: add-cmds-q41
+  prompt: Apply the configuration in deployment.yaml
+  type: command
+  metadata:
+    id: add-cmds-q41
+    category: Additional Commands
+    response: kubectl apply -f deployment.yaml
+    links:
+    - https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20ser%20usadas
+- id: add-cmds-q42
+  prompt: Use kubectl to edit deployment frontend
+  type: command
+  metadata:
+    id: add-cmds-q42
+    category: Additional Commands
+    response: kubectl edit deployment frontend
+    links:
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
+    - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,0

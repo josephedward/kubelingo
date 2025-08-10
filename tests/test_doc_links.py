@@ -18,9 +18,14 @@ def get_quiz_files() -> Generator[Path, None, None]:
     Finds all YAML and JSON quiz files, looking only in the 'yaml' and 'json'
     subdirectories of the question-data directory.
     """
+    # Scan primary YAML quiz directory
     yaml_dir = QUESTION_DATA_DIR / "yaml"
     if yaml_dir.is_dir():
         yield from yaml_dir.glob("*.yaml")
+    # Also include backup YAML quiz definitions
+    backup_yaml_dir = QUESTION_DATA_DIR / "yaml-bak"
+    if backup_yaml_dir.is_dir():
+        yield from backup_yaml_dir.glob("*.yaml")
 
     json_dir = QUESTION_DATA_DIR / "json"
     if json_dir.is_dir():

@@ -1,0 +1,1518 @@
+- id: binding::apiversion
+  prompt: What is the API version for Binding?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: binding::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: binding::namespaced
+  prompt: Is Binding a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: binding::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: componentstatus::shortnames
+  prompt: What is the shortname for ComponentStatus?
+  type: command
+  validation_steps:
+  - cmd: cs
+    matcher: {}
+  metadata:
+    id: componentstatus::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: componentstatus::apiversion
+  prompt: What is the API version for ComponentStatus?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: componentstatus::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: componentstatus::namespaced
+  prompt: Is ComponentStatus a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: componentstatus::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: configmap::shortnames
+  prompt: What is the shortname for ConfigMap?
+  type: command
+  validation_steps:
+  - cmd: cm
+    matcher: {}
+  metadata:
+    id: configmap::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: configmap::apiversion
+  prompt: What is the API version for ConfigMap?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: configmap::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: configmap::namespaced
+  prompt: Is ConfigMap a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: configmap::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: endpoints::shortnames
+  prompt: What is the shortname for Endpoints?
+  type: command
+  validation_steps:
+  - cmd: ep
+    matcher: {}
+  metadata:
+    id: endpoints::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: endpoints::apiversion
+  prompt: What is the API version for Endpoints?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: endpoints::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: endpoints::namespaced
+  prompt: Is Endpoints a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: endpoints::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: event::shortnames
+  prompt: What is the shortname for Event?
+  type: command
+  validation_steps:
+  - cmd: ev
+    matcher: {}
+  metadata:
+    id: event::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: event::apiversion
+  prompt: What is the API version for Event?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: event::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: event::namespaced
+  prompt: Is Event a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: event::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: limitrange::shortnames
+  prompt: What is the shortname for LimitRange?
+  type: command
+  validation_steps:
+  - cmd: limits
+    matcher: {}
+  metadata:
+    id: limitrange::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: limitrange::apiversion
+  prompt: What is the API version for LimitRange?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: limitrange::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: limitrange::namespaced
+  prompt: Is LimitRange a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: limitrange::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: namespace::shortnames
+  prompt: What is the shortname for Namespace?
+  type: command
+  validation_steps:
+  - cmd: ns
+    matcher: {}
+  metadata:
+    id: namespace::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: namespace::apiversion
+  prompt: What is the API version for Namespace?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: namespace::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: namespace::namespaced
+  prompt: Is Namespace a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: namespace::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: node::shortnames
+  prompt: What is the shortname for Node?
+  type: command
+  validation_steps:
+  - cmd: 'no'
+    matcher: {}
+  metadata:
+    id: node::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: node::apiversion
+  prompt: What is the API version for Node?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: node::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: node::namespaced
+  prompt: Is Node a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: node::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolumeclaim::shortnames
+  prompt: What is the shortname for PersistentVolumeClaim?
+  type: command
+  validation_steps:
+  - cmd: pvc
+    matcher: {}
+  metadata:
+    id: persistentvolumeclaim::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolumeclaim::apiversion
+  prompt: What is the API version for PersistentVolumeClaim?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: persistentvolumeclaim::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolumeclaim::namespaced
+  prompt: Is PersistentVolumeClaim a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: persistentvolumeclaim::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolume::shortnames
+  prompt: What is the shortname for PersistentVolume?
+  type: command
+  validation_steps:
+  - cmd: pv
+    matcher: {}
+  metadata:
+    id: persistentvolume::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolume::apiversion
+  prompt: What is the API version for PersistentVolume?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: persistentvolume::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: persistentvolume::namespaced
+  prompt: Is PersistentVolume a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: persistentvolume::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: pod::shortnames
+  prompt: What is the shortname for Pod?
+  type: command
+  validation_steps:
+  - cmd: po
+    matcher: {}
+  metadata:
+    id: pod::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: pod::apiversion
+  prompt: What is the API version for Pod?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: pod::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: pod::namespaced
+  prompt: Is Pod a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: pod::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: podtemplate::apiversion
+  prompt: What is the API version for PodTemplate?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: podtemplate::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: podtemplate::namespaced
+  prompt: Is PodTemplate a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: podtemplate::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicationcontroller::shortnames
+  prompt: What is the shortname for ReplicationController?
+  type: command
+  validation_steps:
+  - cmd: rc
+    matcher: {}
+  metadata:
+    id: replicationcontroller::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicationcontroller::apiversion
+  prompt: What is the API version for ReplicationController?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: replicationcontroller::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicationcontroller::namespaced
+  prompt: Is ReplicationController a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: replicationcontroller::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: resourcequota::shortnames
+  prompt: What is the shortname for ResourceQuota?
+  type: command
+  validation_steps:
+  - cmd: quota
+    matcher: {}
+  metadata:
+    id: resourcequota::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: resourcequota::apiversion
+  prompt: What is the API version for ResourceQuota?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: resourcequota::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: resourcequota::namespaced
+  prompt: Is ResourceQuota a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: resourcequota::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: secret::apiversion
+  prompt: What is the API version for Secret?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: secret::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: secret::namespaced
+  prompt: Is Secret a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: secret::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: serviceaccount::shortnames
+  prompt: What is the shortname for ServiceAccount?
+  type: command
+  validation_steps:
+  - cmd: sa
+    matcher: {}
+  metadata:
+    id: serviceaccount::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: serviceaccount::apiversion
+  prompt: What is the API version for ServiceAccount?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: serviceaccount::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: serviceaccount::namespaced
+  prompt: Is ServiceAccount a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: serviceaccount::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: service::shortnames
+  prompt: What is the shortname for Service?
+  type: command
+  validation_steps:
+  - cmd: svc
+    matcher: {}
+  metadata:
+    id: service::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: service::apiversion
+  prompt: What is the API version for Service?
+  type: command
+  validation_steps:
+  - cmd: v1
+    matcher: {}
+  metadata:
+    id: service::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: service::namespaced
+  prompt: Is Service a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: service::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: mutatingwebhookconfiguration::apiversion
+  prompt: What is the API version for MutatingWebhookConfiguration?
+  type: command
+  validation_steps:
+  - cmd: admissionregistration.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: mutatingwebhookconfiguration::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: mutatingwebhookconfiguration::namespaced
+  prompt: Is MutatingWebhookConfiguration a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: mutatingwebhookconfiguration::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: validatingwebhookconfiguration::apiversion
+  prompt: What is the API version for ValidatingWebhookConfiguration?
+  type: command
+  validation_steps:
+  - cmd: admissionregistration.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: validatingwebhookconfiguration::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: validatingwebhookconfiguration::namespaced
+  prompt: Is ValidatingWebhookConfiguration a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: validatingwebhookconfiguration::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: customresourcedefinition::shortnames
+  prompt: What is the shortname for CustomResourceDefinition?
+  type: command
+  validation_steps:
+  - cmd: crd,crds
+    matcher: {}
+  metadata:
+    id: customresourcedefinition::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: customresourcedefinition::apiversion
+  prompt: What is the API version for CustomResourceDefinition?
+  type: command
+  validation_steps:
+  - cmd: apiextensions.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: customresourcedefinition::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: customresourcedefinition::namespaced
+  prompt: Is CustomResourceDefinition a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: customresourcedefinition::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: apiservice::apiversion
+  prompt: What is the API version for APIService?
+  type: command
+  validation_steps:
+  - cmd: apiregistration.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: apiservice::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: apiservice::namespaced
+  prompt: Is APIService a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: apiservice::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: controllerrevision::apiversion
+  prompt: What is the API version for ControllerRevision?
+  type: command
+  validation_steps:
+  - cmd: apps/v1
+    matcher: {}
+  metadata:
+    id: controllerrevision::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: controllerrevision::namespaced
+  prompt: Is ControllerRevision a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: controllerrevision::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: daemonset::shortnames
+  prompt: What is the shortname for DaemonSet?
+  type: command
+  validation_steps:
+  - cmd: ds
+    matcher: {}
+  metadata:
+    id: daemonset::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: daemonset::apiversion
+  prompt: What is the API version for DaemonSet?
+  type: command
+  validation_steps:
+  - cmd: apps/v1
+    matcher: {}
+  metadata:
+    id: daemonset::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: daemonset::namespaced
+  prompt: Is DaemonSet a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: daemonset::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: deployment::shortnames
+  prompt: What is the shortname for Deployment?
+  type: command
+  validation_steps:
+  - cmd: deploy
+    matcher: {}
+  metadata:
+    id: deployment::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: deployment::apiversion
+  prompt: What is the API version for Deployment?
+  type: command
+  validation_steps:
+  - cmd: apps/v1
+    matcher: {}
+  metadata:
+    id: deployment::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: deployment::namespaced
+  prompt: Is Deployment a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: deployment::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicaset::shortnames
+  prompt: What is the shortname for ReplicaSet?
+  type: command
+  validation_steps:
+  - cmd: rs
+    matcher: {}
+  metadata:
+    id: replicaset::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicaset::apiversion
+  prompt: What is the API version for ReplicaSet?
+  type: command
+  validation_steps:
+  - cmd: apps/v1
+    matcher: {}
+  metadata:
+    id: replicaset::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: replicaset::namespaced
+  prompt: Is ReplicaSet a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: replicaset::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: statefulset::shortnames
+  prompt: What is the shortname for StatefulSet?
+  type: command
+  validation_steps:
+  - cmd: sts
+    matcher: {}
+  metadata:
+    id: statefulset::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: statefulset::apiversion
+  prompt: What is the API version for StatefulSet?
+  type: command
+  validation_steps:
+  - cmd: apps/v1
+    matcher: {}
+  metadata:
+    id: statefulset::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: statefulset::namespaced
+  prompt: Is StatefulSet a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: statefulset::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: tokenreview::apiversion
+  prompt: What is the API version for TokenReview?
+  type: command
+  validation_steps:
+  - cmd: authentication.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: tokenreview::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: tokenreview::namespaced
+  prompt: Is TokenReview a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: tokenreview::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: localsubjectaccessreview::apiversion
+  prompt: What is the API version for LocalSubjectAccessReview?
+  type: command
+  validation_steps:
+  - cmd: authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: localsubjectaccessreview::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: localsubjectaccessreview::namespaced
+  prompt: Is LocalSubjectAccessReview a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: localsubjectaccessreview::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: selfsubjectaccessreview::apiversion
+  prompt: What is the API version for SelfSubjectAccessReview?
+  type: command
+  validation_steps:
+  - cmd: authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: selfsubjectaccessreview::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: selfsubjectaccessreview::namespaced
+  prompt: Is SelfSubjectAccessReview a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: selfsubjectaccessreview::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: selfsubjectrulesreview::apiversion
+  prompt: What is the API version for SelfSubjectRulesReview?
+  type: command
+  validation_steps:
+  - cmd: authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: selfsubjectrulesreview::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: selfsubjectrulesreview::namespaced
+  prompt: Is SelfSubjectRulesReview a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: selfsubjectrulesreview::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: subjectaccessreview::apiversion
+  prompt: What is the API version for SubjectAccessReview?
+  type: command
+  validation_steps:
+  - cmd: authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: subjectaccessreview::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: subjectaccessreview::namespaced
+  prompt: Is SubjectAccessReview a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: subjectaccessreview::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: horizontalpodautoscaler::shortnames
+  prompt: What is the shortname for HorizontalPodAutoscaler?
+  type: command
+  validation_steps:
+  - cmd: hpa
+    matcher: {}
+  metadata:
+    id: horizontalpodautoscaler::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: horizontalpodautoscaler::apiversion
+  prompt: What is the API version for HorizontalPodAutoscaler?
+  type: command
+  validation_steps:
+  - cmd: autoscaling/v2
+    matcher: {}
+  metadata:
+    id: horizontalpodautoscaler::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: horizontalpodautoscaler::namespaced
+  prompt: Is HorizontalPodAutoscaler a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: horizontalpodautoscaler::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: cronjob::shortnames
+  prompt: What is the shortname for CronJob?
+  type: command
+  validation_steps:
+  - cmd: cj
+    matcher: {}
+  metadata:
+    id: cronjob::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: cronjob::apiversion
+  prompt: What is the API version for CronJob?
+  type: command
+  validation_steps:
+  - cmd: batch/v1
+    matcher: {}
+  metadata:
+    id: cronjob::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: cronjob::namespaced
+  prompt: Is CronJob a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: cronjob::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: job::apiversion
+  prompt: What is the API version for Job?
+  type: command
+  validation_steps:
+  - cmd: batch/v1
+    matcher: {}
+  metadata:
+    id: job::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: job::namespaced
+  prompt: Is Job a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: job::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: certificatesigningrequest::shortnames
+  prompt: What is the shortname for CertificateSigningRequest?
+  type: command
+  validation_steps:
+  - cmd: csr
+    matcher: {}
+  metadata:
+    id: certificatesigningrequest::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: certificatesigningrequest::apiversion
+  prompt: What is the API version for CertificateSigningRequest?
+  type: command
+  validation_steps:
+  - cmd: certificates.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: certificatesigningrequest::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: certificatesigningrequest::namespaced
+  prompt: Is CertificateSigningRequest a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: certificatesigningrequest::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: lease::apiversion
+  prompt: What is the API version for Lease?
+  type: command
+  validation_steps:
+  - cmd: coordination.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: lease::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: lease::namespaced
+  prompt: Is Lease a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: lease::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: endpointslice::apiversion
+  prompt: What is the API version for EndpointSlice?
+  type: command
+  validation_steps:
+  - cmd: discovery.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: endpointslice::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: endpointslice::namespaced
+  prompt: Is EndpointSlice a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: endpointslice::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: flowschema::apiversion
+  prompt: What is the API version for FlowSchema?
+  type: command
+  validation_steps:
+  - cmd: flowcontrol.apiserver.k8s.io/v1beta2
+    matcher: {}
+  metadata:
+    id: flowschema::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: flowschema::namespaced
+  prompt: Is FlowSchema a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: flowschema::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: prioritylevelconfiguration::apiversion
+  prompt: What is the API version for PriorityLevelConfiguration?
+  type: command
+  validation_steps:
+  - cmd: flowcontrol.apiserver.k8s.io/v1beta2
+    matcher: {}
+  metadata:
+    id: prioritylevelconfiguration::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: prioritylevelconfiguration::namespaced
+  prompt: Is PriorityLevelConfiguration a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: prioritylevelconfiguration::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: ingressclass::apiversion
+  prompt: What is the API version for IngressClass?
+  type: command
+  validation_steps:
+  - cmd: networking.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: ingressclass::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: ingressclass::namespaced
+  prompt: Is IngressClass a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: ingressclass::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: ingress::shortnames
+  prompt: What is the shortname for Ingress?
+  type: command
+  validation_steps:
+  - cmd: ing
+    matcher: {}
+  metadata:
+    id: ingress::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: ingress::apiversion
+  prompt: What is the API version for Ingress?
+  type: command
+  validation_steps:
+  - cmd: networking.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: ingress::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: ingress::namespaced
+  prompt: Is Ingress a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: ingress::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: networkpolicy::shortnames
+  prompt: What is the shortname for NetworkPolicy?
+  type: command
+  validation_steps:
+  - cmd: netpol
+    matcher: {}
+  metadata:
+    id: networkpolicy::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: networkpolicy::apiversion
+  prompt: What is the API version for NetworkPolicy?
+  type: command
+  validation_steps:
+  - cmd: networking.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: networkpolicy::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: networkpolicy::namespaced
+  prompt: Is NetworkPolicy a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: networkpolicy::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: runtimeclass::apiversion
+  prompt: What is the API version for RuntimeClass?
+  type: command
+  validation_steps:
+  - cmd: node.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: runtimeclass::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: runtimeclass::namespaced
+  prompt: Is RuntimeClass a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: runtimeclass::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: poddisruptionbudget::shortnames
+  prompt: What is the shortname for PodDisruptionBudget?
+  type: command
+  validation_steps:
+  - cmd: pdb
+    matcher: {}
+  metadata:
+    id: poddisruptionbudget::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: poddisruptionbudget::apiversion
+  prompt: What is the API version for PodDisruptionBudget?
+  type: command
+  validation_steps:
+  - cmd: policy/v1
+    matcher: {}
+  metadata:
+    id: poddisruptionbudget::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: poddisruptionbudget::namespaced
+  prompt: Is PodDisruptionBudget a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: poddisruptionbudget::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: podsecuritypolicy::shortnames
+  prompt: What is the shortname for PodSecurityPolicy?
+  type: command
+  validation_steps:
+  - cmd: psp
+    matcher: {}
+  metadata:
+    id: podsecuritypolicy::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: podsecuritypolicy::apiversion
+  prompt: What is the API version for PodSecurityPolicy?
+  type: command
+  validation_steps:
+  - cmd: policy/v1beta1
+    matcher: {}
+  metadata:
+    id: podsecuritypolicy::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: podsecuritypolicy::namespaced
+  prompt: Is PodSecurityPolicy a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: podsecuritypolicy::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: clusterrolebinding::apiversion
+  prompt: What is the API version for ClusterRoleBinding?
+  type: command
+  validation_steps:
+  - cmd: rbac.authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: clusterrolebinding::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: clusterrolebinding::namespaced
+  prompt: Is ClusterRoleBinding a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: clusterrolebinding::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: clusterrole::apiversion
+  prompt: What is the API version for ClusterRole?
+  type: command
+  validation_steps:
+  - cmd: rbac.authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: clusterrole::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: clusterrole::namespaced
+  prompt: Is ClusterRole a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: clusterrole::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: rolebinding::apiversion
+  prompt: What is the API version for RoleBinding?
+  type: command
+  validation_steps:
+  - cmd: rbac.authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: rolebinding::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: rolebinding::namespaced
+  prompt: Is RoleBinding a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: rolebinding::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: role::apiversion
+  prompt: What is the API version for Role?
+  type: command
+  validation_steps:
+  - cmd: rbac.authorization.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: role::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: role::namespaced
+  prompt: Is Role a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: role::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: priorityclass::shortnames
+  prompt: What is the shortname for PriorityClass?
+  type: command
+  validation_steps:
+  - cmd: pc
+    matcher: {}
+  metadata:
+    id: priorityclass::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: priorityclass::apiversion
+  prompt: What is the API version for PriorityClass?
+  type: command
+  validation_steps:
+  - cmd: scheduling.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: priorityclass::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: priorityclass::namespaced
+  prompt: Is PriorityClass a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: priorityclass::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csidriver::apiversion
+  prompt: What is the API version for CSIDriver?
+  type: command
+  validation_steps:
+  - cmd: storage.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: csidriver::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csidriver::namespaced
+  prompt: Is CSIDriver a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: csidriver::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csinode::apiversion
+  prompt: What is the API version for CSINode?
+  type: command
+  validation_steps:
+  - cmd: storage.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: csinode::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csinode::namespaced
+  prompt: Is CSINode a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: csinode::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csistoragecapacity::apiversion
+  prompt: What is the API version for CSIStorageCapacity?
+  type: command
+  validation_steps:
+  - cmd: storage.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: csistoragecapacity::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: csistoragecapacity::namespaced
+  prompt: Is CSIStorageCapacity a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'true'
+    matcher: {}
+  metadata:
+    id: csistoragecapacity::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: storageclass::shortnames
+  prompt: What is the shortname for StorageClass?
+  type: command
+  validation_steps:
+  - cmd: sc
+    matcher: {}
+  metadata:
+    id: storageclass::shortnames
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: storageclass::apiversion
+  prompt: What is the API version for StorageClass?
+  type: command
+  validation_steps:
+  - cmd: storage.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: storageclass::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: storageclass::namespaced
+  prompt: Is StorageClass a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: storageclass::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: volumeattachment::apiversion
+  prompt: What is the API version for VolumeAttachment?
+  type: command
+  validation_steps:
+  - cmd: storage.k8s.io/v1
+    matcher: {}
+  metadata:
+    id: volumeattachment::apiversion
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types
+- id: volumeattachment::namespaced
+  prompt: Is VolumeAttachment a namespaced resource? (true/false)
+  type: command
+  validation_steps:
+  - cmd: 'false'
+    matcher: {}
+  metadata:
+    id: volumeattachment::namespaced
+    type: command
+    category: Resource Reference
+    citation: https://kubernetes.io/docs/reference/kubectl/#resource-types

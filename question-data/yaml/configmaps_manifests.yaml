@@ -1,0 +1,20 @@
+- id: manifests::configmaps::add-data
+  prompt: "Edit the ConfigMap manifest to add a new key-value pair: `database.host` with value `mysql.example.com`."
+  type: yaml_edit
+  category: "YAML Editing Practice"
+  initial_files:
+    configmap.yaml: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-config
+      data:
+        app.name: my-app
+  correct_yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: my-config
+    data:
+      app.name: my-app
+      database.host: mysql.example.com

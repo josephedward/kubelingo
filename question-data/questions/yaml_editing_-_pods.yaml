@@ -1,0 +1,72 @@
+- id: yaml_quiz::web-server-pod
+  prompt: Edit 'pod.yaml' to create a Pod named 'web-server' using the 'nginx:1.20'
+    image, exposing port 80. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\nspec:\n\
+      \  containers:\n  - name: # TODO: Add container name\n    image: # TODO: Add\
+      \ image\n    ports:\n    - containerPort: # TODO: Add port\n"
+  validation_steps:
+  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].image}'
+    matcher:
+      contains: nginx:1.20
+  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].ports[0].containerPort}'
+    matcher:
+      contains: '80'
+  explanation: Basic pod with specific name, image, and port configuration. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::web-server-pod
+    type: live_k8s_edit
+    category: YAML Editing - Pods
+- id: yaml_quiz::pod-with-env
+  prompt: 'Edit ''pod.yaml'' to create a Pod named ''app-pod'' with environment variables:
+    DB_HOST=localhost, DB_PORT=5432. After editing, apply the manifest.'
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
+      \  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables\n"
+  validation_steps:
+  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[0].name}'
+    matcher:
+      contains: DB_HOST
+  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[1].value}'
+    matcher:
+      contains: '5432'
+  explanation: Pod with environment variables defined in container spec. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::pod-with-env
+    type: live_k8s_edit
+    category: YAML Editing - Pods
+- id: yaml-edit-q1
+  prompt: Create a Pod named 'web-server' with a container named 'nginx' using the
+    nginx:1.20 image, and expose port 80.
+  type: yaml_edit
+  explanation: Basic pod with specific name, image, and port configuration
+  metadata:
+    id: yaml-edit-q1
+    category: YAML Editing - Pods
+    type: yaml_edit
+    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\n\
+      spec:\n  containers:\n  - name: # TODO: Add container name\n    image: # TODO:\
+      \ Add image\n    ports:\n    - containerPort: # TODO: Add port\n"
+    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\nspec:\n  containers:\n\
+      \  - name: nginx\n    image: nginx:1.20\n    ports:\n    - containerPort: 80\n"
+- id: yaml-edit-q2
+  prompt: 'Create a Pod named ''app-pod'' with container name ''app'' and environment
+    variables: DB_HOST=localhost, DB_PORT=5432'
+  type: yaml_edit
+  explanation: Pod with environment variables defined in container spec
+  metadata:
+    id: yaml-edit-q2
+    category: YAML Editing - Pods
+    type: yaml_edit
+    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n\
+      \  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment\
+      \ variables\n"
+    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
+      \  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value:\
+      \ localhost\n    - name: DB_PORT\n      value: \"5432\"\n"

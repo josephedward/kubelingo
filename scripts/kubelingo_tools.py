@@ -100,62 +100,7 @@ def manage_organize(args):
                 except OSError:
                     pass
 
-def manage_enrich(args):
-    """Deduplicate questions and generate AI explanations for missing ones."""
-    try:
-        import manage_questions as mq
-    except ImportError:
-        print("Error: manage_questions module not found.", file=sys.stderr)
-        return
-    mq.enrich_and_dedup(
-        args.source_dir,
-        args.output_file,
-        args.format,
-        args.model,
-        args.dry_run
-    )
-
-def manage_validate(args):
-    """Generate validation_steps via AI for questions missing them in a JSON file."""
-    try:
-        from organize_question_data import generate_validation_steps
-    except ImportError:
-        print("Error: organize_question_data module not found.", file=sys.stderr)
-        return
-    file_path = args.file
-    model = args.model
-    dry_run = args.dry_run
-    # Load data
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    # Flatten nested or flat list
-    key = None
-    if isinstance(data, list) and data and isinstance(data[0], dict):
-        if 'questions' in data[0]:
-            key = 'questions'
-        elif 'prompts' in data[0]:
-            key = 'prompts'
-    if key:
-        question_list = []
-        for cat in data:
-            question_list.extend(cat.get(key, []))
-    else:
-        question_list = data
-    to_update = [q for q in question_list if not q.get('validation_steps')]
-    if not to_update:
-        print("No questions need validation steps.")
-        return
-    updated = 0
-    for q in to_update:
-        steps = generate_validation_steps(q, model=model, dry_run=dry_run)
-        if steps:
-            q['validation_steps'] = steps
-            updated += 1
-            print(f"Generated validation steps for: {q.get('prompt','')[:50]}...")
-    if updated and not dry_run:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-        print(f"Updated {updated} questions in {file_path}")
+    # (Other management commands such as 'enrich' or 'validate' have been consolidated or moved to legacy.)
 
 def generate_operations(args):
     """Generate the Kubectl operations quiz manifest (delegates to existing script)."""
@@ -205,18 +150,6 @@ def main():
     org_p = manage_sub.add_parser('organize', help='Archive and rename question-data files')
     org_p.add_argument('--dry-run', action='store_true', help='Preview changes without writing files')
     org_p.set_defaults(func=manage_organize)
-    enr_p = manage_sub.add_parser('enrich', help='Dedupe and AI-enrich question-data')
-    enr_p.add_argument('source_dir', type=Path, help='Source directory of question files')
-    enr_p.add_argument('output_file', type=Path, help='Output file for enriched questions')
-    enr_p.add_argument('--format', choices=['json','yaml'], default='json', help='Output format')
-    enr_p.add_argument('--model', default='gpt-3.5-turbo', help='AI model for explanations')
-    enr_p.add_argument('--dry-run', action='store_true', help='Preview API calls and no file writes')
-    enr_p.set_defaults(func=manage_enrich)
-    val_p = manage_sub.add_parser('validate', help='Generate AI-based validation steps')
-    val_p.add_argument('file', type=Path, help='Question file (JSON or nested)')
-    val_p.add_argument('--model', default='gpt-4-turbo', help='AI model for validation steps')
-    val_p.add_argument('--dry-run', action='store_true', help='Preview API calls')
-    val_p.set_defaults(func=manage_validate)
 
     # generate
     gen_parser = subparsers.add_parser('generate', help='Generate quiz manifests')

@@ -242,45 +242,52 @@ A high-level overview of the monorepo structure:
 
 ## Scripts Consolidation
 
-All standalone scripts in the `scripts/` directory are now accessible through the consolidated `toolbox.py` entrypoint.
+The `scripts/` directory now contains a consolidated entrypoint for common tasks, `kubelingo_tools.py`.  All other legacy helper scripts have been moved to `scripts/legacy/` and are preserved for reference but are not part of the active workflow.
 
+Usage:
 ```bash
-# List available commands
-scripts/toolbox.py
+# Show available commands
+python3 scripts/kubelingo_tools.py --help
 
-# Run a specific script, for example:
-scripts/toolbox.py generate_kubectl_ops --output question-data/yaml/kubectl_operations.yaml
+# Run a specific task, for example:
+python3 scripts/kubelingo_tools.py manage organize --dry-run
+python3 scripts/kubelingo_tools.py ckad export --help
 ```
 
-Available commands:
-- ckad
-- cli_quiz
-- generate_kubectl_ops
-- generate_resource_ref
-- generate_manifests
+## Troubleshooting
 
-## Migrating YAML Questions to SQLite Database
+Before running these commands, ensure you are using the local development version of Kubelingo (not an older global install):
 
-When you add or update quiz questions as YAML files under `question-data/yaml/`, you need to import them into the SQLite database so they become the primary source for the quiz engine. The YAML files act as a backup.
+  pip uninstall kubelingo
+  pip install -e .
 
-To migrate a specific file:
+If you need to restore your question bank, legacy helper scripts are available in `scripts/legacy/`.
+
+For a full restore (DB, YAML, JSON imports):
 ```bash
-scripts/migrate_to_db.py --file question-data/yaml/simulator-namespaces.yaml
+python3 scripts/legacy/restore_all.py
 ```
-To migrate all enabled quizzes (as listed in `kubelingo/utils/config.py`):
-```bash
-scripts/migrate_to_db.py
-```
-After migration, a backup of the database is created at `question-data-backup/kubelingo.db.bak`.
-- generate_validation
-- manage_questions
-- organize_question_data
-- enrich_questions
-- ai_enrich
-- install_kubelingo   Install kubelingo from PyPI and configure OpenAI key
 
-For help on a specific command, run:
-
+To restore only the database, YAML, or JSON parts, see:
 ```bash
-scripts/toolbox.py <command> --help
+python3 scripts/legacy/restore_db_from_backup.py   # Restore database from backup
+python3 scripts/legacy/restore_all.py --step yaml  # Restore YAML question files only
+python3 scripts/legacy/restore_all.py --step json  # Restore JSON question files only
 ```
+
+For help with any of these commands, run:
+
+  kubelingo --help
+  
+## Data Management Details
+
+Kubelingo relies on a SQLite database seeded from legacy JSON, YAML, and Markdown question files.
+For a deep-dive into how quizzes are categorized, how the database is initialized, and the migration scripts workflow,
+see `shared_context.md` at the project root.
+This document explains:
+- Quiz categories and validation strategies
+- Importing legacy JSON/YAML/MD into the database
+- Database backup and restore procedures
+- Duplicate question cleanup
+- Unified sandbox-based execution flow
+These details help contributors and maintainers understand the data pipelines and recovery steps.

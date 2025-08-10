@@ -1,0 +1,19 @@
+- id: ckad-sim::q4-helm-install
+  prompt: "In namespace `mercury`, install a new Helm release named `internal-issue-report-apache` from the `bitnami/apache` chart. The Deployment created by the chart should have 2 replicas. Assume the `bitnami` repository has already been added and updated."
+  type: live_k8s_edit
+  category: "Helm"
+  source: "https://killer.sh/ckad"
+  pre_shell_cmds:
+    - "kubectl create namespace mercury"
+    - "helm repo add bitnami https://charts.bitnami.com/bitnami"
+    - "helm repo update"
+  validation_steps:
+    - cmd: "helm -n mercury status internal-issue-report-apache"
+      matchers:
+        - type: "contains"
+          expected: "STATUS: deployed"
+    - cmd: "kubectl -n mercury get deploy internal-issue-report-apache -o jsonpath='{.spec.replicas}'"
+      matchers:
+        - type: "exact_match"
+          expected: "2"
+  explanation: "Use `helm install <release-name> <chart-name> --namespace <ns> --set <key>=<value>`. In this case, the command is `helm install internal-issue-report-apache bitnami/apache --namespace mercury --set replicaCount=2`. You can find the correct key (`replicaCount`) for setting replicas by using `helm show values bitnami/apache`."

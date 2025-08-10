@@ -1,0 +1,115 @@
+- id: shell-setup-q1
+  prompt: Shell aliases are shortcuts for longer commands, saving you from typing
+    long commands repeatedly. A common alias is `k` for `kubectl`, which lets you
+    run commands like `k get pods`. Create the `k` alias now.
+  type: command
+  metadata:
+    id: shell-setup-q1
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: alias k=kubectl
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
+- id: shell-setup-q8
+  prompt: Enable kubectl autocomplete in your shell
+  type: command
+  metadata:
+    id: shell-setup-q8
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: 'source <(kubectl completion bash)
+
+      complete -F __start_kubectl k
+
+      '
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=BASH
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=alias%20k%3Dkubectl%20complete%20,F%20__start_kubectl%20k
+- id: shell-setup-q9
+  prompt: List pods using the 'k' alias
+  type: command
+  metadata:
+    id: shell-setup-q9
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get pods
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,List%20all%20pods%20in%20the
+- id: shell-setup-q10
+  prompt: List replicasets using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q10
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get rs
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,apps%2Fv1%20true%20StatefulSet
+- id: shell-setup-q11
+  prompt: List daemonsets using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q11
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get ds
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,apps%2Fv1%20true%20ReplicaSet
+- id: shell-setup-q12
+  prompt: List services using the 'k' alias
+  type: command
+  metadata:
+    id: shell-setup-q12
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get svc
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,all%20pods%20in%20the%20current
+- id: shell-setup-q13
+  prompt: List ConfigMaps using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q13
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get cm
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
+- id: shell-setup-q14
+  prompt: List secrets using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q14
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get secret
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Secret
+- id: shell-setup-q15
+  prompt: List HorizontalPodAutoscalers using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q15
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get hpa
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,batch%2Fv1%20true%20CronJob
+- id: shell-setup-q16
+  prompt: List Ingresses using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q16
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get ing
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=PriorityLevelConfiguration%20,networking.k8s.io%2Fv1%20true%20NetworkPolicy
+- id: shell-setup-q17
+  prompt: List NetworkPolicies using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q17
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get netpol
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=PriorityLevelConfiguration%20,node.k8s.io%2Fv1%20false%20RuntimeClass
+- id: shell-setup-q18
+  prompt: List ServiceAccounts using the short alias
+  type: command
+  metadata:
+    id: shell-setup-q18
+    category: 'Shell Setup: Aliases & Autocomplete'
+    response: k get sa
+    links:
+    - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service

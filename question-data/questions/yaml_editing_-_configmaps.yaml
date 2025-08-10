@@ -1,0 +1,30 @@
+- id: yaml_quiz::app-config-cm
+  prompt: Edit 'configmap.yaml' to create a ConfigMap named 'app-config' with the
+    data 'database_url=mysql://localhost:3306/app'. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    configmap.yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add\
+      \ name\ndata:\n  # TODO: Add data fields\n"
+  validation_steps:
+  - cmd: kubectl get configmap app-config -o jsonpath='{.data.database_url}'
+    matcher:
+      contains: mysql://localhost:3306/app
+  explanation: ConfigMap with key-value data for application configuration. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::app-config-cm
+    type: live_k8s_edit
+    category: YAML Editing - ConfigMaps
+- id: yaml-edit-q4
+  prompt: 'Create a ConfigMap named ''app-config'' with data: database_url=mysql://localhost:3306/app'
+  type: yaml_edit
+  explanation: ConfigMap with key-value data for application configuration
+  metadata:
+    id: yaml-edit-q4
+    category: YAML Editing - ConfigMaps
+    type: yaml_edit
+    starting_yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add\
+      \ name\ndata:\n  # TODO: Add data fields\n"
+    answer: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n\
+      \  database_url: mysql://localhost:3306/app\n"

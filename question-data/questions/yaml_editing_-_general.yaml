@@ -1,0 +1,103 @@
+- id: yaml_quiz::resource-checker-pod
+  prompt: A namespace 'limit' has been created. Edit 'pod.yaml' to define a Pod named
+    'resource-checker' in that namespace. It should use the 'httpd:alpine' image with
+    a container named 'my-container'. Configure resource requests for 'cpu=30m' and
+    'memory=30Mi', and limits for 'cpu=300m' and 'memory=30Mi'. After editing, apply
+    the manifest.
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: resource-checker\n  namespace:\
+      \ limit\nspec:\n  containers:\n  - name: my-container\n    image: httpd:alpine\n\
+      \    resources:\n      requests:\n        cpu: # TODO\n        memory: # TODO\n\
+      \      limits:\n        cpu: # TODO\n        memory: # TODO\n"
+  pre_shell_cmds:
+  - kubectl create ns limit
+  validation_steps:
+  - cmd: kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.cpu}'
+    matcher:
+      contains: 30m
+  - cmd: kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.requests.memory}'
+    matcher:
+      contains: 30Mi
+  - cmd: kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.cpu}'
+    matcher:
+      contains: 300m
+  - cmd: kubectl get pod resource-checker -n limit -o jsonpath='{.spec.containers[0].resources.limits.memory}'
+    matcher:
+      contains: 30Mi
+  explanation: Pod with resource requests and limits. Validation is performed by checking
+    the live resource in the cluster, not by comparing YAML files.
+  metadata:
+    id: yaml_quiz::resource-checker-pod
+    type: live_k8s_edit
+    category: YAML Editing - General
+- id: yaml_quiz::trauerweide-cm
+  prompt: Edit 'configmap.yaml' to create a ConfigMap named 'trauerweide' with the
+    data 'tree=trauerweide'. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    configmap.yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO\n\
+      data:\n  # TODO\n"
+  validation_steps:
+  - cmd: kubectl get configmap trauerweide -o jsonpath='{.data.tree}'
+    matcher:
+      contains: trauerweide
+  explanation: Basic ConfigMap creation. Validation is performed by checking the live
+    resource in the cluster, not by comparing YAML files.
+  metadata:
+    id: yaml_quiz::trauerweide-cm
+    type: live_k8s_edit
+    category: YAML Editing - General
+- id: yaml_quiz::pod-with-cm-ref
+  prompt: Two ConfigMaps, 'trauerweide' and 'birke', have been created. Edit 'pod.yaml'
+    to create a Pod named 'pod1' using the 'nginx:alpine' image. The Pod should have
+    an environment variable 'TREE1' that gets its value from the 'tree' key of the
+    'trauerweide' ConfigMap. It should also mount all keys from the 'birke' ConfigMap
+    into the directory '/etc/birke'. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n\
+      \  - name: nginx\n    image: nginx:alpine\n    env:\n      # TODO\n    volumeMounts:\n\
+      \      # TODO\n  volumes:\n    # TODO\n"
+  pre_shell_cmds:
+  - kubectl create configmap trauerweide --from-literal=tree=trauerweide
+  - kubectl create configmap birke --from-literal=sample-key=sample-value
+  validation_steps:
+  - cmd: kubectl get pod pod1 -o jsonpath='{.spec.containers[0].env[0].valueFrom.configMapKeyRef.name}'
+    matcher:
+      contains: trauerweide
+  - cmd: kubectl get pod pod1 -o jsonpath='{.spec.volumes[0].configMap.name}'
+    matcher:
+      contains: birke
+  explanation: Pod with environment variable and volume from ConfigMaps. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::pod-with-cm-ref
+    type: live_k8s_edit
+    category: YAML Editing - General
+- id: yaml_quiz::deployment-readiness
+  prompt: Edit 'deployment.yaml' to create a Deployment named 'space-alien-welcome-message-generator'
+    using the 'httpd:alpine' image. It should have 1 replica and a readinessProbe
+    that runs the command 'stat /tmp/ready' with an 'initialDelaySeconds' of 10 and
+    a 'periodSeconds' of 5. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\n\
+      spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n\
+      \  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n\
+      \    spec:\n      containers:\n      - name: httpd\n        image: httpd:alpine\n\
+      \        readinessProbe:\n          # TODO\n"
+  validation_steps:
+  - cmd: kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.exec.command[1]}'
+    matcher:
+      contains: /tmp/ready
+  - cmd: kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.initialDelaySeconds}'
+    matcher:
+      contains: '10'
+  explanation: Deployment with a readiness probe. Validation is performed by checking
+    the live resource in the cluster, not by comparing YAML files.
+  metadata:
+    id: yaml_quiz::deployment-readiness
+    type: live_k8s_edit
+    category: YAML Editing - General

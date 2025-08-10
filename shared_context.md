@@ -1,3 +1,27 @@
+## Question Categories
+
+We classify quiz questions into three main categories, each driving a distinct user workflow and validation approach:
+
+1. Open-Ended Questions
+   - Type: `socratic`
+   - Description: Conceptual or resource-based quizzes (Socratic tutor, operations, resource reference).
+   - Answers are free-form explanations or single operations/resources (outside of an interactive shell).
+   - CLI Flag: `--socratic`
+
+2. Command-Based Questions
+   - Type: `kubectl` or `command`
+   - Description: Single-line imperative commands (e.g., `kubectl`, `helm`, or other shell commands).
+   - Evaluated for conceptual correctness and syntax (e.g., via `kubectl --dry-run=client -o yaml`).
+   - CLI Flag: `--kubectl`
+
+3. Manifest-Based Questions
+   - Type: `yaml_edit` or `yaml_author`
+   - Description: Editing or authoring Kubernetes resource manifests using Vim.
+   - Workflow: Launches Vim editing mode, parses the edited YAML, and validates structure/content against the expected manifest.
+   - CLI Flags: `--manifests` (alias `--yaml`)
+
+Questions are stored in the database with a `question_type` column reflecting one of the above values. The unified session flow in the application dispatches to the appropriate handler based on this type.
+
 ## New `kubectl` Quizzes
 
 Added eight new quiz modules based on the Kubernetes documentation, covering a wide range of `kubectl` commands. These quizzes are designed as command-based knowledge checks and follow the standardized YAML format.
