@@ -43,23 +43,23 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # --- Interactive Quiz Modules ---
 # Definitions for organizing quizzes into menu groups.
 BASIC_QUIZZES = {
-    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
-    "General Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations_quiz.yaml'),
-    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'kubectl_resource_types.yaml'),
+    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
+    "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
+    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types_reference.yaml'),
 }
 COMMAND_QUIZZES = {
-    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'kubectl_basic_syntax_quiz.yaml'),
-    "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics_quiz.yaml'),
-    "Pod Management": os.path.join(QUESTIONS_DIR, 'kubectl_pod_management_quiz.yaml'),
-    "Deployment Management": os.path.join(QUESTIONS_DIR, 'kubectl_deployment_management_quiz.yaml'),
-    "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'kubectl_configmap_operations_quiz.yaml'),
-    "Secret Management": os.path.join(QUESTIONS_DIR, 'kubectl_secret_management_quiz.yaml'),
-    "Namespace Operations": os.path.join(QUESTIONS_DIR, 'kubectl_namespace_operations_quiz.yaml'),
-    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'kubectl_service_account_ops_quiz.yaml'),
-    "Additional Commands": os.path.join(QUESTIONS_DIR, 'kubectl_additional_commands_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_shell_setup.yaml'),
+    "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
+    "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
+    "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
+    "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'configmap_operations.yaml'),
+    "Secret Management": os.path.join(QUESTIONS_DIR, 'secret_management.yaml'),
+    "Namespace Operations": os.path.join(QUESTIONS_DIR, 'namespace_operations.yaml'),
+    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'service_account_operations.yaml'),
+    "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
 }
 MANIFEST_QUIZZES = {
-    "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_exercises_quiz.yaml'),
+    "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing_practice.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
 ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
