@@ -63,7 +63,7 @@ def import_questions(conn, source_dir: Path):
                     q_dict['question_type'] = q_type
 
                 q_dict['source_file'] = file_path.name
-                add_question(conn, **q_dict)
+                add_question(conn=conn, **q_dict)
                 question_count += 1
     
     conn.commit()
