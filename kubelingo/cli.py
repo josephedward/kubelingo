@@ -45,7 +45,6 @@ from kubelingo.modules.kubernetes.session import (
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
-from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 from kubelingo.utils.ui import (
@@ -1007,9 +1006,7 @@ def main():
                                     total += len(loader.load_file(src))
                                 except Exception:
                                     pass
-                            # Skip quizzes with no questions
-                            if total == 0:
-                                continue
+                            # Always show quizzes, even if zero questions
                             name = humanize_module(base)
                             display = f"{name} ({total} questions)"
                             choices.append({"name": display, "value": base})

@@ -25,7 +25,7 @@ from kubelingo.utils.config import (
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
 )
-from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.modules.db_loader import DBLoader
 
 try:
     from prompt_toolkit import PromptSession
@@ -375,24 +375,48 @@ class NewSession(StudySession):
         all_flagged = get_all_flagged_questions()
         choices = []
 
-        try:
-            loader = YAMLLoader()
-            # Use configured quiz modules for interactive menu
-            from kubelingo.utils.config import ENABLED_QUIZZES
-            for display_name, path in ENABLED_QUIZZES.items():
-                try:
-                    questions = loader.load_file(path) or []
-                    count = len(questions)
-                    display = f"{display_name} ({count} questions)"
-                    choices.append({"name": display, "value": path})
-                except Exception as e:
-                    self.logger.warning(f"Could not load quiz file {path}: {e}")
-        except Exception as e:
-            self.logger.error(f"Failed to build interactive menu choices: {e}")
-
-        # Include flagged questions option if any
+        # Use database loader for quizzes, preserving all modules
+        loader = DBLoader()
+        # Review flagged questions
         if all_flagged:
-            choices.insert(0, {"name": f"Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
+            choices.append({"name": f"Review Flagged Questions ({len(all_flagged)})", "value": "__flagged__"})
+        # Study mode
+        choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
+        from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+        # Basic Exercises
+        choices.append(questionary.Separator("--- Basic Exercises ---"))
+        for name, path in BASIC_QUIZZES.items():
+            try:
+                count = len(loader.load_file(path))
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # Command-Based Exercises
+        choices.append(questionary.Separator("--- Command-Based Exercises ---"))
+        for name, path in COMMAND_QUIZZES.items():
+            try:
+                count = len(loader.load_file(path))
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # Manifest-Based Exercises
+        choices.append(questionary.Separator("--- Manifest-Based Exercises ---"))
+        for name, path in MANIFEST_QUIZZES.items():
+            try:
+                count = len(loader.load_file(path))
+            except Exception:
+                count = 0
+            choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # Settings
+        choices.append(questionary.Separator("--- Settings ---"))
+        choices.extend([
+            {"name": "API Keys", "value": "__api_keys__"},
+            {"name": "Clusters", "value": "__clusters__"},
+            {"name": "Questions", "value": "__questions__"},
+            {"name": "Troubleshooting", "value": "__troubleshooting__"},
+            {"name": "Help", "value": "__help__"},
+            {"name": "Exit App", "value": "__exit__"},
+        ])
         return choices, bool(all_flagged)
 
     def _show_static_help(self):
@@ -533,9 +557,10 @@ class NewSession(StudySession):
             ai_generation_enabled = True
             # Handle --list-questions: load static questions from file and exit before DB lookup
             if getattr(args, 'list_questions', False):
-                # Load static questions using loader (e.g., JSON/YAML loader)
+                # Load questions from database by source_file
                 try:
-                    loader = YAMLLoader()
+                    from kubelingo.modules.db_loader import DBLoader
+                    loader = DBLoader()
                     static_questions = loader.load_file(args.file)
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for listing: {e}")
@@ -581,41 +606,36 @@ class NewSession(StudySession):
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.file:
-                # Load questions from the specified YAML file.
+                # Load questions from database by source_file
                 from dataclasses import asdict
                 try:
-                    loader = YAMLLoader()
-                    # loader returns Question objects, convert them to dicts for the rest of the logic
+                    from kubelingo.modules.db_loader import DBLoader
+                    loader = DBLoader()
                     questions_as_obj = loader.load_file(args.file)
                     questions = [asdict(q) for q in questions_as_obj]
                 except FileNotFoundError:
                     print(f"{Fore.RED}Error: Quiz file not found at '{args.file}'.{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}The YAML files may have been moved or deleted by the consolidation script.{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}Check the 'question-data-archive' directory to restore them.{Style.RESET_ALL}")
                     return
                 except Exception as e:
                     self.logger.error(f"Failed to load questions from {args.file}: {e}")
                     print(f"{Fore.RED}Error loading questions from '{args.file}'. See logs for details.{Style.RESET_ALL}")
                     return
-
+                # No questions found
                 if not questions:
                     print(f"{Fore.YELLOW}No questions found in '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
                     return
-
-                # AI generation for interactive quizzes when more questions are requested
-                ai_generation_enabled = True
+                # Determine how many questions to ask and generate additional via AI if needed
                 requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
-                if requested and requested > len(questions):
-                    clones_needed = requested - len(questions)
+                initial_count = len(questions)
+                if requested and requested > initial_count:
+                    clones_needed = requested - initial_count
                     print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
+                    added = []
                     try:
                         from kubelingo.question import Question as QuestionObject
                         import kubelingo.modules.question_generator as qg_module
                         generator = qg_module.AIQuestionGenerator()
-
-                        # Convert question dicts from DB to Question objects for the generator
                         base_questions = [QuestionObject(**q) for q in questions]
-
                         subject = _get_subject_for_questions(questions[0]) if questions else ''
                         ai_qs = generator.generate_questions(
                             subject,
@@ -623,10 +643,18 @@ class NewSession(StudySession):
                             base_questions=base_questions
                         )
                         for ai_q in ai_qs:
-                            from dataclasses import asdict
-                            questions.append(asdict(ai_q))
+                            from dataclasses import asdict as _asdict
+                            questions.append(_asdict(ai_q))
+                            added.append(ai_q)
                     except Exception:
                         self.logger.error(f"Failed to generate AI questions for interactive quiz.", exc_info=True)
+                    # Warn if not all requested questions could be generated
+                    if added and len(added) < clones_needed:
+                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {len(added)} generated.{Style.RESET_ALL}")
+                    elif not added:
+                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with 0 generated.{Style.RESET_ALL}")
+                # Summary for file-based quiz
+                print(f"File: {os.path.basename(args.file)}, Questions: {len(questions)}")
             else:
                 # Interactive mode: show menu to select quiz.
                 if not is_interactive:
@@ -1685,6 +1713,10 @@ class NewSession(StudySession):
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Your answer is incorrect.{Style.RESET_ALL}")
+            # Automatically flag incorrect question for review
+            question_id = q.get('id')
+            if question_id:
+                self.session_manager.mark_question_for_review(question_id)
         # Show reference URL for this question
         source_url = getattr(q, 'citation', None) or getattr(q, 'source', None)
         if source_url:
@@ -1755,6 +1787,10 @@ class NewSession(StudySession):
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
+            # Automatically flag incorrect question for review
+            question_id = q.get('id') if isinstance(q, dict) else getattr(q, 'id', None)
+            if question_id:
+                self.session_manager.mark_question_for_review(question_id)
 
         # Always show source URL and explanation if available, for consistency.
         source_url = q.get('citation') or q.get('source')
