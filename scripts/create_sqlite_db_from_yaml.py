@@ -206,6 +206,11 @@ def main():
         default=None,
         help="Path to the SQLite database file. Defaults to the live application database.",
     )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear the database before populating. Default is to append questions.",
+    )
     args = parser.parse_args()
 
     if args.input_paths:
@@ -244,8 +249,9 @@ def main():
 
     db_path = args.db_path or get_live_db_path()
 
-    # Initialize the database, ensuring it exists without clearing it.
-    init_db(db_path=db_path)
+    # Initialize the database. If --clear is specified, the database will be
+    # re-created. Otherwise, questions will be appended.
+    init_db(clear=args.clear, db_path=db_path)
 
     print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
