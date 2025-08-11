@@ -223,34 +223,21 @@ def main():
         for f in unique_files:
             print(f"  - {f.name}")
 
-    # Generate a new timestamped database path in the first backup directory.
-    sqlite_backup_dirs = path_utils.get_all_sqlite_backup_dirs()
-    if not sqlite_backup_dirs:
-        print(
-            "Error: No SQLite backup directories configured. Cannot create new database.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    sqlite_backup_dir = Path(sqlite_backup_dirs[0])
-    sqlite_backup_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    db_filename = f"kubelingo_db_{timestamp}.sqlite3"
-    db_path = str(sqlite_backup_dir / db_filename)
+    db_path = path_utils.get_live_db_path()
 
     if not args.yes:
-        print(f"\nThis will create a new database at: '{db_path}'.")
+        print(
+            f"\nWARNING: This will clear and repopulate the database at '{db_path}'."
+        )
         confirm = input("Are you sure you want to proceed? (y/N): ")
-        if confirm.lower() != 'y':
+        if confirm.lower() != "y":
             print("Operation cancelled.")
             sys.exit(0)
-    else:
-        print(f"Creating new database at: {db_path}")
 
-    # Initialize the new database.
+    # Initialize the database.
     init_db(clear=True, db_path=db_path)
 
-    print(f"\nPopulating new database at: {db_path}")
+    print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
 
 
