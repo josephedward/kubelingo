@@ -7,42 +7,50 @@ from typing import Dict, Any, List, Optional
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
 
 
-def get_db_connection():
+def get_db_connection(db_path: Optional[str] = None):
     """Establishes a connection to the SQLite database."""
+    # Use provided path or fall back to the default application database file.
+    db_file = db_path or DATABASE_FILE
+
     # Ensure the database directory exists
-    db_dir = os.path.dirname(DATABASE_FILE)
+    db_dir = os.path.dirname(db_file)
     if db_dir:
         try:
             os.makedirs(db_dir, exist_ok=True)
         except Exception:
             pass
 
-    # Attempt connection to user-specific database; fallback to project-local if unavailable
+    # Attempt connection. For default DB, try fallback on error.
     try:
-        conn = sqlite3.connect(DATABASE_FILE)
+        conn = sqlite3.connect(db_file)
     except Exception:
-        # Fallback to a local DB in the current working directory
-        fallback = os.path.join(os.getcwd(), 'kubelingo.db')
-        conn = sqlite3.connect(fallback)
+        if db_path is None:  # Only fallback for the default database
+            # Fallback to a local DB in the current working directory
+            fallback = os.path.join(os.getcwd(), 'kubelingo.db')
+            conn = sqlite3.connect(fallback)
+        else:
+            raise  # Re-raise exception if a specific path was provided and failed
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def init_db(clear: bool = False):
+def init_db(clear: bool = False, db_path: Optional[str] = None):
     """Initializes the database and creates/updates the questions table."""
+    db_to_use = db_path or DATABASE_FILE
+
     # If clearing, physically remove the DB file to trigger re-seeding from master.
     # This ensures "clear" means "reset to original state" not "create empty DB".
-    if clear and os.path.exists(DATABASE_FILE):
+    if clear and os.path.exists(db_to_use):
         try:
-            os.remove(DATABASE_FILE)
+            os.remove(db_to_use)
         except OSError:
             # If removal fails (e.g., permissions), we'll fall back to the old
             # behavior of dropping the table, which is better than nothing.
             pass
 
-    # First-run seeding: if the user database does not exist, create it from
-    # the master backup to ensure it's populated with the initial set of questions.
-    if not os.path.exists(DATABASE_FILE):
+    # First-run seeding: if the default user database does not exist, create it from
+    # the master backup. This should not run for custom db_paths.
+    if db_path is None and not os.path.exists(db_to_use):
         from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
         master_found = os.path.exists(MASTER_DATABASE_FILE) and os.path.getsize(MASTER_DATABASE_FILE) > 0
         secondary_found = os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0
@@ -55,16 +63,16 @@ def init_db(clear: bool = False):
 
         if backup_to_use:
             try:
-                db_dir = os.path.dirname(DATABASE_FILE)
+                db_dir = os.path.dirname(db_to_use)
                 if db_dir:
                     os.makedirs(db_dir, exist_ok=True)
-                shutil.copy2(backup_to_use, DATABASE_FILE)
+                shutil.copy2(backup_to_use, db_to_use)
             except Exception:
                 # If seeding fails, continue to create an empty DB.
                 # The user can try to restore manually later.
                 pass
 
-    conn = get_db_connection()
+    conn = get_db_connection(db_path=db_to_use)
     cursor = conn.cursor()
     if clear:
         cursor.execute("DROP TABLE IF EXISTS questions")

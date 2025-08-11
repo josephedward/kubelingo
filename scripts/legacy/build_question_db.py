@@ -7,6 +7,8 @@ import os
 import shutil
 import sys
 import yaml
+import sqlite3
+import tempfile
 from pathlib import Path
 
 # Ensure the project root is in the Python path
@@ -22,7 +24,7 @@ from kubelingo.utils.config import (
     SECONDARY_MASTER_DATABASE_FILE,
 )
 
-def import_questions(source_dir: Path):
+def import_questions(source_dir: Path, conn: sqlite3.Connection):
     """Loads all questions from YAML files in the source directory and adds them to the database."""
     print(f"Scanning for YAML files in '{source_dir}'...")
     files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
@@ -63,22 +65,22 @@ def import_questions(source_dir: Path):
                     q_dict['question_type'] = q_type
 
                 q_dict['source_file'] = file_path.name
-                add_question(**q_dict)
+                add_question(conn=conn, **q_dict)
                 question_count += 1
     print(f"\nImport complete. Added/updated {question_count} questions.")
     return question_count
 
-def backup_database():
-    """Backs up the live database to create the master copies."""
-    live_db_path = Path(DATABASE_FILE)
+def backup_database(source_db_path: str):
+    """Backs up the given database to create the master copies."""
+    live_db_path = Path(source_db_path)
     backup_master_path = Path(MASTER_DATABASE_FILE)
     backup_secondary_path = Path(SECONDARY_MASTER_DATABASE_FILE)
 
     if not live_db_path.exists():
-        print(f"Error: Live database not found at '{live_db_path}'. Cannot create backup.")
+        print(f"Error: Database not found at '{live_db_path}'. Cannot create backup.")
         return
 
-    print(f"\nBacking up live database from '{live_db_path}'...")
+    print(f"\nBacking up database from '{live_db_path}'...")
     backup_master_path.parent.mkdir(exist_ok=True)
     shutil.copy(live_db_path, backup_master_path)
     print(f"  - Created primary master backup: '{backup_master_path}'")

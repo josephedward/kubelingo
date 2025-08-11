@@ -280,16 +280,55 @@ def handle_troubleshoot(cmd_args):
 
 def restore_db():
     """
-    Restores the live database from the master backup, completely overwriting it.
-    This action is destructive and will remove any custom or AI-generated questions.
+    Merges questions from the master backup into the live database.
+    This is an additive process and will not remove any custom or AI-generated questions.
+    Existing questions from the master backup will be updated if they have changed.
     """
-    from kubelingo.database import init_db
+    import sqlite3
+    from kubelingo.database import get_db_connection, add_question
+    from kubelingo.utils.config import MASTER_DATABASE_FILE
+
+    if not os.path.exists(MASTER_DATABASE_FILE):
+        print(f"{Fore.RED}Master database backup not found at '{MASTER_DATABASE_FILE}'. Cannot restore.{Style.RESET_ALL}")
+        return
+
+    print("Merging questions from master backup...")
     try:
-        # init_db(clear=True) handles removing the old DB and copying the master.
-        init_db(clear=True)
-        print(f"{Fore.GREEN}Successfully restored the database from the master backup.{Style.RESET_ALL}")
+        master_conn = sqlite3.connect(f'file:{MASTER_DATABASE_FILE}?mode=ro', uri=True)
+        master_conn.row_factory = sqlite3.Row
+        master_cursor = master_conn.cursor()
+        master_cursor.execute("SELECT * FROM questions")
+        master_questions = master_cursor.fetchall()
+        column_names = [d[0] for d in master_cursor.description]
+        master_conn.close()
+
+        if not master_questions:
+            print(f"{Fore.YELLOW}Master backup contains no questions. Nothing to merge.{Style.RESET_ALL}")
+            return
+
+        live_conn = get_db_connection()
+        updated_count = 0
+        for row in master_questions:
+            q_dict = dict(zip(column_names, row))
+
+            # The add_question function expects complex types, not JSON strings.
+            for key in ['validation_steps', 'validator', 'pre_shell_cmds', 'initial_files', 'answers']:
+                if q_dict.get(key) and isinstance(q_dict[key], str):
+                    try:
+                        q_dict[key] = json.loads(q_dict[key])
+                    except (json.JSONDecodeError, TypeError):
+                        # On error, set to a sensible default. add_question handles None.
+                        q_dict[key] = None
+
+            # add_question uses INSERT OR REPLACE, which is what we want for a merge.
+            add_question(conn=live_conn, **q_dict)
+            updated_count += 1
+
+        live_conn.close()
+        print(f"{Fore.GREEN}Successfully merged/updated {updated_count} questions from the master backup.{Style.RESET_ALL}")
+
     except Exception as e:
-        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to merge from database: {e}{Style.RESET_ALL}")
 
 
 def find_duplicates_cmd(cmd):
