@@ -138,42 +138,43 @@ def run_interactive_menu():
         "Bug Ticket": task_bug_ticket,
     }
 
-    choice = questionary.select(
-        "Select a maintenance task:",
-        choices=[
-            Separator("=== YAML ==="),
-            "Index all Yaml Files in Dir",
-            "Consolidate Unique Yaml Questions",
-            "Locate Previous YAML backup",
-            "Diff YAML Backups",
-            "YAML Statistics",
-            Separator("=== Sqlite ==="),
-            "Write DB to YAML Backup Version",
-            "Restore DB from YAML Backup Version",
-            "Index all Sqlite files in Dir",
-            "View Database Schema",
-            "Locate Previous Sqlite Backup",
-            "Diff with Backup Sqlite Db",
-            "Create Sqlite Backup Version",
-            "Restore from Sqlite Backup Version",
-            Separator("=== Questions ==="),
-            "Deduplicate Questions",
-            "Fix Question Categorization",
-            "Fix Documentation Links",
-            "Fix Question Formatting",
-            Separator("=== System ==="),
-            "Bug Ticket",
-            "Cancel"
-        ],
-        use_indicator=True
-    ).ask()
+    while True:
+        choice = questionary.select(
+            "Select a maintenance task:",
+            choices=[
+                Separator("=== YAML ==="),
+                "Index all Yaml Files in Dir",
+                "Consolidate Unique Yaml Questions",
+                "Locate Previous YAML backup",
+                "Diff YAML Backups",
+                "YAML Statistics",
+                Separator("=== Sqlite ==="),
+                "Write DB to YAML Backup Version",
+                "Restore DB from YAML Backup Version",
+                "Index all Sqlite files in Dir",
+                "View Database Schema",
+                "Locate Previous Sqlite Backup",
+                "Diff with Backup Sqlite Db",
+                "Create Sqlite Backup Version",
+                "Restore from Sqlite Backup Version",
+                Separator("=== Questions ==="),
+                "Deduplicate Questions",
+                "Fix Question Categorization",
+                "Fix Documentation Links",
+                "Fix Question Formatting",
+                Separator("=== System ==="),
+                "Bug Ticket",
+                "Cancel"
+            ],
+            use_indicator=True
+        ).ask()
 
-    if choice is None or choice == "Cancel":
-        print("Operation cancelled.")
-        sys.exit(0)
+        if choice is None or choice == "Cancel":
+            print("Operation cancelled.")
+            break
 
-    if choice in tasks:
-        tasks[choice]()
+        if choice in tasks:
+            tasks[choice]()
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
