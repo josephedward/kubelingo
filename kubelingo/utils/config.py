@@ -72,7 +72,7 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Organize quizzes into three core types: Basic, Command, and Manifest
 # Basic/Open-Ended quizzes (conceptual Q&A)
 BASIC_QUIZZES = {
-    "Resource Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
+    "General Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations.yaml'),
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
