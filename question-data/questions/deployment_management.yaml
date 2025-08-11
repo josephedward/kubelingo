@@ -108,3 +108,18 @@
     response: kubectl delete deployment frontend
     links:
     - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#deleting-a-deployment
+- id: deploy-mgmt-q13
+  prompt: Roll back the deployment api-new-c32 in namespace neptune to the previous
+    revision.
+  type: command
+  metadata:
+    id: deploy-mgmt-q13
+    category: Deployment Management
+    response: kubectl -n neptune rollout undo deployment api-new-c32
+- id: deploy-mgmt-q14
+  prompt: Restart the deployment web-moon in the moon namespace.
+  type: command
+  metadata:
+    id: deploy-mgmt-q14
+    category: Deployment Management
+    response: kubectl -n moon rollout restart deployment web-moon

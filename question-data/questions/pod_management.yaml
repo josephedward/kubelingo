@@ -90,6 +90,17 @@
       expected: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
     links:
     - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+- id: pod-mgmt-q13
+  prompt: Add a security context to the container in deployment holy-api (namespace
+    pluto) to disable privilege escalation and privileged mode.
+  type: command
+  metadata:
+    id: pod-mgmt-q13
+    category: Pod Management
+    response: |
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
 - id: pod-mgmt-q8
   prompt: Get detailed information about a pod named 'nginx'
   type: command
