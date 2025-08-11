@@ -57,6 +57,7 @@ YAML_BACKUP_DIRS = [
 
 # Candidate directories for SQLite database backups.
 SQLITE_BACKUP_DIRS = [
+    os.path.join(PROJECT_ROOT, 'backups', 'sqlite'),
     os.path.join(PROJECT_ROOT, 'question-data-backup'),
 ]
 
