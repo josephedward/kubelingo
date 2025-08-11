@@ -137,8 +137,8 @@ def main():
     yaml_files = []
     if not args.input_paths:
         print("No input paths provided. Scanning for YAML backups...")
-        backup_dirs = path_utils.get_all_yaml_backup_dirs()
-        all_backups = sorted(path_utils.find_yaml_files(backup_dirs), key=lambda p: p.name)
+        backup_dir = project_root / "backups" / "yaml"
+        all_backups = sorted(path_utils.find_yaml_files([str(backup_dir)]), key=lambda p: p.name)
         if not all_backups:
             print("No YAML backup files found.")
             sys.exit(0)
