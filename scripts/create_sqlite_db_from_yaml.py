@@ -32,9 +32,21 @@ def populate_db_from_yaml(
     init_db(clear=clear_db, db_path=db_path)
     conn = get_db_connection(db_path=db_path)
 
-    # Get the list of valid arguments for the add_question function
-    sig = inspect.signature(add_question)
-    allowed_args = set(sig.parameters.keys())
+    # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
+    # This is safer than introspection, which may fail in some environments.
+    allowed_args = {
+        "id",
+        "prompt",
+        "source_file",
+        "response",
+        "category",
+        "source",
+        "validation_steps",
+        "validator",
+        "review",
+        "question_type",
+        "schema_category",
+    }
 
     question_count = 0
     try:
@@ -112,7 +124,7 @@ def main():
         "input_paths",
         nargs="*",
         type=str,
-        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories.",
+        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories and prompts for selection.",
     )
     parser.add_argument(
         "--clear",
@@ -129,8 +141,26 @@ def main():
 
     yaml_files = []
     if not args.input_paths:
-        print("No input paths provided. Scanning default backup directories...")
-        yaml_files = path_utils.get_all_yaml_backups()
+        print("No input paths provided. Scanning for YAML backups...")
+        all_backups = sorted(path_utils.get_all_yaml_backups(), key=lambda p: p.name)
+        if not all_backups:
+            print("No YAML backup files found.")
+            sys.exit(0)
+
+        print("\nPlease select a YAML backup to restore from:")
+        for i, backup_path in enumerate(all_backups):
+            print(f"  {i + 1}: {backup_path.name}")
+
+        try:
+            selection = input(f"\nEnter number (1-{len(all_backups)}): ")
+            selection_idx = int(selection) - 1
+            if not 0 <= selection_idx < len(all_backups):
+                raise ValueError
+            selected_file = all_backups[selection_idx]
+            yaml_files = [selected_file]
+        except (ValueError, IndexError):
+            print("Invalid selection. Aborting.", file=sys.stderr)
+            sys.exit(1)
     else:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
 
