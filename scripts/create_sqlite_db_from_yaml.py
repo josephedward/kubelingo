@@ -136,13 +136,17 @@ def populate_db_from_yaml(
                                     source_file_from_category = value
                                     break
 
-                    if source_file_from_category:
-                        q_dict["source_file"] = source_file_from_category
-                    elif not q_dict.get("source_file"):
-                        # Fallback for questions without a matching category, preserving old behavior.
+                    # A question must have a source_file, either from its own data
+                    # or derived from its category.
+                    source_file = q_dict.get("source_file") or source_file_from_category
+                    if not source_file:
+                        # If a source file can't be determined, the question can't be
+                        # linked to a quiz. Skip it to avoid populating DB with unusable data.
                         if category:
                             unmatched_categories.add(category)
-                        q_dict["source_file"] = file_path.name
+                        continue
+
+                    q_dict["source_file"] = source_file
 
                     # Remove legacy keys that are not supported by the database schema.
                     q_dict.pop("solution_file", None)
