@@ -272,7 +272,16 @@ def main():
         action="store_true",
         help="Clear the database before populating. Default is to append questions.",
     )
+    parser.add_argument(
+        "--fix-source-paths",
+        action="store_true",
+        help="Correct source_file paths in the DB without clearing or loading from YAML.",
+    )
     args = parser.parse_args()
+
+    if args.fix_source_paths:
+        fix_source_paths_in_db(db_path=args.db_path)
+        sys.exit(0)
 
     if args.input_paths:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
