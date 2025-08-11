@@ -53,6 +53,7 @@ def main():
         Choice('Diff with Backup SQLite DB', value='diff_sqlite.py'),
         Choice('Create SQLite Backup Version', value='create_sqlite_backup.py'),
         Choice('Restore from SQLite Backup Version', value='restore_sqlite.py'),
+        Choice('Create DB from YAML with AI Categorization', value='import_yaml_ai'),
         Separator('=== Questions ==='),
         Choice('Deduplicate Questions', value='deduplicate_questions.py'),
         Choice('Fix Question Categorization', value='categorize_questions.py'),
@@ -109,6 +110,13 @@ def main():
         choice = questionary.select('Select SQLite backup to restore:', [str(p) for p in backups]).ask()
         if choice:
             run_script('restore_sqlite.py', choice)
+    elif answer == 'import_yaml_ai':
+        db_path = questionary.text(
+            'Enter the path for the new AI-categorized SQLite database file:',
+            default='.kubelingo/kubelingo-ai.db'
+        ).ask()
+        if db_path:
+            run_script('import_from_yaml_with_ai.py', db_path)
     elif answer == 'deduplicate_questions.py':
         run_script('deduplicate_questions.py')
     elif answer == 'categorize_questions.py':

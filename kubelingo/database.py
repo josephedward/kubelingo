@@ -114,13 +114,9 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
-    # Add 'subject_matter' column for question subject matter with CHECK constraint
+    # Add 'subject_matter' column for question subject matter
     try:
-        subjects = ', '.join(repr(s) for s in SUBJECT_MATTER)
-        cursor.execute(
-            f"ALTER TABLE questions ADD COLUMN subject_matter TEXT "
-            f"CHECK(subject_matter IN ({subjects}))"
-        )
+        cursor.execute("ALTER TABLE questions ADD COLUMN subject_matter TEXT")
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
@@ -158,12 +154,6 @@ def add_question(
         conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Validate subject matter category if provided
-    if subject_matter is not None and subject_matter not in SUBJECT_MATTER:
-        raise ValueError(
-            f"Invalid subject matter category: {subject_matter!r}. "
-            f"Must be one of: {SUBJECT_MATTER}"
-        )
 
     # Serialize complex fields to JSON strings
     validation_steps_json = None
@@ -322,17 +312,14 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
 
 def get_questions_by_subject_matter(subject_matter: str, conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
     """
-    Fetches all questions for a given subject matter by querying the 'category' column.
-    The function name is retained for compatibility with existing session logic.
+    Fetches all questions for a given subject matter by querying the 'subject_matter' column.
     """
     close_conn = conn is None
     if close_conn:
         conn = get_db_connection()
 
     cursor = conn.cursor()
-    # The session logic uses 'subject_matter' as a general term for a quiz topic,
-    # which corresponds to the 'category' field in the database.
-    cursor.execute("SELECT * FROM questions WHERE category = ?", (subject_matter,))
+    cursor.execute("SELECT * FROM questions WHERE subject_matter = ?", (subject_matter,))
     rows = cursor.fetchall()
     if close_conn:
         conn.close()
@@ -342,7 +329,7 @@ def get_questions_by_subject_matter(subject_matter: str, conn: Optional[sqlite3.
 def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection] = None) -> Dict[str, Dict[str, int]]:
     """
     Returns a nested dictionary with counts of questions, grouped by schema_category
-    and then by category (subject).
+    and then by subject_matter.
     """
     close_conn = conn is None
     if close_conn:
@@ -350,10 +337,10 @@ def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection]
 
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT schema_category, category, COUNT(*)
+        SELECT schema_category, subject_matter, COUNT(*)
         FROM questions
-        WHERE schema_category IS NOT NULL AND category IS NOT NULL
-        GROUP BY schema_category, category
+        WHERE schema_category IS NOT NULL AND subject_matter IS NOT NULL
+        GROUP BY schema_category, subject_matter
     """)
     rows = cursor.fetchall()
     if close_conn:
@@ -361,7 +348,7 @@ def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection]
 
     counts: Dict[str, Dict[str, int]] = {}
     for schema_cat, subject, count in rows:
-        if not subject:  # Skip questions with empty category
+        if not subject:  # Skip questions with empty subject
             continue
         if schema_cat not in counts:
             counts[schema_cat] = {}
