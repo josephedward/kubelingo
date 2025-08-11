@@ -32,8 +32,9 @@ def classify_prompt(client, prompt, model="gpt-3.5-turbo"):
         )
         text = resp.choices[0].message.content.strip()
         # Normalize exact names
+        text_lower = text.lower()
         for allowed in ["Basic/Open-Ended", "Command-Based/Syntax", "Manifests"]:
-            if allowed.lower() in text.lower():
+            if text_lower in allowed.lower():
                 return allowed
         # Fallback: return text as-is
         return text
