@@ -12,9 +12,11 @@ import os
 import sys
 import csv
 import json
+from pathlib import Path
+
 
 def export_spec(input_csv, output_json, output_yaml):
-    if not os.path.exists(input_csv):
+    if not Path(input_csv).exists():
         print(f"Error: CSV not found at {input_csv}", file=sys.stderr)
         sys.exit(1)
     items = []
@@ -33,7 +35,7 @@ def export_spec(input_csv, output_json, output_yaml):
             answer = raw_answer[idx:].strip() if idx != -1 else raw_answer
             if prompt and answer:
                 items.append({'prompt': prompt, 'answer': answer})
-    os.makedirs(os.path.dirname(output_json), exist_ok=True)
+    Path(output_json).parent.mkdir(parents=True, exist_ok=True)
     with open(output_json, 'w', encoding='utf-8') as jf:
         json.dump(items, jf, indent=2)
     print(f"Wrote {len(items)} questions to JSON: {output_json}")
@@ -47,15 +49,17 @@ def export_spec(input_csv, output_json, output_yaml):
         print(f"Wrote {len(items)} questions to YAML: {output_yaml}")
 
 def import_spec(input_json, input_yaml, output_csv):
-    if input_yaml and os.path.exists(input_yaml):
+    if input_yaml and Path(input_yaml).exists():
         try:
             import yaml
         except ImportError:
             print(f"Error: PyYAML required to load YAML spec: {input_yaml}", file=sys.stderr)
             sys.exit(1)
-        questions = yaml.safe_load(open(input_yaml, encoding='utf-8'))
-    elif input_json and os.path.exists(input_json):
-        questions = json.load(open(input_json, encoding='utf-8'))
+        with open(input_yaml, encoding='utf-8') as yf:
+            questions = yaml.safe_load(yf)
+    elif input_json and Path(input_json).exists():
+        with open(input_json, encoding='utf-8') as jf:
+            questions = json.load(jf)
     else:
         print(f"Error: Spec not found at {input_yaml} or {input_json}", file=sys.stderr)
         sys.exit(1)
@@ -68,7 +72,7 @@ def import_spec(input_json, input_yaml, output_csv):
     print(f"Wrote {len(questions)} questions to CSV: {output_csv}")
 
 def normalize_csv(input_csv, output_csv):
-    if not os.path.exists(input_csv):
+    if not Path(input_csv).exists():
         print(f"Error: CSV not found at {input_csv}", file=sys.stderr)
         sys.exit(1)
     rows = []
@@ -93,11 +97,12 @@ def normalize_csv(input_csv, output_csv):
     print(f"Wrote {len(rows)} normalized rows to CSV: {output_csv}")
 
 def main():
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    default_csv = os.path.join(base_dir, 'killercoda-ckad_072425.csv')
-    default_json = os.path.join(os.path.dirname(__file__), 'ckad_questions.json')
-    default_yaml = os.path.join(os.path.dirname(__file__), 'ckad_questions.yaml')
-    default_norm = os.path.join(base_dir, 'killercoda-ckad_normalized.csv')
+    scripts_dir = Path(__file__).resolve().parent
+    base_dir = scripts_dir.parent
+    default_csv = str(base_dir / 'killercoda-ckad_072425.csv')
+    default_json = str(scripts_dir / 'ckad_questions.json')
+    default_yaml = str(scripts_dir / 'ckad_questions.yaml')
+    default_norm = str(base_dir / 'killercoda-ckad_normalized.csv')
 
     parser = argparse.ArgumentParser(prog='ckad', description='Manage CKAD quiz CSV/JSON/YAML spec')
     sub = parser.add_subparsers(dest='cmd')
