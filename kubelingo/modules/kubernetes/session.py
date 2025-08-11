@@ -25,9 +25,6 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -393,29 +390,37 @@ class NewSession(StudySession):
         # Get all question counts, grouped by schema and subject
         counts = get_question_counts_by_schema_and_subject()
 
-        # Flatten the counts to a single dict of {subject: count} for easier lookup
-        all_subject_counts = {}
-        for schema_cat, subject_counts in counts.items():
-            all_subject_counts.update(subject_counts)
+        # Manually re-categorize specific quizzes to override database values.
+        # This ensures 'Resource Reference' and 'Kubectl Operations' appear under 'Basic'.
+        quizzes_to_move = {
+            "Resource Reference": "basic",
+            "Kubectl Operations": "basic",
+        }
+        for subject, new_schema in quizzes_to_move.items():
+            for schema in list(counts.keys()):
+                if subject in counts[schema]:
+                    if schema != new_schema:
+                        count = counts[schema].pop(subject)
+                        if new_schema not in counts:
+                            counts[new_schema] = {}
+                        counts[new_schema][subject] = count
+                    break  # Found and moved, on to the next subject.
 
-        # Use quiz groupings from config as the source of truth for categorization
-        sections = {
-            "--- Basic Exercises ---": list(BASIC_QUIZZES.keys()),
-            "--- Command-Based Exercises ---": list(COMMAND_QUIZZES.keys()),
-            "--- Manifest-Based Exercises ---": list(MANIFEST_QUIZZES.keys()),
+        schema_to_section_name = {
+            "basic": "--- Basic Exercises ---",
+            "command": "--- Command-Based Exercises ---",
+            "manifest": "--- Manifest-Based Exercises ---",
         }
 
-        for section_name, subjects_in_section in sections.items():
-            # Check if any quizzes in this section have questions
-            section_subjects = [s for s in subjects_in_section if s in all_subject_counts]
-            if not section_subjects:
+        for schema_cat, section_name in schema_to_section_name.items():
+            subject_counts = counts.get(schema_cat, {})
+            if not subject_counts:
                 continue
 
             if questionary:
                 choices.append(questionary.Separator(section_name))
 
-            for subject in sorted(section_subjects):
-                count = all_subject_counts[subject]
+            for subject, count in sorted(subject_counts.items()):
                 choices.append({
                     "name": f"{subject} ({count} questions)",
                     "value": subject,  # The value is the subject matter string
