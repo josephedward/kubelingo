@@ -1120,7 +1120,7 @@ class NewSession(StudySession):
                     choices.append({"name": "View All Questions", "value": "view_all"})
                     # Toggle flag for review
                     choices.append({"name": flag_option_text, "value": "flag"})
-                    choices.append({"name": "Exit Quiz", "value": "back"})
+                    choices.append({"name": "Main Menu", "value": "back"})
 
                     # Determine if interactive action selection (questionary.prompt) is available
                     action_interactive = hasattr(questionary, 'prompt')
@@ -1160,9 +1160,12 @@ class NewSession(StudySession):
                             return False
 
                     if action == "back":
-                        # User chose to exit the current quiz; return to quiz selection menu
-                        quiz_backed_out = True
-                        break
+                        print(f"\n{Fore.YELLOW}Quiz interrupted.{Style.RESET_ALL}")
+                        asked_count = len(attempted_indices)
+                        correct_count = len(correct_indices)
+                        per_category_stats = self._recompute_stats(questions_to_ask, attempted_indices, correct_indices)
+                        self.session_manager.save_history(start_time, asked_count, correct_count, str(datetime.now() - start_time).split('.')[0], args, per_category_stats)
+                        return False
                     
                     if action == "next":
                         current_question_index += 1

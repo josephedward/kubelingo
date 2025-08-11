@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+from datetime import datetime
 from pathlib import Path
 import yaml
 from typing import List, Dict, Any, Set
@@ -87,7 +88,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Consolidate unique YAML questions from across the repository into a single file."
     )
-    default_path = Path(project_root) / 'backups' / 'yaml' / 'consolidated_unique_questions.yaml'
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_filename = f'consolidated_unique_questions_{timestamp}.yaml'
+    default_path = Path(project_root) / 'backups' / 'yaml' / default_filename
     parser.add_argument(
         '-o', '--output',
         type=Path,
