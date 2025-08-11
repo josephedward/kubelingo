@@ -2,13 +2,14 @@
 """
 This script reorganizes all questions in the database by assigning them to a
 schema category ('Basic/Open-Ended', 'Command-Based/Syntax', 'Manifests')
-using an AI model for classification.
+and a subject matter area using an AI model for classification.
 """
 import os
 import sys
-import argparse
-import logging
+import json
+import backoff
 from tqdm import tqdm
+from typing import Dict, Optional
 
 # Ensure the parent directory is on sys.path to allow for package imports
 if __name__ == '__main__' and __package__ is None:
@@ -18,146 +19,139 @@ if __name__ == '__main__' and __package__ is None:
     # At this point, `import kubelingo` should work
     __package__ = 'scripts'
 
-from kubelingo.database import get_all_questions, add_question, get_db_connection
-from kubelingo.question import Question, QuestionCategory
+from kubelingo.database import get_db_connection, _row_to_question_dict
+from kubelingo.question import QuestionCategory, QuestionSubject
 from kubelingo.utils.config import get_api_key
+from kubelingo.utils.ui import Fore, Style
 
 try:
     import openai
 except ImportError:
-    print("OpenAI library not found. Please run 'pip install openai'")
+    print(f"{Fore.RED}OpenAI library not found. Please run 'pip install openai'.{Style.RESET_ALL}")
     sys.exit(1)
 
 
 class AICategorizer:
     """Uses an AI model to classify questions into schema categories."""
 
-    def __init__(self, api_key: str, model: str = "gpt-3.5-turbo"):
+    def __init__(self, api_key: str, model_name: str = "gpt-4-turbo"):
         if not api_key:
             raise ValueError("OpenAI API key is required.")
         self.client = openai.OpenAI(api_key=api_key)
-        self.model = model
+        self.model = model_name
+        self.system_prompt = self.get_system_prompt()
 
     def get_system_prompt(self) -> str:
         """Returns the system prompt for the classification task."""
-        return """You are an expert assistant for categorizing Kubernetes quiz questions. Your task is to classify a given question into one of three specific categories: 'Basic/Open-Ended', 'Command-Based/Syntax', or 'Manifests'.
+        category_desc = "\n".join([f'- "{c.value}"' for c in QuestionCategory])
+        subject_desc = "\n".join([f'- "{s.value}" for s in QuestionSubject])
 
-Here are the definitions for each category:
-- 'Basic/Open-Ended': These questions test conceptual knowledge, definitions, or ask for explanations. They do not require writing a specific command or a YAML manifest. Examples: "What is a Pod?", "Explain the role of the kube-scheduler.", "What is the difference between a Deployment and a StatefulSet?".
-- 'Command-Based/Syntax': These questions require the user to provide a specific command-line instruction, typically using `kubectl`, `helm`, or another CLI tool. The answer is a single command. Examples: "Create a new namespace named 'development'.", "Scale the deployment 'frontend' to 3 replicas.", "List all pods in the 'default' namespace.".
-- 'Manifests': These questions require the user to write or edit a Kubernetes YAML manifest file. The answer is a YAML configuration. Examples: "Create a YAML manifest for a Pod named 'my-pod' with the image 'nginx'.", "Edit the provided deployment YAML to add a new environment variable.".
+        return f"""
+You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
+You will be given a question prompt and must return a JSON object with two keys: "schema_category" and "subject".
 
-Based on the question text and hint provided, you must respond with ONLY ONE of the following category names, and nothing else:
-Basic/Open-Ended
-Command-Based/Syntax
-Manifests"""
+1.  **schema_category**: Choose ONE of the following high-level exercise types:
+{category_desc}
 
-    def categorize_question(self, question: dict) -> QuestionCategory:
-        """
-        Classifies a single question using the AI model.
-        Returns a QuestionCategory enum member.
-        """
+2.  **subject**: Choose the ONE most relevant subject matter from this list:
+{subject_desc}
+
+Analyze the question's content to make the best choice. For example:
+- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "Command-Based/Syntax", "subject": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A question asking to write a YAML file for a Pod is {{ "schema_category": "Manifests", "subject": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A conceptual question about the purpose of a Service is {{ "schema_category": "Basic/Open-Ended", "subject": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
+
+Return ONLY a valid JSON object in the format:
+{{
+  "schema_category": "The full string value of the category",
+  "subject": "The full string value of the subject"
+}}
+Do not include any other text or explanation.
+"""
+
+    @backoff.on_exception(backoff.expo, openai.RateLimitError, max_tries=5)
+    def categorize_question(self, question: dict) -> Optional[Dict[str, str]]:
+        """Classifies a single question using the AI model."""
         prompt_text = question.get('prompt', '')
-        q_type = question.get('type', 'N/A')
-        user_prompt = f"Question: \"{prompt_text}\"\nHint (Question Type): \"{q_type}\""
+        if not prompt_text:
+            return None
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self.get_system_prompt()},
-                    {"role": "user", "content": user_prompt},
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": f"Categorize this question: {prompt_text}"},
                 ],
-                temperature=0.0,
-                max_tokens=20,
+                response_format={"type": "json_object"},
+                temperature=0.0
             )
-            category_str = response.choices[0].message.content.strip()
-
-            # Map the string response to the enum
-            for category_enum in QuestionCategory:
-                if category_enum.value == category_str:
-                    return category_enum
+            data = json.loads(response.choices[0].message.content)
             
-            logging.warning(f"AI returned an unknown category '{category_str}' for question ID {question['id']}. Skipping.")
-            return None
+            category = data.get("schema_category")
+            subject = data.get("subject")
 
+            valid_categories = [c.value for c in QuestionCategory]
+            valid_subjects = [s.value for s in QuestionSubject]
+
+            if category in valid_categories and subject in valid_subjects:
+                return {"schema_category": category, "subject": subject}
+            else:
+                print(f"{Fore.YELLOW}\nWarning: AI returned invalid data: {data}. Skipping.{Style.RESET_ALL}")
+                return None
+
+        except json.JSONDecodeError:
+            print(f"{Fore.YELLOW}\nWarning: Failed to decode AI JSON response. Skipping.{Style.RESET_ALL}")
+            return None
         except Exception as e:
-            logging.error(f"Failed to categorize question ID {question['id']}: {e}")
+            print(f"{Fore.RED}\nAn unexpected error occurred during AI categorization: {e}{Style.RESET_ALL}")
             return None
 
 
 def main():
     """Main function to run the reorganization script."""
-    parser = argparse.ArgumentParser(description="Reorganize questions by schema category using AI.")
-    parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help="Perform a dry run without making any changes to the database."
-    )
-    parser.add_argument(
-        '--model',
-        type=str,
-        default='gpt-3.5-turbo',
-        help="The AI model to use for categorization (e.g., 'gpt-4-turbo')."
-    )
-    args = parser.parse_args()
-
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
     api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
     if not api_key:
-        logging.error("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable or use 'kubelingo config set openai'.")
-        sys.exit(1)
-
-    categorizer = AICategorizer(api_key=api_key, model=args.model)
-    
-    print("Fetching all questions from the database...")
-    all_questions = get_all_questions()
-
-    if not all_questions:
-        print("No questions found in the database. Nothing to do.")
+        print(f"{Fore.RED}OpenAI API key not found. Please set the OPENAI_API_KEY environment variable or use 'kubelingo config set openai'.{Style.RESET_ALL}")
         return
 
-    print(f"Found {len(all_questions)} questions. Starting categorization...")
-
     conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions WHERE schema_category IS NULL OR subject IS NULL")
+    rows = cursor.fetchall()
+    
+    if not rows:
+        print(f"{Fore.GREEN}All questions are already categorized. No migration needed.{Style.RESET_ALL}")
+        conn.close()
+        return
+
+    print(f"Found {len(rows)} questions to categorize...")
+    categorizer = AICategorizer(api_key=api_key)
+    
     updated_count = 0
-    failed_count = 0
+    with tqdm(rows, desc="Categorizing questions") as pbar:
+        for row in pbar:
+            q_dict = _row_to_question_dict(row)
+            q_id = q_dict.get('id')
+            
+            result = categorizer.categorize_question(q_dict)
+            
+            if result:
+                cursor.execute(
+                    "UPDATE questions SET schema_category = ?, subject = ? WHERE id = ?",
+                    (result["schema_category"], result["subject"], q_id)
+                )
+                updated_count += 1
+                pbar.set_postfix(status="Success")
+            else:
+                pbar.set_postfix(status=f"Failed: {q_id}")
 
-    try:
-        with tqdm(all_questions, desc="Categorizing questions") as pbar:
-            for q_dict in pbar:
-                new_category = categorizer.categorize_question(q_dict)
-
-                if new_category:
-                    if str(q_dict.get('schema_category')) == new_category.value:
-                        pbar.set_postfix(status=f"Skipped (already '{new_category.value}')")
-                        continue
-                    
-                    pbar.set_postfix(status=f"Updating to '{new_category.value}'")
-                    if not args.dry_run:
-                        q_dict['schema_category'] = new_category.value
-                        # The dict from get_all_questions has a 'type' key for compatibility,
-                        # but add_question expects 'question_type'. We rename it before calling.
-                        q_dict['question_type'] = q_dict.pop('type', None)
-                        # Use add_question to update the record in the database
-                        add_question(conn=conn, **q_dict)
-                    updated_count += 1
-                else:
-                    pbar.set_postfix(status="Failed")
-                    failed_count += 1
-
-    except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
-    finally:
-        if conn:
-            conn.close()
-
+    conn.commit()
+    conn.close()
+    
     print("\nReorganization complete.")
     print(f"  - Questions updated: {updated_count}")
-    print(f"  - Questions failed/skipped: {failed_count}")
-    if args.dry_run:
-        print("\nNOTE: This was a dry run. No changes were saved to the database.")
+    print(f"  - Questions failed/skipped: {len(rows) - updated_count}")
 
 if __name__ == '__main__':
     main()
