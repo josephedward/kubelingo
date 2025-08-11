@@ -18,7 +18,7 @@ from typing import Optional
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.question import QuestionCategory
-from kubelingo.utils.path_utils import find_yaml_files_from_paths, get_all_yaml_files
+from kubelingo.utils import path_utils
 
 
 def restore_yaml_to_db(
@@ -64,6 +64,10 @@ def restore_yaml_to_db(
                         for k, v in metadata.items():
                             if k not in q_dict:
                                 q_dict[k] = v
+
+                    # Normalize legacy 'question' key to 'prompt' for add_question compatibility.
+                    if "question" in q_dict:
+                        q_dict["prompt"] = q_dict.pop("question")
 
                     # Set schema_category based on the question type
                     q_type = q_dict.get("type", "command")
@@ -126,9 +130,9 @@ def main():
     yaml_files = []
     if not args.input_paths:
         print("No input paths provided. Scanning default question directories...")
-        yaml_files = get_all_yaml_files()
+        yaml_files = path_utils.get_all_yaml_files()
     else:
-        yaml_files = find_yaml_files_from_paths(args.input_paths)
+        yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
 
     if not yaml_files:
         print("No YAML files found.")
