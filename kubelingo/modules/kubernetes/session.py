@@ -1008,7 +1008,13 @@ class NewSession(StudySession):
                 just_answered = False
                 q = questions_to_ask[current_question_index]
                 i = current_question_index + 1
-                category = q.get('category', 'General')
+                
+                # For Vim questions, enforce the category and a static source URL.
+                is_vim_question = 'vim' in (q.get('category') or '').lower() or 'vim' in (q.get('source_file') or '').lower()
+                if is_vim_question:
+                    q['category'] = 'Vim Practice'
+
+                category = q.get('category') or 'General'
                 
                 # Determine question status for display
                 status_color = Fore.WHITE
@@ -1023,37 +1029,41 @@ class NewSession(StudySession):
                 print(f"{Fore.MAGENTA}{q['prompt']}{Style.RESET_ALL}")
                 # Display source links if available
                 source_items = []
-                # Links may be provided directly or within metadata
-                meta_links = q.get('metadata', {}).get('links') if isinstance(q.get('metadata'), dict) else None
-                if meta_links:
-                    if isinstance(meta_links, list):
-                        source_items.extend(meta_links)
-                    else:
-                        source_items.append(meta_links)
-                # Also consider top-level fields
-                if q.get('links'):
-                    if isinstance(q['links'], list):
-                        source_items.extend(q['links'])
-                    else:
-                        source_items.append(q['links'])
-                if q.get('citation'):
-                    source_items.append(q['citation'])
-                if q.get('source'):
-                    source_items.append(q['source'])
 
-                # If no source is found, try to find one with AI
-                if not source_items and os.getenv('OPENAI_API_KEY'):
-                    print(f"{Fore.YELLOW}Searching for a source URL...{Style.RESET_ALL}")
-                    try:
-                        from kubelingo.modules.ai_evaluator import AIEvaluator
-                        evaluator = AIEvaluator()
-                        ai_source = evaluator.find_source_for_question(q.get('prompt', ''))
-                        if ai_source:
-                            source_items.append(ai_source)
-                            q['source'] = ai_source # Update in-memory object
-                            _update_question_source_in_db(q.get('id'), ai_source, self.logger)
-                    except (ImportError, Exception) as e:
-                        self.logger.warning(f"AI source lookup failed: {e}")
+                if is_vim_question:
+                    source_items.append("https://vimhelp.org/")
+                else:
+                    # Links may be provided directly or within metadata
+                    meta_links = q.get('metadata', {}).get('links') if isinstance(q.get('metadata'), dict) else None
+                    if meta_links:
+                        if isinstance(meta_links, list):
+                            source_items.extend(meta_links)
+                        else:
+                            source_items.append(meta_links)
+                    # Also consider top-level fields
+                    if q.get('links'):
+                        if isinstance(q['links'], list):
+                            source_items.extend(q['links'])
+                        else:
+                            source_items.append(q['links'])
+                    if q.get('citation'):
+                        source_items.append(q['citation'])
+                    if q.get('source'):
+                        source_items.append(q['source'])
+
+                    # If no source is found, try to find one with AI
+                    if not source_items and os.getenv('OPENAI_API_KEY'):
+                        print(f"{Fore.YELLOW}Searching for a source URL...{Style.RESET_ALL}")
+                        try:
+                            from kubelingo.modules.ai_evaluator import AIEvaluator
+                            evaluator = AIEvaluator()
+                            ai_source = evaluator.find_source_for_question(q.get('prompt', ''))
+                            if ai_source:
+                                source_items.append(ai_source)
+                                q['source'] = ai_source # Update in-memory object
+                                _update_question_source_in_db(q.get('id'), ai_source, self.logger)
+                        except (ImportError, Exception) as e:
+                            self.logger.warning(f"AI source lookup failed: {e}")
 
                 for url in source_items:
                     print(f"{Fore.CYAN}Source: {url}{Style.RESET_ALL}")
