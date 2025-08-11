@@ -24,8 +24,8 @@ def main():
     # Initialize DB (creates ~/.kubelingo/kubelingo.db, preserves existing entries)
     init_db()
     loader = YAMLLoader()
-    # Scan both consolidated questions directory and legacy YAML directories
-    dirs = [Path(QUESTIONS_DIR), Path(DATA_DIR) / 'yaml', Path(DATA_DIR) / 'yaml-bak']
+    # Scan consolidated questions directory (legacy YAML directories deprecated)
+    dirs = [Path(QUESTIONS_DIR)]
     total_added = 0
     for yaml_dir in dirs:
         if not yaml_dir.is_dir():
