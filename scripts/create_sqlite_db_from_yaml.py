@@ -80,6 +80,9 @@ def populate_db_from_yaml(
                     # Override source_file to the YAML filename being processed
                     q_dict["source_file"] = file_path.name
 
+                    # Remove legacy keys that are not supported by the database schema.
+                    q_dict.pop("solution_file", None)
+
                     # Filter dict to only include keys that add_question accepts
                     q_dict_for_db = {
                         k: v for k, v in q_dict.items() if k in allowed_args
@@ -116,6 +119,12 @@ def main():
         action="store_true",
         help="Clear the database before populating.",
     )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Automatically confirm and proceed without prompting.",
+    )
     args = parser.parse_args()
 
     yaml_files = []
@@ -130,7 +139,15 @@ def main():
         sys.exit(0)
 
     unique_files = sorted(list(set(yaml_files)))
-    print(f"Found {len(unique_files)} YAML file(s) to process.")
+    print(f"Found {len(unique_files)} YAML file(s) to process:")
+    for f in unique_files:
+        print(f"  - {f.name}")
+
+    if not args.yes:
+        confirm = input("\nProceed with populating the database from these files? (y/N): ")
+        if confirm.lower() != 'y':
+            print("Operation cancelled.")
+            sys.exit(0)
 
     populate_db_from_yaml(unique_files, args.clear)
 
