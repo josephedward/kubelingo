@@ -195,6 +195,12 @@ def main():
         action="store_true",
         help="Clear the database before populating. If not set (default), new questions will be merged.",
     )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default=None,
+        help="Path to the SQLite database file. Defaults to the live application database.",
+    )
     args = parser.parse_args()
 
     yaml_files = []
@@ -261,7 +267,7 @@ def main():
         for f in unique_files:
             print(f"  - {f.name}")
 
-    db_path = get_live_db_path()
+    db_path = args.db_path or get_live_db_path()
 
     if args.clear and not args.yes:
         print(

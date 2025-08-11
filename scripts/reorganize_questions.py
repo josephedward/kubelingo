@@ -54,18 +54,20 @@ class AICategorizer:
 You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
 You will be given a question prompt and must return a JSON object with two keys: "schema_category" and "subject_matter".
 
-1.  **schema_category**: Choose ONE of the following high-level exercise types:
-{category_desc}
+1.  **schema_category**: Choose ONE of the following high-level exercise types: 'basic', 'command', or 'manifest'.
+    - 'basic': Conceptual or open-ended questions.
+    - 'command': Questions involving CLI commands (e.g., kubectl, helm, vim).
+    - 'manifest': Questions about writing or editing YAML/JSON configuration files.
 
 2.  **subject_matter**: Choose the ONE most relevant subject matter from this list:
 {subject_desc}
 
 Analyze the question's content to make the best choice. For example:
-- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A question asking to write a YAML file for a Pod is {{ "schema_category": "Manifests", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A conceptual question about the purpose of a Service is {{ "schema_category": "Basic/Open-Ended", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
-- A question about using Vim to find and replace text is {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Vim editor usage" }}.
-- A question about kubectl command aliases should be {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Kubectl CLI usage and commands" }}.
+- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A question asking to write a YAML file for a Pod is {{ "schema_category": "manifest", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A conceptual question about the purpose of a Service is {{ "schema_category": "basic", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
+- A question about using Vim to find and replace text is {{ "schema_category": "command", "subject_matter": "Vim editor usage" }}.
+- A question about kubectl command aliases should be {{ "schema_category": "command", "subject_matter": "Kubectl CLI usage and commands" }}.
 
 Return ONLY a valid JSON object in the format:
 {{
@@ -114,14 +116,14 @@ Do not include any other text or explanation.
             return None
 
 
-def reorganize_by_ai():
+def reorganize_by_ai(db_path: Optional[str] = None):
     """Categorize questions using an AI model."""
     api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
     if not api_key:
         print(f"{Fore.RED}OpenAI API key not found. Please set the OPENAI_API_KEY environment variable or use 'kubelingo config set openai'.{Style.RESET_ALL}")
         return
 
-    conn = get_db_connection()
+    conn = get_db_connection(db_path=db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM questions WHERE schema_category IS NULL OR subject_matter IS NULL")
     rows = cursor.fetchall()
@@ -143,12 +145,30 @@ def reorganize_by_ai():
             result = categorizer.categorize_question(q_dict)
             
             if result:
-                cursor.execute(
-                    "UPDATE questions SET schema_category = ?, subject_matter = ? WHERE id = ?",
-                    (result["schema_category"], result["subject_matter"], q_id)
-                )
-                updated_count += 1
-                pbar.set_postfix(status="Success")
+                schema_category_from_ai = result.get("schema_category")
+                subject_matter = result.get("subject_matter")
+
+                # Map AI output to the database schema for robustness, as the model may
+                # sometimes return the descriptive text instead of the simple value.
+                schema_category_map = {
+                    "basic": "basic",
+                    "command": "command",
+                    "manifest": "manifest",
+                    "Basic/Open-Ended": "basic",
+                    "Command-Based/Syntax": "command",
+                    "Manifests": "manifest",
+                }
+                schema_category = schema_category_map.get(schema_category_from_ai)
+
+                if schema_category and subject_matter:
+                    cursor.execute(
+                        "UPDATE questions SET schema_category = ?, subject_matter = ? WHERE id = ?",
+                        (schema_category, subject_matter, q_id)
+                    )
+                    updated_count += 1
+                    pbar.set_postfix(status="Success")
+                else:
+                    pbar.set_postfix(status=f"Invalid AI data for {q_id}")
             else:
                 pbar.set_postfix(status=f"Failed: {q_id}")
 
@@ -173,10 +193,10 @@ def map_type_to_schema(q_type: str) -> str:
     return QuestionCategory.COMMAND.value
 
 
-def reorganize_by_type_mapping():
+def reorganize_by_type_mapping(db_path: Optional[str] = None):
     """Reassign schema_category based on the question_type column."""
     print("Reassigning schema category based on question_type...")
-    conn = get_db_connection()
+    conn = get_db_connection(db_path=db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT id, question_type FROM questions")
     rows = cursor.fetchall()
@@ -197,12 +217,12 @@ def reorganize_by_type_mapping():
 
 
 # --- Method 3: Rule-based from dataclass logic ---
-def reorganize_by_dataclass_logic():
+def reorganize_by_dataclass_logic(db_path: Optional[str] = None):
     """
     Iterates through all questions, determines schema category using dataclass logic, and updates them.
     """
     print("Reorganizing question categories based on dataclass logic...")
-    conn = get_db_connection()
+    conn = get_db_connection(db_path=db_path)
     if not conn:
         print("Failed to connect to the database.")
         return
@@ -280,14 +300,20 @@ def main():
             "  - dataclass:    Use the Question dataclass logic to determine `schema_category`."
         )
     )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default=None,
+        help="Path to the SQLite database file. Defaults to the live application database.",
+    )
     args = parser.parse_args()
 
     if args.method == 'ai':
-        reorganize_by_ai()
+        reorganize_by_ai(db_path=args.db_path)
     elif args.method == 'type-mapping':
-        reorganize_by_type_mapping()
+        reorganize_by_type_mapping(db_path=args.db_path)
     elif args.method == 'dataclass':
-        reorganize_by_dataclass_logic()
+        reorganize_by_dataclass_logic(db_path=args.db_path)
 
 
 if __name__ == '__main__':
