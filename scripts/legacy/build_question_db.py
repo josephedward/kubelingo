@@ -10,6 +10,7 @@ import yaml
 import sqlite3
 import tempfile
 from pathlib import Path
+from typing import List
 
 # Ensure the project root is in the Python path
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -24,15 +25,9 @@ from kubelingo.utils.config import (
     SECONDARY_MASTER_DATABASE_FILE,
 )
 
-def import_questions(source_dir: Path, conn: sqlite3.Connection):
-    """Loads all questions from YAML files in the source directory and adds them to the database."""
-    print(f"Scanning for YAML files in '{source_dir}'...")
-    files = list(source_dir.glob("**/*.yaml")) + list(source_dir.glob("**/*.yml"))
-
-    if not files:
-        print(f"Error: No YAML files found in '{source_dir}'.")
-        print("Please run 'python3 scripts/consolidate_questions.py' first.")
-        return 0
+def import_questions(files: List[Path], conn: sqlite3.Connection):
+    """Loads all questions from a list of YAML file paths and adds them to the database."""
+    print(f"Importing from {len(files)} found YAML files...")
 
     question_count = 0
     for file_path in files:
@@ -102,32 +97,31 @@ def main():
     """Main function to run the build and backup process."""
     print("--- Building Kubelingo Master Question Database ---")
 
-    # Discover question directories dynamically
-    from kubelingo.utils.path_utils import get_all_question_dirs
+    # Discover question YAML files dynamically from all configured source directories
+    from kubelingo.utils.path_utils import get_all_question_dirs, get_all_yaml_files
+
     candidate_dirs = get_all_question_dirs()
-    source_path = None
-    for d in candidate_dirs:
-        p = Path(d)
-        if p.is_dir() and (any(p.glob('**/*.yaml')) or any(p.glob('**/*.yml'))):
-            source_path = p
-            break
-    if source_path is None:
+    print(f"\nScanning for YAML files in candidate directories: {candidate_dirs}")
+
+    all_yaml_files = get_all_yaml_files()
+    if not all_yaml_files:
         print("\nError: No question YAML files found in any of the candidate directories:")
         for d in candidate_dirs:
             print(f"  - {d}")
-        print("Please ensure your question-data directories are populated.")
+        print("Please ensure your question-data directories are populated and not empty.")
         sys.exit(1)
-    print(f"\nUsing questions from '{source_path}'...")
+
+    print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
 
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
     init_db()
     print("  - Ensured database is initialized for build.")
 
-    print(f"\nStep 2: Importing questions from '{source_path}'...")
+    print(f"\nStep 2: Importing questions from all found YAML files...")
     questions_imported = 0
     conn = get_db_connection()
     try:
-        questions_imported = import_questions(source_path, conn)
+        questions_imported = import_questions(all_yaml_files, conn)
     finally:
         conn.close()
 

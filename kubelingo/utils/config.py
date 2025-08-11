@@ -33,6 +33,21 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 
 
+# --- Pathfinding Configuration ---
+# Centralized lists of directories to search for various data types.
+# These are used by kubelingo.utils.path_utils to discover data sources dynamically.
+QUESTION_DIRS = [
+    QUESTIONS_DIR,
+    os.path.join(DATA_DIR, 'yaml'),  # legacy
+    os.path.join(DATA_DIR, 'yaml-bak'),  # legacy backup
+]
+YAML_BACKUP_DIRS = [
+    os.path.join(PROJECT_ROOT, 'backups'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+]
+SQLITE_BACKUP_DIR = os.path.join(PROJECT_ROOT, 'backups')
+
+
 
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
 # These paths are preserved to allow the one-time consolidation script to find the old files.
@@ -83,6 +98,13 @@ ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
+
+
+def get_live_db_path() -> str:
+    """Helper function to return the canonical path to the live user database."""
+    return DATABASE_FILE
+
+
 # Read-only master backup of original questions. Used to seed the user's DB on first run.
 MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_original.db')
 # Secondary backup for redundancy (fallback).
