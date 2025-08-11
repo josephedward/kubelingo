@@ -1,3 +1,21 @@
+## Resilient Path Discovery
+
+To improve stability and resilience against file reorganizations, Kubelingo now uses a centralized path discovery mechanism. All scripts and application code should use these helpers instead of hard-coded paths to locate data files.
+
+- **Configuration in `kubelingo/utils/config.py`**: This file contains the source of truth for directory locations.
+  - `QUESTION_DIRS`: A list of directories to search for question YAML files.
+  - `YAML_BACKUP_DIRS`: A list of directories for YAML backups.
+  - `SQLITE_BACKUP_DIR`: The directory for SQLite database backups.
+
+- **Discovery in `kubelingo/utils/path_utils.py`**: This module provides functions to find data files.
+  - `get_all_question_dirs() -> List[str]`: Returns all configured directories for question YAMLs.
+  - `get_all_yaml_files(dirs: Optional[List[str]] = None) -> List[Path]`: Scans directories (defaults to `QUESTION_DIRS`) and returns all found `.yaml` and `.yml` files.
+  - `get_all_yaml_backups() -> List[Path]`: Returns all `.yaml` and `.yml` files from `YAML_BACKUP_DIRS`.
+  - `get_all_sqlite_backups() -> List[Path]`: Returns all `.db` files from `SQLITE_BACKUP_DIR`.
+  - `get_live_db_path() -> str`: Returns the canonical path to the user's live database.
+
+**Developer Guidance**: Always use helpers from `kubelingo.utils.path_utils` to locate data sources. For example, to import all questions, call `get_all_yaml_files()` and iterate over the returned list of `Path` objects. This ensures that your code will continue to work even if data files are moved to a different configured location.
+
 ## Question Categories
 
 We classify quiz questions into three main categories, each driving a distinct user workflow and validation approach:
