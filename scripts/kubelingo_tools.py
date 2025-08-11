@@ -45,11 +45,39 @@ def task_consolidate_yaml():
 
 def task_locate_yaml_backup():
     """Locate Previous YAML backup"""
-    _run_script("locate_yaml_backups.py")
+    _run_script("locate_previous_yaml_backup.py")
 
 def task_yaml_stats():
     """YAML Statistics"""
-    _run_script("yaml_backup_stats.py")
+    # First, find the latest backup file path
+    locate_script_path = scripts_dir / "locate_previous_yaml_backup.py"
+    if not locate_script_path.exists():
+        print(f"Error: Script '{locate_script_path}' not found.")
+        return
+
+    locate_command = [sys.executable, str(locate_script_path), "--path-only"]
+    proc = subprocess.run(locate_command, capture_output=True, text=True, check=False)
+
+    if proc.returncode != 0:
+        print("Could not find the latest YAML backup.")
+        if proc.stderr:
+            print(f"Error: {proc.stderr.strip()}")
+        return
+
+    latest_backup = proc.stdout.strip()
+    if not latest_backup:
+        print("Could not find the latest YAML backup (empty path returned).")
+        return
+
+    # Now, run the stats script on that file
+    stats_script_path = scripts_dir / "yaml_backup_stats.py"
+    if not stats_script_path.exists():
+        print(f"Error: Script '{stats_script_path}' not found.")
+        return
+
+    stats_command = [sys.executable, str(stats_script_path), latest_backup]
+    print(f"Running: {' '.join(stats_command)}")
+    subprocess.run(stats_command, check=False)
 
 def task_export_db_to_yaml():
     """Write DB to YAML Backup Version"""

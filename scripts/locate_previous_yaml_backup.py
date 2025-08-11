@@ -2,6 +2,7 @@
 """
 Finds and displays the most recent YAML backup file from configured directories.
 """
+import argparse
 import datetime
 import os
 import sys
@@ -30,26 +31,41 @@ def find_most_recent_backup(files: List[Path]) -> Optional[Path]:
 
 def main():
     """Finds and prints the most recent YAML backup file."""
+    parser = argparse.ArgumentParser(
+        description="Finds and displays the most recent YAML backup file."
+    )
+    parser.add_argument(
+        "--path-only",
+        action="store_true",
+        help="If set, only prints the path of the most recent file and suppresses other output.",
+    )
+    args = parser.parse_args()
+
     backup_dirs = YAML_BACKUP_DIRS
     if not backup_dirs:
-        print("No YAML backup directories are configured.", file=sys.stderr)
+        if not args.path_only:
+            print("No YAML backup directories are configured.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Searching for YAML backup files in: {', '.join(backup_dirs)}...")
     try:
         backup_files = find_yaml_files_from_paths(backup_dirs)
     except Exception as e:
-        print(f"Error scanning directories: {e}", file=sys.stderr)
+        if not args.path_only:
+            print(f"Error scanning directories: {e}", file=sys.stderr)
         sys.exit(1)
-
-    if not backup_files:
-        print("No YAML backup files found.")
-        return
 
     most_recent = find_most_recent_backup(backup_files)
 
-    print(f"\nFound {len(backup_files)} backup file(s).")
-    if most_recent:
+    if not most_recent:
+        if not args.path_only:
+            print("No YAML backup files found.")
+        sys.exit(1)
+
+    if args.path_only:
+        print(most_recent)
+    else:
+        print(f"Searching for YAML backup files in: {', '.join(backup_dirs)}...")
+        print(f"\nFound {len(backup_files)} backup file(s).")
         mod_time = most_recent.stat().st_mtime
         mod_time_str = datetime.datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M:%S')
         print(f"Most recent YAML backup: {most_recent}")
