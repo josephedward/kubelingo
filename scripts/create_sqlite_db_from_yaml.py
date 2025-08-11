@@ -122,12 +122,24 @@ def populate_db_from_yaml(
                     # Determine the source file from the category to ensure questions
                     # are correctly associated with their quizzes.
                     category = q_dict.get("category")
-                    source_file_from_category = category_to_source_file.get(category)
+                    source_file_from_category = None
+                    if category:
+                        # Try exact match first.
+                        source_file_from_category = category_to_source_file.get(category)
+                        if not source_file_from_category:
+                            # Fallback to partial match if exact match fails, for categories
+                            # that are substrings of the full quiz name (e.g., "Pods" vs "Pods Manifests").
+                            for key, value in category_to_source_file.items():
+                                if category in key:
+                                    source_file_from_category = value
+                                    break
 
                     if source_file_from_category:
                         q_dict["source_file"] = source_file_from_category
                     elif not q_dict.get("source_file"):
                         # Fallback for questions without a matching category, preserving old behavior.
+                        if category:
+                            unmatched_categories.add(category)
                         q_dict["source_file"] = file_path.name
 
                     # Remove legacy keys that are not supported by the database schema.
@@ -149,6 +161,11 @@ def populate_db_from_yaml(
         sys.exit(1)
     finally:
         conn.close()
+
+    if unmatched_categories:
+        print("\nWarning: The following categories from the YAML file did not match any quiz and were assigned a default source:")
+        for cat in sorted(list(unmatched_categories)):
+            print(f"  - {cat}")
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
