@@ -20,7 +20,7 @@ from kubelingo.utils import path_utils
 
 
 def populate_db_from_yaml(
-    yaml_files: list[Path], clear_db: bool, db_path: Optional[str] = None
+    yaml_files: list[Path], db_path: Optional[str] = None
 ):
     """
     Populates the database with questions from a list of YAML files.
@@ -29,7 +29,7 @@ def populate_db_from_yaml(
         print("No YAML files found to process.")
         return
 
-    init_db(clear=clear_db, db_path=db_path)
+    init_db(db_path=db_path)
     conn = get_db_connection(db_path=db_path)
 
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
@@ -127,11 +127,6 @@ def main():
         help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories and prompts for selection.",
     )
     parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="Clear the database before populating.",
-    )
-    parser.add_argument(
         "-y",
         "--yes",
         action="store_true",
@@ -188,7 +183,7 @@ def main():
             print("Operation cancelled.")
             sys.exit(0)
 
-    populate_db_from_yaml(unique_files, args.clear)
+    populate_db_from_yaml(unique_files)
 
 
 if __name__ == "__main__":
