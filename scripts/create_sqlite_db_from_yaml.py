@@ -29,6 +29,9 @@ def populate_db_from_yaml(
         print("No YAML files found to process.")
         return
 
+    if db_path is None:
+        db_path = path_utils.get_live_db_path()
+
     init_db(clear=True, db_path=db_path)
     conn = get_db_connection(db_path=db_path)
 
@@ -198,14 +201,14 @@ def main():
         for f in unique_files:
             print(f"  - {f.name}")
 
+    db_path = path_utils.get_live_db_path()
     if not args.yes:
-        print("\nWARNING: This will clear the existing database and populate it with new data.")
-        confirm = input("Proceed with populating the database from these files? (y/N): ")
+        print(f"\nWARNING: This will clear and repopulate the database at '{db_path}'.")
+        confirm = input("Are you sure you want to proceed? (y/N): ")
         if confirm.lower() != 'y':
             print("Operation cancelled.")
             sys.exit(0)
 
-    db_path = path_utils.get_live_db_path()
     print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
 
