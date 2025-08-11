@@ -36,8 +36,8 @@ def classify_prompt(client, prompt, model="gpt-3.5-turbo"):
         for allowed in ["Basic/Open-Ended", "Command-Based/Syntax", "Manifests"]:
             if text_lower in allowed.lower():
                 return allowed
-        # Fallback: return text as-is
-        return text
+        # Fallback: if no match, do not return arbitrary text.
+        return None
     except Exception as e:
         print(f"Error during classification: {e}")
         return None
