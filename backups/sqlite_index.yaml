@@ -42,7 +42,7 @@ files:
   path: question-data-backup/kubelingo.db
   size_bytes: 331776
 - last_modified: '2025-08-11T13:31:04.994666'
-  path: question-data-backup/kubelingo_backup_20250811_152738.db
+  path: backups/sqlite/kubelingo_backup_20250811_152738.db
   size_bytes: 331776
 - last_modified: '2025-08-09T16:32:13.650477'
   path: question-data-backup/kubelingo_original.db

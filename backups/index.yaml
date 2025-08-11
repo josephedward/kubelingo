@@ -3,10 +3,10 @@ files:
   path: .github/workflows/ci.yml
   size_bytes: 740
 - last_modified: '2025-08-11T14:56:25.002548'
-  path: backups/index.yaml
+  path: backups/yaml/index.yaml
   size_bytes: 27027
 - last_modified: '2025-08-11T15:22:41.133832'
-  path: backups/sqlite_index.yaml
+  path: backups/sqlite/sqlite_index.yaml
   size_bytes: 2002
 - last_modified: '2025-08-11T14:29:24.949860'
   path: backups/yaml/consolidated_unique_questions_20250811_142924.yaml
