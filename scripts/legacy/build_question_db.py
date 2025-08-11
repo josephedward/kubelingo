@@ -20,10 +20,10 @@ from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.question import QuestionCategory
 from kubelingo.utils.config import (
     DATABASE_FILE,
-    QUESTIONS_DIR,
     MASTER_DATABASE_FILE,
     SECONDARY_MASTER_DATABASE_FILE,
 )
+from kubelingo.utils.path_utils import find_yaml_files, get_all_question_dirs
 
 def import_questions(files: List[Path], conn: sqlite3.Connection):
     """Loads all questions from a list of YAML file paths and adds them to the database."""
@@ -98,12 +98,10 @@ def main():
     print("--- Building Kubelingo Master Question Database ---")
 
     # Discover question YAML files dynamically from all configured source directories
-    from kubelingo.utils.path_utils import get_all_question_dirs, get_all_yaml_files
-
     candidate_dirs = get_all_question_dirs()
     print(f"\nScanning for YAML files in candidate directories: {candidate_dirs}")
 
-    all_yaml_files = get_all_yaml_files()
+    all_yaml_files = find_yaml_files(candidate_dirs)
     if not all_yaml_files:
         print("\nError: No question YAML files found in any of the candidate directories:")
         for d in candidate_dirs:
@@ -114,8 +112,8 @@ def main():
     print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
 
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
-    init_db()
-    print("  - Ensured database is initialized for build.")
+    init_db(clear=True)
+    print("  - Cleared and initialized database for build.")
 
     print(f"\nStep 2: Importing questions from all found YAML files...")
     questions_imported = 0

@@ -56,6 +56,21 @@ The new quizzes are:
 
 These quizzes are integrated into the main application menu and can be invoked using the `--quiz` argument.
 
+## Data Discovery and Path Management
+
+To make the application resilient against path changes and to centralize data management, Kubelingo uses a discovery layer for locating data files. This ensures that scripts and the application can find questions and backups even if directories are moved or reorganized.
+
+**Core Principles**:
+- **Centralized Configuration**: All primary data directories are defined as constants in `kubelingo/utils/config.py`. This includes paths for question sources (`QUESTION_DIRS`), YAML backups (`YAML_BACKUP_DIRS`), and SQLite backups (`SQLITE_BACKUP_DIRS`).
+- **Dynamic Discovery**: A dedicated module, `kubelingo/utils/path_utils.py`, provides helper functions to find files. Scripts should use these helpers (e.g., `find_yaml_files()`) instead of hard-coding paths.
+- **Resilient Scripts**: Maintenance scripts are being updated to use these discovery utilities, accept path overrides via CLI flags, and provide graceful fallbacks if data sources are not found.
+
+**Best Practices for Developers & Agents**:
+- **Always use the discovery layer**: When you need to read question files, call helpers from `kubelingo.utils.path_utils`. Do not hard-code paths like `question-data/questions`.
+- **Example**: To get all question YAML files, use `find_yaml_files(get_all_question_dirs())`.
+
+This approach ensures that questions are never "lost" and that the system can adapt to changes in the file structure.
+
 ## Database is the Source of Truth
 
 **IMPORTANT**: At runtime, Kubelingo loads all quiz questions exclusively from a single SQLite database. It **does not** read individual JSON, YAML, or Markdown files from the `question-data/` directory. Those files should be considered legacy artifacts used only for seeding the database for the first time.

@@ -21,6 +21,7 @@ if project_root_path not in sys.path:
     sys.path.insert(0, project_root_path)
 
 from kubelingo.database import get_db_connection, _row_to_question_dict
+from kubelingo.utils.config import YAML_BACKUP_DIRS
 
 
 def export_db_to_yaml(output_file: str, db_path: Optional[str] = None) -> int:
@@ -53,7 +54,8 @@ def main():
     if args.output:
         out_file = args.output
     else:
-        out_dir = "backups"
+        # Default to the first configured backup directory
+        out_dir = YAML_BACKUP_DIRS[0] if YAML_BACKUP_DIRS else "backups"
         os.makedirs(out_dir, exist_ok=True)
         out_file = os.path.join(out_dir, f"questions_{timestamp}.yaml")
 

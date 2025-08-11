@@ -18,6 +18,7 @@ from typing import Optional
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.question import QuestionCategory
+from kubelingo.utils.path_utils import find_yaml_files_from_paths
 from kubelingo.utils.path_utils import get_all_yaml_files
 
 

@@ -13,13 +13,11 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 # Ensure the project root is in the Python path
-try:
-    import kubelingo
-except ImportError:
-    project_root = Path(__file__).resolve().parent.parent
-    sys.path.insert(0, str(project_root))
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
 
 from kubelingo.utils.config import YAML_BACKUP_DIRS
+from kubelingo.utils.path_utils import find_yaml_files_from_paths
 
 # AI summary is an optional feature
 try:
@@ -30,18 +28,13 @@ except ImportError:
 
 def get_backup_files(directories: List[str], pattern: Optional[str] = None) -> List[Path]:
     """Finds all YAML backup files in the given directories, optionally filtering by a regex pattern."""
-    all_files = []
-    for d in directories:
-        p = Path(d)
-        if p.is_dir():
-            all_files.extend(p.glob("**/*.yaml"))
-            all_files.extend(p.glob("**/*.yml"))
+    all_files = find_yaml_files_from_paths(directories)
 
     if pattern:
         regex = re.compile(pattern)
         all_files = [f for f in all_files if regex.search(str(f))]
 
-    return sorted(list(set(all_files)))
+    return all_files
 
 
 def get_file_stats(path: Path) -> Dict[str, Any]:

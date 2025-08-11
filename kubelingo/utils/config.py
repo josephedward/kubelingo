@@ -38,12 +38,14 @@ QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 # more resilient to file reorganization. They are used by helpers in `kubelingo.utils.path_utils`.
 
 # Candidate directories for question sources (YAML/YML files).
-# Ordered by priority.
-QUESTION_SOURCE_DIRS = [
+# This now merges the former QUESTION_SOURCE_DIRS and QUESTION_DIRS
+QUESTION_DIRS = [
     QUESTIONS_DIR,  # Primary, consolidated directory
     os.path.join(DATA_DIR, 'yaml'),  # Legacy YAML quizzes
     os.path.join(PROJECT_ROOT, 'misc', 'manifests'),  # Legacy manifests
     os.path.join(DATA_DIR, 'yaml-bak'),  # Legacy backup
+    os.path.join(PROJECT_ROOT, 'question-data-archive'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
 ]
 
 # Candidate directories for YAML backup files.
@@ -52,8 +54,11 @@ YAML_BACKUP_DIRS = [
     os.path.join(PROJECT_ROOT, 'question-data-backup'),
 ]
 
-# Primary directory for SQLite database backups.
-SQLITE_BACKUP_DIR = os.path.join(PROJECT_ROOT, 'backups')
+# Candidate directories for SQLite database backups.
+SQLITE_BACKUP_DIRS = [
+    os.path.join(PROJECT_ROOT, 'backups'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+]
 
 
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
@@ -210,19 +215,5 @@ LOG_FILE = os.path.join(LOGS_DIR, 'quiz_log.txt')
 # Store for flagged question IDs (decoupled from quiz source files)
 FLAGGED_QUESTIONS_FILE = os.path.join(LOGS_DIR, 'flagged_questions.json')
 
-# --- Question & Backup Directories ---
-QUESTION_DIRS = [
-    os.path.join(PROJECT_ROOT, 'question-data', 'questions'),
-    os.path.join(PROJECT_ROOT, 'question-data-archive'),
-    os.path.join(PROJECT_ROOT, 'question-data-backup'),
-]
-YAML_BACKUP_DIRS = [
-    os.path.join(PROJECT_ROOT, 'backups'),
-    os.path.join(PROJECT_ROOT, 'question-data-backup'),
-]
-SQLITE_BACKUP_DIRS = [
-    os.path.join(PROJECT_ROOT, 'backups'),
-    os.path.join(PROJECT_ROOT, 'question-data-backup'),
-]
 
 # Helper functions for path discovery can be implemented in path_utils.py

@@ -1,60 +1,73 @@
-import glob
-import os
-from pathlib import Path
-from typing import List, Optional
+"""
+Utilities for discovering and managing file paths within the project.
 
-from .config import (
+This module centralizes logic for finding question files, backups, and other
+critical data, making scripts and the application more resilient to changes
+in directory structure.
+"""
+import sys
+from pathlib import Path
+from typing import List
+
+from kubelingo.utils.config import (
+    DATABASE_FILE,
     QUESTION_DIRS,
+    SQLITE_BACKUP_DIRS,
     YAML_BACKUP_DIRS,
-    SQLITE_BACKUP_DIR,
-    get_live_db_path as get_live_db_path_from_config,
 )
 
 
-def _find_files(patterns: List[str], file_suffix: str) -> List[Path]:
-    """Helper to find files matching a suffix in a list of directory patterns."""
-    found_files = []
-    for dir_pattern in patterns:
-        # Using glob to handle potential wildcards in future directory patterns
-        for directory in glob.glob(dir_pattern):
-            if os.path.isdir(directory):
-                path = Path(directory)
-                found_files.extend(path.glob(f"**/*{file_suffix}"))
-    # Return a sorted list of unique paths
-    return sorted(list(set(found_files)))
-
-
-def get_all_yaml_files(dirs: Optional[List[str]] = None) -> List[Path]:
-    """
-    Scans candidate directories for .yaml or .yml files.
-    If no directories are provided, uses the default QUESTION_DIRS from config.
-    """
-    if dirs is None:
-        dirs = get_all_question_dirs()
-
-    yaml_files = _find_files(dirs, ".yaml")
-    yml_files = _find_files(dirs, ".yml")
-
-    return sorted(list(set(yaml_files + yml_files)))
+def get_live_db_path() -> str:
+    """Returns the absolute path to the live user database."""
+    return DATABASE_FILE
 
 
 def get_all_question_dirs() -> List[str]:
-    """Returns a list of all directories that could contain YAML question files."""
+    """Returns a list of all configured directories that may contain question YAML files."""
     return QUESTION_DIRS
 
 
-def get_all_yaml_backups() -> List[Path]:
-    """Scans all configured YAML backup directories for .yaml or .yml files."""
-    yaml_files = _find_files(YAML_BACKUP_DIRS, ".yaml")
-    yml_files = _find_files(YAML_BACKUP_DIRS, ".yml")
-    return sorted(list(set(yaml_files + yml_files)))
+def get_all_yaml_backup_dirs() -> List[str]:
+    """Returns a list of all configured directories for YAML backups."""
+    return YAML_BACKUP_DIRS
 
 
-def get_all_sqlite_backups() -> List[Path]:
-    """Scans the configured SQLite backup directory for .db files."""
-    return _find_files([SQLITE_BACKUP_DIR], ".db")
+def get_all_sqlite_backup_dirs() -> List[str]:
+    """Returns a list of all configured directories for SQLite backups."""
+    return SQLITE_BACKUP_DIRS
 
 
-def get_live_db_path() -> str:
-    """Returns the path to the live user database by calling the config helper."""
-    return get_live_db_path_from_config()
+def find_yaml_files(search_dirs: List[str]) -> List[Path]:
+    """
+    Scans a list of directories and returns all unique .yaml/.yml files found.
+    """
+    yaml_files = set()
+    for dir_path_str in search_dirs:
+        dir_path = Path(dir_path_str)
+        if dir_path.is_dir():
+            yaml_files.update(dir_path.glob("**/*.yaml"))
+            yaml_files.update(dir_path.glob("**/*.yml"))
+    return sorted(list(yaml_files))
+
+
+def find_yaml_files_from_paths(paths: List[str]) -> List[Path]:
+    """
+    Scans a list of paths (files or directories) and returns all unique .yaml/.yml files found.
+    """
+    yaml_files = set()
+    for path_str in paths:
+        path = Path(path_str)
+        if not path.exists():
+            print(f"Warning: Path not found, skipping: {path_str}", file=sys.stderr)
+            continue
+        if path.is_dir():
+            yaml_files.update(path.glob("**/*.yaml"))
+            yaml_files.update(path.glob("**/*.yml"))
+        elif path.is_file() and path.suffix.lower() in [".yaml", ".yml"]:
+            yaml_files.add(path)
+        else:
+            print(
+                f"Warning: Path is not a YAML file or directory, skipping: {path_str}",
+                file=sys.stderr,
+            )
+    return sorted(list(yaml_files))
