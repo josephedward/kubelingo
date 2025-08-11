@@ -35,11 +35,19 @@ def analyze_file(path):
         return {'file': str(path), 'error': f'parse error: {e}'}
 
     total = len(questions)
-    exercise_types = [getattr(q, "type", "Unknown Type") or "Unknown" for q in questions]
-    subject_matters = [(getattr(q, 'metadata', None) or {}).get('category', "Uncategorized") or "Uncategorized" for q in questions]
 
-    type_counts = dict(Counter(exercise_types))
-    subject_counts = dict(Counter(subject_matters))
+    breakdown = {}
+    for q in questions:
+        ex_type = getattr(q, "type", "Unknown Type") or "Unknown"
+        subject = (getattr(q, 'metadata', None) or {}).get('category', "Uncategorized") or "Uncategorized"
+
+        if ex_type not in breakdown:
+            breakdown[ex_type] = Counter()
+        breakdown[ex_type][subject] += 1
+
+    # Convert counters to dicts for JSON
+    breakdown_dict = {k: dict(v) for k, v in breakdown.items()}
+    type_counts = {ex_type: sum(counts.values()) for ex_type, counts in breakdown.items()}
 
     size = path.stat().st_size
     mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(path.stat().st_mtime))
@@ -50,7 +58,7 @@ def analyze_file(path):
         'mtime': mtime,
         'total': total,
         'exercise_types': type_counts,
-        'subject_matter': subject_counts,
+        'breakdown': breakdown_dict,
     }
 
 def main():
@@ -102,12 +110,12 @@ def main():
                 print(f"File: {s['file']}")
                 print(f" Size: {s['size']} bytes  Modified: {s['mtime']}")
                 print(f" Total questions: {s['total']}")
-                print(" Questions by exercise type:")
-                for cat, cnt in sorted(s['exercise_types'].items(), key=lambda x: -x[1]):
-                    print(f"  {cat}: {cnt}")
-                print(" Questions by subject matter:")
-                for cat, cnt in sorted(s['subject_matter'].items(), key=lambda x: -x[1]):
-                    print(f"  {cat}: {cnt}")
+                print(" Questions by exercise type (with subject matter breakdown):")
+                for ex_type, count in sorted(s['exercise_types'].items(), key=lambda x: -x[1]):
+                    print(f"  {ex_type}: {count}")
+                    subject_counts = s.get('breakdown', {}).get(ex_type, {})
+                    for subject, sub_count in sorted(subject_counts.items(), key=lambda x: -x[1]):
+                        print(f"    - {subject}: {sub_count}")
                 print()
 if __name__ == '__main__':
     main()
