@@ -41,11 +41,6 @@ QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 # This now merges the former QUESTION_SOURCE_DIRS and QUESTION_DIRS
 QUESTION_DIRS = [
     QUESTIONS_DIR,  # Primary, consolidated directory
-    os.path.join(DATA_DIR, 'yaml'),  # Legacy YAML quizzes
-    os.path.join(PROJECT_ROOT, 'misc', 'manifests'),  # Legacy manifests
-    os.path.join(DATA_DIR, 'yaml-bak'),  # Legacy backup
-    os.path.join(PROJECT_ROOT, 'question-data-archive'),
-    os.path.join(PROJECT_ROOT, 'question-data-backup'),
 ]
 
 # Candidate directories for YAML backup files.
