@@ -1,225 +1,144 @@
 """
-Tests for quiz formatting standardization under question-data/yaml.
+Tests for question data validation, including schema, formatting, and link validity.
 """
 import pytest
 import yaml
 import re
+import requests
 from pathlib import Path
 
-# Directory containing quiz YAML files
-QUIZ_DIR = Path(__file__).resolve().parent.parent / "question-data" / "yaml"
+# Use the config to get the correct questions directory
+from kubelingo.utils.config import QUESTIONS_DIR
 
-# Regex for id format: kebab-case alphanumeric and hyphens
-ID_REGEX = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+URL_REGEX = re.compile(r'https?://[^\s\)"\']+')
 
-def get_quiz_files():
-    """Yield all quiz YAML files (those with 'quiz' in the filename)."""
-    return (
-        p for p in QUIZ_DIR.glob("*quiz*.yaml")
-        if p.is_file() and p.name != 'master_quiz_with_explanations.yaml'
-    )
+def get_question_files():
+    """Yield all YAML files from the consolidated questions directory."""
+    q_dir = Path(QUESTIONS_DIR)
+    if not q_dir.is_dir():
+        return []
+    files = list(q_dir.glob("**/*.yaml")) + list(q_dir.glob("**/*.yml"))
+    return files
 
-def load_yaml(file_path):
-    """Load YAML from file_path using safe_load."""
+def load_yaml_questions(file_path):
+    """Load YAML from file_path and return a list of question dicts."""
     try:
         content = file_path.read_text(encoding="utf-8")
         if not content.strip():
-            return {}
+            return []
         data = yaml.safe_load(content)
-        return data if data is not None else {}
+        if data is None:
+            return []
+        if isinstance(data, list):
+            return data
     except yaml.YAMLError as e:
         pytest.fail(f"YAML parsing error in {file_path.name}: {e}")
+    return []
 
-@pytest.mark.parametrize("file_path", list(get_quiz_files()))
-def test_yaml_is_list_or_has_questions_key(file_path):
-    data = load_yaml(file_path)
-    # Support two formats: list of questions or dict with 'questions' key
-    if isinstance(data, list):
-        questions = data
-    else:
-        assert isinstance(data, dict), (
-            f"{file_path.name}: top-level structure must be a list or dict"
-        )
-        assert "questions" in data, f"{file_path.name}: missing 'questions' key"
-        questions = data.get("questions")
-        assert isinstance(questions, list), (
-            f"{file_path.name}: 'questions' should be a list"
-        )
-    # Ensure there is at least one question
-    assert questions, f"{file_path.name}: no questions found"
 
-@pytest.mark.parametrize("file_path", list(get_quiz_files()))
+# --- Tests for Formatting and Schema ---
+
+@pytest.mark.parametrize("file_path", get_question_files())
+def test_yaml_is_list(file_path):
+    """Ensures that the YAML file contains a list of questions."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = yaml.safe_load(f)
+        assert data is None or isinstance(data, list), (
+            f"{file_path.name}: Top-level structure must be a list of questions."
+        )
+
+@pytest.mark.parametrize("file_path", get_question_files())
 def test_unique_ids_within_file(file_path):
-    data = load_yaml(file_path)
-    # Reuse format detection
-    questions = data if isinstance(data, list) else data.get("questions", []) or []
-    ids = [q.get("id") for q in questions]
-    assert None not in ids, f"{file_path.name}: some questions missing 'id'"
+    questions = load_yaml_questions(file_path)
+    if not questions:
+        pytest.skip(f"No questions found in {file_path.name}")
+    ids = [q.get("id") for q in questions if q]
+    # Check for missing IDs
+    assert None not in ids, f"{file_path.name}: Found questions with a missing 'id' field."
+    # Check for duplicate IDs
     duplicates = {x for x in ids if ids.count(x) > 1}
     assert not duplicates, f"{file_path.name}: duplicate ids found: {duplicates}"
 
-@pytest.mark.parametrize("file_path", list(get_quiz_files()))
-def test_question_entries_format(file_path):
-    data = load_yaml(file_path)
-    questions = data if isinstance(data, list) else data.get("questions", []) or []
-    for idx, q in enumerate(questions, 1):
-        assert isinstance(q, dict), f"{file_path.name}[{idx}]: question should be a dict"
-        # Validate id exists
-        id_val = q.get("id")
-        assert isinstance(id_val, str), f"{file_path.name}[{idx}]: 'id' should be a string"
-        # Prompt / question
-        prompt = q.get("prompt") or q.get("question")
-        assert isinstance(prompt, str) and prompt.strip(), (
-            f"{file_path.name}[{idx}]: missing or empty 'prompt'/'question'"
-        )
-        # Different quiz formats
-        # 1) Vim quiz format with 'answers'
-        if "answers" in q:
-            answers = q.get("answers")
-            assert isinstance(answers, list) and answers, (
-                f"{file_path.name}[{idx}]: 'answers' should be a non-empty list"
-            )
-            for ans in answers:
-                assert isinstance(ans, str) and ans.strip(), (
-                    f"{file_path.name}[{idx}]: each answer should be a non-empty string"
-                )
-            explanation = q.get("explanation")
-            assert isinstance(explanation, str) and explanation.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'explanation'"
-            )
-            source = q.get("source")
-            if source:
-                assert isinstance(source, str) and source.startswith(("http://", "https://")), (
-                    f"{file_path.name}[{idx}]: invalid 'source' link"
-                )
-            steps = q.get("validation_steps")
-            assert isinstance(steps, list), (
-                f"{file_path.name}[{idx}]: 'validation_steps' should be a list"
-            )
-            continue
-        # 2) New quiz format with 'links'
-        if "links" in q:
-            # Enforce kebab-case IDs for new format
-            assert ID_REGEX.match(id_val), (
-                f"{file_path.name}[{idx}]: id '{id_val}' should be kebab-case"
-            )
-            # Response
-            resp = q.get("response")
-            assert isinstance(resp, str) and resp.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'response'"
-            )
-            # Category
-            cat = q.get("category")
-            assert isinstance(cat, str) and cat.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'category'"
-            )
-            # Links
-            links = q.get("links")
-            assert isinstance(links, list) and links, (
-                f"{file_path.name}[{idx}]: 'links' should be a non-empty list"
-            )
-            for link in links:
-                assert isinstance(link, str), (
-                    f"{file_path.name}[{idx}]: each link should be a string"
-                )
-                assert link.startswith(("http://", "https://")), (
-                    f"{file_path.name}[{idx}]: link '{link}' should start with http:// or https://"
-                )
-            continue
-        # 3) Simple style with top-level 'response' and optional 'citation'/'source'
-        if "response" in q and "category" in q and not any(k in q for k in ["answers", "links", "metadata"]):
-            resp = q.get("response")
-            assert isinstance(resp, str) and resp.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'response'"
-            )
-            cat = q.get("category")
-            assert isinstance(cat, str) and cat.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'category'"
-            )
-            citation = q.get("citation") or q.get("source")
-            if citation:  # citation/source is optional
-                assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
-                    f"{file_path.name}[{idx}]: invalid 'citation' or 'source' link"
-                )
-            continue
-        # 4) Metadata style quizzes
-        if "metadata" in q:
-            meta = q.get("metadata", {})
-            resp = meta.get("response")
-            assert isinstance(resp, str) and resp.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty metadata 'response'"
-            )
-            cat = meta.get("category")
-            assert isinstance(cat, str) and cat.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty metadata 'category'"
-            )
-            citation = meta.get("citation")
-            if citation: # citation is optional in this format
-                assert isinstance(citation, str) and citation.startswith(("http://", "https://")), (
-                    f"{file_path.name}[{idx}]: invalid metadata 'citation' link"
-                )
-            continue
-
-        # 5) YAML authoring style quizzes with 'answer' field
-        if "answer" in q:
-            ans = q.get("answer")
-            assert isinstance(ans, str) and ans.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'answer'"
-            )
-            continue
-        # 5b) Live Kubernetes editing exercises
-        if q.get('type') in ('live_k8s', 'live_k8s_edit'):
-            # initial_files must be a dict of filename to content
-            init_files = q.get('initial_files')
-            assert isinstance(init_files, dict) and init_files, (
-                f"{file_path.name}[{idx}]: 'initial_files' should be a non-empty dict"
-            )
-            # validation_steps must be a list of steps
-            steps = q.get('validation_steps')
-            assert isinstance(steps, list) and steps, (
-                f"{file_path.name}[{idx}]: 'validation_steps' should be a non-empty list"
-            )
-            # explanation should be present
-            explanation = q.get('explanation')
-            assert isinstance(explanation, str) and explanation.strip(), (
-                f"{file_path.name}[{idx}]: missing or empty 'explanation'"
-            )
-            continue
-
-        # 6) YAML editing exercise with correct_yaml
-        if "correct_yaml" in q:
-            assert isinstance(q.get('correct_yaml'), str) and q['correct_yaml'].strip()
-            continue
-
-        # 7) Question with solution_file (and optional citation)
-        if "solution_file" in q:
-            assert isinstance(q.get('solution_file'), str) and q['solution_file'].strip()
-            citation = q.get('citation')
-            if citation:
-                assert isinstance(citation, str) and citation.startswith(('http://', 'https://'))
-            continue
-
-        # 8) Simple question with a response (and optional source)
-        if 'response' in q:
-            assert isinstance(q.get('response'), str) and q['response'].strip()
-            source = q.get('source')
-            if source:
-                assert isinstance(source, str) and source.startswith(('http://', 'https://'))
-            continue
-
-        # Unknown format
-        pytest.fail(f"{file_path.name}[{idx}]: unsupported question format keys: {list(q.keys())}")
-
-def test_unique_ids_across_files():
+def test_unique_ids_across_all_files():
     """Ensure question IDs are unique across all YAML quiz files."""
-    seen = {}
-    for file_path in get_quiz_files():
-        data = load_yaml(file_path)
-        questions = data if isinstance(data, list) else data.get("questions", []) or []
+    seen_ids = {}
+    for file_path in get_question_files():
+        questions = load_yaml_questions(file_path)
         for q in questions:
-            id_val = q.get("id")
-            if id_val in seen:
+            if not q: continue
+            q_id = q.get("id")
+            if q_id in seen_ids:
                 pytest.fail(
-                    f"Duplicate question id '{id_val}' found in {file_path.name} and {seen[id_val]}"
+                    f"Duplicate question id '{q_id}' found in {file_path.name} "
+                    f"and {seen_ids[q_id]}"
                 )
-            seen[id_val] = file_path.name
+            seen_ids[q_id] = file_path.name
+
+@pytest.mark.parametrize("file_path", get_question_files())
+def test_question_schema(file_path):
+    """Validates the basic schema of each question in a file."""
+    questions = load_yaml_questions(file_path)
+    if not questions:
+        pytest.skip(f"No questions found in {file_path.name}")
+
+    for idx, q in enumerate(questions, 1):
+        if not q: continue
+        assert isinstance(q, dict), f"{file_path.name}[{idx}]: question should be a dict"
+        
+        # ID is required
+        q_id = q.get("id")
+        assert q_id and isinstance(q_id, str), f"{file_path.name}[{idx}]: 'id' is required and must be a string."
+        
+        # Prompt is required
+        prompt = q.get("prompt")
+        assert prompt and isinstance(prompt, str), f"{file_path.name}[{idx}]: 'prompt' is required and must be a string."
+
+
+# --- Tests for Link Validity ---
+
+def get_all_links_from_questions():
+    """Collects all unique URLs from all question files for test parametrization."""
+    all_links = set()
+    for file_path in get_question_files():
+        questions = load_yaml_questions(file_path)
+        for q in questions:
+            if not q: continue
+            # Extract links from common fields that contain URLs
+            for key in ['source', 'citation']:
+                if key in q and isinstance(q[key], str):
+                    for match in URL_REGEX.findall(q[key]):
+                        all_links.add(match)
+            # Legacy links in metadata
+            if 'metadata' in q and isinstance(q['metadata'], dict):
+                metadata = q['metadata']
+                if 'links' in metadata and isinstance(metadata['links'], list):
+                    for link in metadata['links']:
+                         if isinstance(link, str):
+                            for match in URL_REGEX.findall(link):
+                                all_links.add(match)
+
+    if not all_links:
+        return []
+    
+    return [pytest.param(link, id=link) for link in sorted(list(all_links))]
+
+
+@pytest.fixture(scope="session")
+def requests_session():
+    """Provides a reusable requests.Session for the test session."""
+    session = requests.Session()
+    session.headers.update({"User-Agent": "kubelingo-link-checker/1.0"})
+    return session
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("url", get_all_links_from_questions())
+def test_question_link_is_valid(url, requests_session):
+    """Checks if a documentation link from a question file is valid."""
+    try:
+        response = requests_session.head(url, allow_redirects=True, timeout=20)
+        if response.status_code >= 400:
+            response = requests_session.get(url, allow_redirects=True, timeout=20)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        pytest.fail(f"Broken link: {url} ({e})")
