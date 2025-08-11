@@ -43,6 +43,7 @@ def populate_db_from_yaml(
         "validation_steps",
         "validator",
         "review",
+        "question_type",
         "schema_category",
         "answers",
         "correct_yaml",
@@ -50,6 +51,8 @@ def populate_db_from_yaml(
         "explanation",
         "initial_files",
         "pre_shell_cmds",
+        "subject_matter",
+        "metadata",
     }
 
     question_count = 0
