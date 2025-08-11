@@ -55,11 +55,11 @@ def analyze_file(path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Show stats for YAML backup files."
+        description="Show stats for the latest YAML backup file found in the given paths."
     )
     parser.add_argument(
         'paths', nargs='*',
-        help='Path(s) to YAML file(s) or directory/ies of backups (defaults to configured backup dirs)'
+        help='Path(s) to YAML file(s) or directory/ies of backups. If not provided, configured backup dirs are used.'
     )
     parser.add_argument(
         '-p', '--pattern', help='Regex to filter filenames'
@@ -120,7 +120,12 @@ def main():
         print(f"No YAML files found in {dirs_str}")
         sys.exit(0)
 
-    stats = [analyze_file(f) for f in files]
+    # Analyze only the latest file based on modification time
+    latest_file = max(files, key=lambda f: f.stat().st_mtime)
+    if not args.json:
+        print(f"Found {len(files)} backup files. Analyzing latest: {latest_file}", file=sys.stderr)
+
+    stats = [analyze_file(latest_file)]
     if args.json:
         print(json.dumps(stats, indent=2))
     else:
