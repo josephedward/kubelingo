@@ -10,7 +10,7 @@ import webbrowser
 from datetime import datetime
 import logging
 
-from kubelingo.database import get_questions_by_source_file, get_flagged_questions, update_review_status, add_question
+from kubelingo.database import get_questions_by_subject_matter, get_question_counts_by_schema_and_subject, get_flagged_questions, update_review_status, add_question
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
 from difflib import SequenceMatcher, unified_diff
 try:
@@ -24,9 +24,6 @@ from kubelingo.utils.config import (
     DATA_DIR,
     INPUT_HISTORY_FILE,
     VIM_HISTORY_FILE,
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    MANIFEST_QUIZZES,
 )
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
@@ -67,9 +64,11 @@ def _get_subject_for_questions(q):
     subject = ''
     # Handle dicts from database/YAML
     if isinstance(q, dict):
-        categories = q.get('categories')
-        if categories and isinstance(categories, list) and categories:
-            subject = categories[0]
+        subject = q.get('subject_matter')
+        if not subject:
+            categories = q.get('categories')
+            if categories and isinstance(categories, list) and categories:
+                subject = categories[0]
         if not subject:
             subject = q.get('category')
         if not subject:
@@ -87,9 +86,9 @@ def _get_subject_for_questions(q):
     return subject or ''
 
 
-def _get_solvable_questions(source_file: str) -> list[dict]:
-    """Loads questions from DB, de-duplicates, and filters for solvability."""
-    db_questions = get_questions_by_source_file(source_file)
+def _get_solvable_questions_by_subject(subject_matter: str) -> list[dict]:
+    """Loads questions from DB by subject, de-duplicates, and filters for solvability."""
+    db_questions = get_questions_by_subject_matter(subject_matter)
     logger = logging.getLogger(__name__)
 
     seen_prompts = set()
@@ -387,27 +386,27 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        quiz_sections = {
-            "--- Basic Exercises ---": BASIC_QUIZZES,
-            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
-            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+        # Get all question counts, grouped by schema and subject
+        counts = get_question_counts_by_schema_and_subject()
+
+        schema_to_section_name = {
+            "basic": "--- Basic Exercises ---",
+            "command": "--- Command-Based Exercises ---",
+            "manifest": "--- Manifest-Based Exercises ---",
         }
 
-        for section_name, quiz_map in quiz_sections.items():
+        for schema_cat, section_name in schema_to_section_name.items():
+            subject_counts = counts.get(schema_cat, {})
+            if not subject_counts:
+                continue
+
             if questionary:
                 choices.append(questionary.Separator(section_name))
 
-            sorted_quiz_items = sorted(quiz_map.items())
-
-            for quiz_name, source_path in sorted_quiz_items:
-                # Use basename for DB lookup, but full path for selection value
-                source_file_basename = os.path.basename(source_path)
-                questions = _get_solvable_questions(source_file_basename)
-                count = len(questions)
-
+            for subject, count in sorted(subject_counts.items()):
                 choices.append({
-                    "name": f"{quiz_name} ({count} questions)",
-                    "value": source_path,
+                    "name": f"{subject} ({count} questions)",
+                    "value": subject,  # The value is the subject matter string
                 })
 
         # --- Settings Section ---
@@ -560,12 +559,14 @@ class NewSession(StudySession):
             ai_generation_enabled = True
             # Handle --list-questions: load static questions from file and exit before DB lookup
             if getattr(args, 'list_questions', False):
-                # Load questions from database by source_file
+                if not args.category:
+                    print(f"{Fore.RED}Please specify a quiz with --quiz <quiz_name> to list questions.{Style.RESET_ALL}")
+                    return
+                # Load questions from database by subject matter
                 try:
-                    from kubelingo.modules.db_loader import DBLoader
-                    loader = DBLoader()
-                    source_file_basename = os.path.basename(args.file)
-                    static_questions = loader.load_file(source_file_basename)
+                    from kubelingo.question import Question as QuestionObject
+                    question_dicts = get_questions_by_subject_matter(args.category)
+                    static_questions = [QuestionObject(**q) for q in question_dicts]
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for listing: {e}")
                     static_questions = []
@@ -609,21 +610,13 @@ class NewSession(StudySession):
 
             if args.review_only:
                 questions = get_all_flagged_questions()
-            elif args.file:
-                # Load questions from database by source_file
-                from dataclasses import asdict
+            elif args.category:
+                # Load questions from database by subject matter
                 try:
-                    from kubelingo.modules.db_loader import DBLoader
-                    loader = DBLoader()
-                    source_file_basename = os.path.basename(args.file)
-                    questions_as_obj = loader.load_file(source_file_basename)
-                    questions = [asdict(q) for q in questions_as_obj]
-                except FileNotFoundError:
-                    print(f"{Fore.RED}Error: Quiz file not found at '{args.file}'.{Style.RESET_ALL}")
-                    return
+                    questions = get_questions_by_subject_matter(args.category)
                 except Exception as e:
-                    self.logger.error(f"Failed to load questions from {args.file}: {e}")
-                    print(f"{Fore.RED}Error loading questions from '{args.file}'. See logs for details.{Style.RESET_ALL}")
+                    self.logger.error(f"Failed to load questions for '{args.category}': {e}")
+                    print(f"{Fore.RED}Error loading questions for '{args.category}'. See logs for details.{Style.RESET_ALL}")
                     return
                 # No questions found
                 if not questions:
@@ -658,8 +651,8 @@ class NewSession(StudySession):
                         print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {len(added)} generated.{Style.RESET_ALL}")
                     elif not added:
                         print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with 0 generated.{Style.RESET_ALL}")
-                # Summary for file-based quiz
-                print(f"File: {os.path.basename(args.file)}, Questions: {len(questions)}")
+                # Summary for category-based quiz
+                print(f"Quiz: {args.category}, Questions: {len(questions)}")
             else:
                 # Interactive mode: show menu to select quiz.
                 if not is_interactive:
@@ -760,8 +753,12 @@ class NewSession(StudySession):
 
                 if selected == '__flagged__':
                     initial_args.review_only = True
+                    initial_args.category = None
                 else:
-                    initial_args.file = selected
+                    # The selected value from the menu is the subject_matter, which we
+                    # treat as the category for filtering.
+                    initial_args.review_only = False
+                    initial_args.category = selected
                 # Selection recorded; restart loop to load the chosen quiz
                 continue
 
@@ -911,7 +908,6 @@ class NewSession(StudySession):
                             generated_qs.append(new_q)
                             # Persist AI-generated question to database under current module
                             try:
-                                source_file = os.path.basename(args.file)
                                 # Convert ValidationStep objects to dicts
                                 vs_dicts = [
                                     {'cmd': vs.cmd, 'matcher': vs.matcher}
@@ -924,9 +920,9 @@ class NewSession(StudySession):
                                 add_question(
                                     id=new_q.id,
                                     prompt=new_q.prompt,
-                                    source_file=source_file,
+                                    source_file=subject,  # Use subject as source file
                                     response=new_q.response,
-                                    category=subject,
+                                    subject_matter=subject,
                                     source='ai',
                                     validation_steps=vs_dicts,
                                     validator=new_q.validator,
@@ -974,8 +970,8 @@ class NewSession(StudySession):
             correct_indices = set()
 
             print("\n=== Starting Kubelingo Quiz ===")
-            quiz_source_name = "Flagged for Review" if args.review_only else os.path.basename(args.file)
-            print(f"File: {quiz_source_name}, Questions: {total_questions}")
+            quiz_source_name = "Flagged for Review" if args.review_only else args.category
+            print(f"Quiz: {quiz_source_name}, Questions: {total_questions}")
             self._initialize_live_session(args, questions_to_ask)
 
             from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
