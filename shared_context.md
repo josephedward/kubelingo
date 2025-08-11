@@ -1166,6 +1166,67 @@ For full details and the development plan, see `docs/maintenance_scripts.md`.
 
 —By layering in discovery helpers, interactive fallbacks, an index of backups, and CI-driven smoke tests, the system becomes truly self-healing. Rapid AI-driven refactors or folder reorganizations simply flow through the same discovery layer, and nothing ever “disappears.” Let me know which of these you’d like to tackle next—I can jump in and start implementing the CLI “locate” command or the backup-index machinery right away.
 
+## Example DB Population from YAML
+
+This is an example of running `scripts/create_sqlite_db_from_yaml.py` to populate the database from a consolidated YAML backup, and then verifying the contents with `scripts/verify_db_questions.py`.
+
+```
+Running python scripts/create_sqlite_db_from_yaml.py
+No input paths provided. Scanning for YAML backups...
+
+Please select a YAML backup to restore from:
+  1: consolidated_unique_questions_20250811_142924.yaml
+  2: consolidated_unique_questions_20250811_144940.yaml
+  3: index.yaml
+
+Enter number (1-3): 2
+Found 1 YAML file(s) to process:
+  - consolidated_unique_questions_20250811_144940.yaml
+
+WARNING: This will clear and repopulate the database at '/Users/user/Documents/GitHub/kubelingo/.kubelingo/kubelingo.db'.
+Are you sure you want to proceed? (y/N): y
+
+Populating database at: /Users/user/Documents/GitHub/kubelingo/.kubelingo/kubelingo.db
+  - Processing 'consolidated_unique_questions_20250811_144940.yaml'...
+
+Successfully populated database with 405 questions.
+
+Running python scripts/verify_db_questions.py
+Verifying database: /Users/user/Documents/GitHub/kubelingo/.kubelingo/kubelingo.db
+
+Total questions in database: 402
+
+Questions per category:
+  - Uncategorized: 28
+  - Additional Commands: 42
+  - ConfigMap Operations: 9
+  - Configuration & Security: 2
+  - Core Concepts: 3
+  - Deployment Management: 14
+  - Helm: 1
+  - Helm Basics: 12
+  - Helm Repositories: 8
+  - Kubectl Common Operations: 27
+  - Kubectl Operations: 44
+  - Namespace Operations: 10
+  - Pod Management: 13
+  - Resource Reference: 138
+  - Secret Management: 12
+  - Shell Setup: Aliases & Autocomplete: 12
+  - Workload Management: 3
+  - YAML Authoring: 4
+  - YAML Editing - ConfigMaps: 2
+  - YAML Editing - Deployments: 2
+  - YAML Editing - General: 4
+  - YAML Editing - Pods: 4
+  - YAML Editing Practice: 8
+
+Questions per schema_category:
+  - basic: 1
+  - command: 368
+  - manifest: 33
+```
+
 ## Maintenance Toolbox UI
 
 A centralized maintenance script is being developed to provide a unified interface for common data management tasks. The script will present an interactive menu to guide the user.
