@@ -49,7 +49,7 @@ def task_locate_yaml_backup():
 
 def task_diff_yaml_backups():
     """Diff YAML Backups"""
-    print("Diffing YAML backups is not yet implemented.")
+    _run_script("diff_yaml_backups.py")
 
 def task_yaml_stats():
     """YAML Statistics"""
