@@ -40,6 +40,7 @@ def populate_db_from_yaml(
     }
 
     conn = get_db_connection(db_path=db_path)
+    unmatched_categories = set()
 
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
     # This is safer than introspection, which may fail in some environments.
