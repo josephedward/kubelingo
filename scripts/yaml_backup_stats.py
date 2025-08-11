@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-yaml_backup_stats.py: Show total questions and per-category counts in a YAML quiz file.
+yaml_backup_stats.py: Scans for YAML backup files and reports question counts.
 """
 #!/usr/bin/env python3
 """
@@ -9,6 +9,7 @@ Supports single file or directory of YAML backups, JSON output, and optional AI 
 """
 import os
 import sys
+from pathlib import Path
 import time
 import json
 import re
