@@ -36,7 +36,7 @@ def analyze_file(path):
 
     total = len(questions)
     exercise_types = [getattr(q, "type", "Unknown Type") or "Unknown" for q in questions]
-    subject_matters = [getattr(q, "category", "Uncategorized") or "Uncategorized" for q in questions]
+    subject_matters = [(getattr(q, 'metadata', None) or {}).get('category', "Uncategorized") or "Uncategorized" for q in questions]
 
     type_counts = dict(Counter(exercise_types))
     subject_counts = dict(Counter(subject_matters))
