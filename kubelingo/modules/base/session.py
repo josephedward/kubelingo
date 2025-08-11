@@ -31,12 +31,13 @@ class SessionManager:
 
     def save_history(self, start_time, num_questions, num_correct, duration, args, per_category_stats):
         """Saves a quiz session's results to the history file."""
+        data_file = getattr(args, 'file', None)
         new_history_entry = {
             'timestamp': start_time.strftime('%Y-%m-%d %H:%M:%S'),
             'num_questions': num_questions,
             'num_correct': num_correct,
             'duration': duration,
-            'data_file': os.path.basename(getattr(args, 'file', None)) or "interactive_session",
+            'data_file': os.path.basename(data_file) if data_file else "interactive_session",
             'category_filter': getattr(args, 'category', None),
             'per_category': per_category_stats
         }
