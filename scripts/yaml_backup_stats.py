@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-Show statistics for YAML backup files: question count, categories, file size.
-Supports single file or directory of YAML backups, JSON output, and optional AI summary.
+Loads a given YAML dump and prints statistics: number of questions,
+per-schema/subcategory counts, and file timestamp.
 """
 import os
 import sys
 from pathlib import Path
 import time
-import json
-import re
 import argparse
-from collections import Counter
 from collections import Counter
 
 # Ensure project root is on sys.path for module imports
@@ -25,101 +22,75 @@ try:
 except ImportError:
     print("Error: PyYAML is required. Install with: pip install pyyaml")
     sys.exit(1)
-try:
-    from kubelingo.utils.config import get_api_key
-except ImportError:
-    get_api_key = None
+
 
 def analyze_file(path):
+    """Loads questions from a YAML file and returns statistics."""
     loader = YAMLLoader()
     try:
         questions = loader.load_file(str(path))
     except Exception as e:
         return {'file': str(path), 'error': f'parse error: {e}'}
+
     total = len(questions)
     categories = [getattr(q, "category", None) or "Uncategorized" for q in questions]
     counts = dict(Counter(categories))
+
+    # Derive schema categories for stats, mirroring logic from build_question_db.py
+    schema_categories = []
+    for q in questions:
+        q_type = getattr(q, 'question_type', 'command')
+        if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
+            schema_categories.append('Manifests')
+        elif q_type == 'socratic':
+            schema_categories.append('Basic/Open-Ended')
+        else:  # command, etc.
+            schema_categories.append('Command-Based/Syntax')
+    schema_counts = dict(Counter(schema_categories))
+
     size = path.stat().st_size
     mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(path.stat().st_mtime))
-    return {'file': str(path), 'size': size, 'mtime': mtime, 'total': total, 'categories': counts}
+    return {
+        'file': str(path),
+        'size': size,
+        'mtime': mtime,
+        'total': total,
+        'categories': counts,
+        'schema_categories': schema_counts
+    }
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Show stats for YAML backup files."
+        description="Show stats for a given YAML backup file."
     )
     parser.add_argument(
-        'path', nargs='?', default='question-data-backup',
-        help='Path to YAML file or directory of backups (default: question-data-backup)'
-    )
-    parser.add_argument(
-        '-p', '--pattern', help='Regex to filter filenames'
-    )
-    parser.add_argument(
-        '--json', action='store_true', help='Output stats in JSON format'
-    )
-    parser.add_argument(
-        '--ai', action='store_true', help='Use AI to summarize statistics'
+        'path',
+        help='Path to YAML file to analyze.'
     )
     args = parser.parse_args()
 
     target = Path(args.path)
-    files = []
-    if target.is_dir():
-        for f in sorted(target.iterdir()):
-            if f.is_file() and f.suffix.lower() in ('.yaml', '.yml'):
-                if args.pattern and not re.search(args.pattern, f.name):
-                    continue
-                files.append(f)
-    elif target.is_file():
-        files = [target]
-    else:
-        print(f"Path not found: {target}")
+    if not target.is_file():
+        print(f"Error: Path is not a file: {target}")
         sys.exit(1)
 
-    if not files:
-        print(f"No YAML files found at {target}")
-        sys.exit(0)
+    stats = analyze_file(target)
 
-    stats = []
-    for f in files:
-        stats.append(analyze_file(f))
-
-    if args.json:
-        print(json.dumps(stats, indent=2))
+    if 'error' in stats:
+        print(f"{stats['file']}: {stats['error']}")
     else:
-        for s in stats:
-            if 'error' in s:
-                print(f"{s['file']}: {s['error']}")
-            else:
-                print(f"File: {s['file']}")
-                print(f" Size: {s['size']} bytes  Modified: {s['mtime']}")
-                print(f" Total questions: {s['total']}")
-                print(" Questions by category:")
-                for cat, cnt in sorted(s['categories'].items(), key=lambda x: -x[1]):
-                    print(f"  {cat}: {cnt}")
-                print()
+        print(f"File: {stats['file']}")
+        print(f" Size: {stats['size']} bytes  Modified: {stats['mtime']}")
+        print(f" Total questions: {stats['total']}")
 
-    if args.ai:
-        try:
-            from openai import OpenAI
-            api_key = os.getenv('OPENAI_API_KEY') or (get_api_key() if get_api_key else None)
-            if not api_key:
-                print('No OpenAI API key found; skipping AI summary')
-                return
-            client = OpenAI(api_key=api_key)
-            prompt = ('Here are YAML backup statistics: ' + json.dumps(stats) +
-                      '\nPlease provide a concise summary of these backups, ' \
-                      'highlighting differences and any notable points.')
-            resp = client.chat.completions.create(
-                model='gpt-3.5-turbo',
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            summary = resp.choices[0].message.content
-            print('\nAI Summary:\n' + summary)
-        except ImportError:
-            print('OpenAI library not installed; install openai to enable AI summary')
-        except Exception as e:
-            print(f'Failed to generate AI summary: {e}')
+        print("\nQuestions by schema category:")
+        for cat, cnt in sorted(stats['schema_categories'].items(), key=lambda x: -x[1]):
+            print(f"  {cat}: {cnt}")
+
+        print("\nQuestions by subcategory:")
+        for cat, cnt in sorted(stats['categories'].items(), key=lambda x: -x[1]):
+            print(f"  {cat}: {cnt}")
+        print()
 
 if __name__ == '__main__':
     main()
