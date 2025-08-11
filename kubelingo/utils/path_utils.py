@@ -24,7 +24,18 @@ def get_project_root() -> Path:
 
 
 def get_live_db_path() -> str:
-    """Returns the absolute path to the live user database."""
+    """
+    Returns the absolute path to the most recently modified database file
+    from the configured backup directories. Falls back to the default database
+    path if no backups are found.
+    """
+    backup_dirs = get_all_sqlite_backup_dirs()
+    latest_dbs = find_and_sort_files_by_mtime(backup_dirs, [".db", ".sqlite", ".sqlite3"])
+
+    if latest_dbs:
+        return str(latest_dbs[0])
+
+    # Fallback to default if no backups exist
     return DATABASE_FILE
 
 
