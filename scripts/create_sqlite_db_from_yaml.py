@@ -107,10 +107,6 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Map YAML 'type' to DB 'question_type'
-                    if "type" in q_dict:
-                        q_dict["question_type"] = q_dict.pop("type")
-
                     # Override source_file to the YAML filename being processed
                     q_dict["source_file"] = file_path.name
 
