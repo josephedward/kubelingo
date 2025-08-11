@@ -201,17 +201,6 @@ def main():
         help="Path(s) to input YAML file(s) or directories. Overrides default behavior of using the latest backup.",
     )
     parser.add_argument(
-        "-y",
-        "--yes",
-        action="store_true",
-        help="Automatically confirm and proceed without prompting.",
-    )
-    parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="Clear the database before populating. If not set (default), new questions will be merged.",
-    )
-    parser.add_argument(
         "--db-path",
         type=str,
         default=None,
@@ -255,17 +244,8 @@ def main():
 
     db_path = args.db_path or get_live_db_path()
 
-    if args.clear and not args.yes:
-        print(
-            f"\nWARNING: This will clear and repopulate the database at '{db_path}'."
-        )
-        confirm = input("Are you sure you want to proceed? (y/N): ")
-        if confirm.lower() != "y":
-            print("Operation cancelled.")
-            sys.exit(0)
-
-    # Initialize the database. By default, merge questions. Clear only if specified.
-    init_db(clear=args.clear, db_path=db_path)
+    # Initialize the database, ensuring it exists without clearing it.
+    init_db(db_path=db_path)
 
     print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
