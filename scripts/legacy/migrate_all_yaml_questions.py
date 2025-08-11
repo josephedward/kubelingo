@@ -69,7 +69,6 @@ def main():
                             explanation=getattr(q, 'explanation', None),
                             difficulty=getattr(q, 'difficulty', None),
                             schema_category=getattr(q.schema_category, 'value', None),
-                            metadata=getattr(q, 'metadata', None),
                         )
                         total_added += 1
                     except Exception as e:
