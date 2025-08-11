@@ -185,11 +185,6 @@ def populate_db_from_yaml(
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
-    if unmatched_categories:
-        print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
-        for cat in sorted(list(unmatched_categories)):
-            print(f"  - {cat}")
-
 
 def main():
     """
