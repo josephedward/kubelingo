@@ -61,6 +61,12 @@ def populate_db_from_yaml(
         "metadata",
     }
 
+    # Create a mapping from category names to their source filenames.
+    category_to_source_file = {
+        k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
+    }
+    unmatched_categories = set()
+
     question_count = 0
     try:
         for file_path in yaml_files:
