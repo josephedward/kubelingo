@@ -170,8 +170,16 @@ def main():
 
     unique_files = sorted(list(set(yaml_files)))
     print(f"Found {len(unique_files)} YAML file(s) to process:")
-    for f in unique_files:
-        print(f"  - {f.name}")
+
+    # Show a sample of files instead of all of them if there are too many
+    if len(unique_files) > 20:
+        print("Showing first 10 files:")
+        for f in unique_files[:10]:
+            print(f"  - {f.name}")
+        print(f"  ...and {len(unique_files) - 10} more.")
+    else:
+        for f in unique_files:
+            print(f"  - {f.name}")
 
     if not args.yes:
         confirm = input("\nProceed with populating the database from these files? (y/N): ")
