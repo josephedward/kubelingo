@@ -277,7 +277,6 @@ class NewSession(StudySession):
         if not os.getenv('OPENAI_API_KEY'):
             print(f"\n{Fore.RED}Study Mode requires an OpenAI API key.{Style.RESET_ALL}")
             print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
-            input("\nPress Enter to return to the menu...")
             return
 
         try:
@@ -285,7 +284,6 @@ class NewSession(StudySession):
             topic_choices = list(KUBERNETES_TOPICS.keys())
             if not topic_choices:
                 print(f"{Fore.YELLOW}No study topics available for Study Mode.{Style.RESET_ALL}")
-                input("\nPress Enter to return to the menu...")
                 return
             
             topic = questionary.select(
@@ -343,7 +341,7 @@ class NewSession(StudySession):
             self.logger.error(f"Error during study mode session: {e}", exc_info=True)
             print(f"\n{Fore.RED}An error occurred during the study session: {e}{Style.RESET_ALL}")
 
-        input("\nPress Enter to return to the menu...")
+        # Study session ended; return to main menu
     
     def _run_yaml_editing_mode(self, args):
         """
@@ -693,7 +691,6 @@ class NewSession(StudySession):
 
                 if selected == "__help__":
                     self._show_help()
-                    input("\nPress Enter to return to the menu...")
                     continue
                 # Settings submenus: API Keys, Clusters, Questions
                 if selected == "__api_keys__":
@@ -712,7 +709,6 @@ class NewSession(StudySession):
                         handle_config_command(["config", "view", "openai"])
                     elif sub == "set_openai":
                         handle_config_command(["config", "set", "openai"])
-                    input("\nPress Enter to return to menu...")
                     continue
                 if selected == "__clusters__":
                     from kubelingo.cli import handle_config_command
@@ -733,7 +729,6 @@ class NewSession(StudySession):
                         handle_config_command(["config", "add", "cluster"] )
                     elif sub == "remove_cluster":
                         handle_config_command(["config", "remove", "cluster"] )
-                    input("\nPress Enter to return to menu...")
                     continue
                 if selected == "__questions__":
                     sub = questionary.select(
@@ -751,7 +746,6 @@ class NewSession(StudySession):
                 if selected == "__troubleshooting__":
                     from kubelingo.cli import manage_troubleshooting_interactive
                     manage_troubleshooting_interactive()
-                    input("\nPress Enter to return to menu...")
                     continue
 
 
