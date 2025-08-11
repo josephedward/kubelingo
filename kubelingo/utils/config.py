@@ -50,7 +50,7 @@ QUESTION_DIRS = [
 
 # Candidate directories for YAML backup files.
 YAML_BACKUP_DIRS = [
-    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+    os.path.join(PROJECT_ROOT, 'backups', 'yaml'),
 ]
 
 # Candidate directories for SQLite database backups.
