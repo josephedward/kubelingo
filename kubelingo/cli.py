@@ -454,37 +454,40 @@ def manage_troubleshooting_interactive():
         return
     try:
         from pathlib import Path
-        choices = []
-        choices.append(questionary.Separator("=== Troubleshooting ==="))
-        choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
-        choices.append(questionary.Separator("Maintenance"))
-        choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
-        choices.append({"name": "Delete duplicate questions", "value": "delete_duplicates"})
-        choices.append({"name": "Normalize DB source_file paths", "value": "update_source_paths"})
-        choices.append(questionary.Separator("File Checks"))
-        choices.append({"name": "Check documentation links", "value": "check_docs_links"})
-        choices.append({"name": "Check quiz YAML formatting", "value": "check_quiz_formatting"})
-        choices.append(questionary.Separator())
-        choices.append({"name": "Cancel", "value": "cancel"})
-        action = questionary.select("Select a troubleshooting action:", choices=choices, use_indicator=True).ask()
-        if not action or action == "cancel":
-            return
-        if action == "restore_db":
-            restore_db()
-        elif action == "find_duplicates":
-            find_duplicates_cmd([])
-        elif action == "delete_duplicates":
-            find_duplicates_cmd(["--delete"])
-        elif action == "update_source_paths":
-            script = Path(__file__).resolve().parent.parent / "scripts" / "update_db_source_paths.py"
-            subprocess.run([sys.executable, str(script)], check=False)
-        elif action == "check_docs_links":
-            script = Path(__file__).resolve().parent.parent / "scripts" / "check_docs_links.py"
-            subprocess.run([sys.executable, str(script)], check=False)
-        elif action == "check_quiz_formatting":
-            script = Path(__file__).resolve().parent.parent / "scripts" / "check_quiz_formatting.py"
-            subprocess.run([sys.executable, str(script)], check=False)
-        print()
+        while True:
+            choices = []
+            choices.append(questionary.Separator("=== Troubleshooting ==="))
+            choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
+            choices.append(questionary.Separator("Maintenance"))
+            choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
+            choices.append({"name": "Delete duplicate questions", "value": "delete_duplicates"})
+            choices.append({"name": "Normalize DB source_file paths", "value": "update_source_paths"})
+            choices.append(questionary.Separator("File Checks"))
+            choices.append({"name": "Check documentation links", "value": "check_docs_links"})
+            choices.append({"name": "Check quiz YAML formatting", "value": "check_quiz_formatting"})
+            action = questionary.select(
+                "Select a troubleshooting action:", choices=choices, use_indicator=True
+            ).ask()
+            if not action:
+                break
+            if action == "restore_db":
+                restore_db()
+            elif action == "find_duplicates":
+                find_duplicates_cmd([])
+            elif action == "delete_duplicates":
+                find_duplicates_cmd(["--delete"])
+            elif action == "update_source_paths":
+                script = Path(__file__).resolve().parent.parent / "scripts" / "update_db_source_paths.py"
+                subprocess.run([sys.executable, str(script)], check=False)
+            elif action == "check_docs_links":
+                script = Path(__file__).resolve().parent.parent / "scripts" / "check_docs_links.py"
+                subprocess.run([sys.executable, str(script)], check=False)
+            elif action == "check_quiz_formatting":
+                script = Path(__file__).resolve().parent.parent / "scripts" / "check_quiz_formatting.py"
+                subprocess.run([sys.executable, str(script)], check=False)
+            print()
+        # exit back to parent menu
+        return
     except (KeyboardInterrupt, EOFError):
         # A newline is needed to prevent the next prompt from appearing on the same line.
         print()
@@ -782,8 +785,8 @@ def main():
                 handle_troubleshoot(args.command[1:])
                 return
             elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
-                # Import all YAML quiz questions into the database
-                script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
+                # Import all YAML quiz questions into the database (use updated migration script)
+                script = repo_root / 'scripts' / 'migrate_yaml_questions.py'
                 subprocess.run([sys.executable, str(script)])
                 return
             elif cmd_name == 'restore_db':
