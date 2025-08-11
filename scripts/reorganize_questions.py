@@ -13,7 +13,7 @@ except ImportError:
     print("Error: openai package is required. Install with `pip install openai`. ")
     sys.exit(1)
 
-from kubelingo.utils.config import DATABASE_FILE
+from kubelingo.utils.config import DATABASE_FILE, SUBJECT_MATTER
 
 def classify_prompt(prompt, model="gpt-3.5-turbo"):
     """Ask OpenAI to classify a question into one of the three schema categories."""
@@ -41,6 +41,37 @@ def classify_prompt(prompt, model="gpt-3.5-turbo"):
         print(f"Error during classification: {e}")
         return None
 
+def classify_subject(prompt, model="gpt-3.5-turbo"):
+    """Ask OpenAI to classify a question into a subject matter category."""
+    system_prompt = (
+        "You are a classification assistant for Kubernetes quiz questions.\n"
+        "Given a question prompt, classify it into exactly one of the following subject matter categories.\n"
+        "Respond with the category name only.\n\n"
+        "Categories:\n" + "\n".join(f"- {s}" for s in SUBJECT_MATTER)
+    )
+    user_prompt = f"Question: {prompt}\nCategory:"
+    try:
+        resp = openai.ChatCompletion.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0
+        )
+        text = resp.choices[0].message.content.strip()
+        # Normalize to find an exact match from the official list
+        for cat in SUBJECT_MATTER:
+            if cat.lower() in text.lower():
+                return cat
+        if text in SUBJECT_MATTER:
+            return text
+        print(f" (subject classification failed: '{text}')", end="")
+        return None
+    except Exception as e:
+        print(f"Error during subject classification: {e}")
+        return None
+
 def main():
     api_key = os.getenv("OPENAI_API_KEY") or None
     if not api_key:
@@ -52,25 +83,44 @@ def main():
     conn = sqlite3.connect(DATABASE_FILE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT id, prompt, schema_category FROM questions")
+    cursor.execute("SELECT id, prompt, schema_category, subject FROM questions")
     rows = cursor.fetchall()
     total = len(rows)
     print(f"Found {total} questions in the database.")
     for idx, row in enumerate(rows, start=1):
         qid = row["id"]
         prompt = row["prompt"]
-        current = row["schema_category"]
-        print(f"[{idx}/{total}] ID={qid} (current={current})...", end=" ")
-        category = classify_prompt(prompt)
-        if category and category != current:
+        current_schema = row["schema_category"]
+        current_subject = row["subject"]
+        print(f"[{idx}/{total}] ID={qid} (schema={current_schema}, subject={current_subject})...", end="")
+
+        new_schema = classify_prompt(prompt)
+        new_subject = classify_subject(prompt)
+
+        updates = []
+        params = []
+        log_msgs = []
+
+        if new_schema and new_schema != current_schema:
+            updates.append("schema_category = ?")
+            params.append(new_schema)
+            log_msgs.append(f"schema -> {new_schema}")
+
+        if new_subject and new_subject != current_subject:
+            updates.append("subject = ?")
+            params.append(new_subject)
+            log_msgs.append(f"subject -> {new_subject}")
+
+        if updates:
+            params.append(qid)
             cursor.execute(
-                "UPDATE questions SET schema_category = ? WHERE id = ?",
-                (category, qid)
+                f"UPDATE questions SET {', '.join(updates)} WHERE id = ?",
+                tuple(params)
             )
             conn.commit()
-            print(f"updated to {category}")
+            print(f" updated: {', '.join(log_msgs)}")
         else:
-            print("no change")
+            print(" no change")
     conn.close()
 
 if __name__ == '__main__':

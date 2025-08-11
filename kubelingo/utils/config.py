@@ -49,7 +49,7 @@ BASIC_QUIZZES = {
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
-    "Vim Practice": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
+    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
     "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'shell_setup:_aliases_&_autocomplete.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
     "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
@@ -62,7 +62,7 @@ COMMAND_QUIZZES = {
     "CKAD Practice": os.path.join(QUESTIONS_DIR, 'ckad_questions.yaml'),
     "Killercoda CKAD": os.path.join(QUESTIONS_DIR, 'killercoda_ckad.yaml'),
     "Misc Commands": os.path.join(QUESTIONS_DIR, 'kubernetes.yaml'),
-    "Uncategorized": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
+    "Uncategorized Commands": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
 }
 # Manifest-Based exercises (YAML authoring and editing)
 MANIFEST_QUIZZES = {

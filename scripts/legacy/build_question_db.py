@@ -99,11 +99,8 @@ def main():
         sys.exit(1)
 
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
-    if os.path.exists(DATABASE_FILE):
-        os.remove(DATABASE_FILE)
-        print("  - Removed existing live database for a clean build.")
     init_db()
-    print("  - Initialized new empty database.")
+    print("  - Ensured database is initialized for build.")
 
     print(f"\nStep 2: Importing questions from '{source_path}'...")
     questions_imported = 0
