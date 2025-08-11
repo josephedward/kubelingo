@@ -26,6 +26,15 @@ try:
 except ImportError:
     print("Error: PyYAML is required. Install with: pip install pyyaml")
     sys.exit(1)
+
+EXERCISE_TYPE_TO_CATEGORY = {
+    "socratic": "Basic",
+    "command": "Command",
+    "yaml_author": "Manifest",
+    "yaml_edit": "Manifest",
+    "live_k8s_edit": "Manifest",
+}
+
 def analyze_file(path):
     """Analyzes a single YAML file and returns statistics about its questions."""
     loader = YAMLLoader()
@@ -36,18 +45,20 @@ def analyze_file(path):
 
     total = len(questions)
 
-    breakdown = {}
+    breakdown = {"Basic": Counter(), "Command": Counter(), "Manifest": Counter(), "Unknown": Counter()}
     for q in questions:
         ex_type = getattr(q, "type", "Unknown Type") or "Unknown"
         subject = (getattr(q, 'metadata', None) or {}).get('category', "Uncategorized") or "Uncategorized"
 
-        if ex_type not in breakdown:
-            breakdown[ex_type] = Counter()
-        breakdown[ex_type][subject] += 1
+        major_category = EXERCISE_TYPE_TO_CATEGORY.get(ex_type, "Unknown")
+        breakdown[major_category][subject] += 1
 
-    # Convert counters to dicts for JSON
+    # Clean up empty categories
+    breakdown = {k: v for k, v in breakdown.items() if v}
+
+    # Convert counters to dicts for JSON and get top-level counts
     breakdown_dict = {k: dict(v) for k, v in breakdown.items()}
-    type_counts = {ex_type: sum(counts.values()) for ex_type, counts in breakdown.items()}
+    category_counts = {cat: sum(counts.values()) for cat, counts in breakdown.items()}
 
     size = path.stat().st_size
     mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(path.stat().st_mtime))
@@ -57,7 +68,7 @@ def analyze_file(path):
         'size': size,
         'mtime': mtime,
         'total': total,
-        'exercise_types': type_counts,
+        'category_counts': category_counts,
         'breakdown': breakdown_dict,
     }
 
@@ -110,10 +121,10 @@ def main():
                 print(f"File: {s['file']}")
                 print(f" Size: {s['size']} bytes  Modified: {s['mtime']}")
                 print(f" Total questions: {s['total']}")
-                print(" Questions by exercise type (with subject matter breakdown):")
-                for ex_type, count in sorted(s['exercise_types'].items(), key=lambda x: -x[1]):
-                    print(f"  {ex_type}: {count}")
-                    subject_counts = s.get('breakdown', {}).get(ex_type, {})
+                print(" Questions by Exercise Category:")
+                for category, count in sorted(s['category_counts'].items(), key=lambda x: -x[1]):
+                    print(f"  {category}: {count}")
+                    subject_counts = s.get('breakdown', {}).get(category, {})
                     for subject, sub_count in sorted(subject_counts.items(), key=lambda x: -x[1]):
                         print(f"    - {subject}: {sub_count}")
                 print()
