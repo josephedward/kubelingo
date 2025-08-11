@@ -28,11 +28,11 @@ def main():
         if subject not in SUBJECT_MATTER:
             print(f"Invalid subject. Must be one of: {SUBJECT_MATTER}")
             sys.exit(1)
-        cur.execute('UPDATE questions SET subject = ? WHERE rowid = ?', (subject, rowid))
+        cur.execute('UPDATE questions SET subject_matter = ? WHERE rowid = ?', (subject, rowid))
         conn.commit()
         print(f"Assigned subject '{subject}' to question rowid {rowid}")
     else:
-        cur.execute('SELECT rowid, id, prompt, subject FROM questions')
+        cur.execute('SELECT rowid, id, prompt, subject_matter FROM questions')
         rows = cur.fetchall()
         missing = []
         for row in rows:
@@ -44,7 +44,7 @@ def main():
         else:
             print('Questions with missing or invalid subjects:')
             for row in missing:
-                print(f"[{row[0]}] id={row[1]} subject={row[3]}\n  Prompt: {row[2]!r}\n")
+                print(f"[{row[0]}] id={row[1]} subject_matter={row[3]}\n  Prompt: {row[2]!r}\n")
     conn.close()
 
 if __name__ == '__main__':
