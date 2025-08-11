@@ -44,30 +44,37 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Organize quizzes into three core types: Basic, Command, and Manifest
 # Basic/Open-Ended quizzes (conceptual Q&A)
 BASIC_QUIZZES = {
-    "General Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations.yaml'),
+    "General Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations_quiz.yaml'),
     "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
-    "Uncategorized": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
-    "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
-    "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'configmap_operations.yaml'),
-    "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
-    "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
-    "Helm Repositories": os.path.join(QUESTIONS_DIR, 'helm_repositories.yaml'),
-    "Helm Commands": os.path.join(QUESTIONS_DIR, 'helm.yaml'),
-    "Kubectl Common Operations": os.path.join(QUESTIONS_DIR, 'kubectl_common_operations.yaml'),
-    "Namespace Operations": os.path.join(QUESTIONS_DIR, 'namespace_operations.yaml'),
-    "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
-    "Secret Management": os.path.join(QUESTIONS_DIR, 'secret_management.yaml'),
-    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'service_account_operations.yaml'),
-    "Shell Setup & Autocomplete": os.path.join(QUESTIONS_DIR, 'shell_setup:_aliases_&_autocomplete.yaml'),
-    "Vim Quiz": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
+    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
+    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'kubectl_shell_setup_quiz.yaml'),
+    "Pod Management": os.path.join(QUESTIONS_DIR, 'kubectl_pod_management_quiz.yaml'),
+    "Deployment Management": os.path.join(QUESTIONS_DIR, 'kubectl_deployment_management_quiz.yaml'),
+    "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'kubectl_configmap_operations_quiz.yaml'),
+    "Secret Management": os.path.join(QUESTIONS_DIR, 'kubectl_secret_management_quiz.yaml'),
+    "Namespace Operations": os.path.join(QUESTIONS_DIR, 'kubectl_namespace_operations_quiz.yaml'),
+    "Service Account Operations": os.path.join(QUESTIONS_DIR, 'kubectl_service_account_ops_quiz.yaml'),
+    "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics_quiz.yaml'),
+    "Additional Commands": os.path.join(QUESTIONS_DIR, 'kubectl_additional_commands_quiz.yaml'),
+    "CKAD Practice": os.path.join(QUESTIONS_DIR, 'ckad_questions.yaml'),
+    "Killercoda CKAD": os.path.join(QUESTIONS_DIR, 'killercoda_ckad.yaml'),
+    "Misc Commands": os.path.join(QUESTIONS_DIR, 'kubernetes.yaml'),
+    "Uncategorized": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
 }
 # Manifest-Based exercises (YAML authoring and editing)
 MANIFEST_QUIZZES = {
-    "YAML Authoring": os.path.join(QUESTIONS_DIR, 'yaml_authoring.yaml'),
-    "YAML Editing (ConfigMaps)": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_configmaps.yaml'),
+    "YAML Practice": os.path.join(QUESTIONS_DIR, 'yaml_quiz.yaml'),
+    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'configmaps_manifests.yaml'),
+    "Configuration & Security": os.path.join(QUESTIONS_DIR, 'configuration_and_security.yaml'),
+    "Core Concepts": os.path.join(QUESTIONS_DIR, 'core_concepts.yaml'),
+    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'deployments_manifests.yaml'),
+    "Helm Manifests": os.path.join(QUESTIONS_DIR, 'helm_manifests.yaml'),
+    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'pods_manifests.yaml'),
+    "Services Manifests": os.path.join(QUESTIONS_DIR, 'services_manifests.yaml'),
+    "Workload Management": os.path.join(QUESTIONS_DIR, 'workload_management.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
 ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
