@@ -23,6 +23,7 @@ from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.utils import path_utils
 from kubelingo.utils.config import ENABLED_QUIZZES, YAML_BACKUP_DIRS
 from kubelingo.utils.config import get_live_db_path
+from kubelingo.utils.ui import Fore, Style
 
 
 def populate_db_from_yaml(
