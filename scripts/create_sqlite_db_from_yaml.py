@@ -35,13 +35,7 @@ def populate_db_from_yaml(
         print("No YAML files found to process.")
         return
 
-    # Create a mapping from category name to source filename for quiz lookup.
-    category_to_source_file = {
-        category: os.path.basename(path) for category, path in ENABLED_QUIZZES.items()
-    }
-
     conn = get_db_connection(db_path=db_path)
-    unmatched_categories = set()
 
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
     # This is safer than introspection, which may fail in some environments.
