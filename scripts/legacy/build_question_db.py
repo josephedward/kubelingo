@@ -106,11 +106,15 @@ def main():
 
     print(f"\nStep 2: Importing questions from '{source_path}'...")
     questions_imported = 0
-    questions_imported = import_questions(source_path)
+    conn = get_db_connection()
+    try:
+        questions_imported = import_questions(source_path, conn)
+    finally:
+        conn.close()
 
     if questions_imported > 0:
         print(f"\nStep 3: Creating master database backups...")
-        backup_database()
+        backup_database(DATABASE_FILE)
     else:
         print("\nNo questions were imported. Skipping database backup.")
 

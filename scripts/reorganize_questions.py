@@ -8,14 +8,14 @@ import sqlite3
 import sys
 
 try:
-    import openai
+    from openai import OpenAI
 except ImportError:
     print("Error: openai package is required. Install with `pip install openai`. ")
     sys.exit(1)
 
 from kubelingo.utils.config import DATABASE_FILE, SUBJECT_MATTER
 
-def classify_prompt(prompt, model="gpt-3.5-turbo"):
+def classify_prompt(client, prompt, model="gpt-3.5-turbo"):
     """Ask OpenAI to classify a question into one of the three schema categories."""
     system = (
         "You are a classification assistant for Kubernetes quiz questions.\n"
@@ -24,7 +24,7 @@ def classify_prompt(prompt, model="gpt-3.5-turbo"):
     )
     user = f"Question: {prompt}\nCategory:"  # model completes the category
     try:
-        resp = openai.ChatCompletion.create(
+        resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": system},
                       {"role": "user", "content": user}],
@@ -41,7 +41,7 @@ def classify_prompt(prompt, model="gpt-3.5-turbo"):
         print(f"Error during classification: {e}")
         return None
 
-def classify_subject(prompt, model="gpt-3.5-turbo"):
+def classify_subject(client, prompt, model="gpt-3.5-turbo"):
     """Ask OpenAI to classify a question into a subject matter category."""
     system_prompt = (
         "You are a classification assistant for Kubernetes quiz questions.\n"
@@ -51,7 +51,7 @@ def classify_subject(prompt, model="gpt-3.5-turbo"):
     )
     user_prompt = f"Question: {prompt}\nCategory:"
     try:
-        resp = openai.ChatCompletion.create(
+        resp = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -77,7 +77,7 @@ def main():
     if not api_key:
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
-    openai.api_key = api_key
+    client = OpenAI(api_key=api_key)
 
     # Connect to DB
     conn = sqlite3.connect(DATABASE_FILE)
@@ -94,8 +94,8 @@ def main():
         current_subject = row["subject"]
         print(f"[{idx}/{total}] ID={qid} (schema={current_schema}, subject={current_subject})...", end="")
 
-        new_schema = classify_prompt(prompt)
-        new_subject = classify_subject(prompt)
+        new_schema = classify_prompt(client, prompt)
+        new_subject = classify_subject(client, prompt)
 
         updates = []
         params = []
