@@ -1072,3 +1072,24 @@ Generated questions are saved to `question-data/yaml/ai_generated_new_questions.
 **Important**:
   - Do not delete or move any database files under `~/.kubelingo/` or backup files in `question-data-backup/`. These are required for seeding, state tracking, and prompt comparison.
   - The script handles missing PyYAML only for dry-run mode; installing PyYAML is necessary for writing the output YAML file.
+
+## Maintenance & Triage Meta-Scripts
+
+We are building a suite of **maintenance and triage meta-scripts** to simplify tracking, exporting, importing, backing up, and cleaning up our question database. These scripts cover:
+
+- **Bug Tracking**: Collect and manage outstanding issues via `scripts/bug_ticket.py` and `docs/bug_tickets.yaml`.
+- **YAML Backup Utilities**: Exporting and restoring the database to/from YAML (`scripts/export_db_to_yaml.py`, `scripts/restore_yaml_to_db.py`), locating backups (`scripts/locate_yaml_backups.py`), and viewing stats (`scripts/yaml_backup_stats.py`).
+- **SQLite Backup Utilities**: Viewing schema (`scripts/view_sqlite_schema.py`), listing backups (`scripts/locate_sqlite_backups.py`), creating backups (`scripts/create_sqlite_backup.py`), restoring (`scripts/restore_sqlite.py`), and diffing DBs (`scripts/diff_sqlite.py`).
+- **Question Data Hygiene**: Deduplicating (`scripts/deduplicate_questions.py`), categorizing (`scripts/categorize_questions.py`), fixing links (`scripts/fix_links.py`), and formatting questions (`scripts/format_questions.py`).
+
+For full details and usage examples, see `docs/maintenance_scripts.md`.
+ 
+### Maintenance & Triage Meta-Scripts
+
+We are building a suite of scripts for tracking and triaging our work, including:
+- Bug ticket management
+- YAML backup and restore utilities
+- SQLite database backup, restore, and diff tools
+- Question data hygiene and maintenance (deduplication, categorization, formatting)
+
+For full details and the development plan, see `docs/maintenance_scripts.md`.
