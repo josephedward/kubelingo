@@ -45,7 +45,7 @@ def task_consolidate_yaml():
 
 def task_show_yaml_backups():
     """Show Previous YAML backup(s)"""
-    _run_script("show_yaml_backups.py")
+    _run_script("show_previous_yaml_backups.py")
 
 def task_diff_yaml_backups():
     """Diff YAML Backups"""
@@ -57,7 +57,7 @@ def task_yaml_stats():
 
 def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
-    _run_script("restore_yaml_to_db.py")
+    _run_script("create_sqlite_db_from_yaml.py")
 
 def task_index_sqlite():
     """Index Sqlite Files"""
@@ -65,19 +65,23 @@ def task_index_sqlite():
 
 def task_view_db_schema():
     """View Database Schema"""
-    _run_script("view_sqlite_schema.py")
+    _run_script("view_db_schema.py")
 
 def task_show_sqlite_backups():
     """Show Previous Sqlite Backup(s)"""
-    _run_script("show_sqlite_backups.py")
+    _run_script("show_previous_sqlite_backups.py")
 
 def task_diff_sqlite_backups():
     """Diff with Backup Sqlite Db"""
     _run_script("diff_sqlite_backups.py")
 
-def task_restore_sqlite_backup():
+def task_create_sqlite_backup():
+    """Create Sqlite Backup Version"""
+    _run_script("create_sqlite_backup.py")
+
+def task_restore_from_sqlite_backup():
     """Restore from Sqlite Backup Version"""
-    _run_script("restore_sqlite_backup.py")
+    _run_script("restore_sqlite_from_backup.py")
 
 def task_deduplicate_questions():
     """Deduplicate Questions"""
@@ -120,7 +124,8 @@ def run_interactive_menu():
         "View Database Schema": task_view_db_schema,
         "Show Previous Sqlite Backup(s)": task_show_sqlite_backups,
         "Diff with Backup Sqlite Db": task_diff_sqlite_backups,
-        "Restore from Sqlite Backup Version": task_restore_sqlite_backup,
+        "Create Sqlite Backup Version": task_create_sqlite_backup,
+        "Restore from Sqlite Backup Version": task_restore_from_sqlite_backup,
         "Deduplicate Questions": task_deduplicate_questions,
         "Fix Question Categorization": task_fix_question_categorization,
         "Fix Documentation Links": task_fix_doc_links,
@@ -144,6 +149,7 @@ def run_interactive_menu():
                 "View Database Schema",
                 "Show Previous Sqlite Backup(s)",
                 "Diff with Backup Sqlite Db",
+                "Create Sqlite Backup Version",
                 "Restore from Sqlite Backup Version",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
