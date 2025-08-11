@@ -564,7 +564,8 @@ class NewSession(StudySession):
                 try:
                     from kubelingo.modules.db_loader import DBLoader
                     loader = DBLoader()
-                    static_questions = loader.load_file(args.file)
+                    source_file_basename = os.path.basename(args.file)
+                    static_questions = loader.load_file(source_file_basename)
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for listing: {e}")
                     static_questions = []
@@ -614,7 +615,8 @@ class NewSession(StudySession):
                 try:
                     from kubelingo.modules.db_loader import DBLoader
                     loader = DBLoader()
-                    questions_as_obj = loader.load_file(args.file)
+                    source_file_basename = os.path.basename(args.file)
+                    questions_as_obj = loader.load_file(source_file_basename)
                     questions = [asdict(q) for q in questions_as_obj]
                 except FileNotFoundError:
                     print(f"{Fore.RED}Error: Quiz file not found at '{args.file}'.{Style.RESET_ALL}")
