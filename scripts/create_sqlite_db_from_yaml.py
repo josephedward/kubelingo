@@ -162,20 +162,38 @@ def main():
             print("No YAML backup files found.")
             sys.exit(0)
 
-        print("\nPlease select a YAML backup to restore from:")
-        for i, backup_path in enumerate(all_backups):
-            print(f"  {i + 1}: {backup_path.name}")
-
-        try:
-            selection = input(f"\nEnter number (1-{len(all_backups)}): ")
-            selection_idx = int(selection) - 1
-            if not 0 <= selection_idx < len(all_backups):
-                raise ValueError
-            selected_file = all_backups[selection_idx]
+        if args.yes:
+            # When in non-interactive mode, find the latest restorable backup.
+            # A restorable backup is assumed to be one of the consolidated files.
+            restorable_backups = [
+                p
+                for p in all_backups
+                if p.name.startswith("consolidated_unique_questions")
+            ]
+            if not restorable_backups:
+                print(
+                    "No restorable backup files (e.g., 'consolidated_unique_questions*.yaml') found.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            selected_file = restorable_backups[-1]  # The last one is the most recent
+            print(f"Automatically selecting latest backup: {selected_file.name}")
             yaml_files = [selected_file]
-        except (ValueError, IndexError):
-            print("Invalid selection. Aborting.", file=sys.stderr)
-            sys.exit(1)
+        else:
+            print("\nPlease select a YAML backup to restore from:")
+            for i, backup_path in enumerate(all_backups):
+                print(f"  {i + 1}: {backup_path.name}")
+
+            try:
+                selection = input(f"\nEnter number (1-{len(all_backups)}): ")
+                selection_idx = int(selection) - 1
+                if not 0 <= selection_idx < len(all_backups):
+                    raise ValueError
+                selected_file = all_backups[selection_idx]
+                yaml_files = [selected_file]
+            except (ValueError, IndexError):
+                print("Invalid selection. Aborting.", file=sys.stderr)
+                sys.exit(1)
     else:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
 
