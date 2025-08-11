@@ -51,7 +51,6 @@ def populate_db_from_yaml(
         "explanation",
         "initial_files",
         "pre_shell_cmds",
-        "subject",
     }
 
     question_count = 0
