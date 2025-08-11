@@ -110,8 +110,9 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Override source_file to the YAML filename being processed
-                    q_dict["source_file"] = file_path.name
+                    # Set source_file to the YAML filename if not already present
+                    if "source_file" not in q_dict or not q_dict["source_file"]:
+                        q_dict["source_file"] = file_path.name
 
                     # Remove legacy keys that are not supported by the database schema.
                     q_dict.pop("solution_file", None)
