@@ -1257,3 +1257,16 @@ As part of the maintenance toolbox, the "Consolidate Unique Yaml Questions" feat
 18. Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
 19. Namespaces & contexts (scoping resources, default namespace, context switching)
 20. API discovery & docs (kubectl explain, api-resources, api-versions)
+
+You are right. Although the script reports success, the questions are not usable in the application. I've found the reason why.
+
+The problem is that create_sqlite_db_from_yaml.py is assigning the wrong source_file to the questions. The application needs the original source file name to display the questions in the correct quiz categories. Since your consolidated YAML file
+doesn't contain this information, all questions are being assigned the same source file (consolidated_unique_questions_20250811_144940.yaml), which causes the app to show zero questions for every quiz.
+
+To fix this, I can modify the script to determine the correct source_file from the question's category. The mapping between categories and source files is defined within your project.
+
+To implement this, I need to see the quiz definitions. Please add the following file to the chat:
+
+kubelingo/utils/config.py
+
+Once you provide it, I can create the necessary changes to correctly populate the database.
