@@ -101,7 +101,7 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
         if "duplicate column name" not in str(e):
             raise
     # Add other columns from Question model for compatibility
-    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type", "answers", "correct_yaml"]:
+    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type", "answers", "correct_yaml", "metadata"]:
         try:
             cursor.execute(f"ALTER TABLE questions ADD COLUMN {col_name} TEXT")
         except sqlite3.OperationalError as e:
@@ -177,14 +177,16 @@ def add_question(
     pre_shell_cmds_json = json.dumps(pre_shell_cmds) if pre_shell_cmds is not None else None
     initial_files_json = json.dumps(initial_files) if initial_files is not None else None
     answers_json = json.dumps(answers) if answers is not None else None
+    metadata_json = json.dumps(metadata) if metadata is not None else None
 
     cursor.execute("""
         INSERT OR REPLACE INTO questions (
             id, prompt, response, category, source,
             validation_steps, validator, source_file, review,
             explanation, difficulty, pre_shell_cmds, initial_files,
-            question_type, answers, correct_yaml, schema_category, subject_matter
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            question_type, answers, correct_yaml, schema_category, subject_matter,
+            metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
         prompt,
@@ -203,7 +205,8 @@ def add_question(
         answers_json,
         correct_yaml,
         schema_category,
-        subject_matter
+        subject_matter,
+        metadata_json
     ))
     # Commit the insertion to the database
     conn.commit()
@@ -256,6 +259,15 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
             q_dict['answers'] = []
     else:
         q_dict['answers'] = []
+    # Deserialize metadata JSON into Python dict
+    metadata_data = q_dict.get('metadata')
+    if metadata_data:
+        try:
+            q_dict['metadata'] = json.loads(metadata_data)
+        except (json.JSONDecodeError, TypeError):
+            q_dict['metadata'] = {}
+    else:
+        q_dict['metadata'] = {}
     # Extract correct_yaml column
     q_dict['correct_yaml'] = q_dict.get('correct_yaml')
     # Map question_type column to 'type' key for compatibility
