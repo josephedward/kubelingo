@@ -89,8 +89,16 @@ def populate_db_from_yaml(
                     if "question" in q_dict:
                         q_dict["prompt"] = q_dict.pop("question")
 
+                    # Normalize 'type' from YAML to 'question_type' for the database
+                    if "type" in q_dict:
+                        q_dict["question_type"] = q_dict.pop("type")
+
+                    # Normalize 'subject' from YAML to 'subject_matter' for the database
+                    if "subject" in q_dict:
+                        q_dict["subject_matter"] = q_dict.pop("subject")
+
                     # Set schema_category based on question type
-                    q_type = q_dict.get("type", "command")
+                    q_type = q_dict.get("question_type", "command")
                     if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
                         q_dict["schema_category"] = "manifest"
                     elif q_type in ("command", "kubectl"):
