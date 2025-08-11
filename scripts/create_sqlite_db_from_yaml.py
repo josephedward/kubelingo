@@ -70,14 +70,8 @@ def populate_db_from_yaml(
                 # The YAML might contain a top-level list or a dictionary with a list of questions.
                 questions_list = questions_data
                 if isinstance(questions_data, dict):
-                    # Find the first list in the dictionary's values.
-                    # This handles formats where questions are nested, e.g., {'questions': [...]}.
-                    found_list = None
-                    for value in questions_data.values():
-                        if isinstance(value, list):
-                            found_list = value
-                            break  # Use the first list found
-                    questions_list = found_list
+                    # Look for a 'questions' key specifically.
+                    questions_list = questions_data.get("questions")
 
                 if not isinstance(questions_list, list):
                     continue
