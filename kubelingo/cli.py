@@ -300,19 +300,48 @@ def restore_db():
         print("You may need to run the build script first: python3 scripts/build_question_db.py")
         return
 
-    print(f"{Fore.CYAN}Merging questions from backup: {backup_db_path}{Style.RESET_ALL}")
-
-    # Overwrite live database with the backup copy
-    from kubelingo.utils.config import DATABASE_FILE
+    print(f"{Fore.CYAN}Merging questions from backup DB: {backup_db_path}{Style.RESET_ALL}")
+    # Merge entries without dropping any existing data
     try:
-        os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
-        shutil.copy2(backup_db_path, DATABASE_FILE)
-        print(f"{Fore.GREEN}Restored questions database to '{DATABASE_FILE}'.{Style.RESET_ALL}")
-        # After restoring, ensure schema is up-to-date.
-        from kubelingo.database import init_db
-        init_db()
+        import sqlite3
+        from kubelingo.database import get_db_connection, add_question, _row_to_question_dict
+        # Connect to backup DB and fetch all rows
+        bconn = sqlite3.connect(backup_db_path)
+        bconn.row_factory = sqlite3.Row
+        cursor = bconn.cursor()
+        cursor.execute("SELECT * FROM questions")
+        rows = cursor.fetchall()
+        bconn.close()
+        # Insert or replace each question into live DB
+        lconn = get_db_connection()
+        lconn.row_factory = sqlite3.Row
+        for row in rows:
+            q = _row_to_question_dict(row)
+            add_question(
+                id=q.get('id'),
+                prompt=q.get('prompt'),
+                source_file=q.get('source_file'),
+                response=q.get('response'),
+                category=q.get('category'),
+                source=q.get('source'),
+                validation_steps=q.get('validation_steps'),
+                validator=q.get('validator'),
+                review=q.get('review', False),
+                explanation=q.get('explanation'),
+                difficulty=q.get('difficulty'),
+                pre_shell_cmds=q.get('pre_shell_cmds'),
+                initial_files=q.get('initial_files'),
+                question_type=q.get('question_type'),
+                answers=q.get('answers'),
+                correct_yaml=q.get('correct_yaml'),
+                schema_category=q.get('schema_category'),
+                conn=lconn
+            )
+        lconn.commit()
+        lconn.close()
+        print(f"{Fore.GREEN}Merged {len(rows)} questions into live database.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to merge backup questions: {e}{Style.RESET_ALL}")
 
 
 def find_duplicates_cmd(cmd):
@@ -597,12 +626,6 @@ def main():
         init_db()
     except Exception:
         pass
-    # Ensure all YAML question files are imported into the database (immutable master copy)
-    try:
-        migrate_script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
-        subprocess.run([sys.executable, str(migrate_script)], check=False)
-    except Exception:
-        pass
     # Initialize logging for both interactive and non-interactive modes
     import logging
     log_level = os.getenv('KUBELINGO_LOG_LEVEL', 'INFO').upper()
@@ -810,7 +833,7 @@ def main():
             elif cmd_name == 'troubleshoot':
                 handle_troubleshoot(args.command[1:])
                 return
-            elif cmd_name == 'migrate-yaml':
+            elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
                 # Import all YAML quiz questions into the database
                 script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
                 subprocess.run([sys.executable, str(script)])
