@@ -142,6 +142,13 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
+                    # Infer a default category for interactive YAML exercises if one is not provided.
+                    # This prevents them from being skipped during import.
+                    if not q_dict.get("category"):
+                        q_type = q_dict.get("question_type")
+                        if q_type in ("yaml_edit", "yaml_author"):
+                            q_dict["category"] = "YAML Authoring"
+
                     # To associate a question with a quiz, its `source_file` must be set correctly.
                     # The canonical mapping is from category -> source_file in ENABLED_QUIZZES.
                     # We prioritize this mapping, but fall back to a source_file from the YAML data itself
