@@ -110,9 +110,24 @@ python3 scripts/find_duplicate_questions.py --delete
 
 This deletion is committed immediately.  If you wish to back up your database before or after cleanup, use:
 
-```bash
-python3 scripts/restore_db_from_backup.py
-```
+  ```bash
+  python3 scripts/restore_db_from_backup.py
+  ```
+
+### YAML Backup Utilities
+
+- **locate_yaml_backups.py**: Scan the `question-data-backup/` directory for any `.yaml` or `.yml` files and report what backups are available.
+  Usage:
+  ```bash
+  python3 scripts/locate_yaml_backups.py
+  ```
+
+- **yaml_backup_stats.py**: Show total question count and per-category breakdown for a given YAML backup file. Requires PyYAML.
+  Usage:
+  ```bash
+  python3 scripts/yaml_backup_stats.py <path-to-yaml-file>
+  ```
+  If PyYAML is not installed, the script will print a message directing you to install it via `pip install pyyaml`.
 
 ### Seeding the Database Manually
 

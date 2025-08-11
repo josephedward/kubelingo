@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 """
-yaml_backup_stats.py: Scans for YAML backup files and reports question counts.
-"""
-#!/usr/bin/env python3
-"""
 Show statistics for YAML backup files: question count, categories, file size.
 Supports single file or directory of YAML backups, JSON output, and optional AI summary.
 """
