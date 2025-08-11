@@ -18,6 +18,7 @@ from typing import Optional
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.question import QuestionCategory
+from kubelingo.utils.path_utils import get_all_yaml_files
 
 
 def restore_yaml_to_db(
@@ -112,9 +113,9 @@ def main():
     )
     parser.add_argument(
         "input_paths",
-        nargs="+",
+        nargs="*",
         type=str,
-        help="Path(s) to input YAML file(s) or directories containing YAML files.",
+        help="Path(s) to input YAML file(s) or directories. If not provided, scans default question source directories.",
     )
     parser.add_argument(
         "--clear",
@@ -124,24 +125,28 @@ def main():
     args = parser.parse_args()
 
     yaml_files = []
-    for path_str in args.input_paths:
-        path = Path(path_str)
-        if not path.exists():
-            print(f"Warning: Path not found, skipping: {path_str}", file=sys.stderr)
-            continue
-        if path.is_dir():
-            yaml_files.extend(path.glob("**/*.yaml"))
-            yaml_files.extend(path.glob("**/*.yml"))
-        elif path.is_file() and path.suffix.lower() in [".yaml", ".yml"]:
-            yaml_files.append(path)
-        else:
-            print(
-                f"Warning: Path is not a YAML file or directory, skipping: {path_str}",
-                file=sys.stderr,
-            )
+    if not args.input_paths:
+        print("No input paths provided. Scanning default question directories...")
+        yaml_files = get_all_yaml_files()
+    else:
+        for path_str in args.input_paths:
+            path = Path(path_str)
+            if not path.exists():
+                print(f"Warning: Path not found, skipping: {path_str}", file=sys.stderr)
+                continue
+            if path.is_dir():
+                yaml_files.extend(path.glob("**/*.yaml"))
+                yaml_files.extend(path.glob("**/*.yml"))
+            elif path.is_file() and path.suffix.lower() in [".yaml", ".yml"]:
+                yaml_files.append(path)
+            else:
+                print(
+                    f"Warning: Path is not a YAML file or directory, skipping: {path_str}",
+                    file=sys.stderr,
+                )
 
     if not yaml_files:
-        print("No YAML files found in the specified paths.")
+        print("No YAML files found.")
         sys.exit(0)
 
     unique_files = sorted(list(set(yaml_files)))

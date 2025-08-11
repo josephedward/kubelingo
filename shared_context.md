@@ -1096,54 +1096,51 @@ For full details and the development plan, see `docs/maintenance_scripts.md`.
 ## Self-Healing & Discovery Roadmap
 
 > Here’s a roadmap for taking our self-healing/discovery story even further—so that no matter how folders move, files vanish or get renamed, the system still “just works.”
-
-1. Centralize & Parameterize All Paths  
-   - In `kubelingo/utils/config.py` expose _only_ helper getters (e.g. `get_all_question_dirs()`, `get_live_db_path()`, `get_yaml_backup_dirs()`, `get_sqlite_backup_dirs()`) and deprecate any literal paths.  
-   - Allow overrides via environment variables or CLI flags (e.g. `KUBELINGO_QUESTION_DIRS=/foo:/bar`).  
-
-2. Refactor Every Script to Use Discovery Helpers  
-   - Go through all the importers, exporters, backup-listers and switch them to call `discover_*()` from `kubelingo.utils.path_utils` instead of hard-coded dirs.  
-   - If no candidates are found, the script should:  
-     - Print a clear “No files under any of: […]” message  
-     - List out what _was_ found (even if zero)  
-     - Prompt the user to supply a directory or abort.  
-
-3. Build a Unified “Locate” Command in the CLI  
-   - Add a `kubelingo locate` subcommand (or `kubelingo doctor`) that exercises all discovery paths and reports:  
-     - Question dirs & file counts  
-     - YAML backups & timestamps  
-     - SQLite backups & timestamps  
-     - Current live DB path & schema version  
-   - Agents can call `kubelingo locate questions` to bootstrap everything.  
-
-4. Maintain an Index of Backups  
-   - Every time we snapshot a `.db` or dump to YAML, append a record to a simple `backups/index.yaml` (or JSON).  
-   - Scripts can read that index to offer interactive selection (“choose one of these 12 backups”).  
-
-5. Add Automated Smoke Tests & CI Checks  
-   - Under `tests/`, write a few pytest or shell-based smoke tests that assert:  
-     - `discover_question_files()` yields at least one YAML  
-     - `discover_yaml_backups()` yields at least one file  
-     - `get_live_db_path()` exists and `show_sqlite_schema.py` returns exit code 0  
-   - Hook these into CI so any path breakage is caught immediately.  
-
-6. Graceful Fallbacks & Prompts  
-   - If a script sees multiple candidate dirs (e.g. two different archives), prompt once:  
-     “I found these two question folders—please pick one to import from.”  
-   - Cache that choice in a user-config file so you don’t keep being asked.  
-
-7. Version & Rotate Backups  
-   - Add a “prune” script (`scripts/prune_backups.py`) to keep only the N most recent backups, so that index files don’t grow indefinitely.  
-
-8. Surface Discovery in shared_context.md  
-   - Update the shared context so every new AI agent knows:  
-     “Never hard-code; always call `kubelingo.utils.path_utils` functions for question/Data/DB paths.”  
-
-9. Consolidation & Archive Helpers  
-   - A script to automatically move any stray YAML under `question-data` into the canonical `questions/` folder (so that new files are always discoverable).  
-
-10. Monitoring & Telemetry  
-    - Instrument each discovery routine to log “which path won” and “how many files discovered.”  
-    - Over time we can spot when users stop storing files in the primary dir and update docs accordingly.  
-
-—By layering in discovery helpers, interactive fallbacks, an index of backups, and CI-driven smoke tests, the system becomes truly self-healing. Rapid AI-driven refactors or folder reorganizations simply flow through the same discovery layer, and nothing ever “disappears.” Let me know which of these you’d like to tackle next—I can jump in and start implementing the CLI “locate” command or the backup-index machinery right away.
+    
+        1. Centralize & Parameterize All Paths 
+           • In `kubelingo/utils/config.py` expose _only_ helper getters (e.g. `get_all_question_dirs()`, `get_live_db_path()`, `get_yaml_backup_dirs()`, `get_sqlite_backup_dirs()`) and deprecate any literal paths. 
+           • Allow overrides via environment variables or CLI flags (e.g. `KUBELINGO_QUESTION_DIRS=/foo:/bar`). 
+        2. Refactor Every Script to Use Discovery Helpers 
+           • Go through all the importers, exporters, backup‐listers and switch them to call `discover_*()` from `path_utils` instead of hard‐coded dirs. 
+           • If no candidates are found, the script should: 
+             – print a clear “No files under any of: […]” message 
+             – list out what _was_ found (even if zero) 
+             – prompt the user to supply a directory or abort. 
+        3. Build a Unified “Locate” Command in the CLI 
+           • Add a `kubelingo locate` subcommand (or `kubelingo doctor`) that exercises all discovery paths and reports: 
+             – question dirs & file counts 
+             – YAML backups & timestamps 
+             – SQLite backups & timestamps 
+             – current live DB path & schema version 
+           • Agents can call `kubelingo locate questions` to bootstrap everything. 
+        4. Maintain an Index of Backups 
+           • Every time we snapshot a `.db` or dump to YAML, append a record to a simple `backups/index.yaml` (or JSON). 
+           • Scripts can read that index to offer interactive selection (“choose one of these 12 backups”). 
+        5. Add Automated Smoke Tests & CI Checks 
+           • Under `tests/`, write a few pytest or shell‐based smoke tests that assert: 
+        
+        
+            * `discover_question_files()` yields at least one YAML 
+        
+            * `discover_yaml_backups()` yields at least one file 
+        
+            * `get_live_db_path()` exists and `show_sqlite_schema.py` returns exit code 0 
+                 • Hook these into CI so any path breakage is caught immediately. 
+        6. Graceful Fallbacks & Prompts 
+           • If a script sees multiple candidate dirs (e.g. two different archives), prompt once: 
+           “I found these two question folders—please pick one to import from.” 
+           • Cache that choice in a user‐config file so you don’t keep being asked. 
+        7. Version & Rotate Backups 
+           • Add a “prune” script (`scripts/prune_backups.py`) to keep only the N most recent backups, so that index files don’t grow indefinitely. 
+        8. Surface Discovery in shared_context.md 
+           • Update the shared context so every new AI agent knows: 
+             “Never hard‐code; always call `kubelingo.utils.path_utils` functions for question/Data/DB paths.” 
+        9. Consolidation & Archive Helpers 
+           • A script to automatically move any stray YAML under `question-data` into the canonical `questions/` folder (so that new files are always discoverable). 
+        10. Monitoring & Telemetry 
+            • Instrument each discovery routine to log “which path won” and “how many files discovered.” 
+            • Over time we can spot when users stop storing files in the primary dir and update docs accordingly. 
+    
+    —By layering in discovery helpers, interactive fallbacks, an index of backups, and CI‐driven smoke tests, the system becomes truly self-healing. Rapid AI‐driven refactors or folder reorganizations simply flow through the same discovery
+layer,
+    and nothing ever “disappears.” Let me know which of these you’dlike to tackle next—​I can jump in and start implementing the CLI “locate” command or the backup‐index machinery right away.
