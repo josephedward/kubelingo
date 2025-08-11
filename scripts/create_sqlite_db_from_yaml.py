@@ -185,19 +185,24 @@ def populate_db_from_yaml(
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
+    if unmatched_categories:
+        print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
+        for cat in sorted(list(unmatched_categories)):
+            print(f"  - {cat}")
+
 
 def main():
     """
     Main function to parse arguments and run the population script.
     """
     parser = argparse.ArgumentParser(
-        description="Populate the SQLite database from YAML question files."
+        description="Populate the SQLite database from YAML backup files."
     )
     parser.add_argument(
         "input_paths",
         nargs="*",
         type=str,
-        help="Path(s) to input YAML file(s) or directories. If not provided, scans default question directories.",
+        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories and prompts for selection.",
     )
     parser.add_argument(
         "-y",
