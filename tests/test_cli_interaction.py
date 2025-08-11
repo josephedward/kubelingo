@@ -12,6 +12,7 @@ TEST_QUESTION = {
     "response": "kubectl get pods --all-namespaces",
     "category": "Test CLI Quiz",
     "schema_category": "command",
+    "source_file": "test_data.yaml",
 }
 
 @pytest.fixture
