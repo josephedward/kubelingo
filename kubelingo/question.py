@@ -13,6 +13,31 @@ class QuestionCategory(str, Enum):
     COMMAND = "Command-Based/Syntax"
     MANIFEST = "Manifests"
 
+
+class QuestionSubject(str, Enum):
+    """Subject matter areas for Kubernetes questions."""
+    CORE_WORKLOADS = "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
+    POD_DESIGN = "Pod design patterns (initContainers, sidecars, lifecycle hooks)"
+    COMMAND_ARGS_ENV = "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)"
+    APP_CONFIGURATION = "App configuration (ConfigMaps, Secrets, projected & downwardAPI volumes)"
+    PROBES_HEALTH = "Probes & health (liveness, readiness, startup; graceful shutdown)"
+    RESOURCE_MANAGEMENT = "Resource management (requests/limits, QoS classes, HPA basics)"
+    JOBS_CRONJOBS = "Jobs & CronJobs (completions, parallelism, backoff, schedules)"
+    SERVICES = "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)"
+    INGRESS_ROUTING = "Ingress & HTTP routing (basic rules, paths, service backends)"
+    NETWORKING_UTILITIES = "Networking utilities (DNS in-cluster, port-forward, exec, curl)"
+    PERSISTENCE = "Persistence (PVCs, using existing StorageClasses, common volume types)"
+    OBSERVABILITY_TROUBLESHOOTING = "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"
+    LABELS_SELECTORS = "Labels, annotations & selectors (label ops, field selectors, jsonpath)"
+    IMPERATIVE_DECLARATIVE = "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)"
+    IMAGE_REGISTRY = "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)"
+    SECURITY_BASICS = "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)"
+    SERVICE_ACCOUNTS = "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)"
+    SCHEDULING = "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)"
+    NAMESPACES_CONTEXTS = "Namespaces & contexts (scoping resources, default namespace, context switching)"
+    API_DISCOVERY_DOCS = "API discovery & docs (kubectl explain, api-resources, api-versions)"
+
+
 @dataclass
 class ValidationStep:
     """
@@ -41,6 +66,8 @@ class Question:
     type: str = 'command'
     # The schema category this question belongs to.
     schema_category: Optional["QuestionCategory"] = None
+    # Subject matter area for the question.
+    subject: Optional["QuestionSubject"] = None
 
     # --- Modality-specific fields ---
     # For `command` questions
