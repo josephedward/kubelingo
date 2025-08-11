@@ -12,7 +12,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from kubelingo.utils.path_utils import find_sqlite_files_from_paths
+    from kubelingo.utils.path_utils import find_sqlite_files
     from kubelingo.utils.config import SQLITE_BACKUP_DIRS
 except ImportError as e:
     print(f"Error: A required kubelingo module is not available: {e}. "
@@ -39,7 +39,7 @@ def main():
         sys.exit(1)
 
     try:
-        backup_files = find_sqlite_files_from_paths(backup_dirs)
+        backup_files = find_sqlite_files(backup_dirs)
     except Exception as e:
         if not args.path_only:
             print(f"Error scanning directories: {e}", file=sys.stderr)
