@@ -63,4 +63,74 @@ def main():
         sys.exit(1)
 
 if __name__ == '__main__':
+    main()#!/usr/bin/env python3
+"""
+Restores the Kubelingo questions database from a chosen backup.
+
+This script lists available SQLite backups, prompts the user to select one,
+and copies it to the default user database location
+(`~/.kubelingo/kubelingo.db`), replacing any existing live database.
+"""
+import os
+import shutil
+import sys
+from pathlib import Path
+
+def get_backups(backup_dir: Path):
+    """Finds all .db files in the backup directory."""
+    if not backup_dir.is_dir():
+        return []
+    return sorted(list(backup_dir.glob('*.db')), key=lambda p: p.stat().st_mtime, reverse=True)
+
+def main():
+    try:
+        import questionary
+    except ImportError:
+        print("Error: 'questionary' library not found. Please install it with:")
+        print("pip install questionary")
+        sys.exit(1)
+
+    repo_root = Path(__file__).resolve().parent.parent
+    backup_dir = repo_root / 'backups' / 'sqlite'
+
+    backups = get_backups(backup_dir)
+    if not backups:
+        print(f"No backup databases found in '{backup_dir}'.")
+        return
+
+    backup_to_restore = questionary.select(
+        "Which backup would you like to restore?",
+        choices=[p.name for p in backups] + [questionary.Separator(), "Cancel"]
+    ).ask()
+
+    if not backup_to_restore or backup_to_restore == "Cancel":
+        print("Restore operation cancelled.")
+        return
+
+    backup_db = backup_dir / backup_to_restore
+
+    # Prepare user DB directory
+    home = os.path.expanduser('~')
+    app_dir = os.path.join(home, '.kubelingo')
+    os.makedirs(app_dir, exist_ok=True)
+    dst_db = os.path.join(app_dir, 'kubelingo.db')
+    
+    # Confirm overwrite
+    if os.path.exists(dst_db):
+        confirm = questionary.confirm(
+            f"This will overwrite the existing database at '{dst_db}'. Continue?",
+            default=False
+        ).ask()
+        if not confirm:
+            print("Restore operation cancelled.")
+            return
+
+    # Copy
+    try:
+        shutil.copy2(backup_db, dst_db)
+        print(f"Restored questions DB from '{backup_db}' to '{dst_db}'.")
+    except Exception as e:
+        print(f"Failed to restore DB: {e}")
+
+if __name__ == '__main__':
     main()

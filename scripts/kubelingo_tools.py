@@ -43,9 +43,9 @@ def task_consolidate_yaml():
     """Consolidate Unique Yaml Questions"""
     _run_script("consolidate_unique_yaml_questions.py")
 
-def task_locate_yaml_backup():
-    """Locate Previous YAML backup"""
-    _run_script("locate_previous_yaml_backup.py")
+def task_show_yaml_backups():
+    """Show Previous YAML backup(s)"""
+    _run_script("show_yaml_backups.py")
 
 def task_diff_yaml_backups():
     """Diff YAML Backups"""
@@ -55,37 +55,29 @@ def task_yaml_stats():
     """YAML Statistics"""
     _run_script("yaml_backup_stats.py")
 
-def task_export_db_to_yaml():
-    """Write DB to YAML Backup Version"""
-    _run_script("export_db_to_yaml.py")
-
-def task_restore_db_from_yaml():
-    """Restore DB from YAML Backup Version"""
+def task_create_db_from_yaml():
+    """Create Sqlite DB from YAML Backup Version"""
     _run_script("restore_yaml_to_db.py")
 
 def task_index_sqlite():
-    """Index all Sqlite files in Dir"""
+    """Index Sqlite Files"""
     _run_script("index_sqlite_files.py")
 
 def task_view_db_schema():
     """View Database Schema"""
-    print("Viewing database schema is not yet implemented.")
+    _run_script("view_sqlite_schema.py")
 
-def task_locate_sqlite_backup():
-    """Locate Previous Sqlite Backup"""
-    print("Locating SQLite backup is not yet implemented.")
+def task_show_sqlite_backups():
+    """Show Previous Sqlite Backup(s)"""
+    _run_script("show_sqlite_backups.py")
 
-def task_diff_sqlite_backup():
+def task_diff_sqlite_backups():
     """Diff with Backup Sqlite Db"""
-    print("Diffing with backup SQLite DB is not yet implemented.")
-
-def task_create_sqlite_backup():
-    """Create Sqlite Backup Version"""
-    print("Creating SQLite backup is not yet implemented.")
+    _run_script("diff_sqlite_backups.py")
 
 def task_restore_sqlite_backup():
     """Restore from Sqlite Backup Version"""
-    _run_script("legacy/restore_db_from_backup.py")
+    _run_script("restore_sqlite_backup.py")
 
 def task_deduplicate_questions():
     """Deduplicate Questions"""
@@ -120,16 +112,14 @@ def run_interactive_menu():
     tasks = {
         "Index all Yaml Files in Dir": task_index_yaml,
         "Consolidate Unique Yaml Questions": task_consolidate_yaml,
-        "Locate Previous YAML backup": task_locate_yaml_backup,
+        "Show Previous YAML backup(s)": task_show_yaml_backups,
         "Diff YAML Backups": task_diff_yaml_backups,
         "YAML Statistics": task_yaml_stats,
-        "Write DB to YAML Backup Version": task_export_db_to_yaml,
-        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
-        "Index all Sqlite files in Dir": task_index_sqlite,
+        "Index Sqlite Files": task_index_sqlite,
+        "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
         "View Database Schema": task_view_db_schema,
-        "Locate Previous Sqlite Backup": task_locate_sqlite_backup,
-        "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
-        "Create Sqlite Backup Version": task_create_sqlite_backup,
+        "Show Previous Sqlite Backup(s)": task_show_sqlite_backups,
+        "Diff with Backup Sqlite Db": task_diff_sqlite_backups,
         "Restore from Sqlite Backup Version": task_restore_sqlite_backup,
         "Deduplicate Questions": task_deduplicate_questions,
         "Fix Question Categorization": task_fix_question_categorization,
@@ -145,17 +135,15 @@ def run_interactive_menu():
                 Separator("=== YAML ==="),
                 "Index all Yaml Files in Dir",
                 "Consolidate Unique Yaml Questions",
-                "Locate Previous YAML backup",
+                "Show Previous YAML backup(s)",
                 "Diff YAML Backups",
                 "YAML Statistics",
                 Separator("=== Sqlite ==="),
-                "Write DB to YAML Backup Version",
-                "Restore DB from YAML Backup Version",
-                "Index all Sqlite files in Dir",
+                "Index Sqlite Files",
+                "Create Sqlite DB from YAML Backup Version",
                 "View Database Schema",
-                "Locate Previous Sqlite Backup",
+                "Show Previous Sqlite Backup(s)",
                 "Diff with Backup Sqlite Db",
-                "Create Sqlite Backup Version",
                 "Restore from Sqlite Backup Version",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
