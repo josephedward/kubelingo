@@ -625,7 +625,7 @@ The script is run from the command line. It takes a `--source-dir` argument poin
 This utility script locates YAML backup files and can provide detailed information, JSON output, or an AI-generated summary.
 
 **Functionality**:
-- **Scanning**: Scans a specified directory (defaulting to `question-data-backup/`).
+- **Scanning**: Scans one or more directories. A primary directory can be provided as an argument (defaults to `question-data-backup/`), and additional directories can be specified with `-d` or `--dir`.
 - **Filtering**: Can filter files using a regex pattern.
 - **Output Formats**: Displays results as formatted text or structured JSON.
 - **AI Summary**: Can use an AI model to generate a summary of the located backups.
@@ -638,6 +638,10 @@ python3 scripts/locate_yaml_backups.py
 To scan a custom directory and filter by a pattern:
 ```bash
 python3 scripts/locate_yaml_backups.py /path/to/your/backups --pattern ".*_quiz.yaml"
+```
+To scan multiple directories:
+```bash
+python3 scripts/locate_yaml_backups.py primary-backups/ --dir secondary-backups/ --dir archives/
 ```
 To get output in JSON format:
 ```bash
