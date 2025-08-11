@@ -152,6 +152,13 @@ def add_question(
         conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Validate subject matter category if provided
+    if subject is not None and subject not in SUBJECT_MATTER:
+        raise ValueError(
+            f"Invalid subject matter category: {subject!r}. "
+            f"Must be one of: {SUBJECT_MATTER}"
+        )
+
     # Serialize complex fields to JSON strings
     validation_steps_json = None
     if validation_steps is not None:
