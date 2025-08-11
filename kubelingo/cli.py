@@ -280,68 +280,16 @@ def handle_troubleshoot(cmd_args):
 
 def restore_db():
     """
-    Merges questions from the backup into the live database.
-    This is an additive process: it inserts new questions from the backup and
-    updates existing ones if they share the same ID. It never deletes data.
+    Restores the live database from the master backup, completely overwriting it.
+    This action is destructive and will remove any custom or AI-generated questions.
     """
-    import sqlite3
-    from kubelingo.database import get_db_connection
-    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
-
-    backup_db_path = None
-    if os.path.isfile(MASTER_DATABASE_FILE):
-        backup_db_path = MASTER_DATABASE_FILE
-    elif os.path.isfile(SECONDARY_MASTER_DATABASE_FILE):
-        backup_db_path = SECONDARY_MASTER_DATABASE_FILE
-
-    if not backup_db_path:
-        print(f"{Fore.RED}No master database backups found to restore from.{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}Looked for '{MASTER_DATABASE_FILE}' and '{SECONDARY_MASTER_DATABASE_FILE}'.{Style.RESET_ALL}")
-        print("You may need to run the build script first: python3 scripts/build_question_db.py")
-        return
-
-    print(f"{Fore.CYAN}Merging questions from backup DB: {backup_db_path}{Style.RESET_ALL}")
-    # Merge entries without dropping any existing data
+    from kubelingo.database import init_db
     try:
-        import sqlite3
-        from kubelingo.database import get_db_connection, add_question, _row_to_question_dict
-        # Connect to backup DB and fetch all rows
-        bconn = sqlite3.connect(backup_db_path)
-        bconn.row_factory = sqlite3.Row
-        cursor = bconn.cursor()
-        cursor.execute("SELECT * FROM questions")
-        rows = cursor.fetchall()
-        bconn.close()
-        # Insert or replace each question into live DB
-        lconn = get_db_connection()
-        lconn.row_factory = sqlite3.Row
-        for row in rows:
-            q = _row_to_question_dict(row)
-            add_question(
-                id=q.get('id'),
-                prompt=q.get('prompt'),
-                source_file=q.get('source_file'),
-                response=q.get('response'),
-                category=q.get('category'),
-                source=q.get('source'),
-                validation_steps=q.get('validation_steps'),
-                validator=q.get('validator'),
-                review=q.get('review', False),
-                explanation=q.get('explanation'),
-                difficulty=q.get('difficulty'),
-                pre_shell_cmds=q.get('pre_shell_cmds'),
-                initial_files=q.get('initial_files'),
-                question_type=q.get('question_type'),
-                answers=q.get('answers'),
-                correct_yaml=q.get('correct_yaml'),
-                schema_category=q.get('schema_category'),
-                conn=lconn
-            )
-        lconn.commit()
-        lconn.close()
-        print(f"{Fore.GREEN}Merged {len(rows)} questions into live database.{Style.RESET_ALL}")
+        # init_db(clear=True) handles removing the old DB and copying the master.
+        init_db(clear=True)
+        print(f"{Fore.GREEN}Successfully restored the database from the master backup.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Failed to merge backup questions: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Failed to restore database: {e}{Style.RESET_ALL}")
 
 
 def find_duplicates_cmd(cmd):
@@ -837,6 +785,9 @@ def main():
                 # Import all YAML quiz questions into the database
                 script = repo_root / 'scripts' / 'legacy' / 'migrate_all_yaml_questions.py'
                 subprocess.run([sys.executable, str(script)])
+                return
+            elif cmd_name == 'restore_db':
+                restore_db()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
