@@ -79,7 +79,9 @@ def restore_yaml_to_db(
                     else:
                         q_dict["question_type"] = q_type
 
-                    q_dict["source_file"] = file_path.name
+                    # Preserve source_file from YAML; fallback to YAML filename if missing
+                    if not q_dict.get("source_file"):
+                        q_dict["source_file"] = file_path.name
                     # Preserve any `links` entries in metadata
                     links = q_dict.pop("links", None)
                     if links:
