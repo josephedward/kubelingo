@@ -38,9 +38,6 @@ def populate_db_from_yaml(
 
     conn = get_db_connection(db_path=db_path)
 
-    category_to_source_file = ENABLED_QUIZZES
-    unmatched_categories = set()
-
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
     # This is safer than introspection, which may fail in some environments.
     allowed_args = {
@@ -70,6 +67,7 @@ def populate_db_from_yaml(
         k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
     }
     unmatched_categories = set()
+    skipped_no_category = 0
 
     question_count = 0
     try:
@@ -151,11 +149,14 @@ def populate_db_from_yaml(
 
                     if source_file_from_category:
                         q_dict["source_file"] = source_file_from_category
-                    elif not q_dict.get("source_file"):
-                        # If a source file can't be determined, we can't link the question to a quiz.
-                        # This can happen if a category in the YAML is not in ENABLED_QUIZZES.
+                    else:
+                        # If a source file can't be determined from category, we can't link
+                        # the question to a quiz. This can happen if a category in the YAML
+                        # is not in ENABLED_QUIZZES or is missing.
                         if category:
                             unmatched_categories.add(category)
+                        else:
+                            skipped_no_category += 1
                         continue
 
                     # Remove legacy keys that are not supported by the database schema.
@@ -183,6 +184,9 @@ def populate_db_from_yaml(
         print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
         for cat in sorted(list(unmatched_categories)):
             print(f"  - {cat}")
+
+    if skipped_no_category > 0:
+        print(f"\nWarning: Skipped {skipped_no_category} questions because they were missing a 'category' field.")
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
