@@ -1151,3 +1151,66 @@ For full details and the development plan, see `docs/maintenance_scripts.md`.
     -   Over time we can spot when users stop storing files in the primary dir and update docs accordingly.
 
 —By layering in discovery helpers, interactive fallbacks, an index of backups, and CI-driven smoke tests, the system becomes truly self-healing. Rapid AI-driven refactors or folder reorganizations simply flow through the same discovery layer, and nothing ever “disappears.” Let me know which of these you’d like to tackle next—I can jump in and start implementing the CLI “locate” command or the backup-index machinery right away.
+
+## Maintenance Toolbox UI
+
+A centralized maintenance script is being developed to provide a unified interface for common data management tasks. The script will present an interactive menu to guide the user.
+
+```
+? Select a maintenance task: (Use arrow keys)
+   === YAML ===
+   ○ Index all Yaml Files in Dir
+   ○ Consolidate Unique Yaml Questions
+   ○ Locate Previous YAML backup
+   ○ View YAML Backup Statistics
+   ○ Write DB to YAML Backup Version
+   ○ Restore DB from YAML Backup Version
+   === Sqlite ===
+   ○ Index all Sqlite files in Dir
+   ○ View Database Schema
+   ○ Locate Previous Sqlite Backup
+   ○ Diff with Backup Sqlite Db
+   ○ Create Sqlite Backup Version
+   ○ Restore from Sqlite Backup Version
+   === Questions ===
+   ○ Deduplicate Questions
+   ○ Fix Question Categorization
+   ○ Fix Documentation Links
+   ○ Fix Question Formatting
+   === System ===
+ » ○ Bug Ticket
+   ○ Cancel
+```
+
+## AI-Powered Question Consolidation and Categorization
+
+As part of the maintenance toolbox, the "Consolidate Unique Yaml Questions" feature will leverage AI to process indexed YAML files. It will generate a unique set of questions, categorized according to a standardized schema. This ensures consistency and enriches the question database.
+
+### Question Schema
+
+#### Exercise Type
+- **Basic**: Simple single-word answer with AI feedback.
+- **Command**: Syntax evaluation for shell commands.
+- **Manifest**: Requires using Vim to author or edit a YAML manifest, which is then evaluated.
+
+#### Subject Matter Type
+1. Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)
+2. Pod design patterns (initContainers, sidecars, lifecycle hooks)
+3. Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)
+4. App configuration (ConfigMaps, Secrets, projected & downwardAPI volumes)
+5. Probes & health (liveness, readiness, startup; graceful shutdown)
+6. Resource management (requests/limits, QoS classes, HPA basics)
+7. Jobs & CronJobs (completions, parallelism, backoff, schedules)
+8. Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)
+9. Ingress & HTTP routing (basic rules, paths, service backends)
+10. Networking utilities (DNS in-cluster, port-forward, exec, curl)
+11. Persistence (PVCs, using existing StorageClasses, common volume types)
+12. Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)
+13. Labels, annotations & selectors (label ops, field selectors, jsonpath)
+14. Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)
+15. Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
+16. Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)
+17. ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)
+18. Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
+19. Namespaces & contexts (scoping resources, default namespace, context switching)
+20. API discovery & docs (kubectl explain, api-resources, api-versions)
