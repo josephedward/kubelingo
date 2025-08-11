@@ -44,7 +44,6 @@ def analyze_file(path):
             cat = q.metadata.get('category')
         categories.append(cat or 'Uncategorized')
     counts = {}
-    from collections import Counter
     for k, v in Counter(categories).items():
         counts[k] = v
     size = path.stat().st_size

@@ -116,18 +116,23 @@ This deletion is committed immediately.  If you wish to back up your database be
 
 ### YAML Backup Utilities
 
-- **locate_yaml_backups.py**: Scan the `question-data-backup/` directory for any `.yaml` or `.yml` files and report what backups are available.
+- **locate_yaml_backups.py**: Locates YAML backup files, providing detailed information like file size and modification date. It can scan multiple directories and filter results.
   Usage:
   ```bash
+  # Scan default backup directory
   python3 scripts/locate_yaml_backups.py
+  # Scan a custom directory
+  python3 scripts/locate_yaml_backups.py /path/to/your/backups
   ```
 
-- **yaml_backup_stats.py**: Show total question count and per-category breakdown for a given YAML backup file. Requires PyYAML.
+- **yaml_backup_stats.py**: Show detailed statistics for YAML files in a directory or for a single file. Requires PyYAML.
   Usage:
   ```bash
-  python3 scripts/yaml_backup_stats.py <path-to-yaml-file>
+  # Scan default backup directory
+  python3 scripts/yaml_backup_stats.py
+  # Scan a specific file or directory
+  python3 scripts/yaml_backup_stats.py <path-to-yaml-file-or-dir>
   ```
-  If PyYAML is not installed, the script will print a message directing you to install it via `pip install pyyaml`.
 
 ### Seeding the Database Manually
 
