@@ -497,6 +497,7 @@ def manage_troubleshooting_interactive():
             choices = [
                 questionary.Separator("=== YAML ==="),
                 {"name": "Index all Yaml Files in Dir", "value": "index_yaml_files"},
+                {"name": "Consolidate Unique Yaml Questions", "value": "consolidate_unique_yaml_questions"},
                 {"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"},
                 {"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"},
                 {"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"},
