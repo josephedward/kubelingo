@@ -59,10 +59,18 @@ def populate_db_from_yaml(
                     print(f"Error parsing YAML file {file_path}: {e}", file=sys.stderr)
                     continue
 
-                if not questions_data or not isinstance(questions_data, list):
+                if not questions_data:
                     continue
 
-                for q_data in questions_data:
+                # The questions might be under a 'questions' key, or be a raw list
+                questions_list = questions_data
+                if isinstance(questions_data, dict):
+                    questions_list = questions_data.get("questions")
+
+                if not isinstance(questions_list, list):
+                    continue
+
+                for q_data in questions_list:
                     q_dict = q_data.copy()
 
                     # Flatten metadata, giving preference to top-level keys
