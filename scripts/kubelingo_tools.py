@@ -141,74 +141,62 @@ def run_interactive_menu():
         print("pip install questionary")
         sys.exit(1)
 
-    exercise_choice = questionary.select(
-        "Choose a Kubernetes exercise:",
-        choices=[
-            "Troubleshooting",
-            "Cancel"
-        ]
-    ).ask()
+    tasks = {
+        "Index all Yaml Files in Dir": task_index_yaml,
+        "Consolidate Unique Yaml Questions": task_consolidate_yaml,
+        "Locate Previous YAML backup": task_locate_yaml_backup,
+        "View YAML Backup Statistics": task_yaml_stats,
+        "Write DB to YAML Backup Version": task_export_db_to_yaml,
+        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
+        "Index all Sqlite files in Dir": task_index_sqlite,
+        "View Database Schema": task_view_db_schema,
+        "Locate Previous Sqlite Backup": task_locate_sqlite_backup,
+        "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
+        "Create Sqlite Backup Version": task_create_sqlite_backup,
+        "Restore from Sqlite Backup Version": task_restore_sqlite_backup,
+        "Deduplicate Questions": task_deduplicate_questions,
+        "Fix Question Categorization": task_fix_question_categorization,
+        "Fix Documentation Links": task_fix_doc_links,
+        "Fix Question Formatting": task_fix_question_formatting,
+        "Bug Ticket": task_bug_ticket,
+    }
 
-    if exercise_choice == "Troubleshooting":
-        tasks = {
-            "Index all Yaml Files in Dir": task_index_yaml,
-            "Consolidate Unique Yaml Questions": task_consolidate_yaml,
-            "Locate Previous YAML backup": task_locate_yaml_backup,
-            "View YAML Backup Statistics": task_yaml_stats,
-            "Write DB to YAML Backup Version": task_export_db_to_yaml,
-            "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
-            "Index all Sqlite files in Dir": task_index_sqlite,
-            "View Database Schema": task_view_db_schema,
-            "Locate Previous Sqlite Backup": task_locate_sqlite_backup,
-            "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
-            "Create Sqlite Backup Version": task_create_sqlite_backup,
-            "Restore from Sqlite Backup Version": task_restore_sqlite_backup,
-            "Deduplicate Questions": task_deduplicate_questions,
-            "Fix Question Categorization": task_fix_question_categorization,
-            "Fix Documentation Links": task_fix_doc_links,
-            "Fix Question Formatting": task_fix_question_formatting,
-            "Bug Ticket": task_bug_ticket,
-        }
+    while True:
+        choice = questionary.select(
+            "Select a maintenance task:",
+            choices=[
+                Separator("=== YAML ==="),
+                "Index all Yaml Files in Dir",
+                "Consolidate Unique Yaml Questions",
+                "Locate Previous YAML backup",
+                "View YAML Backup Statistics",
+                "Write DB to YAML Backup Version",
+                "Restore DB from YAML Backup Version",
+                Separator("=== Sqlite ==="),
+                "Index all Sqlite files in Dir",
+                "View Database Schema",
+                "Locate Previous Sqlite Backup",
+                "Diff with Backup Sqlite Db",
+                "Create Sqlite Backup Version",
+                "Restore from Sqlite Backup Version",
+                Separator("=== Questions ==="),
+                "Deduplicate Questions",
+                "Fix Question Categorization",
+                "Fix Documentation Links",
+                "Fix Question Formatting",
+                Separator("=== System ==="),
+                "Bug Ticket",
+                "Cancel"
+            ],
+            use_indicator=True
+        ).ask()
 
-        while True:
-            choice = questionary.select(
-                "Select a maintenance task:",
-                choices=[
-                    Separator("=== YAML ==="),
-                    "Index all Yaml Files in Dir",
-                    "Consolidate Unique Yaml Questions",
-                    "Locate Previous YAML backup",
-                    "View YAML Backup Statistics",
-                    "Write DB to YAML Backup Version",
-                    "Restore DB from YAML Backup Version",
-                    Separator("=== Sqlite ==="),
-                    "Index all Sqlite files in Dir",
-                    "View Database Schema",
-                    "Locate Previous Sqlite Backup",
-                    "Diff with Backup Sqlite Db",
-                    "Create Sqlite Backup Version",
-                    "Restore from Sqlite Backup Version",
-                    Separator("=== Questions ==="),
-                    "Deduplicate Questions",
-                    "Fix Question Categorization",
-                    "Fix Documentation Links",
-                    "Fix Question Formatting",
-                    Separator("=== System ==="),
-                    "Bug Ticket",
-                    "Cancel"
-                ],
-                use_indicator=True
-            ).ask()
+        if choice is None or choice == "Cancel":
+            print("Operation cancelled.")
+            break
 
-            if choice is None or choice == "Cancel":
-                print("Operation cancelled.")
-                break
-
-            if choice in tasks:
-                tasks[choice]()
-    elif exercise_choice is None or exercise_choice == "Cancel":
-        print("Operation cancelled.")
-        return
+        if choice in tasks:
+            tasks[choice]()
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
