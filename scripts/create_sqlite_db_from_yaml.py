@@ -9,6 +9,8 @@ from typing import Optional
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
+import os
+
 try:
     import yaml
 except ImportError:
@@ -18,6 +20,7 @@ except ImportError:
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.utils import path_utils
+from kubelingo.utils.config import ENABLED_QUIZZES
 from kubelingo.utils.config import get_live_db_path
 
 
@@ -30,6 +33,11 @@ def populate_db_from_yaml(
     if not yaml_files:
         print("No YAML files found to process.")
         return
+
+    # Create a mapping from category name to source filename for quiz lookup.
+    category_to_source_file = {
+        category: os.path.basename(path) for category, path in ENABLED_QUIZZES.items()
+    }
 
     conn = get_db_connection(db_path=db_path)
 
@@ -111,9 +119,15 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Set source_file to the YAML filename being processed if not already present.
-                    # This preserves the original source file if it was present in the question data.
-                    if not q_dict.get("source_file"):
+                    # Determine the source file from the category to ensure questions
+                    # are correctly associated with their quizzes.
+                    category = q_dict.get("category")
+                    source_file_from_category = category_to_source_file.get(category)
+
+                    if source_file_from_category:
+                        q_dict["source_file"] = source_file_from_category
+                    elif not q_dict.get("source_file"):
+                        # Fallback for questions without a matching category, preserving old behavior.
                         q_dict["source_file"] = file_path.name
 
                     # Remove legacy keys that are not supported by the database schema.
