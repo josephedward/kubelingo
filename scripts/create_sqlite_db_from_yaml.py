@@ -181,13 +181,13 @@ def main():
     Main function to parse arguments and run the population script.
     """
     parser = argparse.ArgumentParser(
-        description="Populate the SQLite database from YAML backup files."
+        description="Populate the SQLite database from YAML question files."
     )
     parser.add_argument(
         "input_paths",
         nargs="*",
         type=str,
-        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories and prompts for selection.",
+        help="Path(s) to input YAML file(s) or directories. If not provided, scans default question directories.",
     )
     parser.add_argument(
         "-y",
@@ -208,55 +208,15 @@ def main():
     )
     args = parser.parse_args()
 
-    yaml_files = []
-    if not args.input_paths:
-        print("No input paths provided. Scanning for YAML backups...")
-        backup_dir = project_root / "backups" / "yaml"
-        all_backups = sorted(
-            list(backup_dir.glob("**/*.yaml")) + list(backup_dir.glob("**/*.yml")),
-            key=lambda p: p.name,
-        )
-        if not all_backups:
-            print("No YAML backup files found.")
-            sys.exit(0)
-
-        if args.yes:
-            # When in non-interactive mode, find the latest restorable backup.
-            # A restorable backup is assumed to be one of the consolidated files.
-            restorable_backups = [
-                p
-                for p in all_backups
-                if p.name.startswith("consolidated_unique_questions")
-            ]
-            if not restorable_backups:
-                print(
-                    "No restorable backup files (e.g., 'consolidated_unique_questions*.yaml') found.",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-            selected_file = restorable_backups[-1]  # The last one is the most recent
-            print(f"Automatically selecting latest backup: {selected_file.name}")
-            yaml_files = [selected_file]
-        else:
-            print("\nPlease select a YAML backup to restore from:")
-            for i, backup_path in enumerate(all_backups):
-                print(f"  {i + 1}: {backup_path.name}")
-
-            try:
-                selection = input(f"\nEnter number (1-{len(all_backups)}): ")
-                selection_idx = int(selection) - 1
-                if not 0 <= selection_idx < len(all_backups):
-                    raise ValueError
-                selected_file = all_backups[selection_idx]
-                yaml_files = [selected_file]
-            except (ValueError, IndexError):
-                print("Invalid selection. Aborting.", file=sys.stderr)
-                sys.exit(1)
-    else:
+    if args.input_paths:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
+    else:
+        print("No input paths provided. Scanning default question directories...")
+        question_dirs = path_utils.get_all_question_dirs()
+        yaml_files = path_utils.find_yaml_files(question_dirs)
 
     if not yaml_files:
-        print("No YAML backup files found.")
+        print("No YAML files found.")
         sys.exit(0)
 
     unique_files = sorted(list(set(yaml_files)))
