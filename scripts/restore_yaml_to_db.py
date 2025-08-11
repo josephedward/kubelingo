@@ -43,64 +43,94 @@ def restore_yaml_to_db(
         for path in track(yaml_files, description="Processing YAML files..."):
             console.print(f"  - Processing '{path.name}'...")
             try:
-                with open(path, 'r') as f:
+                with open(path, "r") as f:
                     data = yaml.safe_load(f)
+
+                if data is None:
+                    continue
 
                 questions_list = []
                 if isinstance(data, list):
                     questions_list = data
-                elif isinstance(data, dict) and 'questions' in data:
-                    questions_list = data.get('questions', [])
+                elif isinstance(data, dict):
+                    if "questions" in data:
+                        questions_list = data.get("questions", [])
+                    # The file itself may be a single question object
+                    elif "id" in data:
+                        questions_list = [data]
 
-                if not data or not questions_list:
-                    console.print(f"    [yellow]Skipping empty or invalid file: {path.name}[/yellow]")
+                if not questions_list:
+                    console.print(
+                        f"    [yellow]Skipping file with no questions: {path.name}[/yellow]"
+                    )
                     continue
 
                 for q_data in questions_list:
                     if not isinstance(q_data, dict):
                         continue
                     try:
-                        # Map `question` to `prompt` if it exists and prompt is not set
-                        if 'question' in q_data and 'prompt' not in q_data:
-                            q_data['prompt'] = q_data.pop('question')
+                        # Flatten metadata if it exists
+                        if "metadata" in q_data and isinstance(
+                            q_data.get("metadata"), dict
+                        ):
+                            for key, value in q_data["metadata"].items():
+                                if key not in q_data:
+                                    q_data[key] = value
+
+                        # Map aliases to database fields
+                        if "question" in q_data and "prompt" not in q_data:
+                            q_data["prompt"] = q_data.pop("question")
+                        if "answer" in q_data and "response" not in q_data:
+                            q_data["response"] = q_data.pop("answer")
+                        if "citation" in q_data and "source" not in q_data:
+                            q_data["source"] = q_data.pop("citation")
 
                         # Ensure required fields are present before trying to add
-                        if not all(k in q_data for k in ['id', 'prompt']):
-                            console.print(f"[red]Error in {path.name}: Skipping question missing 'id' or 'prompt'. ID: {q_data.get('id', 'N/A')}[/red]")
+                        if not all(k in q_data for k in ["id", "prompt"]):
+                            console.print(
+                                f"[red]Error in {path.name}: Skipping question missing 'id' or 'prompt'. ID: {q_data.get('id', 'N/A')}[/red]"
+                            )
                             errors += 1
                             continue
 
-                        q_data['source_file'] = str(path)
+                        q_data["source_file"] = str(path)
                         # Map `type` from YAML to `question_type` in DB schema
-                        if 'type' in q_data:
-                            q_data['question_type'] = q_data.pop('type')
+                        if "type" in q_data:
+                            q_data["question_type"] = q_data.pop("type")
                         # Map `subject` from YAML to `subject_matter` in DB schema
-                        if 'subject' in q_data:
-                            q_data['subject_matter'] = q_data.pop('subject')
+                        if "subject" in q_data:
+                            q_data["subject_matter"] = q_data.pop("subject")
 
                         # Filter to only include arguments expected by add_question
                         valid_keys = {
-                            'id', 'prompt', 'response', 'category', 'source',
-                            'validation_steps', 'validator', 'source_file', 'review',
-                            'explanation', 'difficulty', 'pre_shell_cmds', 'initial_files',
-                            'question_type', 'answers', 'correct_yaml', 'schema_category',
-                            'metadata', 'subject_matter'
+                            "id", "prompt", "response", "category", "source",
+                            "validation_steps", "validator", "source_file", "review",
+                            "explanation", "difficulty", "pre_shell_cmds",
+                            "initial_files", "question_type", "answers",
+                            "correct_yaml", "schema_category", "metadata",
+                            "subject_matter",
                         }
                         kwargs_for_add = {
-                            key: q_data[key] for key in valid_keys if key in q_data
+                            key: q_data[key]
+                            for key in valid_keys
+                            if key in q_data
                         }
 
                         add_question(conn=conn, **kwargs_for_add)
                         total_questions += 1
                     except Exception as e:
-                        console.print(f"[red]Error adding question from {path.name} ({q_data.get('id', 'N/A')}): {e}[/red]")
+                        console.print(
+                            f"[red]Error adding question from {path.name} ({q_data.get('id', 'N/A')}): {e}[/red]"
+                        )
                         errors += 1
 
             except yaml.YAMLError as e:
                 console.print(f"[red]Error parsing YAML file {path.name}: {e}[/red]")
                 errors += 1
             except Exception as e:
-                console.print(f"[red]An unexpected error occurred with file {path.name}: {e}[/red]")
+                console.print(
+                    f"[red]An unexpected error occurred with file {path.name}: {e}[/red]"
+                )
                 errors += 1
     finally:
         conn.close()
