@@ -5,7 +5,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from kubelingo.database import get_db_connection
+from kubelingo.database import get_db_connection, get_all_questions
 from kubelingo.utils import path_utils
 
 
@@ -57,6 +57,38 @@ def verify_questions():
                 schema_category, count = row
                 schema_category_name = schema_category if schema_category else "Uncategorized"
                 print(f"  - {schema_category_name}: {count}")
+
+        print("\n--- Data Integrity Checks ---")
+        all_questions = get_all_questions(conn=conn)
+
+        uncategorized = [q for q in all_questions if not q.get('category')]
+        if uncategorized:
+            print(f"\nFound {len(uncategorized)} uncategorized questions. The app may ignore these.")
+            print("Consider assigning a category to them:")
+            for q in uncategorized[:10]:  # To avoid spamming, show first 10
+                print(f"  - ID: {q.get('id')}, Source: {q.get('source_file')}")
+            if len(uncategorized) > 10:
+                print(f"  ... and {len(uncategorized) - 10} more.")
+        else:
+            print("\nAll questions have a category assigned.")
+
+        no_schema = [q for q in all_questions if not q.get('schema_category')]
+        if no_schema:
+            print(f"\nFound {len(no_schema)} questions with no schema_category. The app may ignore these.")
+            for q in no_schema[:10]:
+                print(f"  - ID: {q.get('id')}, Source: {q.get('source_file')}")
+            if len(no_schema) > 10:
+                print(f"  ... and {len(no_schema) - 10} more.")
+        else:
+            print("All questions have a schema_category assigned.")
+
+        no_prompt = [q for q in all_questions if not q.get('prompt')]
+        if no_prompt:
+            print(f"\nFound {len(no_prompt)} questions with no prompt.")
+            for q in no_prompt:
+                print(f"  - ID: {q.get('id')}, Source: {q.get('source_file')}")
+        else:
+            print("All questions have a prompt.")
 
     finally:
         conn.close()
