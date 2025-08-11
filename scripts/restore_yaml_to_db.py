@@ -86,14 +86,6 @@ def restore_yaml_to_db(
 
                     # Override source_file to the YAML filename being processed
                     q_dict["source_file"] = file_path.name
-                    # Preserve any `links` entries in metadata
-                    links = q_dict.pop("links", None)
-                    if links:
-                        metadata = q_dict.get("metadata")
-                        if not isinstance(metadata, dict):
-                            metadata = {}
-                        metadata["links"] = links
-                        q_dict["metadata"] = metadata
                     add_question(conn=conn, **q_dict)
                     question_count += 1
         conn.commit()
