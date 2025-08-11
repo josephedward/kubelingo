@@ -617,40 +617,63 @@ The script is run from the command line. It takes a `--source-dir` argument poin
 
 ### `scripts/locate_yaml_backups.py`
 
-This utility script locates YAML backup files, providing more detailed information like file size and modification date. It is more flexible, allowing you to scan any directory.
+This utility script locates YAML backup files and can provide detailed information, JSON output, or an AI-generated summary.
+
+**Functionality**:
+- **Scanning**: Scans a specified directory (defaulting to `question-data-backup/`).
+- **Filtering**: Can filter files using a regex pattern.
+- **Output Formats**: Displays results as formatted text or structured JSON.
+- **AI Summary**: Can use an AI model to generate a summary of the located backups.
 
 **Usage**:
-To scan the default `question-data-backup/` directory:
+To scan the default directory:
 ```bash
 python3 scripts/locate_yaml_backups.py
 ```
-To scan a custom directory:
+To scan a custom directory and filter by a pattern:
 ```bash
-python3 scripts/locate_yaml_backups.py /path/to/your/backups
+python3 scripts/locate_yaml_backups.py /path/to/your/backups --pattern ".*_quiz.yaml"
 ```
-The script will print a formatted list of found YAML files or a message indicating that none were found.
+To get output in JSON format:
+```bash
+python3 scripts/locate_yaml_backups.py --json
+```
+To get an AI-generated summary (requires `OPENAI_API_KEY`):
+```bash
+python3 scripts/locate_yaml_backups.py --ai
+```
 
 ### `scripts/yaml_backup_stats.py`
 
-This script provides detailed statistics for a given YAML backup file, including total questions, a breakdown by category, and file size. It also includes an optional AI-powered feature to summarize the quiz topics.
+This script provides detailed statistics for YAML backup files, including question counts, category breakdowns, and file metadata. It can operate on a single file or an entire directory.
 
 **Functionality**:
-- **Detailed Stats**: Analyzes a single YAML file and reports on its contents.
-- **AI Summary**: If you provide the `--ai-summary` flag and have an `OPENAI_API_KEY` set, it will generate a summary of the quiz's topics.
-- **Dependencies**: Requires `PyYAML`. For the AI summary, it also requires the `openai` library.
+- **Flexible Scanning**: Can analyze a single YAML file or scan a directory for backups.
+- **Filtering**: Supports filtering files by a regex pattern when scanning a directory.
+- **Detailed Stats**: Reports total questions, per-category counts, file size, and modification time.
+- **Output Formats**: Can display stats in a human-readable format or as structured JSON.
+- **AI Summary**: Includes an optional AI-powered feature to summarize the statistics.
 
 **Usage**:
 First, ensure dependencies are installed:
 ```bash
 pip install PyYAML openai
 ```
-To get stats for a specific file:
+To analyze a single file:
 ```bash
 python3 scripts/yaml_backup_stats.py /path/to/backup.yaml
 ```
-To also get an AI summary (ensure `OPENAI_API_KEY` is set):
+To scan the default backup directory:
 ```bash
-python3 scripts/yaml_backup_stats.py /path/to/backup.yaml --ai-summary
+python3 scripts/yaml_backup_stats.py
+```
+To scan a directory and get JSON output:
+```bash
+python3 scripts/yaml_backup_stats.py /path/to/backups --json
+```
+To get an AI summary of the stats (requires `OPENAI_API_KEY`):
+```bash
+python3 scripts/yaml_backup_stats.py /path/to/backups --ai
 ```
   
 ### Testing & Observations
