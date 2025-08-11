@@ -104,10 +104,6 @@ def populate_db_from_yaml(
                     if "question" in q_dict:
                         q_dict["prompt"] = q_dict.pop("question")
 
-                    # Normalize 'answer' from YAML to 'correct_yaml' for the database
-                    if "answer" in q_dict:
-                        q_dict["correct_yaml"] = q_dict.pop("answer")
-
                     # Normalize 'type' from YAML to 'question_type' for the database
                     if "type" in q_dict:
                         q_dict["question_type"] = q_dict.pop("type")
