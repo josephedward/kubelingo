@@ -3,6 +3,9 @@
 Reclassify all questions in the Kubelingo database into the three immutable schema categories
 using OpenAI's classification: Basic/Open-Ended, Command-Based/Syntax, Manifests.
 """
+import sys
+print("DEPRECATED: use the new single-purpose maintenance scripts (see docs/scripts.md) instead of reorganize_questions.py.")
+sys.exit(1)
 import os
 import sqlite3
 import sys
