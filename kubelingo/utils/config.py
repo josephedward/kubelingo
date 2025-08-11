@@ -77,7 +77,7 @@ BASIC_QUIZZES = {
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
-    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'shell_setup:_aliases_&_autocomplete.yaml'),
+    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_and_shell_setup.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
     "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
     "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'configmap_operations.yaml'),
@@ -95,14 +95,14 @@ COMMAND_QUIZZES = {
 MANIFEST_QUIZZES = {
     # YAML authoring exercises
     "YAML Practice": os.path.join(QUESTIONS_DIR, 'yaml_authoring.yaml'),
-    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_configmaps.yaml'),
+    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-configmaps.yaml'),
     "Configuration & Security": os.path.join(QUESTIONS_DIR, 'configuration_&_security.yaml'),
     "Core Concepts": os.path.join(QUESTIONS_DIR, 'core_concepts.yaml'),
-    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_deployments.yaml'),
+    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-deployments.yaml'),
     # Helm manifest exercises (legacy misc/manifests)
-    "Helm Manifests": os.path.join(PROJECT_ROOT, 'misc', 'manifests', 'helm.yaml'),
-    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_pods.yaml'),
-    "Services Manifests": os.path.join(PROJECT_ROOT, 'misc', 'manifests', 'services.yaml'),
+    "Helm Manifests": os.path.join(QUESTIONS_DIR, 'helm.yaml'),
+    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-pods.yaml'),
+    "Services Manifests": os.path.join(QUESTIONS_DIR, 'services.yaml'),
     "Workload Management": os.path.join(QUESTIONS_DIR, 'workload_management.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
