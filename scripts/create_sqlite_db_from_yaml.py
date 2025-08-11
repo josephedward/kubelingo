@@ -148,6 +148,11 @@ def populate_db_from_yaml(
                         q_type = q_dict.get("question_type")
                         if q_type in ("yaml_edit", "yaml_author"):
                             q_dict["category"] = "YAML Authoring"
+                        # For AI-generated questions, infer category from subject matter.
+                        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
+                            subject = q_dict.get("subject_matter")
+                            # Capitalize first letter to match common category naming conventions.
+                            q_dict["category"] = subject.capitalize()
 
                     # To associate a question with a quiz, its `source_file` must be set correctly.
                     # The canonical mapping is from category -> source_file in ENABLED_QUIZZES.
