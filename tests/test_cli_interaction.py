@@ -38,8 +38,8 @@ def setup_test_db(tmp_path: Path, monkeypatch):
     return str(db_path)
 
 @patch('builtins.input')
-@patch('inquirer.prompt')
-def test_cli_full_interaction(mock_inquirer_prompt, mock_input, setup_test_db, capsys):
+@patch('kubelingo.cli.prompt')
+def test_cli_full_interaction(mock_prompt, mock_input, setup_test_db, capsys):
     """
     Tests a full user interaction: selecting a quiz, answering a question, and seeing the result.
 
@@ -52,7 +52,7 @@ def test_cli_full_interaction(mock_inquirer_prompt, mock_input, setup_test_db, c
     # 1. User selects the quiz from the main menu.
     # 2. User provides the correct answer to the question.
     # 3. User chooses to exit the application from the main menu.
-    mock_inquirer_prompt.side_effect = [
+    mock_prompt.side_effect = [
         {'menu_choice': 'Test CLI Quiz'},  # Select the quiz
         {'menu_choice': 'Exit App'},       # Exit after quiz
     ]
@@ -73,5 +73,5 @@ def test_cli_full_interaction(mock_inquirer_prompt, mock_input, setup_test_db, c
     assert "Correct!" in captured.out
 
     # Check that our mocks were used
-    assert mock_inquirer_prompt.called
+    assert mock_prompt.called
     assert mock_input.called
