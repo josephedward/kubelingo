@@ -1,6 +1,6 @@
 questions:
 - answers: []
-  category: null
+  category: General Operations
   correct_yaml: null
   difficulty: null
   explanation: null
@@ -10,11 +10,11 @@ questions:
   prompt: hello
   response: null
   review: false
-  schema_category: null
+  schema_category: basic
   source: null
   source_file: f.yaml
   subject: null
-  type: null
+  type: basic
   validation_steps: null
   validator: null
 - id: add-cmds-q1
@@ -3939,6 +3939,7 @@ questions:
   explanation: insert before the cursor
   metadata:
     id: vim_quiz_data::0
+    category: Vim Basics
     answers:
     - i
     source: https://www.vim.org/docs.php
@@ -3951,6 +3952,7 @@ questions:
   explanation: insert (append) after the cursor
   metadata:
     id: vim_quiz_data::1
+    category: Vim Basics
     answers:
     - a
     source: https://www.vim.org/docs.php
@@ -3963,6 +3965,7 @@ questions:
   explanation: append (open) a new line below the current line
   metadata:
     id: vim_quiz_data::2
+    category: Vim Basics
     answers:
     - o
     source: https://www.vim.org/docs.php
@@ -3979,6 +3982,7 @@ questions:
   explanation: write (save) and quit
   metadata:
     id: vim_quiz_data::3
+    category: Vim Basics
     answers:
     - :wq
     - :x
@@ -3995,6 +3999,7 @@ questions:
   explanation: quit and throw away unsaved changes
   metadata:
     id: vim_quiz_data::4
+    category: Vim Basics
     answers:
     - :q!
     - ZQ
@@ -4008,6 +4013,7 @@ questions:
   explanation: write (save) the file, but don't exit
   metadata:
     id: vim_quiz_data::5
+    category: Vim Basics
     answers:
     - :w
     source: https://www.vim.org/docs.php
@@ -4020,6 +4026,7 @@ questions:
   explanation: delete (cut) a line
   metadata:
     id: vim_quiz_data::6
+    category: Vim Basics
     answers:
     - dd
     source: https://www.vim.org/docs.php
@@ -4032,6 +4039,7 @@ questions:
   explanation: yank (copy) a line
   metadata:
     id: vim_quiz_data::7
+    category: Vim Basics
     answers:
     - yy
     source: https://www.vim.org/docs.php
@@ -4044,6 +4052,7 @@ questions:
   explanation: put (paste) the clipboard after cursor
   metadata:
     id: vim_quiz_data::8
+    category: Vim Basics
     answers:
     - p
     source: https://www.vim.org/docs.php
@@ -4056,6 +4065,7 @@ questions:
   explanation: undo
   metadata:
     id: vim_quiz_data::9
+    category: Vim Basics
     answers:
     - u
     source: https://www.vim.org/docs.php
@@ -4068,6 +4078,7 @@ questions:
   explanation: search for pattern
   metadata:
     id: vim_quiz_data::10
+    category: Vim Basics
     answers:
     - /pattern
     source: https://www.vim.org/docs.php
@@ -4080,6 +4091,7 @@ questions:
   explanation: repeat search in same direction
   metadata:
     id: vim_quiz_data::11
+    category: Vim Basics
     answers:
     - n
     source: https://www.vim.org/docs.php
@@ -4092,6 +4104,7 @@ questions:
   explanation: go to the first line of the document
   metadata:
     id: vim_quiz_data::12
+    category: Vim Basics
     answers:
     - gg
     source: https://www.vim.org/docs.php
@@ -4104,6 +4117,7 @@ questions:
   explanation: go to the last line of the document
   metadata:
     id: vim_quiz_data::13
+    category: Vim Basics
     answers:
     - G
     source: https://www.vim.org/docs.php
@@ -4120,6 +4134,7 @@ questions:
   explanation: go to line N (e.g. 5gg or 5G)
   metadata:
     id: vim_quiz_data::14
+    category: Vim Basics
     answers:
     - :10
     - 10gg
@@ -4136,6 +4151,7 @@ questions:
   explanation: exit insert mode
   metadata:
     id: vim_quiz_data::15
+    category: Vim Basics
     answers:
     - <Esc>
     - <C-c>
@@ -4149,6 +4165,7 @@ questions:
   explanation: redo
   metadata:
     id: vim_quiz_data::17
+    category: Vim Basics
     answers:
     - <C-r>
     source: https://www.vim.org/docs.php
@@ -4161,6 +4178,7 @@ questions:
   explanation: start visual mode, mark lines, then do a command (like y-yank)
   metadata:
     id: vim_quiz_data::18
+    category: Vim Basics
     answers:
     - v
     source: https://www.vim.org/docs.php
@@ -4173,6 +4191,7 @@ questions:
   explanation: start linewise visual mode
   metadata:
     id: vim_quiz_data::19
+    category: Vim Basics
     answers:
     - V
     source: https://www.vim.org/docs.php
@@ -4185,6 +4204,7 @@ questions:
   explanation: start visual block mode
   metadata:
     id: vim_quiz_data::20
+    category: Vim Basics
     answers:
     - <C-v>
     source: https://www.vim.org/docs.php
@@ -4197,6 +4217,7 @@ questions:
   explanation: replace more than one character, until ESC is pressed
   metadata:
     id: vim_quiz_data::21
+    category: Vim Basics
     answers:
     - R
     source: https://www.vim.org/docs.php
@@ -4209,6 +4230,7 @@ questions:
   explanation: jump forwards to the start of a word
   metadata:
     id: vim_quiz_data::22
+    category: Vim Basics
     answers:
     - w
     source: https://www.vim.org/docs.php
@@ -4221,6 +4243,7 @@ questions:
   explanation: jump backwards to the start of a word
   metadata:
     id: vim_quiz_data::23
+    category: Vim Basics
     answers:
     - b
     source: https://www.vim.org/docs.php
@@ -4233,6 +4256,7 @@ questions:
   explanation: jump forwards to the end of a word
   metadata:
     id: vim_quiz_data::24
+    category: Vim Basics
     answers:
     - e
     source: https://www.vim.org/docs.php
@@ -4245,6 +4269,7 @@ questions:
   explanation: jump to the start of the line
   metadata:
     id: vim_quiz_data::25
+    category: Vim Basics
     answers:
     - '0'
     source: https://www.vim.org/docs.php
@@ -4257,6 +4282,7 @@ questions:
   explanation: jump to the end of the line
   metadata:
     id: vim_quiz_data::26
+    category: Vim Basics
     answers:
     - $
     source: https://www.vim.org/docs.php
@@ -4270,6 +4296,7 @@ questions:
     ''{}'', ''[]'')'
   metadata:
     id: vim_quiz_data::27
+    category: Vim Basics
     answers:
     - '%'
     source: https://www.vim.org/docs.php
