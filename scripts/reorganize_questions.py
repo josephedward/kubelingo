@@ -99,10 +99,17 @@ Do not include any other text or explanation.
             category = data.get("schema_category")
             subject_matter = data.get("subject_matter")
 
-            valid_categories = [c.value for c in QuestionCategory]
+            schema_category_map = {
+                "basic": "basic",
+                "command": "command",
+                "manifest": "manifest",
+                "Basic/Open-Ended": "basic",
+                "Command-Based/Syntax": "command",
+                "Manifests": "manifest",
+            }
             valid_subjects = [s.value for s in QuestionSubject]
 
-            if category in valid_categories and subject_matter in valid_subjects:
+            if category in schema_category_map and subject_matter in valid_subjects:
                 return {"schema_category": category, "subject_matter": subject_matter}
             else:
                 print(f"{Fore.YELLOW}\nWarning: AI returned invalid data: {data}. Skipping.{Style.RESET_ALL}")
