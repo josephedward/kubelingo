@@ -28,7 +28,7 @@ def find_duplicates():
 
     Returns:
         A dictionary where keys are duplicate prompts and values are lists of
-        question dicts, sorted by question ID.
+        question dicts, sorted by question ID in descending order (newest first).
     """
     questions = get_all_questions()
 
@@ -39,8 +39,8 @@ def find_duplicates():
     duplicates = {}
     for prompt, q_list in prompts.items():
         if len(q_list) > 1:
-            # Sort by ID to ensure consistent "first" item
-            q_list.sort(key=lambda x: x['id'])
+            # Sort by ID descending to ensure the newest item is first
+            q_list.sort(key=lambda x: x['id'], reverse=True)
             duplicates[prompt] = q_list
 
     return duplicates
@@ -64,7 +64,7 @@ def manage_duplicates(conn, duplicates, delete=False):
     if delete:
         cursor = conn.cursor()
         deleted_count = 0
-        print("\nDeleting duplicates (keeping the first occurrence of each)...")
+        print("\nDeleting duplicates (keeping the newest occurrence of each)...")
     else:
         print("\nListing duplicate questions (use --delete to remove):")
 
@@ -108,7 +108,7 @@ def main():
     parser.add_argument(
         "--delete",
         action="store_true",
-        help="Delete duplicate questions, keeping the first occurrence of each."
+        help="Delete duplicate questions, keeping the newest occurrence of each."
     )
     args = parser.parse_args()
 
