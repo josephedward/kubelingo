@@ -76,6 +76,7 @@ BASIC_QUIZZES = {
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
+    "Resource Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
     "Kubectl Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations.yaml'),
     "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
     "CKAD Practice": os.path.join(QUESTIONS_DIR, 'ckad_questions.yaml'),
