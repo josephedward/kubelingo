@@ -10,6 +10,7 @@ import time
 import json
 import re
 import argparse
+from collections import Counter
 
 # Ensure project root is on sys.path for module imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -35,17 +36,8 @@ def analyze_file(path):
     except Exception as e:
         return {'file': str(path), 'error': f'parse error: {e}'}
     total = len(questions)
-    categories = []
-    for q in questions:
-        cat = None
-        if hasattr(q, 'categories') and q.categories:
-            cat = q.categories[0]
-        elif hasattr(q, 'metadata') and isinstance(q.metadata, dict):
-            cat = q.metadata.get('category')
-        categories.append(cat or 'Uncategorized')
-    counts = {}
-    for k, v in Counter(categories).items():
-        counts[k] = v
+    categories = [getattr(q, "category", None) or "Uncategorized" for q in questions]
+    counts = dict(Counter(categories))
     size = path.stat().st_size
     mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(path.stat().st_mtime))
     return {'file': str(path), 'size': size, 'mtime': mtime, 'total': total, 'categories': counts}

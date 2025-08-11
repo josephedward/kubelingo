@@ -27,7 +27,7 @@ def restore_yaml_to_db(yaml_path: str, clear_db: bool):
 
     init_db(clear=clear_db)
 
-    with open(yaml_file, "r") as f:
+    with open(yaml_file, "r", encoding="utf-8") as f:
         try:
             questions = yaml.safe_load(f)
         except yaml.YAMLError as e:
