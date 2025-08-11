@@ -141,6 +141,34 @@ _Status: Planned. See [Vim Integration Analysis](vim_integration_analysis.md) fo
 - [ ] **Custom Branding**: White-label versions for training organizations [#45]
 - [ ] **Reporting Dashboard**: Manager/instructor view of team progress [#46]
 - [ ] **Integration APIs**: Connect with LMS and HR systems [#47]
+  
+## Phase 6: Self-Healing & Self-Discovery
+
+- [ ] Centralize all paths in configuration
+  - Expose helper getters in `kubelingo/utils/config.py` (e.g., `get_all_question_dirs()`, `get_live_db_path()`) and deprecate hard-coded literals
+  - Allow environment variable and CLI overrides for all paths
+- [ ] Refactor all scripts to use discovery helpers
+  - Switch importers, exporters, and backup listers to call `kubelingo/utils/path_utils` functions
+  - On missing files, list candidate directories and prompt the user to choose or abort
+- [ ] Build a unified “locate” command in the CLI
+  - Add `kubelingo locate` (or `kubelingo doctor`) to report discovered question dirs, YAML backups, SQLite backups, and live DB path
+- [ ] Maintain an index of backups
+  - Append metadata (path, timestamp, counts) to `backups/index.yaml` on each snapshot or export
+  - Use the index for interactive backup selection in scripts
+- [ ] Add automated smoke tests & CI checks
+  - Under `tests/`, assert that discovery functions yield at least one candidate for questions, YAML backups, and SQLite backups
+  - Ensure core scripts (e.g., `show_sqlite_schema.py`) exit cleanly in CI
+- [ ] Graceful fallbacks & user prompts
+  - When multiple candidate sources are found, prompt once and cache the choice in user config
+  - Offer to restore or migrate from any discovered backup
+- [ ] Version & rotate backups
+  - Implement `scripts/prune_backups.py` to keep only the N most recent backups and prune old entries in the index
+- [ ] Surface discovery in `shared_context.md`
+  - Document the use of `kubelingo/utils/path_utils` so AI agents consistently use discovery APIs
+- [ ] Consolidation & archive helpers
+  - Create a script to move stray YAML or DB files into canonical directories to ensure they’re discoverable
+- [ ] Monitoring & telemetry
+  - Log which paths were used during discovery and file counts; surface metrics for debugging and analytics
 
 ## Future Vision & Long-Term Goals
 
