@@ -218,20 +218,21 @@ def main():
         yaml_files = path_utils.find_yaml_files_from_paths(args.yaml_files)
     else:
         # Default behavior: find the most recent YAML backup file
-        print("No specific YAML files provided. Searching for the most recent backup...")
-        sorted_backups = path_utils.find_and_sort_files_by_mtime(
-            YAML_BACKUP_DIRS, [".yaml", ".yml"]
+        print("No input paths provided. Locating most recent YAML backup...")
+        all_backups = path_utils.find_and_sort_files_by_mtime(
+            YAML_BACKUP_DIRS, extensions=[".yaml", ".yml"]
         )
-
-        if not sorted_backups:
+        if not all_backups:
             print(
-                "Error: No YAML backup files found in configured backup directories."
+                f"{Fore.RED}Error: No YAML backup files found in configured backup directories.{Style.RESET_ALL}"
             )
             print(f"Searched in: {YAML_BACKUP_DIRS}")
             sys.exit(1)
 
-        latest_backup = sorted_backups[0]
-        print(f"Found latest backup: {latest_backup}")
+        latest_backup = all_backups[0]
+        print(
+            f"Using most recent backup: {Fore.GREEN}{latest_backup}{Style.RESET_ALL}"
+        )
         yaml_files = [latest_backup]
 
     if not yaml_files:
