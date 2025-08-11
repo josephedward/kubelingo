@@ -671,7 +671,7 @@ python3 scripts/locate_yaml_backups.py --ai
 This script provides detailed statistics for YAML backup files, including question counts, category breakdowns, and file metadata. It can operate on a single file or an entire directory.
 
 **Functionality**:
-- **Flexible Scanning**: Can analyze a single YAML file or scan a directory for backups.
+- **Flexible Scanning**: Can analyze a single YAML file or scan a directory for backups. When no path is specified, it uses `backups/index.yaml` to quickly find files in the default backup directories, falling back to a full scan if the index is missing.
 - **Filtering**: Supports filtering files by a regex pattern when scanning a directory.
 - **Detailed Stats**: Reports total questions, per-category counts, file size, and modification time.
 - **Output Formats**: Can display stats in a human-readable format or as structured JSON.
@@ -686,7 +686,7 @@ To analyze a single file:
 ```bash
 python3 scripts/yaml_backup_stats.py /path/to/backup.yaml
 ```
-To scan the default backup directory:
+To scan the default backup directories (uses index for performance):
 ```bash
 python3 scripts/yaml_backup_stats.py
 ```
