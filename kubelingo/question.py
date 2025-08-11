@@ -1,6 +1,7 @@
 """
 Question schema for unified live exercise mode.
 """
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -71,7 +72,11 @@ class Question:
     def __post_init__(self):
         # Derive schema_category from question type for schema enforcement if not provided
         if self.schema_category is None:
-            if self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
+            # Special override for specific quizzes to be categorized as 'basic'
+            source_filename = os.path.basename(self.source_file) if self.source_file else ''
+            if source_filename in ('general_operations.yaml', 'resource_types_reference.yaml'):
+                self.schema_category = QuestionCategory.OPEN_ENDED
+            elif self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
                 self.schema_category = QuestionCategory.MANIFEST
             elif self.type in ('command', 'live_k8s'):
                 self.schema_category = QuestionCategory.COMMAND
