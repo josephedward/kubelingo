@@ -137,6 +137,9 @@ def main():
                     pbar.set_postfix(status=f"Updating to '{new_category.value}'")
                     if not args.dry_run:
                         q_dict['schema_category'] = new_category.value
+                        # The dict from get_all_questions has a 'type' key for compatibility,
+                        # but add_question expects 'question_type'. We rename it before calling.
+                        q_dict['question_type'] = q_dict.pop('type', None)
                         # Use add_question to update the record in the database
                         add_question(conn=conn, **q_dict)
                     updated_count += 1
