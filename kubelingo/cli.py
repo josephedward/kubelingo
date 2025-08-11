@@ -435,77 +435,12 @@ def manage_config_interactive():
         return
 
 def manage_troubleshooting_interactive():
-    """Interactive prompt for maintenance and self-healing tasks."""
-    if questionary is None:
-        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+    """Launches the interactive maintenance menu script."""
+    script_path = repo_root / "scripts" / "kubelingo_tools.py"
+    if not script_path.exists():
+        print(f"{Fore.RED}Troubleshooting script not found at {script_path}{Style.RESET_ALL}")
         return
-    try:
-        from pathlib import Path
-        while True:
-            choices = [
-                questionary.Separator("=== YAML ==="),
-                {"name": "Index all Yaml Files in Dir", "value": "index_yaml_files"},
-                {"name": "Consolidate Unique Yaml Questions", "value": "consolidate_unique_yaml_questions"},
-                {"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"},
-                {"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"},
-                {"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"},
-                {"name": "Restore DB from YAML Backup Version", "value": "restore_yaml_to_db"},
-                questionary.Separator("=== Sqlite ==="),
-                {"name": "Index all Sqlite files in Dir", "value": "index_sqlite_files"},
-                {"name": "View Database Schema", "value": "show_sqlite_schema"},
-                {"name": "Locate Previous Sqlite Backup", "value": "locate_sqlite_backups"},
-                {"name": "Diff with Backup Sqlite Db", "value": "diff_sqlite_backup"},
-                {"name": "Create Sqlite Backup Version", "value": "create_sqlite_backup"},
-                {"name": "Restore from Sqlite Backup Version", "value": "restore_sqlite_backup"},
-                questionary.Separator("=== Questions ==="),
-                {"name": "Deduplicate Questions", "value": "deduplicate_questions"},
-                {"name": "Fix Question Categorization", "value": "reorganize_questions_by_schema"},
-                {"name": "Fix Documentation Links", "value": "fix_links"},
-                {"name": "Fix Question Formatting", "value": "format_questions"},
-                questionary.Separator("=== System ==="),
-                {"name": "Bug Ticket", "value": "bug_ticket"},
-                {"name": "Cancel", "value": None},
-            ]
-            action = questionary.select(
-                "Select a maintenance task:", choices=choices, use_indicator=True
-            ).ask()
-
-            if action is None:
-                break  # User selected Cancel or pressed Ctrl+C
-
-            script_to_run = None
-            script_args = []
-
-            if action == "yaml_backup_stats":
-                script_to_run = "locate_yaml_backups.py"
-                stats_format = questionary.select(
-                    "Select statistics format:",
-                    choices=["Default List", "JSON", "AI Summary", "Cancel"],
-                ).ask()
-
-                if stats_format == "JSON":
-                    script_args = ["--json"]
-                elif stats_format == "AI Summary":
-                    script_args = ["--ai"]
-                elif stats_format is None or stats_format == "Cancel":
-                    continue  # Go back to the main troubleshooting menu
-            else:
-                script_to_run = f"{action}.py"
-
-            script_path = repo_root / "scripts" / script_to_run
-            if not script_path.exists():
-                print(f"{Fore.YELLOW}Script '{script_path.name}' not implemented yet.{Style.RESET_ALL}")
-                questionary.press_any_key_to_continue().ask()
-                continue
-            
-            cmd = [sys.executable, str(script_path)] + script_args
-            subprocess.run(cmd, check=False)
-            print() # Add a newline for spacing
-            questionary.press_any_key_to_continue().ask()
-
-    except (KeyboardInterrupt, EOFError):
-        print()
-        return
+    subprocess.run([sys.executable, str(script_path)], check=False)
 
 
 def enrich_sources():
