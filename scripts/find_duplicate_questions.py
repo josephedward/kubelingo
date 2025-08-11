@@ -95,10 +95,10 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
         epilog="""Examples:
   # Dry-run: view all duplicate questions
-  ./scripts/find_duplicate_questions.py
+  ./scripts/deduplicate_questions.py
 
   # Find and delete all duplicates, leaving one copy of each
-  ./scripts/find_duplicate_questions.py --delete"""
+  ./scripts/deduplicate_questions.py --delete"""
     )
     parser.add_argument(
         "--db-path",

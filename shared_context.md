@@ -94,25 +94,6 @@ kubelingo --exercise-module master_quiz
 ```
 This will load that module’s questions from the DB and run the unified quiz interface.
 
-### Duplicate Question Cleanup
-
-Over time, questions may be inadvertently imported more than once, leading to duplicates in the database.  To find and optionally remove them, use the dedicated script:
-
-```bash
-python3 scripts/find_duplicate_questions.py
-```
-
-This will list every prompt that appears in more than one row, showing its `rowid`, `id`, and `source_file` for each entry.  To delete the duplicate entries (keeping only the earliest row for each prompt), run:
-
-```bash
-python3 scripts/find_duplicate_questions.py --delete
-```
-
-This deletion is committed immediately.  If you wish to back up your database before or after cleanup, use:
-
-  ```bash
-  python3 scripts/restore_db_from_backup.py
-  ```
 
 ### YAML Backup Utilities
 
@@ -495,7 +476,7 @@ The script is intended to be run from the command line.
   ```
   - By default, when no `--output-file` is provided, the generated questions are saved to `question-data/yaml/ai_generated_new_questions.yaml`.
 
-### `scripts/find_duplicate_questions.py`
+### `scripts/deduplicate_questions.py`
 
 This script identifies duplicate quiz questions in the live database based on identical prompts. It lists all duplicate entries and, with the `--delete` flag, can remove duplicates while preserving the first occurrence.
 
@@ -509,12 +490,12 @@ This script identifies duplicate quiz questions in the live database based on id
 
 - To list duplicate questions without deleting:
   ```bash
-  python3 scripts/find_duplicate_questions.py
+  python3 scripts/deduplicate_questions.py
   ```
 
 - To remove duplicates while keeping the first entry of each prompt:
   ```bash
-  python3 scripts/find_duplicate_questions.py --delete
+  python3 scripts/deduplicate_questions.py --delete
   ```
 
 ### `scripts/organize_question_data.py`
