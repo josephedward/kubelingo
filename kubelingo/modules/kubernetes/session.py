@@ -399,27 +399,39 @@ class NewSession(StudySession):
         # Use a fallback category for any questions that might not have one set
         fallback_category = QuestionCategory.COMMAND.value
 
-        all_source_files = _get_all_source_files()
-        
+        # Merge static quizzes from config with DB-loaded source files to include zero-question quizzes
+        static_files = [os.path.basename(path) for path in BASIC_QUIZZES.values()]
+        static_files += [os.path.basename(path) for path in COMMAND_QUIZZES.values()]
+        static_files += [os.path.basename(path) for path in MANIFEST_QUIZZES.values()]
+        db_files = _get_all_source_files()
+        all_source_files = []
+        for f in static_files + db_files:
+            if f not in all_source_files:
+                all_source_files.append(f)
+
         for source_file in all_source_files:
             questions = _get_solvable_questions(source_file)
-            if not questions:
-                continue
-
-            # Assume category of the first question applies to the whole file
-            category = questions[0].get('schema_category') or fallback_category
-
-            # Ensure the category is valid before using it as a key
-            if category not in sections:
-                category = fallback_category
-            
-            quiz_name = humanize_module(os.path.splitext(source_file)[0])
             count = len(questions)
-            
-            sections[category].append({
-                "name": f"{quiz_name} ({count} questions)",
-                "value": source_file,
-            })
+            # Determine category: prefer question metadata, else infer from config mapping
+            if count > 0:
+                category = questions[0].get('schema_category') or fallback_category
+                if category not in sections:
+                    category = fallback_category
+            else:
+                if source_file in [os.path.basename(path) for path in BASIC_QUIZZES.values()]:
+                    category = QuestionCategory.OPEN_ENDED.value
+                elif source_file in [os.path.basename(path) for path in COMMAND_QUIZZES.values()]:
+                    category = QuestionCategory.COMMAND.value
+                elif source_file in [os.path.basename(path) for path in MANIFEST_QUIZZES.values()]:
+                    category = QuestionCategory.MANIFEST.value
+                else:
+                    category = fallback_category
+
+            quiz_name = humanize_module(os.path.splitext(source_file)[0])
+            entry = {"name": f"{quiz_name} ({count} questions)", "value": source_file}
+            if count == 0:
+                entry["disabled"] = "No questions available"
+            sections[category].append(entry)
 
         display_labels = {
             QuestionCategory.OPEN_ENDED.value: 'Basic Exercises',
@@ -1145,8 +1157,8 @@ class NewSession(StudySession):
                         choices.append({"name": "Check Answer", "value": "check"})
 
                     # Show Visit Source if a citation or source URL is provided, or for Vim commands
-                    if q.get('citation') or q.get('source') or q.get('category') == 'Vim Commands':
-                        choices.append({"name": "Visit Source", "value": "visit_source"})
+                    # Always offer Visit Source
+                    choices.append({"name": "Visit Source", "value": "visit_source"})
                     # Navigation options
                     choices.append({"name": "Next Question", "value": "next"})
                     choices.append({"name": "Previous Question", "value": "prev"})
