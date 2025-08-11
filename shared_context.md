@@ -1185,10 +1185,33 @@ A centralized maintenance script is being developed to provide a unified interfa
 
 The `Cancel` option exits the maintenance menu without taking any action, returning to the previous menu or command prompt.
 
-The maintenance toolbox includes the following key YAML utilities:
+The maintenance toolbox provides the following utilities:
+
+#### YAML Utilities
+- **Index all Yaml Files in Dir**: Scans specified directories to locate and index all YAML question files.
+- **Consolidate Unique Yaml Questions**: Processes indexed YAML files using AI to generate a unique, categorized set of questions.
 - **Locate Previous YAML backup**: Finds the most recent YAML backup file based on its timestamp.
 - **Diff YAML Backups**: Compares different YAML backup versions to show what has changed. It can compare a range of versions or all of them.
 - **YAML Statistics**: Provides a count of questions broken down by exercise type and subject matter type.
+
+#### Sqlite Utilities
+- **Write DB to YAML Backup Version**: Exports the live SQLite database to a YAML backup file.
+- **Restore DB from YAML Backup Version**: Restores the live database from a specified YAML backup.
+- **Index all Sqlite files in Dir**: Scans directories to locate and index all SQLite database files.
+- **View Database Schema**: Displays the table structure of the live SQLite database.
+- **Locate Previous Sqlite Backup**: Finds the most recent SQLite backup file based on its timestamp.
+- **Diff with Backup Sqlite Db**: Compares the live database with a backup version to show differences.
+- **Create Sqlite Backup Version**: Creates a timestamped backup of the live SQLite database.
+- **Restore from Sqlite Backup Version**: Restores the database from a selected SQLite backup file.
+
+#### Question Utilities
+- **Deduplicate Questions**: Identifies and optionally removes duplicate questions from the database.
+- **Fix Question Categorization**: Helps in organizing questions into standard categories.
+- **Fix Documentation Links**: Checks and corrects documentation URLs within questions.
+- **Fix Question Formatting**: Standardizes the formatting of question text and metadata.
+
+#### System Utilities
+- **Bug Ticket**: Creates a new bug ticket for tracking issues.
 
 ## AI-Powered Question Consolidation and Categorization
 
