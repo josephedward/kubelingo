@@ -74,7 +74,6 @@ BASIC_QUIZZES = {
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
-    "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
     "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'shell_setup:_aliases_&_autocomplete.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
     "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
