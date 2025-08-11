@@ -65,8 +65,14 @@ def import_questions(source_dir: Path, conn: sqlite3.Connection):
                     q_dict['question_type'] = q_type
 
                 q_dict['source_file'] = file_path.name
-                # The `links` field is not supported by the database schema.
-                q_dict.pop('links', None)
+                # Preserve any `links` entries in metadata
+                links = q_dict.pop('links', None)
+                if links:
+                    metadata = q_dict.get('metadata')
+                    if not isinstance(metadata, dict):
+                        metadata = {}
+                    metadata['links'] = links
+                    q_dict['metadata'] = metadata
                 add_question(conn=conn, **q_dict)
                 question_count += 1
     print(f"\nImport complete. Added/updated {question_count} questions.")
