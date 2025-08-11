@@ -140,34 +140,9 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Determine the source file from the category to ensure questions
-                    # are correctly associated with their quizzes.
-                    category = q_dict.get("category")
-                    source_file_from_category = None
-                    if category:
-                        # Try exact match first.
-                        source_file_from_category = category_to_source_file.get(category)
-                        if not source_file_from_category:
-                            # Fallback to partial match if exact match fails, for categories
-                            # that are substrings of the full quiz name (e.g., "Pods" vs "Pods Manifests").
-                            for key, value in category_to_source_file.items():
-                                if category in key:
-                                    source_file_from_category = value
-                                    break
-
-                    # A question's source_file should be derived from its category to link it
-                    # to a quiz. We prioritize this over any existing `source_file` field
-                    # in the data, which might be incorrect (e.g., in a consolidated backup).
-                    if source_file_from_category:
-                        q_dict["source_file"] = source_file_from_category
-
-                    source_file = q_dict.get("source_file")
-                    if not source_file:
-                        # If a source file can't be determined, the question can't be
-                        # linked to a quiz. Skip it to avoid populating the DB with unusable data.
-                        if category:
-                            unmatched_categories.add(category)
-                        continue
+                    # Use the basename of the file being processed as the source_file.
+                    # This is more reliable than deriving from category.
+                    q_dict["source_file"] = file_path.name
 
                     # Remove legacy keys that are not supported by the database schema.
                     q_dict.pop("solution_file", None)
@@ -189,10 +164,6 @@ def populate_db_from_yaml(
     finally:
         conn.close()
 
-    if unmatched_categories:
-        print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
-        for cat in sorted(list(unmatched_categories)):
-            print(f"  - {cat}")
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
