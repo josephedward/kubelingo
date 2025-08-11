@@ -199,10 +199,11 @@ def main():
         description="Populate the SQLite database from YAML backup files."
     )
     parser.add_argument(
-        "input_paths",
-        nargs="*",
+        "--input-paths",
+        nargs="+",
+        default=None,
         type=str,
-        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories and prompts for selection.",
+        help="Path(s) to input YAML file(s) or directories. Overrides default behavior of using the latest backup.",
     )
     parser.add_argument(
         "-y",
