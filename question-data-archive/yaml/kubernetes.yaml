@@ -1161,3 +1161,161 @@
       pod to all Pods having the new label protected: true.'
     response: This is a complex scenario. Follow the prompt instructions on the specified
       instance.
+- category: Kubectl Operations
+  prompts:
+  - prompt: How do you apply a configuration from a file?
+    response: kubectl apply -f <filename>
+  - prompt: How do you delete resources defined in a file?
+    response: kubectl delete -f <filename>
+  - prompt: How do you get the logs from a pod?
+    response: kubectl logs <pod-name>
+  - prompt: How do you follow the logs of a pod in real-time?
+    response: kubectl logs -f <pod-name>
+  - prompt: How do you execute a command in a pod?
+    response: kubectl exec <pod-name> -- <command>
+  - prompt: How do you get an interactive shell into a pod?
+    response: kubectl exec -it <pod-name> -- /bin/sh
+  - prompt: How do you copy files between your local machine and a pod?
+    response: kubectl cp <local-path> <pod-name>:<pod-path>
+  - prompt: How do you view resource usage for nodes?
+    response: kubectl top nodes
+  - prompt: How do you view resource usage for pods?
+    response: kubectl top pods
+  - prompt: How to view the current context?
+    response: kubectl config current-context
+  - prompt: How to list all available contexts?
+    response: kubectl config get-contexts
+  - prompt: How to switch to a different context?
+    response: kubectl config use-context <context-name>
+  - prompt: How to view cluster information?
+    response: kubectl cluster-info
+  - prompt: How to list all supported API resources?
+    response: kubectl api-resources
+  - prompt: How to get detailed information about a specific resource?
+    response: kubectl describe <resource-type> <resource-name>
+  - prompt: How to get resources with a specific label?
+    response: kubectl get <resource-type> -l <label-key>=<label-value>
+  - prompt: How to perform a dry-run of a command on the client-side?
+    response: kubectl <command> --dry-run=client
+  - prompt: How to output the result of a command in YAML format?
+    response: kubectl get <resource-type> <resource-name> -o yaml
+  - prompt: How to watch for changes to a resource?
+    response: kubectl get <resource-type> -w
+  - prompt: How to check the rollout status of a deployment?
+    response: kubectl rollout status deployment/<deployment-name>
+  - prompt: How to restart a deployment?
+    response: kubectl rollout restart deployment/<deployment-name>
+  - prompt: How to check if you are authorized to perform an action?
+    response: kubectl auth can-i <verb> <resource>
+  - prompt: How to autoscale a deployment?
+    response: kubectl autoscale deployment <deployment-name> --min=<min-pods> --max=<max-pods>
+      --cpu-percent=<percent>
+  - prompt: How to port-forward a local port to a port on a pod?
+    response: kubectl port-forward <pod-name> <local-port>:<pod-port>
+  - prompt: How to see the labels for all pods?
+    response: kubectl get pods --show-labels
+  - prompt: How to create a resource from a generator and output as YAML?
+    response: kubectl create <resource> <name> --image=<image> --dry-run=client
+      -o yaml
+- category: Resource Reference
+  prompts:
+  - prompt: Explain what a Pod is in Kubernetes.
+    response: kubectl explain pod
+  - prompt: Explain the different fields in a Pod's specification.
+    response: kubectl explain pod.spec
+  - prompt: Explain how to define containers within a Pod.
+    response: kubectl explain pod.spec.containers
+  - prompt: Explain how to specify resource requests and limits for a container.
+    response: kubectl explain pod.spec.containers.resources
+  - prompt: Explain how to mount volumes into a container.
+    response: kubectl explain pod.spec.containers.volumeMounts
+  - prompt: Explain how to define environment variables for a container.
+    response: kubectl explain pod.spec.containers.env
+  - prompt: Explain how to configure probes for a container.
+    response: kubectl explain pod.spec.containers.livenessProbe
+  - prompt: Explain the different security contexts available.
+    response: kubectl explain pod.spec.securityContext
+  - prompt: Explain how to set a Pod's restart policy.
+    response: kubectl explain pod.spec.restartPolicy
+  - prompt: Explain how to assign a Pod to a specific node.
+    response: kubectl explain pod.spec.nodeName
+  - prompt: Explain Pod affinity and anti-affinity.
+    response: kubectl explain pod.spec.affinity
+  - prompt: Explain how to define taints and tolerations.
+    response: kubectl explain pod.spec.tolerations
+  - prompt: Explain what a Service is and its purpose.
+    response: kubectl explain service
+  - prompt: Explain the specification for a Service.
+    response: kubectl explain service.spec
+  - prompt: Explain how to define ports for a Service.
+    response: kubectl explain service.spec.ports
+  - prompt: Explain what a Deployment is in Kubernetes.
+    response: kubectl explain deployment
+  - prompt: Explain the specification for a Deployment.
+    response: kubectl explain deployment.spec
+  - prompt: Explain the Pod template within a Deployment specification.
+    response: kubectl explain deployment.spec.template
+  - prompt: Explain the spec for a Pod template.
+    response: kubectl explain deployment.spec.template.spec
+  - prompt: Explain what a Namespace is.
+    response: kubectl explain namespace
+  - prompt: Explain what a ConfigMap is.
+    response: kubectl explain configmap
+  - prompt: Explain what a Secret is.
+    response: kubectl explain secret
+  - prompt: Explain what a Job is for.
+    response: kubectl explain job
+  - prompt: Explain the specification for a Job.
+    response: kubectl explain job.spec
+  - prompt: Explain what a CronJob does.
+    response: kubectl explain cronjob
+  - prompt: Explain the specification for a CronJob.
+    response: kubectl explain cronjob.spec
+  - prompt: Explain the schedule format for a CronJob.
+    response: kubectl explain cronjob.spec.schedule
+  - prompt: Explain what a ServiceAccount is.
+    response: kubectl explain serviceaccount
+  - prompt: Explain what a Role is for RBAC.
+    response: kubectl explain role
+  - prompt: Explain the rules within a Role.
+    response: kubectl explain role.rules
+  - prompt: Explain what a RoleBinding is.
+    response: kubectl explain rolebinding
+  - prompt: Explain what a ClusterRole is for RBAC.
+    response: kubectl explain clusterrole
+  - prompt: Explain what a ClusterRoleBinding is.
+    response: kubectl explain clusterrolebinding
+  - prompt: Explain what a PersistentVolume is.
+    response: kubectl explain persistentvolume
+  - prompt: Explain the specification for a PersistentVolume.
+    response: kubectl explain persistentvolume.spec
+  - prompt: Explain what a PersistentVolumeClaim is.
+    response: kubectl explain persistentvolumeclaim
+  - prompt: Explain the specification for a PersistentVolumeClaim.
+    response: kubectl explain persistentvolumeclaim.spec
+  - prompt: Explain what a NetworkPolicy is.
+    response: kubectl explain networkpolicy
+  - prompt: Explain the specification for a NetworkPolicy.
+    response: kubectl explain networkpolicy.spec
+  - prompt: Explain what an Ingress is.
+    response: kubectl explain ingress
+  - prompt: Explain the specification for an Ingress.
+    response: kubectl explain ingress.spec
+  - prompt: Explain what a StatefulSet is.
+    response: kubectl explain statefulset
+  - prompt: Explain the specification for a StatefulSet.
+    response: kubectl explain statefulset.spec
+  - prompt: Explain what a DaemonSet is.
+    response: kubectl explain daemonset
+  - prompt: Explain the specification for a DaemonSet.
+    response: kubectl explain daemonset.spec
+  - prompt: Explain what a ReplicaSet is.
+    response: kubectl explain replicaset
+  - prompt: Explain what a Node is in Kubernetes.
+    response: kubectl explain node
+  - prompt: Explain what an Event is.
+    response: kubectl explain event
+  - prompt: Explain what a LimitRange is.
+    response: kubectl explain limitrange
+  - prompt: Explain what a ResourceQuota is.
+    response: kubectl explain resourcequota
