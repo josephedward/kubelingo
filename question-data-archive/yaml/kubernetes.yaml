@@ -1,0 +1,1163 @@
+- category: Pod Management
+  prompts:
+  - explanation: You can solve this with 'kubectl run nginx --image=nginx --port=80'
+      or by creating a Pod manifest with the specified image and containerPort.
+    prompt: Create a pod named nginx using the nginx image and expose port 80. You
+      can use 'kubectl run' or create a YAML file.
+    validation_steps:
+    - cmd: |
+        #!/bin/bash
+        set -e
+        POD_NAME=$(kubectl get pod nginx -o jsonpath='{.metadata.name}' 2>/dev/null)
+        if [ "$POD_NAME" != "nginx" ]; then
+          echo "Error: Pod 'nginx' not found."
+          exit 1
+        fi
+        IMAGE=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].image}')
+        if [ "$IMAGE" != "nginx" ]; then
+          echo "Error: Image is '$IMAGE', expected 'nginx'."
+          exit 1
+        fi
+        PORT=$(kubectl get pod nginx -o jsonpath='{.spec.containers[0].ports[0].containerPort}')
+        if [ "$PORT" != "80" ]; then
+          echo "Error: Port is '$PORT', expected '80'."
+          exit 1
+        fi
+        echo "Pod 'nginx' with image 'nginx' and port 80 found."
+      matcher:
+        exit_code: 0
+  - prompt: Create a pod named busybox that runs the command 'sleep 3600'
+    validation_steps:
+    - cmd: kubectl get pod busybox
+      matcher:
+        exit_code: 0
+  - explanation: The key is using `--dry-run=client -o yaml` and redirecting the output
+      to a file.
+    prompt: Generate a YAML definition file for a pod named nginx without creating
+      it
+    validation_steps:
+    - cmd: '[ -f nginx.yaml ] && grep -q ''kind: Pod'' nginx.yaml && grep -q ''name:
+        nginx'' nginx.yaml'
+      matcher:
+        exit_code: 0
+  - prompt: Create a pod that runs the latest nginx image and sets an environment
+      variable DB_URL=postgresql://db
+    validation_steps:
+    - cmd: kubectl get pod nginx -o jsonpath='{.spec.containers[0].env[0].value}' |
+        grep 'postgresql://db'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create ns development
+    - kubectl run webapp -n development --image=nginx
+    prompt: Extract the YAML definition of a running pod named 'webapp' in the 'development'
+      namespace
+    validation_steps:
+    - cmd: '[ -f webapp.yaml ] && grep -q ''kind: Pod'' webapp.yaml && grep -q ''name:
+        webapp'' webapp.yaml'
+      matcher:
+        exit_code: 0
+  - prompt: Create a pod named nginx using the nginx image and set labels app=web
+      and tier=frontend
+    validation_steps:
+    - cmd: kubectl get pod nginx --show-labels | grep 'app=web,tier=frontend'
+      matcher:
+        exit_code: 0
+  - explanation: The command 'kubectl run my-shell --rm -i --tty --image=ubuntu --
+      bash' launches an interactive shell in a new pod and automatically cleans it
+      up on exit.
+    prompt: Create an interactive temporary pod with Ubuntu image to troubleshoot
+      cluster issues
+    validation_steps:
+    - cmd: echo 'This question is validated by observing user runs the correct command
+        interactively.'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: nginx
+        spec:
+          containers:
+          - name: nginx
+            image: nginx
+    prompt: Create a pod with resource requests of 100m CPU and 256Mi memory
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.cpu}'
+        | grep '100m' && kubectl get pod nginx -o jsonpath='{.spec.containers[0].resources.requests.memory}'
+        | grep '256Mi'
+      matcher:
+        exit_code: 0
+  - explanation: This requires creating a temporary, interactive pod to run a network
+      command within the cluster.
+    prompt: Create a pod that runs curl against an internal service at 10.244.0.4
+    validation_steps:
+    - cmd: echo 'This is validated by the user running the command and observing the
+        output.'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: config-pod
+        spec:
+          containers:
+          - name: busybox
+            image: busybox
+            command: ['sleep', '3600']
+    pre_shell_cmds:
+    - kubectl create configmap app-config --from-literal=key=value
+    prompt: Create a Pod named `config-pod` using the `busybox` image that mounts a
+      ConfigMap named `app-config` as a volume at `/etc/config`
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}'
+        | grep 'app-config' && kubectl get pod config-pod -o jsonpath='{.spec.containers[0].volumeMounts[0].mountPath}'
+        | grep '/etc/config'
+      matcher:
+        exit_code: 0
+- category: Deployment Management
+  prompts:
+  - prompt: Create a deployment named webapp with image nginx:1.17 and 3 replicas
+    validation_steps:
+    - cmd: kubectl get deployment webapp -o jsonpath='{.spec.replicas}' | grep 3 &&
+        kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}'
+        | grep 'nginx:1.17'
+      matcher:
+        exit_code: 0
+  - prompt: Generate a YAML file for a deployment with nginx image without creating
+      it
+    validation_steps:
+    - cmd: '[ -f deploy.yaml ] && grep -q ''kind: Deployment'' deploy.yaml && grep
+        -q ''name: nginx'' deploy.yaml'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Scale a deployment named 'frontend' to 5 replicas
+    validation_steps:
+    - cmd: kubectl get deployment frontend -o jsonpath='{.spec.replicas}' | grep 5
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment webapp --image=nginx:1.17
+    prompt: Update the image of a deployment named 'webapp' to nginx:1.18
+    validation_steps:
+    - cmd: kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}'
+        | grep 'nginx:1.18'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Check the rollout status of a deployment named 'frontend'
+    validation_steps:
+    - cmd: kubectl rollout status deployment/frontend
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment webapp --image=nginx:1.17
+    - kubectl set image deployment/webapp webapp=nginx:1.18 --record
+    - sleep 5
+    prompt: Roll back a deployment named 'webapp' to its previous version
+    validation_steps:
+    - cmd: kubectl get deployment webapp -o jsonpath='{.spec.template.spec.containers[0].image}'
+        | grep 'nginx:1.17'
+      matcher:
+        exit_code: 0
+  - prompt: Create a deployment with a record of the change-cause for future reference
+    validation_steps:
+    - cmd: kubectl get deployment nginx -o jsonpath='{.metadata.annotations.kubernetes\.io/change-cause}'
+        | grep 'kubectl create'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment webapp --image=nginx
+    prompt: View the history of a deployment named 'webapp'
+    validation_steps:
+    - cmd: kubectl rollout history deployment/webapp
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Pause the rollout of a deployment named 'frontend'
+    validation_steps:
+    - cmd: kubectl get deployment frontend -o jsonpath='{.spec.paused}' | grep true
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    - kubectl rollout pause deployment/frontend
+    prompt: Resume the rollout of a deployment named 'frontend'
+    validation_steps:
+    - cmd: test $(kubectl get deployment frontend -o jsonpath='{.spec.paused}') !=
+        'true'
+      matcher:
+        exit_code: 0
+- category: Namespace Operations
+  prompts:
+  - prompt: Create a new namespace called 'development'
+    validation_steps:
+    - cmd: kubectl get namespace development
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create ns production
+    prompt: Set the current context to use the 'production' namespace by default
+    validation_steps:
+    - cmd: kubectl config view --minify | grep 'namespace: production'
+      matcher:
+        exit_code: 0
+  - prompt: Verify which namespace is currently being used in your context
+    validation_steps:
+    - cmd: kubectl config view --minify | grep namespace:
+      matcher:
+        exit_code: 0
+  - prompt: Create a new namespace called 'testing' and output its YAML definition
+    validation_steps:
+    - cmd: kubectl get ns testing --dry-run=client -o yaml
+      matcher:
+        exit_code: 0
+  - prompt: List all resources across all namespaces
+    validation_steps:
+    - cmd: kubectl get all -A
+      matcher:
+        exit_code: 0
+  - prompt: List all pods in the 'kube-system' namespace
+    validation_steps:
+    - cmd: kubectl get pods -n kube-system
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create ns development
+    prompt: Create a pod in the 'development' namespace
+    validation_steps:
+    - cmd: kubectl get pod nginx -n development
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create ns testing
+    prompt: Delete a namespace called 'testing' and all its resources
+    validation_steps:
+    - cmd: '! kubectl get ns testing'
+      matcher:
+        exit_code: 0
+  - prompt: List all namespaces in the cluster
+    validation_steps:
+    - cmd: kubectl get namespaces
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create ns development
+    prompt: Create a resource quota for a namespace limiting it to 10 pods
+    validation_steps:
+    - cmd: kubectl get quota ns-quota -n development
+      matcher:
+        exit_code: 0
+- category: ConfigMap Operations
+  prompts:
+  - prompt: Create a ConfigMap named 'app-config' with key-value pairs: APP_COLOR=blue
+      and APP_MODE=prod
+    validation_steps:
+    - cmd: kubectl get cm app-config -o yaml | grep 'APP_COLOR: blue' && kubectl get
+        cm app-config -o yaml | grep 'APP_MODE: prod'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      game.properties: |
+        level=1
+        world=dungeon
+    prompt: Create a ConfigMap named 'game-config' from a configuration file located
+      at 'game.properties'
+    validation_steps:
+    - cmd: kubectl get cm game-config
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create cm db-config --from-literal=url=mydb
+    prompt: View the contents of a ConfigMap named 'db-config'
+    validation_steps:
+    - cmd: kubectl describe cm db-config
+      matcher:
+        exit_code: 0
+  - initial_files:
+      configs/conf1: val1
+      configs/conf2: val2
+    prompt: Create a ConfigMap from all files in the 'configs' directory
+    validation_steps:
+    - cmd: kubectl get cm app-settings
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: my-pod
+        spec:
+          containers:
+          - name: my-container
+            image: busybox
+            command: ['sleep', '3600']
+    pre_shell_cmds:
+    - kubectl create cm my-cm --from-literal=mykey=myval
+    prompt: Create a pod that uses a ConfigMap as environment variables
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod my-pod -o yaml | grep 'configMapKeyRef'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create cm app-config --from-literal=key=val
+    prompt: Extract a ConfigMap to YAML format
+    validation_steps:
+    - cmd: '[ -f config.yaml ] && grep -q ''kind: ConfigMap'' config.yaml'
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create cm app-config --from-literal=key=val
+    prompt: Update a value in an existing ConfigMap named 'app-config'
+    validation_steps:
+    - cmd: kubectl edit cm app-config
+      matcher:
+        exit_code: 0
+  - prompt: Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db,
+      API_KEY=123456, and DEBUG=true from the command line
+    validation_steps:
+    - cmd: kubectl get cm multi-config
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: config-pod
+        spec:
+          containers:
+          - name: nginx
+            image: nginx
+    pre_shell_cmds:
+    - kubectl create cm my-cm --from-literal=mykey=myval
+    prompt: Mount a ConfigMap as a volume in a pod at path /etc/config with specific
+      file permissions
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod config-pod -o jsonpath='{.spec.volumes[0].configMap.name}'
+        | grep 'my-cm'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      config.env: |
+        KEY1=VAL1
+        KEY2=VAL2
+    prompt: Create a ConfigMap from an env file
+    validation_steps:
+    - cmd: kubectl get cm env-config
+      matcher:
+        exit_code: 0
+- category: Secret Management
+  prompts:
+  - prompt: Create a Secret named 'db-creds' with username=admin and password=password123
+    validation_steps:
+    - cmd: kubectl get secret db-creds
+      matcher:
+        exit_code: 0
+  - initial_files:
+      cert.pem: my-fake-cert
+    prompt: Create a Secret named 'tls-cert' from a certificate file
+    validation_steps:
+    - cmd: kubectl get secret tls-cert
+      matcher:
+        exit_code: 0
+  - pre_shell_cmds:
+    - kubectl create secret generic api-secrets --from-literal=key=val
+    prompt: View the encoded values in a Secret named 'api-secrets'
+    validation_steps:
+    - cmd: kubectl get secret api-secrets -o yaml
+      matcher:
+        exit_code: 0
+  - prompt: Encode a string for use in a Secret YAML definition
+    validation_steps:
+    - cmd: echo 'This is validated by user running the command.'
+      matcher:
+        exit_code: 0
+  - prompt: Decode a base64 encoded Secret value
+    validation_steps:
+    - cmd: echo 'This is validated by user running the command.'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      cert.crt: fake-cert
+      key.key: fake-key
+    prompt: Create a TLS Secret type from certificate and key files
+    validation_steps:
+    - cmd: kubectl get secret my-tls --type=kubernetes.io/tls
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: secure-app
+        spec:
+          containers:
+          - name: nginx
+            image: nginx
+    pre_shell_cmds:
+    - kubectl create secret generic my-secret --from-literal=API_KEY=123
+    prompt: Create a pod that uses a Secret value as an environment variable
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod secure-app -o yaml | grep
+        'secretKeyRef'
+      matcher:
+        exit_code: 0
+  - initial_files:
+      .env: |
+        API_KEY=123
+    prompt: Create a Secret from a .env file
+    validation_steps:
+    - cmd: kubectl get secret my-secrets
+      matcher:
+        exit_code: 0
+  - initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: secret-pod
+        spec:
+          containers:
+          - name: nginx
+            image: nginx
+    pre_shell_cmds:
+    - kubectl create secret generic my-secret --from-literal=file.txt=content
+    prompt: Create a pod that mounts a Secret as a volume using the nginx image
+    validation_steps:
+    - cmd: kubectl apply -f pod.yaml && kubectl get pod secret-pod -o jsonpath='{.spec.volumes[0].secret.secretName}'
+        | grep 'my-secret'
+      matcher:
+        exit_code: 0
+  - prompt: Create a docker-registry type Secret for private registry authentication
+    validation_steps:
+    - cmd: kubectl get secret regcred --type=kubernetes.io/dockerconfigjson
+      matcher:
+        exit_code: 0
+- category: Service Account Operations
+  prompts:
+  - prompt: Create a Service Account named 'deployment-sa'
+    validation_steps:
+    - cmd: kubectl get sa deployment-sa
+      matcher:
+        exit_code: 0
+  - prompt: List all Service Accounts in the current namespace
+    validation_steps:
+    - cmd: kubectl get sa
+      matcher:
+        exit_code: 0
+- category: Additional Commands
+  prompts:
+  - explanation: This is typically done by running 'alias k=kubectl'. Note: This command's
+      effect is temporary for the current shell session and cannot be automatically
+      validated here.
+    id: create-kubectl-alias
+    prompt: Create an alias 'k' for 'kubectl'
+    validation_steps:
+    - cmd: echo 'Validation for this step is manual. Please verify the command works
+        in your shell.'
+      matcher:
+        exit_code: 0
+  - explanation: This is typically done by running 'source <(kubectl completion bash)'.
+      Note: This command's effect is temporary for the current shell session and cannot
+      be automatically validated here.
+    id: enable-kubectl-autocompletion-bash
+    prompt: Enable kubectl autocompletion for bash
+    validation_steps:
+    - cmd: echo 'Validation for this step is manual. Please verify the command works
+        in your shell.'
+      matcher:
+        exit_code: 0
+  - id: add-kubectl-completion-to-bashrc
+    prompt: Add kubectl autocompletion to ~/.bashrc
+    validation_steps:
+    - cmd: grep -q 'source <(kubectl completion bash)' ~/.bashrc
+      matcher:
+        exit_code: 0
+  - explanation: This is done with 'export KUBECONFIG=/home/user/config'. The effect
+      is temporary to the shell and cannot be automatically validated.
+    id: set-kubeconfig-env-var
+    prompt: Set the KUBECONFIG environment variable to /home/user/config
+    validation_steps:
+    - cmd: echo 'Validation for this step is manual. Please verify the command works
+        in your shell.'
+      matcher:
+        exit_code: 0
+  - id: kubectl-version
+    prompt: Check the kubectl client and server versions
+    validation_steps:
+    - cmd: kubectl version
+      matcher:
+        exit_code: 0
+  - id: create-namespace-dev
+    prompt: Create a namespace named dev
+    validation_steps:
+    - cmd: kubectl get namespace dev
+      matcher:
+        exit_code: 0
+  - id: list-all-namespaces
+    prompt: List all namespaces
+    validation_steps:
+    - cmd: kubectl get namespaces
+      matcher:
+        exit_code: 0
+  - id: describe-namespace-dev
+    pre_shell_cmds:
+    - kubectl create namespace dev
+    prompt: Describe namespace dev
+    validation_steps:
+    - cmd: kubectl describe namespace dev
+      matcher:
+        exit_code: 0
+  - id: delete-namespace-dev
+    pre_shell_cmds:
+    - kubectl create namespace dev
+    prompt: Delete namespace dev
+    validation_steps:
+    - cmd: '! kubectl get namespace dev'
+      matcher:
+        exit_code: 0
+  - id: create-deployment-frontend
+    prompt: Create a deployment named frontend using image nginx:1.14
+    validation_steps:
+    - cmd: kubectl get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+        | grep 'nginx:1.14'
+      matcher:
+        exit_code: 0
+  - id: list-all-deployments
+    prompt: List all deployments
+    validation_steps:
+    - cmd: kubectl get deployments
+      matcher:
+        exit_code: 0
+  - id: describe-deployment-frontend
+    pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Describe deployment frontend
+    validation_steps:
+    - cmd: kubectl describe deployment frontend
+      matcher:
+        exit_code: 0
+  - id: scale-deployment-frontend
+    pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Scale deployment frontend to 3 replicas
+    validation_steps:
+    - cmd: kubectl get deployment frontend -o jsonpath='{.spec.replicas}' | grep 3
+      matcher:
+        exit_code: 0
+  - id: rollback-deployment-frontend
+    pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx:1.17 --record
+    - kubectl set image deployment/frontend frontend=nginx:1.18 --record
+    - sleep 5
+    prompt: Roll back the deployment frontend to the previous version
+    validation_steps:
+    - cmd: kubectl get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+        | grep 'nginx:1.17'
+      matcher:
+        exit_code: 0
+  - id: restart-deployment-frontend
+    pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Restart the deployment frontend
+    validation_steps:
+    - cmd: kubectl rollout status deployment/frontend
+      matcher:
+        exit_code: 0
+  - id: delete-deployment-frontend
+    pre_shell_cmds:
+    - kubectl create deployment frontend --image=nginx
+    prompt: Delete deployment frontend
+    validation_steps:
+    - cmd: '! kubectl get deployment frontend'
+      matcher:
+        exit_code: 0
+  - prompt: Run a pod named busybox with image busybox that runs indefinitely
+    response: kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep
+      3600"
+  - prompt: List all pods
+    response: kubectl get pods
+  - prompt: Describe pod busybox
+    response: kubectl describe pod busybox
+  - prompt: Delete pod busybox
+    response: kubectl delete pod busybox
+  - prompt: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc
+    response: kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
+  - prompt: List all services
+    response: kubectl get services
+  - prompt: Describe service frontend-svc
+    response: kubectl describe service frontend-svc
+  - prompt: Delete service frontend-svc
+    response: kubectl delete service frontend-svc
+  - id: create-configmap-from-file
+    initial_files:
+      config.yaml: 'key: value'
+    prompt: Create a ConfigMap named app-config from file config.yaml
+    validation_steps:
+    - cmd: kubectl get configmap app-config -o jsonpath='{.data.config\.yaml}' | grep
+        'key: value'
+      matcher:
+        exit_code: 0
+  - prompt: List all ConfigMaps
+    response: kubectl get configmaps
+  - prompt: Describe configmap app-config
+    response: kubectl describe configmap app-config
+  - prompt: Delete configmap app-config
+    response: kubectl delete configmap app-config
+  - prompt: Create a generic secret named db-secret with literal username and password
+    response: kubectl create secret generic db-secret --from-literal=username=admin
+      --from-literal=password=secret
+  - prompt: List all secrets
+    response: kubectl get secrets
+  - prompt: Describe secret db-secret
+    response: kubectl describe secret db-secret
+  - prompt: Delete secret db-secret
+    response: kubectl delete secret db-secret
+  - prompt: Create a ServiceAccount named default-sa
+    response: kubectl create serviceaccount default-sa
+  - prompt: List all ServiceAccounts
+    response: kubectl get serviceaccounts
+  - prompt: Describe serviceaccount default-sa
+    response: kubectl describe serviceaccount default-sa
+  - prompt: Delete serviceaccount default-sa
+    response: kubectl delete serviceaccount default-sa
+  - prompt: Label pod busybox with env=prod
+    response: kubectl label pod busybox env=prod
+  - prompt: Remove the label env from pod busybox
+    response: kubectl label pod busybox env-
+  - prompt: Annotate deployment frontend with description=test
+    response: kubectl annotate deployment frontend description=test
+  - prompt: Remove the annotation description from deployment frontend
+    response: kubectl annotate deployment frontend description-
+  - prompt: Apply the configuration in deployment.yaml
+    response: kubectl apply -f deployment.yaml
+  - prompt: Replace configmap using file configmap.yaml
+    response: kubectl replace -f configmap.yaml
+  - prompt: Open the file app.yaml in Vim
+    response: vim app.yaml
+  - prompt: Use kubectl to edit deployment frontend
+    response: kubectl edit deployment frontend
+  - prompt: Open service.yaml in Vim
+    response: vim service.yaml
+  - prompt: View logs of pod busybox
+    response: kubectl logs busybox
+  - prompt: Follow logs of pod busybox
+    response: kubectl logs busybox -f
+  - prompt: View logs of container nginx in pod frontend-pod
+    response: kubectl logs frontend-pod -c nginx
+  - prompt: Execute a shell in pod busybox
+    response: kubectl exec -it busybox -- /bin/sh
+  - prompt: Port-forward local port 8080 to port 80 on service frontend-svc
+    response: kubectl port-forward service/frontend-svc 8080:80
+  - prompt: Describe pod busybox for troubleshooting
+    response: kubectl describe pod busybox
+  - prompt: List all events
+    response: kubectl get events
+  - prompt: Get pod busybox in YAML format
+    response: kubectl get pods busybox -o yaml
+  - prompt: Get pod busybox in JSON format
+    response: kubectl get pods busybox -o json
+  - prompt: Copy file /tmp/data from pod busybox to current directory
+    response: kubectl cp busybox:/tmp/data ./
+  - prompt: Show resource usage of pods
+    response: kubectl top pods
+  - prompt: Show resource usage of nodes
+    response: kubectl top nodes
+  - prompt: Describe node worker-node-1
+    response: kubectl describe node worker-node-1
+  - prompt: View the current kubectl context
+    response: kubectl config current-context
+  - prompt: List all contexts
+    response: kubectl config get-contexts
+  - prompt: Switch kubectl context to minikube
+    response: kubectl config use-context minikube
+  - prompt: Set the namespace to dev in the current context
+    response: kubectl config set-context --current --namespace=dev
+  - prompt: Display cluster info
+    response: kubectl cluster-info
+  - prompt: Show available API resource types
+    response: kubectl api-resources
+  - prompt: Explain the fields of pods
+    response: kubectl explain pods
+  - prompt: Get pods with label app=frontend
+    response: kubectl get pods -l app=frontend
+  - prompt: Get pods with all labels
+    response: kubectl get pods --show-labels
+  - prompt: Apply deployment.yaml without sending to server (dry run)
+    response: kubectl apply -f deployment.yaml --dry-run=client
+  - prompt: Generate YAML for deployment 'test' using the nginx image without creating
+      it
+    response: kubectl create deployment test --image=nginx --dry-run=client -o yaml
+  - prompt: Continuously watch pods
+    response: kubectl get pods -w
+  - prompt: Get all resources in all namespaces
+    response: kubectl get all -A
+  - prompt: List pods with status phase=Running
+    response: kubectl get pods --field-selector=status.phase=Running
+  - prompt: Watch the rollout status of deployment frontend
+    response: kubectl rollout status deployment/frontend -w
+  - prompt: Restart the deployment frontend
+    response: kubectl rollout restart deployment/frontend
+  - prompt: Auto-scale deployment frontend to minimum 2 and maximum 5 pods at 80%
+      CPU
+    response: kubectl autoscale deployment frontend --min=2 --max=5 --cpu-percent=80
+  - prompt: Check if you can create pods
+    response: kubectl auth can-i create pods
+  - prompt: Show only context names
+    response: kubectl config get-contexts -o name
+  - prompt: Open or create the file app.yaml in Vim
+    response: vim app.yaml
+  - prompt: Enter insert mode
+    response: i
+  - prompt: Exit insert mode
+    response: <Esc>
+  - prompt: Save and quit Vim
+    response: :wq
+  - prompt: Quit without saving
+    response: :q!
+  - prompt: Delete the current line
+    response: dd
+  - prompt: Yank (copy) the current line
+    response: yy
+  - prompt: Paste after the cursor
+    response: p
+  - prompt: Search forward for 'pattern'
+    response: /pattern
+  - prompt: Go to line N
+    response: :N
+  - prompt: Undo the last change
+    response: u
+  - prompt: Redo the last undone change
+    response: <C-r>
+  - prompt: Enter visual mode
+    response: v
+  - prompt: Enter visual line mode
+    response: V
+  - prompt: Enter visual block mode
+    response: <C-v>
+  - prompt: Enter replace mode
+    response: R
+  - prompt: Move to the next word
+    response: w
+  - prompt: Move to the previous word
+    response: b
+  - prompt: Move to the end of the word
+    response: e
+  - prompt: Move to the first character of the line
+    response: '0'
+  - prompt: Move to the end of the line
+    response: $
+  - prompt: Jump to matching bracket
+    response: '%'
+- category: Live Kubernetes Questions
+  prompts:
+  - explanation: To solve this, you need to change the `metadata.name` to 'nginx-live'
+      and the `spec.containers[0].image` to 'nginx:stable'.
+    initial_files:
+      pod.yaml: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: my-pod
+        spec:
+          containers:
+          - name: main
+            image: busybox
+            command: ["sleep", "3600"]
+    prompt: The provided YAML is for a basic pod. Modify it to create a pod named
+      'nginx-live' that uses the 'nginx:stable' image.
+    validation_steps:
+    - cmd: |
+        #!/bin/bash
+        set -e
+        kubectl apply -f pod.yaml
+        # Check pod name
+        POD_NAME=$(kubectl get pods -o jsonpath='{.items[0].metadata.name}')
+        if [ "$POD_NAME" != "nginx-live" ]; then
+          echo "Error: Pod name is '$POD_NAME', expected 'nginx-live'"
+          exit 1
+        fi
+        # Check image
+        IMAGE=$(kubectl get pod nginx-live -o jsonpath='{.spec.containers[0].image}')
+        if [ "$IMAGE" != "nginx:stable" ]; then
+          echo "Error: Image is '$IMAGE', expected 'nginx:stable'"
+          exit 1
+        fi
+        echo "Pod 'nginx-live' with image 'nginx:stable' found."
+      matcher:
+        exit_code: 0
+  - explanation: You need to add a second resource definition for the Service, setting
+      `spec.type` to `NodePort`, `spec.ports[0].port` to 80, `spec.ports[0].targetPort`
+      to 8080, and `spec.selector` to match the deployment's labels (`app: webapp`).
+    initial_files:
+      service.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: webapp
+          labels:
+            app: webapp
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: webapp
+          template:
+            metadata:
+              labels:
+                app: webapp
+            spec:
+              containers:
+              - name: webapp
+                image: httpd
+                ports:
+                - containerPort: 8080
+        ---
+        # Add your Service definition below
+    prompt: A 'webapp' deployment is defined in the file. Add a new NodePort service
+      named 'webapp-svc' that exposes the deployment on port 80. The service should
+      target port 8080 on the pods.
+    validation_steps:
+    - cmd: |
+        #!/bin/bash
+        set -e
+        kubectl apply -f service.yaml
+        kubectl wait --for=condition=available deployment/webapp --timeout=60s > /dev/null
+        # Check service exists and is NodePort
+        TYPE=$(kubectl get svc webapp-svc -o jsonpath='{.spec.type}')
+        if [ "$TYPE" != "NodePort" ]; then
+          echo "Error: Service 'webapp-svc' is type '$TYPE', expected 'NodePort'"
+          exit 1
+        fi
+        # Check service port and targetPort
+        PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].port}')
+        TARGET_PORT=$(kubectl get svc webapp-svc -o jsonpath='{.spec.ports[0].targetPort}')
+        if [ "$PORT" != "80" ]; then
+          echo "Error: Service port is '$PORT', expected '80'"
+          exit 1
+        fi
+        if [ "$TARGET_PORT" != "8080" ]; then
+          echo "Error: Service targetPort is '$TARGET_PORT', expected '8080'"
+          exit 1
+        fi
+        echo "Service 'webapp-svc' correctly configured as a NodePort."
+      matcher:
+        exit_code: 0
+  - explanation: You need to define a ConfigMap with the specified data. Then, define
+      a Pod that references this ConfigMap in `spec.volumes` and mounts it into the
+      container at the correct path using `spec.containers[0].volumeMounts`.
+    initial_files:
+      resources.yaml: '# Add your ConfigMap and Pod definitions here'
+    prompt: "Create two resources: 1. A ConfigMap named 'app-config' with data 'index.html:\
+      \ <h1>Hello World</h1>'. 2. A Pod named 'web-server' using the 'nginx' image\
+      \ that mounts the ConfigMap as a volume at '/usr/share/nginx/html', replacing\
+      \ the default nginx page."
+    validation_steps:
+    - cmd: |
+        #!/bin/bash
+        set -e
+        kubectl apply -f resources.yaml
+        # Check ConfigMap data
+        DATA=$(kubectl get cm app-config -o jsonpath='{.data.index\.html}')
+        if ! echo "$DATA" | grep -q 'Hello World'; then
+          echo "Error: ConfigMap 'app-config' does not have the correct data."
+          exit 1
+        fi
+        # Wait for pod to be ready
+        kubectl wait --for=condition=Ready pod/web-server --timeout=120s > /dev/null
+        # Check that the mounted file contains the correct content
+        CONTENT=$(kubectl exec web-server -- curl -s localhost)
+        if ! echo "$CONTENT" | grep -q 'Hello World'; then
+          echo "Error: The web server did not return the expected content from the ConfigMap."
+          echo "Received: $CONTENT"
+          exit 1
+        fi
+        echo "Pod is serving content from the mounted ConfigMap correctly."
+      matcher:
+        exit_code: 0
+- category: Advanced Scenarios
+  prompts:
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      Create a single Pod of image httpd:2.4.41-alpine in Namespace default. The
+      Pod should be named pod1 and the container should be named pod1-container.
+
+      Your manager would like to run a command manually on occasion to output the
+      status of that exact Pod. Please write a command that does this into /opt/course/2/pod1-status-command.sh
+      on ckad5601. The command should use kubectl.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      Team Neptune needs a Job template located at /opt/course/3/job.yaml. This Job
+      should run image busybox:1.31.0 and execute sleep 2 && echo done. It should
+      be in namespace neptune, run a total of 3 times and should execute 2 runs in
+      parallel.
+
+      Start the Job and check its history. Each pod created by the Job should have
+      the label id: awesome-job. The job should be named neb-new-job and the container
+      neb-new-job-container.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      Team Mercury asked you to perform some operations using Helm, all in Namespace
+      mercury:
+
+      Delete release internal-issue-report-apiv1
+
+      Upgrade release internal-issue-report-apiv2 to any newer version of chart bitnami/nginx
+      available
+
+      Install a new release internal-issue-report-apache of chart bitnami/apache.
+      The Deployment should have two replicas, set these via Helm-values during install
+
+      There seems to be a broken release, stuck in pending-install state. Find it
+      and delete it'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      Team Neptune has its own ServiceAccount named neptune-sa-v2 in Namespace neptune.
+      A coworker needs the token from the Secret that belongs to that ServiceAccount.
+      Write the base64 decoded token to file /opt/course/5/token on ckad7326.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      Create a single Pod named pod6 in Namespace default of image busybox:1.31.0.
+      The Pod should have a readiness-probe executing cat /tmp/ready. It should initially
+      wait 5 and periodically wait 10 seconds. This will set the container ready
+      only if the file /tmp/ready exists.
+
+      The Pod should run the command touch /tmp/ready && sleep 1d, which will create
+      the necessary file to be ready and then idles. Create the Pod and confirm it
+      starts.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      The board of Team Neptune decided to take over control of one e-commerce webserver
+      from Team Saturn. The administrator who once setup this webserver is not part
+      of the organisation any longer. All information you could get was that the e-commerce
+      system is called my-happy-shop.
+
+      Search for the correct Pod in Namespace saturn and move it to Namespace neptune.
+      It doesn''t matter if you shut it down and spin it up again, it probably hasn''t
+      any customers anyways.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      There is an existing Deployment named api-new-c32 in Namespace neptune. A developer
+      did make an update to the Deployment but the updated version never came online.
+      Check the Deployment history and find a revision that works, then rollback
+      to it. Could you tell Team Neptune what the error was so it doesn''t happen
+      again?'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      In Namespace pluto there is single Pod named holy-api. It has been working
+      okay for a while now but Team Pluto needs it to be more reliable.
+
+      Convert the Pod into a Deployment named holy-api with 3 replicas and delete
+      the single Pod once done. The raw Pod template file is available at /opt/course/9/holy-api-pod.yaml.
+
+      In addition, the new Deployment should set allowPrivilegeEscalation: false
+      and privileged: false for the security context on container level.
+
+      Please create the Deployment and save its yaml under /opt/course/9/holy-api-deployment.yaml
+      on ckad9043.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      Team Pluto needs a new cluster internal Service. Create a ClusterIP Service
+      named project-plt-6cc-svc in Namespace pluto. This Service should expose a
+      single Pod named project-plt-6cc-api of image nginx:1.17.3-alpine, create that
+      Pod as well. The Pod should be identified by label project: plt-6cc-api. The
+      Service should use tcp port redirection of 3333:80.
+
+      Finally use for example curl from a temporary nginx:alpine Pod to get the response
+      from the Service. Write the response into /opt/course/10/service_test.html
+      on ckad9043. Also check if the logs of Pod project-plt-6cc-api show the request
+      and write those into /opt/course/10/service_test.log on ckad9043.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      There are files to build a container image located at /opt/course/11/image
+      on ckad9043. The container will run a Golang application which outputs information
+      to stdout. You''re asked to perform the following tasks:
+
+      ℹ️ Run all Docker and Podman commands as user root. Use sudo docker and sudo
+      podman or become root with sudo -i
+
+      Change the Dockerfile: set ENV variable SUN_CIPHER_ID to hardcoded value 5b9c1065-e39d-4a43-a04a-e59bcea3e03f
+
+      Build the image using sudo docker, tag it registry.killer.sh:5000/sun-cipher:v1-docker
+      and push it to the registry
+
+      Build the image using sudo podman, tag it registry.killer.sh:5000/sun-cipher:v1-podman
+      and push it to the registry
+
+      Run a container using sudo podman, which keeps running detached in the background,
+      named sun-cipher using image registry.killer.sh:5000/sun-cipher:v1-podman
+
+      Write the logs your container sun-cipher produces into /opt/course/11/logs
+      on ckad9043'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      Create a new PersistentVolume named earth-project-earthflower-pv. It should
+      have a capacity of 2Gi, accessMode ReadWriteOnce, hostPath /Volumes/Data and
+      no storageClassName defined.
+
+      Next create a new PersistentVolumeClaim in Namespace earth named earth-project-earthflower-pvc
+      . It should request 2Gi storage, accessMode ReadWriteOnce and should not define
+      a storageClassName. The PVC should bound to the PV correctly.
+
+      Finally create a new Deployment project-earthflower in Namespace earth which
+      mounts that volume at /tmp/project-data. The Pods of that Deployment should
+      be of image httpd:2.4.41-alpine.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      Team Moonpie, which has the Namespace moon, needs more storage. Create a new
+      PersistentVolumeClaim named moon-pvc-126 in that namespace. This claim should
+      use a new StorageClass moon-retain with the provisioner set to moon-retainer
+      and the reclaimPolicy set to Retain. The claim should request storage of 3Gi,
+      an accessMode of ReadWriteOnce and should use the new StorageClass.
+
+      The provisioner moon-retainer will be created by another team, so it''s expected
+      that the PVC will not boot yet. Confirm this by writing the event message from
+      the PVC into file /opt/course/13/pvc-126-reason on ckad9043.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      You need to make changes on an existing Pod in Namespace moon called secret-handler.
+      Create a new Secret secret1 which contains user=test and pass=pwd. The Secret''s
+      content should be available in Pod secret-handler as environment variables
+      SECRET1_USER and SECRET1_PASS. The yaml for Pod secret-handler is available
+      at /opt/course/14/secret-handler.yaml.
+
+      There is existing yaml for another Secret at /opt/course/14/secret2.yaml, create
+      this Secret and mount it inside the same Pod at /tmp/secret2. Your changes
+      should be saved under /opt/course/14/secret-handler-new.yaml on ckad9043. Both
+      Secrets should only be available in Namespace moon.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      Team Moonpie has a nginx server Deployment called web-moon in Namespace moon.
+      Someone started configuring it but it was never completed. To complete please
+      create a ConfigMap called configmap-web-moon-html containing the content of
+      file /opt/course/15/web-moon.html under the data key-name index.html.
+
+      The Deployment web-moon is already configured to work with this ConfigMap and
+      serve its content. Test the nginx configuration for example using curl from
+      a temporary nginx:alpine Pod.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      The Tech Lead of Mercury2D decided it''s time for more logging, to finally
+      fight all these missing data incidents. There is an existing container named
+      cleaner-con in Deployment cleaner in Namespace mercury. This container mounts
+      a volume and writes logs into a file called cleaner.log.
+
+      The yaml for the existing Deployment is available at /opt/course/16/cleaner.yaml.
+      Persist your changes at /opt/course/16/cleaner-new.yaml on ckad7326 but also
+      make sure the Deployment is running.
+
+      Create a sidecar container named logger-con, image busybox:1.31.0 , which mounts
+      the same volume and writes the content of cleaner.log to stdout, you can use
+      the tail -f command for this. This way it can be picked up by kubectl logs.
+
+      Check if the logs of the new container reveal something about the missing data
+      incidents.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      Last lunch you told your coworker from department Mars Inc how amazing InitContainers
+      are. Now he would like to see one in action. There is a Deployment yaml at /opt/course/17/test-init-container.yaml.
+      This Deployment spins up a single Pod of image nginx:1.17.3-alpine and serves
+      files from a mounted volume, which is empty right now.
+
+      Create an InitContainer named init-con which also mounts that volume and creates
+      a file index.html with content check this out! in the root of the mounted volume.
+      For this test we ignore that it doesn''t contain valid html.
+
+      The InitContainer should be using image busybox:1.31.0. Test your implementation
+      for example using curl from a temporary nginx:alpine Pod.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      There seems to be an issue in Namespace mars where the ClusterIP service manager-api-svc
+      should make the Pods of Deployment manager-api-deployment available inside
+      the cluster.
+
+      You can test this with curl manager-api-svc.mars:4444 from a temporary nginx:alpine
+      Pod. Check for the misconfiguration and apply a fix.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad5601
+
+      In Namespace jupiter you''ll find an apache Deployment (with one replica) named
+      jupiter-crew-deploy and a ClusterIP Service called jupiter-crew-svc which exposes
+      it. Change this service to a NodePort one to make it available on all nodes
+      on port 30100.
+
+      Test the NodePort Service using the internal IP of all available nodes and
+      the port 30100 using curl, you can reach the internal node IPs directly from
+      your main terminal. On which nodes is the Service reachable? On which node is
+      the Pod running?'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      In Namespace venus you''ll find two Deployments named api and frontend. Both
+      Deployments are exposed inside the cluster using Services. Create a NetworkPolicy
+      named np1 which restricts outgoing tcp connections from Deployment frontend
+      and only allows those going to Deployment api. Make sure the NetworkPolicy
+      still allows outgoing traffic on UDP/TCP ports 53 for DNS resolution.
+
+      Test using: wget www.google.com and wget api:2222 from a Pod of Deployment
+      frontend.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad7326
+
+      Team Neptune needs 3 Pods of image httpd:2.4-alpine, create a Deployment named
+      neptune-10ab for this. The containers should be named neptune-pod-10ab. Each
+      container should have a memory request of 20Mi and a memory limit of 50Mi.
+
+      Team Neptune has its own ServiceAccount neptune-sa-v2 under which the Pods
+      should run. The Deployment should be in Namespace neptune.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
+  - prompt: 'Solve this question on instance: ssh ckad9043
+
+      Team Sunny needs to identify some of their Pods in namespace sun. They ask
+      you to add a new label protected: true to all Pods with an existing label type:
+      worker or type: runner. Also add an annotation protected: do not delete this
+      pod to all Pods having the new label protected: true.'
+    response: This is a complex scenario. Follow the prompt instructions on the specified
+      instance.
