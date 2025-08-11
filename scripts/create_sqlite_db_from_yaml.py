@@ -29,7 +29,7 @@ def populate_db_from_yaml(
         print("No YAML files found to process.")
         return
 
-    init_db(db_path=db_path)
+    init_db(clear=True, db_path=db_path)
     conn = get_db_connection(db_path=db_path)
 
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
@@ -46,6 +46,13 @@ def populate_db_from_yaml(
         "review",
         "question_type",
         "schema_category",
+        "answers",
+        "correct_yaml",
+        "difficulty",
+        "explanation",
+        "initial_files",
+        "pre_shell_cmds",
+        "subject",
     }
 
     question_count = 0
@@ -196,7 +203,8 @@ def main():
             print(f"  - {f.name}")
 
     if not args.yes:
-        confirm = input("\nProceed with populating the database from these files? (y/N): ")
+        print("\nWARNING: This will clear the existing database and populate it with new data.")
+        confirm = input("Proceed with populating the database from these files? (y/N): ")
         if confirm.lower() != 'y':
             print("Operation cancelled.")
             sys.exit(0)
