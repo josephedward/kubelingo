@@ -230,7 +230,10 @@ def main():
             print(f"Automatically selecting latest backup: {latest_backup.name}")
             yaml_files = [latest_backup]
         else:
-            print("Error: No YAML backup files found in backup directories.")
+            # If no backups are found, exit with an error.
+            print("\nError: No YAML backup files found in the configured backup directory:")
+            for d in YAML_BACKUP_DIRS:
+                print(f"  - {os.path.relpath(d, project_root)}")
             sys.exit(1)
 
     if not yaml_files:
