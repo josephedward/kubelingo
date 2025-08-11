@@ -73,6 +73,11 @@ def main():
         nargs='*',
         help="Two YAML files to compare. If not provided, compares all backups in configured directories chronologically."
     )
+    parser.add_argument(
+        "--range",
+        help="Number of recent versions to diff (e.g., '5' for last 5). 'all' to diff all versions.",
+        default="all"
+    )
     args = parser.parse_args()
 
     loader = YAMLLoader()
@@ -104,11 +109,27 @@ def main():
 
         sorted_files = sorted(all_files, key=lambda p: p.stat().st_mtime)
 
-        print(f"Found {len(sorted_files)} backups. Comparing sequentially...")
+        files_to_compare = sorted_files
+        if args.range.lower() != 'all':
+            try:
+                num = int(args.range)
+                if num < 1:
+                    raise ValueError
+                # We need `num` comparisons, so `num + 1` files.
+                if len(sorted_files) > num:
+                    files_to_compare = sorted_files[-(num + 1):]
+            except (ValueError, TypeError):
+                parser.error(f"Invalid range: '{args.range}'. Please provide a positive integer or 'all'.")
 
-        for i in range(len(sorted_files) - 1):
-            path1 = sorted_files[i]
-            path2 = sorted_files[i + 1]
+        if len(files_to_compare) < 2:
+            print("Not enough backup files in the specified range to compare.", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"Found {len(sorted_files)} backups. Comparing {len(files_to_compare) - 1} version(s) sequentially...")
+
+        for i in range(len(files_to_compare) - 1):
+            path1 = files_to_compare[i]
+            path2 = files_to_compare[i + 1]
 
             print(f"\nComparing {path1.name} -> {path2.name}")
             questions1 = loader.load_file(str(path1))
