@@ -213,22 +213,25 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.input_paths:
-        yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
+    if args.yaml_files:
+        yaml_files = path_utils.find_yaml_files_from_paths(args.yaml_files)
     else:
-        print("No input paths provided. Scanning for YAML backups...")
-        backup_files = path_utils.find_yaml_files(YAML_BACKUP_DIRS)
-        if backup_files:
-            # Sort by modification time to find the latest
-            latest_backup = max(backup_files, key=lambda p: p.stat().st_mtime)
-            print(f"Automatically selecting latest backup: {latest_backup.name}")
-            yaml_files = [latest_backup]
-        else:
-            # If no backups are found, exit with an error.
-            print("\nError: No YAML backup files found in the configured backup directory:")
-            for d in YAML_BACKUP_DIRS:
-                print(f"  - {os.path.relpath(d, project_root)}")
+        # Default behavior: find the most recent YAML backup file
+        print("No specific YAML files provided. Searching for the most recent backup...")
+        sorted_backups = path_utils.find_and_sort_files_by_mtime(
+            YAML_BACKUP_DIRS, [".yaml", ".yml"]
+        )
+
+        if not sorted_backups:
+            print(
+                "Error: No YAML backup files found in configured backup directories."
+            )
+            print(f"Searched in: {YAML_BACKUP_DIRS}")
             sys.exit(1)
+
+        latest_backup = sorted_backups[0]
+        print(f"Found latest backup: {latest_backup}")
+        yaml_files = [latest_backup]
 
     if not yaml_files:
         print("No YAML files found.")
