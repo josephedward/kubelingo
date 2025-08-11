@@ -66,14 +66,16 @@ COMMAND_QUIZZES = {
 }
 # Manifest-Based exercises (YAML authoring and editing)
 MANIFEST_QUIZZES = {
-    "YAML Practice": os.path.join(QUESTIONS_DIR, 'yaml_quiz.yaml'),
-    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'configmaps_manifests.yaml'),
-    "Configuration & Security": os.path.join(QUESTIONS_DIR, 'configuration_and_security.yaml'),
+    # YAML authoring exercises
+    "YAML Practice": os.path.join(QUESTIONS_DIR, 'yaml_authoring.yaml'),
+    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_configmaps.yaml'),
+    "Configuration & Security": os.path.join(QUESTIONS_DIR, 'configuration_&_security.yaml'),
     "Core Concepts": os.path.join(QUESTIONS_DIR, 'core_concepts.yaml'),
-    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'deployments_manifests.yaml'),
-    "Helm Manifests": os.path.join(QUESTIONS_DIR, 'helm_manifests.yaml'),
-    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'pods_manifests.yaml'),
-    "Services Manifests": os.path.join(QUESTIONS_DIR, 'services_manifests.yaml'),
+    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_deployments.yaml'),
+    # Helm manifest exercises (legacy misc/manifests)
+    "Helm Manifests": os.path.join(PROJECT_ROOT, 'misc', 'manifests', 'helm.yaml'),
+    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing_-_pods.yaml'),
+    "Services Manifests": os.path.join(PROJECT_ROOT, 'misc', 'manifests', 'services.yaml'),
     "Workload Management": os.path.join(QUESTIONS_DIR, 'workload_management.yaml'),
 }
 ## Aggregate all enabled quizzes for interactive selection
@@ -178,3 +180,20 @@ VIM_HISTORY_FILE = os.path.join(LOGS_DIR, '.kubelingo_vim_history')
 LOG_FILE = os.path.join(LOGS_DIR, 'quiz_log.txt')
 # Store for flagged question IDs (decoupled from quiz source files)
 FLAGGED_QUESTIONS_FILE = os.path.join(LOGS_DIR, 'flagged_questions.json')
+
+# --- Question & Backup Directories ---
+QUESTION_DIRS = [
+    os.path.join(PROJECT_ROOT, 'question-data', 'questions'),
+    os.path.join(PROJECT_ROOT, 'question-data-archive'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+]
+YAML_BACKUP_DIRS = [
+    os.path.join(PROJECT_ROOT, 'backups'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+]
+SQLITE_BACKUP_DIRS = [
+    os.path.join(PROJECT_ROOT, 'backups'),
+    os.path.join(PROJECT_ROOT, 'question-data-backup'),
+]
+
+# Helper functions for path discovery can be implemented in path_utils.py

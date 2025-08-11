@@ -102,13 +102,22 @@ def main():
     """Main function to run the build and backup process."""
     print("--- Building Kubelingo Master Question Database ---")
 
-    source_path = Path(QUESTIONS_DIR)
-    if not source_path.is_dir() or not any(source_path.iterdir()):
-        print(f"\nError: Consolidated questions directory not found or is empty.")
-        print(f"Path: '{source_path}'")
-        print("Please run the consolidation script first:")
-        print("  python3 scripts/consolidate_questions.py")
+    # Discover question directories dynamically
+    from kubelingo.utils.path_utils import get_all_question_dirs
+    candidate_dirs = get_all_question_dirs()
+    source_path = None
+    for d in candidate_dirs:
+        p = Path(d)
+        if p.is_dir() and (any(p.glob('**/*.yaml')) or any(p.glob('**/*.yml'))):
+            source_path = p
+            break
+    if source_path is None:
+        print("\nError: No question YAML files found in any of the candidate directories:")
+        for d in candidate_dirs:
+            print(f"  - {d}")
+        print("Please ensure your question-data directories are populated.")
         sys.exit(1)
+    print(f"\nUsing questions from '{source_path}'...")
 
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
     init_db()
