@@ -25,6 +25,156 @@ else:
 # Adjust sys.path to import local helper modules
 sys.path.insert(0, str(scripts_dir))
 
+def _run_script(script_name: str):
+    """Helper to run a script from the scripts directory."""
+    script_path = scripts_dir / script_name
+    if not script_path.exists():
+        print(f"Error: Script '{script_path}' not found.")
+        return
+    command = [sys.executable, str(script_path)]
+    print(f"Running: {' '.join(command)}")
+    subprocess.run(command, check=False)
+
+def task_index_yaml():
+    """Index all Yaml Files in Dir"""
+    _run_script("index_yaml_files.py")
+
+def task_consolidate_yaml():
+    """Consolidate Unique Yaml Questions"""
+    _run_script("consolidate_unique_yaml_questions.py")
+
+def task_locate_yaml_backup():
+    """Locate Previous YAML backup"""
+    _run_script("locate_yaml_backups.py")
+
+def task_diff_yaml_backups():
+    """Diff YAML Backups"""
+    print("Diffing YAML backups is not yet implemented.")
+
+def task_yaml_stats():
+    """YAML Statistics"""
+    _run_script("yaml_backup_stats.py")
+
+def task_export_db_to_yaml():
+    """Write DB to YAML Backup Version"""
+    _run_script("export_db_to_yaml.py")
+
+def task_restore_db_from_yaml():
+    """Restore DB from YAML Backup Version"""
+    _run_script("restore_yaml_to_db.py")
+
+def task_index_sqlite():
+    """Index all Sqlite files in Dir"""
+    _run_script("index_sqlite_files.py")
+
+def task_view_db_schema():
+    """View Database Schema"""
+    print("Viewing database schema is not yet implemented.")
+
+def task_locate_sqlite_backup():
+    """Locate Previous Sqlite Backup"""
+    print("Locating SQLite backup is not yet implemented.")
+
+def task_diff_sqlite_backup():
+    """Diff with Backup Sqlite Db"""
+    print("Diffing with backup SQLite DB is not yet implemented.")
+
+def task_create_sqlite_backup():
+    """Create Sqlite Backup Version"""
+    print("Creating SQLite backup is not yet implemented.")
+
+def task_restore_sqlite_backup():
+    """Restore from Sqlite Backup Version"""
+    _run_script("legacy/restore_db_from_backup.py")
+
+def task_deduplicate_questions():
+    """Deduplicate Questions"""
+    _run_script("legacy/find_duplicate_questions.py")
+
+def task_fix_question_categorization():
+    """Fix Question Categorization"""
+    _run_script("reorganize_questions.py")
+
+def task_fix_doc_links():
+    """Fix Documentation Links"""
+    _run_script("legacy/check_docs_links.py")
+
+def task_fix_question_formatting():
+    """Fix Question Formatting"""
+    _run_script("legacy/check_quiz_formatting.py")
+
+def task_bug_ticket():
+    """Bug Ticket"""
+    print("Creating a bug ticket is not yet implemented.")
+
+def run_interactive_menu():
+    """Display an interactive menu for maintenance tasks."""
+    try:
+        import questionary
+        from questionary import Separator
+    except ImportError:
+        print("Error: 'questionary' library not found. Please install it with:")
+        print("pip install questionary")
+        sys.exit(1)
+
+    tasks = {
+        "Index all Yaml Files in Dir": task_index_yaml,
+        "Consolidate Unique Yaml Questions": task_consolidate_yaml,
+        "Locate Previous YAML backup": task_locate_yaml_backup,
+        "Diff YAML Backups": task_diff_yaml_backups,
+        "YAML Statistics": task_yaml_stats,
+        "Write DB to YAML Backup Version": task_export_db_to_yaml,
+        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
+        "Index all Sqlite files in Dir": task_index_sqlite,
+        "View Database Schema": task_view_db_schema,
+        "Locate Previous Sqlite Backup": task_locate_sqlite_backup,
+        "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
+        "Create Sqlite Backup Version": task_create_sqlite_backup,
+        "Restore from Sqlite Backup Version": task_restore_sqlite_backup,
+        "Deduplicate Questions": task_deduplicate_questions,
+        "Fix Question Categorization": task_fix_question_categorization,
+        "Fix Documentation Links": task_fix_doc_links,
+        "Fix Question Formatting": task_fix_question_formatting,
+        "Bug Ticket": task_bug_ticket,
+    }
+
+    choice = questionary.select(
+        "Select a maintenance task:",
+        choices=[
+            Separator("=== YAML ==="),
+            "Index all Yaml Files in Dir",
+            "Consolidate Unique Yaml Questions",
+            "Locate Previous YAML backup",
+            "Diff YAML Backups",
+            "YAML Statistics",
+            Separator("=== Sqlite ==="),
+            "Write DB to YAML Backup Version",
+            "Restore DB from YAML Backup Version",
+            "Index all Sqlite files in Dir",
+            "View Database Schema",
+            "Locate Previous Sqlite Backup",
+            "Diff with Backup Sqlite Db",
+            "Create Sqlite Backup Version",
+            "Restore from Sqlite Backup Version",
+            Separator("=== Questions ==="),
+            "Deduplicate Questions",
+            "Fix Question Categorization",
+            "Fix Documentation Links",
+            "Fix Question Formatting",
+            Separator("=== System ==="),
+            "Bug Ticket",
+            "Cancel"
+        ],
+        use_indicator=True
+    ).ask()
+
+    if choice is None or choice == "Cancel":
+        print("Operation cancelled.")
+        sys.exit(0)
+
+    if choice in tasks:
+        tasks[choice]()
+
 def run_quiz(args):
     """Run the interactive CLI quiz."""
     # Forward remaining args to kubelingo CLI
@@ -136,6 +286,10 @@ def ckad_normalize(args):
     subprocess.run(cmd, check=True)
 
 def main():
+    if len(sys.argv) == 1:
+        run_interactive_menu()
+        return
+
     parser = argparse.ArgumentParser(description='Kubelingo umbrella tools')
     subparsers = parser.add_subparsers(dest='command', required=True)
 
