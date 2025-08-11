@@ -65,6 +65,8 @@ def import_questions(source_dir: Path, conn: sqlite3.Connection):
                     q_dict['question_type'] = q_type
 
                 q_dict['source_file'] = file_path.name
+                # The `links` field is not supported by the database schema.
+                q_dict.pop('links', None)
                 add_question(conn=conn, **q_dict)
                 question_count += 1
     print(f"\nImport complete. Added/updated {question_count} questions.")

@@ -62,7 +62,7 @@ def classify_subject(client, prompt, model="gpt-3.5-turbo"):
         text = resp.choices[0].message.content.strip()
         # Normalize to find an exact match from the official list
         for cat in SUBJECT_MATTER:
-            if cat.lower() in text.lower():
+            if text.lower() in cat.lower():
                 return cat
         if text in SUBJECT_MATTER:
             return text
