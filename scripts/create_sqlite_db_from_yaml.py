@@ -63,9 +63,9 @@ def populate_db_from_yaml(
     }
 
     # Create a mapping from category names to their source filenames.
-    category_to_source_file = {
-        k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
-    }
+    # The application expects the full path to the source file to associate
+    # questions with a quiz, not just the basename.
+    category_to_source_file = ENABLED_QUIZZES
     unmatched_categories = set()
     skipped_no_category = 0
 
