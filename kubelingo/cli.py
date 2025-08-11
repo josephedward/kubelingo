@@ -262,9 +262,7 @@ def handle_troubleshoot(cmd_args):
 
     mapping = {p.stem: p for p in scripts}
     if not cmd_args:
-        print(f"{Fore.CYAN}Available troubleshooting scripts:{Style.RESET_ALL}")
-        for name in sorted(mapping):
-            print(f"  {name}")
+        manage_troubleshooting_interactive()
         return
 
     script_name = cmd_args[0]
