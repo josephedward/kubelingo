@@ -11,6 +11,7 @@ import json
 import re
 import argparse
 from collections import Counter
+from collections import Counter
 
 # Ensure project root is on sys.path for module imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -100,16 +101,16 @@ def main():
 
     if args.ai:
         try:
-            import openai
+            from openai import OpenAI
             api_key = os.getenv('OPENAI_API_KEY') or (get_api_key() if get_api_key else None)
             if not api_key:
                 print('No OpenAI API key found; skipping AI summary')
                 return
-            openai.api_key = api_key
+            client = OpenAI(api_key=api_key)
             prompt = ('Here are YAML backup statistics: ' + json.dumps(stats) +
                       '\nPlease provide a concise summary of these backups, ' \
                       'highlighting differences and any notable points.')
-            resp = openai.ChatCompletion.create(
+            resp = client.chat.completions.create(
                 model='gpt-3.5-turbo',
                 messages=[{'role': 'user', 'content': prompt}]
             )

@@ -77,19 +77,20 @@ def main():
 
     if args.ai:
         try:
-            import openai
+            from openai import OpenAI
             api_key = os.getenv('OPENAI_API_KEY') or (get_api_key() if get_api_key else None)
             if not api_key:
                 print('No OpenAI API key found; skipping AI summary')
             else:
-                openai.api_key = api_key
+                client = OpenAI(api_key=api_key)
                 prompt = 'Here are YAML backup files: ' + json.dumps(entries) + \
                          '\nProvide a concise summary of these backups and any notable observations.'
-                resp = openai.ChatCompletion.create(
+                resp = client.chat.completions.create(
                     model='gpt-3.5-turbo',
                     messages=[{'role': 'user', 'content': prompt}]
                 )
-                print('\nAI Summary:\n' + resp.choices[0].message.content)
+                summary = resp.choices[0].message.content
+                print('\nAI Summary:\n' + summary)
         except ImportError:
             print('OpenAI library not installed; install openai to enable AI summary')
         except Exception as e:
