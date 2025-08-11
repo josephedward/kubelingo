@@ -321,40 +321,51 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
 
 
 def get_questions_by_subject_matter(subject_matter: str, conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
-    """Fetches all questions for a given subject matter."""
+    """
+    Fetches all questions for a given subject matter by querying the 'category' column.
+    The function name is retained for compatibility with existing session logic.
+    """
     close_conn = conn is None
     if close_conn:
         conn = get_db_connection()
 
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM questions WHERE subject_matter = ?", (subject_matter,))
+    # The session logic uses 'subject_matter' as a general term for a quiz topic,
+    # which corresponds to the 'category' field in the database.
+    cursor.execute("SELECT * FROM questions WHERE category = ?", (subject_matter,))
     rows = cursor.fetchall()
     if close_conn:
         conn.close()
     return [_row_to_question_dict(row) for row in rows]
 
 
-def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection] = None) -> Dict[Tuple[str, str], int]:
-    """Returns the count of questions for each schema and subject combination."""
+def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection] = None) -> Dict[str, Dict[str, int]]:
+    """
+    Returns a nested dictionary with counts of questions, grouped by schema_category
+    and then by category (subject).
+    """
     close_conn = conn is None
     if close_conn:
         conn = get_db_connection()
 
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT schema_category, subject_matter, COUNT(id)
+        SELECT schema_category, category, COUNT(*)
         FROM questions
-        WHERE schema_category IS NOT NULL AND subject_matter IS NOT NULL
-        GROUP BY schema_category, subject_matter
+        WHERE schema_category IS NOT NULL AND category IS NOT NULL
+        GROUP BY schema_category, category
     """)
     rows = cursor.fetchall()
-
-    counts = {}
-    for row in rows:
-        counts[(row['schema_category'], row['subject_matter'])] = row['COUNT(id)']
-
     if close_conn:
         conn.close()
+
+    counts: Dict[str, Dict[str, int]] = {}
+    for schema_cat, subject, count in rows:
+        if not subject:  # Skip questions with empty category
+            continue
+        if schema_cat not in counts:
+            counts[schema_cat] = {}
+        counts[schema_cat][subject] = count
     return counts
 
 
