@@ -21,7 +21,7 @@ except ImportError:
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.utils import path_utils
-from kubelingo.utils.config import ENABLED_QUIZZES
+from kubelingo.utils.config import ENABLED_QUIZZES, YAML_BACKUP_DIRS
 from kubelingo.utils.config import get_live_db_path
 
 
@@ -143,9 +143,19 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Use the basename of the file being processed as the source_file.
-                    # This is more reliable than deriving from category.
-                    q_dict["source_file"] = file_path.name
+                    # Derive source_file from category to ensure correct quiz association,
+                    # especially when processing consolidated backups.
+                    category = q_dict.get("category")
+                    source_file_from_category = category_to_source_file.get(category)
+
+                    if source_file_from_category:
+                        q_dict["source_file"] = source_file_from_category
+                    elif not q_dict.get("source_file"):
+                        # If a source file can't be determined, we can't link the question to a quiz.
+                        # This can happen if a category in the YAML is not in ENABLED_QUIZZES.
+                        if category:
+                            unmatched_categories.add(category)
+                        continue
 
                     # Remove legacy keys that are not supported by the database schema.
                     q_dict.pop("solution_file", None)
@@ -167,6 +177,11 @@ def populate_db_from_yaml(
     finally:
         conn.close()
 
+
+    if unmatched_categories:
+        print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
+        for cat in sorted(list(unmatched_categories)):
+            print(f"  - {cat}")
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
 
@@ -206,9 +221,18 @@ def main():
     if args.input_paths:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
     else:
-        print("No input paths provided. Scanning default question directories...")
-        question_dirs = path_utils.get_all_question_dirs()
-        yaml_files = path_utils.find_yaml_files(question_dirs)
+        print("No input paths provided. Scanning for YAML backups...")
+        backup_files = path_utils.find_yaml_files(YAML_BACKUP_DIRS)
+        if backup_files:
+            # Sort by modification time to find the latest
+            latest_backup = max(backup_files, key=lambda p: p.stat().st_mtime)
+            print(f"Automatically selecting latest backup: {latest_backup.name}")
+            yaml_files = [latest_backup]
+        else:
+            # Fallback to default directories if no backups are found
+            print("No YAML backups found. Scanning default question directories...")
+            question_dirs = path_utils.get_all_question_dirs()
+            yaml_files = path_utils.find_yaml_files(question_dirs)
 
     if not yaml_files:
         print("No YAML files found.")
