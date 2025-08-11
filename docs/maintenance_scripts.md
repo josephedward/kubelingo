@@ -29,6 +29,13 @@ For each task, the documentation includes:
 ---
 ## 2. YAML Backup Management
 
+### Index All YAML Files
+- **Purpose**: Scans all configured question and backup directories to find YAML files and creates a central index file (`backups/index.yaml`) with their metadata.
+- **Script**: `scripts/index_yaml_files.py`
+- **Behavior**: Uses `get_all_yaml_files()` and `get_all_yaml_backups()` to discover files. For each file, it records the path, size, and last modified time. The index helps other scripts and tools quickly locate relevant files without re-scanning the filesystem.
+- **Existing Scripts**: `scripts/index_yaml_files.py`.
+- **AI Prompts**: None.
+
 ### Locate Previous YAML Backup
 - **Purpose**: Find and list YAML backup files containing question data.
 - **Script**: `scripts/locate_yaml_backups.py`
@@ -61,6 +68,13 @@ For each task, the documentation includes:
 
 ---
 ## 3. SQLite Database Management
+
+### Index All SQLite Files
+- **Purpose**: Scans the entire project repository to find all SQLite database files (`*.db`).
+- **Script**: `scripts/index_sqlite_files.py`
+- **Behavior**: Uses `get_all_sqlite_files_in_repo()` to find all database files. It prints a list of the located files. Unlike the YAML indexer, it does not currently write to an index file but provides a quick way to list all discoverable databases.
+- **Existing Scripts**: `scripts/index_sqlite_files.py`.
+- **AI Prompts**: None.
 
 ### View Database Schema
 - **Purpose**: Display the schema of the SQLite database (tables, columns, indexes).
@@ -108,11 +122,11 @@ For each task, the documentation includes:
 - **AI Prompts**: "These questions look similar; select canonical version or merge fields:"
 
 ### Fix Question Categorization
-- **Purpose**: Detect and correct miscategorized questions.
-- **Script**: `scripts/fix_question_categories.py`
-- **Behavior**: Loads questions, uses AI to propose new `schema_category` values, applies updates.
+- **Purpose**: Ensure all questions in the database have a consistent `schema_category` based on their type and content.
+- **Script**: `scripts/reorganize_question_categories.py`
+- **Behavior**: Iterates through all questions in the database, determines the correct schema category based on the logic in the `Question` dataclass, and updates the database. It reports on any quiz files that contain questions with mixed categories.
 - **Existing Scripts**: `scripts/reorganize_question_categories.py`.
-- **AI Prompts**: "Proposed category for question '<excerpt>': {suggestion}. Approve or edit?"
+- **AI Prompts**: None.
 
 ### Fix Documentation Links
 - **Purpose**: Validate and repair broken documentation URLs in question metadata.

@@ -16,8 +16,10 @@ from collections import Counter
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 try:
     from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.utils.path_utils import find_yaml_files_from_paths
+    from kubelingo.utils.config import YAML_BACKUP_DIRS
 except ImportError:
-    print("Error: kubelingo.modules.yaml_loader not available. Ensure you run this from project root.")
+    print("Error: A required kubelingo module is not available. Ensure you run this from project root.")
     sys.exit(1)
 try:
     import yaml
@@ -47,8 +49,8 @@ def main():
         description="Show stats for YAML backup files."
     )
     parser.add_argument(
-        'path', nargs='?', default='question-data-backup',
-        help='Path to YAML file or directory of backups (default: question-data-backup)'
+        'paths', nargs='*',
+        help='Path(s) to YAML file(s) or directory/ies of backups (defaults to configured backup dirs)'
     )
     parser.add_argument(
         '-p', '--pattern', help='Regex to filter filenames'
@@ -60,22 +62,26 @@ def main():
         '--ai', action='store_true', help='Use AI to summarize statistics'
     )
     args = parser.parse_args()
-    target = Path(args.path)
-    files = []
-    if target.is_dir():
-        for f in sorted(target.iterdir()):
-            if f.is_file() and f.suffix.lower() in ('.yaml', '.yml'):
-                if args.pattern and not re.search(args.pattern, f.name):
-                    continue
-                files.append(f)
-    elif target.is_file():
-        files = [target]
-    else:
-        print(f"Path not found: {target}")
+
+    scan_paths = args.paths
+    if not scan_paths:
+        scan_paths = YAML_BACKUP_DIRS
+
+    try:
+        files = find_yaml_files_from_paths(scan_paths)
+    except Exception as e:
+        print(f"Error scanning directories: {e}", file=sys.stderr)
         sys.exit(1)
+
+    if args.pattern:
+        regex = re.compile(args.pattern)
+        files = [f for f in files if regex.search(str(f))]
+
     if not files:
-        print(f"No YAML files found at {target}")
+        dirs_str = ', '.join(scan_paths)
+        print(f"No YAML files found in {dirs_str}")
         sys.exit(0)
+
     stats = [analyze_file(f) for f in files]
     if args.json:
         print(json.dumps(stats, indent=2))
