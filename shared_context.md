@@ -1162,10 +1162,11 @@ A centralized maintenance script is being developed to provide a unified interfa
    ○ Index all Yaml Files in Dir
    ○ Consolidate Unique Yaml Questions
    ○ Locate Previous YAML backup
-   ○ View YAML Backup Statistics
+   ○ Diff YAML Backups
+   ○ YAML Statistics
+   === Sqlite ===
    ○ Write DB to YAML Backup Version
    ○ Restore DB from YAML Backup Version
-   === Sqlite ===
    ○ Index all Sqlite files in Dir
    ○ View Database Schema
    ○ Locate Previous Sqlite Backup
@@ -1183,6 +1184,11 @@ A centralized maintenance script is being developed to provide a unified interfa
 ```
 
 The `Cancel` option exits the maintenance menu without taking any action, returning to the previous menu or command prompt.
+
+The maintenance toolbox includes the following key YAML utilities:
+- **Locate Previous YAML backup**: Finds the most recent YAML backup file based on its timestamp.
+- **Diff YAML Backups**: Compares different YAML backup versions to show what has changed. It can compare a range of versions or all of them.
+- **YAML Statistics**: Provides a count of questions broken down by exercise type and subject matter type.
 
 ## AI-Powered Question Consolidation and Categorization
 
