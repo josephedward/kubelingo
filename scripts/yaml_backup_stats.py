@@ -63,15 +63,43 @@ def main():
     )
     args = parser.parse_args()
 
+    files = []
     scan_paths = args.paths
-    if not scan_paths:
-        scan_paths = YAML_BACKUP_DIRS
+    project_root = Path(__file__).resolve().parent.parent
 
-    try:
-        files = find_yaml_files_from_paths(scan_paths)
-    except Exception as e:
-        print(f"Error scanning directories: {e}", file=sys.stderr)
-        sys.exit(1)
+    # If no specific paths are given, try to use the index for default backup dirs
+    if not scan_paths:
+        index_file = project_root / "backups" / "index.yaml"
+        if index_file.exists():
+            print(f"Info: No paths provided. Using index file to find backup YAMLs.", file=sys.stderr)
+            with open(index_file, 'r') as f:
+                index_data = yaml.safe_load(f)
+
+            backup_dirs = [Path(d) for d in YAML_BACKUP_DIRS]
+            all_indexed_files = [Path(f['path']) for f in index_data.get('files', [])]
+
+            candidate_files = []
+            for file_path in all_indexed_files:
+                # Check if the file is in one of the backup directories
+                if any(backup_dir in file_path.parents for backup_dir in backup_dirs):
+                    candidate_files.append(project_root / file_path)
+            files = candidate_files
+        else:
+            # Fallback to scanning default dirs if index not found
+            print("Info: No index file found, falling back to scanning backup directories.", file=sys.stderr)
+            scan_paths = YAML_BACKUP_DIRS
+            try:
+                files = find_yaml_files_from_paths(scan_paths)
+            except Exception as e:
+                print(f"Error scanning directories: {e}", file=sys.stderr)
+                sys.exit(1)
+    else:
+        # If paths are provided, scan them directly (old behavior)
+        try:
+            files = find_yaml_files_from_paths(scan_paths)
+        except Exception as e:
+            print(f"Error scanning directories: {e}", file=sys.stderr)
+            sys.exit(1)
 
     if args.pattern:
         regex = re.compile(args.pattern)
