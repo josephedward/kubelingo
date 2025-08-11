@@ -211,7 +211,7 @@ def populate_db_from_yaml(
 
 def fix_source_paths_in_db(db_path: Optional[str] = None):
     """
-    Corrects the source_file paths in the database from full paths to basenames.
+    Ensures source_file paths in the database match the canonical paths in ENABLED_QUIZZES.
     This is a data-preserving operation that does not require clearing the DB.
     """
     print("Fixing source_file paths in the database...")
@@ -224,10 +224,9 @@ def fix_source_paths_in_db(db_path: Optional[str] = None):
         conn.close()
         return
 
-    # This map defines the correct basename for a given category.
-    category_to_source_file = {
-        k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
-    }
+    # This map defines the correct source file path for a given category.
+    # The application uses the full path to identify a quiz's questions.
+    category_to_source_file = ENABLED_QUIZZES
     allowed_args = {
         "id",
         "prompt",
