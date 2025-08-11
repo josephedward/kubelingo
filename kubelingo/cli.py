@@ -375,6 +375,9 @@ def handle_load_yaml(cmd_args):
 
             for q in questions:
                 q_dict = asdict(q)
+                # The 'type' key may exist in some source YAML files, but it's not a field
+                # in the 'questions' database table. We must remove it before calling add_question.
+                q_dict.pop('type', None)
                 add_question(conn=conn, **q_dict)
 
             conn.commit()
