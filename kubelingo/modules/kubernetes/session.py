@@ -389,24 +389,56 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Quiz Sections ---
-        quiz_configs = {
-            "--- Basic Exercises ---": BASIC_QUIZZES,
-            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
-            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
+        # --- Quiz Sections (Dynamically grouped from DB) ---
+        sections = {
+            QuestionCategory.OPEN_ENDED.value: [],
+            QuestionCategory.COMMAND.value: [],
+            QuestionCategory.MANIFEST.value: [],
         }
 
-        for separator, quizzes in quiz_configs.items():
-            if questionary:
-                choices.append(questionary.Separator(separator))
-            for name, path in quizzes.items():
-                try:
-                    # Get questions from DB using the basename of the path
-                    source_file = os.path.basename(path)
-                    count = len(get_questions_by_source_file(source_file))
-                except Exception:
-                    count = 0
-                choices.append({"name": f"{name} ({count} questions)", "value": path})
+        # Use a fallback category for any questions that might not have one set
+        fallback_category = QuestionCategory.COMMAND.value
+
+        all_source_files = _get_all_source_files()
+        
+        for source_file in all_source_files:
+            questions = _get_solvable_questions(source_file)
+            if not questions:
+                continue
+
+            # Assume category of the first question applies to the whole file
+            category = questions[0].get('schema_category') or fallback_category
+
+            # Ensure the category is valid before using it as a key
+            if category not in sections:
+                category = fallback_category
+            
+            quiz_name = humanize_module(os.path.splitext(source_file)[0])
+            count = len(questions)
+            
+            sections[category].append({
+                "name": f"{quiz_name} ({count} questions)",
+                "value": source_file,
+            })
+
+        display_labels = {
+            QuestionCategory.OPEN_ENDED.value: 'Basic Exercises',
+            QuestionCategory.COMMAND.value: 'Command-Based Exercises',
+            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
+        }
+        
+        category_order = [
+            QuestionCategory.OPEN_ENDED.value,
+            QuestionCategory.COMMAND.value,
+            QuestionCategory.MANIFEST.value,
+        ]
+
+        for cat in category_order:
+            entries = sorted(sections.get(cat, []), key=lambda x: x['name'])
+            if entries:
+                if questionary:
+                    choices.append(questionary.Separator(f"--- {display_labels.get(cat, cat)} ---"))
+                choices.extend(entries)
 
         # --- Settings Section ---
         if questionary:
