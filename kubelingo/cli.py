@@ -487,7 +487,7 @@ def manage_config_interactive():
         return
 
 def manage_troubleshooting_interactive():
-    """Interactive prompt for troubleshooting operations."""
+    """Interactive prompt for maintenance and self-healing tasks."""
     if questionary is None:
         print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
         return
@@ -495,40 +495,35 @@ def manage_troubleshooting_interactive():
         from pathlib import Path
         while True:
             choices = []
-            choices.append(questionary.Separator("=== Troubleshooting ==="))
-            choices.append({"name": "Merge database from backup (additive)", "value": "restore_db"})
-            choices.append(questionary.Separator("Maintenance"))
-            choices.append({"name": "Find duplicate questions (list)", "value": "find_duplicates"})
-            choices.append({"name": "Delete duplicate questions", "value": "delete_duplicates"})
-            choices.append({"name": "Normalize DB source_file paths", "value": "update_source_paths"})
-            choices.append(questionary.Separator("File Checks"))
-            choices.append({"name": "Check documentation links", "value": "check_docs_links"})
-            choices.append({"name": "Check quiz YAML formatting", "value": "check_quiz_formatting"})
+            choices.append(questionary.Separator("=== System ==="))
+            choices.append({"name": "Bug Ticket", "value": "bug_ticket"})
+            choices.append(questionary.Separator("=== YAML ==="))
+            choices.append({"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"})
+            choices.append({"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"})
+            choices.append({"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"})
+            choices.append({"name": "Restore DB from YAML Backup Version", "value": "restore_yaml_to_db"})
+            choices.append(questionary.Separator("=== Sqlite ==="))
+            choices.append({"name": "View Database Schema", "value": "view_sqlite_schema"})
+            choices.append({"name": "Locate Previous Sqlite Backup", "value": "locate_sqlite_backups"})
+            choices.append({"name": "Diff with Backup Sqlite Db", "value": "diff_sqlite_backup"})
+            choices.append({"name": "Create Sqlite Backup Version", "value": "create_sqlite_backup"})
+            choices.append({"name": "Restore from Sqlite Backup Version", "value": "restore_sqlite_backup"})
+            choices.append(questionary.Separator("=== Questions ==="))
+            choices.append({"name": "Deduplicate Questions", "value": "deduplicate_questions"})
+            choices.append({"name": "Fix Question Categorization", "value": "fix_question_categories"})
+            choices.append({"name": "Fix Documentation Links", "value": "validate_doc_links"})
+            choices.append({"name": "Fix Question Formatting", "value": "lint_fix_question_format"})
+            choices.append({"name": "Cancel", "value": None})
             action = questionary.select(
-                "Select a troubleshooting action:", choices=choices, use_indicator=True
+                "Select a maintenance task:", choices=choices, use_indicator=True
             ).ask()
             if not action:
                 break
-            if action == "restore_db":
-                restore_db()
-            elif action == "find_duplicates":
-                find_duplicates_cmd([])
-            elif action == "delete_duplicates":
-                find_duplicates_cmd(["--delete"])
-            elif action == "update_source_paths":
-                script = Path(__file__).resolve().parent.parent / "scripts" / "update_db_source_paths.py"
-                subprocess.run([sys.executable, str(script)], check=False)
-            elif action == "check_docs_links":
-                script = Path(__file__).resolve().parent.parent / "scripts" / "check_docs_links.py"
-                subprocess.run([sys.executable, str(script)], check=False)
-            elif action == "check_quiz_formatting":
-                script = Path(__file__).resolve().parent.parent / "scripts" / "check_quiz_formatting.py"
-                subprocess.run([sys.executable, str(script)], check=False)
+            script = Path(__file__).resolve().parent.parent / "scripts" / f"{action}.py"
+            subprocess.run([sys.executable, str(script)], check=False)
             print()
-        # exit back to parent menu
         return
     except (KeyboardInterrupt, EOFError):
-        # A newline is needed to prevent the next prompt from appearing on the same line.
         print()
         return
 
