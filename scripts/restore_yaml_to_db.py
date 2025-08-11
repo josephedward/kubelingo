@@ -13,10 +13,11 @@ except ImportError:
     print("pip install PyYAML")
     sys.exit(1)
 
-from kubelingo.database import add_question, init_db
+from typing import Optional
+from kubelingo.database import add_question, get_db_connection, init_db
 
 
-def restore_yaml_to_db(yaml_path: str, clear_db: bool):
+def restore_yaml_to_db(yaml_path: str, clear_db: bool, db_path: Optional[str] = None):
     """
     Restores questions from a YAML file to the database.
     """
@@ -25,24 +26,35 @@ def restore_yaml_to_db(yaml_path: str, clear_db: bool):
         print(f"Error: YAML file not found at {yaml_path}")
         sys.exit(1)
 
-    init_db(clear=clear_db)
+    init_db(clear=clear_db, db_path=db_path)
+    conn = get_db_connection(db_path=db_path)
 
     with open(yaml_file, "r", encoding="utf-8") as f:
         try:
             questions = yaml.safe_load(f)
         except yaml.YAMLError as e:
             print(f"Error parsing YAML file: {e}")
+            conn.close()
             sys.exit(1)
 
     if not isinstance(questions, list):
         print("Error: YAML file should contain a list of questions.")
+        conn.close()
         sys.exit(1)
 
     count = 0
-    for q_data in questions:
-        # add_question expects kwargs, so we unpack the dictionary
-        add_question(**q_data)
-        count += 1
+    try:
+        for q_data in questions:
+            # add_question expects kwargs, so we unpack the dictionary
+            add_question(conn=conn, **q_data)
+            count += 1
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error adding questions to database: {e}", file=sys.stderr)
+        sys.exit(1)
+    finally:
+        conn.close()
 
     print(f"Successfully restored {count} questions from {yaml_path}")
 
