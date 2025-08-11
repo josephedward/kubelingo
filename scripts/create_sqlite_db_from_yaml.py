@@ -201,7 +201,9 @@ def main():
             print("Operation cancelled.")
             sys.exit(0)
 
-    populate_db_from_yaml(unique_files)
+    db_path = path_utils.get_live_db_path()
+    print(f"\nPopulating database at: {db_path}")
+    populate_db_from_yaml(unique_files, db_path=db_path)
 
 
 if __name__ == "__main__":
