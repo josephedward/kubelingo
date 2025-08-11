@@ -261,6 +261,18 @@ If you add a new quiz YAML file under `question-data/yaml` (for example, `kubect
   ```
   should list the expected number of questions.
 
+### Error when importing: `add_question() got an unexpected keyword argument '...'`
+
+If you encounter an error like `TypeError: add_question() got an unexpected keyword argument 'solution_file'` when running a database import script, it often means you are using an older, deprecated script (such as `create_sqlite_db_from_yaml.py`).
+
+The project has standardized on `scripts/import_yaml_to_db.py` for this task, as it is kept up-to-date with the database schema.
+
+**Solution**: Use the correct script to import YAML questions:
+
+```bash
+python scripts/import_yaml_to_db.py
+```
+
 ## Unified Terminal Quiz Refactor
 
 ### Motivation
@@ -665,6 +677,8 @@ To get an AI-generated summary (requires `OPENAI_API_KEY`):
 ```bash
 python3 scripts/locate_yaml_backups.py --ai
 ```
+
+**Note**: If this script finds no backups when run without arguments, it's likely because the default search path (`question-data-backup/`) is empty or incorrect on your system. You can specify the path to your backup directories directly as an argument to scan the correct location.
 
 ### `scripts/yaml_backup_stats.py`
 
