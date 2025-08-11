@@ -47,6 +47,10 @@ BASIC_QUIZZES = {
     "Vim Practice": os.path.join(QUESTIONS_DIR, 'vim_practice.yaml'),
     "General Operations": os.path.join(QUESTIONS_DIR, 'general_operations.yaml'),
     "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_types_reference.yaml'),
+    "Resource Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
+    "Uncategorized": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
+    "Vim": os.path.join(QUESTIONS_DIR, 'vim.yaml'),
+    "Vim Quiz": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
 }
 # Command-based/syntax exercises (kubectl, helm, etc.)
 COMMAND_QUIZZES = {
@@ -76,10 +80,6 @@ COMMAND_QUIZZES = {
     "Kubernetes With Explanations": os.path.join(QUESTIONS_DIR, 'kubernetes_with_explanations.yaml'),
     "Master Quiz With Explanations": os.path.join(QUESTIONS_DIR, 'master_quiz_with_explanations.yaml'),
     "Pod Management (alt)": os.path.join(QUESTIONS_DIR, 'pod_management_alt.yaml'),
-    "Resource Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
-    "Uncategorized": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
-    "Vim": os.path.join(QUESTIONS_DIR, 'vim.yaml'),
-    "Vim Quiz": os.path.join(QUESTIONS_DIR, 'vim_quiz.yaml'),
 }
 MANIFEST_QUIZZES = {
     "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing_practice.yaml'),

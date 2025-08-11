@@ -389,68 +389,28 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # --- Quiz Sections (Dynamically grouped from DB) ---
-        sections = {
-            QuestionCategory.OPEN_ENDED.value: [],
-            QuestionCategory.COMMAND.value: [],
-            QuestionCategory.MANIFEST.value: [],
+        quiz_sections = {
+            "--- Basic Exercises ---": BASIC_QUIZZES,
+            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
+            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
         }
 
-        # Use a fallback category for any questions that might not have one set
-        fallback_category = QuestionCategory.COMMAND.value
+        for section_name, quiz_map in quiz_sections.items():
+            if questionary:
+                choices.append(questionary.Separator(section_name))
 
-        # Merge static quizzes from config with DB-loaded source files to include zero-question quizzes
-        static_files = [os.path.basename(path) for path in BASIC_QUIZZES.values()]
-        static_files += [os.path.basename(path) for path in COMMAND_QUIZZES.values()]
-        static_files += [os.path.basename(path) for path in MANIFEST_QUIZZES.values()]
-        db_files = _get_all_source_files()
-        all_source_files = []
-        for f in static_files + db_files:
-            if f not in all_source_files:
-                all_source_files.append(f)
+            sorted_quiz_items = sorted(quiz_map.items())
 
-        for source_file in all_source_files:
-            questions = _get_solvable_questions(source_file)
-            count = len(questions)
-            # Determine category: prefer question metadata, else infer from config mapping
-            if count > 0:
-                category = questions[0].get('schema_category') or fallback_category
-                if category not in sections:
-                    category = fallback_category
-            else:
-                if source_file in [os.path.basename(path) for path in BASIC_QUIZZES.values()]:
-                    category = QuestionCategory.OPEN_ENDED.value
-                elif source_file in [os.path.basename(path) for path in COMMAND_QUIZZES.values()]:
-                    category = QuestionCategory.COMMAND.value
-                elif source_file in [os.path.basename(path) for path in MANIFEST_QUIZZES.values()]:
-                    category = QuestionCategory.MANIFEST.value
-                else:
-                    category = fallback_category
+            for quiz_name, source_path in sorted_quiz_items:
+                # Use basename for DB lookup, but full path for selection value
+                source_file_basename = os.path.basename(source_path)
+                questions = _get_solvable_questions(source_file_basename)
+                count = len(questions)
 
-            quiz_name = humanize_module(os.path.splitext(source_file)[0])
-            entry = {"name": f"{quiz_name} ({count} questions)", "value": source_file}
-            if count == 0:
-                entry["disabled"] = "No questions available"
-            sections[category].append(entry)
-
-        display_labels = {
-            QuestionCategory.OPEN_ENDED.value: 'Basic Exercises',
-            QuestionCategory.COMMAND.value: 'Command-Based Exercises',
-            QuestionCategory.MANIFEST.value: 'Manifest-Based Exercises',
-        }
-        
-        category_order = [
-            QuestionCategory.OPEN_ENDED.value,
-            QuestionCategory.COMMAND.value,
-            QuestionCategory.MANIFEST.value,
-        ]
-
-        for cat in category_order:
-            entries = sorted(sections.get(cat, []), key=lambda x: x['name'])
-            if entries:
-                if questionary:
-                    choices.append(questionary.Separator(f"--- {display_labels.get(cat, cat)} ---"))
-                choices.extend(entries)
+                choices.append({
+                    "name": f"{quiz_name} ({count} questions)",
+                    "value": source_path,
+                })
 
         # --- Settings Section ---
         if questionary:
@@ -458,7 +418,6 @@ class NewSession(StudySession):
         choices.extend([
             {"name": "API Keys",               "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Questions",             "value": "__questions__"},
             {"name": "Troubleshooting",       "value": "__troubleshooting__"},
             {"name": "Help Documentation",    "value": "__help__"},
             {"name": "Exit App",              "value": "__exit__"},
