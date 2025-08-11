@@ -142,12 +142,15 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Infer a default category for interactive YAML exercises if one is not provided.
-                    # This prevents them from being skipped during import.
+                    # Infer a default category if one is not provided to prevent skipping.
                     if not q_dict.get("category"):
                         q_type = q_dict.get("question_type")
                         if q_type in ("yaml_edit", "yaml_author"):
                             q_dict["category"] = "YAML Authoring"
+                        elif q_dict.get("subject_matter"):
+                            # Use subject_matter as a fallback for category. This is useful for
+                            # command-line questions that are often categorized by subject.
+                            q_dict["category"] = q_dict["subject_matter"]
                         # For AI-generated questions, infer category from subject matter.
                         elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
                             subject = q_dict.get("subject_matter")
