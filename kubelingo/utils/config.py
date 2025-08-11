@@ -68,6 +68,11 @@ SQLITE_BACKUP_DIRS = [
 YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
+
+# --- Consolidated Question Files ---
+K8S_QUESTIONS_FILE = os.path.join(PROJECT_ROOT, 'question-data-archive', 'yaml', 'kubernetes.yaml')
+
+
 ## --- Interactive Quiz Modules ---
 # Organize quizzes into three core types: Basic, Command, and Manifest
 # Basic/Open-Ended quizzes (conceptual Q&A)
