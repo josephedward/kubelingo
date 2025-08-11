@@ -272,9 +272,11 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
 
 def get_questions_by_source_file(source_file: str) -> List[Dict[str, Any]]:
     """Fetches all questions from a given source file."""
+    # Allow passing full paths: match only on basename stored in DB
+    key = os.path.basename(source_file)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM questions WHERE source_file = ?", (source_file,))
+    cursor.execute("SELECT * FROM questions WHERE source_file = ?", (key,))
     rows = cursor.fetchall()
     conn.close()
     return [_row_to_question_dict(row) for row in rows]
