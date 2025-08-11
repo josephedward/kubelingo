@@ -100,6 +100,14 @@ def populate_db_from_yaml(
                             if k not in q_dict:
                                 q_dict[k] = v
 
+                    # Normalize legacy 'answer' to 'correct_yaml' for yaml_author/yaml_edit questions
+                    if "answer" in q_dict:
+                        q_dict["correct_yaml"] = q_dict.pop("answer")
+
+                    # Normalize legacy 'starting_yaml' to 'initial_files' for yaml_edit questions
+                    if "starting_yaml" in q_dict:
+                        q_dict["initial_files"] = {"manifest.yaml": q_dict.pop("starting_yaml")}
+
                     # Normalize legacy 'question' key to 'prompt'
                     if "question" in q_dict:
                         q_dict["prompt"] = q_dict.pop("question")
