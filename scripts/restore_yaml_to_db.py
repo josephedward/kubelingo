@@ -11,7 +11,7 @@ from rich.progress import track
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from kubelingo.database import add_question, init_db
+from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.utils.path_utils import find_yaml_files_from_paths, get_all_question_dirs
 
 
@@ -37,49 +37,62 @@ def restore_yaml_to_db(
     total_questions = 0
     errors = 0
 
-    for path in track(yaml_files, description="Processing YAML files..."):
-        console.print(f"  - Processing '{path.name}'...")
-        try:
-            with open(path, 'r') as f:
-                data = yaml.safe_load(f)
-            if not data or 'questions' not in data:
-                console.print(f"    [yellow]Skipping empty or invalid file: {path.name}[/yellow]")
-                continue
+    # Get a single connection to use for all insertions
+    conn = get_db_connection(db_path=db_path)
+    try:
+        for path in track(yaml_files, description="Processing YAML files..."):
+            console.print(f"  - Processing '{path.name}'...")
+            try:
+                with open(path, 'r') as f:
+                    data = yaml.safe_load(f)
 
-            for q_data in data.get('questions', []):
-                try:
-                    q_data['source_file'] = str(path)
-                    # Map `type` from YAML to `question_type` in DB schema
-                    if 'type' in q_data:
-                        q_data['question_type'] = q_data.pop('type')
-                    # Map `subject` from YAML to `subject_matter` in DB schema
-                    if 'subject' in q_data:
-                        q_data['subject_matter'] = q_data.pop('subject')
+                # Gracefully skip files that are not structured as question files
+                if not isinstance(data, dict) or 'questions' not in data:
+                    console.print(f"    [yellow]Skipping file (not a valid question format): {path.name}[/yellow]")
+                    continue
 
-                    # Filter to only include arguments expected by add_question
-                    valid_keys = {
-                        'id', 'prompt', 'response', 'category', 'source',
-                        'validation_steps', 'validator', 'source_file', 'review',
-                        'explanation', 'difficulty', 'pre_shell_cmds', 'initial_files',
-                        'question_type', 'answers', 'correct_yaml', 'schema_category',
-                        'metadata', 'subject_matter'
-                    }
-                    kwargs_for_add = {
-                        key: q_data[key] for key in valid_keys if key in q_data
-                    }
+                for q_data in data.get('questions', []):
+                    try:
+                        # Ensure required fields are present before trying to add
+                        if not all(k in q_data for k in ['id', 'prompt']):
+                            console.print(f"[red]Error in {path.name}: Skipping question missing 'id' or 'prompt'. ID: {q_data.get('id', 'N/A')}[/red]")
+                            errors += 1
+                            continue
 
-                    add_question(**kwargs_for_add)
-                    total_questions += 1
-                except Exception as e:
-                    console.print(f"[red]Error adding question from {path.name} ({q_data.get('id', 'N/A')}): {e}[/red]")
-                    errors += 1
+                        q_data['source_file'] = str(path)
+                        # Map `type` from YAML to `question_type` in DB schema
+                        if 'type' in q_data:
+                            q_data['question_type'] = q_data.pop('type')
+                        # Map `subject` from YAML to `subject_matter` in DB schema
+                        if 'subject' in q_data:
+                            q_data['subject_matter'] = q_data.pop('subject')
 
-        except yaml.YAMLError as e:
-            console.print(f"[red]Error parsing YAML file {path.name}: {e}[/red]")
-            errors += 1
-        except Exception as e:
-            console.print(f"[red]An unexpected error occurred with file {path.name}: {e}[/red]")
-            errors += 1
+                        # Filter to only include arguments expected by add_question
+                        valid_keys = {
+                            'id', 'prompt', 'response', 'category', 'source',
+                            'validation_steps', 'validator', 'source_file', 'review',
+                            'explanation', 'difficulty', 'pre_shell_cmds', 'initial_files',
+                            'question_type', 'answers', 'correct_yaml', 'schema_category',
+                            'metadata', 'subject_matter'
+                        }
+                        kwargs_for_add = {
+                            key: q_data[key] for key in valid_keys if key in q_data
+                        }
+
+                        add_question(conn=conn, **kwargs_for_add)
+                        total_questions += 1
+                    except Exception as e:
+                        console.print(f"[red]Error adding question from {path.name} ({q_data.get('id', 'N/A')}): {e}[/red]")
+                        errors += 1
+
+            except yaml.YAMLError as e:
+                console.print(f"[red]Error parsing YAML file {path.name}: {e}[/red]")
+                errors += 1
+            except Exception as e:
+                console.print(f"[red]An unexpected error occurred with file {path.name}: {e}[/red]")
+                errors += 1
+    finally:
+        conn.close()
 
     console.print(f"\n[bold green]Restore complete.[/bold green]")
     console.print(f"  - Total questions added: {total_questions}")
