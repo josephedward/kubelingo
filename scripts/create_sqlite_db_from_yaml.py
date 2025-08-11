@@ -228,6 +228,27 @@ def fix_source_paths_in_db(db_path: Optional[str] = None):
     category_to_source_file = {
         k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
     }
+    allowed_args = {
+        "id",
+        "prompt",
+        "source_file",
+        "response",
+        "category",
+        "source",
+        "validation_steps",
+        "validator",
+        "review",
+        "question_type",
+        "schema_category",
+        "answers",
+        "correct_yaml",
+        "difficulty",
+        "explanation",
+        "initial_files",
+        "pre_shell_cmds",
+        "subject_matter",
+        "metadata",
+    }
 
     updated_count = 0
     try:
@@ -243,8 +264,13 @@ def fix_source_paths_in_db(db_path: Optional[str] = None):
             # If the source file is incorrect, update it.
             if q_dict.get("source_file") != correct_source_file:
                 q_dict["source_file"] = correct_source_file
+
+                # Filter dict to only include keys that add_question accepts
+                q_dict_for_db = {
+                    k: v for k, v in q_dict.items() if k in allowed_args
+                }
                 # add_question uses INSERT OR REPLACE, which updates the record in place.
-                add_question(conn=conn, **q_dict)
+                add_question(conn=conn, **q_dict_for_db)
                 updated_count += 1
         conn.commit()
     except Exception as e:
