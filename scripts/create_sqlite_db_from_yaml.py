@@ -194,7 +194,7 @@ def main():
         description="Populate the SQLite database from YAML backup files."
     )
     parser.add_argument(
-        "--input-paths",
+        "--yaml-files",
         nargs="+",
         default=None,
         type=str,
