@@ -110,8 +110,9 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Set source_file to the YAML filename if not already present
-                    if "source_file" not in q_dict or not q_dict["source_file"]:
+                    # Set source_file to the YAML filename being processed if not already present.
+                    # This preserves the original source file if it was present in the question data.
+                    if not q_dict.get("source_file"):
                         q_dict["source_file"] = file_path.name
 
                     # Remove legacy keys that are not supported by the database schema.
