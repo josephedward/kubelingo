@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Finds and displays all YAML backup files from configured directories.
+Finds and displays all SQLite backup files from configured directories.
 """
 import argparse
 import datetime
@@ -12,8 +12,8 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from kubelingo.utils.path_utils import find_yaml_files_from_paths
-    from kubelingo.utils.config import YAML_BACKUP_DIRS
+    from kubelingo.utils.path_utils import find_sqlite_files_from_paths
+    from kubelingo.utils.config import SQLITE_BACKUP_DIRS
 except ImportError as e:
     print(f"Error: A required kubelingo module is not available: {e}. "
           "Ensure you run this from the project root.", file=sys.stderr)
@@ -21,9 +21,9 @@ except ImportError as e:
 
 
 def main():
-    """Finds and prints all YAML backup files."""
+    """Finds and prints all SQLite backup files."""
     parser = argparse.ArgumentParser(
-        description="Finds and displays all YAML backup files."
+        description="Finds and displays all SQLite backup files."
     )
     parser.add_argument(
         "--path-only",
@@ -32,14 +32,14 @@ def main():
     )
     args = parser.parse_args()
 
-    backup_dirs = YAML_BACKUP_DIRS
+    backup_dirs = SQLITE_BACKUP_DIRS
     if not backup_dirs:
         if not args.path_only:
-            print("No YAML backup directories are configured.", file=sys.stderr)
+            print("No SQLite backup directories are configured.", file=sys.stderr)
         sys.exit(1)
 
     try:
-        backup_files = find_yaml_files_from_paths(backup_dirs)
+        backup_files = find_sqlite_files_from_paths(backup_dirs)
     except Exception as e:
         if not args.path_only:
             print(f"Error scanning directories: {e}", file=sys.stderr)
@@ -47,16 +47,16 @@ def main():
 
     if not backup_files:
         if not args.path_only:
-            print("No YAML backup files found.")
+            print("No SQLite backup files found.")
         sys.exit(1)
-
+        
     sorted_files = sorted(backup_files, key=lambda p: p.stat().st_mtime, reverse=True)
 
     if args.path_only:
         for f in sorted_files:
             print(f)
     else:
-        print(f"Searching for YAML backup files in: {', '.join(backup_dirs)}...")
+        print(f"Searching for SQLite backup files in: {', '.join(backup_dirs)}...")
         print(f"\nFound {len(sorted_files)} backup file(s), sorted by most recent:\n")
         for f in sorted_files:
             mod_time = f.stat().st_mtime

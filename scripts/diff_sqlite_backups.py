@@ -69,3 +69,101 @@ def main():
 
 if __name__ == "__main__":
     main()
+#!/usr/bin/env python3
+"""
+Compares the two most recent SQLite backups.
+"""
+import sqlite3
+import sys
+from pathlib import Path
+from typing import List, Optional, Tuple, Set
+
+# Ensure the project root is in the Python path
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from kubelingo.utils.path_utils import find_sqlite_files_from_paths
+    from kubelingo.utils.config import SQLITE_BACKUP_DIRS
+except ImportError as e:
+    print(f"Error: A required kubelingo module is not available: {e}. "
+          "Ensure you run this from the project root.", file=sys.stderr)
+    sys.exit(1)
+
+
+def find_most_recent_backups(files: List[Path]) -> Optional[Tuple[Path, Path]]:
+    """Finds the two most recent files in a list."""
+    if len(files) < 2:
+        return None
+    sorted_files = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
+    return (sorted_files[0], sorted_files[1])
+
+def get_table_names(conn: sqlite3.Connection) -> Set[str]:
+    """Gets all table names from a database."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    return {row[0] for row in cursor.fetchall()}
+
+def get_table_row_count(conn: sqlite3.Connection, table_name: str) -> int:
+    """Gets the row count of a table."""
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+    return cursor.fetchone()[0]
+
+def main():
+    """Finds and diffs the two most recent SQLite backup files."""
+    backup_dirs = SQLITE_BACKUP_DIRS
+    if not backup_dirs:
+        print("No SQLite backup directories are configured.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        backup_files = find_sqlite_files_from_paths(backup_dirs)
+    except Exception as e:
+        print(f"Error scanning directories: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    recent_pair = find_most_recent_backups(backup_files)
+
+    if not recent_pair:
+        print("Fewer than two SQLite backup files found. Cannot perform a diff.", file=sys.stderr)
+        sys.exit(1)
+
+    new_db_path, old_db_path = recent_pair
+    print(f"Comparing newest backup: {new_db_path.name}")
+    print(f"With older backup:   {old_db_path.name}\n")
+
+    try:
+        new_conn = sqlite3.connect(f"file:{new_db_path}?mode=ro", uri=True)
+        old_conn = sqlite3.connect(f"file:{old_db_path}?mode=ro", uri=True)
+
+        new_tables = get_table_names(new_conn)
+        old_tables = get_table_names(old_conn)
+
+        added_tables = new_tables - old_tables
+        removed_tables = old_tables - new_tables
+        common_tables = new_tables.intersection(old_tables)
+
+        if added_tables:
+            print(f"Tables added: {', '.join(added_tables)}")
+        if removed_tables:
+            print(f"Tables removed: {', '.join(removed_tables)}")
+        
+        print("\nRow count comparison for common tables:")
+        for table in sorted(list(common_tables)):
+            new_count = get_table_row_count(new_conn, table)
+            old_count = get_table_row_count(old_conn, table)
+            if new_count != old_count:
+                print(f"  - {table}: {old_count} -> {new_count} (Change: {new_count - old_count:+d})")
+            else:
+                print(f"  - {table}: {new_count} (no change)")
+
+        new_conn.close()
+        old_conn.close()
+
+    except sqlite3.Error as e:
+        print(f"Error during database comparison: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
