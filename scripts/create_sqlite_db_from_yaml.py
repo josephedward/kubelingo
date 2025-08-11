@@ -142,17 +142,20 @@ def populate_db_from_yaml(
                     else:  # socratic, etc. maps to 'basic'
                         q_dict["schema_category"] = "basic"
 
-                    # Derive source_file from category to ensure correct quiz association,
-                    # especially when processing consolidated backups.
+                    # To associate a question with a quiz, its `source_file` must be set correctly.
+                    # The canonical mapping is from category -> source_file in ENABLED_QUIZZES.
+                    # We prioritize this mapping, but fall back to a source_file from the YAML data itself
+                    # if the category lookup fails. This handles both consolidated files and backups
+                    # that already contain correct source_file information.
                     category = q_dict.get("category")
                     source_file_from_category = category_to_source_file.get(category)
 
                     if source_file_from_category:
+                        # Always prefer the mapping from ENABLED_QUIZZES as the source of truth.
                         q_dict["source_file"] = source_file_from_category
-                    else:
-                        # If a source file can't be determined from category, we can't link
-                        # the question to a quiz. This can happen if a category in the YAML
-                        # is not in ENABLED_QUIZZES or is missing.
+                    elif not q_dict.get("source_file"):
+                        # If we couldn't derive from category, and the question data doesn't
+                        # have a source_file either, then we must skip it.
                         if category:
                             unmatched_categories.add(category)
                         else:
