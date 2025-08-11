@@ -72,12 +72,12 @@ YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 # Organize quizzes into three core types: Basic, Command, and Manifest
 # Basic/Open-Ended quizzes (conceptual Q&A)
 BASIC_QUIZZES = {
-    "General Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations.yaml'),
-    "Resource Types Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
+    "Kubectl Operations": os.path.join(QUESTIONS_DIR, 'kubectl_operations.yaml'),
+    "Resource Reference": os.path.join(QUESTIONS_DIR, 'resource_reference.yaml'),
 }
 # Command-Based/Syntax quizzes (kubectl, helm, shell, vim commands)
 COMMAND_QUIZZES = {
-    "Syntax & Shell Setup": os.path.join(QUESTIONS_DIR, 'syntax_and_shell_setup.yaml'),
+    "Shell Setup: Aliases & Autocomplete": os.path.join(QUESTIONS_DIR, 'syntax_and_shell_setup.yaml'),
     "Pod Management": os.path.join(QUESTIONS_DIR, 'pod_management.yaml'),
     "Deployment Management": os.path.join(QUESTIONS_DIR, 'deployment_management.yaml'),
     "ConfigMap Operations": os.path.join(QUESTIONS_DIR, 'configmap_operations.yaml'),
@@ -85,20 +85,25 @@ COMMAND_QUIZZES = {
     "Namespace Operations": os.path.join(QUESTIONS_DIR, 'namespace_operations.yaml'),
     "Service Account Operations": os.path.join(QUESTIONS_DIR, 'service_account_operations.yaml'),
     "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
+    "Helm Repositories": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
+    "Kubectl Common Operations": os.path.join(QUESTIONS_DIR, 'kubectl_common_operations.yaml'),
+    "Vim Basics": os.path.join(QUESTIONS_DIR, 'vim_basics.yaml'),
     "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
     "CKAD Practice": os.path.join(QUESTIONS_DIR, 'ckad_questions.yaml'),
 }
 # Manifest-Based exercises (YAML authoring and editing)
 MANIFEST_QUIZZES = {
     # YAML authoring exercises
-    "YAML Practice": os.path.join(QUESTIONS_DIR, 'yaml_authoring.yaml'),
-    "Configmaps Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-configmaps.yaml'),
+    "YAML Authoring": os.path.join(QUESTIONS_DIR, 'yaml_authoring.yaml'),
+    "YAML Editing Practice": os.path.join(QUESTIONS_DIR, 'yaml_editing_practice.yaml'),
+    "YAML Editing - General": os.path.join(QUESTIONS_DIR, 'yaml_editing-general.yaml'),
+    "YAML Editing - ConfigMaps": os.path.join(QUESTIONS_DIR, 'yaml_editing-configmaps.yaml'),
+    "YAML Editing - Deployments": os.path.join(QUESTIONS_DIR, 'yaml_editing-deployments.yaml'),
+    "YAML Editing - Pods": os.path.join(QUESTIONS_DIR, 'yaml_editing-pods.yaml'),
     "Configuration & Security": os.path.join(QUESTIONS_DIR, 'configuration_&_security.yaml'),
     "Core Concepts": os.path.join(QUESTIONS_DIR, 'core_concepts.yaml'),
-    "Deployments Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-deployments.yaml'),
     # Helm manifest exercises (legacy misc/manifests)
     "Helm Manifests": os.path.join(QUESTIONS_DIR, 'helm.yaml'),
-    "Pods Manifests": os.path.join(QUESTIONS_DIR, 'yaml_editing-pods.yaml'),
     "Services Manifests": os.path.join(QUESTIONS_DIR, 'services.yaml'),
     "Workload Management": os.path.join(QUESTIONS_DIR, 'workload_management.yaml'),
 }
