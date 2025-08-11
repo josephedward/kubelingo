@@ -43,8 +43,8 @@ class AICategorizer:
 
     def get_system_prompt(self) -> str:
         """Returns the system prompt for the classification task."""
-        category_desc = "\n".join([f'- "{c.value}"' for c in QuestionCategory])
-        subject_desc = "\n".join([f'- "{s.value}" for s in QuestionSubject])
+        category_desc = "\n".join([f"- '{c.value}'" for c in QuestionCategory])
+        subject_desc = "\n".join([f"- '{s.value}'" for s in QuestionSubject])
 
         return f"""
 You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
