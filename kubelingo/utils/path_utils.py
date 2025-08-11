@@ -43,6 +43,28 @@ def get_all_sqlite_backup_dirs() -> List[str]:
     return SQLITE_BACKUP_DIRS
 
 
+def find_and_sort_files_by_mtime(
+    search_dirs: List[str], extensions: List[str]
+) -> List[Path]:
+    """
+    Scans directories for files with given extensions, sorts them by modification time (newest first).
+    """
+    all_files = set()
+    for dir_path_str in search_dirs:
+        dir_path = Path(dir_path_str)
+        if dir_path.is_dir():
+            for ext in extensions:
+                # Ensure extension starts with a dot
+                glob_pattern = f"**/*{ext}" if ext.startswith('.') else f"**/*.{ext}"
+                all_files.update(dir_path.glob(glob_pattern))
+
+    if not all_files:
+        return []
+
+    # Sort files by modification time, newest first
+    return sorted(list(all_files), key=lambda p: p.stat().st_mtime, reverse=True)
+
+
 def find_yaml_files(search_dirs: List[str]) -> List[Path]:
     """
     Scans a list of directories and returns all unique .yaml/.yml files found.
