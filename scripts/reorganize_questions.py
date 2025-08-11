@@ -61,12 +61,17 @@ def classify_subject(client, prompt, model="gpt-3.5-turbo"):
             temperature=0
         )
         text = resp.choices[0].message.content.strip()
-        # Normalize to find an exact match from the official list
+        # Find which official category is mentioned in the AI's response.
         for cat in SUBJECT_MATTER:
-            if text.lower() in cat.lower():
+            # Match against the primary name, e.g., "Core workloads"
+            primary_name = cat.split('(')[0].strip()
+            if primary_name.lower() in text.lower():
                 return cat
+
+        # Fallback for cases where AI gives an exact match to a full category string
         if text in SUBJECT_MATTER:
             return text
+
         print(f" (subject classification failed: '{text}')", end="")
         return None
     except Exception as e:

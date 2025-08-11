@@ -45,6 +45,8 @@ def import_questions(source_dir: Path, conn: sqlite3.Connection):
                 # Flatten metadata, giving preference to top-level keys
                 if 'metadata' in q_dict and isinstance(q_dict['metadata'], dict):
                     metadata = q_dict.pop('metadata')
+                    # Pop unsupported 'links' key from metadata before merging.
+                    metadata.pop('links', None)
                     for k, v in metadata.items():
                         if k not in q_dict:
                             q_dict[k] = v
