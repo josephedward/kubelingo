@@ -1,7 +1,8 @@
 import argparse
-import sqlite3
+import inspect
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Add project root to path to allow importing from kubelingo
 project_root = Path(__file__).resolve().parent.parent
@@ -14,25 +15,26 @@ except ImportError:
     print("pip install PyYAML")
     sys.exit(1)
 
-from typing import Optional
-
 from kubelingo.database import add_question, get_db_connection, init_db
-from kubelingo.question import QuestionCategory
 from kubelingo.utils import path_utils
 
 
-def restore_yaml_to_db(
+def populate_db_from_yaml(
     yaml_files: list[Path], clear_db: bool, db_path: Optional[str] = None
 ):
     """
-    Restores questions from a list of YAML files to the database.
+    Populates the database with questions from a list of YAML files.
     """
     if not yaml_files:
-        print("No YAML files found to restore.")
+        print("No YAML files found to process.")
         return
 
     init_db(clear=clear_db, db_path=db_path)
     conn = get_db_connection(db_path=db_path)
+
+    # Get the list of valid arguments for the add_question function
+    sig = inspect.signature(add_question)
+    allowed_args = set(sig.parameters.keys())
 
     question_count = 0
     try:
@@ -45,48 +47,45 @@ def restore_yaml_to_db(
                     print(f"Error parsing YAML file {file_path}: {e}", file=sys.stderr)
                     continue
 
-                if not questions_data:
+                if not questions_data or not isinstance(questions_data, list):
                     continue
 
-                if not isinstance(questions_data, list):
-                    print(
-                        f"Warning: YAML file {file_path} should contain a list of questions. Skipping.",
-                        file=sys.stderr,
-                    )
-                    continue
+                for q_data in questions_data:
+                    q_dict = q_data.copy()
 
-                for q_dict in questions_data:
                     # Flatten metadata, giving preference to top-level keys
                     if "metadata" in q_dict and isinstance(q_dict["metadata"], dict):
                         metadata = q_dict.pop("metadata")
-                        # Pop unsupported 'links' key from metadata before merging.
-                        metadata.pop("links", None)
                         for k, v in metadata.items():
                             if k not in q_dict:
                                 q_dict[k] = v
 
-                    # Normalize legacy 'question' key to 'prompt' for add_question compatibility.
+                    # Normalize legacy 'question' key to 'prompt'
                     if "question" in q_dict:
                         q_dict["prompt"] = q_dict.pop("question")
 
-                    # Set schema_category based on the question type
+                    # Set schema_category based on question type
                     q_type = q_dict.get("type", "command")
-                    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit"):
-                        q_dict["schema_category"] = QuestionCategory.MANIFEST.value
-                    elif q_type == "socratic":
-                        q_dict["schema_category"] = QuestionCategory.OPEN_ENDED.value
-                    else:  # command, etc.
-                        q_dict["schema_category"] = QuestionCategory.COMMAND.value
+                    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
+                        q_dict["schema_category"] = "manifest"
+                    elif q_type in ("command", "kubectl"):
+                        q_dict["schema_category"] = "command"
+                    else:  # socratic, etc. maps to 'basic'
+                        q_dict["schema_category"] = "basic"
 
-                    # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
+                    # Map YAML 'type' to DB 'question_type'
                     if "type" in q_dict:
                         q_dict["question_type"] = q_dict.pop("type")
-                    else:
-                        q_dict["question_type"] = q_type
 
                     # Override source_file to the YAML filename being processed
                     q_dict["source_file"] = file_path.name
-                    add_question(conn=conn, **q_dict)
+
+                    # Filter dict to only include keys that add_question accepts
+                    q_dict_for_db = {
+                        k: v for k, v in q_dict.items() if k in allowed_args
+                    }
+
+                    add_question(conn=conn, **q_dict_for_db)
                     question_count += 1
         conn.commit()
     except Exception as e:
@@ -96,44 +95,44 @@ def restore_yaml_to_db(
     finally:
         conn.close()
 
-    print(f"\nSuccessfully restored {question_count} questions.")
+    print(f"\nSuccessfully populated database with {question_count} questions.")
 
 
 def main():
     """
-    Main function to parse arguments and run the restore.
+    Main function to parse arguments and run the population script.
     """
     parser = argparse.ArgumentParser(
-        description="Restore questions from YAML backup files to the SQLite database."
+        description="Populate the SQLite database from YAML backup files."
     )
     parser.add_argument(
         "input_paths",
         nargs="*",
         type=str,
-        help="Path(s) to input YAML file(s) or directories. If not provided, scans default question source directories.",
+        help="Path(s) to input YAML file(s) or directories. If not provided, scans default backup directories.",
     )
     parser.add_argument(
         "--clear",
         action="store_true",
-        help="Clear the database before restoring questions.",
+        help="Clear the database before populating.",
     )
     args = parser.parse_args()
 
     yaml_files = []
     if not args.input_paths:
-        print("No input paths provided. Scanning default question directories...")
-        yaml_files = path_utils.get_all_yaml_files()
+        print("No input paths provided. Scanning default backup directories...")
+        yaml_files = path_utils.get_all_yaml_backups()
     else:
         yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
 
     if not yaml_files:
-        print("No YAML files found.")
+        print("No YAML backup files found.")
         sys.exit(0)
 
     unique_files = sorted(list(set(yaml_files)))
     print(f"Found {len(unique_files)} YAML file(s) to process.")
 
-    restore_yaml_to_db(unique_files, args.clear)
+    populate_db_from_yaml(unique_files, args.clear)
 
 
 if __name__ == "__main__":

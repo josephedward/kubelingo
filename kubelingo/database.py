@@ -109,16 +109,14 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
                 raise
     # Add schema_category column for exercise type categorization
     try:
-        from kubelingo.question import QuestionCategory
-        categories = f"('{QuestionCategory.OPEN_ENDED.value}', '{QuestionCategory.COMMAND.value}', '{QuestionCategory.MANIFEST.value}')"
+        categories = "('basic', 'command', 'manifest')"
         cursor.execute(f"ALTER TABLE questions ADD COLUMN schema_category TEXT CHECK(schema_category IN {categories})")
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
     # Add 'subject_matter' column for question subject matter with CHECK constraint
     try:
-        from kubelingo.question import QuestionSubject
-        subjects = ', '.join(repr(s.value) for s in QuestionSubject)
+        subjects = ', '.join(repr(s) for s in SUBJECT_MATTER)
         cursor.execute(
             f"ALTER TABLE questions ADD COLUMN subject_matter TEXT "
             f"CHECK(subject_matter IN ({subjects}))"
