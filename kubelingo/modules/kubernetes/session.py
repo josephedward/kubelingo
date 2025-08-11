@@ -390,40 +390,53 @@ class NewSession(StudySession):
         # Get all question counts, grouped by schema and subject
         counts = get_question_counts_by_schema_and_subject()
 
-        # Manually re-categorize specific quizzes to override database values.
-        # This ensures 'Resource Reference' and 'Kubectl Operations' appear under 'Basic'.
-        quizzes_to_move = {
-            "Resource Reference": "basic",
-            "Kubectl Operations": "basic",
+        # Define the desired structure of the menu sections
+        sections = {
+            "--- Basic Exercises ---": {},
+            "--- Command-Based Exercises ---": {},
+            "--- Manifest-Based Exercises ---": {},
         }
-        for subject, new_schema in quizzes_to_move.items():
-            for schema in list(counts.keys()):
-                if subject in counts[schema]:
-                    if schema != new_schema:
-                        count = counts[schema].pop(subject)
-                        if new_schema not in counts:
-                            counts[new_schema] = {}
-                        counts[new_schema][subject] = count
-                    break  # Found and moved, on to the next subject.
-
-        schema_to_section_name = {
+        # Map DB schema names to menu section names
+        schema_map = {
             "basic": "--- Basic Exercises ---",
             "command": "--- Command-Based Exercises ---",
             "manifest": "--- Manifest-Based Exercises ---",
         }
+        # Quizzes to manually re-categorize into the 'Basic' section
+        basic_quiz_overrides = ["Resource Reference", "Kubectl Operations"]
 
-        for schema_cat, section_name in schema_to_section_name.items():
-            subject_counts = counts.get(schema_cat, {})
+        # Flatten all subjects from the database into one dictionary for easier processing
+        all_subjects = {}
+        for schema, subjects_with_counts in counts.items():
+            for subject, count in subjects_with_counts.items():
+                all_subjects[subject] = {'count': count, 'schema': schema}
+
+        # Distribute quizzes into the correct menu sections
+        for subject, data in all_subjects.items():
+            # If the quiz is in our override list, move it to 'Basic Exercises'
+            if subject in basic_quiz_overrides:
+                sections["--- Basic Exercises ---"][subject] = data['count']
+            else:
+                # Otherwise, place it in the section corresponding to its original schema
+                original_schema = data['schema']
+                if original_schema in schema_map:
+                    target_section = schema_map[original_schema]
+                    sections[target_section][subject] = data['count']
+
+        # Build the 'questionary' choices from our structured sections
+        for section_name, subject_counts in sections.items():
+            # Only add a section header if there are quizzes in it
             if not subject_counts:
                 continue
 
             if questionary:
                 choices.append(questionary.Separator(section_name))
 
+            # Add each quiz to the menu, sorted alphabetically
             for subject, count in sorted(subject_counts.items()):
                 choices.append({
                     "name": f"{subject} ({count} questions)",
-                    "value": subject,  # The value is the subject matter string
+                    "value": subject,
                 })
 
         # --- Settings Section ---
