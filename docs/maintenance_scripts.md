@@ -1,249 +1,135 @@
-<!-- Documentation: Outline of maintenance and troubleshooting scripts -->
-# Maintenance Scripts Overview
+<!-- Maintenance and Troubleshooting Scripts Overview -->
+# Maintenance and Troubleshooting Scripts
 
-This document outlines recommended maintenance and troubleshooting scripts for working with YAML backups, SQLite backups, and question data. For each task, we provide:
-- Purpose and description
-- Suggested script name and location
-- Existing legacy scripts to adapt (if any)
-- High-level implementation notes
-- Suggested AI interaction prompts (where applicable)
+This document outlines the purpose and intended functionality of various maintenance and troubleshooting scripts in the `scripts/` directory. These scripts help manage question data stored in YAML backups and the central SQLite database.
 
-## 1. YAML Backups
+Scripts are grouped into four categories:
+1. System
+2. YAML
+3. SQLite
+4. Questions
 
-- **locate_previous_yaml_backup**
-  - Purpose: List available YAML backup files, sorted by timestamp or version.
-  - Suggested script: `scripts/locate_yaml_backups.py`
-  - Adapt from: `scripts/legacy/group_backup_yaml_questions.py`, `scripts/legacy/import_yaml_bak_questions.py`
-  - Notes: Scan `question-data-backup/` (or configured directory) for `*.yaml` files, parse dates, output a table.
-
-- **view_yaml_backup_statistics**
-  - Purpose: Compute statistics for a selected YAML backup (e.g., question count, categories, file size).
-  - Suggested script: `scripts/yaml_backup_stats.py`
-  - Adapt from: parts of `scripts/legacy/migrate_all_yaml_questions.py`
-  - Notes: Load backup file, summarize counts by tag/category, display summary table.
-  - AI prompts: "Which breakdown would you like? (e.g., by category, by difficulty, by tag)"
-
-- **write_db_to_yaml_backup_version**
-  - Purpose: Export current database state as a new YAML backup with versioning metadata.
-  - Suggested script: `scripts/export_db_to_yaml.py`
-  - Adapt from: `scripts/legacy/migrate_to_db.py`, `scripts/legacy/build_question_db.py`
-  - Notes: Dump DB rows into `question-data-backup/YYYYMMDD_HHMMSS.yaml`, include header with version and description.
-  - AI prompts: "Please provide a brief description for this backup version:"
-
-- **restore_db_from_yaml_backup_version**
-  - Purpose: Restore or merge a specific YAML backup into the active database.
-  - Suggested script: `scripts/restore_yaml_to_db.py`
-  - Adapt from: `scripts/legacy/restore_all.py`, `scripts/legacy/migrate_from_yaml_bak.py`
-  - Notes: Offer merge vs. overwrite mode, validate schema compatibility before applying.
-  - AI prompts: 
-    - "Would you like to merge backup into existing data or replace it entirely?"
-    - "Proceed with potential data overwrite?"
-
-## 2. SQLite Backups
-
-- **view_database_schema**
-  - Purpose: Display the current SQLite database schema (tables, columns, indexes).
-  - Suggested script: `scripts/view_sqlite_schema.py`
-  - Adapt from: none (leverages `sqlite3 .schema`)
-  - Notes: Connect to configured DB path, dump schema to console or file.
-
-- **locate_previous_sqlite_backup**
-  - Purpose: List existing SQLite backup files by date/version.
-  - Suggested script: `scripts/locate_sqlite_backups.py`
-  - Adapt from: analogous YAML script, reuse backup directory logic.
-
-- **diff_with_backup_sqlite_db**
-  - Purpose: Compare current DB against a backup, highlighting schema and data differences.
-  - Suggested script: `scripts/diff_sqlite_backup.py`
-  - Adapt from: use `sqldiff` or dump both DBs and diff via unified diff.
-  - AI prompts: "Show only schema changes, data changes, or both?"
-
-- **create_sqlite_backup_version**
-  - Purpose: Copy current SQLite DB file to backup directory with timestamp/version.
-  - Suggested script: `scripts/create_sqlite_backup.py`
-  - Adapt from: `scripts/legacy/restore_db_from_backup.py` (reverse logic)
-  - Notes: Verify write permissions, confirm destination.
-  - AI prompts: "Enter a description or label for this backup:"
-
-- **restore_sqlite_from_backup_version**
-  - Purpose: Restore or merge a selected SQLite backup into the current DB.
-  - Suggested script: `scripts/restore_sqlite_backup.py`
-  - Adapt from: `scripts/legacy/restore_db_from_backup.py`
-  - Notes: Warn before destructive overwrite, support optional table-level merge.
-  - AI prompts: "Overwrite entire database or merge specific tables?"
-
-## 3. Question Data Maintenance
-
-- **deduplicate_questions**
-  - Purpose: Identify and remove or merge duplicate questions in the database.
-  - Suggested script: `scripts/deduplicate_questions.py`
-  - Adapt from: `scripts/legacy/find_duplicate_questions.py`, `scripts/legacy/consolidate_questions.py`
-  - Notes: Use hash or AI similarity to find duplicates, prompt user for resolution.
-  - AI prompts:
-    - "These questions appear duplicates; select the canonical version or merge fields:"
-
-- **fix_question_categorization**
-  - Purpose: Detect miscategorized questions and suggest correct categories.
-  - Suggested script: `scripts/fix_question_categories.py`
-  - Adapt from: `scripts/reorganize_question_categories.py`, `scripts/legacy/update_schema_category.py`
-  - Notes: Use AI to propose new categories based on content, allow user override.
-  - AI prompts:
-    - "Suggested new category for question '<excerpt>': <category>. Approve or edit?"
-
-- **fix_documentation_links**
-  - Purpose: Validate and correct documentation URLs in questions.
-  - Suggested script: `scripts/validate_doc_links.py`
-  - Adapt from: `scripts/legacy/check_docs_links.py`
-  - Notes: Check HTTP status codes, detect broken links, update to canonical URLs.
-  - AI prompts:
-    - "Link broken at <URL>. Provide replacement or mark as obsolete:"
-
-- **fix_question_formatting**
-  - Purpose: Lint and correct formatting issues in question YAML or DB entries.
-  - Suggested script: `scripts/lint_fix_question_format.py`
-  - Adapt from: `scripts/legacy/check_quiz_formatting.py`
-  - Notes: Enforce schema (fields present), normalize indentation, escape sequences.
-  - AI prompts:
-    - "Field 'difficulty' missing for question '<title>'. Please specify:"
+For each task, the documentation includes:
+- **Purpose**: What the script achieves.
+- **Script**: Suggested script filename.
+- **Behavior**: High-level description of operations.
+- **Existing Scripts**: Reference to legacy or current scripts to adapt.
+- **AI Prompts**: Example prompts when AI interaction is required.
 
 ---
-### Additional Recommendations
-- Consolidate backup logic into a generic `scripts/backup_manager.py` with subcommands for `yaml` and `sqlite`.
-- Provide a unified CLI (e.g., `kubelingo maintenance <task>`) to dispatch these scripts.
-- Integrate AI client in shared module to standardize prompts and logging.# Maintenance Scripts Documentation
+## 1. System
 
-This document outlines the functionality of various maintenance scripts for `kubelingo`. These scripts help manage question data stored in YAML backups and the central SQLite database.
+### Bug Ticket
+- **Purpose**: Collect and manage outstanding issues or bug reports.
+- **Script**: `scripts/bug_ticket.py` (to be created)
+- **Behavior**: Maintains a Markdown or JSON file listing bug tickets, supports adding new entries with descriptions, tags, and status updates.
+- **Existing Scripts**: None specifically; could adapt issue management code from project templates.
+- **AI Prompts**: "Please describe the bug, including steps to reproduce and any error messages."
 
-## YAML Backup Management
+---
+## 2. YAML Backup Management
 
-Scripts for managing YAML-based backups of the question database.
-
-### Locate Previous YAML backup
-*   **Purpose**: Find and list available YAML backup files or directories.
-*   **Implementation**: This script should search predefined backup locations for YAML files that contain question data.
-*   **Existing Scripts**: `scripts/legacy/group_backup_yaml_questions.py` might contain logic for finding YAML files, which can be adapted. The script should look in directories like `question-data-backup/yaml`.
+### Locate Previous YAML Backup
+- **Purpose**: Find and list YAML backup files containing question data.
+- **Script**: `scripts/locate_yaml_backups.py`
+- **Behavior**: Scans one or more directories for `*.yaml`/`*.yml` files, supports regex filtering and JSON output.
+- **Existing Scripts**: `scripts/locate_yaml_backups.py` (verify and enhance filtering, AI summary options).
+- **AI Prompts**: None.
 
 ### View YAML Backup Statistics
-*   **Purpose**: Analyze a YAML backup and display statistics, such as the number of questions, categories, and types.
-*   **Implementation**: The script would parse a specified YAML backup file, count questions, and group them by various fields (`category`, `type`).
-*   **Existing Scripts**: No direct script exists, but `kubelingo/modules/yaml_loader.py` contains parsing logic that can be reused.
+- **Purpose**: Analyze a YAML backup file and report metrics (total questions, per-category counts, file size, modification time).
+- **Script**: `scripts/yaml_backup_stats.py`
+- **Behavior**: Loads YAML using `kubelingo.modules.yaml_loader.YAMLLoader`, computes statistics, outputs human-readable or JSON, optionally generates an AI summary.
+- **Existing Scripts**: `scripts/yaml_backup_stats.py` (ensure all imports, including `Counter`, are correct).
+- **AI Prompts**: "Would you like a natural-language summary of these statistics?"
 
 ### Write DB to YAML Backup Version
-*   **Purpose**: Export all questions from the SQLite database to a new versioned YAML backup file.
-*   **Implementation**:
-    1.  Connect to the SQLite database and fetch all questions using `kubelingo.database.get_all_questions()`.
-    2.  Group questions by their original `source_file`.
-    3.  Write each group of questions into a corresponding YAML file in a new versioned backup directory (e.g., `question-data-backup/yaml/backup-YYYY-MM-DD`).
-*   **Existing Scripts**: `scripts/legacy/consolidate_manifests.py` or `scripts/generate_manifests.py` have logic for writing YAML files which could be a starting point.
+- **Purpose**: Export current SQLite database questions into a versioned YAML backup.
+- **Script**: `scripts/export_db_to_yaml.py`
+- **Behavior**: Initializes or connects to DB via `init_db()`, fetches questions with `get_all_questions()`, writes YAML to `question-data-backup/<timestamp>.yaml` or specified path.
+- **Existing Scripts**: `scripts/export_db_to_yaml.py` (remove duplicate code blocks, use `yaml.safe_dump`, handle output paths correctly).
+- **AI Prompts**: "Provide an optional description or label for this backup:"
 
 ### Restore DB from YAML Backup Version
-*   **Purpose**: Import questions from a YAML backup into the SQLite database. This should be an additive process (merging) by default.
-*   **Implementation**:
-    1.  User selects a YAML backup version.
-    2.  The script uses `kubelingo.modules.yaml_loader.YAMLLoader` to discover and load questions from the backup files.
-    3.  For each question, it checks if a question with the same ID already exists in the database.
-    4.  It can prompt the user on how to handle duplicates (skip, overwrite, etc.).
-    5.  It uses `kubelingo.database.add_question` to insert new questions.
-*   **Existing Scripts**: `scripts/legacy/import_yaml_bak_questions.py`, `scripts/legacy/migrate_all_yaml_questions.py`, and `scripts/migrate_yaml_questions.py` are highly relevant and should be consolidated into a single, robust script.
+- **Purpose**: Import or merge questions from a YAML backup into the active database.
+- **Script**: `scripts/restore_yaml_to_db.py`
+- **Behavior**: Parses YAML with `yaml.safe_load`, maps `'type'` to `question_type`, optionally clears DB (`--clear`), calls `add_question()` for each entry, reports summary.
+- **Existing Scripts**: `scripts/restore_yaml_to_db.py` (add key renaming, filter unexpected kwargs).
+- **AI Prompts**:
+  - "Clear existing database before restoring? (yes/no)"
+  - "How should duplicate question IDs be handled? [merge|overwrite|skip]"
 
-## SQLite Database Management
-
-Scripts for direct maintenance of the `kubelingo.db` SQLite database.
+---
+## 3. SQLite Database Management
 
 ### View Database Schema
-*   **Purpose**: Display the schema of the tables in the SQLite database.
-*   **Implementation**: The script would connect to the database and print the `CREATE TABLE` statements for all tables.
-*   **Existing Scripts**: This is a simple SQL query. No specific script exists, but it can be easily created using `kubelingo.database.get_db_connection()`.
+- **Purpose**: Display the schema of the SQLite database (tables, columns, indexes).
+- **Script**: `scripts/view_sqlite_schema.py`
+- **Behavior**: Connects to configured DB file, runs `PRAGMA table_info()` or dumps `.schema`, outputs to console or file.
+- **Existing Scripts**: None; implement as small helper using `kubelingo.database.get_db_connection()`.
+- **AI Prompts**: None.
 
-### Locate Previous Sqlite Backup
-*   **Purpose**: Find and list available SQLite database backup files.
-*   **Implementation**: Search for `.db` files in predefined backup locations (e.g., `question-data-backup/`).
-*   **Existing Scripts**: Can be a new simple script. `kubelingo/utils/config.py` defines `MASTER_DATABASE_FILE` and `SECONDARY_MASTER_DATABASE_FILE`, which are backup locations.
+### Locate Previous SQLite Backup
+- **Purpose**: List available SQLite backup files by timestamp or version.
+- **Script**: `scripts/locate_sqlite_backups.py`
+- **Behavior**: Scans `question-data-backup/` for `.db` files, outputs metadata in table or JSON.
+- **Existing Scripts**: None; could reuse logic from `locate_yaml_backups.py`.
+- **AI Prompts**: None.
 
-### Diff with Backup Sqlite Db
-*   **Purpose**: Compare the current active database with a selected backup version and show the differences (new, modified, or deleted questions).
-*   **Implementation**:
-    1.  Connect to both the active DB and the backup DB.
-    2.  Fetch all questions from both.
-    3.  Compare the question sets based on ID and content hash (if available) to find differences.
-    4.  Present a summary of changes.
-*   **Existing Scripts**: No direct script exists. This would need to be written from scratch.
+### Diff with Backup SQLite DB
+- **Purpose**: Compare the active database against a backup to identify schema or data changes.
+- **Script**: `scripts/diff_sqlite_backup.py`
+- **Behavior**: Uses `sqldiff` or dumps both DBs to SQL, runs a unified diff, summarizes differences.
+- **Existing Scripts**: None; consider invoking external `sqldiff` tool or Python difflib.
+- **AI Prompts**: "Show schema changes, data changes, or both?"
 
-### Create Sqlite Backup Version
-*   **Purpose**: Create a timestamped copy of the current SQLite database.
-*   **Implementation**: Simply copy the `kubelingo.db` file to a backup directory with a name like `kubelingo-YYYY-MM-DD.db`.
-*   **Existing Scripts**: `scripts/legacy/build_question_db.py` contains a `backup_database` function that can be extracted and used.
+### Create SQLite Backup Version
+- **Purpose**: Create a timestamped copy of the current SQLite database file.
+- **Script**: `scripts/create_sqlite_backup.py`
+- **Behavior**: Copies `kubelingo.db` from app directory to `question-data-backup/` with a timestamped filename, supports `--label`.
+- **Existing Scripts**: None.
+- **AI Prompts**: "Enter a label or description for this backup (optional):"
 
-### Restore from Sqlite Backup Version
-*   **Purpose**: Replace the current database with a selected backup file.
-*   **Implementation**:
-    1.  The user selects a backup file.
-    2.  The script replaces the active `kubelingo.db` with the selected backup. It should create a backup of the current DB before overwriting it.
-*   **Existing Scripts**: `scripts/legacy/restore_db_from_backup.py` does exactly this.
+### Restore from SQLite Backup Version
+- **Purpose**: Restore or merge from a selected SQLite backup into the active database.
+- **Script**: `scripts/restore_sqlite_backup.py`
+- **Behavior**: Offers options to overwrite the entire DB or merge specific tables, prompts user before destructive operations.
+- **Existing Scripts**: None; can reuse file-copy logic and possibly integrate `add_question()` for table-level merging.
+- **AI Prompts**: "Overwrite entire database or merge table-by-table?"
 
-## Question Data Quality
-
-Scripts for improving the quality and consistency of question data.
+---
+## 4. Question Data Maintenance
 
 ### Deduplicate Questions
-*   **Purpose**: Find and optionally remove duplicate questions from the database.
-*   **Implementation**:
-    1.  Find potential duplicates based on fuzzy matching of the `prompt` field.
-    2.  Present pairs of potential duplicates to the user for confirmation.
-    3.  Optionally delete one of the duplicates.
-*   **Existing Scripts**: `scripts/legacy/find_duplicate_questions.py` provides a good starting point. It can be enhanced with AI-based semantic duplicate detection.
-*   **AI Prompt**:
-    > "Are the following two questions semantically duplicates, meaning they test the same core knowledge? Respond with only 'Yes' or 'No', followed by a brief one-sentence explanation.
-    >
-    > Question 1: `[PROMPT_1]`
-    > Question 2: `[PROMPT_2]`"
+- **Purpose**: Identify and resolve duplicate questions in the database or YAML backups.
+- **Script**: `scripts/deduplicate_questions.py`
+- **Behavior**: Computes hashes or uses AI similarity to group duplicates, prompts user to choose or merge.
+- **Existing Scripts**: `scripts/legacy/find_duplicate_questions.py`.
+- **AI Prompts**: "These questions look similar; select canonical version or merge fields:"
 
 ### Fix Question Categorization
-*   **Purpose**: Ensure all questions have the correct `category` and `subject` based on their content.
-*   **Implementation**:
-    1.  Iterate through questions with missing or potentially incorrect categories.
-    2.  Use an AI model to classify the question based on its prompt and other metadata.
-    3.  Update the category in the database.
-*   **Existing Scripts**: `scripts/reorganize_schema_by_ai.py` and `scripts/reorganize_question_categories.py` contain the core logic for this. They should be unified into a single tool.
-*   **AI Prompt**: The `get_system_prompt` method in `scripts/reorganize_schema_by_ai.py` provides an excellent template. It should describe the available categories (`socratic`, `command`, `yaml_author`, etc.) and ask the AI to choose the most fitting one for a given question prompt.
+- **Purpose**: Detect and correct miscategorized questions.
+- **Script**: `scripts/fix_question_categories.py`
+- **Behavior**: Loads questions, uses AI to propose new `schema_category` values, applies updates.
+- **Existing Scripts**: `scripts/reorganize_question_categories.py`.
+- **AI Prompts**: "Proposed category for question '<excerpt>': {suggestion}. Approve or edit?"
 
 ### Fix Documentation Links
-*   **Purpose**: Check for broken documentation links in questions and help fix them.
-*   **Implementation**:
-    1.  Extract all URLs from the `source` or `prompt` fields of all questions.
-    2.  Check each URL for a `200 OK` status code.
-    3.  For broken links (e.g., 404), use an AI to suggest a new, valid link based on the question's content.
-    4.  Prompt the user to confirm the replacement before updating the database.
-*   **Existing Scripts**: `scripts/legacy/check_docs_links.py` (and the test `tests/test_doc_links.py`) contains logic for extracting and checking links. `scripts/legacy/suggest_citations.py` could provide ideas for suggesting new links.
-*   **AI Prompt**:
-    > "The following documentation link is broken: `[BROKEN_URL]`.
-    >
-    > Based on the content of the quiz question below, please find the most relevant and up-to-date replacement URL from the official Kubernetes documentation (kubernetes.io).
-    >
-    > Question Prompt: `[QUESTION_PROMPT]`
-    > Answer/Context: `[QUESTION_ANSWER_OR_CONTEXT]`
-    >
-    > Please provide only the new URL."
+- **Purpose**: Validate and repair broken documentation URLs in question metadata.
+- **Script**: `scripts/validate_doc_links.py`
+- **Behavior**: Performs HTTP HEAD requests for each URL, flags broken links, suggests replacements via AI or known patterns.
+- **Existing Scripts**: None; may adapt link-checking logic from web frameworks.
+- **AI Prompts**: "Link {url} returned {status}; provide an updated URL or mark as deprecated:"
 
 ### Fix Question Formatting
-*   **Purpose**: Validate and fix formatting issues in questions, such as invalid IDs or malformed YAML content.
-*   **Implementation**:
-    1.  Iterate through all questions.
-    2.  For each question, validate the ID format (e.g., kebab-case).
-    3.  Validate any YAML content in `template` or `solution` fields.
-    4.  If an issue is found, attempt to auto-correct it or flag it for manual review. AI can be used to suggest fixes for complex issues.
-*   **Existing Scripts**: `scripts/legacy/check_quiz_formatting.py` and the test `tests/test_quiz_formatting.py` provide validation logic.
-*   **AI Prompt** (for YAML correction):
-    > "The following YAML content from a quiz question is invalid. Please correct the syntax and structure while preserving the original intent. Provide only the corrected YAML block.
-    >
-    > Invalid YAML:
-    > ```yaml
-    > [INVALID_YAML_CONTENT]
-    > ```"
+- **Purpose**: Lint and correct formatting issues in question definitions (YAML or DB).
+- **Script**: `scripts/lint_fix_question_format.py`
+- **Behavior**: Enforces required fields, normalizes YAML indentation, escapes characters, updates entries in place.
+- **Existing Scripts**: None; can leverage `kubelingo.modules.yaml_loader` validation logic.
+- **AI Prompts**: "Field '{field}' is missing for question '{id}'; please provide a value:"
 
-## Other Notable Existing Scripts
-
-These are useful scripts from `scripts/legacy` that are not in the new menu but are worth keeping and potentially integrating.
-
-*   `scripts/legacy/update_db_source_paths.py`: This was in the old troubleshooting menu and is important for keeping database `source_file` paths consistent after refactoring or moving question files. It should probably be added to the `Sqlite` or `Questions` menu.
-*   `scripts/legacy/enrich_question_sources.py`: Enriches questions with source information. This could be part of a general "Question Enrichment" tool.
+---
+## Additional Recommendations
+- Consolidate common backup logic into a single `scripts/backup_manager.py` with subcommands for `yaml` and `sqlite`.
+- Consider a unified CLI entrypoint (e.g., `kubelingo maintenance <task>`) rather than individual scripts.
+- Centralize AI integration in a shared module for consistent prompts, logging, and error handling.
