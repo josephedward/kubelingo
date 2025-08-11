@@ -104,6 +104,7 @@ def populate_db_from_yaml(
 
                     # Remove legacy keys that are not supported by the database schema.
                     q_dict.pop("solution_file", None)
+                    q_dict.pop("subject", None)
 
                     # Filter dict to only include keys that add_question accepts
                     q_dict_for_db = {
