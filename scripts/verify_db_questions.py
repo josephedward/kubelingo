@@ -90,6 +90,29 @@ def verify_questions(db_path: str):
         else:
             print("All questions have a prompt.")
 
+        # Check for answerable questions
+        unanswerable = []
+        for q in all_questions:
+            # A question is considered answerable if it has any of these fields with a non-empty value.
+            # Note: `answer` and `answers` are assumed to be fields promoted from `metadata` in some YAML questions.
+            if not (q.get('response') or
+                    q.get('validator') or
+                    q.get('validation_steps') or
+                    q.get('correct_yaml') or
+                    q.get('answer') or
+                    q.get('answers')):
+                unanswerable.append(q)
+
+        if unanswerable:
+            print(f"\nFound {len(unanswerable)} questions without a way to check answers.")
+            print("Consider adding a `response`, `validator`, `validation_steps`, `correct_yaml`, or `answer`/`answers` field:")
+            for q in unanswerable[:10]:
+                print(f"  - ID: {q.get('id')}, Source: {q.get('source_file')}")
+            if len(unanswerable) > 10:
+                print(f"  ... and {len(unanswerable) - 10} more.")
+        else:
+            print("\nAll questions have a method for answer validation.")
+
     finally:
         conn.close()
 
