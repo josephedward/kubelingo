@@ -46,13 +46,24 @@ def restore_yaml_to_db(
                 with open(path, 'r') as f:
                     data = yaml.safe_load(f)
 
-                # Gracefully skip files that are not structured as question files
-                if not isinstance(data, dict) or 'questions' not in data:
-                    console.print(f"    [yellow]Skipping file (not a valid question format): {path.name}[/yellow]")
+                questions_list = []
+                if isinstance(data, list):
+                    questions_list = data
+                elif isinstance(data, dict) and 'questions' in data:
+                    questions_list = data.get('questions', [])
+
+                if not data or not questions_list:
+                    console.print(f"    [yellow]Skipping empty or invalid file: {path.name}[/yellow]")
                     continue
 
-                for q_data in data.get('questions', []):
+                for q_data in questions_list:
+                    if not isinstance(q_data, dict):
+                        continue
                     try:
+                        # Map `question` to `prompt` if it exists and prompt is not set
+                        if 'question' in q_data and 'prompt' not in q_data:
+                            q_data['prompt'] = q_data.pop('question')
+
                         # Ensure required fields are present before trying to add
                         if not all(k in q_data for k in ['id', 'prompt']):
                             console.print(f"[red]Error in {path.name}: Skipping question missing 'id' or 'prompt'. ID: {q_data.get('id', 'N/A')}[/red]")
