@@ -17,6 +17,12 @@ from kubelingo.utils.config import (
 )
 
 
+def get_project_root() -> Path:
+    """Returns the project root directory."""
+    # Assumes this file is at kubelingo/utils/path_utils.py
+    return Path(__file__).resolve().parent.parent.parent
+
+
 def get_live_db_path() -> str:
     """Returns the absolute path to the live user database."""
     return DATABASE_FILE
@@ -50,11 +56,39 @@ def find_yaml_files(search_dirs: List[str]) -> List[Path]:
     return sorted(list(yaml_files))
 
 
+def find_sqlite_files(search_dirs: List[str]) -> List[Path]:
+    """
+    Scans a list of directories and returns all unique .db/.sqlite/.sqlite3 files found.
+    """
+    sqlite_files = set()
+    for dir_path_str in search_dirs:
+        dir_path = Path(dir_path_str)
+        if dir_path.is_dir():
+            sqlite_files.update(dir_path.glob("**/*.db"))
+            sqlite_files.update(dir_path.glob("**/*.sqlite"))
+            sqlite_files.update(dir_path.glob("**/*.sqlite3"))
+    return sorted(list(sqlite_files))
+
+
 def get_all_yaml_files() -> List[Path]:
     """
     Discovers all YAML files from all configured question directories.
     """
     return find_yaml_files(get_all_question_dirs())
+
+
+def get_all_yaml_files_in_repo() -> List[Path]:
+    """
+    Discovers all YAML files from the project root.
+    """
+    return find_yaml_files([str(get_project_root())])
+
+
+def get_all_sqlite_files_in_repo() -> List[Path]:
+    """
+    Discovers all SQLite database files from the project root.
+    """
+    return find_sqlite_files([str(get_project_root())])
 
 
 def find_yaml_files_from_paths(paths: List[str]) -> List[Path]:
