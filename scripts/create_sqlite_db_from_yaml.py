@@ -29,10 +29,6 @@ def populate_db_from_yaml(
         print("No YAML files found to process.")
         return
 
-    if db_path is None:
-        db_path = path_utils.get_live_db_path()
-
-    init_db(clear=True, db_path=db_path)
     conn = get_db_connection(db_path=db_path)
 
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
@@ -208,6 +204,9 @@ def main():
         if confirm.lower() != 'y':
             print("Operation cancelled.")
             sys.exit(0)
+
+    # Clear the database before populating to ensure a fresh start.
+    init_db(clear=True, db_path=db_path)
 
     print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
