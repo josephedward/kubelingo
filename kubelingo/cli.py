@@ -494,38 +494,65 @@ def manage_troubleshooting_interactive():
     try:
         from pathlib import Path
         while True:
-            choices = []
-            choices.append(questionary.Separator("=== System ==="))
-            choices.append({"name": "Bug Ticket", "value": "bug_ticket"})
-            choices.append(questionary.Separator("=== YAML ==="))
-            choices.append({"name": "Index all Yaml Files in Dir", "value": "index_yaml_files"})
-            choices.append({"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"})
-            choices.append({"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"})
-            choices.append({"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"})
-            choices.append({"name": "Restore DB from YAML Backup Version", "value": "restore_yaml_to_db"})
-            choices.append(questionary.Separator("=== Sqlite ==="))
-            choices.append({"name": "Index all Sqlite files in Dir", "value": "index_sqlite_files"})
-            choices.append({"name": "View Database Schema", "value": "show_sqlite_schema"})
-            choices.append({"name": "Locate Previous Sqlite Backup", "value": "locate_sqlite_backups"})
-            choices.append({"name": "Diff with Backup Sqlite Db", "value": "diff_sqlite"})
-            choices.append({"name": "Create Sqlite Backup Version", "value": "create_sqlite_backup"})
-            choices.append({"name": "Restore from Sqlite Backup Version", "value": "restore_sqlite"})
-            choices.append(questionary.Separator("=== Questions ==="))
-            choices.append({"name": "Deduplicate Questions", "value": "deduplicate_questions"})
-            choices.append({"name": "Fix Question Categorization", "value": "categorize_questions"})
-            choices.append({"name": "Fix Documentation Links", "value": "fix_links"})
-            choices.append({"name": "Fix Question Formatting", "value": "format_questions"})
-            choices.append(questionary.Separator())
-            choices.append({"name": "Cancel", "value": None})
+            choices = [
+                questionary.Separator("=== System ==="),
+                {"name": "Bug Ticket", "value": "bug_ticket"},
+                questionary.Separator("=== YAML ==="),
+                {"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"},
+                {"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"},
+                {"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"},
+                {"name": "Restore DB from YAML Backup Version", "value": "restore_yaml_to_db"},
+                questionary.Separator("=== Sqlite ==="),
+                {"name": "View Database Schema", "value": "view_database_schema"},
+                {"name": "Locate Previous Sqlite Backup", "value": "locate_sqlite_backups"},
+                {"name": "Diff with Backup Sqlite Db", "value": "diff_sqlite_backup"},
+                {"name": "Create Sqlite Backup Version", "value": "create_sqlite_backup"},
+                {"name": "Restore from Sqlite Backup Version", "value": "restore_sqlite_backup"},
+                questionary.Separator("=== Questions ==="),
+                {"name": "Deduplicate Questions", "value": "find_duplicate_questions"},
+                {"name": "Fix Question Categorization", "value": "reorganize_questions_by_schema"},
+                {"name": "Fix Documentation Links", "value": "fix_documentation_links"},
+                {"name": "Fix Question Formatting", "value": "fix_question_formatting"},
+                questionary.Separator(),
+                {"name": "Cancel", "value": None},
+            ]
             action = questionary.select(
                 "Select a maintenance task:", choices=choices, use_indicator=True
             ).ask()
-            if not action:
-                break
-            script = Path(__file__).resolve().parent.parent / "scripts" / f"{action}.py"
-            subprocess.run([sys.executable, str(script)], check=False)
-            print()
-        return
+
+            if action is None:
+                break  # User selected Cancel or pressed Ctrl+C
+
+            script_to_run = None
+            script_args = []
+
+            if action == "yaml_backup_stats":
+                script_to_run = "locate_yaml_backups.py"
+                stats_format = questionary.select(
+                    "Select statistics format:",
+                    choices=["Default List", "JSON", "AI Summary", "Cancel"],
+                ).ask()
+
+                if stats_format == "JSON":
+                    script_args = ["--json"]
+                elif stats_format == "AI Summary":
+                    script_args = ["--ai"]
+                elif stats_format is None or stats_format == "Cancel":
+                    continue  # Go back to the main troubleshooting menu
+            else:
+                script_to_run = f"{action}.py"
+
+            script_path = repo_root / "scripts" / script_to_run
+            if not script_path.exists():
+                print(f"{Fore.YELLOW}Script '{script_path.name}' not implemented yet.{Style.RESET_ALL}")
+                questionary.press_any_key_to_continue().ask()
+                continue
+            
+            cmd = [sys.executable, str(script_path)] + script_args
+            subprocess.run(cmd, check=False)
+            print() # Add a newline for spacing
+            questionary.press_any_key_to_continue().ask()
+
     except (KeyboardInterrupt, EOFError):
         print()
         return
