@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Finds all YAML quiz and backup files and creates an index file with their metadata.
+Finds all YAML files in the repository and creates an index file with their metadata.
 """
 import sys
 from pathlib import Path
@@ -10,7 +10,7 @@ from datetime import datetime
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from kubelingo.utils.path_utils import get_all_yaml_files, get_all_yaml_backups
+from kubelingo.utils.path_utils import get_all_yaml_files_in_repo
 from kubelingo.utils.ui import Fore, Style
 
 INDEX_FILE_PATH = project_root / "backups" / "index.yaml"
@@ -28,7 +28,7 @@ def get_file_metadata(path: Path) -> dict:
 
 def main():
     """Finds all YAML files and creates an index file with their metadata."""
-    print(f"{Fore.CYAN}--- Indexing all YAML question and backup files ---{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}--- Indexing all YAML files in repository ---{Style.RESET_ALL}")
 
     try:
         import yaml
@@ -37,13 +37,8 @@ def main():
         sys.exit(1)
 
     try:
-        # According to shared_context, these functions should be available.
-        # get_all_yaml_files() searches QUESTION_DIRS
-        # get_all_yaml_backups() searches YAML_BACKUP_DIRS
-        yaml_files = get_all_yaml_files()
-        yaml_backups = get_all_yaml_backups()
-
-        all_files = sorted(list(set(yaml_files + yaml_backups)))
+        # This function should scan the entire repository for YAML files.
+        all_files = get_all_yaml_files_in_repo()
 
         if not all_files:
             print(f"{Fore.YELLOW}No YAML files found to index.{Style.RESET_ALL}")
