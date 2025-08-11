@@ -50,7 +50,16 @@ def analyze_file(path):
         ex_type = getattr(q, "type", "Unknown Type") or "Unknown"
         subject = (getattr(q, 'metadata', None) or {}).get('category', "Uncategorized") or "Uncategorized"
 
+        # Handle specific re-categorization rules from user feedback
+        if subject == "Uncategorized":
+            subject = "Vim"
+
         major_category = EXERCISE_TYPE_TO_CATEGORY.get(ex_type, "Unknown")
+
+        # Override major category for specific subjects
+        if subject in ["Resource Reference", "Kubectl Operations"]:
+            major_category = "Basic"
+
         breakdown[major_category][subject] += 1
 
     # Clean up empty categories
