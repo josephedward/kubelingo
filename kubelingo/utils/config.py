@@ -33,20 +33,27 @@ DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
 QUESTIONS_DIR = os.path.join(DATA_DIR, 'questions')
 
 
-# --- Pathfinding Configuration ---
-# Centralized lists of directories to search for various data types.
-# These are used by kubelingo.utils.path_utils to discover data sources dynamically.
-QUESTION_DIRS = [
-    QUESTIONS_DIR,
-    os.path.join(DATA_DIR, 'yaml'),  # legacy
-    os.path.join(DATA_DIR, 'yaml-bak'),  # legacy backup
+# --- Pathfinding & Discovery Configuration ---
+# These lists define candidate directories for scripts to scan, making the project
+# more resilient to file reorganization. They are used by helpers in `kubelingo.utils.path_utils`.
+
+# Candidate directories for question sources (YAML/YML files).
+# Ordered by priority.
+QUESTION_SOURCE_DIRS = [
+    QUESTIONS_DIR,  # Primary, consolidated directory
+    os.path.join(DATA_DIR, 'yaml'),  # Legacy YAML quizzes
+    os.path.join(PROJECT_ROOT, 'misc', 'manifests'),  # Legacy manifests
+    os.path.join(DATA_DIR, 'yaml-bak'),  # Legacy backup
 ]
+
+# Candidate directories for YAML backup files.
 YAML_BACKUP_DIRS = [
     os.path.join(PROJECT_ROOT, 'backups'),
     os.path.join(PROJECT_ROOT, 'question-data-backup'),
 ]
-SQLITE_BACKUP_DIR = os.path.join(PROJECT_ROOT, 'backups')
 
+# Primary directory for SQLite database backups.
+SQLITE_BACKUP_DIR = os.path.join(PROJECT_ROOT, 'backups')
 
 
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---

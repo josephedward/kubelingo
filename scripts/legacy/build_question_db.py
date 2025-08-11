@@ -108,7 +108,7 @@ def main():
         print("\nError: No question YAML files found in any of the candidate directories:")
         for d in candidate_dirs:
             print(f"  - {d}")
-        print("Please ensure your question-data directories are populated and not empty.")
+        print("\nPlease ensure your question-data directories are populated or run consolidation scripts.")
         sys.exit(1)
 
     print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
