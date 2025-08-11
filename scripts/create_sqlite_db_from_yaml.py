@@ -112,6 +112,17 @@ def populate_db_from_yaml(
                     if "question" in q_dict:
                         q_dict["prompt"] = q_dict.pop("question")
 
+                    # Normalize legacy yaml editing/authoring fields
+                    q_type = q_dict.get("type")
+                    if q_type in ("yaml_edit", "yaml_author"):
+                        if "answer" in q_dict and "correct_yaml" not in q_dict:
+                            q_dict["correct_yaml"] = q_dict.pop("answer")
+                        if "starting_yaml" in q_dict and "initial_files" not in q_dict:
+                            # Use a generic filename for the initial file content, as one is required.
+                            q_dict["initial_files"] = {
+                                "f.yaml": q_dict.pop("starting_yaml")
+                            }
+
                     # Normalize 'type' from YAML to 'question_type' for the database
                     if "type" in q_dict:
                         q_dict["question_type"] = q_dict.pop("type")
