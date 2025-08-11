@@ -389,70 +389,35 @@ class NewSession(StudySession):
         })
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
 
-        # Dynamic discovery: load all quizzes from DB and group by schema_category
-        from collections import Counter
-        loader = DBLoader()
-        sections = {
-            QuestionCategory.OPEN_ENDED.value: [],
-            QuestionCategory.COMMAND.value: [],
-            QuestionCategory.MANIFEST.value: [],
+        # --- Quiz Sections ---
+        quiz_configs = {
+            "--- Basic Exercises ---": BASIC_QUIZZES,
+            "--- Command-Based Exercises ---": COMMAND_QUIZZES,
+            "--- Manifest-Based Exercises ---": MANIFEST_QUIZZES,
         }
-        for src in loader.discover():
-            try:
-                # Use load_file which returns Question objects
-                qs = loader.load_file(src) or []
-            except Exception as e:
-                self.logger.warning(f"Could not load quiz file {src}: {e}")
-                continue
-            count = len(qs)
-            if count == 0:
-                continue
 
-            # Determine category for this quiz file by majority vote.
-            categories = [q.schema_category.value for q in qs if q.schema_category]
-            if not categories:
-                # Fallback for uncategorized files
-                sect_key = QuestionCategory.COMMAND.value
-            else:
-                counter = Counter(categories)
-                sect_key = counter.most_common(1)[0][0]
-
-            if sect_key not in sections:
-                # Fallback for unexpected categories
-                sect_key = QuestionCategory.COMMAND.value
-
-            name = humanize_module(os.path.splitext(os.path.basename(src))[0])
-            sections[sect_key].append({
-                "name": f"{name} ({count} questions)",
-                "value": src
-            })
-        
-        # Define categories and their display labels in the desired order
-        ordered_categories = [
-            (QuestionCategory.OPEN_ENDED, 'Basic Exercises'),
-            (QuestionCategory.COMMAND, 'Command-Based Exercises'),
-            (QuestionCategory.MANIFEST, 'Manifest-Based Exercises'),
-        ]
-
-        # Sort and append each category section in order
-        for category_enum, label in ordered_categories:
-            entries = sections.get(category_enum.value, [])
-            if entries:
-                if questionary:
-                    choices.append(questionary.Separator(f"--- {label} ---"))
-                # Sort quizzes alphabetically within each section
-                entries.sort(key=lambda e: e['name'].lower())
-                choices.extend(entries)
+        for separator, quizzes in quiz_configs.items():
+            if questionary:
+                choices.append(questionary.Separator(separator))
+            for name, path in quizzes.items():
+                try:
+                    # Get questions from DB using the basename of the path
+                    source_file = os.path.basename(path)
+                    count = len(get_questions_by_source_file(source_file))
+                except Exception:
+                    count = 0
+                choices.append({"name": f"{name} ({count} questions)", "value": path})
 
         # --- Settings Section ---
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
         choices.extend([
-            {"name": "API Keys",             "value": "__api_keys__"},
+            {"name": "API Keys",               "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Troubleshooting",     "value": "__troubleshooting__"},
-            {"name": "Help Documentation",  "value": "__help__"},
-            {"name": "Exit App",            "value": "__exit__"},
+            {"name": "Questions",             "value": "__questions__"},
+            {"name": "Troubleshooting",       "value": "__troubleshooting__"},
+            {"name": "Help Documentation",    "value": "__help__"},
+            {"name": "Exit App",              "value": "__exit__"},
         ])
         return choices, bool(all_flagged)
 
