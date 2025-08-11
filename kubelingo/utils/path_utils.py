@@ -138,3 +138,75 @@ def get_all_sqlite_backups() -> List[Path]:
 def get_live_db_path() -> str:
     """Returns the path to the live user database by calling the config helper."""
     return get_live_db_path_from_config()
+#!/usr/bin/env python3
+"""
+Utilities for discovering and resolving file paths within the project.
+
+This module centralizes path logic, providing a resilient discovery layer that
+can scan configured candidate directories for question data and backups. Scripts
+and application code should use these helpers instead of hard-coding paths.
+"""
+import os
+from pathlib import Path
+from typing import List, Optional
+
+from kubelingo.utils.config import (
+    DATABASE_FILE,
+    QUESTION_SOURCE_DIRS,
+    YAML_BACKUP_DIRS,
+    SQLITE_BACKUP_DIR,
+)
+
+
+def get_live_db_path() -> str:
+    """Returns the absolute path to the live user database."""
+    return DATABASE_FILE
+
+
+def get_all_question_dirs() -> List[str]:
+    """Returns a list of all configured candidate directories for question YAML files."""
+    return [d for d in QUESTION_SOURCE_DIRS if os.path.isdir(d)]
+
+
+def find_best_question_source() -> Optional[Path]:
+    """
+    Scans all candidate question directories and returns the first one
+    that contains at least one YAML or YML file.
+    """
+    for d in get_all_question_dirs():
+        p = Path(d)
+        # Use iterator with next to avoid creating full lists if not needed
+        has_yaml = next(p.glob('**/*.yaml'), None)
+        has_yml = next(p.glob('**/*.yml'), None)
+        if has_yaml or has_yml:
+            return p
+    return None
+
+
+def get_all_yaml_backup_dirs() -> List[str]:
+    """Returns a list of all configured candidate directories for YAML backups."""
+    return [d for d in YAML_BACKUP_DIRS if os.path.isdir(d)]
+
+
+def get_sqlite_backup_dir() -> str:
+    """Returns the absolute path to the SQLite backup directory."""
+    return SQLITE_BACKUP_DIR
+
+
+def get_all_yaml_backups() -> List[Path]:
+    """Scans all configured YAML backup directories and returns a list of all .yaml/.yml files found."""
+    all_files = []
+    for backup_dir in get_all_yaml_backup_dirs():
+        p = Path(backup_dir)
+        if p.is_dir():
+            all_files.extend(p.glob("**/*.yaml"))
+            all_files.extend(p.glob("**/*.yml"))
+    return sorted(list(set(all_files)))
+
+
+def get_all_sqlite_backups() -> List[Path]:
+    """Scans the configured SQLite backup directory and returns a list of all .db files found."""
+    backup_dir = Path(get_sqlite_backup_dir())
+    if not backup_dir.is_dir():
+        return []
+    return sorted(list(backup_dir.glob("*.db")))
