@@ -46,13 +46,14 @@ def main():
         Choice('View YAML Backup Statistics', value='view_yaml_stats.py'),
         Choice('Write DB to YAML Backup Version', value='export_db_to_yaml.py'),
         Choice('Restore DB from YAML Backup Version', value='restore_yaml_to_db.py'),
+        Choice('Create Sqlite DB from YAML Backup Version', value='create_sqlite_db_from_yaml.py'),
         Separator('=== SQLite ==='),
         Choice('Index all SQLite Files in Dir', value='index_sqlite'),
         Choice('View Database Schema', value='view_sqlite_schema.py'),
         Choice('Locate Previous SQLite Backup', value='locate_sqlite_backups.py'),
         Choice('Diff with Backup SQLite DB', value='diff_sqlite.py'),
         Choice('Create SQLite Backup Version', value='create_sqlite_backup.py'),
-        Choice('Restore from SQLite Backup Version', value='restore_sqlite.py'),
+        Choice('Restore from SQLite Backup Version', value='restore_sqlite_from_backup.py'),
         Choice('Create DB from YAML with AI Categorization', value='import_yaml_ai'),
         Separator('=== Questions ==='),
         Choice('Deduplicate Questions', value='deduplicate_questions.py'),
@@ -86,6 +87,8 @@ def main():
         choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()
         if choice:
             run_script('restore_yaml_to_db.py', choice, '--clear')
+    elif answer == 'create_sqlite_db_from_yaml.py':
+        run_script('create_sqlite_db_from_yaml.py', '--clear')
     elif answer == 'index_sqlite':
         files = get_all_sqlite_backups()
         list_items(files)
@@ -105,11 +108,8 @@ def main():
                 run_script('diff_sqlite.py', old, new)
     elif answer == 'create_sqlite_backup.py':
         run_script('create_sqlite_backup.py')
-    elif answer == 'restore_sqlite.py':
-        backups = get_all_sqlite_backups()
-        choice = questionary.select('Select SQLite backup to restore:', [str(p) for p in backups]).ask()
-        if choice:
-            run_script('restore_sqlite.py', choice)
+    elif answer == 'restore_sqlite_from_backup.py':
+        run_script('restore_sqlite_from_backup.py')
     elif answer == 'import_yaml_ai':
         db_path = questionary.text(
             'Enter the path for the new AI-categorized SQLite database file:',

@@ -199,9 +199,8 @@ def main():
         description="Populate the SQLite database from YAML backup files."
     )
     parser.add_argument(
-        "--yaml-files",
-        nargs="+",
-        default=None,
+        "input_paths",
+        nargs="*",
         type=str,
         help="Path(s) to input YAML file(s) or directories. Overrides default behavior of using the latest backup.",
     )
@@ -218,8 +217,8 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.yaml_files:
-        yaml_files = path_utils.find_yaml_files_from_paths(args.yaml_files)
+    if args.input_paths:
+        yaml_files = path_utils.find_yaml_files_from_paths(args.input_paths)
     else:
         # Default behavior: find the most recent YAML backup file
         print("No input paths provided. Locating most recent YAML backup...")
