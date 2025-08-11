@@ -495,14 +495,14 @@ def manage_troubleshooting_interactive():
         from pathlib import Path
         while True:
             choices = [
-                questionary.Separator("=== System ==="),
-                {"name": "Bug Ticket", "value": "bug_ticket"},
                 questionary.Separator("=== YAML ==="),
+                {"name": "Index all Yaml Files in Dir", "value": "index_yaml_files"},
                 {"name": "Locate Previous YAML backup", "value": "locate_yaml_backups"},
                 {"name": "View YAML Backup Statistics", "value": "yaml_backup_stats"},
                 {"name": "Write DB to YAML Backup Version", "value": "export_db_to_yaml"},
                 {"name": "Restore DB from YAML Backup Version", "value": "restore_yaml_to_db"},
                 questionary.Separator("=== Sqlite ==="),
+                {"name": "Index all Sqlite files in Dir", "value": "index_sqlite_files"},
                 {"name": "View Database Schema", "value": "view_database_schema"},
                 {"name": "Locate Previous Sqlite Backup", "value": "locate_sqlite_backups"},
                 {"name": "Diff with Backup Sqlite Db", "value": "diff_sqlite_backup"},
@@ -513,7 +513,8 @@ def manage_troubleshooting_interactive():
                 {"name": "Fix Question Categorization", "value": "reorganize_questions_by_schema"},
                 {"name": "Fix Documentation Links", "value": "fix_documentation_links"},
                 {"name": "Fix Question Formatting", "value": "fix_question_formatting"},
-                questionary.Separator(),
+                questionary.Separator("=== System ==="),
+                {"name": "Bug Ticket", "value": "bug_ticket"},
                 {"name": "Cancel", "value": None},
             ]
             action = questionary.select(
