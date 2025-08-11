@@ -602,30 +602,40 @@ The script is run from the command line. It takes a `--source-dir` argument poin
 
 ### `scripts/locate_yaml_backups.py`
 
-This utility script scans the `question-data-backup/` directory to identify any YAML backup files (`.yaml` or `.yml`). It is a simple tool to confirm whether YAML-based backups are present in the designated backup location.
+This utility script locates YAML backup files, providing more detailed information like file size and modification date. It is more flexible, allowing you to scan any directory.
 
 **Usage**:
+To scan the default `question-data-backup/` directory:
 ```bash
 python3 scripts/locate_yaml_backups.py
 ```
-The script will print a list of found YAML files or a message indicating that none were found.
+To scan a custom directory:
+```bash
+python3 scripts/locate_yaml_backups.py /path/to/your/backups
+```
+The script will print a formatted list of found YAML files or a message indicating that none were found.
 
 ### `scripts/yaml_backup_stats.py`
 
-This script provides basic statistics for YAML backup files located in `question-data-backup/`. It reports the number of questions contained in each backup file.
+This script provides detailed statistics for a given YAML backup file, including total questions, a breakdown by category, and file size. It also includes an optional AI-powered feature to summarize the quiz topics.
 
 **Functionality**:
-- **PyYAML Dependency**: This script requires the `PyYAML` library. It includes a check and will print a helpful error message and exit if the library is not installed.
-- **Statistics**: For each YAML file found, it loads the content and prints the number of questions (assuming the file contains a list of question objects).
+- **Detailed Stats**: Analyzes a single YAML file and reports on its contents.
+- **AI Summary**: If you provide the `--ai-summary` flag and have an `OPENAI_API_KEY` set, it will generate a summary of the quiz's topics.
+- **Dependencies**: Requires `PyYAML`. For the AI summary, it also requires the `openai` library.
 
 **Usage**:
-First, ensure `PyYAML` is installed:
+First, ensure dependencies are installed:
 ```bash
-pip install PyYAML
+pip install PyYAML openai
 ```
-Then run the script:
+To get stats for a specific file:
 ```bash
-python3 scripts/yaml_backup_stats.py
+python3 scripts/yaml_backup_stats.py /path/to/backup.yaml
+```
+To also get an AI summary (ensure `OPENAI_API_KEY` is set):
+```bash
+python3 scripts/yaml_backup_stats.py /path/to/backup.yaml --ai-summary
 ```
   
 ### Testing & Observations
