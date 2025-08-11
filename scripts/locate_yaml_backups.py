@@ -82,18 +82,10 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
-        "primary_dir",
-        nargs="?",
-        default=None,
-        help="Primary directory to scan. If not provided, uses all configured default backup directories.",
-    )
-    parser.add_argument(
-        "-d",
-        "--dir",
-        action="append",
-        dest="additional_dirs",
+        "dirs",
+        nargs="*",
         default=[],
-        help="Add another directory to scan. Can be specified multiple times.",
+        help="One or more directories to scan. If not provided, uses all configured default backup directories.",
     )
     parser.add_argument("--pattern", help="Regex pattern to filter file paths.")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format.")
@@ -101,12 +93,9 @@ def main():
     parser.add_argument("--api-key", help="OpenAI API key. If not provided, uses OPENAI_API_KEY env var.")
     args = parser.parse_args()
 
-    scan_dirs = []
-    if args.primary_dir:
-        scan_dirs.append(args.primary_dir)
-    scan_dirs.extend(args.additional_dirs)
-
-    if not scan_dirs:
+    if args.dirs:
+        scan_dirs = args.dirs
+    else:
         scan_dirs = YAML_BACKUP_DIRS
 
     try:

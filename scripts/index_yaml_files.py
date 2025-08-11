@@ -2,6 +2,7 @@
 """
 Finds all YAML files in the repository and creates an index file with their metadata.
 """
+import argparse
 import sys
 from pathlib import Path
 from datetime import datetime
