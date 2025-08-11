@@ -37,6 +37,9 @@ def populate_db_from_yaml(
 
     conn = get_db_connection(db_path=db_path)
 
+    category_to_source_file = ENABLED_QUIZZES
+    unmatched_categories = set()
+
     # Explicitly list allowed arguments for add_question to avoid passing unexpected keys.
     # This is safer than introspection, which may fail in some environments.
     allowed_args = {
