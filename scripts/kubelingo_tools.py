@@ -47,10 +47,6 @@ def task_locate_yaml_backup():
     """Locate Previous YAML backup"""
     _run_script("locate_yaml_backups.py")
 
-def task_diff_yaml_backups():
-    """Diff YAML Backups"""
-    _run_script("diff_yaml_backups.py")
-
 def task_yaml_stats():
     """YAML Statistics"""
     _run_script("yaml_backup_stats.py")
@@ -121,8 +117,7 @@ def run_interactive_menu():
         "Index all Yaml Files in Dir": task_index_yaml,
         "Consolidate Unique Yaml Questions": task_consolidate_yaml,
         "Locate Previous YAML backup": task_locate_yaml_backup,
-        "Diff YAML Backups": task_diff_yaml_backups,
-        "YAML Statistics": task_yaml_stats,
+        "View YAML Backup Statistics": task_yaml_stats,
         "Write DB to YAML Backup Version": task_export_db_to_yaml,
         "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
         "Index all Sqlite files in Dir": task_index_sqlite,
@@ -146,11 +141,10 @@ def run_interactive_menu():
                 "Index all Yaml Files in Dir",
                 "Consolidate Unique Yaml Questions",
                 "Locate Previous YAML backup",
-                "Diff YAML Backups",
-                "YAML Statistics",
-                Separator("=== Sqlite ==="),
+                "View YAML Backup Statistics",
                 "Write DB to YAML Backup Version",
                 "Restore DB from YAML Backup Version",
+                Separator("=== Sqlite ==="),
                 "Index all Sqlite files in Dir",
                 "View Database Schema",
                 "Locate Previous Sqlite Backup",
