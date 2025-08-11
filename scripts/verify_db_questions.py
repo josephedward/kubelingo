@@ -1,4 +1,5 @@
 import sys
+import argparse
 from pathlib import Path
 
 # Add project root to path to allow importing from kubelingo
@@ -9,11 +10,10 @@ from kubelingo.database import get_db_connection, get_all_questions
 from kubelingo.utils import path_utils
 
 
-def verify_questions():
+def verify_questions(db_path: str):
     """
     Connects to the database and prints a summary of question counts per category.
     """
-    db_path = path_utils.get_live_db_path()
     if not Path(db_path).exists():
         print(f"Database file not found at: {db_path}")
         return
@@ -95,4 +95,17 @@ def verify_questions():
 
 
 if __name__ == "__main__":
-    verify_questions()
+    parser = argparse.ArgumentParser(description="Verify questions in a Kubelingo database.")
+    parser.add_argument(
+        "db_path",
+        nargs="?",
+        default=None,
+        help="Path to the SQLite database file. If not provided, uses the live database.",
+    )
+    args = parser.parse_args()
+
+    database_path = args.db_path
+    if database_path is None:
+        database_path = path_utils.get_live_db_path()
+
+    verify_questions(database_path)
