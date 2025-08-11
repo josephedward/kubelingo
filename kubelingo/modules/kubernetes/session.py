@@ -7,6 +7,7 @@ import sys
 import tempfile
 import shlex
 import webbrowser
+from dataclasses import asdict
 from datetime import datetime
 import logging
 
@@ -100,7 +101,7 @@ def _get_solvable_questions_by_subject(subject_matter: str) -> list[dict]:
             seen_prompts.add(prompt)
 
     if len(db_questions) != len(unique_questions):
-        logger.debug(f"Removed {len(db_questions) - len(unique_questions)} duplicate questions for {source_file}.")
+        logger.debug(f"Removed {len(db_questions) - len(unique_questions)} duplicate questions for {subject_matter}.")
 
     solvable_questions = []
     for q_dict in unique_questions:
