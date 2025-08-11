@@ -18,6 +18,7 @@ except ImportError:
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.utils import path_utils
+from kubelingo.utils.config import get_live_db_path
 
 
 def populate_db_from_yaml(
@@ -223,7 +224,7 @@ def main():
         for f in unique_files:
             print(f"  - {f.name}")
 
-    db_path = path_utils.get_live_db_path()
+    db_path = get_live_db_path()
 
     if not args.yes:
         print(
