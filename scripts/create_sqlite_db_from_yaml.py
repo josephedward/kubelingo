@@ -190,6 +190,11 @@ def main():
         action="store_true",
         help="Automatically confirm and proceed without prompting.",
     )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear the database before populating. If not set (default), new questions will be merged.",
+    )
     args = parser.parse_args()
 
     yaml_files = []
@@ -258,7 +263,7 @@ def main():
 
     db_path = get_live_db_path()
 
-    if not args.yes:
+    if args.clear and not args.yes:
         print(
             f"\nWARNING: This will clear and repopulate the database at '{db_path}'."
         )
@@ -267,8 +272,8 @@ def main():
             print("Operation cancelled.")
             sys.exit(0)
 
-    # Initialize the database.
-    init_db(clear=True, db_path=db_path)
+    # Initialize the database. By default, merge questions. Clear only if specified.
+    init_db(clear=args.clear, db_path=db_path)
 
     print(f"\nPopulating database at: {db_path}")
     populate_db_from_yaml(unique_files, db_path=db_path)
