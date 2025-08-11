@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Show statistics for YAML backup files: question count, categories, file size.
-Supports single file or directory of YAML backups, JSON output, and optional AI summary.
+Show statistics for YAML backup files: question count by exercise type and subject matter.
+Supports single file or directory of YAML backups, and JSON output.
 """
 import os
 import sys
@@ -26,23 +26,32 @@ try:
 except ImportError:
     print("Error: PyYAML is required. Install with: pip install pyyaml")
     sys.exit(1)
-try:
-    from kubelingo.utils.config import get_api_key
-except ImportError:
-    get_api_key = None
-
 def analyze_file(path):
+    """Analyzes a single YAML file and returns statistics about its questions."""
     loader = YAMLLoader()
     try:
         questions = loader.load_file(str(path))
     except Exception as e:
         return {'file': str(path), 'error': f'parse error: {e}'}
+
     total = len(questions)
-    categories = [getattr(q, "category", None) or "Uncategorized" for q in questions]
-    counts = dict(Counter(categories))
+    exercise_types = [getattr(q, "type", "Unknown Type") or "Unknown" for q in questions]
+    subject_matters = [getattr(q, "category", "Uncategorized") or "Uncategorized" for q in questions]
+
+    type_counts = dict(Counter(exercise_types))
+    subject_counts = dict(Counter(subject_matters))
+
     size = path.stat().st_size
     mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(path.stat().st_mtime))
-    return {'file': str(path), 'size': size, 'mtime': mtime, 'total': total, 'categories': counts}
+
+    return {
+        'file': str(path),
+        'size': size,
+        'mtime': mtime,
+        'total': total,
+        'exercise_types': type_counts,
+        'subject_matter': subject_counts,
+    }
 
 def main():
     parser = argparse.ArgumentParser(
@@ -57,9 +66,6 @@ def main():
     )
     parser.add_argument(
         '--json', action='store_true', help='Output stats in JSON format'
-    )
-    parser.add_argument(
-        '--ai', action='store_true', help='Use AI to summarize statistics'
     )
     args = parser.parse_args()
 
@@ -125,29 +131,12 @@ def main():
                 print(f"File: {s['file']}")
                 print(f" Size: {s['size']} bytes  Modified: {s['mtime']}")
                 print(f" Total questions: {s['total']}")
-                print(" Questions by category:")
-                for cat, cnt in sorted(s['categories'].items(), key=lambda x: -x[1]):
+                print(" Questions by exercise type:")
+                for cat, cnt in sorted(s['exercise_types'].items(), key=lambda x: -x[1]):
+                    print(f"  {cat}: {cnt}")
+                print(" Questions by subject matter:")
+                for cat, cnt in sorted(s['subject_matter'].items(), key=lambda x: -x[1]):
                     print(f"  {cat}: {cnt}")
                 print()
-    if args.ai:
-        try:
-            from openai import OpenAI
-            api_key = os.getenv('OPENAI_API_KEY') or (get_api_key() if get_api_key else None)
-            if not api_key:
-                print('No OpenAI API key found; skipping AI summary')
-                return
-            client = OpenAI(api_key=api_key)
-            prompt = ('Here are YAML backup statistics: ' + json.dumps(stats) +
-                      '\nPlease provide a concise summary of these backups, highlighting differences and any notable points.')
-            resp = client.chat.completions.create(
-                model='gpt-3.5-turbo',
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            summary = resp.choices[0].message.content
-            print('\nAI Summary:\n' + summary)
-        except ImportError:
-            print('OpenAI library not installed; install openai to enable AI summary')
-        except Exception as e:
-            print(f'Failed to generate AI summary: {e}')
 if __name__ == '__main__':
     main()
