@@ -19,7 +19,7 @@ except ImportError:
     print("pip install PyYAML")
     sys.exit(1)
 
-from kubelingo.database import add_question, get_db_connection, init_db
+from kubelingo.database import add_question, get_all_questions, get_db_connection, init_db
 from kubelingo.utils import path_utils
 from kubelingo.utils.config import ENABLED_QUIZZES, YAML_BACKUP_DIRS
 from kubelingo.utils.config import get_live_db_path
@@ -192,6 +192,53 @@ def populate_db_from_yaml(
         print(f"\nWarning: Skipped {skipped_no_category} questions because they were missing a 'category' field.")
 
     print(f"\nSuccessfully populated database with {question_count} questions.")
+
+
+def fix_source_paths_in_db(db_path: Optional[str] = None):
+    """
+    Corrects the source_file paths in the database from full paths to basenames.
+    This is a data-preserving operation that does not require clearing the DB.
+    """
+    print("Fixing source_file paths in the database...")
+    db_path = db_path or get_live_db_path()
+    conn = get_db_connection(db_path=db_path)
+
+    all_questions = get_all_questions(conn)
+    if not all_questions:
+        print("No questions found in the database.")
+        conn.close()
+        return
+
+    # This map defines the correct basename for a given category.
+    category_to_source_file = {
+        k: os.path.basename(v) for k, v in ENABLED_QUIZZES.items()
+    }
+
+    updated_count = 0
+    try:
+        for q_dict in all_questions:
+            category = q_dict.get("category")
+            if not category:
+                continue
+
+            correct_source_file = category_to_source_file.get(category)
+            if not correct_source_file:
+                continue
+
+            # If the source file is incorrect, update it.
+            if q_dict.get("source_file") != correct_source_file:
+                q_dict["source_file"] = correct_source_file
+                # add_question uses INSERT OR REPLACE, which updates the record in place.
+                add_question(conn=conn, **q_dict)
+                updated_count += 1
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating source files: {e}", file=sys.stderr)
+    finally:
+        conn.close()
+
+    print(f"Finished. Updated {updated_count} question(s).")
 
 
 def main():
