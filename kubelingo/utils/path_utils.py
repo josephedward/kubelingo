@@ -50,6 +50,13 @@ def find_yaml_files(search_dirs: List[str]) -> List[Path]:
     return sorted(list(yaml_files))
 
 
+def get_all_yaml_files() -> List[Path]:
+    """
+    Discovers all YAML files from all configured question directories.
+    """
+    return find_yaml_files(get_all_question_dirs())
+
+
 def find_yaml_files_from_paths(paths: List[str]) -> List[Path]:
     """
     Scans a list of paths (files or directories) and returns all unique .yaml/.yml files found.

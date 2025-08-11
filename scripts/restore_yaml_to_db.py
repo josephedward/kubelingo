@@ -18,9 +18,7 @@ from typing import Optional
 
 from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.question import QuestionCategory
-from kubelingo.utils.path_utils import get_all_yaml_files
-from kubelingo.utils.path_utils import find_yaml_files_from_paths
-from kubelingo.utils.path_utils import get_all_yaml_files
+from kubelingo.utils.path_utils import find_yaml_files_from_paths, get_all_yaml_files
 
 
 def restore_yaml_to_db(
@@ -131,21 +129,7 @@ def main():
         print("No input paths provided. Scanning default question directories...")
         yaml_files = get_all_yaml_files()
     else:
-        for path_str in args.input_paths:
-            path = Path(path_str)
-            if not path.exists():
-                print(f"Warning: Path not found, skipping: {path_str}", file=sys.stderr)
-                continue
-            if path.is_dir():
-                yaml_files.extend(path.glob("**/*.yaml"))
-                yaml_files.extend(path.glob("**/*.yml"))
-            elif path.is_file() and path.suffix.lower() in [".yaml", ".yml"]:
-                yaml_files.append(path)
-            else:
-                print(
-                    f"Warning: Path is not a YAML file or directory, skipping: {path_str}",
-                    file=sys.stderr,
-                )
+        yaml_files = find_yaml_files_from_paths(args.input_paths)
 
     if not yaml_files:
         print("No YAML files found.")
