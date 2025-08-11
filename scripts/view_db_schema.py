@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Finds the most recent SQLite backup and prints its schema.
+Displays the schema of the live SQLite database.
 """
 import sqlite3
 import sys
@@ -11,40 +11,32 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from kubelingo.utils.path_utils import find_and_sort_files_by_mtime
-    from kubelingo.utils.config import SQLITE_BACKUP_DIRS
+    from kubelingo.utils.path_utils import get_live_db_path
 except ImportError as e:
     print(f"Error: A required kubelingo module is not available: {e}. "
           "Ensure you run this from the project root.", file=sys.stderr)
     sys.exit(1)
 
 def main():
-    """Finds the most recent SQLite backup and prints its schema."""
-    backup_dirs = SQLITE_BACKUP_DIRS
-    if not backup_dirs:
-        print("No SQLite backup directories are configured.", file=sys.stderr)
-        sys.exit(1)
-
+    """Displays the schema of the live database."""
     try:
-        backup_files = find_and_sort_files_by_mtime(backup_dirs, [".db", ".sqlite", ".sqlite3"])
+        db_path = get_live_db_path()
+        if not db_path or not Path(db_path).exists():
+            print("Live database not found.", file=sys.stderr)
+            sys.exit(1)
     except Exception as e:
-        print(f"Error scanning directories: {e}", file=sys.stderr)
+        print(f"Error finding live database: {e}", file=sys.stderr)
         sys.exit(1)
 
-    if not backup_files:
-        print("No SQLite backup files found to view schema from.", file=sys.stderr)
-        sys.exit(1)
-    
-    most_recent_db = backup_files[0]
-    print(f"Displaying schema for the most recent backup: {most_recent_db}\n")
+    print(f"Displaying schema for the live database: {db_path}\n")
 
     conn = None
     try:
-        conn = sqlite3.connect(f"file:{most_recent_db}?mode=ro", uri=True)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         cursor = conn.cursor()
         cursor.execute("SELECT name, sql FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
-        
+
         if not tables:
             print("No tables found in the database.")
         else:
