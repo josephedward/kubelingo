@@ -109,8 +109,8 @@ def init_db(clear: bool = False):
             raise
     # Add 'subject' column for question subject matter with CHECK constraint
     try:
-        from kubelingo.utils.config import SUBJECT_MATTER
-        subjects = ', '.join(f"'{s}'" for s in SUBJECT_MATTER)
+        from kubelingo.question import QuestionSubject
+        subjects = ', '.join(repr(s.value) for s in QuestionSubject)
         cursor.execute(
             f"ALTER TABLE questions ADD COLUMN subject TEXT "
             f"CHECK(subject IN ({subjects}))"
