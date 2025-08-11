@@ -329,56 +329,6 @@ def restore_db():
         print(f"{Fore.RED}Failed to merge from database: {e}{Style.RESET_ALL}")
 
 
-def find_duplicates_cmd(cmd):
-    """List and optionally delete duplicate quiz questions in the database."""
-    import sqlite3
-    from kubelingo.utils.config import DATABASE_FILE
-    delete = '--delete' in cmd
-    db_path = DATABASE_FILE
-    if not os.path.isfile(db_path):
-        print(f"Database file not found: {db_path}")
-        return
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    # Only consider duplicates within the same source_file (so distinct quizzes are not collapsed)
-    cursor.execute(
-        "SELECT prompt, source_file, COUNT(*) as cnt"
-        " FROM questions"
-        " GROUP BY prompt, source_file"
-        " HAVING cnt > 1"
-    )
-    dups = cursor.fetchall()  # each is (prompt, source_file, cnt)
-    if not dups:
-        print("No duplicate prompts found in the database.")
-        conn.close()
-        return
-    total_deleted = 0
-    for prompt, src_file, count in dups:
-        print(f"Prompt duplicated {count} times in {src_file}: {prompt!r}")
-        # Select only duplicates within this source_file
-        cursor.execute(
-            "SELECT rowid, id, source_file"
-            " FROM questions"
-            " WHERE prompt = ? AND source_file = ?"
-            " ORDER BY rowid",
-            (prompt, src_file)
-        )
-        rows = cursor.fetchall()
-        for rowid, qid, src in rows:
-            print(f"  rowid={rowid}, id={qid}, source_file={src}")
-        if delete:
-            # Keep the first entry, delete the rest within this source_file group
-            to_delete = [str(r[0]) for r in rows[1:]]
-            if to_delete:
-                placeholders = ",".join(to_delete)
-                conn.execute(f"DELETE FROM questions WHERE rowid IN ({placeholders})")
-                print(f"  Deleted {len(to_delete)} duplicate(s) for prompt in {src_file}.")
-                total_deleted += len(to_delete)
-    if delete:
-        conn.commit()
-        print(f"Total duplicates deleted: {total_deleted}")
-    conn.close()
-
 
 def manage_questions_interactive():
     """Interactive prompt for managing questions."""
