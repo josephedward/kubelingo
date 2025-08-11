@@ -61,6 +61,7 @@ class Question:
     review: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     validator: Optional[Dict[str, Any]] = None
+    source_file: Optional[str] = None
 
     # --- Legacy compatibility ---
     category: Optional[str] = None

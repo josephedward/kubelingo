@@ -233,6 +233,7 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     q_dict['correct_yaml'] = q_dict.get('correct_yaml')
     # Map question_type column to 'type' key for compatibility
     q_dict['type'] = q_dict.get('question_type') or q_dict.get('type')
+    q_dict.pop('question_type', None)
     # Add schema_category if it exists
     q_dict['schema_category'] = q_dict.get('schema_category')
     return q_dict
