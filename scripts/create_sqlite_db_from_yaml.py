@@ -43,7 +43,6 @@ def populate_db_from_yaml(
         "validation_steps",
         "validator",
         "review",
-        "type",
         "schema_category",
         "answers",
         "correct_yaml",
