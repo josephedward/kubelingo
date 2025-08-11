@@ -636,6 +636,10 @@ python3 scripts/yaml_backup_stats.py
     - `yaml_edit` questions are correctly compared against their `correct_yaml` definitions.
 - **Gaps**: There are no formal unit or integration tests for the answer-checking logic (`answer_checker`) or the YAML loading/parsing pipeline. All testing so far has been manual via smoke tests.
 
+- **YAML Backup Script Tests**:
+    - `locate_yaml_backups.py`: exit code 0, printed "No YAML backup files found in question-data-backup/.".
+    - `yaml_backup_stats.py`: without PyYAML installed, printed error "Error: PyYAML is not installed. Please install it" and exited with code 1. After installing PyYAML, exit code 0 and printed "No YAML backup files found in question-data-backup/.".
+
 ### CLI Readability & Regression Tests
 To guard against mangled output and UI regressions, we recommend:
 Options are now: Work on Answer (in Shell), Check Answer, Show Expected Answer(s), Show Model Answer, Flag for Review, Next Question, Previous Question, Exit Quiz
