@@ -115,13 +115,13 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
             raise
-    # Add 'subject' column for question subject matter with CHECK constraint
+    # Add 'subject_matter' column for question subject matter with CHECK constraint
     try:
         from kubelingo.question import QuestionSubject
         subjects = ', '.join(repr(s.value) for s in QuestionSubject)
         cursor.execute(
-            f"ALTER TABLE questions ADD COLUMN subject TEXT "
-            f"CHECK(subject IN ({subjects}))"
+            f"ALTER TABLE questions ADD COLUMN subject_matter TEXT "
+            f"CHECK(subject_matter IN ({subjects}))"
         )
     except sqlite3.OperationalError as e:
         if "duplicate column name" not in str(e):
@@ -150,7 +150,7 @@ def add_question(
     correct_yaml: Optional[str] = None,
     schema_category: Optional[str] = None,
     metadata: Optional[Dict[str, Any]] = None,
-    subject: Optional[str] = None,
+    subject_matter: Optional[str] = None,
     conn: sqlite3.Connection = None
 ):
     """Adds or replaces a question in the database."""
@@ -161,9 +161,9 @@ def add_question(
     cursor = conn.cursor()
 
     # Validate subject matter category if provided
-    if subject is not None and subject not in SUBJECT_MATTER:
+    if subject_matter is not None and subject_matter not in SUBJECT_MATTER:
         raise ValueError(
-            f"Invalid subject matter category: {subject!r}. "
+            f"Invalid subject matter category: {subject_matter!r}. "
             f"Must be one of: {SUBJECT_MATTER}"
         )
 
@@ -185,7 +185,7 @@ def add_question(
             id, prompt, response, category, source,
             validation_steps, validator, source_file, review,
             explanation, difficulty, pre_shell_cmds, initial_files,
-            question_type, answers, correct_yaml, schema_category, subject
+            question_type, answers, correct_yaml, schema_category, subject_matter
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         id,
@@ -205,7 +205,7 @@ def add_question(
         answers_json,
         correct_yaml,
         schema_category,
-        subject
+        subject_matter
     ))
     # Commit the insertion to the database
     conn.commit()
@@ -266,7 +266,7 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     # Add schema_category if it exists
     q_dict['schema_category'] = q_dict.get('schema_category')
     # Add subject matter if it exists
-    q_dict['subject'] = q_dict.get('subject')
+    q_dict['subject_matter'] = q_dict.get('subject_matter')
     return q_dict
 
 

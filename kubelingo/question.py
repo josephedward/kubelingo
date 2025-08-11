@@ -67,7 +67,7 @@ class Question:
     # The schema category this question belongs to.
     schema_category: Optional["QuestionCategory"] = None
     # Subject matter area for the question.
-    subject: Optional["QuestionSubject"] = None
+    subject_matter: Optional["QuestionSubject"] = None
 
     # --- Modality-specific fields ---
     # For `command` questions

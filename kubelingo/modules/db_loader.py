@@ -39,11 +39,8 @@ class DBLoader(BaseLoader):
             # Determine question type from DB column 'question_type' or fallback to legacy 'type'
             qtype = qd.get('question_type') or qd.get('type') or 'command'
             # Include subject-matter tag in metadata if present
-            subject = qd.get('subject')
+            subject_matter = qd.get('subject_matter')
             meta = qd.get('metadata') or {}
-            if subject is not None:
-                meta = dict(meta)
-                meta['subject'] = subject
             question = Question(
                 id=qd['id'],
                 prompt=qd.get('prompt', ''),
@@ -56,6 +53,7 @@ class DBLoader(BaseLoader):
                 difficulty=qd.get('difficulty'),
                 review=qd.get('review', False),
                 metadata=meta,
+                subject_matter=subject_matter,
             )
             questions.append(question)
         return questions

@@ -52,23 +52,23 @@ class AICategorizer:
 
         return f"""
 You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
-You will be given a question prompt and must return a JSON object with two keys: "schema_category" and "subject".
+You will be given a question prompt and must return a JSON object with two keys: "schema_category" and "subject_matter".
 
 1.  **schema_category**: Choose ONE of the following high-level exercise types:
 {category_desc}
 
-2.  **subject**: Choose the ONE most relevant subject matter from this list:
+2.  **subject_matter**: Choose the ONE most relevant subject matter from this list:
 {subject_desc}
 
 Analyze the question's content to make the best choice. For example:
-- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "Command-Based/Syntax", "subject": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A question asking to write a YAML file for a Pod is {{ "schema_category": "Manifests", "subject": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A conceptual question about the purpose of a Service is {{ "schema_category": "Basic/Open-Ended", "subject": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
+- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A question asking to write a YAML file for a Pod is {{ "schema_category": "Manifests", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A conceptual question about the purpose of a Service is {{ "schema_category": "Basic/Open-Ended", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
 
 Return ONLY a valid JSON object in the format:
 {{
   "schema_category": "The full string value of the category",
-  "subject": "The full string value of the subject"
+  "subject_matter": "The full string value of the subject"
 }}
 Do not include any other text or explanation.
 """
@@ -93,13 +93,13 @@ Do not include any other text or explanation.
             data = json.loads(response.choices[0].message.content)
             
             category = data.get("schema_category")
-            subject = data.get("subject")
+            subject_matter = data.get("subject_matter")
 
             valid_categories = [c.value for c in QuestionCategory]
             valid_subjects = [s.value for s in QuestionSubject]
 
-            if category in valid_categories and subject in valid_subjects:
-                return {"schema_category": category, "subject": subject}
+            if category in valid_categories and subject_matter in valid_subjects:
+                return {"schema_category": category, "subject_matter": subject_matter}
             else:
                 print(f"{Fore.YELLOW}\nWarning: AI returned invalid data: {data}. Skipping.{Style.RESET_ALL}")
                 return None
@@ -121,7 +121,7 @@ def reorganize_by_ai():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM questions WHERE schema_category IS NULL OR subject IS NULL")
+    cursor.execute("SELECT * FROM questions WHERE schema_category IS NULL OR subject_matter IS NULL")
     rows = cursor.fetchall()
     
     if not rows:
@@ -142,8 +142,8 @@ def reorganize_by_ai():
             
             if result:
                 cursor.execute(
-                    "UPDATE questions SET schema_category = ?, subject = ? WHERE id = ?",
-                    (result["schema_category"], result["subject"], q_id)
+                    "UPDATE questions SET schema_category = ?, subject_matter = ? WHERE id = ?",
+                    (result["schema_category"], result["subject_matter"], q_id)
                 )
                 updated_count += 1
                 pbar.set_postfix(status="Success")
