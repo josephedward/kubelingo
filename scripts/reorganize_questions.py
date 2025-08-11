@@ -64,6 +64,8 @@ Analyze the question's content to make the best choice. For example:
 - A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
 - A question asking to write a YAML file for a Pod is {{ "schema_category": "Manifests", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
 - A conceptual question about the purpose of a Service is {{ "schema_category": "Basic/Open-Ended", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
+- A question about using Vim to find and replace text is {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Vim editor usage" }}.
+- A question about kubectl command aliases should be {{ "schema_category": "Command-Based/Syntax", "subject_matter": "Kubectl CLI usage and commands" }}.
 
 Return ONLY a valid JSON object in the format:
 {{

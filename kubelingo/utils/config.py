@@ -87,9 +87,6 @@ COMMAND_QUIZZES = {
     "Helm Basics": os.path.join(QUESTIONS_DIR, 'helm_basics.yaml'),
     "Additional Commands": os.path.join(QUESTIONS_DIR, 'additional_commands.yaml'),
     "CKAD Practice": os.path.join(QUESTIONS_DIR, 'ckad_questions.yaml'),
-    "Killercoda CKAD": os.path.join(QUESTIONS_DIR, 'killercoda_ckad.yaml'),
-    "Misc Commands": os.path.join(QUESTIONS_DIR, 'kubernetes.yaml'),
-    "Uncategorized Commands": os.path.join(QUESTIONS_DIR, 'uncategorized.yaml'),
 }
 # Manifest-Based exercises (YAML authoring and editing)
 MANIFEST_QUIZZES = {
@@ -135,16 +132,18 @@ SUBJECT_MATTER = [
     "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)",
     "Ingress & HTTP routing (basic rules, paths, service backends)",
     "Networking utilities (DNS in-cluster, port-forward, exec, curl)",
-    "Persistence (PVCs, existing StorageClasses, common volume types)",
+    "Persistence (PVCs, using existing StorageClasses, common volume types)",
     "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)",
     "Labels, annotations & selectors (label ops, field selectors, jsonpath)",
-    "Imperative vs declarative (--dry-run, create/apply/edit/replace/patch)",
+    "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)",
     "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)",
     "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)",
     "ServiceAccounts in apps (mounting SA, minimal RBAC for app access)",
     "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
     "Namespaces & contexts (scoping resources, default namespace, context switching)",
     "API discovery & docs (kubectl explain, api-resources, api-versions)",
+    "Kubectl CLI usage and commands",
+    "Vim editor usage",
 ]
 
 

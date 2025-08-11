@@ -36,6 +36,8 @@ class QuestionSubject(str, Enum):
     SCHEDULING = "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)"
     NAMESPACES_CONTEXTS = "Namespaces & contexts (scoping resources, default namespace, context switching)"
     API_DISCOVERY_DOCS = "API discovery & docs (kubectl explain, api-resources, api-versions)"
+    KUBECTL_CLI = "Kubectl CLI usage and commands"
+    VIM = "Vim editor usage"
 
 
 @dataclass
