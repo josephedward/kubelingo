@@ -21,11 +21,10 @@ from dataclasses import asdict
 
 def main():
     # Initialize DB (creates ~/.kubelingo/kubelingo.db)
-    # Clear existing DB and initialize (drops and recreates questions table)
-    init_db(clear=True)
+    # Initialize DB (creates ~/.kubelingo/kubelingo.db, preserves existing entries)
+    init_db()
     loader = YAMLLoader()
-    # Scan both primary and backup YAML quiz directories
-    # Include both the new questions directory and legacy YAML directories
+    # Scan both consolidated questions directory and legacy YAML directories
     dirs = [Path(QUESTIONS_DIR), Path(DATA_DIR) / 'yaml', Path(DATA_DIR) / 'yaml-bak']
     total_added = 0
     for yaml_dir in dirs:
@@ -58,7 +57,7 @@ def main():
                             source_file=source_file,
                             response=None,
                             category=(q.categories[0] if q.categories else None),
-                            source='migration',
+                            source=getattr(q, 'source', None),
                             validation_steps=vs,
                             validator=validator,
                             # Preserve full question schema
@@ -70,6 +69,7 @@ def main():
                             explanation=getattr(q, 'explanation', None),
                             difficulty=getattr(q, 'difficulty', None),
                             schema_category=getattr(q.schema_category, 'value', None),
+                            metadata=getattr(q, 'metadata', None),
                         )
                         total_added += 1
                     except Exception as e:
