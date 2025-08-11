@@ -1182,6 +1182,8 @@ A centralized maintenance script is being developed to provide a unified interfa
    ○ Cancel
 ```
 
+The `Cancel` option exits the maintenance menu without taking any action, returning to the previous menu or command prompt.
+
 ## AI-Powered Question Consolidation and Categorization
 
 As part of the maintenance toolbox, the "Consolidate Unique Yaml Questions" feature will leverage AI to process indexed YAML files. It will generate a unique set of questions, categorized according to a standardized schema. This ensures consistency and enriches the question database.
