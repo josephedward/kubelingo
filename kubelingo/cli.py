@@ -329,6 +329,65 @@ def restore_db():
         print(f"{Fore.RED}Failed to merge from database: {e}{Style.RESET_ALL}")
 
 
+def handle_load_yaml(cmd_args):
+    """Loads questions from a YAML file, clearing the database first."""
+    if len(cmd_args) != 1:
+        print(f"{Fore.RED}Usage: kubelingo load-yaml <path-to-yaml-file>{Style.RESET_ALL}")
+        return
+
+    yaml_file = cmd_args[0]
+    if not os.path.exists(yaml_file):
+        print(f"{Fore.RED}File not found: {yaml_file}{Style.RESET_ALL}")
+        return
+
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot proceed with interactive confirmation.{Style.RESET_ALL}")
+        return
+
+    try:
+        confirmed = questionary.confirm(
+            f"This will CLEAR all questions from the database and load new ones from '{os.path.basename(yaml_file)}'. "
+            "This action cannot be undone. Are you sure?",
+            default=False
+        ).ask()
+        if not confirmed:
+            print(f"{Fore.YELLOW}Import cancelled.{Style.RESET_ALL}")
+            return
+
+        from kubelingo.database import get_db_connection, add_question
+        from kubelingo.modules.yaml_loader import YAMLLoader
+
+        print("Clearing existing questions from the database...")
+        conn = get_db_connection()
+        try:
+            conn.execute("DELETE FROM questions")
+            conn.commit()
+            print("Database cleared.")
+
+            print(f"Loading questions from {yaml_file}...")
+            loader = YAMLLoader()
+            questions = loader.load_file(yaml_file)
+
+            if not questions:
+                print(f"{Fore.YELLOW}No questions found in {yaml_file}.{Style.RESET_ALL}")
+                conn.close()
+                return
+
+            for q in questions:
+                q_dict = asdict(q)
+                add_question(conn=conn, **q_dict)
+
+            conn.commit()
+            print(f"{Fore.GREEN}Successfully loaded {len(questions)} questions into the database.{Style.RESET_ALL}")
+
+        finally:
+            conn.close()
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}Import process cancelled.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred during import: {e}{Style.RESET_ALL}")
+
 
 def manage_questions_interactive():
     """Interactive prompt for managing questions."""
@@ -611,7 +670,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot')")
+                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -726,6 +785,9 @@ def main():
                 return
             elif cmd_name == 'enrich-sources':
                 enrich_sources()
+                return
+            elif cmd_name == 'load-yaml':
+                handle_load_yaml(args.command[1:])
                 return
             elif cmd_name == 'questions':
                 manage_questions_interactive()
