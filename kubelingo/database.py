@@ -270,42 +270,58 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     return q_dict
 
 
-def get_questions_by_source_file(source_file: str) -> List[Dict[str, Any]]:
+def get_questions_by_source_file(source_file: str, conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
     """Fetches all questions from a given source file."""
+    close_conn = conn is None
+    if close_conn:
+        conn = get_db_connection()
+
     # Allow passing full paths: match only on basename stored in DB
     key = os.path.basename(source_file)
-    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM questions WHERE source_file = ?", (key,))
     rows = cursor.fetchall()
-    conn.close()
+    if close_conn:
+        conn.close()
     return [_row_to_question_dict(row) for row in rows]
 
 
-def get_flagged_questions() -> List[Dict[str, Any]]:
+def get_flagged_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
     """Fetches all questions flagged for review."""
-    conn = get_db_connection()
+    close_conn = conn is None
+    if close_conn:
+        conn = get_db_connection()
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM questions WHERE review = 1")
     rows = cursor.fetchall()
-    conn.close()
+    if close_conn:
+        conn.close()
     return [_row_to_question_dict(row) for row in rows]
 
 
-def get_all_questions() -> List[Dict[str, Any]]:
+def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
     """Fetches all questions from the database."""
-    conn = get_db_connection()
+    close_conn = conn is None
+    if close_conn:
+        conn = get_db_connection()
+
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM questions")
     rows = cursor.fetchall()
-    conn.close()
+    if close_conn:
+        conn.close()
     return [_row_to_question_dict(row) for row in rows]
 
 
-def update_review_status(question_id: str, review: bool):
+def update_review_status(question_id: str, review: bool, conn: Optional[sqlite3.Connection] = None):
     """Updates the review status of a question in the database."""
-    conn = get_db_connection()
+    close_conn = conn is None
+    if close_conn:
+        conn = get_db_connection()
+
     cursor = conn.cursor()
     cursor.execute("UPDATE questions SET review = ? WHERE id = ?", (review, question_id))
     conn.commit()
-    conn.close()
+    if close_conn:
+        conn.close()
