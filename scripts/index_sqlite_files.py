@@ -14,8 +14,6 @@ sys.path.insert(0, str(project_root))
 from kubelingo.utils.path_utils import find_sqlite_files, get_all_sqlite_files_in_repo
 from kubelingo.utils.ui import Fore, Style
 
-INDEX_FILE_PATH = project_root / "backups" / "sqlite_index.yaml"
-
 
 def get_file_metadata(path: Path) -> dict:
     """Gathers metadata for a given file."""
@@ -40,6 +38,8 @@ def main():
         help="One or more directories to scan. If not provided, scans the entire repository.",
     )
     args = parser.parse_args()
+
+    index_file_path = project_root / "backups" / "sqlite_index.yaml"
 
     try:
         import yaml
@@ -69,12 +69,12 @@ def main():
         }
 
         # Ensure backups directory exists
-        INDEX_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        index_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(INDEX_FILE_PATH, "w") as f:
+        with open(index_file_path, "w") as f:
             yaml.safe_dump(index_data, f, indent=2)
 
-        print(f"{Fore.GREEN}Successfully created SQLite index at: {INDEX_FILE_PATH}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Successfully created SQLite index at: {index_file_path}{Style.RESET_ALL}")
 
     except Exception as e:
         print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")

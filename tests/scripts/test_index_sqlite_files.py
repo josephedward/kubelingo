@@ -34,6 +34,17 @@ def test_index_all_sqlite_files(setup_test_repo: Path, monkeypatch):
     # Mock the project_root used in the script to point to our temp directory
     monkeypatch.setattr("scripts.index_sqlite_files.project_root", project_root)
 
+    # Mock get_all_sqlite_files_in_repo to return only files from the test repo
+    mock_sqlite_files = [
+        project_root / "dir1" / "db1.db",
+        project_root / "dir2" / "db2.sqlite",
+        project_root / "dir2" / "subdir" / "db3.sqlite3",
+    ]
+    monkeypatch.setattr(
+        "scripts.index_sqlite_files.get_all_sqlite_files_in_repo",
+        lambda: mock_sqlite_files,
+    )
+
     # Mock sys.argv to run the script with no directory arguments
     monkeypatch.setattr(sys, "argv", ["scripts/index_sqlite_files.py"])
 
