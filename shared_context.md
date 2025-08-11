@@ -599,6 +599,34 @@ The script is run from the command line. It takes a `--source-dir` argument poin
   ```bash
   python3 scripts/import_and_backup.py --source-dir /path/to/other/yaml/files
   ```
+
+### `scripts/locate_yaml_backups.py`
+
+This utility script scans the `question-data-backup/` directory to identify any YAML backup files (`.yaml` or `.yml`). It is a simple tool to confirm whether YAML-based backups are present in the designated backup location.
+
+**Usage**:
+```bash
+python3 scripts/locate_yaml_backups.py
+```
+The script will print a list of found YAML files or a message indicating that none were found.
+
+### `scripts/yaml_backup_stats.py`
+
+This script provides basic statistics for YAML backup files located in `question-data-backup/`. It reports the number of questions contained in each backup file.
+
+**Functionality**:
+- **PyYAML Dependency**: This script requires the `PyYAML` library. It includes a check and will print a helpful error message and exit if the library is not installed.
+- **Statistics**: For each YAML file found, it loads the content and prints the number of questions (assuming the file contains a list of question objects).
+
+**Usage**:
+First, ensure `PyYAML` is installed:
+```bash
+pip install PyYAML
+```
+Then run the script:
+```bash
+python3 scripts/yaml_backup_stats.py
+```
   
 ### Testing & Observations
 - **Core Functionality**: The main quiz loop is stable. The PTY shell now correctly handles terminal input (including `vim` on macOS), resolving the garbled character issue.
