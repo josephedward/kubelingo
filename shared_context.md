@@ -1158,6 +1158,7 @@ A centralized maintenance script is being developed to provide a unified interfa
 
 ```
 ? Select a maintenance task: (Use arrow keys)
+? Select a maintenance task: (Use arrow keys)
    === YAML ===
    ○ Index all Yaml Files in Dir
    ○ Consolidate Unique Yaml Questions
@@ -1185,11 +1186,7 @@ A centralized maintenance script is being developed to provide a unified interfa
 
 The `Cancel` option exits the maintenance menu without taking any action, returning to the previous menu or command prompt.
 
-The maintenance toolbox provides the following utilities:
-
-#### YAML Utilities
-- **Index all Yaml Files in Dir**: Scans specified directories to locate and index all YAML question files.
-- **Consolidate Unique Yaml Questions**: Processes indexed YAML files using AI to generate a unique, categorized set of questions.
+The maintenance toolbox includes the following key YAML utilities:
 - **Locate Previous YAML backup**: Finds the most recent YAML backup file based on its timestamp.
 - **Diff YAML Backups**: Compares different YAML backup versions to show what has changed. It can compare a range of versions or all of them.
 - **YAML Statistics**: Provides a count of questions broken down by exercise type and subject matter type.
