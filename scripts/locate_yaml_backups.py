@@ -123,10 +123,11 @@ def main():
         sys.exit(1)
 
     if not files:
-        if not args.json:
-            print(f"No YAML backup files found in the specified directories: {', '.join(scan_dirs)}")
-        else:
+        dirs_str = ', '.join(scan_dirs)
+        if args.json:
             print(json.dumps([]))
+        else:
+            print(f"No YAML backups found in {dirs_str}")
         sys.exit(0)
 
     stats = [get_file_stats(f) for f in files]
