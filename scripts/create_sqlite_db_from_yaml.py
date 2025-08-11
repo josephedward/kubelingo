@@ -234,10 +234,8 @@ def main():
             print(f"Automatically selecting latest backup: {latest_backup.name}")
             yaml_files = [latest_backup]
         else:
-            # Fallback to default directories if no backups are found
-            print("No YAML backups found. Scanning default question directories...")
-            question_dirs = path_utils.get_all_question_dirs()
-            yaml_files = path_utils.find_yaml_files(question_dirs)
+            print("Error: No YAML backup files found in backup directories.")
+            sys.exit(1)
 
     if not yaml_files:
         print("No YAML files found.")
