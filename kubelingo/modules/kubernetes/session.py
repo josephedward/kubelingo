@@ -1768,15 +1768,19 @@ class NewSession(StudySession):
         if is_correct:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            # Automatically unflag correctly answered question
+            question_id = q.get('id')
+            if question_id:
+                _update_review_status_in_db(question_id, False)
+                print(f"{Fore.MAGENTA}Review flag removed for this question.{Style.RESET_ALL}")
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Your answer is incorrect.{Style.RESET_ALL}")
             # Automatically flag incorrect question for review
             question_id = q.get('id')
             if question_id:
-                _update_review_status_in_db(question_id, not is_correct)
-                if not is_correct:
-                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
+                _update_review_status_in_db(question_id, True)
+                print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
         # Show reference URL for this question
         source_url = getattr(q, 'citation', None) or getattr(q, 'source', None)
         if source_url:
@@ -1844,15 +1848,19 @@ class NewSession(StudySession):
         if is_correct:
             correct_indices.add(current_question_index)
             print(f"{Fore.GREEN}Correct!{Style.RESET_ALL}")
+            # Automatically unflag correctly answered question
+            question_id = q.get('id') if isinstance(q, dict) else getattr(q, 'id', None)
+            if question_id:
+                _update_review_status_in_db(question_id, False)
+                print(f"{Fore.MAGENTA}Review flag removed for this question.{Style.RESET_ALL}")
         else:
             correct_indices.discard(current_question_index)
             print(f"{Fore.RED}Incorrect.{Style.RESET_ALL}")
             # Automatically flag incorrect question for review
             question_id = q.get('id') if isinstance(q, dict) else getattr(q, 'id', None)
             if question_id:
-                _update_review_status_in_db(question_id, not is_correct)
-                if not is_correct:
-                    print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
+                _update_review_status_in_db(question_id, True)
+                print(f"{Fore.MAGENTA}This question has been flagged for review.{Style.RESET_ALL}")
 
         # Always show source URL and explanation if available, for consistency.
         source_url = q.get('citation') or q.get('source')
