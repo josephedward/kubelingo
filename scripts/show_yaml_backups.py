@@ -1,31 +1,49 @@
 #!/usr/bin/env python3
-"""Lists all YAML backup files."""
-
+"""
+Finds and displays YAML backup files from configured directories, sorted by most recent.
+"""
+import datetime
 import sys
 from pathlib import Path
 
-# Add project root to sys.path to allow importing from kubelingo
-project_root = Path(__file__).resolve().parents[1]
+# Ensure the project root is in the Python path
+project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from kubelingo.utils.path_utils import find_yaml_files, get_all_yaml_backup_dirs
+try:
+    from kubelingo.utils.path_utils import find_and_sort_files_by_mtime
+    from kubelingo.utils.config import YAML_BACKUP_DIRS
+except ImportError as e:
+    print(f"Error: A required kubelingo module is not available: {e}. "
+          "Ensure you run this from the project root.", file=sys.stderr)
+    sys.exit(1)
+
 
 def main():
-    """Finds and prints paths of all YAML backup files."""
-    backup_dirs = get_all_yaml_backup_dirs()
+    """Finds and prints YAML backup files."""
+    backup_dirs = YAML_BACKUP_DIRS
     if not backup_dirs:
-        print("No YAML backup directories found.")
-        return
+        print("No YAML backup directories are configured.", file=sys.stderr)
+        sys.exit(1)
 
-    yaml_files = find_yaml_files(backup_dirs)
+    print(f"Searching for YAML backup files in: {', '.join(backup_dirs)}...")
 
-    if not yaml_files:
+    try:
+        backup_files = find_and_sort_files_by_mtime(backup_dirs, [".yaml", ".yml"])
+    except Exception as e:
+        print(f"Error scanning directories: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not backup_files:
         print("No YAML backup files found.")
-        return
+        sys.exit(0)
 
-    print("Found YAML backup files:")
-    for file_path in sorted(yaml_files):
-        print(f"  - {file_path}")
+    print(f"\nFound {len(backup_files)} backup file(s), sorted by most recent:\n")
+    for file_path in backup_files:
+        mod_time = file_path.stat().st_mtime
+        mod_time_str = datetime.datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M:%S')
+        print(f"- {mod_time_str} | {file_path.name} ({file_path.parent})")
+
 
 if __name__ == "__main__":
     main()
