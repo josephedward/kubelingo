@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
 from kubelingo.database import get_db_connection, _row_to_question_dict
+import os
 
 class DBLoader(BaseLoader):
     """Discovers and loads questions directly from the local SQLite database."""
@@ -21,9 +22,11 @@ class DBLoader(BaseLoader):
 
     def load_file(self, source_file: str) -> List[Question]:
         """Load all questions with the given source_file from the database."""
+        # Allow passing full paths: match only on basename stored in DB
+        key = os.path.basename(source_file)
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM questions WHERE source_file = ?", (source_file,))
+        cursor.execute("SELECT * FROM questions WHERE source_file = ?", (key,))
         rows = cursor.fetchall()
         conn.close()
         questions: List[Question] = []
@@ -35,6 +38,12 @@ class DBLoader(BaseLoader):
                 steps.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
             # Determine question type from DB column 'question_type' or fallback to legacy 'type'
             qtype = qd.get('question_type') or qd.get('type') or 'command'
+            # Include subject-matter tag in metadata if present
+            subject = qd.get('subject')
+            meta = qd.get('metadata') or {}
+            if subject is not None:
+                meta = dict(meta)
+                meta['subject'] = subject
             question = Question(
                 id=qd['id'],
                 prompt=qd.get('prompt', ''),
@@ -46,7 +55,7 @@ class DBLoader(BaseLoader):
                 categories=qd.get('categories', []),
                 difficulty=qd.get('difficulty'),
                 review=qd.get('review', False),
-                metadata=qd.get('metadata', {}),
+                metadata=meta,
             )
             questions.append(question)
         return questions
