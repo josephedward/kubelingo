@@ -4,6 +4,7 @@ import yaml
 from typing import Dict, List, Any, Generator
 import os
 import json
+from datetime import datetime
 
 try:
     import openai
@@ -12,8 +13,10 @@ except ImportError:
 
 try:
     from dotenv import load_dotenv
+
+    load_dotenv()
 except ImportError:
-    load_dotenv = None
+    pass
 
 # Configure logging
 logging.basicConfig(
@@ -223,17 +226,15 @@ def _find_yaml_files(search_dir: Path) -> Generator[Path, None, None]:
 
 def bootstrap_quizzes_from_yaml() -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
     """
-    Indexes YAML files from the consolidated backup directory, categorizes them
-    on the fly, and returns a structured dictionary of quizzes.
+    Indexes YAML files, uses AI to categorize if needed, writes a consolidated
+    timestamped YAML file, and returns a structured dictionary of quizzes.
     """
     logging.info("Starting bootstrap process: loading quizzes from YAML...")
     project_root = _get_project_root()
     yaml_dir = project_root / "yaml"
 
     if not yaml_dir.is_dir():
-        logging.warning(
-            f"YAML source directory not found at: {yaml_dir}"
-        )
+        logging.warning(f"YAML source directory not found at: {yaml_dir}")
         logging.warning("No quizzes will be loaded.")
         return {}
 
@@ -244,74 +245,77 @@ def bootstrap_quizzes_from_yaml() -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
         logging.warning(f"No YAML files found in {yaml_dir}.")
         return {}
 
-    logging.info(f"Found {len(yaml_files)} YAML file(s). Processing...")
+    logging.info(f"Found {len(yaml_files)} YAML file(s). Consolidating and processing...")
 
-    quizzes: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
-
+    all_questions = []
     for yaml_file in yaml_files:
-        logging.info(f"Processing file: {yaml_file.name}")
         try:
             with open(yaml_file, "r") as f:
-                # Use safe_load_all for multi-document YAML files
                 documents = yaml.safe_load_all(f)
                 for data in documents:
-                    if not data or "questions" not in data:
-                        logging.warning(
-                            f"Skipping document in {yaml_file.name}: no 'questions' key found or document is empty."
-                        )
-                        continue
-
-                    for question in data["questions"]:
-                        subject_matter = question.get("category")
-                        exercise_type = question.get("type")
-                        exercise_category = (
-                            TYPE_TO_EXERCISE_CATEGORY.get(exercise_type)
-                            if exercise_type
-                            else None
-                        )
-
-                        if not subject_matter or not exercise_category:
-                            logging.info(
-                                f"Missing 'category' or valid 'type' for question ID: {question.get('id', 'N/A')}. Attempting AI inference."
-                            )
-                            inferred_data = _infer_category_and_type_with_ai(question)
-
-                            if inferred_data:
-                                subject_matter = inferred_data.get("subject_matter")
-                                exercise_category = inferred_data.get(
-                                    "exercise_category"
-                                )
-
-                        if not subject_matter or not exercise_category:
-                            logging.warning(
-                                f"Skipping question in {yaml_file.name} (id: {question.get('id', 'N/A')}) "
-                                f"due to missing 'category' or valid 'type' even after AI attempt."
-                            )
-                            continue
-
-                        # Validate that the inferred category is a valid one.
-                        if exercise_category not in ["basic", "command", "manifest"]:
-                            logging.warning(f"AI returned an invalid exercise_category '{exercise_category}' for question {question.get('id', 'N/A')}. Skipping.")
-                            continue
-
-                        if subject_matter not in quizzes:
-                            quizzes[subject_matter] = {
-                                "basic": [],
-                                "command": [],
-                                "manifest": [],
-                            }
-
-                        quizzes[subject_matter][exercise_category].append(question)
-                        logging.info(
-                            f"  - Indexed question for subject '{subject_matter}', category '{exercise_category}'."
-                        )
-
-        except yaml.YAMLError as e:
-            logging.error(f"Error parsing YAML file {yaml_file.name}: {e}")
+                    if data and "questions" in data:
+                        all_questions.extend(data["questions"])
         except Exception as e:
-            logging.error(
-                f"An unexpected error occurred while processing {yaml_file.name}: {e}"
-            )
+            logging.error(f"Error processing file {yaml_file.name}: {e}")
+
+    logging.info(f"Found a total of {len(all_questions)} questions to process.")
+    
+    processed_questions = []
+    EXERCISE_CATEGORY_TO_TYPE = {
+        "basic": "socratic",
+        "command": "command",
+        "manifest": "manifest",
+    }
+    
+    for question in all_questions:
+        q_id = question.get("id", "N/A")
+        subject_matter = question.get("category")
+        exercise_type = question.get("type")
+        exercise_category = TYPE_TO_EXERCISE_CATEGORY.get(exercise_type) if exercise_type else None
+
+        if not subject_matter or not exercise_category:
+            logging.info(f"Missing 'category' or valid 'type' for question ID: {q_id}. Attempting AI inference.")
+            inferred_data = _infer_category_and_type_with_ai(question)
+            if inferred_data:
+                inferred_subject = inferred_data.get("subject_matter")
+                inferred_category = inferred_data.get("exercise_category")
+
+                if inferred_subject and inferred_category in EXERCISE_CATEGORY_TO_TYPE:
+                    question["category"] = inferred_subject
+                    question["type"] = EXERCISE_CATEGORY_TO_TYPE[inferred_category]
+                    logging.info(f"Successfully updated question {q_id} via AI.")
+                else:
+                    logging.warning(f"AI inference for {q_id} produced invalid data. Skipping updates.")
+        
+        # Final check before adding to processed list
+        final_subject = question.get("category")
+        final_type = question.get("type")
+        if final_subject and TYPE_TO_EXERCISE_CATEGORY.get(final_type):
+             processed_questions.append(question)
+        else:
+             logging.warning(f"Skipping question {q_id} due to missing/invalid category or type after processing.")
+
+    if processed_questions:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = yaml_dir / f"categorized_questions_{timestamp}.yaml"
+        logging.info(f"Writing {len(processed_questions)} categorized questions to {output_filename}")
+        try:
+            with open(output_filename, 'w') as f:
+                yaml.dump({'questions': processed_questions}, f, default_flow_style=False, sort_keys=False, indent=2)
+        except Exception as e:
+            logging.error(f"Failed to write categorized questions to file: {e}")
+
+
+    quizzes: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+    for question in processed_questions:
+        subject = question.get("category")
+        ex_type = question.get("type")
+        ex_category = TYPE_TO_EXERCISE_CATEGORY.get(ex_type)
+
+        if subject and ex_category:
+            if subject not in quizzes:
+                quizzes[subject] = {"basic": [], "command": [], "manifest": []}
+            quizzes[subject][ex_category].append(question)
 
     logging.info("Bootstrap process completed.")
     num_subjects = len(quizzes)
