@@ -4,6 +4,7 @@ import pytest
 from pathlib import Path
 import importlib.util
 import sqlite3
+import json
 
 # Directory containing the maintenance scripts (project root)
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -112,6 +113,8 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'DATABASE_FILE', str(db_file))
     # Initialize empty DB
     import kubelingo.database as dbmod
+    # Prevent auto-population from YAML files
+    monkeypatch.setattr(dbmod, 'import_questions_from_yaml_files', lambda *args, **kwargs: None)
     # Create a connection and initialize schema directly to avoid file-based init issues in test
     conn = sqlite3.connect(db_file)
     dbmod.init_db(conn=conn)

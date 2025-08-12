@@ -15,6 +15,7 @@ import re
 import subprocess
 import tempfile
 import shutil
+import logging
 from collections import defaultdict, Counter
 from datetime import datetime
 from pathlib import Path
@@ -30,8 +31,10 @@ try:
     import yaml
     from tqdm import tqdm
     import requests
+    import openai
+    import google.generativeai as genai
 except ImportError as e:
-    print(f"Missing required packages. Please install them: pip install PyYAML tqdm requests. Error: {e}", file=sys.stderr)
+    print(f"Missing required packages. Please install them: pip install PyYAML tqdm requests openai google-generativeai. Error: {e}", file=sys.stderr)
     sys.exit(1)
 
 # AI packages are optional for AI-related subcommands
@@ -1277,6 +1280,206 @@ def handle_add_service_account_questions(args):
         conn.close()
 
 
+# --- from: scripts/ai_categorizer.py ---
+def _aicat_get_system_prompt() -> str:
+    """Builds the system prompt for the AI using definitions from the codebase."""
+    exercise_categories_desc = """
+1.  **Exercise Category**: Choose ONE from the following fixed options: `basic`, `command`, `manifest`.
+    *   `basic`: For open-ended, conceptual questions (Socratic method).
+    *   `command`: For quizzes on specific single-line commands (e.g., `kubectl`, `vim`).
+    *   `manifest`: For exercises involving authoring or editing Kubernetes YAML files."""
+
+    subject_matter_list = "\n".join([f"    *   {s.value}" for s in QuestionSubject])
+    subject_matter_desc = f"""
+2.  **Subject Matter**: This is a more specific topic. Choose the most appropriate one from this list, or suggest a new, concise one if none fit well.
+{subject_matter_list}
+"""
+
+    return f"""You are an expert in Kubernetes and your task is to categorize questions for the Kubelingo learning platform.
+You must classify each question into two dimensions: Exercise Category and Subject Matter.
+{exercise_categories_desc}
+{subject_matter_desc}
+Return your answer as a JSON object with two keys: "exercise_category" and "subject_matter".
+The value for "exercise_category" MUST be one of `basic`, `command`, or `manifest`.
+
+For example:
+{{"exercise_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"}}
+"""
+
+
+def _aicat_get_openai_client():
+    """Initializes and returns the OpenAI client."""
+    if not openai:
+        raise ImportError("The 'openai' package is required for the OpenAI provider. Please run 'pip install openai'.")
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable not set. It's required for the OpenAI provider.")
+    return openai.OpenAI(api_key=api_key)
+
+
+def _aicat_get_gemini_client():
+    """Initializes and returns the Gemini client."""
+    if not genai:
+        raise ImportError("The 'google-generativeai' package is required for the Gemini provider. Please run 'pip install google-generativeai'.")
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set. It's required for the Gemini provider.")
+    genai.configure(api_key=api_key)
+    return genai
+
+
+def _aicat_infer_with_openai(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """Uses OpenAI to infer categories."""
+    try:
+        client = _aicat_get_openai_client()
+    except (ImportError, ValueError) as e:
+        logging.error(f"OpenAI client setup failed: {e}")
+        return None
+
+    user_message = f"Question Prompt:\n---\n{prompt}\n---"
+    if response:
+        user_message += f"\n\nExample Answer/Solution:\n---\n{response}\n---"
+
+    try:
+        logging.debug("Sending request to OpenAI for categorization...")
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",  # Model that supports JSON mode
+            messages=[
+                {"role": "system", "content": _aicat_get_system_prompt()},
+                {"role": "user", "content": user_message}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0,
+        )
+        result_str = completion.choices[0].message.content
+        result = json.loads(result_str)
+        logging.debug(f"OpenAI response received: {result_str}")
+
+        if 'exercise_category' in result and 'subject_matter' in result:
+            return {
+                'exercise_category': result['exercise_category'],
+                'subject_matter': result['subject_matter']
+            }
+        else:
+            logging.warning(f"OpenAI response did not contain expected keys: {result_str}")
+            return None
+    except Exception as e:
+        logging.error(f"Error during OpenAI categorization request: {e}", exc_info=True)
+        return None
+
+
+def _aicat_infer_with_gemini(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """Uses Gemini to infer categories."""
+    try:
+        client = _aicat_get_gemini_client()
+    except (ImportError, ValueError) as e:
+        logging.error(f"Gemini client setup failed: {e}")
+        return None
+
+    system_prompt = _aicat_get_system_prompt()
+    user_message = f"Question Prompt:\n---\n{prompt}\n---"
+    if response:
+        user_message += f"\n\nExample Answer/Solution:\n---\n{response}\n---"
+
+    try:
+        logging.debug("Sending request to Gemini for categorization...")
+        model = client.GenerativeModel(
+            'gemini-1.5-flash',
+            system_instruction=system_prompt
+        )
+        
+        config = client.types.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.0
+        )
+        
+        gemini_response = model.generate_content(
+            user_message,
+            generation_config=config,
+        )
+        result_str = gemini_response.text
+        result = json.loads(result_str)
+        logging.debug(f"Gemini response received: {result_str}")
+
+        if 'exercise_category' in result and 'subject_matter' in result:
+            return {
+                'exercise_category': result['exercise_category'],
+                'subject_matter': result['subject_matter']
+            }
+        else:
+            logging.warning(f"Gemini response did not contain expected keys: {result_str}")
+            return None
+    except Exception as e:
+        logging.error(f"Error during Gemini categorization request: {e}", exc_info=True)
+        return None
+
+
+def _aicat_infer_categories_from_text(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """
+    Uses an AI model to infer the exercise category and subject matter for a given question.
+    """
+    provider = os.environ.get("AI_PROVIDER", "openai").lower()
+
+    if provider == "gemini":
+        logging.info("Using Gemini provider for AI categorization.")
+        return _aicat_infer_with_gemini(prompt, response)
+    elif provider == "openai":
+        logging.info("Using OpenAI provider for AI categorization.")
+        return _aicat_infer_with_openai(prompt, response)
+    else:
+        logging.error(f"Invalid AI_PROVIDER: '{provider}'. Must be 'openai' or 'gemini'.")
+        return None
+
+
+def handle_categorize_text(args):
+    """Handler for the categorize-text subcommand."""
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    categories = _aicat_infer_categories_from_text(args.prompt, args.response)
+    if categories:
+        print(json.dumps(categories, indent=2))
+    else:
+        print("Failed to categorize text.", file=sys.stderr)
+        sys.exit(1)
+
+
+# --- from: scripts/suggest_citations.py ---
+URL_MAP = {
+    'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
+    'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
+    'kubectl describe sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe',
+}
+
+def suggest_citation(answer_cmd):
+    """Return the first matching URL for the given command answer."""
+    for prefix, url in URL_MAP.items():
+        if answer_cmd.startswith(prefix):
+            return url
+    return None
+
+def handle_suggest_citations(args):
+    """Suggest documentation citations for command-quiz questions."""
+    loader = JSONLoader()
+    paths = loader.discover()
+    if not paths:
+        print("No JSON question files found to analyze.")
+        return
+    for path in paths:
+        try:
+            items = json.load(open(path, encoding='utf-8'))
+        except Exception as e:
+            print(f"Failed to load {path}: {e}")
+            continue
+        print(f"\nFile: {path}")
+        for idx, item in enumerate(items):
+            answer = item.get('response') or ''
+            qtext = item.get('prompt') or item.get('question') or ''
+            citation = suggest_citation(answer)
+            if citation:
+                print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
+            else:
+                print(f" {idx+1}. {qtext}\n     -> No citation found.")
+
+
 # --- from: scripts/add_ui_config_questions.py ---
 def handle_add_ui_config(args):
     """Add UI configuration questions into the database."""
@@ -1940,6 +2143,12 @@ def main():
     parser_categorize = subparsers.add_parser('categorize', help='Identify and assign subjects to questions.', description="Identify questions with missing or invalid subjects and optionally assign one.")
     parser_categorize.add_argument('--assign', nargs=2, metavar=('ROWID', 'SUBJECT'), help='Assign SUBJECT to the question with the given ROWID.')
     parser_categorize.set_defaults(func=handle_categorize)
+
+    # Sub-parser for 'categorize-text'
+    parser_categorize_text = subparsers.add_parser('categorize-text', help='Categorize text using an AI model.')
+    parser_categorize_text.add_argument('--prompt', required=True, help='The question prompt to categorize.')
+    parser_categorize_text.add_argument('--response', help='The optional example answer for context.')
+    parser_categorize_text.set_defaults(func=handle_categorize_text)
 
     # Sub-parser for 'consolidate-unique-yaml'
     parser_consolidate = subparsers.add_parser('consolidate-unique-yaml', help='Consolidate unique questions from all YAML files into a single backup file.', description="Finds all YAML quiz files, extracts unique questions based on their 'prompt', and consolidates them into a single YAML file.")
