@@ -22,7 +22,7 @@ def bootstrap_on_startup():
     project_root = get_project_root()
     
     search_paths = [
-        project_root / 'yaml' / 'consolidated_backup',
+        project_root / 'yaml',
         project_root / 'backups' / 'yaml',
     ]
     
