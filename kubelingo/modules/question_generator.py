@@ -15,6 +15,7 @@ from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
 from kubelingo.utils.config import YAML_QUIZ_DIR
+from kubelingo.integrations.llm import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -148,27 +149,18 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
-                import openai
-                resp = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{"role": "system", "content": ai_prompt}],
+                client = get_llm_client("gemini")
+                # Gemini works best with a 'user' role for direct prompts.
+                messages = [{"role": "user", "content": ai_prompt}]
+                raw = client.chat_completion(
+                    messages=messages,
                     temperature=0.7,
+                    json_mode=True
                 )
-                raw = resp.choices[0].message.content
             except Exception as e:
-                logger.debug("OpenAI client failed: %s", e)
-            # Fallback to llm package
-            if raw is None:
-                try:
-                    import llm as _llm_module
-                    llm_model = _llm_module.get_model()
-                    llm_resp = llm_model.prompt(ai_prompt)
-                    raw = llm_resp.text() if callable(getattr(llm_resp, "text", None)) else getattr(llm_resp, "text", str(llm_resp))
-                except Exception as e:
-                    logger.error("LLM fallback failed: %s", e)
-                    break
+                logger.error(f"Gemini client failed: {e}")
+                break
 
             if not raw:
                 logger.warning("LLM client returned no content.")
