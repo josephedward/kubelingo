@@ -30,7 +30,7 @@ class KubernetesStudyMode:
         while True:
             try:
                 choice = questionary.select(
-                    "Main Menu",
+                    "Kubernetes Main Menu",
                     choices=[
                         "Start Study Session",
                         "Review Past Questions",
@@ -39,6 +39,10 @@ class KubernetesStudyMode:
                     ],
                     use_indicator=True,
                 ).ask()
+
+                if choice is None or choice == "Exit":
+                    print("Exiting application. Goodbye!")
+                    break
 
                 if choice == "Start Study Session":
                     level = questionary.select(
@@ -53,9 +57,6 @@ class KubernetesStudyMode:
                     self.review_past_questions()
                 elif choice == "Settings":
                     self.settings_menu()
-                elif choice == "Exit":
-                    print("Exiting application. Goodbye!")
-                    break
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting application. Goodbye!")
                 break
@@ -83,7 +84,7 @@ class KubernetesStudyMode:
                     use_indicator=True,
                 ).ask()
                 if not quiz_style:
-                    continue
+                    break
 
                 if quiz_style == "Open-Ended Socratic Dialogue":
                     self._run_socratic_mode(topic, user_level)
