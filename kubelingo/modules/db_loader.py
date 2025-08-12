@@ -75,6 +75,10 @@ class DBLoader(BaseLoader):
                         if 'validator' in q_data and not isinstance(q_data.get('validator'), (dict, type(None))):
                             q_data['validator'] = None
 
+                        # Aggressively sanitize 'response' if it is a list, as it might be causing issues.
+                        if 'response' in q_data and isinstance(q_data.get('response'), list):
+                            q_data['response'] = json.dumps(q_data['response'])
+
                         # The database 'review' status is authoritative.
                         q_data['review'] = qd.get('review', False)
 
@@ -100,10 +104,20 @@ class DBLoader(BaseLoader):
             metadata = qd.get('metadata')
             if not isinstance(metadata, dict):
                 metadata = {}
-            
+
             initial_files = qd.get('initial_files', {})
             if not isinstance(initial_files, dict):
                 initial_files = {}
+
+            # Sanitize response
+            response_data = qd.get('response')
+            if isinstance(response_data, list):
+                response_data = json.dumps(response_data)
+
+            # Sanitize categories
+            categories_data = qd.get('categories', [])
+            if not isinstance(categories_data, list):
+                categories_data = []
 
             # Manually construct Question from available DB columns.
             validator_data = qd.get('validator')
@@ -116,14 +130,15 @@ class DBLoader(BaseLoader):
                 type=qd.get('type', 'command'),
                 validation_steps=steps,
                 review=qd.get('review', False),
-                categories=qd.get('categories', []),
+                categories=categories_data,
                 difficulty=qd.get('difficulty'),
                 explanation=qd.get('explanation'),
                 initial_files=initial_files,
                 pre_shell_cmds=qd.get('pre_shell_cmds', []),
                 metadata=metadata,
                 subject_matter=qd.get('subject'),
-                validator=validator_data
+                validator=validator_data,
+                response=response_data
             )
             questions.append(question)
         return questions
