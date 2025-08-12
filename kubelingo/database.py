@@ -48,9 +48,26 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
             # behavior of dropping the table, which is better than nothing.
             pass
 
-    # First-run seeding: if the default user database does not exist, create it from
-    # the master backup. This should not run for custom db_paths.
-    if db_path is None and not os.path.exists(db_to_use):
+    # Self-healing for default DB: if it doesn't exist, is empty, or corrupt,
+    # restore it from the master backup. This does not run for custom db_paths.
+    needs_restore = False
+    if db_path is None:  # Only for the default database
+        if not os.path.exists(db_to_use) or os.path.getsize(db_to_use) == 0:
+            needs_restore = True
+        else:
+            try:
+                # Check if the DB is usable and has questions. Connect read-only.
+                conn_check = sqlite3.connect(f"file:{db_to_use}?mode=ro", uri=True)
+                cursor_check = conn_check.cursor()
+                cursor_check.execute("SELECT 1 FROM questions LIMIT 1")
+                if cursor_check.fetchone() is None:
+                    needs_restore = True  # Table is empty, restore.
+                conn_check.close()
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                # This can happen if table 'questions' doesn't exist or DB is corrupt.
+                needs_restore = True
+
+    if needs_restore:
         from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
         master_found = os.path.exists(MASTER_DATABASE_FILE) and os.path.getsize(MASTER_DATABASE_FILE) > 0
         secondary_found = os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0
@@ -63,13 +80,17 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
 
         if backup_to_use:
             try:
+                # Ensure we can write to the destination by removing the old file first.
+                if os.path.exists(db_to_use):
+                    os.remove(db_to_use)
+
                 db_dir = os.path.dirname(db_to_use)
                 if db_dir:
                     os.makedirs(db_dir, exist_ok=True)
                 shutil.copy2(backup_to_use, db_to_use)
             except Exception:
-                # If seeding fails, continue to create an empty DB.
-                # The user can try to restore manually later.
+                # If seeding fails, continue and let the app create an empty DB.
+                # The user can try to restore manually later if needed.
                 pass
 
     conn = get_db_connection(db_path=db_to_use)
