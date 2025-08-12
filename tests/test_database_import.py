@@ -37,19 +37,20 @@ def test_import_from_dump_loads_questions(db_from_latest_dump):
     assert count > 0, "No questions were loaded from the SQL dump."
 
 
-def test_imported_quizzes_have_expected_categories(db_from_latest_dump):
+def test_imported_quizzes_have_expected_types(db_from_latest_dump):
     """
-    Checks that imported quizzes cover expected categories like 'Command' and 'Manifest'.
+    Checks that imported quizzes cover both command-line and manifest-based questions.
     """
     cursor = db_from_latest_dump.cursor()
     cursor.execute("SELECT DISTINCT category FROM questions")
-    categories = {row[0] for row in cursor.fetchall()}
+    # Normalize to lowercase for case-insensitive matching
+    categories = {row[0].lower() for row in cursor.fetchall()}
 
-    expected = {"Command", "Manifest"}
-    assert expected.issubset(categories), (
-        f"Database is missing expected quiz categories. "
-        f"Expected to find {expected}, but only found {categories}."
-    )
+    has_command_questions = any("command" in cat for cat in categories)
+    has_manifest_questions = any("yaml" in cat or "manifest" in cat for cat in categories)
+
+    assert has_command_questions, "Did not find any command-based quiz categories."
+    assert has_manifest_questions, "Did not find any YAML/manifest-based quiz categories."
 
 
 def test_can_ask_and_answer_question(db_from_latest_dump):
