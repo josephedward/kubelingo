@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import questionary
 import yaml
 
-from kubelingo.database import add_question, get_db_connection
+from kubelingo.database import add_question, get_db_connection  # Fixed import
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
@@ -30,17 +30,17 @@ class KubernetesStudyMode:
         while True:
             try:
                 choice = questionary.select(
-                    "Kubernetes Main Menu",
+                    "Main Menu",
                     choices=[
-                        "Study Mode",
-                        "Review Questions",
+                        "Start Study Session",
+                        "Review Past Questions",
                         "Settings",
                         "Exit",
                     ],
                     use_indicator=True,
                 ).ask()
 
-                if choice == "Study Mode":
+                if choice == "Start Study Session":
                     level = questionary.select(
                         "What is your current overall skill level?",
                         choices=["beginner", "intermediate", "advanced"],
@@ -49,7 +49,7 @@ class KubernetesStudyMode:
                     if not level:
                         continue
                     self.start_study_session(user_level=level)
-                elif choice == "Review Questions":
+                elif choice == "Review Past Questions":
                     self.review_past_questions()
                 elif choice == "Settings":
                     self.settings_menu()
@@ -97,6 +97,16 @@ class KubernetesStudyMode:
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting study mode.")
                 break
+
+    def review_past_questions(self):
+        """Displays past questions for review."""
+        print("\nReviewing past questions is not yet implemented.")
+        # Placeholder for future implementation
+
+    def settings_menu(self):
+        """Displays the settings menu."""
+        print("\nSettings menu is not yet implemented.")
+        # Placeholder for future implementation
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
@@ -257,7 +267,6 @@ class KubernetesStudyMode:
         except Exception as e:
             print(f"Error generating question: {e}")
         return None
-
 
     def _start_socratic_session(
         self, topic: str, user_level: str = "intermediate"
