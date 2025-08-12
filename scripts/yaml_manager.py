@@ -1446,6 +1446,124 @@ def do_verify(args):
             print(f"Temporary database {db_path} cleaned up.")
 
 
+def do_organize_generated(args):
+    """Consolidate, import, and clean up AI-generated YAML questions."""
+    source_dir = Path(args.source_dir)
+    output_file = Path(args.output_file)
+
+    if not source_dir.is_dir():
+        print(f"Error: Source directory not found at '{source_dir}'", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"--- Organizing generated questions from: {source_dir} ---")
+
+    # 1. Deduplicate and consolidate
+    print(f"Step 1: Consolidating unique questions into {output_file}...")
+
+    loader = YAMLLoader()
+    yaml_files = list(source_dir.rglob("*.yaml")) + list(source_dir.rglob("*.yml"))
+
+    if not yaml_files:
+        print("No YAML files found to organize.")
+        return
+
+    unique_questions: Dict[str, Question] = {}
+    total_questions = 0
+    duplicates_found = 0
+    for file_path in yaml_files:
+        try:
+            questions = loader.load_file(str(file_path))
+            total_questions += len(questions)
+            for q in questions:
+                key = _question_to_key(q)
+                if key not in unique_questions:
+                    unique_questions[key] = q
+                else:
+                    duplicates_found += 1
+        except Exception as e:
+            print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+            continue
+
+    print(f"Scan complete. Found {total_questions} total questions, {duplicates_found} duplicates. Consolidating {len(unique_questions)} unique questions.")
+
+    if not unique_questions:
+        print("No valid questions found to process.")
+        return
+
+    if args.dry_run:
+        print(f"[DRY RUN] Would write {len(unique_questions)} unique questions to '{output_file}'.")
+    else:
+        questions_for_yaml = [asdict(q) for q in unique_questions.values()]
+        # clean up None values for cleaner YAML
+        cleaned_questions_for_yaml = []
+        for q_dict in questions_for_yaml:
+            cleaned_questions_for_yaml.append({k: v for k, v in q_dict.items() if v is not None})
+        
+        output_data = {"questions": cleaned_questions_for_yaml}
+        try:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, 'w', encoding='utf-8') as f:
+                yaml.dump(output_data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            print(f"Successfully wrote {len(unique_questions)} unique questions to '{output_file}'.")
+        except IOError as e:
+            print(f"Error writing to output file '{output_file}': {e}", file=sys.stderr)
+            sys.exit(1)
+
+    # 2. Update database
+    print("\nStep 2: Updating database...")
+    db_path = args.db_path or get_live_db_path()
+    
+    if not Path(db_path).exists() and not args.dry_run:
+        print(f"Warning: Database not found at {db_path}. Skipping database operations.")
+    else:
+        conn = get_db_connection(db_path=db_path)
+        try:
+            # Delete old questions
+            source_dir_pattern = str(source_dir.relative_to(project_root)) + '/%'
+            print(f"Deleting questions from DB where source_file LIKE '{source_dir_pattern}'...")
+            
+            cursor = conn.cursor()
+            if args.dry_run:
+                if Path(db_path).exists():
+                    cursor.execute("SELECT COUNT(*) FROM questions WHERE source_file LIKE ?", (source_dir_pattern,))
+                    count = cursor.fetchone()[0]
+                    print(f"[DRY RUN] Would delete {count} questions from the database.")
+                else:
+                    print(f"[DRY RUN] Database does not exist, would skip deletion.")
+
+            else:
+                cursor.execute("DELETE FROM questions WHERE source_file LIKE ?", (source_dir_pattern,))
+                print(f"Deleted {cursor.rowcount} questions.")
+                conn.commit()
+
+            # Import new consolidated questions
+            print(f"Importing questions from '{output_file}'...")
+            if args.dry_run:
+                print(f"[DRY RUN] Would import {len(unique_questions)} questions into the database.")
+            else:
+                _restore_yaml_to_db_func([output_file], clear_db=False, db_path=db_path)
+
+        finally:
+            if conn: conn.close()
+
+    # 3. Clean up original files
+    if not args.no_cleanup:
+        print(f"\nStep 3: Cleaning up original files in {source_dir}...")
+        if args.dry_run:
+            print(f"[DRY RUN] Would delete {len(yaml_files)} original YAML files.")
+        else:
+            deleted_count = 0
+            for file_path in yaml_files:
+                try:
+                    file_path.unlink()
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"Error deleting file {file_path}: {e}", file=sys.stderr)
+            print(f"Deleted {deleted_count} original YAML files.")
+
+    print("\nOrganization complete.")
+
+
 def main():
     """Main CLI entrypoint."""
     parser = argparse.ArgumentParser(
@@ -1553,6 +1671,15 @@ def main():
     p_verify = subparsers.add_parser('verify', help="Verify YAML question import and loading.")
     p_verify.add_argument("paths", nargs='+', help="Path(s) to YAML file(s) or directories to verify.")
     p_verify.set_defaults(func=do_verify)
+
+    # organize-generated
+    p_organize = subparsers.add_parser('organize-generated', help="Consolidate, import, and clean up AI-generated YAML questions.")
+    p_organize.add_argument('--source-dir', default='questions/generated_yaml', help="Directory with generated YAML files.")
+    p_organize.add_argument('--output-file', default='questions/ai_generated_consolidated.yaml', help="Consolidated output YAML file.")
+    p_organize.add_argument('--db-path', default=None, help="Path to the SQLite database file.")
+    p_organize.add_argument('--no-cleanup', action='store_true', help="Do not delete original individual YAML files after consolidation.")
+    p_organize.add_argument('--dry-run', action='store_true', help="Show what would be done without making changes.")
+    p_organize.set_defaults(func=do_organize_generated)
 
     args = parser.parse_args()
     args.func(args)
