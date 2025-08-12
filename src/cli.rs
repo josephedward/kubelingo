@@ -22,6 +22,8 @@ pub enum Commands {
         #[arg(long)]
         custom_file: Option<String>,
     },
+    /// Settings menu to manage API keys and other configurations
+    Settings,
 }
 
 /// Run a PTY-based shell, with optional transcripting via the `script` utility.
