@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 import questionary
 import yaml
 
-from kubelingo.database import add_question, get_db_connection  # Fixed import
+from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
@@ -27,6 +27,42 @@ class KubernetesStudyMode:
         self.db_conn = get_db_connection()
         self.questions_dir = get_project_root() / "questions" / "ai_generated"
         os.makedirs(self.questions_dir, exist_ok=True)
+
+    def main_menu(self):
+        """Displays the main menu and handles user selection."""
+        while True:
+            try:
+                choice = questionary.select(
+                    "Kubernetes Main Menu",
+                    choices=[
+                        "Study Mode",
+                        "Review Questions",
+                        "Settings",
+                        "Exit",
+                    ],
+                    use_indicator=True,
+                ).ask()
+
+                if choice is None or choice == "Exit":
+                    print("Exiting application. Goodbye!")
+                    break
+
+                if choice == "Study Mode":
+                    level = questionary.select(
+                        "What is your current overall skill level?",
+                        choices=["beginner", "intermediate", "advanced"],
+                        default="intermediate",
+                    ).ask()
+                    if not level:
+                        continue
+                    self.start_study_session(user_level=level)
+                elif choice == "Review Past Questions":
+                    self.review_past_questions()
+                elif choice == "Settings":
+                    self.settings_menu()
+            except (KeyboardInterrupt, TypeError):
+                print("\nExiting application. Goodbye!")
+                break
 
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a topic and quiz style, then starts the session."""
@@ -101,10 +137,11 @@ class KubernetesStudyMode:
         """Runs a quiz focused on basic terminology."""
         print("\nStarting basic term/definition recall session...")
         print("Type 'exit' or 'quit' to end the session.")
+        used_terms = set()
         while True:
             try:
                 pair = self.generate_term_definition_pair(
-                    topic, user_level
+                    topic, user_level, exclude_terms=used_terms
                 )
                 if not pair:
                     print("Failed to generate a term/definition pair. Please try again.")
@@ -124,6 +161,8 @@ class KubernetesStudyMode:
                     print("\nCorrect!")
                 else:
                     print(f"\nNot quite. The correct term is: {term}")
+
+                used_terms.add(term)
 
                 if not questionary.confirm("Next question?").ask():
                     break
@@ -217,13 +256,15 @@ class KubernetesStudyMode:
         self,
         topic: str,
         user_level: str = "intermediate",
+        exclude_terms: Optional[set] = None,
     ) -> Optional[Dict[str, str]]:
-        """Generates a term and definition pair for the given topic."""
+        """Generates a term and definition pair for the given topic, avoiding duplicates."""
         try:
             questions = self.question_generator.generate_questions(
                 subject=topic,
                 num_questions=1,
                 category="Basic",
+                exclude_terms=list(exclude_terms) if exclude_terms else None,
             )
             if questions and questions[0] and questions[0].answers:
                 question = questions[0]
