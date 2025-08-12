@@ -238,63 +238,34 @@ def add_question(
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
-    """Converts a database row into a question dictionary, deserializing JSON fields."""
-    q_dict = dict(row)
-    # Deserialize validation_steps JSON into list (leave as None if not set)
-    vs_raw = q_dict.get('validation_steps')
-    if vs_raw is not None:
-        try:
-            q_dict['validation_steps'] = json.loads(vs_raw)
-        except (json.JSONDecodeError, TypeError):
-            q_dict['validation_steps'] = []
-    if q_dict.get('validator'):
-        try:
-            q_dict['validator'] = json.loads(q_dict['validator'])
-        except (json.JSONDecodeError, TypeError):
-            q_dict['validator'] = {}
-    # Ensure review is a boolean
+    """Converts a database row into a question dictionary, deserializing the 'raw' JSON field."""
+    # Start with the full object from the 'raw' JSON blob.
+    try:
+        q_dict = json.loads(row['raw'])
+    except (json.JSONDecodeError, TypeError, KeyError):
+        # If 'raw' is invalid or missing, we can't reconstruct the full object.
+        # Create a minimal dictionary from the row's columns to aid debugging.
+        q_dict = {key: row[key] for key in row.keys()}
+
+    # Overwrite with values from the flat columns, as they are the source of truth
+    # for indexed or frequently updated data.
+    for key in row.keys():
+        if key != 'raw':  # Don't copy the JSON string itself.
+            q_dict[key] = row[key]
+
+    # Map DB-specific column names to the canonical Question object fields.
+    if 'category_id' in q_dict:
+        q_dict['category'] = q_dict.pop('category_id')
+    if 'subject_id' in q_dict:
+        q_dict['subject_matter'] = q_dict.pop('subject_id')
+
+    # Ensure 'review' is a boolean.
     q_dict['review'] = bool(q_dict.get('review'))
-    # Deserialize pre_shell_cmds JSON into Python list
-    pre_cmds = q_dict.get('pre_shell_cmds')
-    if pre_cmds:
-        try:
-            q_dict['pre_shell_cmds'] = json.loads(pre_cmds)
-        except (json.JSONDecodeError, TypeError):
-            q_dict['pre_shell_cmds'] = []
-    else:
-        q_dict['pre_shell_cmds'] = []
-    # Deserialize initial_files JSON into Python dict
-    init_files = q_dict.get('initial_files')
-    if init_files:
-        try:
-            q_dict['initial_files'] = json.loads(init_files)
-        except (json.JSONDecodeError, TypeError):
-            q_dict['initial_files'] = {}
-    else:
-        q_dict['initial_files'] = {}
-    # Deserialize answers JSON into Python list
-    answers_data = q_dict.get('answers')
-    if answers_data:
-        try:
-            q_dict['answers'] = json.loads(answers_data)
-        except (json.JSONDecodeError, TypeError):
-            q_dict['answers'] = []
-    else:
-        q_dict['answers'] = []
-    # Deserialize metadata JSON into Python dict
-    metadata_data = q_dict.get('metadata')
-    if metadata_data:
-        try:
-            q_dict['metadata'] = json.loads(metadata_data)
-        except (json.JSONDecodeError, TypeError):
-            q_dict['metadata'] = {}
-    else:
-        q_dict['metadata'] = {}
-    # Extract correct_yaml column
-    q_dict['correct_yaml'] = q_dict.get('correct_yaml')
-    # Map question_type column to 'type' key for compatibility
-    q_dict['type'] = q_dict.get('question_type') or q_dict.get('type')
-    q_dict.pop('question_type', None)
+
+    # For compatibility, map 'question_type' to 'type'.
+    if 'question_type' in q_dict:
+        q_dict['type'] = q_dict.pop('question_type')
+
     return q_dict
 
 
