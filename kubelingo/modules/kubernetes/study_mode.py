@@ -103,8 +103,8 @@ class KubernetesStudyMode:
 
         if self.backend == "openai":
             # Ensure conversation_history is passed correctly
-            if not all(isinstance(msg, dict) for msg in self.conversation_history):
-                raise ValueError("Conversation history must be a list of dictionaries.")
+            if not all(isinstance(msg, dict) and "role" in msg and "content" in msg for msg in self.conversation_history):
+                raise ValueError("Conversation history must be a list of dictionaries with 'role' and 'content' keys.")
             
             response = self.api.ChatCompletion.create(
                 model="gpt-4",
