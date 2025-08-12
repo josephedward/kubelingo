@@ -15,11 +15,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
-def run_script(script_name):
+def run_script(script_name, *args):
     path = Path(__file__).resolve().parents[1] / 'scripts' / script_name
     if path.exists():
-        print(f"Running {script_name}...")
-        subprocess.run([sys.executable, str(path)], check=False)
+        print(f"Running {script_name} {' '.join(args)}...")
+        command = [sys.executable, str(path)] + list(args)
+        subprocess.run(command, check=False)
     else:
         print(f"Script not found: {script_name}")
 
@@ -28,7 +29,7 @@ def main():
     qd = repo_root / 'question-data'
 
     # 1. JSON → YAML
-    run_script('convert_json_to_yaml.py')
+    run_script('generator.py', 'manifests')
     # 2. Manifest consolidation
     run_script('consolidate_manifests.py')
     # 3. Merge solutions

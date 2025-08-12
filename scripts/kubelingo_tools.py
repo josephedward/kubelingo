@@ -282,18 +282,15 @@ def manage_organize(args):
 
 def generate_operations(args):
     """Generate the Kubectl operations quiz manifest (delegates to existing script)."""
-    script = scripts_dir / 'generate_kubectl_operations_quiz.py'
-    subprocess.run([sys.executable, str(script)], check=True)
+    _run_script('generator.py', 'kubectl-operations')
 
 def generate_reference(args):
     """Generate the Resource Reference quiz manifest (delegates to existing script)."""
-    script = scripts_dir / 'generate_resource_reference_quiz.py'
-    subprocess.run([sys.executable, str(script)], check=True)
+    _run_script('generator.py', 'resource-reference')
 
 def generate_manifests(args):
     """Generate quiz manifests and solutions from JSON quiz data (delegates to existing script)."""
-    script = scripts_dir / 'generate_manifests.py'
-    subprocess.run([sys.executable, str(script)], check=True)
+    _run_script('generator.py', 'manifests')
 
 def ckad_export(args):
     """Export CKAD spec CSV to JSON and YAML (delegates to existing script)."""
@@ -336,9 +333,9 @@ def main():
     # generate
     gen_parser = subparsers.add_parser('generate', help='Generate quiz manifests')
     gen_sub = gen_parser.add_subparsers(dest='subcommand', required=True)
-    gen_ops = gen_sub.add_parser('operations', help='Generate Kubectl operations quiz')
+    gen_ops = gen_sub.add_parser('kubectl-operations', help='Generate Kubectl operations quiz')
     gen_ops.set_defaults(func=generate_operations)
-    gen_ref = gen_sub.add_parser('reference', help='Generate Resource Reference quiz')
+    gen_ref = gen_sub.add_parser('resource-reference', help='Generate Resource Reference quiz')
     gen_ref.set_defaults(func=generate_reference)
     gen_man = gen_sub.add_parser('manifests', help='Generate manifests and solutions from JSON quiz data')
     gen_man.set_defaults(func=generate_manifests)
