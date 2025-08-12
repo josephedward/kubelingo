@@ -75,7 +75,7 @@ class TestBuildQuestionDbIntegration(unittest.TestCase):
 
         conn = sqlite3.connect(self.live_db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT prompt, answer, category, schema_category FROM questions WHERE id = 'k8s-pod-101'")
+        cursor.execute("SELECT prompt, response, category, schema_category FROM questions WHERE id = 'k8s-pod-101'")
         question_data = cursor.fetchone()
         conn.close()
 

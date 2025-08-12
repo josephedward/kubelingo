@@ -62,6 +62,10 @@ def import_questions(files: List[Path], conn: sqlite3.Connection):
                 else:
                     q_dict['question_type'] = q_type
 
+                # The 'answer' field from YAML needs to be mapped to 'response' for the DB
+                if 'answer' in q_dict:
+                    q_dict['response'] = q_dict.pop('answer')
+
                 q_dict['source_file'] = file_path.name
                 # Preserve any `links` entries in metadata
                 links = q_dict.pop('links', None)
