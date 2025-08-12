@@ -22,7 +22,11 @@ KUBERNETES_TOPICS = [
     "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)",
     "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
     "Namespaces & contexts (scoping resources, default namespace, context switching)",
-    "API discovery & docs (kubectl explain, api-resources, api-versions)"
+    "API discovery & docs (kubectl explain, api-resources, api-versions)",
+    "Vim for YAML editing (modes, navigation, editing commands)",
+    "Helm for Package Management (charts, releases, repositories)",
+    "Advanced Kubectl Usage (jsonpath, patch, custom columns)",
+    "Kubernetes API Resources (exploring objects with explain and api-resources)"
 ]
 
 

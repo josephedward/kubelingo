@@ -1,5 +1,11 @@
 import os
 import logging
+
+try:
+    import questionary
+except ImportError:
+    questionary = None
+
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode, KUBERNETES_TOPICS
 from kubelingo.modules.base.session import StudySession
 
@@ -23,48 +29,57 @@ class NewSession(StudySession):
             print("You can generate an API key in your Gemini account settings under 'API Keys'.")
             return
 
+        if questionary is None:
+            print("\nThis feature requires the 'questionary' library for an interactive experience.")
+            print("Please install it by running: pip install questionary")
+            return
+
         try:
-            print("\nAvailable Kubernetes topics:")
-            topic_choices = list(KUBERNETES_TOPICS)
-            for i, topic_item in enumerate(topic_choices, 1):
-                print(f"  {i}. {topic_item}")
-            print()
-
-            if not topic_choices:
-                print("No study topics available for Study Mode.")
+            topic = questionary.select(
+                "Select a topic to study:",
+                choices=KUBERNETES_TOPICS,
+                use_indicator=True
+            ).ask()
+            if not topic:
                 return
 
-            try:
-                choice = input(f"Select a topic to study (1-{len(topic_choices)}): ")
-                topic_index = int(choice) - 1
-                if not (0 <= topic_index < len(topic_choices)):
-                    print("Invalid topic selected.")
+            style = questionary.select(
+                "Select a quiz style:",
+                choices=[
+                    "Open-ended Socratic dialogue",
+                    "Basic term/definition recall",
+                    "Kubectl command syntax",
+                    "YAML manifest authoring",
+                ],
+                use_indicator=True,
+            ).ask()
+            if not style:
+                return
+
+            if style == "Open-ended Socratic dialogue":
+                level = questionary.select(
+                    "What is your current skill level on this topic?",
+                    choices=["beginner", "intermediate", "advanced"],
+                    default="intermediate",
+                ).ask()
+                if not level:
                     return
-                topic = topic_choices[topic_index]
-            except (ValueError, IndexError):
-                print("Invalid selection. Please enter a number from the list.")
-                return
 
-            level = input("What is your current skill level on this topic? (beginner/intermediate/advanced): ").strip().lower()
-            if level not in ["beginner", "intermediate", "advanced"]:
-                level = "intermediate"
+                study_session = KubernetesStudyMode()
+                response = study_session.start_study_session(topic, level)
+                if response is None:
+                    print("\nTutor: I'm sorry, I'm having trouble connecting to my knowledge base.")
+                    print("This might be due to an invalid API key or a network problem.")
+                    print("Please ensure your GEMINI_API_KEY is set correctly and try again.")
+                    return
 
-            study_session = KubernetesStudyMode()
-            response = study_session.start_study_session(topic, level)
-            if response is None:
-                print("\nTutor: I'm sorry, I'm having trouble connecting to my knowledge base.")
-                print("This might be due to an invalid API key or a network problem.")
-                print("Please ensure your GEMINI_API_KEY is set correctly and try again.")
-                return
+                print(f"\nTutor: {response}")
 
-            print(f"\nTutor: {response}")
-
-            while True:
-                try:
-                    user_input = input("\nYou: ")
-                    if user_input.lower().strip() in ['exit', 'quit', 'done']:
+                while True:
+                    user_input = questionary.text("You:").ask()
+                    if user_input is None or user_input.lower().strip() in ['exit', 'quit', 'done']:
                         break
-                    
+
                     print("Thinking...")
                     response = study_session.continue_conversation(user_input)
                     if "The study session has not been started" in response:
@@ -73,11 +88,15 @@ class NewSession(StudySession):
                         break
 
                     print(f"\nTutor: {response}")
-                except (KeyboardInterrupt, EOFError):
-                    break
 
-            print("\nStudy session ended. Returning to main menu.")
+                print("\nStudy session ended. Returning to main menu.")
 
+            else:
+                print(f"\nQuiz style '{style}' is not yet implemented. Coming soon!")
+                return
+
+        except (KeyboardInterrupt, EOFError):
+            print("\n\nStudy session ended. Returning to main menu.")
         except Exception as e:
             print(f"An error occurred during the study session: {e}")
 
