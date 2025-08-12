@@ -521,10 +521,8 @@ def handle_export_to_yaml(args):
 # --- from: scripts/enrich_unseen_questions.py ---
 def handle_enrich_unseen(args):
     """Generate new questions from a source file if they don't exist in the database."""
-    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-    api_key_env = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
-    if not os.environ.get(api_key_env) and not args.dry_run:
-        print(f"ERROR: {api_key_env} environment variable not set. Cannot generate questions.", file=sys.stderr)
+    if not os.environ.get("OPENAI_API_KEY") and not args.dry_run:
+        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
         sys.exit(1)
 
     # Load existing prompts to filter out already-imported questions
@@ -1520,17 +1518,8 @@ def _aicat_infer_categories_from_text(prompt: str, response: Optional[str] = Non
     """
     Uses an AI model to infer the exercise category and subject matter for a given question.
     """
-    provider = os.environ.get("AI_PROVIDER", "openai").lower()
-
-    if provider == "gemini":
-        logging.info("Using Gemini provider for AI categorization.")
-        return _aicat_infer_with_gemini(prompt, response)
-    elif provider == "openai":
-        logging.info("Using OpenAI provider for AI categorization.")
-        return _aicat_infer_with_openai(prompt, response)
-    else:
-        logging.error(f"Invalid AI_PROVIDER: '{provider}'. Must be 'openai' or 'gemini'.")
-        return None
+    logging.info("Using OpenAI provider for AI categorization.")
+    return _aicat_infer_with_openai(prompt, response)
 
 
 def handle_categorize_text(args):
@@ -1713,10 +1702,8 @@ def handle_extract_pdf_ai(args):
         print("No text extracted; aborting.")
         return
 
-    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-    api_key_env = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
-    if not os.environ.get(api_key_env):
-        print(f"ERROR: {api_key_env} environment variable not set. Cannot generate questions.", file=sys.stderr)
+    if not os.environ.get("OPENAI_API_KEY"):
+        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
         sys.exit(1)
 
     # Truncate text for AI prompt to avoid token limits
@@ -1909,17 +1896,8 @@ def infer_categories_from_text(prompt: str, response: Optional[str] = None) -> O
     """
     Uses an AI model to infer the exercise category and subject matter for a given question.
     """
-    provider = os.environ.get("AI_PROVIDER", "openai").lower()
-
-    if provider == "gemini":
-        print("Using Gemini provider for AI categorization.", file=sys.stderr)
-        return _infer_with_gemini(prompt, response)
-    elif provider == "openai":
-        print("Using OpenAI provider for AI categorization.", file=sys.stderr)
-        return _infer_with_openai(prompt, response)
-    else:
-        print(f"Invalid AI_PROVIDER: '{provider}'. Must be 'openai' or 'gemini'.", file=sys.stderr)
-        return None
+    print("Using OpenAI provider for AI categorization.", file=sys.stderr)
+    return _infer_with_openai(prompt, response)
 
 
 def handle_ai_categorize(args):

@@ -144,10 +144,8 @@ class AIQuestionGenerator:
 
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
         prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt' and 'response' keys. The 'response' should contain {response_description}.")
-        system_prompt = prompt_lines[0]
-        user_prompt = "\n".join(prompt_lines[1:])
-        logger.debug("AI System Prompt: %s", system_prompt)
-        logger.debug("AI User Prompt: %s", user_prompt)
+        ai_prompt = "\n".join(prompt_lines)
+        logger.debug("AI few-shot prompt: %s", ai_prompt)
 
         source_file = "ai_generated"
         if base_questions:

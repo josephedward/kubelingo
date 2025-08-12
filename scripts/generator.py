@@ -118,13 +118,11 @@ def _generate_questions_from_text(
     text: str, existing_prompts: List[str], num_questions_per_chunk: int = 5
 ) -> List[Dict[str, Any]]:
     """Generates new questions from text using AI, avoiding existing ones."""
-    from kubelingo.integrations.llm import get_llm_client
-    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-    try:
-        llm_client = get_llm_client(provider)
-    except Exception as e:
-        print(f"Error initializing LLM client for provider '{provider}': {e}", file=sys.stderr)
+    if not openai or not os.getenv("OPENAI_API_KEY"):
+        print("Error: OPENAI_API_KEY environment variable not set, or openai package not installed.", file=sys.stderr)
         sys.exit(1)
+
+    client = openai.OpenAI()
 
     system_prompt = """You are an expert Kubernetes administrator and trainer creating quiz questions for the CKAD exam from a provided document.
 Your task is to generate new questions based on the text. The questions can be about basic concepts and definitions, or about specific commands.
@@ -174,14 +172,17 @@ Please generate {num_questions_per_chunk} new questions from the text chunk abov
 """
 
         try:
-            content = llm_client.chat_completion(
+            response = client.chat.completions.create(
+                model="gpt-4-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.5,
-                json_mode=True # The prompt asks for YAML, but it's a JSON-compatible list of objects.
+                response_format={"type": "json_object"}
             )
+
+            content = response.choices[0].message.content
             try:
                 if content.strip().startswith("```yaml"):
                     content = content.strip()[7:-3].strip()
@@ -257,15 +258,9 @@ def _load_shared_context_for_ai_quiz():
         return ''
 
 
-def _generate_ai_quiz_questions(examples, n):
-    from kubelingo.integrations.llm import get_llm_client
-    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-    try:
-        llm_client = get_llm_client(provider)
-    except Exception as e:
-        print(f"Error initializing LLM client for provider '{provider}': {e}", file=sys.stderr)
-        sys.exit(1)
-
+def _generate_ai_quiz_questions(api_key, examples, n):
+    if not isinstance(openai.api_key, str) or len(openai.api_key) == 0:
+        openai.api_key = api_key
     shared = _load_shared_context_for_ai_quiz()
     system_msg = {
         'role': 'system',
@@ -277,12 +272,14 @@ def _generate_ai_quiz_questions(examples, n):
         "Examples: " + json.dumps(examples)
     )
     user_msg = {'role': 'user', 'content': user_prompt}
-    
-    text = llm_client.chat_completion(
+    client = openai.OpenAI(api_key=api_key)
+    resp = client.chat.completions.create(
+        model='gpt-3.5-turbo',
         messages=[system_msg, user_msg],
         temperature=0.7,
-        json_mode=True
+        response_format={"type": "json_object"},
     )
+    text = resp.choices[0].message.content.strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError as e:
@@ -311,6 +308,11 @@ def _validate_ai_quiz_item(item):
 
 def handle_ai_quiz(args):
     """Handles the 'ai-quiz' subcommand."""
+    if not openai:
+        print("Error: openai package not found. Please install with 'pip install openai'.")
+        sys.exit(1)
+
+    api_key = os.getenv('OPENAI_API_KEY')
     examples = [
         { 'question': 'How do you list all running pods in the default namespace?',
           'answer': 'kubectl get pods --field-selector=status.phase=Running' },
@@ -337,7 +339,10 @@ def handle_ai_quiz(args):
               'answer': 'kubectl version' }
         ]
     else:
-        items = _generate_ai_quiz_questions(examples, args.num)
+        if not api_key:
+            print('Error: Missing OPENAI_API_KEY environment variable.')
+            sys.exit(1)
+        items = _generate_ai_quiz_questions(api_key, examples, args.num)
 
     valid = []
     for idx, item in enumerate(items, start=1):
@@ -531,10 +536,8 @@ def handle_kubectl_operations(args):
 
 def handle_ai_questions(args):
     """Handles 'ai-questions' subcommand."""
-    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-    api_key_env = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
-    if api_key_env not in os.environ:
-        print(f"Error: {api_key_env} environment variable not set for AI_PROVIDER='{provider}'.")
+    if 'OPENAI_API_KEY' not in os.environ:
+        print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
     if not all([AIQuestionGenerator, get_questions_by_source_file, yaml]):
         print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
