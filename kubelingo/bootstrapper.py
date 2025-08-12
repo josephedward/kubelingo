@@ -41,10 +41,14 @@ TYPE_TO_EXERCISE_CATEGORY = {
 }
 
 
-def _infer_with_openai(question: Dict[str, Any]) -> Dict[str, str]:
+def _infer_with_openai(prompt: str, q_id: str) -> Dict[str, str]:
     """
     Uses OpenAI to infer the subject matter and exercise category for a question.
     """
+    if not openai:
+        logging.warning("OpenAI SDK not installed. Cannot use OpenAI. Skipping.")
+        return {}
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         logging.warning(
@@ -52,47 +56,8 @@ def _infer_with_openai(question: Dict[str, Any]) -> Dict[str, str]:
         )
         return {}
 
-    if not openai:
-        logging.warning("OpenAI SDK not installed. Cannot use OpenAI. Skipping.")
-        return {}
-
     try:
         client = openai.OpenAI(api_key=api_key)
-
-        # Create a compact version of the question for the prompt
-        question_for_prompt = {
-            "id": question.get("id"),
-            "prompt": question.get("prompt"),
-            "context": question.get("context"),
-        }
-        question_json = json.dumps(
-            {k: v for k, v in question_for_prompt.items() if v is not None}
-        )
-
-        prompt = f"""
-You are an expert programmer and Kubernetes administrator. Your task is to categorize a quiz question for the Kubelingo learning platform.
-Based on the question's content below, infer two things:
-1. "subject_matter": A short, descriptive topic for the question. Examples: "Pod Lifecycle", "Kubectl Operations", "Service Networking", "ConfigMap and Secrets", "YAML Authoring".
-2. "exercise_category": Must be one of these three exact values: 'basic', 'command', or 'manifest'.
-   - 'basic': For conceptual questions.
-   - 'command': For questions expecting a single-line command answer (e.g., kubectl, vim).
-   - 'manifest': For questions about creating or editing Kubernetes YAML files.
-
-Here is the question data:
----
-{question_json}
----
-
-Provide your response as a single JSON object with two keys: "subject_matter" and "exercise_category". Do not add any other text or explanation.
-Example response:
-{{
-  "subject_matter": "Pod Lifecycle",
-  "exercise_category": "basic"
-}}
-"""
-        logging.info(
-            f"Using OpenAI to infer category for question ID: {question.get('id', 'N/A')}"
-        )
         response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[{"role": "user", "content": prompt}],
@@ -104,60 +69,96 @@ Example response:
 
         if "subject_matter" in inferred and "exercise_category" in inferred:
             logging.info(
-                f"OpenAI classification successful for question {question.get('id', 'N/A')}: "
+                f"OpenAI classification successful for question {q_id}: "
                 f"Subject='{inferred['subject_matter']}', Category='{inferred['exercise_category']}'"
             )
             return inferred
         else:
             logging.warning(
-                f"OpenAI response for question {question.get('id', 'N/A')} is missing required keys: {content}"
+                f"OpenAI response for question {q_id} is missing required keys: {content}"
             )
             return {}
 
     except openai.APIError as e:
-        logging.error(
-            f"OpenAI API error while processing question {question.get('id', 'N/A')}: {e}"
-        )
+        logging.error(f"OpenAI API error while processing question {q_id}: {e}")
         return {}
     except json.JSONDecodeError as e:
         logging.error(
-            f"Failed to parse JSON from OpenAI response for question {question.get('id', 'N/A')}: {e}"
+            f"Failed to parse JSON from OpenAI response for question {q_id}: {e}"
         )
         return {}
     except Exception as e:
         logging.error(
-            f"An unexpected error occurred during OpenAI inference for question {question.get('id', 'N/A')}: {e}"
+            f"An unexpected error occurred during OpenAI inference for question {q_id}: {e}"
         )
         return {}
 
 
-def _infer_with_gemini(question: Dict[str, Any]) -> Dict[str, str]:
+def _infer_with_gemini(prompt: str, q_id: str) -> Dict[str, str]:
     """
     Uses Google Gemini to infer the subject matter and exercise category.
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        logging.warning("GOOGLE_API_KEY not set. Cannot use Gemini. Skipping.")
-        return {}
-
     if not genai:
         logging.warning("Google Generative AI SDK not installed. Cannot use Gemini. Skipping.")
+        return {}
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        logging.warning("GEMINI_API_KEY not set. Cannot use Gemini. Skipping.")
         return {}
 
     try:
         genai.configure(api_key=api_key)
 
-        # Create a compact version of the question for the prompt
-        question_for_prompt = {
-            "id": question.get("id"),
-            "prompt": question.get("prompt"),
-            "context": question.get("context"),
-        }
-        question_json = json.dumps(
-            {k: v for k, v in question_for_prompt.items() if v is not None}
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                response_mime_type="application/json"
+            ),
         )
+        content = response.text
+        inferred = json.loads(content)
 
-        prompt = f"""
+        if "subject_matter" in inferred and "exercise_category" in inferred:
+            logging.info(
+                f"Gemini classification successful for question {q_id}: "
+                f"Subject='{inferred['subject_matter']}', Category='{inferred['exercise_category']}'"
+            )
+            return inferred
+        else:
+            logging.warning(
+                f"Gemini response for question {q_id} is missing required keys: {content}"
+            )
+            return {}
+            
+    except json.JSONDecodeError as e:
+        logging.error(
+            f"Failed to parse JSON from Gemini response for question {q_id}: {e}"
+        )
+        return {}
+    except Exception as e:
+        logging.error(
+            f"An unexpected error occurred during Gemini inference for question {q_id}: {e}"
+        )
+        return {}
+
+
+def _infer_category_and_type_with_ai(question: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Uses the configured AI backend to infer subject matter and exercise category.
+    """
+    # Create a compact version of the question for the prompt
+    question_for_prompt = {
+        "id": question.get("id"),
+        "prompt": question.get("prompt"),
+        "context": question.get("context"),
+    }
+    question_json = json.dumps(
+        {k: v for k, v in question_for_prompt.items() if v is not None}
+    )
+
+    prompt = f"""
 You are an expert programmer and Kubernetes administrator. Your task is to categorize a quiz question for the Kubelingo learning platform.
 Based on the question's content below, infer two things:
 1. "subject_matter": A short, descriptive topic for the question. Examples: "Pod Lifecycle", "Kubectl Operations", "Service Networking", "ConfigMap and Secrets", "YAML Authoring".
@@ -178,51 +179,20 @@ Example response:
   "exercise_category": "basic"
 }}
 """
-        logging.info(
-            f"Using Gemini to infer category for question ID: {question.get('id', 'N/A')}"
-        )
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(prompt)
-        content = response.text
-        inferred = json.loads(content)
-
-        if "subject_matter" in inferred and "exercise_category" in inferred:
-            logging.info(
-                f"Gemini classification successful for question {question.get('id', 'N/A')}: "
-                f"Subject='{inferred['subject_matter']}', Category='{inferred['exercise_category']}'"
-            )
-            return inferred
-        else:
-            logging.warning(
-                f"Gemini response for question {question.get('id', 'N/A')} is missing required keys: {content}"
-            )
-            return {}
-            
-    except json.JSONDecodeError as e:
-        logging.error(
-            f"Failed to parse JSON from Gemini response for question {question.get('id', 'N/A')}: {e}"
-        )
-        return {}
-    except Exception as e:
-        logging.error(
-            f"An unexpected error occurred during Gemini inference for question {question.get('id', 'N/A')}: {e}"
-        )
-        return {}
-
-
-def _infer_category_and_type_with_ai(question: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Uses the configured AI backend to infer subject matter and exercise category.
-    """
     ai_backend = os.getenv("AI_BACKEND", "openai").lower()
+    q_id = question.get("id", "N/A")
+
+    logging.info(
+        f"Dispatching to AI backend '{ai_backend}' for question ID: {q_id}"
+    )
 
     if ai_backend == "gemini":
-        return _infer_with_gemini(question)
-    
-    if ai_backend != "openai":
+        return _infer_with_gemini(prompt, q_id)
+    elif ai_backend == "openai":
+        return _infer_with_openai(prompt, q_id)
+    else:
         logging.warning(f"Unsupported AI_BACKEND '{ai_backend}'. Defaulting to OpenAI.")
-
-    return _infer_with_openai(question)
+        return _infer_with_openai(prompt, q_id)
 
 
 
