@@ -35,7 +35,7 @@ KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
 class KubernetesStudyMode:
     def __init__(self):
         self.ai_provider = get_ai_provider()
-        self.client: LLMClient = get_llm_client(self.ai_provider)
+        self.client: LLMClient = get_llm_client()
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
