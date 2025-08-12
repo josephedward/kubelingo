@@ -1,7 +1,7 @@
 import json
 import re
 import logging
-from kubelingo.integrations.llm import GeminiClient
+from kubelingo.integrations.llm import get_llm_client
 
 
 class AIEvaluator:
@@ -11,7 +11,7 @@ class AIEvaluator:
         Initializes the AIEvaluator. It will use the configured LLM client.
         """
         try:
-            self.client = GeminiClient()
+            self.client = get_llm_client()
         except (ImportError, ValueError) as e:
             logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
             self.client = None

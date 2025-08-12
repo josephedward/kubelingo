@@ -154,17 +154,20 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
+            if not self.client:
+                logger.error("LLM client not available for question generation.")
+                break
+
             try:
-                client = get_llm_client("gemini")
                 # Gemini works best with a 'user' role for direct prompts.
                 messages = [{"role": "user", "content": ai_prompt}]
-                raw = client.chat_completion(
+                raw = self.client.chat_completion(
                     messages=messages,
                     temperature=0.7,
                     json_mode=True
                 )
             except Exception as e:
-                logger.error(f"Gemini client failed: {e}")
+                logger.error(f"LLM client failed during question generation: {e}")
                 break
 
             if not raw:
