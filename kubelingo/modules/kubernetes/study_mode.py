@@ -65,7 +65,7 @@ class KubernetesStudyMode:
             self.api = None  # Replace with actual Gemini client initialization
         else:
             raise ValueError(f"Unsupported backend: {backend}")
-        self.conversation_history = []
+        self.conversation_history: List[Dict[str, str]] = []
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
         """Initialize a new study session"""
