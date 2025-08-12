@@ -181,12 +181,10 @@ class KubernetesStudyMode:
 
         while True:
             try:
-                exclude_list = list(asked_items) if quiz_type == "basic" else None
                 questions = self.question_generator.generate_questions(
                     subject=topic,
                     num_questions=1,
                     category=category,
-                    exclude_terms=exclude_list,
                 )
 
                 if not questions:

@@ -1,7 +1,7 @@
 import logging
 import json
 import uuid
-from typing import List, Set
+from typing import List, Set, Optional
 import os
 import yaml
 
