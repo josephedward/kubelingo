@@ -68,7 +68,7 @@ def import_questions(files: List[Path], conn: sqlite3.Connection):
 
                 # The 'category' from YAML is the question's 'subject' in the database.
                 if 'category' in q_dict:
-                    q_dict['subject'] = q_dict.pop('category')
+                    q_dict['subject_matter'] = q_dict.pop('category')
 
                 q_dict['source_file'] = file_path.name
                 # Preserve any `links` entries in metadata
