@@ -36,7 +36,8 @@ except ImportError as e:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, SUBJECT_MATTER, init_db, add_question, get_questions_by_source_file
+    get_db_connection, SUBJECT_MATTER, init_db, add_question, get_questions_by_source_file,
+    _row_to_question_dict
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.modules.ai_categorizer import AICategorizer
@@ -69,20 +70,6 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return ""
 
 
-def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
-    """Converts a sqlite3.Row from the questions table to a dictionary."""
-    if not row:
-        return {}
-    q_dict = dict(row)
-    # Fields that are stored as JSON strings in the DB
-    for key in ['validation_steps', 'answers', 'tags', 'links']:
-        if key in q_dict and q_dict[key] and isinstance(q_dict[key], str):
-            try:
-                q_dict[key] = json.loads(q_dict[key])
-            except json.JSONDecodeError:
-                # Keep as string if not valid JSON
-                pass
-    return q_dict
 
 
 def get_existing_prompts(conn) -> Set[str]:
