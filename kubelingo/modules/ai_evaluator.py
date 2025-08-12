@@ -7,17 +7,18 @@ from kubelingo.integrations.llm import get_llm_client
 
 class AIEvaluator:
     """Uses an AI model to evaluate a user's exercise transcript."""
-    def __init__(self):
+    def __init__(self, llm_client=None):
         """
         Initializes the AIEvaluator. It will use the configured LLM client.
         """
-        self.client = None
-        try:
-            # Use the globally configured provider, defaulting to gemini
-            provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-            self.client = get_llm_client(provider)
-        except Exception as e:
-            logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
+        self.client = llm_client
+        if not self.client:
+            try:
+                # Use the globally configured provider, defaulting to gemini
+                provider = os.environ.get("AI_PROVIDER", "gemini").lower()
+                self.client = get_llm_client(provider)
+            except Exception as e:
+                logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
 
     def evaluate(self, question_data, transcript, vim_log=None):
         """
