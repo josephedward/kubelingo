@@ -16,8 +16,7 @@ class LLMClient(ABC):
     @abstractmethod
     def chat_completion(
         self,
-        system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         is_json: bool = False,
         temperature: float = 0.0,
     ) -> Optional[str]:
@@ -25,8 +24,7 @@ class LLMClient(ABC):
         Sends a chat completion request to the LLM.
 
         Args:
-            system_prompt: The system message to guide the model's behavior.
-            user_prompt: The user's message.
+            messages: A list of messages comprising the conversation so far.
             is_json: Whether to request a JSON object as output.
             temperature: The sampling temperature.
 
@@ -51,16 +49,11 @@ class OpenAIClient(LLMClient):
 
     def chat_completion(
         self,
-        system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         is_json: bool = False,
         temperature: float = 0.0,
     ) -> Optional[str]:
         try:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ]
             response_format = {"type": "json_object"} if is_json else {"type": "text"}
             
             response = self.client.chat.completions.create(
@@ -90,23 +83,30 @@ class GeminiClient(LLMClient):
 
     def chat_completion(
         self,
-        system_prompt: str,
-        user_prompt: str,
+        messages: list[dict[str, str]],
         is_json: bool = False,
         temperature: float = 0.0,
     ) -> Optional[str]:
-        # Gemini uses a different structure, combining system and user prompts.
-        # It also has specific ways to enforce JSON output.
-        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+        # Gemini uses a different structure, so we convert the message list to a single prompt.
+        system_prompt = ""
+        if messages and messages[0]["role"] == "system":
+            system_prompt = messages[0]["content"]
+            messages = messages[1:]
+
+        # Format chat history into a single string for Gemini.
+        prompt_parts = [f'{m["role"].capitalize()}: {m["content"]}' for m in messages]
+        user_prompt_str = "\n".join(prompt_parts)
+
+        full_prompt = f"{system_prompt}\n\n{user_prompt_str}"
         if is_json:
-            full_prompt += "\n\nRespond ONLY with a valid JSON object."
+            full_prompt += "\n\nRespond ONLY with a valid JSON object that can be parsed."
 
         try:
             # Note: Gemini's 'temperature' is part of generation_config.
             generation_config = {"temperature": temperature}
             if is_json:
                 generation_config["response_mime_type"] = "application/json"
-                
+
             response = self.model.generate_content(
                 full_prompt,
                 generation_config=generation_config,
@@ -117,24 +117,72 @@ class GeminiClient(LLMClient):
             return None
 
 
+class FallbackLLMClient(LLMClient):
+    """A client that tries a sequence of LLM clients until one succeeds."""
+
+    def __init__(self, clients: list[LLMClient]):
+        if not clients:
+            raise ValueError("FallbackLLMClient requires at least one client.")
+        self.clients = clients
+
+    def chat_completion(
+        self,
+        messages: list[dict[str, str]],
+        is_json: bool = False,
+        temperature: float = 0.0,
+    ) -> Optional[str]:
+        for client in self.clients:
+            try:
+                logging.info(f"Attempting to use LLM client: {client.__class__.__name__}")
+                response = client.chat_completion(
+                    messages, is_json=is_json, temperature=temperature
+                )
+                if response is not None:
+                    logging.info(f"LLM client {client.__class__.__name__} succeeded.")
+                    return response
+                logging.warning(
+                    f"LLM client {client.__class__.__name__} failed, trying next."
+                )
+            except Exception as e:
+                logging.error(
+                    f"An unexpected error occurred with {client.__class__.__name__}: {e}",
+                    exc_info=True,
+                )
+        logging.error("All LLM clients failed to generate a response.")
+        return None
+
+
 def get_llm_client() -> LLMClient:
     """
-    Factory function to get an instance of the configured LLM client.
-    Reads the KUBELINGO_AI_PROVIDER environment variable.
+    Factory function to get an instance of an LLM client with fallback capabilities.
+    It will try providers in an order determined by KUBELINGO_AI_PROVIDER, with
+    others as backup if their keys are available.
     """
     # Defer config import to avoid circular dependencies at module load time
     from kubelingo.utils.config import get_openai_api_key, get_gemini_api_key
 
+    clients = []
+    openai_api_key = os.getenv("OPENAI_API_KEY") or get_openai_api_key()
+    if openai_api_key:
+        clients.append(OpenAIClient(api_key=openai_api_key))
+
+    gemini_api_key = os.getenv("GEMINI_API_KEY") or get_gemini_api_key()
+    if gemini_api_key:
+        clients.append(GeminiClient(api_key=gemini_api_key))
+
+    if not clients:
+        raise ValueError("No AI provider API key found. Set OPENAI_API_KEY or GEMINI_API_KEY.")
+
+    # Sort clients to put the preferred provider first.
     if AI_PROVIDER == 'gemini':
-        api_key = os.getenv("GEMINI_API_KEY") or get_gemini_api_key()
-        if not api_key:
-            raise ValueError("Gemini API key not found. Set GEMINI_API_KEY or use 'kubelingo config set gemini'.")
-        logging.info("Using Gemini AI Provider.")
-        return GeminiClient(api_key=api_key)
-    
-    # Default to OpenAI
-    api_key = os.getenv("OPENAI_API_KEY") or get_openai_api_key()
-    if not api_key:
-        raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY or use 'kubelingo config set openai'.")
-    logging.info("Using OpenAI AI Provider.")
-    return OpenAIClient(api_key=api_key)
+        clients.sort(key=lambda c: isinstance(c, GeminiClient), reverse=True)
+    else:  # Default to OpenAI first
+        clients.sort(key=lambda c: isinstance(c, OpenAIClient), reverse=True)
+
+    if len(clients) > 1:
+        client_names = [c.__class__.__name__ for c in clients]
+        logging.info(f"Using primary AI provider {client_names[0]} with fallbacks: {', '.join(client_names[1:])}")
+        return FallbackLLMClient(clients)
+
+    logging.info(f"Using {clients[0].__class__.__name__} as the only available AI provider.")
+    return clients[0]

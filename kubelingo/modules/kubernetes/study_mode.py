@@ -1,27 +1,6 @@
-import os
 from typing import Dict, List
-from kubelingo.utils.config import get_openai_api_key, get_gemini_api_key, save_openai_api_key, save_gemini_api_key
 
-try:
-    import openai
-except ImportError:
-    openai = None
-# If this module-level openai is our local stub (openai.py), try loading the real package
-import os, sys, importlib
-if openai is not None and hasattr(openai, '__file__'):
-    # Detect stub by filename
-    if os.path.basename(openai.__file__) == 'openai.py':
-        cwd = os.getcwd()
-        backup_path = list(sys.path)
-        # Remove current dir entries to avoid importing local stub
-        sys.path = [p for p in sys.path if p not in ('', cwd)]
-        try:
-            real_openai = importlib.import_module('openai')
-        except ImportError:
-            real_openai = openai
-        finally:
-            sys.path = backup_path
-        openai = real_openai
+from kubelingo.integrations.llm import get_llm_client
 
 
 KUBERNETES_TOPICS = [
@@ -49,50 +28,31 @@ KUBERNETES_TOPICS = [
 
 
 class KubernetesStudyMode:
-    def __init__(self, api_key: str = None, backend: str = "gemini"):
-        self.backend = backend.lower()
-        if self.backend == "openai":
-            if openai is None:
-                raise ImportError("openai package not found. Please install it with 'pip install openai'")
-            if api_key:
-                try:
-                    openai.api_key = api_key
-                except Exception as e:
-                    raise ImportError(f"Failed to set OpenAI API key: {e}")
-            self.api = openai
-        elif self.backend == "gemini":
-            # Placeholder for Gemini integration
-            self.api = None  # Replace with actual Gemini client initialization
-        else:
-            raise ValueError(f"Unsupported backend: {backend}")
+    def __init__(self):
+        self.client = get_llm_client()
         self.conversation_history: List[Dict[str, str]] = []
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
         """Initialize a new study session"""
         system_prompt = self._build_kubernetes_study_prompt(topic, user_level)
+        user_prompt = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
 
-        initial_message = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
-        if self.backend == "openai":
-            response = self.api.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": initial_message}
-                ],
-                temperature=0.7,
-                max_tokens=500
-            )
-            assistant_response = response.choices[0].message.content
-        elif self.backend == "gemini":
-            # Placeholder for Gemini response handling
-            assistant_response = "Gemini backend is not yet implemented."
+        assistant_response = self.client.chat_completion(
+            messages=messages, temperature=0.7
+        )
 
-        # Ensure conversation_history is a list of dictionaries
+        if not assistant_response:
+            assistant_response = "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later."
+
         self.conversation_history = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": initial_message},
-            {"role": "assistant", "content": assistant_response}
+            {"role": "user", "content": user_prompt},
+            {"role": "assistant", "content": assistant_response},
         ]
 
         return assistant_response
@@ -101,21 +61,12 @@ class KubernetesStudyMode:
         """Continue the study conversation"""
         self.conversation_history.append({"role": "user", "content": user_input})
 
-        if self.backend == "openai":
-            # Ensure conversation_history is passed correctly
-            if not all(isinstance(msg, dict) and "role" in msg and "content" in msg for msg in self.conversation_history):
-                raise ValueError("Conversation history must be a list of dictionaries with 'role' and 'content' keys.")
-            
-            response = self.api.ChatCompletion.create(
-                model="gpt-4",
-                messages=self.conversation_history,
-                temperature=0.7,
-                max_tokens=500
-            )
-            assistant_response = response.choices[0].message.content
-        elif self.backend == "gemini":
-            # Placeholder for Gemini response handling
-            assistant_response = "Gemini backend is not yet implemented."
+        assistant_response = self.client.chat_completion(
+            messages=self.conversation_history, temperature=0.7
+        )
+
+        if not assistant_response:
+            assistant_response = "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
 
         self.conversation_history.append({"role": "assistant", "content": assistant_response})
 
