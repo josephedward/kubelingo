@@ -735,8 +735,8 @@ class NewSession(StudySession):
                     continue
                 # Troubleshooting operations
                 if selected == "__tools__":
-                    from kubelingo.cli import manage_tools_interactive
-                    manage_tools_interactive()
+                    from kubelingo.cli import handle_tools
+                    handle_tools()
                     continue
 
 
