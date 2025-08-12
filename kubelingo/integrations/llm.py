@@ -42,9 +42,6 @@ class OpenAIClient(LLMClient):
 
         api_key = get_openai_api_key()
         if not api_key:
-            # Fallback to environment variable for broader compatibility
-            api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
             raise ValueError(
                 "OpenAI API key is not set in config or OPENAI_API_KEY environment variable."
             )
@@ -87,9 +84,6 @@ class GeminiClient(LLMClient):
         from kubelingo.utils.config import get_gemini_api_key
 
         api_key = get_gemini_api_key()
-        if not api_key:
-            api_key = os.getenv("GEMINI_API_KEY")
-
         if not api_key:
             raise ValueError(
                 "Gemini API key not found in config file or GEMINI_API_KEY environment variable."

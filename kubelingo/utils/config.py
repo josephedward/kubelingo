@@ -180,15 +180,19 @@ def save_openai_api_key(key: str) -> bool:
 
 
 def get_openai_api_key() -> Optional[str]:
-    """Retrieves the OpenAI API key from the config file."""
+    """
+    Retrieves the OpenAI API key, checking the config file first, then the
+    OPENAI_API_KEY environment variable.
+    """
     if os.path.exists(API_KEY_FILE):
         try:
             with open(API_KEY_FILE, 'r', encoding='utf-8') as f:
                 key = f.read().strip()
-                return key if key else None
+                if key:
+                    return key
         except Exception:
             pass
-    return None
+    return os.getenv("OPENAI_API_KEY")
 
 
 def save_gemini_api_key(key: str) -> bool:
@@ -204,15 +208,19 @@ def save_gemini_api_key(key: str) -> bool:
 
 
 def get_gemini_api_key() -> Optional[str]:
-    """Retrieves the Google Gemini API key from the config file."""
+    """
+    Retrieves the Google Gemini API key, checking the config file first, then the
+    GEMINI_API_KEY environment variable.
+    """
     if os.path.exists(GEMINI_API_KEY_FILE):
         try:
             with open(GEMINI_API_KEY_FILE, 'r', encoding='utf-8') as f:
                 key = f.read().strip()
-                return key if key else None
+                if key:
+                    return key
         except Exception:
             pass
-    return None
+    return os.getenv("GEMINI_API_KEY")
 
 
 def save_ai_provider(provider: str) -> bool:
