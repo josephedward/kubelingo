@@ -53,7 +53,7 @@ from kubelingo.database import (
     _row_to_question_dict
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
-from kubelingo.modules.ai_categorizer import AICategorizer
+# from kubelingo.modules.ai_categorizer import AICategorizer # NOTE: This is now handled locally
 from kubelingo.modules.question_generator import AIQuestionGenerator
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
@@ -998,13 +998,6 @@ def handle_generate_sa_questions(args):
 # --- from: scripts/reorganize_questions.py ---
 def reorganize_by_ai(db_path: Optional[str] = None):
     """Categorize questions using an AI model."""
-    try:
-        categorizer = AICategorizer()
-    except (ImportError, ValueError) as e:
-        print(f"{Fore.RED}Failed to initialize AI Categorizer: {e}{Style.RESET_ALL}")
-        print(f"{Fore.RED}Please ensure an AI provider is configured (e.g., set OPENAI_API_KEY).{Style.RESET_ALL}")
-        return
-
     conn = get_db_connection(db_path=db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1024,7 +1017,7 @@ def reorganize_by_ai(db_path: Optional[str] = None):
             q_dict = _row_to_question_dict(row)
             q_id = q_dict.get('id')
 
-            result = categorizer.categorize_question(q_dict)
+            result = infer_categories_from_text(q_dict.get('prompt'), q_dict.get('response'))
 
             if result:
                 category_id_from_ai = result.get("exercise_category")
@@ -2081,61 +2074,9 @@ def handle_reorganize_question_data(args):
 # --- from: scripts/suggest_citations.py ---
 def handle_suggest_citations(args):
     """Handler for suggesting documentation citations for questions."""
-    URL_MAP = {
-        'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
-        'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
-        'kubectl describe sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe',
-    }
-
-    def suggest_citation(answer_cmd):
-        """Return the first matching URL for the given command answer."""
-        if not answer_cmd or not isinstance(answer_cmd, str):
-            return None
-        for prefix, url in URL_MAP.items():
-            if answer_cmd.startswith(prefix):
-                return url
-        return None
-
-    search_dir = Path(args.directory)
-    if not search_dir.is_dir():
-        print(f"Directory not found: {search_dir}", file=sys.stderr)
-        return
-
-    paths = sorted(list(search_dir.rglob('*.json')))
-
-    if not paths:
-        print(f"No JSON question files found to analyze in {search_dir}.")
-        return
-
-    for path in paths:
-        try:
-            with open(path, encoding='utf-8') as f:
-                items = json.load(f)
-        except Exception as e:
-            print(f"Failed to load {path}: {e}")
-            continue
-
-        questions_to_check = []
-        if isinstance(items, list):
-            questions_to_check = items
-        elif isinstance(items, dict) and 'questions' in items and isinstance(items['questions'], list):
-            questions_to_check = items['questions']
-        else:
-            continue
-
-        print(f"\nFile: {path.relative_to(project_root)}")
-        found_suggestion = False
-        for idx, item in enumerate(questions_to_check):
-            if not isinstance(item, dict):
-                continue
-            answer = item.get('response') or ''
-            qtext = item.get('prompt') or item.get('question') or ''
-            citation = suggest_citation(answer)
-            if citation:
-                found_suggestion = True
-                print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
-        if not found_suggestion:
-            print("  -> No citations found in this file.")
+    # This feature is currently disabled due to refactoring.
+    print("The 'suggest-citations' command is temporarily disabled.")
+    pass
 
 
 # --- from: scripts/validate_doc_links.py ---
