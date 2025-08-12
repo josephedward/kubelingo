@@ -29,7 +29,7 @@ class AIQuestionGenerator:
     """
 
     def __init__(self, llm_client, max_attempts_per_question: int = 5):
-        self.evaluator = AIEvaluator(llm_client=llm_client)
+        self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
         self.llm_client = llm_client
 
