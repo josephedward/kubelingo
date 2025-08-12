@@ -2073,7 +2073,7 @@ def handle_reorganize_question_data(args):
 
 # --- from: scripts/suggest_citations.py ---
 def handle_suggest_citations(args):
-    """Handler for suggesting documentation citations for questions."""
+    """Suggest documentation citations for command-quiz questions."""
     URL_MAP = {
         'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
         'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
@@ -2082,53 +2082,45 @@ def handle_suggest_citations(args):
 
     def suggest_citation(answer_cmd):
         """Return the first matching URL for the given command answer."""
-        if not answer_cmd or not isinstance(answer_cmd, str):
+        if not isinstance(answer_cmd, str):
             return None
         for prefix, url in URL_MAP.items():
             if answer_cmd.startswith(prefix):
                 return url
         return None
 
-    search_dir = Path(args.directory)
-    if not search_dir.is_dir():
-        print(f"Directory not found: {search_dir}", file=sys.stderr)
+    scan_path = Path(args.directory)
+    if not scan_path.is_dir():
+        print(f"Directory not found: {scan_path}", file=sys.stderr)
+        sys.exit(1)
+        
+    json_files = sorted(scan_path.rglob('*.json'))
+    if not json_files:
+        print(f"No JSON files found in {scan_path}.")
         return
 
-    paths = sorted(list(search_dir.rglob('*.json')))
-
-    if not paths:
-        print(f"No JSON question files found to analyze in {search_dir}.")
-        return
-
-    for path in paths:
+    for path in json_files:
         try:
-            with open(path, encoding='utf-8') as f:
-                items = json.load(f)
+            items = json.loads(path.read_text(encoding='utf-8'))
         except Exception as e:
-            print(f"Failed to load {path}: {e}")
+            print(f"Failed to load or parse {path}: {e}", file=sys.stderr)
             continue
-
-        questions_to_check = []
-        if isinstance(items, list):
-            questions_to_check = items
-        elif isinstance(items, dict) and 'questions' in items and isinstance(items['questions'], list):
-            questions_to_check = items['questions']
-        else:
-            continue
-
+        
         print(f"\nFile: {path.relative_to(project_root)}")
-        found_suggestion = False
-        for idx, item in enumerate(questions_to_check):
+        
+        citations_found = False
+        for idx, item in enumerate(items):
             if not isinstance(item, dict):
                 continue
             answer = item.get('response') or ''
             qtext = item.get('prompt') or item.get('question') or ''
             citation = suggest_citation(answer)
             if citation:
-                found_suggestion = True
                 print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
-        if not found_suggestion:
-            print("  -> No citations found in this file.")
+                citations_found = True
+        
+        if not citations_found:
+            print(" -> No citations found in this file.")
 
 
 # --- from: scripts/validate_doc_links.py ---
