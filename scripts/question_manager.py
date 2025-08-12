@@ -521,8 +521,10 @@ def handle_export_to_yaml(args):
 # --- from: scripts/enrich_unseen_questions.py ---
 def handle_enrich_unseen(args):
     """Generate new questions from a source file if they don't exist in the database."""
-    if not os.environ.get("OPENAI_API_KEY") and not args.dry_run:
-        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
+    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
+    api_key_env = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
+    if not os.environ.get(api_key_env) and not args.dry_run:
+        print(f"ERROR: {api_key_env} environment variable not set. Cannot generate questions.", file=sys.stderr)
         sys.exit(1)
 
     # Load existing prompts to filter out already-imported questions
@@ -1711,8 +1713,10 @@ def handle_extract_pdf_ai(args):
         print("No text extracted; aborting.")
         return
 
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
+    provider = os.environ.get("AI_PROVIDER", "gemini").lower()
+    api_key_env = "GEMINI_API_KEY" if provider == "gemini" else "OPENAI_API_KEY"
+    if not os.environ.get(api_key_env):
+        print(f"ERROR: {api_key_env} environment variable not set. Cannot generate questions.", file=sys.stderr)
         sys.exit(1)
 
     # Truncate text for AI prompt to avoid token limits

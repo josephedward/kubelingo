@@ -30,6 +30,10 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+        provider = os.environ.get("AI_PROVIDER", "gemini").lower()
+        # Dynamically get client to avoid circular dependency issues at import time
+        from kubelingo.integrations.llm import get_llm_client
+        self.llm_client = get_llm_client(provider)
         try:
             self.client = get_llm_client()
         except (ImportError, ValueError) as e:
