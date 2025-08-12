@@ -44,7 +44,7 @@ def main():
         Choice('Index all YAML Files in Dir', value='index_yaml'),
         Choice('Locate Previous YAML Backup', value='locate_yaml_backups.py'),
         Choice('View YAML Backup Statistics', value='view_yaml_stats.py'),
-        Choice('Write DB to YAML Backup Version', value='export_db_to_yaml.py'),
+        Choice('Write DB to YAML Backup Version', value='qm_export_yaml'),
         Choice('Restore DB from YAML Backup Version', value='restore_yaml_to_db.py'),
         Choice('Create Sqlite DB from YAML Backup Version', value='create_sqlite_db_from_yaml.py'),
         Separator('=== SQLite ==='),
@@ -81,8 +81,8 @@ def main():
         run_script('locate_yaml_backups.py')
     elif answer == 'view_yaml_stats.py':
         run_script('view_yaml_stats.py')
-    elif answer == 'export_db_to_yaml.py':
-        run_script('export_db_to_yaml.py')
+    elif answer == 'qm_export_yaml':
+        run_script('question_manager.py', 'export-to-yaml')
     elif answer == 'restore_yaml_to_db.py':
         backups = get_all_yaml_backups()
         choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()

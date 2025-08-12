@@ -29,11 +29,11 @@ def test_export_db_to_yaml_and_restore(tmp_path, capsys, monkeypatch):
     import kubelingo.database as dbmod
     dbmod.init_db(clear=True)
     dbmod.add_question(id='q1', prompt='hello', source_file='f.yaml')
-    # Export to YAML
+    # Export to YAML using question_manager
     out_file = tmp_path / 'out.yaml'
-    mod_export = load_script('export_db_to_yaml')
-    monkeypatch.setattr(sys, 'argv', ['export_db_to_yaml', '-o', str(out_file)])
-    mod_export.main()
+    mod_qm = load_script('question_manager')
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'export-to-yaml', '--db-path', str(db_path), '-o', str(out_file)])
+    mod_qm.main()
     exported = out_file.read_text()
     # Load and verify that our question appears in the export
     try:

@@ -75,7 +75,7 @@ def task_view_yaml_stats():
 
 def task_write_db_to_yaml():
     """Write DB to YAML Backup Version"""
-    _run_script("export_db_to_yaml.py")
+    _run_script("question_manager.py", "export-to-yaml")
 
 def task_restore_db_from_yaml():
     """Restore DB from YAML Backup Version"""

@@ -262,6 +262,34 @@ def handle_deduplicate(args):
             conn.close()
 
 
+# --- from: scripts/export_db_to_yaml.py ---
+def handle_export_to_yaml(args):
+    """Export all questions from the database to a YAML file."""
+    print(f"{Fore.CYAN}--- Exporting database questions to YAML ---{Style.RESET_ALL}")
+    db_path = args.db_path or get_live_db_path()
+    if not os.path.exists(db_path):
+        print(f"Error: Database file not found at {db_path}", file=sys.stderr)
+        sys.exit(1)
+
+    conn = get_db_connection(db_path)
+    questions = get_all_questions(conn)
+    conn.close()
+
+    if not questions:
+        print(f"{Fore.YELLOW}No questions found in the database to export.{Style.RESET_ALL}")
+        return
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            # The standard format seems to be a list of question dicts
+            yaml.dump(questions, f, sort_keys=False, indent=2)
+        print(f"\n{Fore.GREEN}Successfully exported {len(questions)} questions to:{Style.RESET_ALL}")
+        print(str(args.output))
+    except IOError as e:
+        print(f"{Fore.RED}Error writing to output file {args.output}: {e}{Style.RESET_ALL}")
+
+
 # --- from: scripts/fix_question_categories.py ---
 def handle_fix_categories(args):
     """Interactively fix or assign schema_category for questions in the database."""
@@ -886,6 +914,15 @@ def main():
     parser_deduplicate.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
     parser_deduplicate.add_argument("--delete", action="store_true", help="Delete duplicate questions, keeping only the newest occurrence of each.")
     parser_deduplicate.set_defaults(func=handle_deduplicate)
+
+    # Sub-parser for 'export-to-yaml'
+    parser_export_yaml = subparsers.add_parser('export-to-yaml', help='Export all questions from database to a single YAML file.', description="Reads all questions from the SQLite database and writes them to a YAML file.")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_export_filename = f'db_export_{timestamp}.yaml'
+    default_export_path = Path(project_root) / 'backups' / 'yaml' / default_export_filename
+    parser_export_yaml.add_argument('-o', '--output', type=Path, default=default_export_path, help=f'Output file path for the YAML export. Default: {default_export_path}')
+    parser_export_yaml.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
+    parser_export_yaml.set_defaults(func=handle_export_to_yaml)
 
     # Sub-parser for 'fix-categories'
     parser_fix = subparsers.add_parser('fix-categories', help='Interactively fix or assign schema_category for questions.', description="Interactively fix or assign schema_category for questions in the database.")
