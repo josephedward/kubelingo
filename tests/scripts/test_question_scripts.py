@@ -452,3 +452,47 @@ def test_enrich_unseen_command(tmp_path, mock_ai_generator, capsys, monkeypatch)
         data = yaml.safe_load(f)
     assert len(data) == 1
     assert data[0]['id'] == 'ai_q1'
+
+
+def test_categorize_text_command(capsys, monkeypatch):
+    """Tests the categorize-text subcommand."""
+    question_manager_mod = load_script('question_manager')
+
+    def mock_infer(prompt, response):
+        return {"exercise_category": "command", "subject_matter": "Test Subject"}
+    
+    monkeypatch.setattr(question_manager_mod, '_aicat_infer_categories_from_text', mock_infer)
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'categorize-text', '--prompt', 'some prompt'])
+    question_manager_mod.main()
+
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result['exercise_category'] == 'command'
+    assert result['subject_matter'] == 'Test Subject'
+
+
+def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
+    """Tests the suggest-citations subcommand."""
+    question_manager_mod = load_script('question_manager')
+
+    # Create dummy JSON file
+    json_dir = tmp_path / "questions_json"
+    json_dir.mkdir()
+    json_file = json_dir / "test_questions.json"
+    questions = [
+        {"prompt": "How to get namespaces?", "response": "kubectl get ns"},
+        {"prompt": "How to do something else?", "response": "some other command"}
+    ]
+    json_file.write_text(json.dumps(questions))
+
+    class MockJSONLoader:
+        def discover(self):
+            return [json_file]
+    
+    monkeypatch.setattr(question_manager_mod, 'JSONLoader', MockJSONLoader)
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'suggest-citations'])
+    question_manager_mod.main()
+
+    captured = capsys.readouterr()
+    assert "Suggest citation: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get" in captured.out
+    assert "No citation found" in captured.out

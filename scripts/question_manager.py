@@ -55,6 +55,7 @@ from kubelingo.database import (
 from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
 from kubelingo.modules.ai_categorizer import AICategorizer
 from kubelingo.modules.question_generator import AIQuestionGenerator
+from kubelingo.modules.json_loader import JSONLoader
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
 from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path
