@@ -1,13 +1,15 @@
 import os
 import logging
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode, KUBERNETES_TOPICS
+from kubelingo.modules.base.session import StudySession
 
-class NewSession:
+
+class NewSession(StudySession):
     """A study session for all Kubernetes-related quizzes."""
 
     def __init__(self, logger):
         """Initializes the session with a logger."""
-        self.logger = logger
+        super().__init__(logger)
 
     def initialize(self):
         """Runs an interactive study session using the Socratic method with Gemini."""
