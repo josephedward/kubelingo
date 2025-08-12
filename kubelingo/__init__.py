@@ -4,8 +4,8 @@ __version__ = '0.1.12'
 import logging
 import os
 
-# Run bootstrap process on startup, unless disabled via environment variable.
-if os.environ.get("KUBELINGO_SKIP_BOOTSTRAP") != "1":
+# Run bootstrap process on startup only if enabled via environment variable.
+if os.environ.get("KUBELINGO_PERFORM_BOOTSTRAP") == "1":
     # Configure basic logging in case the app using the package hasn't.
     logging.basicConfig(
         level=logging.INFO,
