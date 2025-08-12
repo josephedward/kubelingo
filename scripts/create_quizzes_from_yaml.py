@@ -11,7 +11,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 from kubelingo.database import get_db_connection, add_question
-from kubelingo.utils.path_utils import get_project_root, find_yaml_files
+from kubelingo.utils.path_utils import get_project_root
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -30,23 +30,26 @@ def create_quizzes_from_backup():
     logging.info("Starting to create quizzes from consolidated YAML backup.")
     
     proj_root = get_project_root()
-    consolidated_dir = proj_root / 'yaml' / 'consolidated_backup'
+    yaml_dir = proj_root / 'yaml'
 
-    logging.info(f"Looking for consolidated backup in: {consolidated_dir}")
+    logging.info(f"Looking for consolidated question files in: {yaml_dir}")
 
-    if not consolidated_dir.is_dir():
-        logging.error(f"Consolidated backup directory not found at: {consolidated_dir}")
-        logging.error("Please ensure the consolidated YAML backup exists and the path is correct.")
+    if not yaml_dir.is_dir():
+        logging.error(f"YAML directory not found at: {yaml_dir}")
+        logging.error("Cannot search for consolidated question files.")
         return
 
-    logging.info(f"Scanning for YAML files in {consolidated_dir}...")
-    yaml_files = find_yaml_files([str(consolidated_dir)])
+    logging.info("Scanning for latest consolidated question file...")
+    consolidated_files = sorted(yaml_dir.glob('consolidated_unique_questions_*.yaml'), reverse=True)
+
+    if not consolidated_files:
+        logging.warning(f"No 'consolidated_unique_questions_*.yaml' files found in '{yaml_dir}'.")
+        return
     
-    if not yaml_files:
-        logging.warning(f"No YAML files found in '{consolidated_dir}'.")
-        return
-        
-    logging.info(f"Found {len(yaml_files)} YAML file(s). Processing...")
+    latest_file = consolidated_files[0]
+    yaml_files = [latest_file]
+
+    logging.info(f"Found latest consolidated file. Processing: {latest_file}")
     
     conn = get_db_connection()
     question_count = 0
