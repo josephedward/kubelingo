@@ -35,20 +35,20 @@ def bootstrap_quizzes_from_yaml() -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
     """
     logging.info("Starting bootstrap process: loading quizzes from YAML...")
     project_root = _get_project_root()
-    consolidated_backup_dir = project_root / "yaml" / "consolidated_backup"
+    yaml_dir = project_root / "yaml"
 
-    if not consolidated_backup_dir.is_dir():
+    if not yaml_dir.is_dir():
         logging.warning(
-            f"Consolidated backup directory not found at: {consolidated_backup_dir}"
+            f"YAML source directory not found at: {yaml_dir}"
         )
         logging.warning("No quizzes will be loaded.")
         return {}
 
-    logging.info(f"Searching for YAML files in {consolidated_backup_dir}...")
-    yaml_files = list(_find_yaml_files(consolidated_backup_dir))
+    logging.info(f"Searching for YAML files in {yaml_dir}...")
+    yaml_files = list(_find_yaml_files(yaml_dir))
 
     if not yaml_files:
-        logging.warning(f"No YAML files found in {consolidated_backup_dir}.")
+        logging.warning(f"No YAML files found in {yaml_dir}.")
         return {}
 
     logging.info(f"Found {len(yaml_files)} YAML file(s). Processing...")
