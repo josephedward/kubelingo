@@ -186,3 +186,20 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
         "validator": row["validator"],
         "review": bool(row["review"]),
     }
+
+
+def get_questions_by_subject_matter(conn: sqlite3.Connection, subject: str) -> List[Dict[str, Any]]:
+    """
+    Retrieves questions filtered by subject matter.
+
+    Args:
+        conn: SQLite connection object.
+        subject: The subject matter to filter questions by.
+
+    Returns:
+        A list of dictionaries representing the questions.
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions WHERE subject = ?", (subject,))
+    rows = cursor.fetchall()
+    return [_row_to_question_dict(row) for row in rows]
