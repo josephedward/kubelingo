@@ -62,10 +62,15 @@ def create_quizzes_from_backup():
                 data = yaml.safe_load(f)
                 logging.debug(f"Loaded YAML content from {yaml_file}: {data}")
 
-            questions_data = data.get('questions') if isinstance(data, dict) else data
+            if isinstance(data, dict):
+                questions_data = data.get('questions')
+            else:
+                questions_data = data
 
-            if not questions_data or not isinstance(questions_data, list):
-                logging.error(f"Skipping file {yaml_file}: content is not a list or a dict with a 'questions' key.")
+            if not isinstance(questions_data, list):
+                logging.error(
+                    f"Skipping file {yaml_file}: Expected a list of questions, but got {type(questions_data)}."
+                )
                 continue
 
 
