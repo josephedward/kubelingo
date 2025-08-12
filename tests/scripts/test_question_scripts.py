@@ -475,7 +475,7 @@ def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     """Tests the suggest-citations subcommand."""
     question_manager_mod = load_script('question_manager')
 
-    # Create dummy JSON file
+    # Create dummy JSON file in a directory
     json_dir = tmp_path / "questions_json"
     json_dir.mkdir()
     json_file = json_dir / "test_questions.json"
@@ -485,14 +485,21 @@ def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     ]
     json_file.write_text(json.dumps(questions))
 
-    class MockJSONLoader:
-        def discover(self):
-            return [json_file]
-    
-    monkeypatch.setattr(question_manager_mod, 'JSONLoader', MockJSONLoader)
-    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'suggest-citations'])
+    # Run suggest-citations command on the directory
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'suggest-citations', str(json_dir)])
     question_manager_mod.main()
 
     captured = capsys.readouterr()
     assert "Suggest citation: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get" in captured.out
-    assert "No citation found" in captured.out
+    # Check that the "no citation" message is not printed for the file since one was found
+    assert "No citations found in this file" not in captured.out
+
+    # Test for no citation found in a different directory
+    no_match_dir = tmp_path / "no_match_dir"
+    no_match_dir.mkdir()
+    no_match_file = no_match_dir / "no_match.json"
+    no_match_file.write_text(json.dumps([{"prompt": "foo", "response": "bar"}]))
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'suggest-citations', str(no_match_dir)])
+    question_manager_mod.main()
+    captured_no_match = capsys.readouterr()
+    assert "No citations found in this file" in captured_no_match.out
