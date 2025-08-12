@@ -837,7 +837,7 @@ def _process_json_file_for_manifest(fname, base_dir, json_dir, manifest_dir, sol
             continue
     manifest_path = os.path.join(manifest_dir, f"{base}.yaml")
     with open(manifest_path, 'w') as mf:
-        mf.write('"""\nGenerated from ' + fname + '\n"""\n---\n')
+        mf.write(f"# Generated from {fname}\n---\n")
         for qid, question, solfile in entries:
             mf.write(f"- id: {qid}\n  question: \"{question}\"\n  solution_file: \"{solfile}\"\n  source: \"https://kubernetes.io/docs/reference/kubectl/cheatsheet/\"\n")
     print(f"Generated {manifest_path}: {len(entries)} entries")
