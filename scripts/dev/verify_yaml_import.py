@@ -51,7 +51,11 @@ def create_db_schema(conn: sqlite3.Connection):
     conn.commit()
 
 def import_yaml_to_db(yaml_path: str, conn: sqlite3.Connection):
-    """Reads questions from a YAML file and imports them into the DB."""
+    """
+    Reads questions from a YAML file and imports them into the DB.
+    Skips questions with duplicate IDs.
+    Returns the number of questions successfully inserted from this file.
+    """
     try:
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f)
@@ -63,10 +67,21 @@ def import_yaml_to_db(yaml_path: str, conn: sqlite3.Connection):
         sys.exit(1)
 
     questions = data.get('questions', [])
+    if not questions:
+        print(f"Info: No questions found in {os.path.basename(yaml_path)}.")
+        return 0
+
     source_file = os.path.basename(yaml_path)
     cursor = conn.cursor()
+    
+    inserted_count = 0
+    questions_to_process = [q for q in questions if q.get('id')]
+    num_skipped_no_id = len(questions) - len(questions_to_process)
 
-    for q in questions:
+    if num_skipped_no_id > 0:
+        print(f"Info: In {source_file}, skipping {num_skipped_no_id} questions that have no ID.")
+
+    for q in questions_to_process:
         params = {
             'id': q.get('id'),
             'prompt': q.get('prompt', ''),
@@ -87,18 +102,19 @@ def import_yaml_to_db(yaml_path: str, conn: sqlite3.Connection):
             'initial_files': json.dumps(q.get('initial_files', {})),
             'explanation': q.get('explanation')
         }
-        if not params['id']:
-            print(f"Skipping question without id: {q.get('prompt', 'No prompt')[:50]}...", file=sys.stderr)
-            continue
         
         columns = ', '.join(params.keys())
         placeholders = ', '.join(':' + key for key in params.keys())
-        sql = f"INSERT INTO questions ({columns}) VALUES ({placeholders})"
+        # Use INSERT OR IGNORE to skip duplicate question IDs across files.
+        sql = f"INSERT OR IGNORE INTO questions ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, params)
+        if cursor.rowcount > 0:
+            inserted_count += 1
 
     conn.commit()
-    print(f"Imported {len(questions)} questions from {yaml_path} into the temporary database.")
-    return len(questions)
+    skipped_duplicates = len(questions_to_process) - inserted_count
+    print(f"Imported from {source_file}: Inserted {inserted_count} new questions, skipped {skipped_duplicates} duplicates.")
+    return inserted_count
 
 def main():
     parser = argparse.ArgumentParser(
@@ -153,9 +169,8 @@ def main():
 
         for yaml_file in yaml_files:
             num_imported = import_yaml_to_db(yaml_file, conn)
-            if num_imported > 0:
-                total_imported += num_imported
-                imported_files_map[os.path.basename(yaml_file)] = num_imported
+            total_imported += num_imported
+            imported_files_map[os.path.basename(yaml_file)] = num_imported
         
         conn.close()
 
