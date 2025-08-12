@@ -4,11 +4,11 @@ from typing import Dict, List, Optional
 
 import questionary
 import yaml
-from kubelingo.database import add_question, get_db_connection
+
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
+from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
-from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
 KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
@@ -20,9 +20,7 @@ class KubernetesStudyMode:
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
-        self.db_conn = get_db_connection()
-        self.questions_dir = get_project_root() / "questions" / "generated_yaml"
-        self.questions_dir.mkdir(parents=True, exist_ok=True)
+        self.question_generator = AIQuestionGenerator()
 
     def generate_term_definition_pair(
         self, topic: str, user_level: str = "intermediate"
@@ -132,13 +130,27 @@ class KubernetesStudyMode:
 
     def _run_quiz_loop(self, quiz_type: str, topic: str, user_level: str):
         """Generic loop for generating and asking questions."""
+        category_map = {
+            "basic": "Basic",
+            "command": "Command",
+            "manifest": "Manifest",
+        }
+        category = category_map.get(quiz_type)
+
         while True:
             try:
-                question = self._generate_question(topic, quiz_type, user_level)
-                if not question:
+                questions = self.question_generator.generate_questions(
+                    subject=topic,
+                    num_questions=1,
+                    category=category
+                )
+
+                if not questions:
                     if not questionary.confirm("Failed to generate a question. Try again?").ask():
                         break
                     continue
+
+                question = questions[0]
 
                 print(f"\n{question.prompt}")
                 correct = self._ask_and_validate(question)
@@ -184,7 +196,7 @@ class KubernetesStudyMode:
             if user_yaml is None:
                 return False
             # Check if the user's YAML is a subset of the required solution
-            return is_yaml_subset(question.correct_yaml, user_yaml)
+            return is_yaml_subset(question.response, user_yaml)
 
         return False
 
