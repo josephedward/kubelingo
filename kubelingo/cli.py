@@ -260,31 +260,10 @@ def handle_config_command(cmd):
     else:
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
-# Troubleshooting scripts runner
-def handle_troubleshoot(cmd_args):
-    """List and run troubleshooting scripts from the scripts directory."""
-    scripts_dir = repo_root / 'scripts'
-    try:
-        # Include only Python and shell scripts for troubleshooting
-        scripts = [p for p in scripts_dir.iterdir() if p.is_file() and p.suffix in ('.py', '.sh')]
-    except Exception as e:
-        print(f"{Fore.RED}Error accessing scripts directory: {e}{Style.RESET_ALL}")
-        return
-
-    mapping = {p.stem: p for p in scripts}
-    if not cmd_args:
-        manage_troubleshooting_interactive()
-        return
-
-    script_name = cmd_args[0]
-    if script_name not in mapping:
-        print(f"{Fore.RED}Unknown script '{script_name}'. Available: {', '.join(sorted(mapping))}{Style.RESET_ALL}")
-        return
-
-    script_path = mapping[script_name]
-    runner = [sys.executable] if script_path.suffix == '.py' else ['bash']
-    cmd = runner + [str(script_path)] + cmd_args[1:]
-    subprocess.run(cmd)
+# Tools/maintenance scripts runner
+def handle_tools():
+    """Launch the interactive tools menu."""
+    manage_tools_interactive()
 
 
 def restore_db():
@@ -513,13 +492,45 @@ def manage_config_interactive():
         print()
         return
 
-def manage_troubleshooting_interactive():
-    """Launches the interactive maintenance menu script."""
-    script_path = repo_root / "scripts" / "kubelingo_tools.py"
-    if not script_path.exists():
-        print(f"{Fore.RED}Troubleshooting script not found at {script_path}{Style.RESET_ALL}")
+def manage_tools_interactive():
+    """Interactive prompt for launching tools."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
         return
-    subprocess.run([sys.executable, str(script_path)], check=False)
+
+    try:
+        from kubelingo.tools import show_db_tools_menu
+    except ImportError:
+        show_db_tools_menu = None  # Gracefully handle if tools module is missing
+
+    try:
+        # This will be expanded with more tool categories later.
+        choices = []
+        if show_db_tools_menu:
+            choices.append(questionary.Choice("Database Tools", value="db_tools"))
+
+        if not choices:
+            print(f"{Fore.YELLOW}No tools are available.{Style.RESET_ALL}")
+            return
+
+        choices.extend([questionary.Separator(), questionary.Choice("Cancel", value="cancel")])
+
+        action = questionary.select(
+            "Select a tool category:",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "cancel":
+            return
+
+        if action == "db_tools":
+            # This function will show its own sub-menu
+            show_db_tools_menu()
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}Operation cancelled.{Style.RESET_ALL}")
+        return
 
 
 def enrich_sources():
@@ -690,7 +701,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml', 'monitor', 'self-heal', 'heal')")
+                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'tools', 'load-yaml', 'monitor', 'self-heal', 'heal')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('--list-yaml', action='store_true',
@@ -843,8 +854,8 @@ def main():
             elif cmd_name == 'questions':
                 manage_questions_interactive()
                 return
-            elif cmd_name == 'troubleshoot':
-                handle_troubleshoot(args.command[1:])
+            elif cmd_name == 'tools':
+                handle_tools()
                 return
             elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
                 # Merge questions from the master backup into the live database
