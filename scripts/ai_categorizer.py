@@ -131,17 +131,23 @@ def _infer_with_gemini(prompt: str, response: Optional[str] = None) -> Optional[
     if response:
         user_message += f"\n\nExample Answer/Solution:\n---\n{response}\n---"
 
-    full_prompt = f"{system_prompt}\n\nNow, categorize the following question:\n\n{user_message}"
-
     try:
         logging.debug("Sending request to Gemini for categorization...")
-        # Using a model that supports JSON output format.
-        model = client.GenerativeModel('gemini-1.5-flash')
+        # Use system_instruction for better model guidance
+        model = client.GenerativeModel(
+            'gemini-1.5-flash',
+            system_instruction=system_prompt
+        )
+        
+        # Ensure the model is configured for JSON output
+        config = client.types.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.0
+        )
+        
         gemini_response = model.generate_content(
-            full_prompt,
-            generation_config=client.types.GenerationConfig(
-                response_mime_type="application/json",
-            )
+            user_message,
+            generation_config=config,
         )
         result_str = gemini_response.text
         result = json.loads(result_str)
