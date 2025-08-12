@@ -29,21 +29,384 @@ except ImportError:
     sys.exit(1)
 
 # Kubelingo imports
-from kubelingo.database import add_question, get_db_connection, init_db
+from dataclasses import asdict
+
+from kubelingo.database import add_question, get_all_questions, get_db_connection, init_db
+from kubelingo.modules.db_loader import DBLoader
+from kubelingo.modules.yaml_loader import YAMLLoader
+from kubelingo.question import Question
 from kubelingo.utils.config import (
-    SQLITE_BACKUP_DIRS,
-    ENABLED_QUIZZES,
-    YAML_BACKUP_DIRS,
+    BACKUP_DATABASE_FILE,
     DATABASE_FILE,
+    DATA_DIR,
+    ENABLED_QUIZZES,
+    MASTER_DATABASE_FILE,
+    QUESTIONS_DIR,
+    SECONDARY_MASTER_DATABASE_FILE,
+    SQLITE_BACKUP_DIRS,
+    YAML_BACKUP_DIRS,
 )
 from kubelingo.utils.path_utils import (
     find_and_sort_files_by_mtime,
     find_sqlite_files,
+    find_yaml_files,
+    find_yaml_files_from_paths,
     get_all_sqlite_files_in_repo,
     get_live_db_path,
-    find_yaml_files_from_paths,
 )
 from kubelingo.utils.ui import Fore, Style
+
+
+# --- Migrate from YAML ---
+def do_migrate_from_yaml(args):
+    """Migrates questions from YAML files to the SQLite database."""
+    print("Initializing database...")
+    init_db(clear=args.clear)
+    if args.clear:
+        print("Database cleared and re-initialized.")
+    else:
+        print("Database initialized.")
+
+    yaml_loader = YAMLLoader()
+    total_questions = 0
+
+    yaml_files = []
+    if args.file:
+        p = Path(args.file)
+        if p.exists():
+            yaml_files.append(str(p))
+        else:
+            print(f"Error: File not found at '{args.file}'")
+            return
+    else:
+        source_paths = []
+        if args.source_dirs:
+            for d in args.source_dirs:
+                p = Path(d)
+                if p.is_dir():
+                    source_paths.append(p)
+                else:
+                    print(f"Warning: Provided source directory not found, skipping: {d}")
+        else:
+            # Default directories, as per documentation
+            for subdir in ('yaml', 'yaml-bak', 'manifests'):
+                source_paths.append(Path(DATA_DIR) / subdir)
+
+        for quiz_dir in source_paths:
+            print(f"Scanning quiz directory: {quiz_dir}")
+            if not quiz_dir.is_dir():
+                continue
+            for pattern in ('*.yaml', '*.yml', '*.yaml.bak'):
+                for p in quiz_dir.glob(pattern):
+                    yaml_files.append(str(p))
+
+    yaml_files = sorted(list(set(yaml_files)))  # de-duplicate and sort
+
+    print(f"Found {len(yaml_files)} unique YAML quiz files to migrate.")
+
+    for file_path in yaml_files:
+        print(f"Processing {file_path}...")
+        try:
+            # Load questions as objects for structured data
+            questions_obj: list[Question] = yaml_loader.load_file(file_path)
+            
+            # Load raw data to get attributes not on the Question dataclass, like 'review'
+            with open(file_path, 'r', encoding='utf-8') as f:
+                raw_questions_data = yaml.safe_load(f)
+            raw_q_map = {
+                item.get('id'): item for item in raw_questions_data if isinstance(item, dict)
+            }
+
+            for q in questions_obj:
+                raw_q_data = raw_q_map.get(q.id, {})
+                q_data = {
+                    'id': q.id,
+                    'prompt': q.prompt,
+                    'response': q.response,
+                    'category': q.category,
+                    'source': getattr(q, 'source', None),
+                    'validation_steps': [asdict(step) for step in q.validation_steps],
+                    'validator': q.validator,
+                    'source_file': os.path.basename(file_path),
+                    'review': raw_q_data.get('review', False),
+                    'explanation': getattr(q, 'explanation', None)
+                }
+                add_question(**q_data)
+            total_questions += len(questions_obj)
+            print(f"  Migrated {len(questions_obj)} questions.")
+        except Exception as e:
+            print(f"Error processing file {file_path}: {e}")
+
+    print(f"\nMigration complete. Total questions migrated: {total_questions}")
+
+    # Create a backup of the newly migrated database, clearly named in the repo
+    try:
+        backup_dir = os.path.dirname(BACKUP_DATABASE_FILE)
+        os.makedirs(backup_dir, exist_ok=True)
+        # Copy the active user DB (~/.kubelingo/kubelingo.db) into project backup
+        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print(f"Created a backup of the questions database at: {BACKUP_DATABASE_FILE}")
+    except Exception as e:
+        print(f"Could not create database backup: {e}")
+
+
+# --- Normalize Source Paths ---
+def do_normalize_sources(args):
+    """Normalizes `source_file` to be just the basename."""
+    db_path = args.db_path or get_live_db_path()
+    # Connect to the questions database
+    conn = get_db_connection(db_path=db_path)
+    cursor = conn.cursor()
+    # Fetch all current source_file values
+    cursor.execute("SELECT id, source_file FROM questions")
+    rows = cursor.fetchall()
+    updated = 0
+    for qid, src in rows:
+        # Compute normalized basename
+        base = os.path.basename(src) if src else src
+        if base and base != src:
+            cursor.execute(
+                "UPDATE questions SET source_file = ? WHERE id = ?",
+                (base, qid)
+            )
+            updated += 1
+    conn.commit()
+    conn.close()
+    print(f"Updated {updated} source_file entries in {db_path}")
+
+
+# --- List DB Modules ---
+def do_list_modules(args):
+    """Lists all quiz modules currently stored in the Kubelingo SQLite DB."""
+    loader = DBLoader()
+    modules = loader.discover()
+    if not modules:
+        print("No quiz modules found in the DB.")
+        return
+    print("Available DB quiz modules (module_name: question count):")
+    for sf in modules:
+        name, _ = os.path.splitext(sf)
+        # Count questions in each module
+        try:
+            qs = loader.load_file(sf)
+            count = len(qs)
+        except Exception:
+            count = 'error'
+        print(f" - {name}: {count}")
+
+
+# --- Prune Empty DBs ---
+def is_db_empty(db_path: Path) -> bool:
+    """Checks if a SQLite database is empty by looking for user-created tables."""
+    if db_path.stat().st_size == 0:
+        return True
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+        )
+        tables = cursor.fetchall()
+        return len(tables) == 0
+    except sqlite3.DatabaseError:
+        print(f"Warning: Could not open '{db_path.relative_to(project_root)}' as a database. Skipping.")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def do_prune_empty(args):
+    """Scans configured directories for SQLite files and removes any that are empty."""
+    SCAN_DIRS = [
+        project_root / ".kubelingo",
+        project_root / "archive",
+    ]
+    SQLITE_EXTENSIONS = [".db", ".sqlite3"]
+
+    print("Scanning for and removing empty databases...")
+    deleted_count = 0
+    for scan_dir in SCAN_DIRS:
+        if not scan_dir.is_dir():
+            continue
+
+        print(f"-> Scanning directory: {scan_dir.relative_to(project_root)}")
+        found_files = []
+        for ext in SQLITE_EXTENSIONS:
+            found_files.extend(scan_dir.rglob(f"*{ext}"))
+
+        if not found_files:
+            print("  No SQLite files found.")
+            continue
+
+        for file_path in found_files:
+            if is_db_empty(file_path):
+                print(f"  - Deleting empty database: {file_path.relative_to(project_root)}")
+                try:
+                    file_path.unlink()
+                    deleted_count += 1
+                except OSError as e:
+                    print(f"    Error deleting file: {e}")
+
+    print(f"\nScan complete. Deleted {deleted_count} empty database(s).")
+
+
+# --- Fix Source Paths ---
+def do_fix_sources(args):
+    """Ensures source_file paths in the database match the canonical paths in ENABLED_QUIZZES."""
+    print("Fixing source_file paths in the database...")
+    db_path = args.db_path or get_live_db_path()
+    conn = get_db_connection(db_path=db_path)
+
+    all_questions = get_all_questions(conn)
+    if not all_questions:
+        print("No questions found in the database.")
+        conn.close()
+        return
+
+    category_to_source_file = ENABLED_QUIZZES
+    allowed_args = {
+        "id", "prompt", "source_file", "response", "category", "source",
+        "validation_steps", "validator", "review", "question_type",
+        "schema_category", "answers", "correct_yaml", "difficulty",
+        "explanation", "initial_files", "pre_shell_cmds", "subject_matter",
+        "metadata",
+    }
+
+    updated_count = 0
+    try:
+        for q_dict in all_questions:
+            category = q_dict.get("category")
+            if not category:
+                continue
+
+            correct_source_file = category_to_source_file.get(category)
+            if not correct_source_file:
+                continue
+
+            if q_dict.get("source_file") != correct_source_file:
+                q_dict["source_file"] = correct_source_file
+                q_dict_for_db = {k: v for k, v in q_dict.items() if k in allowed_args}
+                add_question(conn=conn, **q_dict_for_db)
+                updated_count += 1
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error updating source files: {e}", file=sys.stderr)
+    finally:
+        conn.close()
+
+    print(f"Finished. Updated {updated_count} question(s).")
+
+
+# --- Build Master DB ---
+def import_questions_for_master(files: list[Path], conn: sqlite3.Connection):
+    """Loads all questions from a list of YAML file paths and adds them to the database."""
+    print(f"Importing from {len(files)} found YAML files...")
+
+    question_count = 0
+    for file_path in files:
+        print(f"  - Processing '{file_path.name}'...")
+        with open(file_path, 'r', encoding='utf-8') as f:
+            questions_data = yaml.safe_load(f)
+            if not questions_data:
+                continue
+            for q_dict in questions_data:
+                if 'metadata' in q_dict and isinstance(q_dict['metadata'], dict):
+                    metadata = q_dict.pop('metadata')
+                    metadata.pop('links', None)
+                    for k, v in metadata.items():
+                        if k not in q_dict:
+                            q_dict[k] = v
+
+                if 'category' in q_dict:
+                    q_dict['subject_matter'] = q_dict.pop('category')
+
+                q_type = q_dict.get('type', 'command')
+                if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
+                    schema_cat = 'manifest'
+                elif q_type == 'socratic':
+                    schema_cat = 'basic'
+                else:  # command, etc.
+                    schema_cat = 'command'
+                q_dict['schema_category'] = schema_cat
+                q_dict['category'] = schema_cat
+
+                if 'type' in q_dict:
+                    q_dict['question_type'] = q_dict.pop('type')
+                else:
+                    q_dict['question_type'] = q_type
+                if 'answer' in q_dict:
+                    q_dict['response'] = q_dict.pop('answer')
+
+                q_dict['source_file'] = file_path.name
+                links = q_dict.pop('links', None)
+                if links:
+                    metadata = q_dict.get('metadata')
+                    if not isinstance(metadata, dict):
+                        metadata = {}
+                    metadata['links'] = links
+                    q_dict['metadata'] = metadata
+                add_question(conn=conn, **q_dict)
+                question_count += 1
+    print(f"\nImport complete. Added/updated {question_count} questions.")
+    return question_count
+
+def backup_live_to_master(source_db_path: str):
+    """Backs up the given database to create the master copies."""
+    live_db_path = Path(source_db_path)
+    backup_master_path = Path(MASTER_DATABASE_FILE)
+    backup_secondary_path = Path(SECONDARY_MASTER_DATABASE_FILE)
+
+    if not live_db_path.exists():
+        print(f"Error: Database not found at '{live_db_path}'. Cannot create backup.")
+        return
+
+    print(f"\nBacking up database from '{live_db_path}'...")
+    backup_master_path.parent.mkdir(exist_ok=True)
+    shutil.copy(live_db_path, backup_master_path)
+    print(f"  - Created primary master backup: '{backup_master_path}'")
+    shutil.copy(live_db_path, backup_secondary_path)
+    print(f"  - Created secondary master backup: '{backup_secondary_path}'")
+    print("\nBackup complete.")
+
+def do_build_master(args):
+    """Builds the Kubelingo master question database from consolidated YAML files."""
+    print("--- Building Kubelingo Master Question Database ---")
+
+    print(f"\nScanning for YAML files in: '{QUESTIONS_DIR}'")
+    if not os.path.isdir(QUESTIONS_DIR):
+        print(f"\nError: The configured questions directory does not exist: '{QUESTIONS_DIR}'")
+        sys.exit(1)
+
+    all_yaml_files = find_yaml_files([QUESTIONS_DIR])
+    if not all_yaml_files:
+        print(f"\nError: No question YAML files found in '{QUESTIONS_DIR}'.")
+        sys.exit(1)
+
+    print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
+
+    db_path = args.db_path or DATABASE_FILE
+    print(f"\nStep 1: Preparing live database at '{db_path}'...")
+    init_db(db_path=db_path, clear=True)
+    print("  - Cleared and initialized database for build.")
+
+    print(f"\nStep 2: Importing questions from all found YAML files...")
+    questions_imported = 0
+    conn = get_db_connection(db_path=db_path)
+    try:
+        questions_imported = import_questions_for_master(all_yaml_files, conn)
+    finally:
+        conn.close()
+
+    if questions_imported > 0:
+        print(f"\nStep 3: Creating master database backups...")
+        backup_live_to_master(db_path)
+    else:
+        print("\nNo questions were imported. Skipping database backup.")
+
+    print("\n--- Build process finished. ---")
 
 
 # --- Indexing ---
@@ -471,6 +834,30 @@ def main():
     p_diff.add_argument('--no-schema', action='store_true', help='Do not compare schema.')
     p_diff.add_argument('--no-counts', action='store_true', help='Do not compare row counts.')
     p_diff.set_defaults(func=do_diff)
+
+    p_migrate = subparsers.add_parser("migrate-from-yaml", help="Migrate questions from YAML files to DB.")
+    p_migrate.add_argument("--file", help="Path to a specific YAML file to migrate.")
+    p_migrate.add_argument("--source-dir", action="append", dest="source_dirs", help="Specific directory to scan for YAML files.")
+    p_migrate.add_argument("--clear", action="store_true", help="Clear the existing database before migrating.")
+    p_migrate.set_defaults(func=do_migrate_from_yaml)
+
+    p_normalize = subparsers.add_parser("normalize-sources", help="Normalize source_file paths in DB to basenames.")
+    p_normalize.add_argument("--db-path", type=str, default=None, help="Path to the SQLite database file.")
+    p_normalize.set_defaults(func=do_normalize_sources)
+
+    p_list_modules = subparsers.add_parser("list-modules", help="List all quiz modules in the DB.")
+    p_list_modules.set_defaults(func=do_list_modules)
+
+    p_prune = subparsers.add_parser("prune-empty", help="Scan for and remove empty database files.")
+    p_prune.set_defaults(func=do_prune_empty)
+
+    p_fix = subparsers.add_parser("fix-sources", help="Fix source_file paths based on question category.")
+    p_fix.add_argument("--db-path", type=str, default=None, help="Path to SQLite DB. Uses live DB if not set.")
+    p_fix.set_defaults(func=do_fix_sources)
+
+    p_build = subparsers.add_parser("build-master", help="Build master question DB from YAML files.")
+    p_build.add_argument("--db-path", type=str, default=None, help="Path to build DB in. Defaults to live DB path.")
+    p_build.set_defaults(func=do_build_master)
 
     args = parser.parse_args()
     args.func(args)
