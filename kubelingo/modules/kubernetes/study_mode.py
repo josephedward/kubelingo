@@ -133,9 +133,12 @@ class KubernetesStudyMode:
         """Runs a quiz focused on basic terminology."""
         print("\nStarting basic term/definition recall session...")
         print("Type 'exit' or 'quit' to end the session.")
+        used_terms = []
         while True:
             try:
-                pair = self.generate_term_definition_pair(topic, user_level)
+                pair = self.generate_term_definition_pair(
+                    topic, user_level, exclude_terms=used_terms
+                )
                 if not pair:
                     print("Failed to generate a term/definition pair. Please try again.")
                     if not questionary.confirm("Try again?").ask():
@@ -143,6 +146,7 @@ class KubernetesStudyMode:
                     continue
 
                 term = pair.get("term")
+                used_terms.append(term)
                 definition = pair.get("definition")
 
                 print(f"\nDefinition: {definition}")
@@ -244,12 +248,18 @@ class KubernetesStudyMode:
         return False
 
     def generate_term_definition_pair(
-        self, topic: str, user_level: str = "intermediate"
+        self,
+        topic: str,
+        user_level: str = "intermediate",
+        exclude_terms: Optional[List[str]] = None,
     ) -> Optional[Dict[str, str]]:
-        """Generates a term and definition pair for the given topic."""
+        """Generates a term and definition pair for the given topic, avoiding duplicates."""
         try:
             questions = self.question_generator.generate_questions(
-                subject=topic, num_questions=1, category="Basic"
+                subject=topic,
+                num_questions=1,
+                category="Basic",
+                exclude_terms=exclude_terms,
             )
             if questions and questions[0] and questions[0].answers:
                 question = questions[0]
