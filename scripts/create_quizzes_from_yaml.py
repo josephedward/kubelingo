@@ -23,6 +23,24 @@ CATEGORY_MAPPING = {
     'manifest': 'manifest',
 }
 
+def extract_questions_from_yaml(yaml_data, file_path):
+    """
+    Extracts the list of questions from the YAML data.
+    If the YAML data is a dictionary, attempts to find a key containing the questions.
+    """
+    if isinstance(yaml_data, list):
+        return yaml_data
+    elif isinstance(yaml_data, dict):
+        # Attempt to find a key that contains the list of questions
+        for key, value in yaml_data.items():
+            if isinstance(value, list) and all(isinstance(item, dict) for item in value):
+                logging.info(f"Extracted questions from key '{key}' in file {file_path}.")
+                return value
+        logging.error(f"YAML file {file_path} contains a dictionary but no valid list of questions.")
+    else:
+        logging.error(f"Unexpected YAML structure in file {file_path}: {type(yaml_data)}.")
+    return None
+
 def validate_yaml_structure(yaml_data, file_path):
     """
     Validates the structure of the YAML data to ensure it is a list of questions.
@@ -76,8 +94,13 @@ def create_quizzes_from_backup():
         logging.info(f"Processing file: {yaml_file}")
         try:
             with open(yaml_file, 'r') as f:
-                questions_data = yaml.safe_load(f)
-                logging.debug(f"Loaded YAML content from {yaml_file}: {questions_data}")
+                raw_yaml_data = yaml.safe_load(f)
+                logging.debug(f"Loaded YAML content from {yaml_file}: {raw_yaml_data}")
+
+                questions_data = extract_questions_from_yaml(raw_yaml_data, yaml_file)
+                if not questions_data:
+                    logging.error(f"Skipping file {yaml_file} due to invalid structure.")
+                    continue
 
                 if not validate_yaml_structure(questions_data, yaml_file):
                     logging.error(f"Skipping file {yaml_file} due to invalid structure.")
