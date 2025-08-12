@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-7b
+  namespace: llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        resources:
+          limits:
+            cpu: "1"
+            memory: "6Gi"
+          requests:
+            cpu: "750m"
+            memory: "5Gi"
+        ports:
+        - containerPort: 11434
+        volumeMounts:
+        - mountPath: /root/.ollama
+          name: models
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh","-c","ollama pull llama2:7b"]
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: llm-models
+
