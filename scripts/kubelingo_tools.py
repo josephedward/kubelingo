@@ -52,17 +52,20 @@ def task_index_yaml():
     """Index all YAML Files in Dir"""
     _run_script("yaml_manager.py", "index")
 
-def task_locate_yaml_backup():
-    """Locate Previous YAML Backup"""
+def task_consolidate_unique_yaml_questions():
+    """Consolidate Unique Yaml Questions"""
+    _run_script("question_manager.py", "consolidate-unique-yaml")
+
+
+def task_show_previous_yaml_backups():
+    """Show Previous YAML backup(s)"""
     _run_script("yaml_manager.py", "list-backups")
 
-def task_consolidate_unique_yaml():
-    """Consolidate Unique YAML Questions"""
-    _run_script("question_manager.py", "consolidate-unique-yaml")
 
 def task_diff_yaml_backups():
     """Diff YAML Backups"""
     _run_script("yaml_manager.py", "diff")
+
 
 def task_yaml_statistics():
     """YAML Statistics"""
@@ -209,16 +212,16 @@ def run_interactive_menu():
     tasks = {
         # YAML
         "Index all Yaml Files in Dir": task_index_yaml,
-        "Consolidate Unique Yaml Questions": task_consolidate_unique_yaml,
-        "Show Previous YAML backup(s)": task_locate_yaml_backup,
+        "Consolidate Unique Yaml Questions": task_consolidate_unique_yaml_questions,
+        "Show Previous YAML backup(s)": task_show_previous_yaml_backups,
         "Diff YAML Backups": task_diff_yaml_backups,
         "YAML Statistics": task_yaml_statistics,
         # SQLite
-        "Index all Sqlite files in Dir": task_index_sqlite,
+        "Index Sqlite Files": task_index_sqlite_files,
         "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
         "View Database Schema": task_view_db_schema,
-        "Show Previous Sqlite Backup(s)": task_locate_sqlite_backup,
-        "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
+        "Show Previous Sqlite Backup(s)": task_show_previous_sqlite_backups,
+        "Diff with Backup Sqlite Db": task_diff_sqlite_backups,
         "Restore from Sqlite Backup Version": task_restore_from_sqlite_backup,
         # Questions
         "Deduplicate Questions": task_deduplicate_questions,
@@ -239,8 +242,8 @@ def run_interactive_menu():
                 "Show Previous YAML backup(s)",
                 "Diff YAML Backups",
                 "YAML Statistics",
-                Separator("=== SQLite ==="),
-                "Index all Sqlite files in Dir",
+                Separator("=== Sqlite ==="),
+                "Index Sqlite Files",
                 "Create Sqlite DB from YAML Backup Version",
                 "View Database Schema",
                 "Show Previous Sqlite Backup(s)",
