@@ -103,15 +103,41 @@ def import_yaml_to_db(yaml_path: str, conn: sqlite3.Connection):
 def main():
     parser = argparse.ArgumentParser(
         description="Verify YAML question import to SQLite and loading via DBLoader.",
-        epilog="This script creates a temporary database, so it won't affect your main DB."
+        epilog="This script can process single files, multiple files, or directories of files."
     )
-    parser.add_argument("yaml_file", help="Path to the YAML file with questions.")
+    parser.add_argument("paths", nargs='+', help="Path(s) to YAML file(s) or directories containing them.")
     args = parser.parse_args()
 
-    yaml_file = args.yaml_file
+    yaml_files = []
+    for path in args.paths:
+        if os.path.isdir(path):
+            print(f"Searching for YAML files in directory: {path}")
+            for item in os.listdir(path):
+                if item.endswith(('.yml', '.yaml')):
+                    full_path = os.path.join(path, item)
+                    yaml_files.append(full_path)
+        elif os.path.isfile(path):
+            if path.endswith(('.yml', '.yaml')):
+                yaml_files.append(path)
+            else:
+                print(f"Warning: Skipping non-YAML file: {path}", file=sys.stderr)
+        else:
+            if 'path/to/your/quiz.yaml' in path:
+                 print(f"Error: YAML file not found at {path}", file=sys.stderr)
+                 print("Please replace 'path/to/your/quiz.yaml' with the actual path to your YAML file.", file=sys.stderr)
+                 sys.exit(1)
+            else:
+                print(f"Warning: Path not found or is not a file/directory, skipping: {path}", file=sys.stderr)
+
+    yaml_files = sorted(list(set(yaml_files)))
+
+    if not yaml_files:
+        print("Error: No YAML files found in the provided paths.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Found {len(yaml_files)} YAML file(s) to process.")
     
     # We use a temporary file on disk so we have a path to pass to DBLoader.
-    # An in-memory DB would be faster but harder to integrate here without more changes.
     tmp_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     db_path = tmp_db_file.name
     tmp_db_file.close()
@@ -121,34 +147,57 @@ def main():
         
         conn = sqlite3.connect(db_path)
         create_db_schema(conn)
-        num_imported = import_yaml_to_db(yaml_file, conn)
+
+        total_imported = 0
+        imported_files_map = {}  # basename -> count
+
+        for yaml_file in yaml_files:
+            num_imported = import_yaml_to_db(yaml_file, conn)
+            if num_imported > 0:
+                total_imported += num_imported
+                imported_files_map[os.path.basename(yaml_file)] = num_imported
+        
         conn.close()
 
-        if num_imported == 0:
-            print("No questions found in YAML file. Exiting.")
+        if total_imported == 0:
+            print("No questions found in any YAML file. Exiting.")
             return
 
+        print(f"\nTotal questions imported: {total_imported}")
         print("\nVerifying import using DBLoader...")
         loader = DBLoader(db_path=db_path)
         
         source_files_in_db = loader.discover()
-        yaml_basename = os.path.basename(yaml_file)
         
-        if yaml_basename not in source_files_in_db:
-            print(f"ERROR: DBLoader did not discover source_file '{yaml_basename}' in the database.", file=sys.stderr)
-            print(f"Discovered files: {source_files_in_db}", file=sys.stderr)
-            sys.exit(1)
+        all_sources_discovered = True
+        for basename in imported_files_map:
+            if basename not in source_files_in_db:
+                print(f"ERROR: DBLoader did not discover source_file '{basename}' in the database.", file=sys.stderr)
+                all_sources_discovered = False
+        
+        if not all_sources_discovered:
+             print(f"Discovered files in DB: {source_files_in_db}", file=sys.stderr)
+             sys.exit(1)
             
-        print(f"Successfully discovered source_file '{yaml_basename}'.")
+        print(f"Successfully discovered all {len(imported_files_map)} source file(s).")
 
-        loaded_questions = loader.load_file(yaml_basename)
+        total_loaded = 0
+        all_counts_match = True
+        for basename, num_imported in imported_files_map.items():
+            loaded_questions = loader.load_file(basename)
+            num_loaded = len(loaded_questions)
+            total_loaded += num_loaded
+            print(f"- '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+            if num_loaded != num_imported:
+                all_counts_match = False
         
-        print(f"DBLoader loaded {len(loaded_questions)} questions for source_file '{yaml_basename}'.")
-        
-        if len(loaded_questions) == num_imported:
-            print("\nSUCCESS: The number of loaded questions matches the number of imported questions.")
+        print("-" * 20)
+        print(f"Total Imported: {total_imported}, Total Loaded: {total_loaded}")
+
+        if all_counts_match and total_imported == total_loaded:
+            print("\nSUCCESS: The number of loaded questions matches the number of imported questions for all files.")
         else:
-            print(f"\nERROR: Mismatch in question count. Imported: {num_imported}, Loaded: {len(loaded_questions)}", file=sys.stderr)
+            print(f"\nERROR: Mismatch in question count detected for one or more files.", file=sys.stderr)
             sys.exit(1)
 
     finally:
