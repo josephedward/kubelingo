@@ -25,9 +25,11 @@ if str(project_root) not in sys.path:
 try:
     from kubelingo.utils.config import APP_DIR
     from kubelingo.utils.path_utils import get_all_question_dirs, find_yaml_files
+    from kubelingo.modules.ai_categorizer import AICategorizer
 except ImportError:
-    print("Could not import kubelingo modules. Using fallbacks.", file=sys.stderr)
+    print("Could not import kubelingo modules. Using fallbacks. AI categorization will be disabled.", file=sys.stderr)
     APP_DIR = project_root / '.kubelingo' # fallback
+    AICategorizer = None
     def get_all_question_dirs():
         q_dir = project_root / 'question-data'
         return [str(q_dir)] if q_dir.is_dir() else []
@@ -376,6 +378,10 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
 
     dest_dir.mkdir(parents=True, exist_ok=True)
 
+    categorizer = AICategorizer() if 'AICategorizer' in globals() and AICategorizer else None
+    if categorizer:
+        print("AI categorizer loaded. Will attempt to categorize questions without a subject.")
+
     yaml_files = list(source_dir.glob("*.yaml"))
     if not yaml_files:
         print(f"No YAML files found in {source_dir}")
@@ -400,7 +406,17 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
                 if not isinstance(question, dict):
                     continue
 
-                subject = question.get("subject") or "general"
+                subject = question.get("subject")
+                if not subject and categorizer:
+                    try:
+                        ai_cats = categorizer.categorize_question(question)
+                        if ai_cats:
+                            subject = ai_cats.get("subject_matter")
+                            print(f"  Categorized question {question.get('id', '')} as '{subject}'")
+                    except Exception as e:
+                        print(f"AI categorization failed for question {question.get('id', 'N/A')}: {e}", file=sys.stderr)
+
+                subject = subject or "general"
                 # Sanitize subject to create a valid filename
                 filename_subject = subject.lower().replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "")
                 filename_subject = ''.join(c for c in filename_subject if c.isalnum() or c == '_')
