@@ -113,7 +113,7 @@ Do not generate a term from the following list:
                     "What style of quiz would you like?",
                     choices=[
                         "Open-Ended Socratic Dialogue",
-                        "Basic Terminology Quiz",
+                        "Basic term/definition recall",
                         "Command-line Challenge",
                         "Manifest Authoring Exercise",
                     ],
@@ -124,7 +124,7 @@ Do not generate a term from the following list:
 
                 if quiz_style == "Open-Ended Socratic Dialogue":
                     self._run_socratic_mode(topic, user_level)
-                elif quiz_style == "Basic Terminology Quiz":
+                elif quiz_style == "Basic term/definition recall":
                     self._run_basic_quiz(topic, user_level)
                 elif quiz_style == "Command-line Challenge":
                     self._run_command_quiz(topic, user_level)
@@ -158,7 +158,7 @@ Do not generate a term from the following list:
 
     def _run_basic_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on basic terminology."""
-        print(f"\nStarting a 'Basic Terminology' quiz on {topic}. Type 'exit' to quit.")
+        print(f"\nStarting a 'Basic term/definition recall' session on {topic}. Type 'exit' or 'quit' to end the session.")
         self._run_quiz_loop("basic", topic, user_level)
 
     def _run_command_quiz(self, topic: str, user_level: str):
