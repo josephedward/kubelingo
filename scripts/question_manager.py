@@ -49,7 +49,7 @@ except ImportError:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, SUBJECT_MATTER, init_db,
+    get_all_questions, get_db_connection, SUBJECT_MATTER, init_db,
     _row_to_question_dict, import_questions_from_yaml_files
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
@@ -112,24 +112,6 @@ def backup_database(source_db_path: str):
         print(f"Failed to backup database: {e}", file=sys.stderr)
 
 
-def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
-    """Fetches all questions from the database."""
-    close_conn = False
-    if conn is None:
-        conn = get_db_connection()
-        close_conn = True
-
-    try:
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM questions")
-        rows = cursor.fetchall()
-        questions = [_row_to_question_dict(row) for row in rows]
-    finally:
-        if close_conn:
-            conn.close()
-
-    return questions
 
 
 def get_questions_by_source_file(source_file: str, conn: sqlite3.Connection) -> List[Dict[str, Any]]:

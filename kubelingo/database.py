@@ -148,6 +148,26 @@ def get_question_counts_by_schema_and_subject(schema: str, subject: str) -> int:
         conn.close()
 
 
+def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+    """Fetches all questions from the database."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+    try:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM questions")
+        rows = cursor.fetchall()
+        questions = [_row_to_question_dict(row) for row in rows]
+    finally:
+        if close_conn:
+            conn.close()
+
+    return questions
+
+
 def get_flagged_questions() -> List[Dict[str, Any]]:
     """
     Retrieves questions that are flagged for review.
