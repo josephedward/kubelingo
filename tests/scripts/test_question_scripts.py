@@ -490,9 +490,9 @@ def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     question_manager_mod.main()
 
     captured = capsys.readouterr()
-    assert "Suggest citation: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get" in captured.out
+    assert "-> Suggest citation: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get" in captured.out
     # Check that the "no citation" message is not printed for the file since one was found
-    assert "No citations found in this file" not in captured.out
+    assert "-> No citations found in this file" not in captured.out
 
     # Test for no citation found in a different directory
     no_match_dir = tmp_path / "no_match_dir"
@@ -502,4 +502,55 @@ def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'suggest-citations', str(no_match_dir)])
     question_manager_mod.main()
     captured_no_match = capsys.readouterr()
-    assert "No citations found in this file" in captured_no_match.out
+    assert "-> No citations found in this file" in captured_no_match.out
+
+
+def test_find_duplicates_dry_run(temp_db_with_duplicates, capsys, monkeypatch):
+    """Tests the find-duplicates subcommand of question_manager.py in dry-run mode."""
+    question_manager_mod = load_script('question_manager')
+
+    # Run in dry-run mode
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'find-duplicates', '--db-path', str(temp_db_with_duplicates)])
+    question_manager_mod.main()
+
+    # Check output
+    captured = capsys.readouterr()
+    assert "Prompt duplicated 2 times: 'duplicate prompt'" in captured.out
+    assert "rowid=1, id=q1" in captured.out
+    assert "rowid=3, id=q3" in captured.out
+    assert "Deleted" not in captured.out
+
+    # Check db content is unchanged
+    conn = sqlite3.connect(temp_db_with_duplicates)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM questions")
+    assert cursor.fetchone()[0] == 4
+    conn.close()
+
+
+def test_find_duplicates_delete(temp_db_with_duplicates, capsys, monkeypatch):
+    """Tests the find-duplicates subcommand of question_manager.py with --delete flag."""
+    question_manager_mod = load_script('question_manager')
+
+    # Run with --delete flag
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'find-duplicates', '--db-path', str(temp_db_with_duplicates), '--delete'])
+    question_manager_mod.main()
+
+    # Check output
+    captured = capsys.readouterr()
+    assert "Prompt duplicated 2 times: 'duplicate prompt'" in captured.out
+    assert "rowid=1, id=q1" in captured.out
+    assert "rowid=3, id=q3" in captured.out
+    assert "Deleted 1 duplicates for this prompt." in captured.out
+    assert "Total duplicates deleted: 1" in captured.out
+
+    # Check db content was changed
+    conn = sqlite3.connect(temp_db_with_duplicates)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM questions")
+    assert cursor.fetchone()[0] == 3
+    cursor.execute("SELECT id FROM questions WHERE prompt = 'duplicate prompt'")
+    assert cursor.fetchone()[0] == 'q1'  # q1 is kept because it has lower rowid
+    cursor.execute("SELECT COUNT(*) FROM questions WHERE id = 'q3'")
+    assert cursor.fetchone()[0] == 0  # q3 is deleted
+    conn.close()
