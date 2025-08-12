@@ -43,7 +43,14 @@ class KubernetesStudyMode:
                 ).ask()
 
                 if choice == "Start Study Session":
-                    self.start_study_session()
+                    level = questionary.select(
+                        "What is your current overall skill level?",
+                        choices=["beginner", "intermediate", "advanced"],
+                        default="intermediate",
+                    ).ask()
+                    if not level:
+                        continue
+                    self.start_study_session(user_level=level)
                 elif choice == "Review Past Questions":
                     self.review_past_questions()
                 elif choice == "Settings":
