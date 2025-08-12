@@ -22,6 +22,123 @@ from kubelingo.utils.config import get_live_db_path
 from kubelingo.utils.ui import Fore, Style
 
 
+class QuestionSkipped(Exception):
+    """Custom exception to signal that a question should be skipped during processing."""
+    def __init__(self, message: str, category: Optional[str] = None):
+        self.message = message
+        self.category = category
+        super().__init__(self.message)
+
+
+def _normalize_and_prepare_question_for_db(
+    q_data: dict,
+    category_to_source_file: dict,
+    allowed_args: set,
+) -> dict:
+    """
+    Normalizes raw question data from YAML and prepares it for database insertion.
+
+    Raises:
+        QuestionSkipped: If the question is missing necessary data and should be skipped.
+
+    Returns:
+        A dictionary of question data ready for the database.
+    """
+    q_dict = q_data.copy()
+
+    # Flatten metadata, giving preference to top-level keys
+    if "metadata" in q_dict and isinstance(q_dict["metadata"], dict):
+        metadata = q_dict.pop("metadata")
+        for k, v in metadata.items():
+            if k not in q_dict:
+                q_dict[k] = v
+
+    # Normalize legacy 'answer' to 'correct_yaml' for yaml_author/yaml_edit questions
+    if "answer" in q_dict:
+        q_dict["correct_yaml"] = q_dict.pop("answer")
+
+    # Normalize legacy 'starting_yaml' to 'initial_files' for yaml_edit questions
+    if "starting_yaml" in q_dict:
+        q_dict["initial_files"] = {"manifest.yaml": q_dict.pop("starting_yaml")}
+
+    # Normalize legacy 'question' key to 'prompt'
+    if "question" in q_dict:
+        q_dict["prompt"] = q_dict.pop("question")
+
+    # Normalize legacy yaml editing/authoring fields
+    q_type = q_dict.get("type")
+    if q_type in ("yaml_edit", "yaml_author"):
+        if "answer" in q_dict and "correct_yaml" not in q_dict:
+            q_dict["correct_yaml"] = q_dict.pop("answer")
+        if "starting_yaml" in q_dict and "initial_files" not in q_dict:
+            # Use a generic filename for the initial file content, as one is required.
+            q_dict["initial_files"] = {
+                "f.yaml": q_dict.pop("starting_yaml")
+            }
+
+    # Normalize 'type' from YAML to 'question_type' for the database
+    if "type" in q_dict:
+        q_dict["question_type"] = q_dict.pop("type")
+
+    # Normalize 'subject' from YAML to 'subject_matter' for the database
+    if "subject" in q_dict:
+        q_dict["subject_matter"] = q_dict.pop("subject")
+
+    # Set schema_category based on question type
+    q_type = q_dict.get("question_type", "command")
+    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
+        q_dict["schema_category"] = "manifest"
+    elif q_type in ("command", "kubectl"):
+        q_dict["schema_category"] = "command"
+    else:  # socratic, etc. maps to 'basic'
+        q_dict["schema_category"] = "basic"
+
+    # Infer a default category if one is not provided to prevent skipping.
+    if not q_dict.get("category"):
+        q_type = q_dict.get("question_type")
+        if q_type in ("yaml_edit", "yaml_author"):
+            q_dict["category"] = "YAML Authoring"
+        elif q_dict.get("subject_matter"):
+            # Use subject_matter as a fallback for category. This is useful for
+            # command-line questions that are often categorized by subject.
+            q_dict["category"] = q_dict["subject_matter"]
+        # For AI-generated questions, infer category from subject matter.
+        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
+            subject = q_dict.get("subject_matter")
+            # Capitalize first letter to match common category naming conventions.
+            q_dict["category"] = subject.capitalize()
+
+    # To associate a question with a quiz, its `source_file` must be set correctly.
+    # The canonical mapping is from category -> source_file in ENABLED_QUIZZES.
+    # We prioritize this mapping, but fall back to a source_file from the YAML data itself
+    # if the category lookup fails. This handles both consolidated files and backups
+    # that already contain correct source_file information.
+    category = q_dict.get("category")
+    source_file_from_category = category_to_source_file.get(category)
+
+    if source_file_from_category:
+        # Always prefer the mapping from ENABLED_QUIZZES as the source of truth.
+        q_dict["source_file"] = source_file_from_category
+    elif not q_dict.get("source_file"):
+        # If we couldn't derive from category, and the question data doesn't
+        # have a source_file either, then we must skip it.
+        if category:
+            raise QuestionSkipped(f"Unmatched category: {category}", category=category)
+        else:
+            raise QuestionSkipped("Missing category and could not infer one.")
+
+
+    # Remove legacy keys that are not supported by the database schema.
+    q_dict.pop("solution_file", None)
+    q_dict.pop("subject", None)
+    q_dict.pop("type", None)
+
+    # Filter dict to only include keys that add_question accepts
+    return {
+        k: v for k, v in q_dict.items() if k in allowed_args
+    }
+
+
 def populate_db_from_yaml(
     yaml_files: list[Path], db_path: Optional[str] = None
 ):
@@ -58,14 +175,11 @@ def populate_db_from_yaml(
         "metadata",
     }
 
-    # Create a mapping from category names to their source filenames.
-    # The application expects the full path to the source file to associate
-    # questions with a quiz, not just the basename.
     category_to_source_file = ENABLED_QUIZZES
     unmatched_categories = set()
     skipped_no_category = 0
-
     question_count = 0
+
     try:
         for file_path in yaml_files:
             print(f"  - Processing '{file_path.name}'...")
@@ -79,112 +193,25 @@ def populate_db_from_yaml(
                 if not questions_data:
                     continue
 
-                # The YAML might contain a top-level list or a dictionary with a list of questions.
                 questions_list = questions_data
                 if isinstance(questions_data, dict):
-                    # Look for a 'questions' or 'entries' key specifically.
                     questions_list = questions_data.get("questions") or questions_data.get("entries")
 
                 if not isinstance(questions_list, list):
                     continue
 
                 for q_data in questions_list:
-                    q_dict = q_data.copy()
-
-                    # Flatten metadata, giving preference to top-level keys
-                    if "metadata" in q_dict and isinstance(q_dict["metadata"], dict):
-                        metadata = q_dict.pop("metadata")
-                        for k, v in metadata.items():
-                            if k not in q_dict:
-                                q_dict[k] = v
-
-                    # Normalize legacy 'answer' to 'correct_yaml' for yaml_author/yaml_edit questions
-                    if "answer" in q_dict:
-                        q_dict["correct_yaml"] = q_dict.pop("answer")
-
-                    # Normalize legacy 'starting_yaml' to 'initial_files' for yaml_edit questions
-                    if "starting_yaml" in q_dict:
-                        q_dict["initial_files"] = {"manifest.yaml": q_dict.pop("starting_yaml")}
-
-                    # Normalize legacy 'question' key to 'prompt'
-                    if "question" in q_dict:
-                        q_dict["prompt"] = q_dict.pop("question")
-
-                    # Normalize legacy yaml editing/authoring fields
-                    q_type = q_dict.get("type")
-                    if q_type in ("yaml_edit", "yaml_author"):
-                        if "answer" in q_dict and "correct_yaml" not in q_dict:
-                            q_dict["correct_yaml"] = q_dict.pop("answer")
-                        if "starting_yaml" in q_dict and "initial_files" not in q_dict:
-                            # Use a generic filename for the initial file content, as one is required.
-                            q_dict["initial_files"] = {
-                                "f.yaml": q_dict.pop("starting_yaml")
-                            }
-
-                    # Normalize 'type' from YAML to 'question_type' for the database
-                    if "type" in q_dict:
-                        q_dict["question_type"] = q_dict.pop("type")
-
-                    # Normalize 'subject' from YAML to 'subject_matter' for the database
-                    if "subject" in q_dict:
-                        q_dict["subject_matter"] = q_dict.pop("subject")
-
-                    # Set schema_category based on question type
-                    q_type = q_dict.get("question_type", "command")
-                    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
-                        q_dict["schema_category"] = "manifest"
-                    elif q_type in ("command", "kubectl"):
-                        q_dict["schema_category"] = "command"
-                    else:  # socratic, etc. maps to 'basic'
-                        q_dict["schema_category"] = "basic"
-
-                    # Infer a default category if one is not provided to prevent skipping.
-                    if not q_dict.get("category"):
-                        q_type = q_dict.get("question_type")
-                        if q_type in ("yaml_edit", "yaml_author"):
-                            q_dict["category"] = "YAML Authoring"
-                        elif q_dict.get("subject_matter"):
-                            # Use subject_matter as a fallback for category. This is useful for
-                            # command-line questions that are often categorized by subject.
-                            q_dict["category"] = q_dict["subject_matter"]
-                        # For AI-generated questions, infer category from subject matter.
-                        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
-                            subject = q_dict.get("subject_matter")
-                            # Capitalize first letter to match common category naming conventions.
-                            q_dict["category"] = subject.capitalize()
-
-                    # To associate a question with a quiz, its `source_file` must be set correctly.
-                    # The canonical mapping is from category -> source_file in ENABLED_QUIZZES.
-                    # We prioritize this mapping, but fall back to a source_file from the YAML data itself
-                    # if the category lookup fails. This handles both consolidated files and backups
-                    # that already contain correct source_file information.
-                    category = q_dict.get("category")
-                    source_file_from_category = category_to_source_file.get(category)
-
-                    if source_file_from_category:
-                        # Always prefer the mapping from ENABLED_QUIZZES as the source of truth.
-                        q_dict["source_file"] = source_file_from_category
-                    elif not q_dict.get("source_file"):
-                        # If we couldn't derive from category, and the question data doesn't
-                        # have a source_file either, then we must skip it.
-                        if category:
-                            unmatched_categories.add(category)
+                    try:
+                        q_dict_for_db = _normalize_and_prepare_question_for_db(
+                            q_data, category_to_source_file, allowed_args
+                        )
+                        add_question(conn=conn, **q_dict_for_db)
+                        question_count += 1
+                    except QuestionSkipped as e:
+                        if e.category:
+                            unmatched_categories.add(e.category)
                         else:
                             skipped_no_category += 1
-                        continue
-
-                    # Remove legacy keys that are not supported by the database schema.
-                    q_dict.pop("solution_file", None)
-                    q_dict.pop("subject", None)
-                    q_dict.pop("type", None)
-
-                    # Filter dict to only include keys that add_question accepts
-                    q_dict_for_db = {
-                        k: v for k, v in q_dict.items() if k in allowed_args
-                    }
-
-                    add_question(conn=conn, **q_dict_for_db)
-                    question_count += 1
         conn.commit()
     except Exception as e:
         conn.rollback()
