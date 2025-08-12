@@ -251,3 +251,20 @@ def get_flagged_questions(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
     cursor.execute("SELECT * FROM questions WHERE review = 1")
     rows = cursor.fetchall()
     return [_row_to_question_dict(row) for row in rows]
+
+
+def update_review_status(conn: sqlite3.Connection, question_id: str, review: bool):
+    """
+    Updates the 'review' flag for a specific question in the database.
+
+    Args:
+        conn: SQLite connection object.
+        question_id: The ID of the question to update.
+        review: The new review status (True or False).
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE questions SET review = ? WHERE id = ?",
+        (review, question_id)
+    )
+    conn.commit()
