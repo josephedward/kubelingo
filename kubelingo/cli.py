@@ -65,8 +65,10 @@ from kubelingo.utils.ui import (
 )
 try:
     import questionary
+    from questionary import Separator
 except ImportError:
     questionary = None
+    Separator = None
 from pathlib import Path
 import subprocess
 
@@ -263,11 +265,159 @@ def handle_config_command(cmd):
     else:
         print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
+def _run_script(script_path: str):
+    """Helper to run a script from the project root."""
+    full_path = repo_root / script_path
+    if not full_path.is_file():
+        print(f"{Fore.RED}Error: Script '{full_path}' not found or is not a file.{Style.RESET_ALL}")
+        return
+
+    command = [sys.executable, str(full_path)]
+    print(f"\n{Fore.CYAN}Running: {' '.join(map(str, command))}{Style.RESET_ALL}")
+
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"{Fore.RED}Script exited with error code {e.returncode}.{Style.RESET_ALL}")
+    except KeyboardInterrupt:
+        # This will be caught by the outer loop in handle_tools
+        raise
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
+
+
 # Tools/maintenance scripts runner
 def handle_tools():
     """Launch the interactive tools menu."""
-    script_path = repo_root / 'scripts' / 'maintenance_menu.py'
-    subprocess.run([sys.executable, str(script_path)])
+    if not (questionary and Separator):
+        print(f"{Fore.RED}Error: 'questionary' library not found. Please install it with 'pip install questionary'.{Style.RESET_ALL}")
+        return
+
+    tasks = {
+        # YAML
+        'Consolidate Unique Yaml Questions': 'scripts/consolidate_unique_yaml_questions.py',
+        'Create Sqlite Db From Yaml': 'scripts/create_sqlite_db_from_yaml.py',
+        'Deduplicate Yaml': 'scripts/deduplicate_yaml.py',
+        'Dev Verify Yaml Import': 'scripts/dev/verify_yaml_import.py',
+        'Diff Yaml Backups': 'scripts/diff_yaml_backups.py',
+        'Export Db To Yaml': 'scripts/export_db_to_yaml.py',
+        'Import From Yaml With Ai': 'scripts/import_from_yaml_with_ai.py',
+        'Index Yaml Files': 'scripts/index_yaml_files.py',
+        'Legacy Group Backup Yaml Questions': 'scripts/legacy/group_backup_yaml_questions.py',
+        'Legacy Migrate All Yaml Questions': 'scripts/legacy/migrate_all_yaml_questions.py',
+        'Restore Db From Yaml': 'scripts/restore_db_from_yaml.py',
+        'Restore Yaml To Db': 'scripts/restore_yaml_to_db.py',
+        'Show Yaml Backups': 'scripts/show_yaml_backups.py',
+        'Write Db From Yaml': 'scripts/write_db_from_yaml.py',
+        'Yaml Statistics': 'scripts/yaml_statistics.py',
+        # SQLite & DB
+        'Diff Sqlite': 'scripts/diff_sqlite.py',
+        'Diff Sqlite Backups': 'scripts/diff_sqlite_backups.py',
+        'Fix Db Source Paths': 'scripts/fix_db_source_paths.py',
+        'Index Sqlite Files': 'scripts/index_sqlite_files.py',
+        'Locate Sqlite Backups': 'scripts/locate_sqlite_backups.py',
+        'Remove Empty Dbs': 'scripts/remove_empty_dbs.py',
+        'Restore Sqlite From Backup': 'scripts/restore_sqlite_from_backup.py',
+        'Show Sqlite Backups': 'scripts/show_sqlite_backups.py',
+        'Show Sqlite Schema': 'scripts/show_sqlite_schema.py',
+        'Unarchive Sqlite': 'scripts/unarchive_sqlite.py',
+        'View Db Schema': 'scripts/view_db_schema.py',
+        # Questions
+        'Categorize Questions': 'scripts/categorize_questions.py',
+        'Deduplicate Questions': 'scripts/deduplicate_questions.py',
+        'Fix Links': 'scripts/fix_links.py',
+        'Format Questions': 'scripts/format_questions.py',
+        'Lint Fix Question Format': 'scripts/lint_fix_question_format.py',
+        'Reorganize Questions': 'scripts/reorganize_questions.py',
+        'Validate Doc Links': 'scripts/validate_doc_links.py',
+        'Legacy Add Ui Config Questions': 'scripts/legacy/add_ui_config_questions.py',
+        'Legacy Check Docs Links': 'scripts/legacy/check_docs_links.py',
+        'Legacy Enrich Unseen Questions': 'scripts/legacy/enrich_unseen_questions.py',
+        'Legacy Find Duplicate Questions': 'scripts/legacy/find_duplicate_questions.py',
+        'Legacy Reorganize Question Data': 'scripts/legacy/reorganize_question_data.py',
+        # Generate
+        'Generate Kubectl Operations Quiz': 'scripts/generate_kubectl_operations_quiz.py',
+        'Generate Manifests': 'scripts/generate_manifests.py',
+        'Generate Resource Reference Quiz': 'scripts/generate_resource_reference_quiz.py',
+        'Legacy Generate Ai Quiz': 'scripts/legacy/generate_ai_quiz.py',
+        'Legacy Generate Service Account Questions': 'scripts/legacy/generate_service_account_questions.py',
+        'Legacy Generate Validation Steps': 'scripts/legacy/generate_validation_steps.py',
+        # Other
+        'Bug Ticket': 'scripts/bug_ticket.py',
+        'Consolidate Backups': 'scripts/consolidate_backups.py',
+        'Maintenance Menu': 'scripts/maintenance_menu.py',
+        'Update Schema Category': 'scripts/update_schema_category.py',
+        'Legacy Full Migrate And Cleanup': 'scripts/legacy/full_migrate_and_cleanup.py',
+        'Legacy Merge Solutions': 'scripts/legacy/merge_solutions.py',
+        'Legacy Suggest Citations': 'scripts/legacy/suggest_citations.py',
+        'Legacy Toolbox': 'scripts/legacy/toolbox.py',
+    }
+
+    # Filter out tasks where the script doesn't exist to prevent errors
+    existing_tasks = {name: path for name, path in tasks.items() if (repo_root / path).is_file()}
+
+    # Group tasks by category for the menu
+    menu_groups = {
+        "YAML": [
+            'Consolidate Unique Yaml Questions', 'Create Sqlite Db From Yaml', 'Deduplicate Yaml',
+            'Dev Verify Yaml Import', 'Diff Yaml Backups', 'Export Db To Yaml',
+            'Import From Yaml With Ai', 'Index Yaml Files', 'Legacy Group Backup Yaml Questions',
+            'Legacy Migrate All Yaml Questions', 'Restore Db From Yaml', 'Restore Yaml To Db',
+            'Show Yaml Backups', 'Write Db From Yaml', 'Yaml Statistics'
+        ],
+        "SQLite & DB": [
+            'Diff Sqlite', 'Diff Sqlite Backups',
+            'Fix Db Source Paths', 'Index Sqlite Files', 'Locate Sqlite Backups',
+            'Remove Empty Dbs', 'Restore Sqlite From Backup', 'Show Sqlite Backups',
+            'Show Sqlite Schema', 'Unarchive Sqlite', 'View Db Schema'
+        ],
+        "Questions": [
+            'Categorize Questions', 'Deduplicate Questions', 'Fix Links', 'Format Questions',
+            'Lint Fix Question Format', 'Reorganize Questions', 'Validate Doc Links',
+            'Legacy Add Ui Config Questions', 'Legacy Check Docs Links',
+            'Legacy Enrich Unseen Questions', 'Legacy Find Duplicate Questions',
+            'Legacy Reorganize Question Data'
+        ],
+        "Generate": [
+            'Generate Kubectl Operations Quiz', 'Generate Manifests', 'Generate Resource Reference Quiz',
+            'Legacy Generate Ai Quiz', 'Legacy Generate Service Account Questions',
+            'Legacy Generate Validation Steps'
+        ],
+        "Other": [
+            'Bug Ticket', 'Consolidate Backups', 'Maintenance Menu', 'Update Schema Category',
+            'Legacy Full Migrate And Cleanup', 'Legacy Merge Solutions', 'Legacy Suggest Citations', 'Legacy Toolbox'
+        ]
+    }
+
+    choices = []
+    for category, names in menu_groups.items():
+        choices.append(Separator(f"=== {category} ==="))
+        # Add only tasks that have an existing script file
+        choices.extend(sorted([name for name in names if name in existing_tasks]))
+
+    choices.extend([Separator("---------------"), "Cancel"])
+
+    try:
+        while True:
+            choice = questionary.select(
+                "Select a maintenance task:",
+                choices=choices,
+                use_indicator=True
+            ).ask()
+
+            if choice is None or choice == "Cancel":
+                print("Operation cancelled.")
+                break
+
+            if choice in existing_tasks:
+                _run_script(existing_tasks[choice])
+                if not questionary.confirm("Run another task?", default=True).ask():
+                    break
+            else:
+                print(f"{Fore.YELLOW}Task '{choice}' script not found or not implemented.{Style.RESET_ALL}")
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}Exiting tools menu.{Style.RESET_ALL}")
 
 
 def _rebuild_db_from_yaml():
