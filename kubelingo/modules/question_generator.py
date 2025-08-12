@@ -7,6 +7,8 @@ import yaml
 
 openai = None
 import re
+
+from kubelingo.integrations.llm import GeminiClient
 from kubelingo.utils.ui import Fore, Style
 from typing import Optional
 from kubelingo.modules.ai_evaluator import AIEvaluator
@@ -29,6 +31,11 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+        try:
+            self.client = GeminiClient()
+        except (ImportError, ValueError) as e:
+            logger.error(f"Failed to initialize GeminiClient in AIQuestionGenerator: {e}")
+            self.client = None
         self.llm_client = get_llm_client()
 
     def _save_question_to_yaml(self, question: Question):
@@ -81,7 +88,6 @@ class AIQuestionGenerator:
         num_questions: int = 1,
         base_questions: List[Question] = None,
         category: str = "Command",
-        exclude_terms: Optional[List[str]] = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
