@@ -76,50 +76,45 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
     cursor = conn.cursor()
     if clear:
         cursor.execute("DROP TABLE IF EXISTS questions")
+    # Core lookup tables for categories and subjects
+    cursor.execute("CREATE TABLE IF NOT EXISTS question_categories (\
+                      id TEXT PRIMARY KEY) ")
+    cursor.execute("CREATE TABLE IF NOT EXISTS question_subjects (\
+                      id TEXT PRIMARY KEY) ")
+    # Main questions table: lean, with a JSON column for raw data
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,
             prompt TEXT NOT NULL,
             response TEXT,
-            category TEXT,
+            category_id TEXT REFERENCES question_categories(id),
+            subject_id  TEXT REFERENCES question_subjects(id),
             source TEXT,
-            validation_steps TEXT,
-            validator TEXT,
-            source_file TEXT NOT NULL
+            source_file TEXT NOT NULL,
+            review BOOLEAN NOT NULL DEFAULT 0,
+            raw TEXT NOT NULL
         )
-    """)
-    # Add 'review' column if it doesn't exist for backward compatibility
-    try:
-        cursor.execute("ALTER TABLE questions ADD COLUMN review BOOLEAN NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" not in str(e):
-            raise
-    # Add 'explanation' column if it doesn't exist for backward compatibility
-    try:
-        cursor.execute("ALTER TABLE questions ADD COLUMN explanation TEXT")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" not in str(e):
-            raise
-    # Add other columns from Question model for compatibility
-    for col_name in ["difficulty", "pre_shell_cmds", "initial_files", "question_type", "answers", "correct_yaml", "metadata"]:
-        try:
-            cursor.execute(f"ALTER TABLE questions ADD COLUMN {col_name} TEXT")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" not in str(e):
-                raise
-    # Add schema_category column for exercise type categorization
-    try:
-        categories = "('basic', 'command', 'manifest')"
-        cursor.execute(f"ALTER TABLE questions ADD COLUMN schema_category TEXT CHECK(schema_category IN {categories})")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" not in str(e):
-            raise
-    # Add 'subject_matter' column for question subject matter
-    try:
-        cursor.execute("ALTER TABLE questions ADD COLUMN subject_matter TEXT")
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" not in str(e):
-            raise
+    """ )
+    # Seed default exercise categories
+    for _cat in ('basic', 'command', 'manifest'):
+        cursor.execute(
+            "INSERT OR IGNORE INTO question_categories (id) VALUES (?);",
+            (_cat,)
+        )
+    # Seed default subject tags
+    for _subj in [
+        'core_workloads', 'pod_design_patterns', 'commands_args_env', 'app_configuration',
+        'probes_health', 'resource_management', 'jobs_cronjobs', 'services',
+        'ingress_http_routing', 'networking_utilities', 'persistence',
+        'observability_troubleshooting', 'labels_annotations_selectors',
+        'imperative_declarative', 'image_registry', 'security_basics',
+        'serviceaccounts', 'scheduling_hints', 'namespaces_contexts',
+        'api_discovery_docs', 'vim', 'kubectl', 'linux'
+    ]:
+        cursor.execute(
+            "INSERT OR IGNORE INTO question_subjects (id) VALUES (?);",
+            (_subj,)
+        )
 
     conn.commit()
     conn.close()
@@ -155,52 +150,62 @@ def add_question(
     cursor = conn.cursor()
 
 
-    # Serialize complex fields to JSON strings
-    validation_steps_json = None
-    if validation_steps is not None:
-        # Convert list of dataclass objects to list of dicts for JSON serialization
-        validation_steps_serializable = [
-            asdict(step) if is_dataclass(step) else step for step in validation_steps
-        ]
-        validation_steps_json = json.dumps(validation_steps_serializable)
-    validator_json = json.dumps(validator) if validator is not None else None
-    pre_shell_cmds_json = json.dumps(pre_shell_cmds) if pre_shell_cmds is not None else None
-    initial_files_json = json.dumps(initial_files) if initial_files is not None else None
-    answers_json = json.dumps(answers) if answers is not None else None
-    metadata_json = json.dumps(metadata) if metadata is not None else None
-
-    cursor.execute("""
-        INSERT OR REPLACE INTO questions (
-            id, prompt, response, category, source,
-            validation_steps, validator, source_file, review,
-            explanation, difficulty, pre_shell_cmds, initial_files,
-            question_type, answers, correct_yaml, schema_category, subject_matter,
-            metadata
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        id,
-        prompt,
-        response,
-        category,
-        source,
-        validation_steps_json,
-        validator_json,
-        source_file,
-        review,
-        explanation,
-        difficulty,
-        pre_shell_cmds_json,
-        initial_files_json,
-        question_type,
-        answers_json,
-        correct_yaml,
-        schema_category,
-        subject_matter,
-        metadata_json
-    ))
-    # Commit the insertion to the database
+    # Ensure category and subject exist in lookup tables
+    if category:
+        try:
+            cursor.execute(
+                "INSERT OR IGNORE INTO question_categories (id) VALUES (?)", (category,)
+            )
+        except Exception:
+            pass
+    if subject_matter:
+        try:
+            cursor.execute(
+                "INSERT OR IGNORE INTO question_subjects (id) VALUES (?)", (subject_matter,)
+            )
+        except Exception:
+            pass
+    # Serialize raw question dict for document storage
+    raw_dict: Dict[str, Any] = {
+        'id': id,
+        'prompt': prompt,
+        'response': response,
+        'category': category,
+        'subject_matter': subject_matter,
+        'source': source,
+        'source_file': source_file,
+        'review': review,
+        'validation_steps': validation_steps,
+        'validator': validator,
+        'pre_shell_cmds': pre_shell_cmds,
+        'initial_files': initial_files,
+        'explanation': explanation,
+        'difficulty': difficulty,
+        'question_type': question_type,
+        'answers': answers,
+        'correct_yaml': correct_yaml,
+        'schema_category': schema_category,
+        'metadata': metadata
+    }
+    raw_json = json.dumps(raw_dict, ensure_ascii=False)
+    # Insert into core questions table (trimmed columns + raw JSON)
+    cursor.execute(
+        "INSERT OR REPLACE INTO questions "
+        "(id, prompt, response, category_id, subject_id, source, source_file, review, raw) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            id,
+            prompt,
+            response,
+            category,
+            subject_matter,
+            source,
+            source_file,
+            int(bool(review)),
+            raw_json
+        )
+    )
     conn.commit()
-
     if close_conn:
         conn.close()
 
@@ -328,31 +333,26 @@ def get_questions_by_subject_matter(subject_matter: str, conn: Optional[sqlite3.
 
 def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection] = None) -> Dict[str, Dict[str, int]]:
     """
-    Returns a nested dictionary with counts of questions, grouped by schema_category
-    and then by subject_matter.
+    Returns a nested dict: category_id -> { subject_id -> count }
     """
     close_conn = conn is None
     if close_conn:
         conn = get_db_connection()
-
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT schema_category, subject_matter, COUNT(*)
+        SELECT category_id, subject_id, COUNT(*)
         FROM questions
-        WHERE schema_category IS NOT NULL AND subject_matter IS NOT NULL
-        GROUP BY schema_category, subject_matter
+        WHERE category_id IS NOT NULL AND subject_id IS NOT NULL
+        GROUP BY category_id, subject_id
     """)
     rows = cursor.fetchall()
     if close_conn:
         conn.close()
-
     counts: Dict[str, Dict[str, int]] = {}
-    for schema_cat, subject, count in rows:
-        if not subject:  # Skip questions with empty subject
+    for cat_id, subj_id, cnt in rows:
+        if not cat_id or not subj_id:
             continue
-        if schema_cat not in counts:
-            counts[schema_cat] = {}
-        counts[schema_cat][subject] = count
+        counts.setdefault(cat_id, {})[subj_id] = cnt
     return counts
 
 
