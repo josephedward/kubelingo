@@ -406,7 +406,7 @@ class NewSession(StudySession):
         choices.extend([
             {"name": "API Keys",               "value": "__api_keys__"},
             {"name": "Cluster Configuration", "value": "__clusters__"},
-            {"name": "Troubleshooting",       "value": "__troubleshooting__"},
+            {"name": "Tools",                 "value": "__tools__"},
             {"name": "Help Documentation",    "value": "__help__"},
             {"name": "Exit App",              "value": "__exit__"},
         ])
@@ -720,9 +720,9 @@ class NewSession(StudySession):
                     # Return to main menu for 'back' or any other selection
                     continue
                 # Troubleshooting operations
-                if selected == "__troubleshooting__":
-                    from kubelingo.cli import manage_troubleshooting_interactive
-                    manage_troubleshooting_interactive()
+                if selected == "__tools__":
+                    from kubelingo.cli import manage_tools_interactive
+                    manage_tools_interactive()
                     continue
 
 
