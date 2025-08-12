@@ -408,28 +408,44 @@ class KubernetesStudyMode:
 
         while True:
             try:
-                exclude_list = list(asked_items) if quiz_type == "basic" else None
-                questions = self.question_generator.generate_questions(
-                    subject=topic,
-                    num_questions=1,
-                    category=category,
-                    exclude_terms=exclude_list,
-                )
+                base_question = {
+                    "subject": topic,
+                    "type": quiz_type,
+                    "category": category,
+                    "user_level": user_level,
+                }
+                if quiz_type == "basic":
+                    base_question['exclude_terms'] = list(asked_items)
+                else:
+                    base_question['exclude_prompts'] = list(asked_items)
 
-                if not questions:
+                question_dict = self.question_generator.generate_question(base_question)
+
+                if not question_dict:
                     if not questionary.confirm(
                         "Failed to generate a question. Try again?"
                     ).ask():
                         break
                     continue
 
-                question = questions[0]
+                if 'id' not in question_dict:
+                    question_dict['id'] = f"ai-gen-{uuid.uuid4()}"
+
+                question_dict.setdefault('type', quiz_type)
+                question_dict.setdefault('subject', topic)
+                question_dict.setdefault('category', category)
+                question_dict.setdefault('source', 'ai_generated')
+                question = Question(**question_dict)
 
                 if quiz_type == "basic":
                     asked_items.add(question.response)
+                    # For compatibility with _ask_and_validate
+                    if question.response and not question.answers:
+                        question.answers = [question.response]
                 else:
-                    # For other quizzes, we track by prompt to avoid repeating questions
                     asked_items.add(question.prompt)
+                    if question.response and not question.answers:
+                        question.answers = [question.response]
 
                 # Save the generated question to a file
                 try:
