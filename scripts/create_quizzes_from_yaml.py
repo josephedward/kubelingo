@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import os
 import sqlite3
+import llm
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
@@ -16,6 +17,20 @@ from kubelingo.utils.path_utils import get_project_root
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def process_with_gemini(prompt, model="gemini-2.0-flash"):
+    """
+    Uses the llm-gemini plugin to process a prompt with the specified model.
+    """
+    try:
+        model_instance = llm.get_model(model)
+        response = model_instance.prompt(prompt)
+        # The response object has a .text() method to get the text of the response
+        return response.text().strip()
+    except Exception as e:
+        logging.error(f"Error processing with Gemini: {e}")
+        return None
 
 
 def validate_database(conn):
