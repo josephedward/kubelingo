@@ -3,34 +3,44 @@ import sqlite3
 import sys
 import uuid
 import yaml
+import subprocess
+import json
 from pathlib import Path
 
 # Add project root to path to allow imports from kubelingo
-# This makes the script runnable from anywhere
 try:
     project_root = Path(__file__).resolve().parent.parent
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from kubelingo.database import get_db_connection
     from kubelingo.utils.path_utils import get_project_root
-    from scripts.ai_categorizer import infer_categories_from_text
 except ImportError:
-    # Fallback for when script is run standalone without kubelingo in path
     logging.error("Could not import kubelingo modules. Ensure kubelingo is in PYTHONPATH.")
     def get_project_root():
         return Path.cwd()
     def get_db_connection():
         raise NotImplementedError("kubelingo.database.get_db_connection not available")
-    def infer_categories_from_text(prompt, response):
-        return None
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def categorize_with_gemini(prompt: str) -> dict:
+    """Uses llm-gemini to categorize a question."""
+    try:
+        result = subprocess.run(
+            ["llm", "-m", "gemini-2.0-flash", "-o", "json_object", f"Categorize: {prompt}"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        return json.loads(result.stdout)
+    except Exception as e:
+        logging.error(f"Error categorizing with llm-gemini: {e}")
+        return {}
 
 def initialize_from_yaml():
     """
     Initializes the application database from consolidated YAML backups.
-    It clears the existing questions and rebuilds them from YAML sources
-    based on the schema in shared_context.md.
     """
     logging.info("Starting database initialization from consolidated YAML backups...")
 
@@ -87,26 +97,14 @@ def initialize_from_yaml():
                     logging.warning(f"Skipping question with no prompt in {relative_path}")
                     continue
 
-                response = question_data.get('response')
+                logging.info(f"Categorizing question with llm-gemini: '{prompt[:70]}...'")
+                categories = categorize_with_gemini(prompt)
 
-                logging.info(f"Inferring categories with AI for: '{prompt[:70]}...'")
-                categories = infer_categories_from_text(prompt, response)
-
-                if not categories:
-                    logging.warning(f"AI categorization failed for question in {relative_path}. Skipping.")
-                    continue
-
-                exercise_category = categories.get('exercise_category')
-                subject_matter = categories.get('subject_matter')
-
-                if not exercise_category or not subject_matter:
-                    logging.warning(f"AI did not return complete categories for question in {relative_path}. Response: {categories}. Skipping.")
-                    continue
+                exercise_category = categories.get('exercise_category', 'custom')
+                subject_matter = categories.get('subject_matter', 'Unknown')
 
                 q_id = question_data.get('id', str(uuid.uuid4()))
 
-                # Per instructions, using schema from shared_context.md.
-                # This assumes 'questions' table has 'category_id' and 'subject_id' columns.
                 sql = """
                 INSERT INTO questions (id, prompt, response, source_file, category_id, subject_id)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -114,7 +112,7 @@ def initialize_from_yaml():
                 params = (
                     q_id,
                     prompt,
-                    response,
+                    question_data.get('response'),
                     str(relative_path),
                     exercise_category,
                     subject_matter,
@@ -127,7 +125,6 @@ def initialize_from_yaml():
             logging.error(f"Error parsing YAML file {relative_path}: {e}")
         except sqlite3.Error as e:
             logging.error(f"Database error while processing a question from {relative_path}: {e}")
-            logging.error(f"Problematic question data might be: {question_data}")
         except Exception as e:
             logging.error(f"An unexpected error occurred while processing {relative_path}: {e}")
     
@@ -136,5 +133,4 @@ def initialize_from_yaml():
     logging.info(f"Database initialization complete. Loaded {question_count} questions.")
 
 if __name__ == "__main__":
-    # This allows running the script directly for testing or manual initialization.
     initialize_from_yaml()

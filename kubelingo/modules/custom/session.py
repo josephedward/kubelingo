@@ -1,31 +1,45 @@
 import os
 import json
+import subprocess
 from kubelingo.modules.base.session import StudySession
 
 class AIProcessor:
-    """Stub for a class that uses AI to format questions."""
+    """Class that uses llm-gemini to process and format questions."""
     def __init__(self):
-        # In a real implementation, this might connect to an AI service.
-        pass
+        # Ensure llm-gemini is installed
+        try:
+            subprocess.run(["llm", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            raise RuntimeError("llm-gemini is not installed. Please install it using 'llm install llm-gemini'.")
 
     def format_questions(self, raw_data):
         """
-        Takes raw data from user file and formats it into Kubelingo question format.
-        This is a stub and currently just assumes the input is already well-formed.
+        Takes raw data from user file and formats it into Kubelingo question format using llm-gemini.
         """
-        print("AI Processor: Formatting questions (stub)...")
-        # Placeholder: assume raw_data is a list of dicts with 'prompt' and 'response'
-        # In a real scenario, this would involve NLP to parse a text file.
+        print("AI Processor: Formatting questions using llm-gemini...")
         questions = []
         for item in raw_data:
             if 'prompt' in item and 'response' in item:
-                questions.append({
-                    'category': 'custom',
-                    'prompt': item['prompt'],
-                    'response': item['response'],
-                    'explanation': item.get('explanation', ''),
-                    'type': 'command'
-                })
+                # Use llm-gemini to process the question
+                try:
+                    result = subprocess.run(
+                        ["llm", "-m", "gemini-2.0-flash", "-o", "json_object", f"Categorize: {item['prompt']}"],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    gemini_output = json.loads(result.stdout)
+                    questions.append({
+                        'category': gemini_output.get('exercise_category', 'custom'),
+                        'prompt': item['prompt'],
+                        'response': item['response'],
+                        'explanation': item.get('explanation', ''),
+                        'type': 'command',
+                        'subject_matter': gemini_output.get('subject_matter', 'Unknown')
+                    })
+                except Exception as e:
+                    print(f"Error processing question with llm-gemini: {e}")
         return questions
 
 class NewSession(StudySession):
