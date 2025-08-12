@@ -60,6 +60,48 @@ def run_sql_file(conn: sqlite3.Connection, sql_file_path: str):
         raise sqlite3.DatabaseError(f"Error executing SQL script: {e}")
 
 
+def add_question(
+    id: str,
+    prompt: str,
+    source_file: str,
+    response: str,
+    category: str,
+    source: str,
+    validator: Dict[str, Any],
+):
+    """
+    Adds a question to the database.
+
+    Args:
+        id: Unique identifier for the question.
+        prompt: The question prompt.
+        source_file: The source file of the question.
+        response: The expected response to the question.
+        category: The category of the question.
+        source: The source of the question (e.g., 'ai').
+        validator: A dictionary containing validation information.
+
+    Raises:
+        sqlite3.DatabaseError: If there is an error inserting the question.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO questions (
+                id, prompt, response, category, source, source_file, validator
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (id, prompt, response, category, source, source_file, json.dumps(validator)),
+        )
+        conn.commit()
+    except sqlite3.DatabaseError as e:
+        raise sqlite3.DatabaseError(f"Error adding question to database: {e}")
+    finally:
+        conn.close()
+
+
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):
     """
     Initializes the database and creates/updates tables.
