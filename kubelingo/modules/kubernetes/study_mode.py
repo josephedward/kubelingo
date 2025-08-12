@@ -1,3 +1,4 @@
+import os
 import uuid
 from dataclasses import asdict
 from typing import Dict, List, Optional
@@ -24,6 +25,8 @@ class KubernetesStudyMode:
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
         self.db_conn = get_db_connection()
+        self.questions_dir = get_project_root() / "questions" / "ai_generated"
+        os.makedirs(self.questions_dir, exist_ok=True)
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
