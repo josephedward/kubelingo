@@ -73,9 +73,12 @@ Your response MUST be a JSON object with two keys:
         user_content += "\nBased on the above, please evaluate the user's solution and respond only with the required JSON object."
 
         try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ]
             response_text = self.client.chat_completion(
-                system_prompt=system_prompt,
-                user_prompt=user_content,
+                messages=messages,
                 is_json=True
             )
             return json.loads(response_text) if response_text else None
@@ -97,9 +100,12 @@ Your response MUST be a JSON object with two keys:
         )
         user_content = f"Question: \"{question_prompt}\""
         
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
         response_text = self.client.chat_completion(
-            system_prompt=system_prompt,
-            user_prompt=user_content
+            messages=messages
         )
 
         if response_text:
@@ -131,9 +137,12 @@ Your response MUST be a JSON object with two keys:
         )
         system_prompt = "You are an expert Kubernetes instructor creating quiz questions. You generate valid JSON."
 
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt_text},
+        ]
         response_text = self.client.chat_completion(
-            system_prompt=system_prompt,
-            user_prompt=prompt_text,
+            messages=messages,
             is_json=True,
             temperature=0.7
         )
@@ -288,9 +297,12 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         user_content += "\nBased on the above, please evaluate the user's answer and respond only with the required JSON object."
 
         try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ]
             response_text = self.client.chat_completion(
-                system_prompt=system_prompt,
-                user_prompt=user_content,
+                messages=messages,
                 is_json=True
             )
             return json.loads(response_text) if response_text else None

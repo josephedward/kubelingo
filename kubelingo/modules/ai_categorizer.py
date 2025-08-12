@@ -63,9 +63,12 @@ Do not include any other text or explanation.
         user_prompt = f"Categorize this question: {prompt_text}"
         
         try:
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
             response_str = self.client.chat_completion(
-                system_prompt=self.system_prompt,
-                user_prompt=user_prompt,
+                messages=messages,
                 is_json=True,
                 temperature=0.0
             )
