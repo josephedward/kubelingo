@@ -11,17 +11,7 @@ from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
-# Filter out general topics that are covered by more specific ones
-_all_topics = [member.value for member in QuestionSubject]
-_topics_to_exclude = {
-    "Vim",
-    "Helm",
-    "Kubectl",
-    "Kubernetes Resources",
-}
-KUBERNETES_TOPICS = [
-    topic for topic in _all_topics if topic not in _topics_to_exclude
-]
+KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
 
 
 class KubernetesStudyMode:
@@ -33,69 +23,6 @@ class KubernetesStudyMode:
         self.db_conn = get_db_connection()
         self.questions_dir = get_project_root() / "questions" / "generated_yaml"
         self.questions_dir.mkdir(parents=True, exist_ok=True)
-
-    def generate_term_definition_pair(self, topic: str, exclude_terms: List[str] = None) -> Optional[Dict[str, str]]:
-        """Generates a term-definition pair using the LLM."""
-        system_prompt = self._build_term_definition_prompt(topic, exclude_terms or [])
-        user_prompt = "Please generate one term-definition pair based on the system prompt instructions."
-
-        try:
-            response = self.client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.7,
-                json_mode=True,
-            )
-            if not response:
-                return None
-
-            # The response is expected to be a JSON string with "term" and "definition"
-            pair = yaml.safe_load(response)
-            if isinstance(pair, dict) and "term" in pair and "definition" in pair:
-                return pair
-            return None
-        except Exception as e:
-            print(f"Error generating or parsing term-definition pair: {e}")
-            return None
-
-    def _build_term_definition_prompt(self, topic: str, exclude_terms: List[str]) -> str:
-        """Builds a system prompt for the LLM to generate a term-definition pair as JSON."""
-        excluded_list = "\n".join(f"- {term}" for term in exclude_terms)
-        return f"""
-# **Role: Kubernetes Terminology Generator**
-You are an expert on Kubernetes. Your task is to generate a single, unique term-definition pair in JSON format. Your output MUST BE A VALID JSON OBJECT.
-
-# **Request Details**
-- **Topic:** {topic}
-- **Task:** Provide one term and its corresponding definition.
-
-# **Exclusion List**
-Do not generate a term from the following list:
-{excluded_list if excluded_list else "- (none)"}
-
-# **Instructions**
-- The `term` should be a single, specific Kubernetes concept.
-- The `definition` should be a clear and concise explanation of the term.
-- The output MUST be a single, valid JSON object with two keys: "term" and "definition". Do not include any other text or formatting.
-
-# **JSON Schema**
-```json
-{{
-  "term": "(string, required) - The Kubernetes term.",
-  "definition": "(string, required) - The definition of the term."
-}}
-```
-
-# **Example**
-```json
-{{
-  "term": "ReplicaSet",
-  "definition": "Ensures that a specified number of pod replicas are running at any given time."
-}}
-```
-"""
 
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a topic and quiz style, then starts the session."""
@@ -113,7 +40,7 @@ Do not generate a term from the following list:
                     "What style of quiz would you like?",
                     choices=[
                         "Open-Ended Socratic Dialogue",
-                        "Basic term/definition recall",
+                        "Basic Terminology Quiz",
                         "Command-line Challenge",
                         "Manifest Authoring Exercise",
                     ],
@@ -124,7 +51,7 @@ Do not generate a term from the following list:
 
                 if quiz_style == "Open-Ended Socratic Dialogue":
                     self._run_socratic_mode(topic, user_level)
-                elif quiz_style == "Basic term/definition recall":
+                elif quiz_style == "Basic Terminology Quiz":
                     self._run_basic_quiz(topic, user_level)
                 elif quiz_style == "Command-line Challenge":
                     self._run_command_quiz(topic, user_level)
@@ -158,8 +85,29 @@ Do not generate a term from the following list:
 
     def _run_basic_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on basic terminology."""
-        print(f"\nStarting a 'Basic term/definition recall' session on {topic}. Type 'exit' or 'quit' to end the session.")
-        self._run_quiz_loop("basic", topic, user_level)
+        print(f"\nStarting a 'Basic Terminology' quiz on {topic}. Type 'exit' to quit.")
+        while True:
+            try:
+                term, definition = self.generate_term_definition_pair(topic, user_level)
+                if not term or not definition:
+                    print("Failed to generate a term/definition pair. Please try again.")
+                    break
+
+                print(f"\nDefinition: {definition}")
+                user_answer = questionary.text("What is the term?").ask()
+                if user_answer is None or user_answer.lower() in ["exit", "quit"]:
+                    break
+
+                if user_answer.strip().lower() == term.strip().lower():
+                    print("\nCorrect!")
+                else:
+                    print(f"\nNot quite. The correct term is: {term}")
+
+                if not questionary.confirm("Next question?").ask():
+                    break
+            except (KeyboardInterrupt, TypeError):
+                break
+        print("\nQuiz ended. Returning to menu.")
 
     def _run_command_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on kubectl commands."""
@@ -264,6 +212,35 @@ Do not generate a term from the following list:
             return question
         except Exception as e:
             print(f"Error generating or parsing question: {e}")
+            return None
+
+    def generate_term_definition_pair(self, topic: str, user_level: str) -> Optional[tuple]:
+        """Generates a term and its definition using the LLM."""
+        system_prompt = f"""
+You are an expert Kubernetes tutor. Generate a term and its definition for the topic '{topic}'.
+The term should be concise, and the definition should be clear and accurate.
+"""
+        user_prompt = "Generate a term and its definition."
+
+        try:
+            response = self.client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.7,
+                json_mode=True,
+            )
+            if not response:
+                return None
+
+            # Parse the response as YAML or JSON
+            data = yaml.safe_load(response)
+            term = data.get("term")
+            definition = data.get("definition")
+            return term, definition
+        except Exception as e:
+            print(f"Error generating term/definition pair: {e}")
             return None
 
     def _save_question(self, question: Question):
