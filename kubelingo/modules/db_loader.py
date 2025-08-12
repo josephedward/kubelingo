@@ -62,10 +62,20 @@ class DBLoader(BaseLoader):
                             q_data['validation_steps'] = [
                                 ValidationStep(**step) for step in q_data['validation_steps'] if isinstance(step, dict)
                             ]
+
+                        # Defensively ensure fields that should be dicts are dicts.
+                        for key in ['metadata', 'initial_files']:
+                            if key in q_data and not isinstance(q_data.get(key), dict):
+                                q_data[key] = {}
+
                         # The database 'review' status is authoritative.
                         q_data['review'] = qd.get('review', False)
 
-                        question = Question(**q_data)
+                        # Filter out keys not in the Question dataclass to avoid TypeError
+                        q_fields = {f.name for f in Question.__dataclass_fields__.values() if f.init}
+                        filtered_q_data = {k: v for k, v in q_data.items() if k in q_fields}
+
+                        question = Question(**filtered_q_data)
                         questions.append(question)
                         continue
                 except (json.JSONDecodeError, TypeError):
@@ -83,6 +93,10 @@ class DBLoader(BaseLoader):
             metadata = qd.get('metadata')
             if not isinstance(metadata, dict):
                 metadata = {}
+            
+            initial_files = qd.get('initial_files', {})
+            if not isinstance(initial_files, dict):
+                initial_files = {}
 
             # Manually construct Question from available DB columns.
             question = Question(
@@ -94,7 +108,7 @@ class DBLoader(BaseLoader):
                 categories=qd.get('categories', []),
                 difficulty=qd.get('difficulty'),
                 explanation=qd.get('explanation'),
-                initial_files=qd.get('initial_files', {}),
+                initial_files=initial_files,
                 pre_shell_cmds=qd.get('pre_shell_cmds', []),
                 metadata=metadata,
                 subject_matter=qd.get('subject')
