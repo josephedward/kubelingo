@@ -8,7 +8,6 @@ import yaml
 openai = None
 import re
 
-from kubelingo.integrations.llm import GeminiClient
 from kubelingo.utils.ui import Fore, Style
 from typing import Optional
 from kubelingo.modules.ai_evaluator import AIEvaluator
@@ -30,11 +29,6 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
-        try:
-            self.client = GeminiClient()
-        except (ImportError, ValueError) as e:
-            logger.error(f"Failed to initialize GeminiClient in AIQuestionGenerator: {e}")
-            self.client = None
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
@@ -139,24 +133,37 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            if not self.client:
-                logger.error("LLM client not available for question generation.")
-                break
+            # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
-                # Use the centralized LLM client
-                raw = self.client.chat_completion(
+                import openai
+
+                client = openai.OpenAI()
+                resp = client.chat.completions.create(
+                    model="gpt-4-turbo",
                     messages=[{"role": "system", "content": ai_prompt}],
                     temperature=0.7,
-                    json_mode=True
+                    response_format={"type": "json_object"},
                 )
+                raw = resp.choices[0].message.content
             except Exception as e:
-                logger.error(f"Gemini client failed during question generation: {e}")
-                break  # Stop if the client fails
+                logger.debug("OpenAI client failed: %s", e)
+                print(f"{Fore.RED}OpenAI API call failed: {e}{Style.RESET_ALL}")
+            # Fallback to llm package
+            if raw is None:
+                try:
+                    import llm as _llm_module
 
-            if not raw:
-                logger.warning("LLM client returned no content.")
-                continue
-
+                    llm_model = _llm_module.get_model()
+                    llm_resp = llm_model.prompt(ai_prompt)
+                    raw = (
+                        llm_resp.text()
+                        if callable(getattr(llm_resp, "text", None))
+                        else getattr(llm_resp, "text", str(llm_resp))
+                    )
+                except Exception as e:
+                    logger.error("LLM fallback failed: %s", e)
+                    print(f"{Fore.RED}LLM fallback failed: {e}{Style.RESET_ALL}")
+                    break
             # Parse JSON
             items = []
             try:
