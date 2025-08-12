@@ -42,12 +42,12 @@ def setup_test_dbs(tmp_path):
 
     # Backup DB 2 (schema mismatch, different data)
     backup_db_2_path = tmp_path / ".kubelingo" / "backups" / "backup2.db"
-    # Make this one older
-    mtime = datetime.datetime.now().timestamp() - 3600
-    os.utime(backup_db_2_path, (mtime, mtime))
     with sqlite3.connect(backup_db_2_path) as conn:
         conn.execute("CREATE TABLE table1 (id INT, description TEXT)")
         conn.execute("INSERT INTO table1 VALUES (10, 'ten')")
+    # Make this one older
+    mtime = datetime.datetime.now().timestamp() - 3600
+    os.utime(backup_db_2_path, (mtime, mtime))
 
     # DB in archive
     archive_db_path = tmp_path / "archive" / "archived.db"
