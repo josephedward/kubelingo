@@ -825,8 +825,18 @@ def handle_generate_ai_questions(args):
         print(f"Failed to initialize AIQuestionGenerator: {e}", file=sys.stderr)
         sys.exit(1)
 
+    subject_for_ai = args.subject
+    # Always use a more detailed prompt when not using examples
+    print("Using a detailed prompt for AI question generation.")
+    if args.category == 'Basic':
+        subject_for_ai = f"Generate {args.num_questions} questions for a 'Basic term/definition recall' quiz about the Kubernetes topic: '{args.subject}'. The questions should test fundamental concepts and definitions, suitable for a beginner."
+    elif args.category == 'Command':
+        subject_for_ai = f"Generate {args.num_questions} questions for a 'Command-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should result in a single kubectl command as an answer."
+    elif args.category == 'Manifest':
+        subject_for_ai = f"Generate {args.num_questions} questions for a 'Manifest-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should require creating or editing a Kubernetes YAML manifest."
+
     new_questions = generator.generate_questions(
-        subject=args.subject,
+        subject=subject_for_ai,
         num_questions=args.num_questions,
         category=args.category,
         base_questions=[]

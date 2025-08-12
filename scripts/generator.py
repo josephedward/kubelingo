@@ -573,9 +573,19 @@ def handle_ai_questions(args):
 
     generator = AIQuestionGenerator()
 
+    subject_for_ai = args.subject
+    if not base_questions:
+        print("No base questions provided as examples. Using a more detailed prompt for the AI.")
+        if args.category == 'Basic':
+            subject_for_ai = f"Generate {args.num_questions} questions for a 'Basic term/definition recall' quiz about the Kubernetes topic: '{args.subject}'. The questions should test fundamental concepts and definitions, suitable for a beginner."
+        elif args.category == 'Command':
+            subject_for_ai = f"Generate {args.num_questions} questions for a 'Command-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should result in a single kubectl command as an answer."
+        elif args.category == 'Manifest':
+            subject_for_ai = f"Generate {args.num_questions} questions for a 'Manifest-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should require creating or editing a Kubernetes YAML manifest."
+
     print(f"Generating {args.num_questions} questions about '{args.subject}'...")
     new_questions = generator.generate_questions(
-        subject=args.subject,
+        subject=subject_for_ai,
         num_questions=args.num_questions,
         base_questions=base_questions,
         category=args.category
