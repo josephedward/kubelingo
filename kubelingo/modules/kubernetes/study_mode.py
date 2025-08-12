@@ -1,3 +1,5 @@
+import json
+import logging
 from typing import Dict, List, Optional
 
 from kubelingo.integrations.llm import GeminiClient
@@ -35,6 +37,31 @@ class KubernetesStudyMode:
         self.client = GeminiClient()
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
+
+    def generate_term_definition_pair(self, topic: str) -> Optional[Dict[str, str]]:
+        """Generates a term and definition pair for the given topic."""
+        system_prompt = self._build_term_recall_prompt(topic)
+        user_prompt = f"Give me a term and definition about {topic}."
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        try:
+            response_text = self.client.chat_completion(
+                messages=messages, temperature=0.5
+            )
+            if response_text:
+                # The prompt asks for JSON, so we parse it.
+                return json.loads(response_text)
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to decode JSON from LLM response: {e}")
+        except Exception:
+            # The client logs the error, we just need to fail gracefully.
+            pass
+
+        return None
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> Optional[str]:
         """Initialize a new study session using Gemini."""
@@ -109,4 +136,31 @@ The user wants to learn about: **{topic}**.
 2.  **Stay on Topic:** Gently steer the conversation back to `{topic}` if the user strays.
 3.  **Positive Reinforcement:** Encourage the user's progress. "Great question!" or "That's exactly right."
 4.  **Always End with a Question:** Your primary goal is to prompt the user to think. Every response must end with a question.
+"""
+
+    def _build_term_recall_prompt(self, topic: str) -> str:
+        """Builds a system prompt for generating term/definition pairs."""
+        return f"""
+# **Persona**
+You are a concise Kubernetes terminology expert. Your task is to generate a single term and its definition based on a given topic.
+
+# **Topic**
+The user wants a term/definition pair related to: **{topic}**.
+
+# **Task**
+1.  Identify a single, specific, and important term from the topic `{topic}`.
+2.  Write a clear, one-sentence definition for that term.
+3.  Format your response **exclusively** as a JSON object with two keys: "term" and "definition".
+
+# **Example**
+If the topic is "Core workloads", a valid response would be:
+{{
+  "term": "Pod",
+  "definition": "The smallest and simplest unit in the Kubernetes object model that you create or deploy."
+}}
+
+# **Strict Rules**
+- Your output MUST be a valid JSON object.
+- Do not include any text, explanations, or formatting outside of the JSON structure.
+- The definition should be concise and easy to understand for someone learning Kubernetes.
 """
