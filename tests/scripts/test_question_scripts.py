@@ -24,28 +24,29 @@ def temp_db_with_duplicates(tmp_path):
     db_path = tmp_path / "test.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    # The schema should match what get_all_questions expects
+    # Schema matches the one from kubelingo/database.py
     cursor.execute("""
         CREATE TABLE questions (
             id TEXT PRIMARY KEY,
-            prompt TEXT,
+            prompt TEXT NOT NULL,
             response TEXT,
-            source TEXT,
-            source_file TEXT,
             category TEXT,
+            subject TEXT,
+            source TEXT,
+            source_file TEXT NOT NULL,
+            raw TEXT,
             validation_steps TEXT,
             validator TEXT,
-            review BOOLEAN
+            review BOOLEAN NOT NULL DEFAULT 0
         )
     """)
     questions = [
-        # id, prompt, response, source, source_file, category, validation_steps, validator, review
-        ('q1', 'duplicate prompt', 'res1', 'src1', 'file1.yaml', 'cat1', '[]', '{}', False),
-        ('q2', 'unique prompt', 'res2', 'src2', 'file1.yaml', 'cat2', '[]', '{}', False),
-        ('q3', 'duplicate prompt', 'res3', 'src3', 'file2.yaml', 'cat3', '[]', '{}', False),
-        ('q4', 'another unique', 'res4', 'src4', 'file2.yaml', 'cat4', '[]', '{}', False)
+        ('q1', 'duplicate prompt', 'file1.yaml'),
+        ('q2', 'unique prompt', 'file1.yaml'),
+        ('q3', 'duplicate prompt', 'file2.yaml'),
+        ('q4', 'another unique', 'file2.yaml')
     ]
-    cursor.executemany("INSERT INTO questions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", questions)
+    cursor.executemany("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", questions)
     conn.commit()
     conn.close()
     return db_path
@@ -113,7 +114,10 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     import kubelingo.database as dbmod
     dbmod.init_db(clear=True)
     # Insert a question without valid subject
-    dbmod.add_question(id='q1', prompt='?', source_file='f.yaml')
+    conn = sqlite3.connect(db_file)
+    conn.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', '?', 'f.yaml'))
+    conn.commit()
+    conn.close()
 
     mod = load_script('question_manager')
     # First, list missing subjects
@@ -121,7 +125,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     mod.main()
     out = capsys.readouterr().out
     assert 'Questions with missing or invalid subjects' in out
-    assert 'subject_matter=None' in out
+    assert 'subject=None' in out
     # Assign a valid subject
     valid = dbmod.SUBJECT_MATTER[0]
     monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'categorize', '--assign', '1', valid])
@@ -131,7 +135,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     # Verify the DB was updated
     conn = sqlite3.connect(str(db_file))
     cur = conn.cursor()
-    cur.execute('SELECT subject_matter FROM questions WHERE rowid = ?', (1,))
+    cur.execute('SELECT subject FROM questions WHERE rowid = ?', (1,))
     sub = cur.fetchone()[0]
     conn.close()
     assert sub == valid

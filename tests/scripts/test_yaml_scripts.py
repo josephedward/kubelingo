@@ -28,7 +28,10 @@ def test_export_db_to_yaml_and_restore(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'SECONDARY_MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
     import kubelingo.database as dbmod
     dbmod.init_db(clear=True)
-    dbmod.add_question(id='q1', prompt='hello', source_file='f.yaml')
+    conn = sqlite3.connect(db_path)
+    conn.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', 'hello', 'f.yaml'))
+    conn.commit()
+    conn.close()
     # Export to YAML using question_manager
     out_file = tmp_path / 'out.yaml'
     mod_qm = load_script('question_manager')

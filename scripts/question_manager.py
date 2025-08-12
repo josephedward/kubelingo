@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, SUBJECT_MATTER, init_db, add_question
+    get_db_connection, SUBJECT_MATTER, init_db
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.modules.ai_categorizer import AICategorizer
@@ -93,11 +93,11 @@ def handle_categorize(args):
         if subject not in SUBJECT_MATTER:
             print(f"Invalid subject. Must be one of: {SUBJECT_MATTER}")
             sys.exit(1)
-        cur.execute('UPDATE questions SET subject_matter = ? WHERE rowid = ?', (subject, rowid))
+        cur.execute('UPDATE questions SET subject = ? WHERE rowid = ?', (subject, rowid))
         conn.commit()
         print(f"Assigned subject '{subject}' to question rowid {rowid}")
     else:
-        cur.execute('SELECT rowid, id, prompt, subject_matter FROM questions')
+        cur.execute('SELECT rowid, id, prompt, subject FROM questions')
         rows = cur.fetchall()
         missing = []
         for row in rows:
@@ -109,7 +109,7 @@ def handle_categorize(args):
         else:
             print('Questions with missing or invalid subjects:')
             for row in missing:
-                print(f"[{row[0]}] id={row[1]} subject_matter={row[3]}\n  Prompt: {row[2]!r}\n")
+                print(f"[{row[0]}] id={row[1]} subject={row[3]}\n  Prompt: {row[2]!r}\n")
     conn.close()
 
 
@@ -778,27 +778,30 @@ def handle_add_ui_config(args):
 
         source_file = 'ui_config_script'
         added = 0
+        cursor = conn.cursor()
         for q in questions:
             validator = {'type': 'yaml', 'expected': q['correct_yaml']}
             try:
-                # Merged from script, fixing missing conn and adapting to db signature
-                add_question(
-                    conn=conn,
-                    id=q['id'],
-                    prompt=q['prompt'],
-                    source_file=source_file,
-                    response=None,
-                    category_id=q.get('category'),
-                    subject_id=None,
-                    source='script',
-                    raw=str(q),
-                    validation_steps=[],
-                    validator=validator
+                # Using raw INSERT since add_question is removed
+                cursor.execute(
+                    """INSERT INTO questions (id, prompt, source_file, category, source, raw, validation_steps, validator)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        q['id'],
+                        q['prompt'],
+                        source_file,
+                        q.get('category'),
+                        'script',
+                        str(q),
+                        json.dumps([]),
+                        json.dumps(validator)
+                    )
                 )
                 print(f"Added UI question {q['id']}")
                 added += 1
             except Exception as e:
                 print(f"Failed to add question {q['id']}: {e}")
+        conn.commit()
         print(f"Total UI questions added: {added}")
     finally:
         conn.close()
@@ -842,6 +845,7 @@ def handle_import_pdf(args):
     imported = 0
     conn = get_db_connection()
     try:
+        cursor = conn.cursor()
         for i in range(1, len(parts), 2):
             qnum = parts[i].strip()
             content = parts[i+1].strip()
@@ -852,7 +856,6 @@ def handle_import_pdf(args):
             body = '\n'.join(lines[1:]).strip()
             prompt = f"Simulator Question {qnum}: {title}\n{body}" if body else f"Simulator Question {qnum}: {title}"
 
-            cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM questions WHERE prompt LIKE ?", (f"%Simulator Question {qnum}:%",))
             if cursor.fetchone()[0] > 0:
                 print(f"Skipping Question {qnum}, already in DB.")
@@ -860,15 +863,25 @@ def handle_import_pdf(args):
 
             qid = f"sim_pdf::{qnum}"
             try:
-                add_question(
-                    conn=conn, id=qid, prompt=prompt, source_file='pdf_simulator', response=None,
-                    category_id='Simulator', subject_id=None, source='pdf', raw=prompt,
-                    validation_steps=[], validator=None
+                cursor.execute(
+                    """INSERT INTO questions (id, prompt, source_file, category, source, raw, validation_steps, validator)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        qid,
+                        prompt,
+                        'pdf_simulator',
+                        'Simulator',
+                        'pdf',
+                        prompt,
+                        json.dumps([]),
+                        None
+                    )
                 )
                 print(f"Added Question {qnum} to DB.")
                 imported += 1
             except Exception as e:
                 print(f"Failed to add Question {qnum}: {e}")
+        conn.commit()
     finally:
         conn.close()
 
