@@ -27,9 +27,9 @@ class AICategorizer:
 
         return f"""
 You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
-You will be given a question prompt and must return a JSON object with two keys: "schema_category" and "subject_matter".
+You will be given a question prompt and must return a JSON object with two keys: "exercise_category" and "subject_matter".
 
-1.  **schema_category**: Choose ONE of the following high-level exercise types: 'basic', 'command', or 'manifest'.
+1.  **exercise_category**: Choose ONE of the following high-level exercise types: 'basic', 'command', or 'manifest'.
     - 'basic': Conceptual or open-ended questions.
     - 'command': Questions involving CLI commands (e.g., kubectl, helm, vim).
     - 'manifest': Questions about writing or editing YAML/JSON configuration files.
@@ -38,11 +38,11 @@ You will be given a question prompt and must return a JSON object with two keys:
 {subject_desc}
 
 Analyze the question's content to make the best choice. For example:
-- A question about 'kubectl create deployment' should be categorized as {{ "schema_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A question asking to write a YAML file for a Pod is {{ "schema_category": "manifest", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A conceptual question about the purpose of a Service is {{ "schema_category": "basic", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
-- A question about using Vim to find and replace text is {{ "schema_category": "command", "subject_matter": "Vim editor usage" }}.
-- A question about kubectl command aliases should be {{ "schema_category": "command", "subject_matter": "Kubectl CLI usage and commands" }}.
+- A question about 'kubectl create deployment' should be categorized as {{ "exercise_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A question asking to write a YAML file for a Pod is {{ "exercise_category": "manifest", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
+- A conceptual question about the purpose of a Service is {{ "exercise_category": "basic", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
+- A question about using Vim to find and replace text is {{ "exercise_category": "command", "subject_matter": "Vim editor usage" }}.
+- A question about kubectl command aliases should be {{ "exercise_category": "command", "subject_matter": "Kubectl CLI usage and commands" }}.
 
 Return ONLY a valid JSON object in the format:
 {{
