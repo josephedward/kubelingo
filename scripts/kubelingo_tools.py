@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-"""Kubelingo Tools: Unified script for question-data management, quiz manifest generation,
-CKAD spec management, and interactive CLI quiz runner."""
+"""
+Kubelingo Tools: A unified orchestrator for development, maintenance, and data management scripts.
+
+This script combines the functionality of several tools:
+- An interactive menu for common maintenance tasks.
+- A command-line interface for specific operations (e.g., quiz generation, data migration).
+- A dynamic script runner to execute other standalone scripts from the `scripts/` directory.
+"""
 
 import argparse
 import sys
@@ -78,6 +84,25 @@ def task_write_db_to_yaml():
     _run_script("question_manager.py", "export-to-yaml")
 
 
+def task_restore_db_from_yaml():
+    """Restore DB from YAML Backup Version"""
+    try:
+        import questionary
+        from kubelingo.utils.path_utils import get_all_yaml_backups
+    except ImportError:
+        print("Error: 'questionary' or kubelingo modules not found.")
+        print("Install with: pip install questionary")
+        return
+
+    backups = get_all_yaml_backups()
+    if not backups:
+        print("No YAML backups found to restore from.")
+        return
+    choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()
+    if choice:
+        _run_script('question_manager.py', 'import-yaml', choice, '--clear')
+
+
 def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
     _run_script("sqlite_manager.py", "create-from-yaml")
@@ -88,7 +113,20 @@ def task_index_sqlite():
 
 def task_view_db_schema():
     """View Database Schema"""
-    _run_script("sqlite_manager.py", "schema")
+    try:
+        import questionary
+    except ImportError:
+        print("Error: 'questionary' package is required for interactive prompts.")
+        print("Install with: pip install questionary")
+        # Fallback to non-interactive
+        _run_script("sqlite_manager.py", "schema")
+        return
+
+    db_path = questionary.path("Enter path to DB file (or press Enter for default):").ask()
+    if db_path:
+        _run_script('sqlite_manager.py', 'schema', db_path)
+    else:
+        _run_script('sqlite_manager.py', 'schema')
 
 def task_locate_sqlite_backup():
     """Locate Previous SQLite Backup"""
@@ -97,6 +135,12 @@ def task_locate_sqlite_backup():
 def task_diff_sqlite_backup():
     """Diff with Backup SQLite DB"""
     _run_script("sqlite_manager.py", "diff")
+
+
+def task_unarchive_and_prune_sqlite_backups():
+    """Unarchive and Prune SQLite Backups"""
+    _run_script("sqlite_manager.py", "unarchive")
+
 
 def task_create_sqlite_backup():
     """Create SQLite Backup Version"""
@@ -126,6 +170,64 @@ def task_fix_question_formatting():
     """Fix Question Formatting"""
     _run_script("question_manager.py", "format")
 
+
+def task_full_migrate_and_cleanup():
+    """Full migration and cleanup pipeline."""
+    # 1. JSON → YAML
+    _run_script('generator.py', 'manifests')
+    # 2. Manifest consolidation
+    _run_script('consolidate_manifests.py')
+    # 3. Merge solutions
+    _run_script('merge_solutions.py')
+    # 4. (Optional) Convert MD → YAML: not implemented
+
+    # 5. Migrate YAML quizzes into DB
+    print("Migrating YAML quizzes into database...")
+    subprocess.run(['kubelingo', 'migrate-yaml'], check=False)
+    # 6. Import JSON quizzes into DB
+    print("Importing JSON quizzes into database...")
+    subprocess.run(['kubelingo', 'import-json'], check=False)
+
+    # 7. Backup live DB
+    print("Backing up live database...")
+    try:
+        # Use path from utils to be robust
+        from kubelingo.utils.config import get_live_db_path
+        db_src = Path(get_live_db_path())
+    except (ImportError, FileNotFoundError):
+        print("Could not locate live DB. Assuming default path.")
+        db_src = Path.home() / '.kubelingo' / 'kubelingo.db'
+
+    backup_dir = repo_root / 'question-data-backup'
+    backup_dir.mkdir(exist_ok=True)
+    db_dst = backup_dir / 'kubelingo.db.bak'
+    if db_src.exists():
+        try:
+            shutil.copy2(db_src, db_dst)
+            print(f"Copied DB to {db_dst}")
+        except Exception as e:
+            print(f"Failed to backup DB: {e}")
+    else:
+        print(f"Live DB not found at {db_src}. Skipping backup.")
+
+    # 8. Delete legacy dirs
+    print("Deleting legacy directories...")
+    qd = repo_root / 'question-data'
+    for sub in ['json', 'md', 'manifests', 'yaml-bak', 'solutions']:
+        path = qd / sub
+        if path.exists():
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+                print(f"Removed {path.relative_to(repo_root)}")
+            except Exception as e:
+                print(f"Failed to remove {path}: {e}")
+
+    print("Full migration and cleanup complete.")
+
+
 def run_interactive_menu():
     """Display an interactive menu for maintenance tasks."""
     try:
@@ -144,12 +246,14 @@ def run_interactive_menu():
         "Locate Previous YAML Backup": task_locate_yaml_backup,
         "View YAML Backup Statistics": task_view_yaml_stats,
         "Write DB to YAML Backup Version": task_write_db_to_yaml,
+        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
         "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
         # SQLite
         "Index all SQLite Files in Dir": task_index_sqlite,
         "View Database Schema": task_view_db_schema,
         "Locate Previous SQLite Backup": task_locate_sqlite_backup,
         "Diff with Backup SQLite DB": task_diff_sqlite_backup,
+        "Unarchive and Prune SQLite Backups": task_unarchive_and_prune_sqlite_backups,
         "Create SQLite Backup Version": task_create_sqlite_backup,
         "Restore from SQLite Backup Version": task_restore_from_sqlite_backup,
         "Create DB from YAML with AI Categorization": task_create_db_from_yaml_with_ai,
@@ -171,12 +275,14 @@ def run_interactive_menu():
                 "Locate Previous YAML Backup",
                 "View YAML Backup Statistics",
                 "Write DB to YAML Backup Version",
+                "Restore DB from YAML Backup Version",
                 "Create Sqlite DB from YAML Backup Version",
                 Separator("=== SQLite ==="),
                 "Index all SQLite Files in Dir",
                 "View Database Schema",
                 "Locate Previous SQLite Backup",
                 "Diff with Backup SQLite DB",
+                "Unarchive and Prune SQLite Backups",
                 "Create SQLite Backup Version",
                 "Restore from SQLite Backup Version",
                 "Create DB from YAML with AI Categorization",
@@ -305,12 +411,29 @@ def ckad_normalize(args):
     cmd = [sys.executable, str(script), 'normalize', '--input', args.input, '--output', args.output]
     subprocess.run(cmd, check=True)
 
+def run_dynamic_script(args):
+    """Runs a script from the scripts/ dir based on parsed arguments."""
+    script_path = args.script_path
+    if script_path.suffix == '.sh':
+        cmd = ['bash', str(script_path)] + args.script_args
+    else:
+        cmd = [sys.executable, str(script_path)] + args.script_args
+    try:
+        result = subprocess.run(cmd)
+        sys.exit(result.returncode)
+    except KeyboardInterrupt:
+        sys.exit(1)
+
+
 def main():
     if len(sys.argv) == 1:
         run_interactive_menu()
         return
 
-    parser = argparse.ArgumentParser(description='Kubelingo umbrella tools')
+    parser = argparse.ArgumentParser(
+        prog='kubelingo_tools.py',
+        description='Kubelingo toolbox for standalone scripts and maintenance tasks.'
+    )
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     # quiz
@@ -352,6 +475,38 @@ def main():
     norm.add_argument('--input', default=str(repo_root / 'killercoda-ckad_072425.csv'), help='Input CSV path')
     norm.add_argument('--output', default=str(repo_root / 'killercoda-ckad_normalized.csv'), help='Output CSV path')
     norm.set_defaults(func=ckad_normalize)
+
+    # Add `full-migrate` command
+    migrate_parser = subparsers.add_parser('full-migrate', help='Run full data migration and cleanup')
+    migrate_parser.set_defaults(func=lambda args: task_full_migrate_and_cleanup())
+
+    # Dynamically add other scripts as commands (from toolbox.py)
+    existing_commands = set(subparsers.choices.keys())
+
+    # Create a 'run' command to house the dynamic scripts
+    run_parser = subparsers.add_parser('run', help='Run a standalone script from the scripts/ directory')
+    run_subparsers = run_parser.add_subparsers(
+        dest='script_name', required=True, help='Available scripts'
+    )
+
+    for p in sorted(scripts_dir.iterdir()):
+        if not p.is_file() or p.name.startswith('.') or p.name == '__init__.py':
+            continue
+
+        script_stem = p.stem.replace('_', '-') # convention for cli
+
+        # Don't add existing commands or scripts that are being replaced
+        if p.name in ('kubelingo_tools.py', 'maintenance_menu.py', 'full_migrate_and_cleanup.py', 'toolbox.py'):
+            continue
+        if script_stem in existing_commands:
+            continue
+
+        sp = run_subparsers.add_parser(script_stem, help=f'Run script {p.name}')
+        sp.add_argument(
+            'script_args', nargs=argparse.REMAINDER,
+            help='Arguments forwarded to the script'
+        )
+        sp.set_defaults(func=run_dynamic_script, script_path=p)
 
     args = parser.parse_args()
     args.func(args)
