@@ -3,10 +3,13 @@ import json
 import os
 import re
 import shutil
+import sys
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
+from kubelingo.question import Question
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
+from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
 
 
 def get_db_connection(db_path: Optional[str] = None):
@@ -182,6 +185,86 @@ def update_review_status(question_id: str, review_status: bool):
         conn.close()
 
 
+def import_questions_from_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True):
+    """Imports questions from a list of YAML files into the database."""
+    try:
+        import yaml
+    except ImportError:
+        if verbose:
+            print("PyYAML is not installed. Please run 'pip install PyYAML'.", file=sys.stderr)
+        return
+
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        tqdm = lambda x, **kwargs: x  # Fallback if tqdm is not installed
+
+    added_count = 0
+    skipped_count = 0
+    cursor = conn.cursor()
+    project_root = get_project_root()
+
+    file_iterator = tqdm(files, desc="Importing files") if verbose else files
+
+    for file_path in file_iterator:
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                content = f.read()
+                # support multi-document YAML files
+                data_docs = yaml.safe_load_all(content)
+                questions_to_add = []
+                for data in data_docs:
+                    if not data:
+                        continue
+                    if isinstance(data, dict) and 'questions' in data:
+                        questions_to_add.extend(data['questions'])
+                    elif isinstance(data, list):
+                        questions_to_add.extend(data)
+
+            for q_dict in questions_to_add:
+                try:
+                    if 'id' not in q_dict or 'prompt' not in q_dict:
+                        skipped_count += 1
+                        continue
+
+                    if 'source_file' not in q_dict:
+                        q_dict['source_file'] = str(file_path.relative_to(project_root))
+
+                    q_obj = Question(**q_dict)
+                    validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
+
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        q_obj.id,
+                        q_obj.prompt,
+                        q_obj.source_file,
+                        json.dumps(q_obj.response) if q_obj.response is not None else None,
+                        q_obj.category,
+                        q_obj.subject.value if q_obj.subject else None,
+                        'yaml_import',
+                        json.dumps(q_dict),
+                        json.dumps(validation_steps_for_db),
+                        json.dumps(q_obj.validator) if q_obj.validator else None,
+                        getattr(q_obj, 'review', False)
+                    ))
+                    added_count += 1
+                except sqlite3.IntegrityError:
+                    skipped_count += 1
+                except Exception as e:
+                    if verbose:
+                        print(f"\nError processing question in {file_path} (ID: {q_dict.get('id')}): {e}", file=sys.stderr)
+                    skipped_count += 1
+        except (yaml.YAMLError, IOError) as e:
+            if verbose:
+                print(f"\nCould not read or parse YAML file {file_path}: {e}", file=sys.stderr)
+
+    conn.commit()
+    if verbose:
+        print(f"\nImport complete. Added: {added_count}, Skipped/Existing: {skipped_count}")
+
+
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):
     """
     Initializes the database and creates/updates tables.
@@ -260,6 +343,19 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
         cursor.execute("INSERT OR IGNORE INTO question_subjects (id) VALUES (?);", (_subj,))
 
     conn.commit()
+
+    # If the database is empty, try to populate it from YAML files.
+    cursor.execute("SELECT COUNT(*) FROM questions")
+    if cursor.fetchone()[0] == 0:
+        try:
+            from kubelingo.utils.path_utils import get_all_yaml_files_in_repo
+            files = get_all_yaml_files_in_repo()
+            if files:
+                import_questions_from_yaml_files(files, conn, verbose=False)
+        except (ImportError, Exception):
+            # Silently fail if dependencies are missing or an error occurs.
+            # The user can run the build-db script manually.
+            pass
 
     if manage_connection:
         conn.close()

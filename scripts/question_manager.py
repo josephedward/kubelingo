@@ -120,68 +120,6 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
 
 
 # --- from: scripts/build_question_db.py ---
-def import_questions_from_files(files: List[Path], conn: sqlite3.Connection):
-    """Imports questions from a list of YAML files into the database."""
-    added_count = 0
-    skipped_count = 0
-    cursor = conn.cursor()
-
-    for file_path in tqdm(files, desc="Importing files"):
-        try:
-            with file_path.open('r', encoding='utf-8') as f:
-                content = f.read()
-                # support multi-document YAML files
-                data_docs = yaml.safe_load_all(content)
-                questions_to_add = []
-                for data in data_docs:
-                    if not data:
-                        continue
-                    if isinstance(data, dict) and 'questions' in data:
-                        questions_to_add.extend(data['questions'])
-                    elif isinstance(data, list):
-                        questions_to_add.extend(data)
-
-            for q_dict in questions_to_add:
-                try:
-                    if 'id' not in q_dict or 'prompt' not in q_dict:
-                        skipped_count += 1
-                        continue
-
-                    if 'source_file' not in q_dict:
-                        q_dict['source_file'] = str(file_path.relative_to(project_root))
-
-                    q_obj = Question(**q_dict)
-                    validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
-
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        q_obj.id,
-                        q_obj.prompt,
-                        q_obj.source_file,
-                        json.dumps(q_obj.response) if q_obj.response is not None else None,
-                        q_obj.category,
-                        q_obj.subject.value if q_obj.subject else None,
-                        'yaml_import',
-                        json.dumps(q_dict),
-                        json.dumps(validation_steps_for_db),
-                        json.dumps(q_obj.validator) if q_obj.validator else None,
-                        getattr(q_obj, 'review', False)
-                    ))
-                    added_count += 1
-                except sqlite3.IntegrityError:
-                    skipped_count += 1
-                except Exception as e:
-                    print(f"\nError processing question in {file_path} (ID: {q_dict.get('id')}): {e}", file=sys.stderr)
-                    skipped_count += 1
-        except (yaml.YAMLError, IOError) as e:
-            print(f"\nCould not read or parse YAML file {file_path}: {e}", file=sys.stderr)
-
-    conn.commit()
-    print(f"\nImport complete. Added: {added_count}, Skipped/Existing: {skipped_count}")
-
-
 def handle_build_db(args):
     """Handler for building the database from YAML files."""
     db_path = args.db_path or get_live_db_path()
@@ -207,7 +145,7 @@ def handle_build_db(args):
         print("No YAML files found to import.")
     else:
         print(f"Found {len(files_to_import)} YAML files to import.")
-        import_questions_from_files(files_to_import, conn)
+        import_questions_from_yaml_files(files_to_import, conn)
 
     conn.close()
 
