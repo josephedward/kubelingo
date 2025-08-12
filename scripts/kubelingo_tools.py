@@ -203,10 +203,6 @@ def task_diff_sqlite_backups():
     """Diff with Backup Sqlite Db"""
     _run_script("diff_sqlite_backups.py")
 
-def task_create_sqlite_backup():
-    """Create Sqlite Backup Version"""
-    _run_script("create_sqlite_backup.py")
-
 def task_restore_from_sqlite_backup():
     """Restore from Sqlite Backup Version"""
     _run_script("restore_sqlite_from_backup.py")
@@ -252,7 +248,6 @@ def run_interactive_menu():
         "View Database Schema": task_view_db_schema,
         "Show Previous Sqlite Backup(s)": task_show_sqlite_backups,
         "Diff with Backup Sqlite Db": task_diff_sqlite_backups,
-        "Create Sqlite Backup Version": task_create_sqlite_backup,
         "Restore from Sqlite Backup Version": task_restore_from_sqlite_backup,
         "Deduplicate Questions": task_deduplicate_questions,
         "Fix Question Categorization": task_fix_question_categorization,
@@ -277,7 +272,6 @@ def run_interactive_menu():
                 "View Database Schema",
                 "Show Previous Sqlite Backup(s)",
                 "Diff with Backup Sqlite Db",
-                "Create Sqlite Backup Version",
                 "Restore from Sqlite Backup Version",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
