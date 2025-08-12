@@ -14,7 +14,7 @@ from kubelingo.database import get_db_connection, add_question
 from kubelingo.utils.path_utils import get_project_root
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Mapping from YAML 'type' to database 'category' based on shared_context.md
 CATEGORY_MAPPING = {
@@ -22,6 +22,24 @@ CATEGORY_MAPPING = {
     'command': 'command',
     'manifest': 'manifest',
 }
+
+def validate_yaml_structure(yaml_data, file_path):
+    """
+    Validates the structure of the YAML data to ensure it is a list of questions.
+    """
+    if not isinstance(yaml_data, list):
+        logging.error(f"Invalid YAML structure in file {file_path}: Expected a list of questions.")
+        return False
+
+    for index, question in enumerate(yaml_data):
+        if not isinstance(question, dict):
+            logging.error(f"Invalid question format at index {index} in file {file_path}: Expected a dictionary.")
+            return False
+        if 'id' not in question or 'type' not in question:
+            logging.error(f"Missing required keys ('id', 'type') in question at index {index} in file {file_path}.")
+            return False
+
+    return True
 
 def create_quizzes_from_backup():
     """
@@ -59,17 +77,16 @@ def create_quizzes_from_backup():
         try:
             with open(yaml_file, 'r') as f:
                 questions_data = yaml.safe_load(f)
-                if not isinstance(questions_data, list):
-                    logging.warning(f"Skipping file {yaml_file}: content is not a list of questions.")
+                logging.debug(f"Loaded YAML content from {yaml_file}: {questions_data}")
+
+                if not validate_yaml_structure(questions_data, yaml_file):
+                    logging.error(f"Skipping file {yaml_file} due to invalid structure.")
                     continue
 
             for q_data in questions_data:
+                logging.debug(f"Processing question data: {q_data}")
                 q_id = q_data.get('id')
                 q_type = q_data.get('type')
-                
-                if not q_id or not q_type:
-                    logging.warning(f"Skipping question in {yaml_file} due to missing 'id' or 'type'.")
-                    continue
                 
                 exercise_category = CATEGORY_MAPPING.get(q_type)
                 if not exercise_category:
