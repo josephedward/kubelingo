@@ -34,7 +34,7 @@ class KubernetesStudyMode:
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
-        self.question_generator = AIQuestionGenerator()
+        self.question_generator = AIQuestionGenerator(llm_client=self.client)
         self.db_conn = get_db_connection()
         self.questions_dir = get_project_root() / "questions" / "generated_yaml"
         self.exclude_terms: List[str] = []
