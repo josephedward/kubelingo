@@ -102,6 +102,86 @@ def add_question(
         conn.close()
 
 
+def get_questions_by_subject_matter(subject: str) -> List[Dict[str, Any]]:
+    """
+    Retrieves questions from the database filtered by subject matter.
+
+    Args:
+        subject: The subject matter to filter questions by.
+
+    Returns:
+        A list of dictionaries representing the questions.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM questions WHERE subject = ?", (subject,))
+        rows = cursor.fetchall()
+        return [_row_to_question_dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def get_question_counts_by_schema_and_subject(schema: str, subject: str) -> int:
+    """
+    Retrieves the count of questions filtered by schema and subject.
+
+    Args:
+        schema: The schema to filter questions by.
+        subject: The subject matter to filter questions by.
+
+    Returns:
+        The count of questions matching the criteria.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM questions WHERE category = ? AND subject = ?",
+            (schema, subject),
+        )
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def get_flagged_questions() -> List[Dict[str, Any]]:
+    """
+    Retrieves questions that are flagged for review.
+
+    Returns:
+        A list of dictionaries representing the flagged questions.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM questions WHERE review = 1")
+        rows = cursor.fetchall()
+        return [_row_to_question_dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def update_review_status(question_id: str, review_status: bool):
+    """
+    Updates the review status of a question.
+
+    Args:
+        question_id: The ID of the question to update.
+        review_status: The new review status (True or False).
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE questions SET review = ? WHERE id = ?",
+            (int(review_status), question_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):
     """
     Initializes the database and creates/updates tables.
