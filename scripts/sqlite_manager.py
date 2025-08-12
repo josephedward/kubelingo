@@ -279,7 +279,7 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
         if "starting_yaml" in q_dict and "initial_files" not in q_dict: q_dict["initial_files"] = {"f.yaml": q_dict.pop("starting_yaml")}
     if "type" in q_dict: q_dict["question_type"] = q_dict.pop("type")
     if "subject" in q_dict: q_dict["subject_matter"] = q_dict.pop("subject")
-    q_type = q_dict.get("question_type", "command")
+    q_type = q_dict.get("question_type")
 
     # Map schema category to 'category' column
     if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
