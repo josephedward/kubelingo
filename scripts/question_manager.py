@@ -119,6 +119,15 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
     return questions
 
 
+def get_questions_by_source_file(source_file: str, conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """Fetches questions from the database matching a specific source file."""
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions WHERE source_file = ?", (source_file,))
+    rows = cursor.fetchall()
+    return [_row_to_question_dict(row) for row in rows]
+
+
 # --- from: scripts/build_question_db.py ---
 def handle_build_db(args):
     """Handler for building the database from YAML files."""
