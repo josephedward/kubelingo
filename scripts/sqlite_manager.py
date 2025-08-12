@@ -65,7 +65,7 @@ def do_index(args):
     if args.dirs:
         scan_dirs = args.dirs
         print(f"{Fore.CYAN}--- Indexing SQLite files in specified directories ---{Style.RESET_ALL}")
-    elif SQLITE_BACKUP_DIRS and any(Path(d) != default_backup for d in SQLITE_BACKUP_DIRS):
+    elif SQLITE_BACKUP_DIRS:
         scan_dirs = SQLITE_BACKUP_DIRS
         print(f"{Fore.CYAN}--- Indexing SQLite files in configured backup directories ---{Style.RESET_ALL}")
     else:
@@ -278,16 +278,20 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
         if q_dict.get("question_type") in ("yaml_edit", "yaml_author"): q_dict["category"] = "YAML Authoring"
         elif q_dict.get("subject_matter"): q_dict["category"] = q_dict["subject_matter"]
         elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"): q_dict["category"] = q_dict["subject_matter"].capitalize()
+    
     category = q_dict.get("category")
+    if category:
+        q_dict['subject_id'] = category
+
     if category_to_source_file.get(category): q_dict["source_file"] = category_to_source_file[category]
     elif not q_dict.get("source_file"): raise QuestionSkipped(f"Unmatched category: {category}" if category else "Missing category.", category=category)
-    for key in ["solution_file", "subject", "type"]: q_dict.pop(key, None)
+    for key in ["solution_file", "subject", "type", "category"]: q_dict.pop(key, None)
     return {k: v for k, v in q_dict.items() if k in allowed_args}
 
 def _populate_db_from_yaml(yaml_files, db_path=None):
     if not yaml_files: print("No YAML files found to process."); return
     conn = get_db_connection(db_path=db_path)
-    allowed_args = {"id", "prompt", "source_file", "response", "category", "source", "validation_steps", "validator", "review", "question_type", "schema_category", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
+    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "validation_steps", "validator", "review", "question_type", "schema_category", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
     unmatched_categories, skipped_no_category, question_count = set(), 0, 0
     try:
         for file_path in yaml_files:
@@ -396,7 +400,8 @@ def do_diff(args):
                 count_a, count_b = counts_a.get(table, 'N/A'), counts_b.get(table, 'N/A')
                 if count_a != count_b:
                     change = (count_a - count_b) if isinstance(count_a, int) and isinstance(count_b, int) else "N/A"
-                    print(f"~ {table}: {count_b} -> {count_a} (Change: {change: d})"); diffs = True
+                    change_str = f"{change: d}" if isinstance(change, int) else str(change)
+                    print(f"~ {table}: {count_b} -> {count_a} (Change: {change_str})"); diffs = True
             if not diffs: print("No row count differences found.")
         except sqlite3.Error as e:
             print(f"Error comparing row counts: {e}")
