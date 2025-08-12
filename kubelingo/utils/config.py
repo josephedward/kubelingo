@@ -10,10 +10,6 @@ PACKAGE_ROOT = os.path.join(PROJECT_ROOT, 'kubelingo')
 # Legacy alias for backward compatibility: now points to project root
 ROOT = PROJECT_ROOT
 
-# User-specific files (logs, history, database etc.) in home directory
-# to support installed package execution.
-# User-specific files (logs, history, database etc.) in home directory
-HOME_DIR = os.path.expanduser("~")
 # By default use project-local .kubelingo directory to ensure write access
 APP_DIR = os.path.join(PROJECT_ROOT, ".kubelingo")
 # Backup directory for timestamped DB snapshots
@@ -24,9 +20,7 @@ BACKUP_QUESTIONS_DB = os.path.join(APP_DIR, "backup_questions.db")
 # Logs directory located within the project root
 LOGS_DIR = os.path.join(PROJECT_ROOT, 'logs')
 try:
-    os.makedirs(APP_DIR, exist_ok=True)
     os.makedirs(LOGS_DIR, exist_ok=True)
-    os.makedirs(BACKUP_DIR, exist_ok=True)
 except Exception:
     # Could not create directories (permissions?), ignore
     pass
@@ -118,7 +112,7 @@ MANIFEST_QUIZZES = {
 ## Aggregate all enabled quizzes for interactive selection
 ENABLED_QUIZZES = {**BASIC_QUIZZES, **COMMAND_QUIZZES, **MANIFEST_QUIZZES}
 # --- Database ---
-# Writable database for user data (history, AI questions) stored in ~/.kubelingo/kubelingo.db
+# Writable database for user data (history, AI questions) stored in the project's .kubelingo directory.
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
 
 
