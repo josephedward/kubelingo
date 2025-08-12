@@ -47,9 +47,12 @@ try:
     )
     from kubelingo.utils.config import (
         YAML_BACKUP_DIRS, DATABASE_FILE, ENABLED_QUIZZES, QUESTION_DIRS,
-        BACKUP_DATABASE_FILE, YAML_QUIZ_BACKUP_DIR
+        YAML_QUIZ_BACKUP_DIR
     )
     from kubelingo.utils.ui import Fore, Style
+
+    # Define a default backup file path, similar to other manager scripts.
+    BACKUP_DATABASE_FILE = project_root / "backups" / "kubelingo.db"
 except ImportError as e:
     print(f"Error: A required module is not available: {e}. "
           "Please ensure all dependencies are installed and you run this from the project root.", file=sys.stderr)
