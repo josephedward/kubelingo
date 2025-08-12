@@ -59,14 +59,21 @@ class DBLoader(BaseLoader):
                     if isinstance(q_data, dict):
                         # Hydrate ValidationStep objects from dicts.
                         if 'validation_steps' in q_data and isinstance(q_data['validation_steps'], list):
-                            q_data['validation_steps'] = [
-                                ValidationStep(**step) for step in q_data['validation_steps'] if isinstance(step, dict)
-                            ]
+                            hydrated_steps = []
+                            for step_data in q_data['validation_steps']:
+                                if isinstance(step_data, dict):
+                                    # Defensively ensure matcher is a dictionary.
+                                    if 'matcher' in step_data and not isinstance(step_data.get('matcher'), dict):
+                                        step_data['matcher'] = {}
+                                    hydrated_steps.append(ValidationStep(**step_data))
+                            q_data['validation_steps'] = hydrated_steps
 
                         # Defensively ensure fields that should be dicts are dicts.
                         for key in ['metadata', 'initial_files']:
                             if key in q_data and not isinstance(q_data.get(key), dict):
                                 q_data[key] = {}
+                        if 'validator' in q_data and not isinstance(q_data.get('validator'), (dict, type(None))):
+                            q_data['validator'] = None
 
                         # The database 'review' status is authoritative.
                         q_data['review'] = qd.get('review', False)
@@ -99,6 +106,10 @@ class DBLoader(BaseLoader):
                 initial_files = {}
 
             # Manually construct Question from available DB columns.
+            validator_data = qd.get('validator')
+            if not isinstance(validator_data, (dict, type(None))):
+                validator_data = None
+
             question = Question(
                 id=qd.get('id'),
                 prompt=qd.get('prompt', ''),
@@ -111,7 +122,8 @@ class DBLoader(BaseLoader):
                 initial_files=initial_files,
                 pre_shell_cmds=qd.get('pre_shell_cmds', []),
                 metadata=metadata,
-                subject_matter=qd.get('subject')
+                subject_matter=qd.get('subject'),
+                validator=validator_data
             )
             questions.append(question)
         return questions
