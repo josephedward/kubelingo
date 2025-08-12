@@ -251,6 +251,9 @@ def do_restore(args):
 
 
 # --- Create from YAML ---
+import json
+
+
 class QuestionSkipped(Exception):
     def __init__(self, message: str, category: Optional[str] = None):
         super().__init__(message)
@@ -259,6 +262,12 @@ class QuestionSkipped(Exception):
 
 def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allowed_args):
     q_dict = q_data.copy()
+
+    # Provide defaults for required fields that might be missing in YAML
+    q_dict.setdefault('response', '')
+    q_dict.setdefault('source', 'YAML import')
+    q_dict.setdefault('raw', json.dumps(q_data))
+
     if "metadata" in q_dict and isinstance(q_dict.get("metadata"), dict):
         metadata = q_dict.pop("metadata")
         q_dict.update({k: v for k, v in metadata.items() if k not in q_dict})
@@ -291,7 +300,7 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
 def _populate_db_from_yaml(yaml_files, db_path=None):
     if not yaml_files: print("No YAML files found to process."); return
     conn = get_db_connection(db_path=db_path)
-    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "validation_steps", "validator", "review", "question_type", "category_id", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
+    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "raw", "validation_steps", "validator", "review", "question_type", "category_id", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
     unmatched_categories, skipped_no_category, question_count = set(), 0, 0
     try:
         for file_path in yaml_files:
