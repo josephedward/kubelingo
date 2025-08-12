@@ -12,6 +12,7 @@ from typing import List
 from kubelingo.utils.config import (
     DATABASE_FILE,
     QUESTION_DIRS,
+    SQLITE_BACKUP_DIRS,
     YAML_BACKUP_DIRS,
 )
 
@@ -50,6 +51,16 @@ def get_all_question_dirs() -> List[str]:
 def get_all_yaml_backup_dirs() -> List[str]:
     """Returns a list of all configured directories for YAML backups."""
     return YAML_BACKUP_DIRS
+
+
+def get_all_yaml_backups() -> List[Path]:
+    """Discovers all YAML files from all configured YAML backup directories."""
+    return find_yaml_files(get_all_yaml_backup_dirs())
+
+
+def get_all_sqlite_backups() -> List[Path]:
+    """Discovers all SQLite files from all configured backup directories."""
+    return find_sqlite_files(SQLITE_BACKUP_DIRS)
 
 
 def find_and_sort_files_by_mtime(
