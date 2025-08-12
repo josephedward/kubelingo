@@ -28,42 +28,6 @@ class KubernetesStudyMode:
         self.questions_dir = get_project_root() / "questions" / "ai_generated"
         os.makedirs(self.questions_dir, exist_ok=True)
 
-    def main_menu(self):
-        """Displays the main menu and handles user selection."""
-        while True:
-            try:
-                choice = questionary.select(
-                    "Kubernetes Main Menu",
-                    choices=[
-                        "Study Mode",
-                        "Review Questions",
-                        "Settings",
-                        "Exit",
-                    ],
-                    use_indicator=True,
-                ).ask()
-
-                if choice is None or choice == "Exit":
-                    print("Exiting application. Goodbye!")
-                    break
-
-                if choice == "Study Mode":
-                    level = questionary.select(
-                        "What is your current overall skill level?",
-                        choices=["beginner", "intermediate", "advanced"],
-                        default="intermediate",
-                    ).ask()
-                    if not level:
-                        continue
-                    self.start_study_session(user_level=level)
-                elif choice == "Review Past Questions":
-                    self.review_past_questions()
-                elif choice == "Settings":
-                    self.settings_menu()
-            except (KeyboardInterrupt, TypeError):
-                print("\nExiting application. Goodbye!")
-                break
-
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a topic and quiz style, then starts the session."""
         while True:
