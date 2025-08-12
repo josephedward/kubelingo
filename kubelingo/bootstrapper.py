@@ -14,9 +14,6 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     load_dotenv = None
-import os
-import json
-import openai
 
 # Configure logging
 logging.basicConfig(
@@ -230,7 +227,6 @@ def bootstrap_quizzes_from_yaml() -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
     on the fly, and returns a structured dictionary of quizzes.
     """
     logging.info("Starting bootstrap process: loading quizzes from YAML...")
-    _initialize_ai_classifier()
     project_root = _get_project_root()
     yaml_dir = project_root / "yaml"
 
