@@ -49,28 +49,54 @@ class DBLoader(BaseLoader):
         questions: List[Question] = []
         for row in rows:
             qd = _row_to_question_dict(row)
-            # Deserialize validation steps
+
+            # Prioritize loading from 'raw' column for the most complete data.
+            raw_data_str = qd.get('raw')
+            if raw_data_str:
+                try:
+                    q_data = json.loads(raw_data_str)
+                    if isinstance(q_data, dict):
+                        # Hydrate ValidationStep objects from dicts.
+                        if 'validation_steps' in q_data and isinstance(q_data['validation_steps'], list):
+                            q_data['validation_steps'] = [
+                                ValidationStep(**step) for step in q_data['validation_steps'] if isinstance(step, dict)
+                            ]
+                        # The database 'review' status is authoritative.
+                        q_data['review'] = qd.get('review', False)
+
+                        question = Question(**q_data)
+                        questions.append(question)
+                        continue
+                except (json.JSONDecodeError, TypeError):
+                    # Fallback to manual construction if 'raw' is malformed.
+                    pass
+
+            # Fallback for old data without a 'raw' field or if 'raw' processing fails.
             steps: List[ValidationStep] = []
-            for v in qd.get('validation_steps', []):
-                steps.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
-            # Determine question type from DB column 'question_type' or fallback to legacy 'type'
-            qtype = qd.get('question_type') or qd.get('type') or 'command'
-            # Include subject-matter tag in metadata if present
-            subject_matter = qd.get('subject_matter')
-            meta = qd.get('metadata') or {}
+            validation_steps_data = qd.get('validation_steps', [])
+            if isinstance(validation_steps_data, list):
+                for v in validation_steps_data:
+                    if isinstance(v, dict):
+                        steps.append(ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {})))
+
+            metadata = qd.get('metadata')
+            if not isinstance(metadata, dict):
+                metadata = {}
+
+            # Manually construct Question from available DB columns.
             question = Question(
-                id=qd['id'],
+                id=qd.get('id'),
                 prompt=qd.get('prompt', ''),
-                type=qtype,
-                pre_shell_cmds=qd.get('pre_shell_cmds', []),
-                initial_files=qd.get('initial_files', {}),
+                type=qd.get('type', 'command'),
                 validation_steps=steps,
-                explanation=qd.get('explanation'),
+                review=qd.get('review', False),
                 categories=qd.get('categories', []),
                 difficulty=qd.get('difficulty'),
-                review=qd.get('review', False),
-                metadata=meta,
-                subject_matter=subject_matter,
+                explanation=qd.get('explanation'),
+                initial_files=qd.get('initial_files', {}),
+                pre_shell_cmds=qd.get('pre_shell_cmds', []),
+                metadata=metadata,
+                subject_matter=qd.get('subject')
             )
             questions.append(question)
         return questions
