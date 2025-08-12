@@ -37,7 +37,7 @@ except ImportError as e:
 # Kubelingo imports
 from kubelingo.database import (
     get_db_connection, SUBJECT_MATTER, init_db,
-    _row_to_question_dict
+    _row_to_question_dict, import_questions_from_yaml_files
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.modules.ai_categorizer import AICategorizer
