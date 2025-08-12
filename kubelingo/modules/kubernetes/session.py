@@ -21,7 +21,7 @@ class NewSession(StudySession):
         """Initializes the Kubernetes session."""
         return True
 
-    def run_exercises(self, args):
+    def run_exercises(self, exercises):
         """Runs an interactive study session using the Socratic method with Gemini."""
         if not os.getenv('GEMINI_API_KEY'):
             print("\nStudy Mode requires a Gemini API key.")
