@@ -5,10 +5,12 @@ from typing import Dict, List, Optional
 import questionary
 import yaml
 
+from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
+from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
 KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
@@ -21,6 +23,9 @@ class KubernetesStudyMode:
         self.session_active = False
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
+        self.db_conn = get_db_connection()
+        self.questions_dir = get_project_root() / "questions" / "generated_yaml"
+        self.questions_dir.mkdir(parents=True, exist_ok=True)
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
@@ -229,7 +234,7 @@ class KubernetesStudyMode:
             if user_yaml is None:
                 return False
             # Check if the user's YAML is a subset of the required solution
-            return is_yaml_subset(question.response, user_yaml)
+            return is_yaml_subset(question.correct_yaml, user_yaml)
 
         return False
 
