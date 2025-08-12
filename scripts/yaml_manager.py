@@ -1519,7 +1519,7 @@ def do_organize_generated(args):
         conn = get_db_connection(db_path=db_path)
         try:
             # Delete old questions
-            source_dir_pattern = str(source_dir.relative_to(project_root)) + '/%'
+            source_dir_pattern = str(source_dir) + '/%'
             print(f"Deleting questions from DB where source_file LIKE '{source_dir_pattern}'...")
             
             cursor = conn.cursor()
