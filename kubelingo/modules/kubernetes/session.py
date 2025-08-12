@@ -373,73 +373,32 @@ class NewSession(StudySession):
         print("=== YAML Editing Session Complete ===")
 
     def _build_interactive_menu_choices(self):
-        """Build the list of available quizzes for the interactive menu."""
-        all_flagged = get_all_flagged_questions()
+        """Build the list of available quizzes for the interactive menu using YAML-defined quizzes."""
+        try:
+            from kubelingo.utils.config import ENABLED_QUIZZES
+        except ImportError:
+            ENABLED_QUIZZES = {}
+        # Review flags
+        try:
+            flagged = get_all_flagged_questions() or []
+        except Exception:
+            flagged = []
         choices = []
-
-        # --- Review Section ---
         if questionary:
             choices.append(questionary.Separator("--- Review ---"))
         choices.append({
-            "name": f"Review Flagged Questions ({len(all_flagged)})",
+            "name": f"Review Flagged Questions ({len(flagged)})",
             "value": "__flagged__",
-            "disabled": "No questions flagged for review" if not all_flagged else None
+            "disabled": len(flagged) == 0
         })
+        # Study mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
-
-        # Get all question counts, grouped by schema and subject
-        counts = get_question_counts_by_schema_and_subject()
-
-        # Define the desired structure of the menu sections
-        sections = {
-            "--- Basic Exercises ---": {},
-            "--- Command-Based Exercises ---": {},
-            "--- Manifest-Based Exercises ---": {},
-        }
-        # Map DB schema names to menu section names
-        schema_map = {
-            "basic": "--- Basic Exercises ---",
-            "command": "--- Command-Based Exercises ---",
-            "manifest": "--- Manifest-Based Exercises ---",
-        }
-        # Quizzes to manually re-categorize into the 'Basic' section
-        basic_quiz_overrides = ["Resource Reference", "Kubectl Operations"]
-
-        # Flatten all subjects from the database into one dictionary for easier processing
-        all_subjects = {}
-        for schema, subjects_with_counts in counts.items():
-            for subject, count in subjects_with_counts.items():
-                all_subjects[subject] = {'count': count, 'schema': schema}
-
-        # Distribute quizzes into the correct menu sections
-        for subject, data in all_subjects.items():
-            # If the quiz is in our override list, move it to 'Basic Exercises'
-            if subject in basic_quiz_overrides:
-                sections["--- Basic Exercises ---"][subject] = data['count']
-            else:
-                # Otherwise, place it in the section corresponding to its original schema
-                original_schema = data['schema']
-                if original_schema in schema_map:
-                    target_section = schema_map[original_schema]
-                    sections[target_section][subject] = data['count']
-
-        # Build the 'questionary' choices from our structured sections
-        for section_name, subject_counts in sections.items():
-            # Only add a section header if there are quizzes in it
-            if not subject_counts:
-                continue
-
-            if questionary:
-                choices.append(questionary.Separator(section_name))
-
-            # Add each quiz to the menu, sorted alphabetically
-            for subject, count in sorted(subject_counts.items()):
-                choices.append({
-                    "name": f"{subject} ({count} questions)",
-                    "value": subject,
-                })
-
-        # --- Settings Section ---
+        # Quizzes
+        if questionary:
+            choices.append(questionary.Separator("--- Quizzes ---"))
+        for name in ENABLED_QUIZZES:
+            choices.append({"name": name, "value": name})
+        # Settings
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
         choices.extend([
@@ -449,7 +408,7 @@ class NewSession(StudySession):
             {"name": "Help Documentation",    "value": "__help__"},
             {"name": "Exit App",              "value": "__exit__"},
         ])
-        return choices, bool(all_flagged)
+        return choices, len(flagged) > 0
 
     def _show_static_help(self):
         """Displays a static, hardcoded help menu as a fallback."""
@@ -650,7 +609,7 @@ class NewSession(StudySession):
                     return
                 # No questions found
                 if not questions:
-                    print(f"{Fore.YELLOW}No questions found in '{os.path.basename(args.file)}'.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}No questions found in '{args.category}'.{Style.RESET_ALL}")
                     return
                 # Determine how many questions to ask and generate additional via AI if needed
                 requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
