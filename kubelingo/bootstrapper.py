@@ -4,6 +4,18 @@ import yaml
 from typing import Dict, List, Any, Generator
 import os
 import json
+
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+import os
+import json
 import openai
 
 # Configure logging
@@ -110,6 +122,97 @@ Example response:
         return {}
 
 
+_ai_classifier_ready = False
+
+
+def _initialize_ai_classifier():
+    """Initializes the AI classifier by setting the OpenAI API key."""
+    global _ai_classifier_ready
+    if _ai_classifier_ready:
+        return True
+
+    if load_dotenv:
+        load_dotenv()
+    
+    api_key = os.environ.get("OPENAI_API_KEY")
+
+    if not api_key:
+        logging.warning(
+            "OPENAI_API_KEY not found in environment. "
+            "AI-based question classification will be disabled. "
+            "To enable, set the key or place it in a .env file."
+        )
+        return False
+    
+    if openai:
+        openai.api_key = api_key
+        _ai_classifier_ready = True
+        logging.info("AI classifier initialized successfully.")
+        return True
+    else:
+        logging.warning("OpenAI library not available. AI classification disabled.")
+        return False
+
+
+def _classify_with_ai(question: Dict[str, Any]) -> Dict[str, str]:
+    """Classifies a question using OpenAI."""
+    if not _ai_classifier_ready:
+        return {}
+
+    prompt_text = question.get('prompt', '')
+    answer_text = question.get('answer', '')
+    
+    content_to_classify = f"Question Prompt: {prompt_text}\n"
+    if answer_text:
+        content_to_classify += f"Answer/Solution: {answer_text}\n"
+
+    system_prompt = (
+        'You are an expert curriculum designer for Kubernetes certification training.\n'
+        'Your task is to classify a given question into an "exercise category" and a "subject matter".\n\n'
+        'The exercise category must be one of these three options:\n'
+        "- 'basic': For open-ended, conceptual questions (Socratic method).\n"
+        "- 'command': For quizzes on specific single-line commands (e.g., `kubectl`, `vim`).\n"
+        "- 'manifest': For exercises involving authoring or editing Kubernetes YAML files.\n\n"
+        'The subject matter should be a concise topic from Kubernetes, for example: "Core Concepts", '
+        '"Pod Design", "Security", "Networking", "Services", "Deployments", "StatefulSets", '
+        '"ConfigMaps & Secrets", "Volumes", etc.\n\n'
+        'Analyze the provided question and answer, then return a JSON object with two keys: '
+        '"exercise_category" and "subject_matter".\n'
+        'For example: {"exercise_category": "command", "subject_matter": "Pod Design"}'
+    )
+    
+    q_id = question.get('id', 'N/A')
+    logging.info(f"  - Calling AI to classify question ID: {q_id}...")
+    try:
+        if not openai:
+            raise ImportError("OpenAI library is not installed.")
+
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content_to_classify}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0,
+        )
+        classification = json.loads(response.choices[0].message.content)
+        
+        if 'exercise_category' in classification and 'subject_matter' in classification:
+            logging.info(f"  - AI classified question {q_id} as: {classification['subject_matter']} / {classification['exercise_category']}")
+            return {
+                'subject_matter': classification['subject_matter'],
+                'exercise_category': classification['exercise_category']
+            }
+        else:
+            logging.warning(f"  - AI classification response for question {q_id} is malformed. Skipping.")
+            return {}
+
+    except Exception as e:
+        logging.error(f"  - AI classification for question {q_id} failed: {e}")
+        return {}
+
+
 def _get_project_root() -> Path:
     """Gets the project root directory."""
     return Path(__file__).resolve().parent.parent
@@ -127,6 +230,7 @@ def bootstrap_quizzes_from_yaml() -> Dict[str, Dict[str, List[Dict[str, Any]]]]:
     on the fly, and returns a structured dictionary of quizzes.
     """
     logging.info("Starting bootstrap process: loading quizzes from YAML...")
+    _initialize_ai_classifier()
     project_root = _get_project_root()
     yaml_dir = project_root / "yaml"
 
