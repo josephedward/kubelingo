@@ -77,9 +77,6 @@ def task_write_db_to_yaml():
     """Write DB to YAML Backup Version"""
     _run_script("question_manager.py", "export-to-yaml")
 
-def task_restore_db_from_yaml():
-    """Restore DB from YAML Backup Version"""
-    _run_script("restore_db_from_yaml.py")
 
 def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
@@ -147,7 +144,6 @@ def run_interactive_menu():
         "Locate Previous YAML Backup": task_locate_yaml_backup,
         "View YAML Backup Statistics": task_view_yaml_stats,
         "Write DB to YAML Backup Version": task_write_db_to_yaml,
-        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
         "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
         # SQLite
         "Index all SQLite Files in Dir": task_index_sqlite,
@@ -175,7 +171,6 @@ def run_interactive_menu():
                 "Locate Previous YAML Backup",
                 "View YAML Backup Statistics",
                 "Write DB to YAML Backup Version",
-                "Restore DB from YAML Backup Version",
                 "Create Sqlite DB from YAML Backup Version",
                 Separator("=== SQLite ==="),
                 "Index all SQLite Files in Dir",

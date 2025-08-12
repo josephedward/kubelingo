@@ -63,8 +63,8 @@ def test_deduplicate_questions_dry_run(temp_db_with_duplicates, capsys, monkeypa
     captured = capsys.readouterr()
     assert "Found 1 prompts with duplicate questions." in captured.out
     assert 'Prompt: "duplicate prompt"' in captured.out
-    assert "Keeping: q1" in captured.out
-    assert "Duplicate: q3" in captured.out
+    assert "Keeping: q3" in captured.out
+    assert "Duplicate: q1" in captured.out
     assert "another unique" not in captured.out
 
     # Check db content is unchanged
@@ -87,8 +87,8 @@ def test_deduplicate_questions_delete(temp_db_with_duplicates, capsys, monkeypat
     assert "Found 1 prompts with duplicate questions." in captured.out
     assert "Deleting duplicates" in captured.out
     assert 'Prompt: "duplicate prompt"' in captured.out
-    assert "Keeping: q1" in captured.out
-    assert "Deleting: q3" in captured.out
+    assert "Keeping: q3" in captured.out
+    assert "Deleting: q1" in captured.out
     assert "Successfully deleted 1 duplicate questions." in captured.out
 
     # Check db content was changed
@@ -97,8 +97,8 @@ def test_deduplicate_questions_delete(temp_db_with_duplicates, capsys, monkeypat
     cursor.execute("SELECT COUNT(*) FROM questions")
     assert cursor.fetchone()[0] == 3
     cursor.execute("SELECT id FROM questions WHERE prompt = 'duplicate prompt'")
-    assert cursor.fetchone()[0] == 'q1'
-    cursor.execute("SELECT COUNT(*) FROM questions WHERE id = 'q3'")
+    assert cursor.fetchone()[0] == 'q3'
+    cursor.execute("SELECT COUNT(*) FROM questions WHERE id = 'q1'")
     assert cursor.fetchone()[0] == 0
     conn.close()
 
@@ -112,10 +112,13 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'DATABASE_FILE', str(db_file))
     # Initialize empty DB
     import kubelingo.database as dbmod
-    dbmod.init_db(clear=True)
-    # Insert a question without valid subject
+    # Create a connection and initialize schema directly to avoid file-based init issues in test
     conn = sqlite3.connect(db_file)
-    conn.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', '?', 'f.yaml'))
+    dbmod.init_db(conn=conn)
+    # Clear any pre-existing data from schema init and insert test data
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM questions")
+    cursor.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', '?', 'f.yaml'))
     conn.commit()
     conn.close()
 

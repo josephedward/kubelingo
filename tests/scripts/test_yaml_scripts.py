@@ -27,9 +27,11 @@ def test_export_db_to_yaml_and_restore(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
     monkeypatch.setattr(config, 'SECONDARY_MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
     import kubelingo.database as dbmod
-    dbmod.init_db(clear=True)
     conn = sqlite3.connect(db_path)
-    conn.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', 'hello', 'f.yaml'))
+    dbmod.init_db(conn=conn)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM questions")
+    cursor.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', 'hello', 'f.yaml'))
     conn.commit()
     conn.close()
     # Export to YAML using question_manager
@@ -59,11 +61,12 @@ def test_export_db_to_yaml_and_restore(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'SECONDARY_MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
     db_file = tmp_path / 'restored.db'
     monkeypatch.setattr(config, 'DATABASE_FILE', str(db_file))
-    # Restore directly using the restore function with explicit db_path override
-    from pathlib import Path as _Path
-    mod_restore = load_script('restore_yaml_to_db')
-    # Pass a list of Path objects, clear flag, and override db_path to our test DB
-    mod_restore.restore_yaml_to_db([_Path(yaml_input)], clear_db=True, db_path=str(db_file))
+    # Restore using the new question_manager command
+    monkeypatch.setattr(sys, 'argv', [
+        'question_manager.py', 'import-yaml', str(yaml_input),
+        '--db-path', str(db_file), '--clear'
+    ])
+    mod_qm.main()
     # Verify DB content in the patched DATABASE_FILE
     conn2 = sqlite3.connect(str(db_file))
     cur2 = conn2.cursor()

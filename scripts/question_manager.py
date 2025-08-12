@@ -46,6 +46,28 @@ from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_p
 from kubelingo.utils.ui import Fore, Style
 
 
+def extract_text_from_pdf(pdf_path: str) -> str:
+    """Extract text content from a PDF using pdftotext."""
+    try:
+        result = subprocess.run(
+            ["pdftotext", pdf_path, "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout
+    except FileNotFoundError:
+        print("Error: 'pdftotext' command not found.", file=sys.stderr)
+        print("Please install poppler-utils (e.g., 'sudo apt-get install poppler-utils' or 'brew install poppler').", file=sys.stderr)
+        return ""
+    except subprocess.CalledProcessError as e:
+        print(f"Error extracting text from PDF: {e.stderr}", file=sys.stderr)
+        return ""
+    except Exception as e:
+        print(f"An unexpected error occurred during PDF text extraction: {e}", file=sys.stderr)
+        return ""
+
+
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     """Converts a sqlite3.Row from the questions table to a dictionary."""
     if not row:
@@ -60,6 +82,33 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
                 # Keep as string if not valid JSON
                 pass
     return q_dict
+
+
+def get_existing_prompts(conn) -> Set[str]:
+    """Fetch all unique question prompts from the database."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT prompt FROM questions")
+    return {row[0] for row in cursor.fetchall()}
+
+
+def backup_database(source_db_path: str):
+    """Creates a timestamped backup of the database file."""
+    if not os.path.exists(source_db_path):
+        print(f"Source database {source_db_path} not found. Skipping backup.", file=sys.stderr)
+        return
+
+    # Use a consistent backup directory structure
+    backup_dir = Path(project_root) / 'backups' / 'db'
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_filename = Path(source_db_path).stem + f"_backup_{timestamp}.db"
+    backup_path = backup_dir / backup_filename
+
+    try:
+        shutil.copy2(source_db_path, backup_path)
+        print(f"Database backed up to {backup_path}")
+    except Exception as e:
+        print(f"Failed to backup database: {e}", file=sys.stderr)
 
 
 def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
@@ -80,6 +129,95 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
             conn.close()
 
     return questions
+
+
+# --- from: scripts/build_question_db.py ---
+def import_questions_from_files(files: List[Path], conn: sqlite3.Connection):
+    """Imports questions from a list of YAML files into the database."""
+    added_count = 0
+    skipped_count = 0
+
+    for file_path in tqdm(files, desc="Importing files"):
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                content = f.read()
+                # support multi-document YAML files
+                data_docs = yaml.safe_load_all(content)
+                questions_to_add = []
+                for data in data_docs:
+                    if not data:
+                        continue
+                    if isinstance(data, dict) and 'questions' in data:
+                        questions_to_add.extend(data['questions'])
+                    elif isinstance(data, list):
+                        questions_to_add.extend(data)
+
+            for q_dict in questions_to_add:
+                try:
+                    if 'id' not in q_dict or 'prompt' not in q_dict:
+                        skipped_count += 1
+                        continue
+
+                    if 'source_file' not in q_dict:
+                        q_dict['source_file'] = str(file_path.relative_to(project_root))
+
+                    q_obj = Question(**q_dict)
+                    validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
+
+                    add_question(
+                        conn=conn,
+                        id=q_obj.id,
+                        prompt=q_obj.prompt,
+                        source_file=q_obj.source_file,
+                        response=json.dumps(q_obj.response) if q_obj.response is not None else None,
+                        category_id=q_obj.category,
+                        subject_id=q_obj.subject.value if q_obj.subject else None,
+                        source='yaml_import',
+                        raw=json.dumps(q_dict),
+                        validation_steps=validation_steps_for_db,
+                        validator=q_obj.validator
+                    )
+                    added_count += 1
+                except sqlite3.IntegrityError:
+                    skipped_count += 1
+                except Exception as e:
+                    print(f"\nError processing question in {file_path} (ID: {q_dict.get('id')}): {e}", file=sys.stderr)
+                    skipped_count += 1
+        except (yaml.YAMLError, IOError) as e:
+            print(f"\nCould not read or parse YAML file {file_path}: {e}", file=sys.stderr)
+
+    conn.commit()
+    print(f"\nImport complete. Added: {added_count}, Skipped/Existing: {skipped_count}")
+
+
+def handle_build_db(args):
+    """Handler for building the database from YAML files."""
+    db_path = args.db_path or get_live_db_path()
+
+    if args.clear:
+        if os.path.exists(db_path):
+            if not args.no_backup:
+                print("Backing up existing database before clearing...")
+                backup_database(db_path)
+            os.remove(db_path)
+            print(f"Removed existing database at {db_path}")
+
+    conn = get_db_connection(db_path)
+    init_db(conn=conn)
+
+    if args.files:
+        files_to_import = [Path(f) for f in args.files]
+    else:
+        print("No specific files provided, scanning repo for all YAML question files...")
+        files_to_import = get_all_yaml_files_in_repo()
+
+    if not files_to_import:
+        print("No YAML files found to import.")
+    else:
+        print(f"Found {len(files_to_import)} YAML files to import.")
+        import_questions_from_files(files_to_import, conn)
+
+    conn.close()
 
 
 # --- from: scripts/categorize_questions.py ---
@@ -257,6 +395,51 @@ def handle_deduplicate(args):
     except Exception as e:
         print(f"An error occurred: {e}", file=sys.stderr)
         sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+
+
+# --- from: scripts/enrich_question_sources.py ---
+def handle_enrich_sources(args):
+    """
+    Scans the database for questions without a 'source' and populates it
+    based on the source_file.
+    """
+    print("Enriching question sources in the database...")
+    source_map = {}
+    for name, path in cfg.ENABLED_QUIZZES.items():
+        source_file = os.path.basename(path)
+        source_map[source_file] = name
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        # Find questions that need a source
+        cursor.execute("SELECT id, source_file FROM questions WHERE source IS NULL OR source = ''")
+        questions_to_update = cursor.fetchall()
+
+        if not questions_to_update:
+            print("All questions already have a source. No action needed.")
+            return
+
+        print(f"Found {len(questions_to_update)} questions missing a source. Updating...")
+
+        updated_count = 0
+        for q_id, source_file in questions_to_update:
+            if source_file in source_map:
+                source_name = source_map[source_file]
+                cursor.execute("UPDATE questions SET source = ? WHERE id = ?", (source_name, q_id))
+                updated_count += 1
+            else:
+                print(f"  - Warning: No source mapping found for '{source_file}' (question ID: {q_id})")
+
+        conn.commit()
+        print(f"Successfully updated {updated_count} questions.")
+
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
     finally:
         if conn:
             conn.close()
@@ -511,6 +694,177 @@ def handle_lint(args):
         lint_yaml(path)
     elif args.db:
         lint_db()
+
+
+# --- from: scripts/generate_ai_questions.py ---
+def handle_generate_ai_questions(args):
+    """Generate questions using AI and add them to the database."""
+    print(f"Generating {args.num_questions} AI questions for subject '{args.subject}'...")
+    try:
+        generator = AIQuestionGenerator()
+    except Exception as e:
+        print(f"Failed to initialize AIQuestionGenerator: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    new_questions = generator.generate_questions(
+        subject=args.subject,
+        num_questions=args.num_questions,
+        category=args.category,
+        base_questions=[]
+    )
+
+    if not new_questions:
+        print("AI generation returned no questions.")
+        return
+
+    print(f"Successfully generated {len(new_questions)} questions. Adding to database...")
+    conn = get_db_connection(args.db_path)
+    added = 0
+    skipped = 0
+    for q_dict in new_questions:
+        try:
+            q_obj = Question(**q_dict)
+            validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
+            add_question(
+                conn=conn,
+                id=q_obj.id,
+                prompt=q_obj.prompt,
+                source_file=q_obj.source_file or 'ai_generated',
+                response=json.dumps(q_obj.response) if q_obj.response is not None else None,
+                category_id=q_obj.category,
+                subject_id=q_obj.subject.value if q_obj.subject else args.subject,
+                source='ai_generator',
+                raw=json.dumps(q_dict),
+                validation_steps=validation_steps_for_db,
+                validator=q_obj.validator,
+            )
+            added += 1
+        except sqlite3.IntegrityError:
+            skipped += 1
+        except Exception as e:
+            print(f"Failed to add AI-generated question: {e}", file=sys.stderr)
+            skipped += 1
+
+    conn.commit()
+    conn.close()
+    print(f"Added {added} new questions to the database. Skipped {skipped}.")
+
+
+# --- from: scripts/generate_service_account_questions.py ---
+def handle_generate_sa_questions(args):
+    """Generate static ServiceAccount questions and optionally add them to DB or file."""
+    def _generate_questions():
+        """Return a list of question dicts in unified format."""
+        questions = []
+        # Question 0: Simple ServiceAccount in default namespace
+        ans0 = (
+            "apiVersion: v1\n"
+            "kind: ServiceAccount\n"
+            "metadata:\n"
+            "  name: sa-reader\n"
+            "  namespace: default"
+        )
+        questions.append({
+            "id": "service_accounts::0",
+            "prompt": "Create a ServiceAccount named 'sa-reader' in the 'default' namespace.",
+            "type": "command",
+            "pre_shell_cmds": [],
+            "initial_files": {},
+            "validation_steps": [
+                {"cmd": ans0, "matcher": {"exit_code": 0}}
+            ],
+            "explanation": None,
+            "categories": ["Service Account"],
+            "difficulty": None,
+            "metadata": {"answer": ans0}
+        })
+        # Question 1: ServiceAccount in custom namespace
+        ans1 = (
+            "apiVersion: v1\n"
+            "kind: ServiceAccount\n"
+            "metadata:\n"
+            "  name: sa-deployer\n"
+            "  namespace: dev-namespace"
+        )
+        questions.append({
+            "id": "service_accounts::1",
+            "prompt": "Create a ServiceAccount named 'sa-deployer' in the 'dev-namespace' namespace.",
+            "type": "command",
+            "pre_shell_cmds": [],
+            "initial_files": {},
+            "validation_steps": [
+                {"cmd": ans1, "matcher": {"exit_code": 0}}
+            ],
+            "explanation": None,
+            "categories": ["Service Account"],
+            "difficulty": None,
+            "metadata": {"answer": ans1}
+        })
+        # Question 2: ServiceAccount with imagePullSecrets
+        ans2 = (
+            "apiVersion: v1\n"
+            "kind: ServiceAccount\n"
+            "metadata:\n"
+            "  name: sa-db\n"
+            "  namespace: prod\n"
+            "imagePullSecrets:\n"
+            "- name: db-secret"
+        )
+        questions.append({
+            "id": "service_accounts::2",
+            "prompt": "Create a ServiceAccount named 'sa-db' in the 'prod' namespace with imagePullSecret 'db-secret'.",  # noqa: E501
+            "type": "command",
+            "pre_shell_cmds": [],
+            "initial_files": {},
+            "validation_steps": [
+                {"cmd": ans2, "matcher": {"exit_code": 0}}
+            ],
+            "explanation": None,
+            "categories": ["Service Account"],
+            "difficulty": None,
+            "metadata": {"answer": ans2}
+        })
+        return questions
+
+    questions = _generate_questions()
+    if args.num and args.num > 0:
+        questions = questions[:args.num]
+
+    json_out = json.dumps(questions, indent=2)
+    if args.output:
+        try:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                f.write(json_out)
+            print(f"Wrote {len(questions)} questions to {args.output}")
+        except IOError as e:
+            print(f"Error writing to {args.output}: {e}", file=sys.stderr)
+    
+    if not args.output and not args.to_db:
+        print(json_out)
+
+    if args.to_db:
+        conn = get_db_connection()
+        init_db(conn=conn)
+        added = 0
+        for q in questions:
+            try:
+                add_question(
+                    conn=conn,
+                    id=q['id'],
+                    prompt=q['prompt'],
+                    source_file='service_accounts',
+                    response=q['metadata']['answer'],
+                    category_id=q.get('categories', [None])[0],
+                    source='script',
+                    validation_steps=q.get('validation_steps'),
+                    validator=None
+                )
+                added += 1
+            except Exception as e:
+                print(f"Warning: could not add question '{q['id']}' to DB: {e}")
+        conn.commit()
+        conn.close()
+        print(f"Requested to add {len(questions)} questions; successfully added {added} to the kubelingo database.")
 
 
 # --- from: scripts/reorganize_questions.py ---
@@ -804,6 +1158,91 @@ def handle_verify(args):
     verify_questions(database_path)
 
 
+# --- from: scripts/add_service_account_questions.py ---
+def handle_add_service_account_questions(args):
+    """Add predefined Service Account questions to the database."""
+    # This function's logic is from scripts/add_service_account_questions.py
+    # It ensures the user's local database is targeted.
+    home_cfg_dir = os.path.expanduser('~/.kubelingo')
+    os.makedirs(home_cfg_dir, exist_ok=True)
+    cfg.APP_DIR = home_cfg_dir
+    cfg.DATABASE_FILE = os.path.join(home_cfg_dir, 'kubelingo.db')
+    db_mod.DATABASE_FILE = cfg.DATABASE_FILE
+
+    # Initialize database schema and get connection
+    init_db()
+    conn = get_db_connection()
+
+    source_file = 'service_account_script'
+    category = 'Service Account Operations'
+
+    # Predefined questions
+    questions = [
+        {
+            'id': f'{source_file}::1',
+            'prompt': "Create a ServiceAccount named 'deployment-sa' in the 'prod' namespace.",
+            'response': 'kubectl create serviceaccount deployment-sa -n prod',
+            'validation_steps': [
+                {'cmd': 'kubectl get serviceaccount deployment-sa -n prod', 'matcher': {'exit_code': 0}}
+            ]
+        },
+        {
+            'id': f'{source_file}::2',
+            'prompt': "Create a Pod named 'sa-example' using image nginx and assign it the ServiceAccount 'deployment-sa'.",
+            'response': (
+                'apiVersion: v1\n'
+                'kind: Pod\n'
+                'metadata:\n'
+                '  name: sa-example\n'
+                'spec:\n'
+                '  serviceAccountName: deployment-sa\n'
+                '  containers:\n'
+                '  - name: nginx\n'
+                '    image: nginx'
+            ),
+            'validation_steps': [
+                {'cmd': (
+                    "kubectl get pod sa-example -o jsonpath='{.spec.serviceAccountName}'"
+                ), 'matcher': {'exit_code': 0}}
+            ]
+        },
+        {
+            'id': f'{source_file}::3',
+            'prompt': "Grant the 'edit' ClusterRole to the ServiceAccount 'deployment-sa' in namespace 'prod'.",
+            'response': (
+                'kubectl create rolebinding deployment-sa-edit --clusterrole=edit '
+                '--serviceaccount=prod:deployment-sa -n prod'
+            ),
+            'validation_steps': [
+                {'cmd': (
+                    "kubectl get rolebinding deployment-sa-edit -n prod -o jsonpath='{.subjects[0].name}'"
+                ), 'matcher': {'exit_code': 0}}
+            ]
+        }
+    ]
+
+    try:
+        # Add or replace each question in the database
+        for q in questions:
+            add_question(
+                conn=conn,
+                id=q['id'],
+                prompt=q['prompt'],
+                source_file=source_file,
+                response=q.get('response'),
+                category_id=category,
+                source='script',
+                validation_steps=q.get('validation_steps'),
+            )
+            print(f"Added question {q['id']}")
+
+        # Summarize
+        entries = get_questions_by_source_file(source_file, conn=conn)
+        print(f"Total ServiceAccount questions in DB (source={source_file}): {len(entries)}")
+    finally:
+        conn.close()
+
+
 # --- from: scripts/add_ui_config_questions.py ---
 def handle_add_ui_config(args):
     """Add UI configuration questions into the database."""
@@ -965,6 +1404,67 @@ def handle_import_pdf(args):
             print(f"Failed to backup DB: {e}", file=sys.stderr)
 
 
+# --- from: scripts/extract_pdf_questions.py ---
+def handle_extract_pdf_ai(args):
+    """Generate and insert new questions from PDF content using AI."""
+    text = extract_text_from_pdf(args.pdf_path)
+    if not text:
+        print("No text extracted; aborting.")
+        return
+
+    if not os.environ.get("OPENAI_API_KEY"):
+        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
+        sys.exit(1)
+
+    # Truncate text for AI prompt to avoid token limits
+    snippet = text[:4000]
+    subject = f"Generate {args.num} new, distinct Kubernetes quiz questions based on the following PDF content:\n\n{snippet}"
+
+    generator = AIQuestionGenerator()
+    new_questions = generator.generate_questions(subject, num_questions=args.num)
+
+    if not new_questions:
+        print("AI generation returned no questions.")
+        return
+
+    conn = get_db_connection()
+    try:
+        existing_prompts = get_existing_prompts(conn)
+        added_count = 0
+        for q_dict in new_questions:
+            q = Question(**q_dict)
+            if q.prompt in existing_prompts:
+                print(f"Skipping existing question: {q.prompt}")
+                continue
+            
+            # Convert ValidationStep objects to dicts for DB storage
+            validation_steps_for_db = [vs.__dict__ for vs in q.validation_steps] if q.validation_steps else []
+
+            add_question(
+                conn,
+                id=q.id,
+                prompt=q.prompt,
+                response=q.response,
+                category_id="killershell",
+                source="pdf_ai",
+                source_file=os.path.basename(args.pdf_path),
+                validation_steps=validation_steps_for_db,
+                validator=q.validator or {},
+                review=False,
+                explanation=None,
+                pre_shell_cmds=getattr(q, "pre_shell_cmds", []) or [],
+                initial_files=getattr(q, "initial_files", {}),
+                question_type=getattr(q, "type", None),
+            )
+            added_count += 1
+            print(f"Added question {q.id}")
+        
+        conn.commit()
+        print(f"Added {added_count} new questions from PDF content.")
+    finally:
+        conn.close()
+
+
 # --- Main CLI Router ---
 def main():
     """Main entry point for the question manager CLI."""
@@ -973,6 +1473,22 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
+
+    # Sub-parser for 'add-sa-questions'
+    parser_add_sa = subparsers.add_parser('add-sa-questions', help='Add predefined Service Account questions to the database.', description="Adds a predefined set of Service Account questions to the user's local database.")
+    parser_add_sa.set_defaults(func=handle_add_service_account_questions)
+
+    # Sub-parser for 'add-ui-config'
+    parser_add_ui = subparsers.add_parser('add-ui-config', help='Add hardcoded UI configuration questions to the database.', description="Adds a predefined set of UI configuration questions to the user's local database.")
+    parser_add_ui.set_defaults(func=handle_add_ui_config)
+
+    # Sub-parser for 'build-db'
+    parser_build = subparsers.add_parser('build-db', help='Build the question database from YAML source files.', description="Builds or updates the question database from specified YAML files or all YAML files in the repo.")
+    parser_build.add_argument('files', nargs='*', help='Specific YAML files to import. If not provided, all YAML files in the repo are used.')
+    parser_build.add_argument('--db-path', default=None, help='Path to the SQLite database file. Defaults to the live application database.')
+    parser_build.add_argument('--clear', action='store_true', help='Clear the existing database before importing.')
+    parser_build.add_argument('--no-backup', action='store_true', help='Do not backup the database when using --clear.')
+    parser_build.set_defaults(func=handle_build_db)
 
     # Sub-parser for 'categorize'
     parser_categorize = subparsers.add_parser('categorize', help='Identify and assign subjects to questions.', description="Identify questions with missing or invalid subjects and optionally assign one.")
@@ -992,6 +1508,18 @@ def main():
     parser_deduplicate.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
     parser_deduplicate.add_argument("--delete", action="store_true", help="Delete duplicate questions, keeping only the newest occurrence of each.")
     parser_deduplicate.set_defaults(func=handle_deduplicate)
+
+    # Sub-parser for 'enrich-sources'
+    parser_enrich = subparsers.add_parser('enrich-sources', help="Populate the 'source' field for questions based on their source file.", description="Scans the database for questions without a 'source' and populates it based on the source_file, using the ENABLED_QUIZZES mapping.")
+    parser_enrich.set_defaults(func=handle_enrich_sources)
+
+    # Sub-parser for 'enrich-unseen'
+    parser_enrich_unseen = subparsers.add_parser('enrich-unseen', help="Generate new questions from a source file for prompts not already in the database.", description="Generate new questions from a source file if they don't exist in the database.")
+    parser_enrich_unseen.add_argument("--source-file", type=str, default="/Users/user/Documents/GitHub/kubelingo/question-data/unified.json", help="Path to the JSON file with source questions.")
+    parser_enrich_unseen.add_argument("--output-file", type=str, default="question-data/yaml/ai_generated_new_questions.yaml", help="Path to save the newly generated questions in YAML format.")
+    parser_enrich_unseen.add_argument("--num-questions", type=int, default=5, help="Maximum number of new questions to generate.")
+    parser_enrich_unseen.add_argument("--dry-run", action="store_true", help="Preview unseen questions without generating new ones.")
+    parser_enrich_unseen.set_defaults(func=handle_enrich_unseen)
 
     # Sub-parser for 'export-to-yaml'
     parser_export_yaml = subparsers.add_parser('export-to-yaml', help='Export all questions from database to a single YAML file.', description="Reads all questions from the SQLite database and writes them to a YAML file.")
@@ -1024,6 +1552,21 @@ def main():
     parser_format.add_argument('directory', nargs='?', default='question-data/questions', help='Directory of YAML question files to reformat.')
     parser_format.set_defaults(func=handle_format)
 
+    # Sub-parser for 'generate-ai-questions'
+    parser_gen_ai = subparsers.add_parser('generate-ai-questions', help='Generate new questions for a subject using AI.', description="Uses AIQuestionGenerator to create new questions for a given subject and adds them to the database.")
+    parser_gen_ai.add_argument('subject', help='The subject matter for question generation (e.g., "Service").')
+    parser_gen_ai.add_argument('-n', '--num-questions', type=int, default=1, help='Number of questions to generate.')
+    parser_gen_ai.add_argument('-c', '--category', default='Command', help='The category for generated questions.')
+    parser_gen_ai.add_argument("--db-path", type=str, default=None, help="Path to the SQLite database file. Defaults to the live application database.")
+    parser_gen_ai.set_defaults(func=handle_generate_ai_questions)
+
+    # Sub-parser for 'generate-sa-questions'
+    parser_gen_sa = subparsers.add_parser('generate-sa-questions', help='Generate static ServiceAccount questions.', description="Generate static ServiceAccount questions and optionally add to kubelingo DB or write to file.")
+    parser_gen_sa.add_argument('--to-db', action='store_true', help='Add generated questions to the kubelingo database.')
+    parser_gen_sa.add_argument('-n', '--num', type=int, default=0, help='Number of questions to output (default: all).')
+    parser_gen_sa.add_argument('-o', '--output', type=str, help='Write generated questions to a JSON file.')
+    parser_gen_sa.set_defaults(func=handle_generate_sa_questions)
+
     # Sub-parser for 'lint'
     parser_lint = subparsers.add_parser('lint', help='Lint question structure in YAML files or the database.', description="Lint and report missing or malformed fields in question definitions (YAML or DB).")
     group = parser_lint.add_mutually_exclusive_group(required=True)
@@ -1042,16 +1585,18 @@ def main():
     parser_verify.add_argument("db_path", nargs="?", default=None, help="Path to the SQLite database file. If not provided, uses the live database.")
     parser_verify.set_defaults(func=handle_verify)
 
-    # Sub-parser for 'add-ui-config'
-    parser_add_ui = subparsers.add_parser('add-ui-config', help='Add hardcoded UI configuration questions to the database.', description="Adds a predefined set of UI configuration questions to the user's local database.")
-    parser_add_ui.set_defaults(func=handle_add_ui_config)
-
     # Sub-parser for 'import-pdf'
     parser_import_pdf = subparsers.add_parser('import-pdf', help='Import questions from a PDF file.', description="Import new quiz questions from the 'Killer Shell - Exam Simulators.pdf' into the Kubelingo database.")
     default_pdf_path = os.path.join(project_root, 'Killer Shell - Exam Simulators.pdf')
     parser_import_pdf.add_argument('pdf_file', nargs='?', default=default_pdf_path, help=f"Path to the PDF file to import questions from. Default: {default_pdf_path}")
     parser_import_pdf.add_argument('--no-backup', action='store_true', help="Do not back up the database after importing questions.")
     parser_import_pdf.set_defaults(func=handle_import_pdf)
+
+    # Sub-parser for 'extract-pdf-ai'
+    parser_extract_pdf = subparsers.add_parser('extract-pdf-ai', help='Extract text from a PDF and generate new quiz questions using AI.', description="Extracts text from a PDF, uses it as context for an AI to generate questions, and adds them to the database, avoiding duplicates.")
+    parser_extract_pdf.add_argument("pdf_path", help="Path to the PDF file containing quiz content.")
+    parser_extract_pdf.add_argument("-n", "--num", type=int, default=5, help="Number of questions to generate.")
+    parser_extract_pdf.set_defaults(func=handle_extract_pdf_ai)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
