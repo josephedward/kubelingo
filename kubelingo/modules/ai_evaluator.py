@@ -12,8 +12,7 @@ class AIEvaluator:
         Initializes the AIEvaluator. It will use the configured LLM client.
         """
         try:
-            provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-            self.client = get_llm_client(provider)
+            self.client = get_llm_client()
         except (ImportError, ValueError) as e:
             logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
             self.client = None

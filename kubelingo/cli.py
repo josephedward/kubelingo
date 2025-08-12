@@ -756,12 +756,14 @@ def show_study_main_menu():
 
 def enrich_sources():
     """Finds and adds sources for questions without them."""
+    from kubelingo.utils.config import get_active_api_key, get_ai_provider
     # Check for API key first
-    api_key = os.getenv('GEMINI_API_KEY') or get_gemini_api_key()
+    api_key = get_active_api_key()
     if not api_key:
-        print(f"{Fore.RED}This feature requires a Gemini API key. Please configure it first.{Style.RESET_ALL}")
+        provider = get_ai_provider()
+        print(f"{Fore.RED}This feature requires a {provider.capitalize()} API key. Please configure it first.{Style.RESET_ALL}")
         manage_config_interactive()
-        api_key = os.getenv('GEMINI_API_KEY') or get_gemini_api_key()
+        api_key = get_active_api_key()
         if not api_key:
             return
 
@@ -859,24 +861,32 @@ def main():
     is_help_request = '--help' in sys.argv or '-h' in sys.argv
     is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
 
-    if not os.getenv('GEMINI_API_KEY'):
-        api_key = get_gemini_api_key()
-        if api_key:
-            os.environ['GEMINI_API_KEY'] = api_key
-        elif not is_help_request and not is_config_command and sys.stdin.isatty():
+    from kubelingo.utils.config import (
+        get_active_api_key,
+        get_ai_provider,
+        save_gemini_api_key,
+        save_openai_api_key,
+    )
+    provider = get_ai_provider()
+    # Prompt for API key if not set
+    if not get_active_api_key():
+        if not is_help_request and not is_config_command and sys.stdin.isatty():
             try:
-                prompt = getpass.getpass('Enter your Gemini API key to enable AI features (leave blank to skip): ')
+                key_name = f"{provider.capitalize()} API key"
+                prompt_text = f'Enter your {key_name} to enable AI features (leave blank to skip): '
+                prompt = getpass.getpass(prompt_text)
                 if prompt:
-                    if save_gemini_api_key(prompt):
-                        os.environ['GEMINI_API_KEY'] = prompt.strip()
-                        print(f"{Fore.GREEN}Gemini API key saved to {API_KEY_FILE}{Style.RESET_ALL}")
+                    save_func = save_openai_api_key if provider == "openai" else save_gemini_api_key
+                    if save_func(prompt.strip()):
+                        print(f"{Fore.GREEN}{key_name} saved.{Style.RESET_ALL}")
                     else:
                         print(f"{Fore.RED}Failed to save API key.{Style.RESET_ALL}")
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Skipping API key setup.{Style.RESET_ALL}")
-    # Warn prominently if no Gemini API key is available (skip when showing help)
-    if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('GEMINI_API_KEY'):
-        print(f"{Fore.RED}AI explanations are disabled: no Gemini API key provided.{Style.RESET_ALL}")
+
+    # Warn prominently if no API key is available (skip when showing help)
+    if '--help' not in sys.argv and '-h' not in sys.argv and not get_active_api_key():
+        print(f"{Fore.RED}AI features are disabled: no API key configured for {provider}.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(
         prog='kubelingo',
         usage='kubelingo [OPTIONS] [command]',

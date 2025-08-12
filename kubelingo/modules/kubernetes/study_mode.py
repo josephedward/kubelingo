@@ -35,7 +35,7 @@ KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
 class KubernetesStudyMode:
     def __init__(self):
         self.ai_provider = get_ai_provider()
-        self.client: LLMClient = get_llm_client(self.ai_provider)
+        self.client: LLMClient = get_llm_client()
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
@@ -165,18 +165,21 @@ class KubernetesStudyMode:
     def _manage_config_interactive(self):
         """Interactive prompt for managing configuration."""
         try:
+            from kubelingo.utils.config import get_ai_provider
+
+            current_provider = get_ai_provider()
+
             action = questionary.select(
                 "What would you like to do?",
                 choices=[
                     Separator("AI Provider Settings"),
                     {
-                        "name": f"Select AI Provider (current: {self.ai_provider.capitalize()})",
-                        "value": "select_provider",
+                        "name": f"Select AI Provider (current: {current_provider.capitalize()})",
+                        "value": "set_provider",
                     },
-                    {"name": "View OpenAI API Key", "value": "view_openai"},
-                    {"name": "Set OpenAI API Key", "value": "set_openai"},
-                    {"name": "View Gemini API Key", "value": "view_gemini"},
-                    {"name": "Set Gemini API Key", "value": "set_gemini"},
+                    Separator("API Keys"),
+                    {"name": "View current API key", "value": "view_api_key"},
+                    {"name": "Set/Update API key", "value": "set_api_key"},
                     Separator("Kubernetes Clusters"),
                     {"name": "List configured clusters", "value": "list_clusters"},
                     {"name": "Add a new cluster connection", "value": "add_cluster"},
@@ -190,16 +193,12 @@ class KubernetesStudyMode:
             if action is None or action == "cancel":
                 return
 
-            if action == "select_provider":
+            if action == "set_provider":
                 self._select_ai_provider()
-            elif action == "view_openai":
-                self._handle_config_command(["config", "view", "openai"])
-            elif action == "set_openai":
-                self._handle_config_command(["config", "set", "openai"])
-            elif action == "view_gemini":
-                self._handle_config_command(["config", "view", "gemini"])
-            elif action == "set_gemini":
-                self._handle_config_command(["config", "set", "gemini"])
+            elif action == "view_api_key":
+                self._handle_config_command(["config", "view", "api_key"])
+            elif action == "set_api_key":
+                self._handle_config_command(["config", "set", "api_key"])
             elif action == "list_clusters":
                 self._handle_config_command(["config", "list", "cluster"])
             elif action == "add_cluster":
@@ -225,7 +224,7 @@ class KubernetesStudyMode:
             if new_provider and new_provider != self.ai_provider:
                 if save_ai_provider(new_provider):
                     self.ai_provider = new_provider
-                    self.client = get_llm_client(self.ai_provider)
+                    self.client = get_llm_client()
                     self.question_generator.client = self.client
                     print(
                         f"\n{Fore.GREEN}AI provider set to {self.ai_provider.capitalize()}. It will be used for future sessions.{Style.RESET_ALL}"
@@ -242,7 +241,7 @@ class KubernetesStudyMode:
         """Handles 'config' subcommands."""
         if len(cmd) < 3:
             print("Usage: kubelingo config <action> <target> [args...]")
-            print("Example: kubelingo config set openai")
+            print("Example: kubelingo config set api_key")
             print("Example: kubelingo config list cluster")
             return
 
@@ -251,36 +250,28 @@ class KubernetesStudyMode:
 
         if target == "provider":
             if action == "set":
-                from kubelingo.utils.config import get_ai_provider, save_ai_provider
-
-                current_provider = get_ai_provider()
-                new_provider = questionary.select(
-                    "Select your preferred AI provider:",
-                    choices=["gemini", "openai"],
-                    default=current_provider,
-                ).ask()
-                if new_provider and new_provider != current_provider:
-                    if save_ai_provider(new_provider):
-                        print(f"AI provider set to '{new_provider}'.")
-                    else:
-                        print("Failed to save AI provider setting.")
+                # This logic is handled by _select_ai_provider now.
+                self._select_ai_provider()
             else:
                 print(f"Unknown action '{action}' for provider. Use 'set'.")
-        elif target in ("openai", "api_key", "gemini"):
+
+        elif target == "api_key":
             from kubelingo.utils.config import (
                 get_active_api_key,
                 get_ai_provider,
                 save_gemini_api_key,
+                save_openai_api_key,
             )
 
             provider = get_ai_provider()
             key_name = f"{provider.capitalize()} API key"
+
             if action == "view":
                 key = get_active_api_key()
                 if key:
-                    print(f"{key_name}: {key}")
+                    print(f"\n{key_name}: {key}")
                 else:
-                    print(f"{key_name} is not set.")
+                    print(f"\n{key_name} is not set.")
             elif action == "set":
                 value = None
                 if len(cmd) >= 4:
@@ -301,40 +292,13 @@ class KubernetesStudyMode:
                         else save_gemini_api_key
                     )
                     if save_func(value):
-                        print(f"{key_name} saved.")
+                        print(f"\n{Fore.GREEN}{key_name} saved.{Style.RESET_ALL}")
                     else:
-                        print(f"Failed to save {key_name}.")
+                        print(f"\n{Fore.RED}Failed to save {key_name}.{Style.RESET_ALL}")
                 else:
-                    print("No API key provided. No changes made.")
+                    print("\nNo API key provided. No changes made.")
             else:
                 print(f"Unknown action '{action}' for api_key. Use 'view' or 'set'.")
-        elif target == "gemini":
-            if action == "view":
-                key = get_gemini_api_key()
-                if key:
-                    print(f"Gemini API key: {key}")
-                else:
-                    print("Gemini API key is not set.")
-            elif action == "set":
-                value = None
-                if len(cmd) >= 4:
-                    value = cmd[3]
-                else:
-                    try:
-                        value = getpass.getpass("Enter Gemini API key: ").strip()
-                    except (EOFError, KeyboardInterrupt):
-                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
-                        return
-
-                if value:
-                    if save_gemini_api_key(value):
-                        print("Gemini API key saved.")
-                    else:
-                        print("Failed to save Gemini API key.")
-                else:
-                    print("No API key provided. No changes made.")
-            else:
-                print(f"Unknown action '{action}' for gemini. Use 'view' or 'set'.")
         elif target == "cluster":
             configs = get_cluster_configs()
             if action == "list":

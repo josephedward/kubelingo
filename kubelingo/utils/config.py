@@ -240,6 +240,16 @@ def get_ai_provider() -> str:
     return 'gemini'
 
 
+def get_active_api_key() -> Optional[str]:
+    """Retrieves the API key for the currently configured AI provider."""
+    provider = get_ai_provider()
+    if provider == 'gemini':
+        return get_gemini_api_key()
+    elif provider == 'openai':
+        return get_openai_api_key()
+    return None
+
+
 def save_cluster_configs(configs: Dict[str, Any]) -> bool:
     """Saves cluster configurations to a JSON file."""
     try:
