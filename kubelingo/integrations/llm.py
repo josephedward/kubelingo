@@ -52,7 +52,7 @@ class GeminiClient(LLMClient):
 
         try:
             model = genai.GenerativeModel(
-                "gemini-pro", system_instruction=system_prompt
+                "gemini-1.5-pro-latest", system_instruction=system_prompt
             )
             generation_config = genai.types.GenerationConfig(temperature=temperature)
             response = model.generate_content(
