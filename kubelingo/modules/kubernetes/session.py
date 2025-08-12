@@ -609,7 +609,7 @@ class NewSession(StudySession):
                     return
                 # No questions found
                 if not questions:
-                    print(f"{Fore.YELLOW}No questions found in '{args.category}'.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}No questions found for '{args.category}'.{Style.RESET_ALL}")
                     return
                 # Determine how many questions to ask and generate additional via AI if needed
                 requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
