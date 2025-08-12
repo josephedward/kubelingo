@@ -80,8 +80,8 @@ from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
     LOG_FILE,
-    get_api_key,
-    save_api_key,
+    get_openai_api_key,
+    save_openai_api_key,
     API_KEY_FILE,
     YAML_QUIZ_DIR,
     get_cluster_configs,
@@ -180,7 +180,7 @@ def handle_config_command(cmd):
 
     if target in ('openai', 'api_key'):
         if action == 'view':
-            key = get_api_key()
+            key = get_openai_api_key()
             if key:
                 print(f'OpenAI API key: {key}')
             else:
@@ -197,7 +197,7 @@ def handle_config_command(cmd):
                     return
 
             if value:
-                if save_api_key(value):
+                if save_openai_api_key(value):
                     print('OpenAI API key saved.')
                 else:
                     print('Failed to save OpenAI API key.')
@@ -709,11 +709,11 @@ def manage_config_interactive():
 def enrich_sources():
     """Finds and adds sources for questions without them."""
     # Check for API key first
-    api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
+    api_key = os.getenv('OPENAI_API_KEY') or get_openai_api_key()
     if not api_key:
         print(f"{Fore.RED}This feature requires an OpenAI API key. Please configure it first.{Style.RESET_ALL}")
         manage_config_interactive()
-        api_key = os.getenv('OPENAI_API_KEY') or get_api_key()
+        api_key = os.getenv('OPENAI_API_KEY') or get_openai_api_key()
         if not api_key:
             return
 
@@ -812,14 +812,14 @@ def main():
     is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
 
     if not os.getenv('OPENAI_API_KEY'):
-        api_key = get_api_key()
+        api_key = get_openai_api_key()
         if api_key:
             os.environ['OPENAI_API_KEY'] = api_key
         elif not is_help_request and not is_config_command and sys.stdin.isatty():
             try:
                 prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
                 if prompt:
-                    if save_api_key(prompt):
+                    if save_openai_api_key(prompt):
                         os.environ['OPENAI_API_KEY'] = prompt.strip()
                         print(f"{Fore.GREEN}OpenAI API key saved to {API_KEY_FILE}{Style.RESET_ALL}")
                     else:
