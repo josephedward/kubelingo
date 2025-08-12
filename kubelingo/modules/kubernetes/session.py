@@ -38,24 +38,38 @@ class NewSession(StudySession):
             print("Please install it by running: pip install questionary")
             return
 
-        try:
-            level = questionary.select(
-                "What is your current overall skill level?",
-                choices=["beginner", "intermediate", "advanced"],
-                default="intermediate",
-            ).ask()
-            if not level:
-                return
+        while True:
+            try:
+                action = questionary.select(
+                    "Kubernetes Main Menu",
+                    choices=["Study Mode", "Review Questions", "Settings", "Exit"],
+                    use_indicator=True,
+                ).ask()
 
-            # The KubernetesStudyMode class now handles the entire interactive loop.
-            study_session = KubernetesStudyMode()
-            study_session.start_study_session(user_level=level)
+                if action is None or action == "Exit":
+                    break
 
-        except (KeyboardInterrupt, EOFError):
-            # The study mode handles its own interrupt messages, so we just exit.
-            print("\nReturning to main menu.")
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+                if action == "Study Mode":
+                    level = questionary.select(
+                        "What is your current overall skill level?",
+                        choices=["beginner", "intermediate", "advanced"],
+                        default="intermediate",
+                    ).ask()
+                    if not level:
+                        continue
+
+                    study_session = KubernetesStudyMode()
+                    study_session.start_study_session(user_level=level)
+                elif action in ["Review Questions", "Settings"]:
+                    print(f"\nFeature '{action}' is coming soon!")
+
+            except (KeyboardInterrupt, EOFError):
+                # The study mode handles its own interrupt messages, so we just exit.
+                print("\nReturning to main menu.")
+                break
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
+                break
 
     def cleanup(self):
         """Cleans up any session-related resources."""
