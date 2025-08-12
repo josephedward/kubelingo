@@ -1,3 +1,4 @@
+import hashlib
 import os
 import shutil
 from datetime import datetime
@@ -18,14 +19,28 @@ EXCLUDE_DIRS = [
 ]
 
 
+def sha256_checksum(file_path: Path, block_size=65536) -> str:
+    """Calculates the SHA256 checksum of a file."""
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for block in iter(lambda: f.read(block_size), b""):
+            sha256.update(block)
+    return sha256.hexdigest()
+
+
 def consolidate_backups():
     """
     Consolidates data files from the project into a single archive directory.
     Files are renamed using their creation timestamp to avoid name conflicts and
-    provide a clear history.
+    provide a clear history. Duplicate files are detected and removed.
     """
     ARCHIVE_DIR.mkdir(exist_ok=True)
     print(f"Archive directory: {ARCHIVE_DIR}")
+
+    # Pre-calculate hashes of existing files in the archive to detect duplicates.
+    existing_hashes = {
+        sha256_checksum(p) for p in ARCHIVE_DIR.iterdir() if p.is_file()
+    }
 
     found_files = []
     for ext in EXTENSIONS:
@@ -55,6 +70,15 @@ def consolidate_backups():
 
     for file_path in sorted(list(set(found_files))):
         try:
+            # Check for duplicates by content hash before moving.
+            file_hash = sha256_checksum(file_path)
+            if file_hash in existing_hashes:
+                print(
+                    f"Removing duplicate: {file_path.relative_to(PROJECT_ROOT)} is identical to a file already in archive."
+                )
+                file_path.unlink()  # Remove the source file, as it's a duplicate.
+                continue
+
             # Use birthtime for creation time if available (macOS, some Linux),
             # otherwise fall back to modification time.
             try:
@@ -76,6 +100,7 @@ def consolidate_backups():
 
             print(f"Moving {file_path.relative_to(PROJECT_ROOT)} to {new_path.relative_to(PROJECT_ROOT)}")
             shutil.move(file_path, new_path)
+            existing_hashes.add(file_hash)
 
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
