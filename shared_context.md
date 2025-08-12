@@ -40,9 +40,7 @@ The Kubelingo question system has a two-level hierarchy for classifying question
 /scripts/fix_links.py  
 /scripts/fix_question_categories.py  
 /scripts/format_questions.py  
-/scripts/generate_kubectl_operations_quiz.py  
 /scripts/generate_manifests.py  
-/scripts/generate_resource_reference_quiz.py  
 /scripts/import_from_yaml_with_ai.py  
 /scripts/index_sqlite_files.py  
 /scripts/index_yaml_files.py  
@@ -132,13 +130,11 @@ Select a maintenance task: (Use arrow keys)
    ○ Legacy Add Service Account Questions
    ○ Legacy Add Ui Config Questions
    ○ Legacy Check Docs Links
-   ○ Legacy Check Quiz Formatting
    ○ Legacy Consolidate Questions
    ○ Legacy Enrich Question Sources
    ○ Legacy Enrich Unseen Questions
    ○ Legacy Extract Pdf Questions
    ○ Legacy Find Duplicate Questions
-   ○ Legacy Generate Ai Questions
    ○ Legacy Generate Service Account Questions
    ○ Legacy Import Pdf Questions
    ○ Legacy Reorganize Question Data
@@ -146,10 +142,7 @@ Select a maintenance task: (Use arrow keys)
    ○ Reorganize Questions
    ○ Validate Doc Links
  === Generate ===
-   ○ Generate Kubectl Operations Quiz
    ○ Generate Manifests
-   ○ Generate Resource Reference Quiz
-   ○ Legacy Generate Ai Quiz
    ○ Legacy Generate From Pdf
  » ○ Legacy Generate Validation Steps
    === Other ===
