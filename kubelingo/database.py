@@ -99,6 +99,7 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
             subject TEXT,
             source TEXT,
             source_file TEXT NOT NULL,
+            raw TEXT,
             validation_steps TEXT,
             validator TEXT,
             review BOOLEAN NOT NULL DEFAULT 0
@@ -131,12 +132,13 @@ def add_question(
     id: str,
     prompt: str,
     response: str,
-    category_id: str,
-    subject_id: str,
+    category: str,
+    subject: str,
     source: str,
     source_file: str,
     raw: str,
-    review: bool = False
+    review: bool = False,
+    **kwargs
 ):
     """
     Adds a question to the database.
@@ -146,8 +148,8 @@ def add_question(
         id: Unique identifier for the question.
         prompt: The question prompt.
         response: The expected response.
-        category_id: The category ID for the question.
-        subject_id: The subject ID for the question.
+        category: The category ID for the question.
+        subject: The subject ID for the question.
         source: The source of the question.
         source_file: The file where the question originated.
         raw: The raw data for the question.
@@ -156,10 +158,19 @@ def add_question(
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT INTO questions (id, prompt, response, category_id, subject_id, source, source_file, raw, review)
+        INSERT INTO questions (id, prompt, response, category, subject, source, source_file, raw, review)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            prompt=excluded.prompt,
+            response=excluded.response,
+            category=excluded.category,
+            subject=excluded.subject,
+            source=excluded.source,
+            source_file=excluded.source_file,
+            raw=excluded.raw,
+            review=excluded.review
         """,
-        (id, prompt, response, category_id, subject_id, source, source_file, raw, review)
+        (id, prompt, response, category, subject, source, source_file, raw, review)
     )
     conn.commit()
 

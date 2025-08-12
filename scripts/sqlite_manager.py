@@ -280,27 +280,43 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
     if "type" in q_dict: q_dict["question_type"] = q_dict.pop("type")
     if "subject" in q_dict: q_dict["subject_matter"] = q_dict.pop("subject")
     q_type = q_dict.get("question_type", "command")
-    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"): q_dict["category_id"] = "manifest"
-    elif q_type in ("command", "kubectl"): q_dict["category_id"] = "command"
-    else: q_dict["category_id"] = "basic"
-    if not q_dict.get("category"):
-        if q_dict.get("question_type") in ("yaml_edit", "yaml_author"): q_dict["category"] = "YAML Authoring"
-        elif q_dict.get("subject_matter"): q_dict["category"] = q_dict["subject_matter"]
-        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"): q_dict["category"] = q_dict["subject_matter"].capitalize()
-    
-    category = q_dict.get("category")
-    if category:
-        q_dict['subject_id'] = category
 
-    if category_to_source_file.get(category): q_dict["source_file"] = category_to_source_file[category]
-    elif not q_dict.get("source_file"): raise QuestionSkipped(f"Unmatched category: {category}" if category else "Missing category.", category=category)
-    for key in ["solution_file", "subject", "type", "category"]: q_dict.pop(key, None)
+    # Map schema category to 'category' column
+    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
+        q_dict["category"] = "manifest"
+    elif q_type in ("command", "kubectl"):
+        q_dict["category"] = "command"
+    else:
+        q_dict["category"] = "basic"
+
+    # Map subject matter from YAML 'category' to 'subject' column
+    subject = q_data.get("category")
+    if not subject:
+        if q_dict.get("question_type") in ("yaml_edit", "yaml_author"):
+            subject = "YAML Authoring"
+        elif q_dict.get("subject_matter"):
+            subject = q_dict["subject_matter"]
+        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
+            subject = q_dict["subject_matter"].capitalize()
+
+    if subject:
+        q_dict['subject'] = subject
+
+    if category_to_source_file.get(subject):
+        q_dict["source_file"] = category_to_source_file[subject]
+    elif not q_dict.get("source_file"):
+        raise QuestionSkipped(f"Unmatched category: {subject}" if subject else "Missing category.", category=subject)
+
+    # Clean up mapped/temporary fields
+    for key in ["solution_file", "subject_matter", "type", "category_id", "subject_id"]:
+        q_dict.pop(key, None)
+        
     return {k: v for k, v in q_dict.items() if k in allowed_args}
 
 def _populate_db_from_yaml(yaml_files, db_path=None):
     if not yaml_files: print("No YAML files found to process."); return
     conn = get_db_connection(db_path=db_path)
-    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "raw", "validation_steps", "validator", "review", "question_type", "category_id", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
+    allowed_args = {"id", "prompt", "source_file", "response", "subject", "source", "raw", "validation_steps", "validator", "review", "question_type", "category", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
     unmatched_categories, skipped_no_category, question_count = set(), 0, 0
     try:
         for file_path in yaml_files:
