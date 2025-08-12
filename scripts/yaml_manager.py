@@ -36,16 +36,6 @@ try:
         get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions
     )
     from kubelingo.question import Question
-    import yaml
-    from tqdm import tqdm
-    from rich.console import Console
-    from rich.progress import track
-    import llm
-
-    from kubelingo.database import (
-        get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions
-    )
-    from kubelingo.question import Question
     from kubelingo.modules.db_loader import DBLoader
     from kubelingo.modules.yaml_loader import YAMLLoader
     from kubelingo.modules.ai_categorizer import AICategorizer
