@@ -32,11 +32,15 @@ def mock_subprocess_run():
 @pytest.fixture
 def mock_questionary():
     """Fixture to mock the questionary library for interactive tests."""
-    # Since questionary is imported dynamically inside functions, we use
-    # create=True to allow patching an attribute that doesn't exist at import time.
-    with patch('kubelingo_tools.questionary', create=True) as mock:
-        with patch('kubelingo_tools.Separator', create=True):
-            yield mock
+    # Mock the entire questionary module before it's imported inside functions.
+    mock_q_module = MagicMock()
+    # Mock the Separator class which is imported separately.
+    # The class itself is not used, just its existence for the import.
+    mock_q_module.Separator = MagicMock()
+
+    # When the code under test does `import questionary`, it will get our mock.
+    with patch.dict('sys.modules', {'questionary': mock_q_module}):
+        yield mock_q_module
 
 
 def run_tools_main(*args):

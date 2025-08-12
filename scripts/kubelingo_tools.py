@@ -511,7 +511,19 @@ def main(argv=None):
         )
         sp.set_defaults(func=run_dynamic_script, script_path=p)
 
-    args = parser.parse_args(argv)
+    # Use parse_known_args to handle passthrough arguments for 'quiz' and 'run'.
+    args, remainder = parser.parse_known_args(argv)
+
+    if hasattr(args, 'quiz_args'):
+        # This command is designed to consume all following args.
+        args.quiz_args.extend(remainder)
+    elif hasattr(args, 'script_args'):
+        # This command is designed to consume all following args.
+        args.script_args.extend(remainder)
+    elif remainder:
+        # Some other command got unexpected arguments.
+        parser.error(f"unrecognized arguments: {' '.join(remainder)}")
+
     args.func(args)
 
 if __name__ == '__main__':
