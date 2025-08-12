@@ -30,15 +30,14 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
-        provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-        # Dynamically get client to avoid circular dependency issues at import time
-        from kubelingo.integrations.llm import get_llm_client
-        self.llm_client = get_llm_client(provider)
+        self.client = None
         try:
-            self.client = get_llm_client()
+            # Dynamically get client to avoid circular dependency issues at import time
+            from kubelingo.integrations.llm import get_llm_client
+            provider = os.environ.get("AI_PROVIDER", "gemini").lower()
+            self.client = get_llm_client(provider)
         except (ImportError, ValueError) as e:
             logging.error(f"Failed to initialize LLM client for AIQuestionGenerator: {e}")
-            self.client = None
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
@@ -161,8 +160,11 @@ class AIQuestionGenerator:
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
             try:
+                if not self.client:
+                    logger.error("LLM client not available, skipping generation attempt.")
+                    continue
                 # Use the configured LLM client
-                raw = self.llm_client.chat_completion(
+                raw = self.client.chat_completion(
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
