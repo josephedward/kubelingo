@@ -13,16 +13,25 @@ class NewSession:
             return
 
         try:
-            print()  # Add a blank line for spacing before the menu
+            print("\nAvailable Kubernetes topics:")
             topic_choices = list(KUBERNETES_TOPICS)
+            for i, topic_item in enumerate(topic_choices, 1):
+                print(f"  {i}. {topic_item}")
+            print()
+
             if not topic_choices:
                 print("No study topics available for Study Mode.")
                 return
-            
-            topic = input("What Kubernetes topic would you like to study? ")
 
-            if not topic or topic not in topic_choices:
-                print("Invalid topic selected.")
+            try:
+                choice = input(f"Select a topic to study (1-{len(topic_choices)}): ")
+                topic_index = int(choice) - 1
+                if not (0 <= topic_index < len(topic_choices)):
+                    print("Invalid topic selected.")
+                    return
+                topic = topic_choices[topic_index]
+            except (ValueError, IndexError):
+                print("Invalid selection. Please enter a number from the list.")
                 return
 
             level = input("What is your current skill level on this topic? (beginner/intermediate/advanced): ").strip().lower()
@@ -60,3 +69,8 @@ class NewSession:
 
         except Exception as e:
             print(f"An error occurred during the study session: {e}")
+
+
+if __name__ == "__main__":
+    session = NewSession()
+    session._run_study_mode_session()
