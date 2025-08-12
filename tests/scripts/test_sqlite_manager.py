@@ -177,10 +177,12 @@ def test_create_from_yaml(setup_test_dbs):
     assert new_db_path.exists()
     with sqlite3.connect(new_db_path) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT id, prompt FROM questions")
+        cur.execute("SELECT id, prompt, category, subject FROM questions")
         row = cur.fetchone()
         assert row[0] == "q1"
         assert row[1] == "What is a Pod?"
+        assert row[2] == "basic"
+        assert row[3] == "Concepts"
 
 
 def test_diff(setup_test_dbs, capsys):
