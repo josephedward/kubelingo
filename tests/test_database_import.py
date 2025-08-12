@@ -58,12 +58,12 @@ def test_can_ask_and_answer_question(db_from_latest_dump):
     Ensures that a question can be retrieved and answered.
     """
     cursor = db_from_latest_dump.cursor()
-    cursor.execute("SELECT id, question_text FROM questions LIMIT 1")
-    question = cursor.fetchone()
-    assert question is not None, "No question was retrieved from the database."
+    cursor.execute("SELECT id, question FROM questions LIMIT 1")
+    question_record = cursor.fetchone()
+    assert question_record is not None, "No question was retrieved from the database."
 
-    question_id, question_text = question
-    assert question_text, "The retrieved question has no text."
+    question_id, question_content = question_record
+    assert question_content, "The retrieved question has no text."
 
     # Simulate answering the question
     cursor.execute(
