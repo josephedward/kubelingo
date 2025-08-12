@@ -121,12 +121,12 @@ def main():
     print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
 
     print(f"\nStep 1: Preparing live database at '{DATABASE_FILE}'...")
-    init_db(clear=True)
+    init_db(db_path=DATABASE_FILE, clear=True)
     print("  - Cleared and initialized database for build.")
 
     print(f"\nStep 2: Importing questions from all found YAML files...")
     questions_imported = 0
-    conn = get_db_connection()
+    conn = get_db_connection(db_path=DATABASE_FILE)
     try:
         questions_imported = import_questions(all_yaml_files, conn)
     finally:
