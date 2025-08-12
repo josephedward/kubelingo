@@ -51,12 +51,12 @@ def temp_db_with_duplicates(tmp_path):
     return db_path
 
 def test_deduplicate_questions_dry_run(temp_db_with_duplicates, capsys, monkeypatch):
-    """Tests the deduplicate_questions script in dry-run mode."""
-    deduplicate_questions_mod = load_script('deduplicate_questions')
+    """Tests the deduplicate subcommand of question_manager.py in dry-run mode."""
+    question_manager_mod = load_script('question_manager')
 
     # Run in dry-run mode
-    monkeypatch.setattr(sys, 'argv', ['deduplicate_questions.py', '--db-path', str(temp_db_with_duplicates)])
-    deduplicate_questions_mod.main()
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'deduplicate', '--db-path', str(temp_db_with_duplicates)])
+    question_manager_mod.main()
 
     # Check output
     captured = capsys.readouterr()
@@ -74,12 +74,12 @@ def test_deduplicate_questions_dry_run(temp_db_with_duplicates, capsys, monkeypa
     conn.close()
 
 def test_deduplicate_questions_delete(temp_db_with_duplicates, capsys, monkeypatch):
-    """Tests the deduplicate_questions script with --delete flag."""
-    deduplicate_questions_mod = load_script('deduplicate_questions')
+    """Tests the deduplicate subcommand of question_manager.py with --delete flag."""
+    question_manager_mod = load_script('question_manager')
 
     # Run with --delete flag
-    monkeypatch.setattr(sys, 'argv', ['deduplicate_questions.py', '--db-path', str(temp_db_with_duplicates), '--delete'])
-    deduplicate_questions_mod.main()
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'deduplicate', '--db-path', str(temp_db_with_duplicates), '--delete'])
+    question_manager_mod.main()
 
     # Check output
     captured = capsys.readouterr()
@@ -115,16 +115,16 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     # Insert a question without valid subject
     dbmod.add_question(id='q1', prompt='?', source_file='f.yaml')
 
-    mod = load_script('categorize_questions')
+    mod = load_script('question_manager')
     # First, list missing subjects
-    monkeypatch.setattr(sys, 'argv', ['categorize_questions'])
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'categorize'])
     mod.main()
     out = capsys.readouterr().out
     assert 'Questions with missing or invalid subjects' in out
     assert 'subject_matter=None' in out
     # Assign a valid subject
     valid = dbmod.SUBJECT_MATTER[0]
-    monkeypatch.setattr(sys, 'argv', ['categorize_questions', '--assign', '1', valid])
+    monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'categorize', '--assign', '1', valid])
     mod.main()
     out2 = capsys.readouterr().out
     assert f"Assigned subject '{valid}' to question rowid 1" in out2

@@ -57,10 +57,10 @@ def main():
         Choice('Create DB from YAML', value='sqlite_create_from_yaml'),
         Choice('Create DB from YAML with AI Categorization', value='import_yaml_ai'),
         Separator('=== Questions ==='),
-        Choice('Deduplicate Questions', value='deduplicate_questions.py'),
-        Choice('Fix Question Categorization', value='categorize_questions.py'),
+        Choice('Deduplicate Questions', value='qm_deduplicate'),
+        Choice('Fix Question Categorization', value='qm_categorize'),
         Choice('Fix Documentation Links', value='qm_fix_links'),
-        Choice('Fix Question Formatting', value='format_questions.py'),
+        Choice('Fix Question Formatting', value='qm_format'),
         Separator(),
         Choice('Cancel', value=None),
     ]
@@ -115,10 +115,10 @@ def main():
         ).ask()
         if db_path:
             run_script('import_from_yaml_with_ai.py', db_path)
-    elif answer == 'deduplicate_questions.py':
-        run_script('deduplicate_questions.py')
-    elif answer == 'categorize_questions.py':
-        run_script('categorize_questions.py')
+    elif answer == 'qm_deduplicate':
+        run_script('question_manager.py', 'deduplicate')
+    elif answer == 'qm_categorize':
+        run_script('question_manager.py', 'categorize')
     elif answer == 'qm_fix_links':
         run_script('question_manager.py', 'fix-links')
     elif answer == 'qm_format':

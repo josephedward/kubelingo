@@ -115,11 +115,11 @@ def task_create_db_from_yaml_with_ai():
 
 def task_deduplicate_questions():
     """Deduplicate Questions"""
-    _run_script("deduplicate_questions.py")
+    _run_script("question_manager.py", "deduplicate")
 
 def task_fix_question_categorization():
     """Fix Question Categorization"""
-    _run_script("fix_question_categories.py")
+    _run_script("question_manager.py", "fix-categories")
 
 def task_fix_doc_links():
     """Fix Documentation Links"""
@@ -127,7 +127,7 @@ def task_fix_doc_links():
 
 def task_fix_question_formatting():
     """Fix Question Formatting"""
-    _run_script("lint_fix_question_format.py")
+    _run_script("question_manager.py", "format")
 
 def run_interactive_menu():
     """Display an interactive menu for maintenance tasks."""
