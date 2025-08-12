@@ -36,7 +36,7 @@ except ImportError as e:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, SUBJECT_MATTER, init_db, add_question, get_questions_by_source_file,
+    get_db_connection, SUBJECT_MATTER, init_db,
     _row_to_question_dict
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
