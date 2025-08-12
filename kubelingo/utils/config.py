@@ -159,6 +159,8 @@ SUBJECT_MATTER = [
 API_KEY_FILE = os.path.join(APP_DIR, 'api_key_openai')
 # For Gemini
 GEMINI_API_KEY_FILE = os.path.join(APP_DIR, 'api_key_gemini')
+# For AI Provider choice
+AI_PROVIDER_FILE = os.path.join(APP_DIR, 'ai_provider')
 
 
 # --- Cluster Configuration ---
@@ -211,6 +213,31 @@ def get_gemini_api_key() -> Optional[str]:
         except Exception:
             pass
     return None
+
+
+def save_ai_provider(provider: str) -> bool:
+    """Saves the selected AI provider to the config file."""
+    try:
+        os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
+        with open(AI_PROVIDER_FILE, 'w', encoding='utf-8') as f:
+            f.write(provider.strip())
+        os.chmod(AI_PROVIDER_FILE, 0o600)
+        return True
+    except Exception:
+        return False
+
+
+def get_ai_provider() -> str:
+    """Retrieves the selected AI provider, defaulting to 'gemini'."""
+    if os.path.exists(AI_PROVIDER_FILE):
+        try:
+            with open(AI_PROVIDER_FILE, 'r', encoding='utf-8') as f:
+                provider = f.read().strip()
+                if provider in ('gemini', 'openai'):
+                    return provider
+        except Exception:
+            pass
+    return 'gemini'
 
 
 def save_cluster_configs(configs: Dict[str, Any]) -> bool:

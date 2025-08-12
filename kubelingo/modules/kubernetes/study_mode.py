@@ -11,14 +11,18 @@ import yaml
 from questionary import Separator
 
 from kubelingo.database import add_question, get_db_connection, get_flagged_questions
-from kubelingo.integrations.llm import GeminiClient
+from kubelingo.integrations.llm import LLMClient, get_llm_client
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.config import (
+    get_ai_provider,
     get_cluster_configs,
+    get_gemini_api_key,
     get_openai_api_key,
+    save_ai_provider,
     save_cluster_configs,
+    save_gemini_api_key,
     save_openai_api_key,
 )
 from kubelingo.utils.path_utils import get_project_root
@@ -30,11 +34,12 @@ KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
 
 class KubernetesStudyMode:
     def __init__(self):
-        self.client = GeminiClient()
+        self.ai_provider = get_ai_provider()
+        self.client: LLMClient = get_llm_client(self.ai_provider)
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
-        self.question_generator = AIQuestionGenerator()
+        self.question_generator = AIQuestionGenerator(llm_client=self.client)
         self.db_conn = get_db_connection()
         self.questions_dir = get_project_root() / "questions" / "generated_yaml"
         self.exclude_terms: List[str] = []
@@ -163,8 +168,15 @@ class KubernetesStudyMode:
             action = questionary.select(
                 "What would you like to do?",
                 choices=[
-                    {"name": "View current OpenAI API key", "value": "view_openai"},
-                    {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                    Separator("AI Provider Settings"),
+                    {
+                        "name": f"Select AI Provider (current: {self.ai_provider.capitalize()})",
+                        "value": "select_provider",
+                    },
+                    {"name": "View OpenAI API Key", "value": "view_openai"},
+                    {"name": "Set OpenAI API Key", "value": "set_openai"},
+                    {"name": "View Gemini API Key", "value": "view_gemini"},
+                    {"name": "Set Gemini API Key", "value": "set_gemini"},
                     Separator("Kubernetes Clusters"),
                     {"name": "List configured clusters", "value": "list_clusters"},
                     {"name": "Add a new cluster connection", "value": "add_cluster"},
@@ -178,10 +190,16 @@ class KubernetesStudyMode:
             if action is None or action == "cancel":
                 return
 
-            if action == "view_openai":
+            if action == "select_provider":
+                self._select_ai_provider()
+            elif action == "view_openai":
                 self._handle_config_command(["config", "view", "openai"])
             elif action == "set_openai":
                 self._handle_config_command(["config", "set", "openai"])
+            elif action == "view_gemini":
+                self._handle_config_command(["config", "view", "gemini"])
+            elif action == "set_gemini":
+                self._handle_config_command(["config", "set", "gemini"])
             elif action == "list_clusters":
                 self._handle_config_command(["config", "list", "cluster"])
             elif action == "add_cluster":
@@ -194,6 +212,31 @@ class KubernetesStudyMode:
         except (KeyboardInterrupt, EOFError):
             print()
             return
+
+    def _select_ai_provider(self):
+        """Allows user to select the AI provider."""
+        try:
+            new_provider = questionary.select(
+                "Select your preferred AI provider:",
+                choices=["gemini", "openai"],
+                default=self.ai_provider,
+            ).ask()
+
+            if new_provider and new_provider != self.ai_provider:
+                if save_ai_provider(new_provider):
+                    self.ai_provider = new_provider
+                    self.client = get_llm_client(self.ai_provider)
+                    self.question_generator.client = self.client
+                    print(
+                        f"\n{Fore.GREEN}AI provider set to {self.ai_provider.capitalize()}. It will be used for future sessions.{Style.RESET_ALL}"
+                    )
+                else:
+                    print(
+                        f"\n{Fore.RED}Failed to save AI provider setting.{Style.RESET_ALL}"
+                    )
+
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{Fore.YELLOW}AI provider selection cancelled.{Style.RESET_ALL}")
 
     def _handle_config_command(self, cmd):
         """Handles 'config' subcommands."""
@@ -233,6 +276,33 @@ class KubernetesStudyMode:
                     print("No API key provided. No changes made.")
             else:
                 print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
+        elif target == "gemini":
+            if action == "view":
+                key = get_gemini_api_key()
+                if key:
+                    print(f"Gemini API key: {key}")
+                else:
+                    print("Gemini API key is not set.")
+            elif action == "set":
+                value = None
+                if len(cmd) >= 4:
+                    value = cmd[3]
+                else:
+                    try:
+                        value = getpass.getpass("Enter Gemini API key: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                        return
+
+                if value:
+                    if save_gemini_api_key(value):
+                        print("Gemini API key saved.")
+                    else:
+                        print("Failed to save Gemini API key.")
+                else:
+                    print("No API key provided. No changes made.")
+            else:
+                print(f"Unknown action '{action}' for gemini. Use 'view' or 'set'.")
         elif target == "cluster":
             configs = get_cluster_configs()
             if action == "list":
@@ -292,7 +362,7 @@ class KubernetesStudyMode:
             else:
                 print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
         else:
-            print(f"Unknown config target '{target}'. Supported: openai, cluster.")
+            print(f"Unknown config target '{target}'. Supported: openai, gemini, cluster.")
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
