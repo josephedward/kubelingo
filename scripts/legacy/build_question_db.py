@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Builds the Kubelingo master question database from the consolidated YAML files
-in the 'question-data/questions' directory.
+in the configured questions directory.
 """
 import os
 import shutil
@@ -21,9 +21,10 @@ from kubelingo.question import QuestionCategory
 from kubelingo.utils.config import (
     DATABASE_FILE,
     MASTER_DATABASE_FILE,
+    QUESTIONS_DIR,
     SECONDARY_MASTER_DATABASE_FILE,
 )
-from kubelingo.utils.path_utils import find_yaml_files, get_all_question_dirs
+from kubelingo.utils.path_utils import find_yaml_files
 
 def import_questions(files: List[Path], conn: sqlite3.Connection):
     """Loads all questions from a list of YAML file paths and adds them to the database."""
@@ -97,16 +98,20 @@ def main():
     """Main function to run the build and backup process."""
     print("--- Building Kubelingo Master Question Database ---")
 
-    # Discover question YAML files dynamically from all configured source directories
-    candidate_dirs = get_all_question_dirs()
-    print(f"\nScanning for YAML files in candidate directories: {candidate_dirs}")
+    # Discover question YAML files from the consolidated questions directory
+    # This directory is configured in `kubelingo.utils.config.QUESTIONS_DIR`
+    # and can be overridden by the KUBELINGO_QUESTIONS_DIR environment variable.
+    print(f"\nScanning for YAML files in: '{QUESTIONS_DIR}'")
 
-    all_yaml_files = find_yaml_files(candidate_dirs)
+    if not os.path.isdir(QUESTIONS_DIR):
+        print(f"\nError: The configured questions directory does not exist: '{QUESTIONS_DIR}'")
+        print("Please ensure the directory is correct and populated, or set KUBELINGO_QUESTIONS_DIR.")
+        sys.exit(1)
+
+    all_yaml_files = find_yaml_files([QUESTIONS_DIR])
     if not all_yaml_files:
-        print("\nError: No question YAML files found in any of the candidate directories:")
-        for d in candidate_dirs:
-            print(f"  - {d}")
-        print("\nPlease ensure your question-data directories are populated or run consolidation scripts.")
+        print(f"\nError: No question YAML files found in '{QUESTIONS_DIR}'.")
+        print("\nPlease ensure your questions directory is populated.")
         sys.exit(1)
 
     print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
