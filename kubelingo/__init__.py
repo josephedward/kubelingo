@@ -1,17 +1,6 @@
 """Kubelingo package initialization."""
 __version__ = '0.1.12'
 # This file makes 'kubelingo' a Python package.
-
-def _initialize():
-    """Run startup initializers."""
-    try:
-        from scripts.initialize_from_yaml import initialize_from_yaml
-        initialize_from_yaml()
-    except Exception as e:
-        # Use print here as logging might not be configured yet, and we want this to be visible.
-        print(f"WARNING: Could not run database initializer on startup: {e}")
-
-_initialize()
 import logging
 import os
 

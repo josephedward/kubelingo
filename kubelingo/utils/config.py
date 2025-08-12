@@ -156,14 +156,17 @@ SUBJECT_MATTER = [
 
 
 # --- API Keys ---
-API_KEY_FILE = os.path.join(APP_DIR, 'api_key')
+# For OpenAI
+API_KEY_FILE = os.path.join(APP_DIR, 'api_key_openai')
+# For Gemini
+GEMINI_API_KEY_FILE = os.path.join(APP_DIR, 'api_key_gemini')
 
 
 # --- Cluster Configuration ---
 CLUSTER_CONFIG_FILE = os.path.join(APP_DIR, 'clusters.json')
 
 
-def save_api_key(key: str) -> bool:
+def save_openai_api_key(key: str) -> bool:
     """Saves the OpenAI API key to the config file."""
     try:
         os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
@@ -175,11 +178,35 @@ def save_api_key(key: str) -> bool:
         return False
 
 
-def get_api_key() -> Optional[str]:
+def get_openai_api_key() -> Optional[str]:
     """Retrieves the OpenAI API key from the config file."""
     if os.path.exists(API_KEY_FILE):
         try:
             with open(API_KEY_FILE, 'r', encoding='utf-8') as f:
+                key = f.read().strip()
+                return key if key else None
+        except Exception:
+            pass
+    return None
+
+
+def save_gemini_api_key(key: str) -> bool:
+    """Saves the Google Gemini API key to the config file."""
+    try:
+        os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
+        with open(GEMINI_API_KEY_FILE, 'w', encoding='utf-8') as f:
+            f.write(key.strip())
+        os.chmod(GEMINI_API_KEY_FILE, 0o600)
+        return True
+    except Exception:
+        return False
+
+
+def get_gemini_api_key() -> Optional[str]:
+    """Retrieves the Google Gemini API key from the config file."""
+    if os.path.exists(GEMINI_API_KEY_FILE):
+        try:
+            with open(GEMINI_API_KEY_FILE, 'r', encoding='utf-8') as f:
                 key = f.read().strip()
                 return key if key else None
         except Exception:

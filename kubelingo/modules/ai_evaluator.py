@@ -1,18 +1,20 @@
 import json
 import re
-# Avoid importing llm at top-level to prevent segmentation faults when llm is installed but improperly configured.
-llm = None
+import logging
+from kubelingo.integrations.llm import get_llm_client
 
 
 class AIEvaluator:
     """Uses an AI model to evaluate a user's exercise transcript."""
     def __init__(self):
         """
-        Initializes the AIEvaluator.
-        It relies on the `llm` package to be configured with an API key
-        (e.g., via `llm keys set openai`).
+        Initializes the AIEvaluator. It will use the configured LLM client.
         """
-        pass
+        try:
+            self.client = get_llm_client()
+        except (ImportError, ValueError) as e:
+            logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
+            self.client = None
 
     def evaluate(self, question_data, transcript, vim_log=None):
         """
@@ -26,13 +28,8 @@ class AIEvaluator:
         Returns:
             dict: A dictionary with 'correct' (bool) and 'reasoning' (str).
         """
-        global llm
-        if llm is None:
-            try:
-                import llm as llm_module
-                llm = llm_module
-            except ImportError:
-                return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
+        if not self.client:
+            return {"correct": False, "reasoning": "AI evaluation client not available."}
 
         prompt = question_data.get('prompt', '')
         validation_steps = question_data.get('validation_steps', [])
@@ -76,12 +73,12 @@ Your response MUST be a JSON object with two keys:
         user_content += "\nBased on the above, please evaluate the user's solution and respond only with the required JSON object."
 
         try:
-            model = llm.get_model("gpt-4-turbo-preview")
-            response = model.prompt(
-                user_content,
-                system=system_prompt
-            ).text()
-            return json.loads(response)
+            response_text = self.client.chat_completion(
+                system_prompt=system_prompt,
+                user_prompt=user_content,
+                is_json=True
+            )
+            return json.loads(response_text) if response_text else None
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
 
@@ -89,14 +86,9 @@ Your response MUST be a JSON object with two keys:
         """
         Finds a documentation source URL for a given question prompt using an AI model.
         """
-        global llm
-        use_llm = True
-        if llm is None:
-            try:
-                import llm as llm_module
-                llm = llm_module
-            except ImportError:
-                use_llm = False
+        if not self.client:
+            logging.error("Cannot find source, AI client not available.")
+            return None
 
         system_prompt = (
             "You are a Kubernetes documentation expert. Your task is to find the most relevant "
@@ -105,35 +97,11 @@ Your response MUST be a JSON object with two keys:
         )
         user_content = f"Question: \"{question_prompt}\""
         
-        response_text = None
+        response_text = self.client.chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_content
+        )
 
-        # Attempt via llm package first
-        if use_llm:
-            try:
-                model = llm.get_model("gpt-4-turbo-preview")
-                response_text = model.prompt(
-                    user_content,
-                    system=system_prompt
-                ).text()
-            except Exception:
-                response_text = None
-        
-        # Fallback to openai
-        if response_text is None:
-            try:
-                import openai
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content}
-                    ],
-                    temperature=0.2,
-                )
-                response_text = response.choices[0].message.content
-            except Exception:
-                return None
-        
         if response_text:
              url_match = re.search(r'(https?://[^\s]+)', response_text.strip())
              if url_match:
@@ -145,14 +113,9 @@ Your response MUST be a JSON object with two keys:
         Generates a new question similar to a base question using an AI model.
         The generated question's commands are validated for syntax.
         """
-        global llm
-        use_llm = True
-        if llm is None:
-            try:
-                import llm as llm_module
-                llm = llm_module
-            except ImportError:
-                use_llm = False  # fall back to openai directly if available
+        if not self.client:
+            logging.error("Cannot generate question, AI client not available.")
+            return None
 
         from kubelingo.utils.validation import validate_kubectl_syntax
 
@@ -168,35 +131,20 @@ Your response MUST be a JSON object with two keys:
         )
         system_prompt = "You are an expert Kubernetes instructor creating quiz questions. You generate valid JSON."
 
-        new_q = None
-        # Attempt via llm package first
-        if use_llm:
-            try:
-                model = llm.get_model("gpt-4-turbo-preview")
-                response_text = model.prompt(
-                    prompt_text,
-                    system=system_prompt
-                ).text()
-                new_q = json.loads(response_text)
-            except Exception:
-                new_q = None
-        # Fallback: use openai directly if llm unavailable or failed
-        if new_q is None:
-            try:
-                import openai
-                # Ensure API key is set in environment
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt_text}
-                    ],
-                    temperature=0.7,
-                )
-                response_text = response.choices[0].message.content
-                new_q = json.loads(response_text)
-            except Exception:
-                return None
+        response_text = self.client.chat_completion(
+            system_prompt=system_prompt,
+            user_prompt=prompt_text,
+            is_json=True,
+            temperature=0.7
+        )
+
+        if not response_text:
+            return None
+
+        try:
+            new_q = json.loads(response_text)
+        except json.JSONDecodeError:
+            return None
         # Validate the generated question structure
         if not isinstance(new_q, dict) or 'prompt' not in new_q or 'validation_steps' not in new_q:
             return None
@@ -259,13 +207,8 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         Evaluates a user's text-based command/answer against a question using an AI model.
         This is a unified method for all text-based quizzes (k8s, vim, general).
         """
-        global llm
-        if llm is None:
-            try:
-                import llm as llm_module
-                llm = llm_module
-            except ImportError:
-                return {"correct": False, "reasoning": "AI evaluation failed: `llm` package not installed."}
+        if not self.client:
+            return {"correct": False, "reasoning": "AI evaluation client not available."}
 
         # Load question prompt and category (ensure category is a string before lowercasing)
         prompt = question_data.get('prompt', '')
@@ -345,11 +288,11 @@ Be lenient with whitespace and case unless the question implies sensitivity.
         user_content += "\nBased on the above, please evaluate the user's answer and respond only with the required JSON object."
 
         try:
-            model = llm.get_model("gpt-4-turbo-preview")
-            response = model.prompt(
-                user_content,
-                system=system_prompt
-            ).text()
-            return json.loads(response)
+            response_text = self.client.chat_completion(
+                system_prompt=system_prompt,
+                user_prompt=user_content,
+                is_json=True
+            )
+            return json.loads(response_text) if response_text else None
         except Exception as e:
             return {"correct": False, "reasoning": f"AI evaluation failed: {e}"}
