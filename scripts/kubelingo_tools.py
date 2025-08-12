@@ -9,6 +9,7 @@ import shutil
 import json
 import re
 import os
+import sqlite3
 from pathlib import Path
 
 # Determine directories
@@ -23,7 +24,46 @@ else:
     SHARED_CONTEXT = ''
 
 # Adjust sys.path to import local helper modules
-sys.path.insert(0, str(scripts_dir))
+sys.path.insert(0, str(repo_root))
+
+def _get_most_recent_backup(backup_dir: Path):
+    """Finds the most recent .db file in the backup directory."""
+    if not backup_dir.is_dir():
+        return None
+    
+    db_files = list(backup_dir.glob('*.db'))
+    if not db_files:
+        return None
+
+    return max(db_files, key=lambda p: p.stat().st_mtime)
+
+
+def _get_schema_text(db_path: Path) -> str:
+    """Connects to a SQLite DB and returns its schema as CREATE statements."""
+    if not db_path or not db_path.exists():
+        return f"Database file not found at: {db_path}"
+
+    try:
+        # Use a file URI with mode=ro for read-only connection
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cursor = conn.cursor()
+
+        # Query schema entries for tables, indexes, etc.
+        cursor.execute(
+            "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        statements = [row[0] + ';' for row in rows if row[0]]
+
+        if not statements:
+            return f"No schema information found in {db_path}."
+            
+        return '\n\n'.join(statements)
+    except sqlite3.Error as e:
+        return f"Error reading database schema: {e}"
+
 
 def _run_script(script_name: str):
     """Helper to run a script from the scripts directory."""
@@ -65,7 +105,60 @@ def task_index_sqlite():
 
 def task_view_db_schema():
     """View Database Schema"""
-    _run_script("view_db_schema.py")
+    try:
+        import questionary
+    except ImportError:
+        print("Error: 'questionary' library not found. Please install it with:")
+        print("pip install questionary")
+        sys.exit(1)
+
+    # Need to import this late, after sys.path is adjusted
+    from kubelingo.utils.path_utils import get_live_db_path
+
+    backup_dir = repo_root / 'backups' / 'sqlite'
+    most_recent_backup = _get_most_recent_backup(backup_dir)
+
+    choices = [
+        questionary.Choice("Live Database", value="live"),
+    ]
+    if most_recent_backup:
+        choices.append(questionary.Choice(f"Most Recent Backup ({most_recent_backup.name})", value="backup"))
+    
+    choices.extend([
+        questionary.Choice("Specific DB file path", value="path"),
+        questionary.Separator(),
+        questionary.Choice("Cancel", value="cancel")
+    ])
+
+    choice = questionary.select(
+        "Which database schema do you want to view?",
+        choices=choices,
+        use_indicator=True
+    ).ask()
+
+    db_path_str = None
+    if choice == "live":
+        try:
+            db_path_str = get_live_db_path()
+            if not db_path_str:
+                print("Live database path not found.", file=sys.stderr)
+                return
+        except Exception as e:
+            print(f"Error finding live database: {e}", file=sys.stderr)
+            return
+    elif choice == "backup":
+        db_path_str = most_recent_backup
+    elif choice == "path":
+        db_path_str = questionary.path("Enter the path to the SQLite database file:").ask()
+    
+    if not choice or choice == "cancel" or not db_path_str:
+        print("Operation cancelled.")
+        return
+
+    db_path = Path(db_path_str)
+    print(f"\nDisplaying schema for: {db_path}\n")
+    schema_text = _get_schema_text(db_path)
+    print(schema_text)
 
 def task_show_sqlite_backups():
     """Show Previous Sqlite Backup(s)"""
