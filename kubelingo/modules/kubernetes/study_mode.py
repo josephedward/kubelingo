@@ -416,7 +416,6 @@ class KubernetesStudyMode:
                     subject=topic,
                     num_questions=1,
                     category=category,
-                    exclude_terms=list(asked_items),
                 )
 
                 if not questions:
