@@ -409,6 +409,67 @@ def do_build_master(args):
     print("\n--- Build process finished. ---")
 
 
+# --- Update Schema Category ---
+def do_update_schema_category(args):
+    """Updates schema_category in the DB based on source_file name."""
+    db_path = args.db_path or DATABASE_FILE
+    # Mapping of source file names (suffixes) to schema_category values
+    mapping = {
+        # Basic/Open-Ended
+        'vim_practice.yaml': 'Basic/Open-Ended',
+        'kubernetes_with_explanations.yaml': 'Basic/Open-Ended',
+        'kubernetes.yaml': 'Basic/Open-Ended',
+        'ai_generated_quiz.yaml': 'Basic/Open-Ended',
+        'master_quiz_with_explanations.yaml': 'Basic/Open-Ended',
+        'core_concepts.yaml': 'Basic/Open-Ended',
+        'killercoda_ckad_cheat_sheet.yaml': 'Basic/Open-Ended',
+        'pod_design.yaml': 'Basic/Open-Ended',
+        'crd.yaml': 'Basic/Open-Ended',
+        'helm.yaml': 'Basic/Open-Ended',
+        'state.yaml': 'Basic/Open-Ended',
+        'multi_container_pods.yaml': 'Basic/Open-Ended',
+        'configuration.yaml': 'Basic/Open-Ended',
+        'services.yaml': 'Basic/Open-Ended',
+        'observability.yaml': 'Basic/Open-Ended',
+        'podman.yaml': 'Basic/Open-Ended',
+        'ckad_simulator.yaml': 'Basic/Open-Ended',
+        'simulator-pods.yaml': 'Basic/Open-Ended',
+        'simulator-namespaces.yaml': 'Basic/Open-Ended',
+        # Command-Based/Syntax
+        'kubectl_operations_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_service_account_operations.yaml': 'Command-Based/Syntax',
+        'kubectl_resource_types.yaml': 'Command-Based/Syntax',
+        'kubectl_basic_syntax_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_pod_management_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_deployment_management_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_configmap_operations_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_namespace_operations_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_additional_commands_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_secret_management_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_service_account_ops_quiz.yaml': 'Command-Based/Syntax',
+        'vim_quiz.yaml': 'Command-Based/Syntax',
+        'kubectl_shell_setup_quiz.yaml': 'Command-Based/Syntax',
+        'ui_config_footer.yaml': 'Command-Based/Syntax',
+        # Manifests
+        'yaml_quiz.yaml': 'Manifests',
+        'yaml_exercises_quiz.yaml': 'Manifests',
+    }
+
+    conn = get_db_connection(db_path=db_path)
+    cursor = conn.cursor()
+    print(f"Updating schema_category in database: {db_path}\n")
+    for filename, category in mapping.items():
+        # Match source_file ending with the filename
+        cursor.execute(
+            "UPDATE questions SET schema_category = ? WHERE source_file LIKE ?",
+            (category, '%' + filename)
+        )
+        print(f"{cursor.rowcount:4d} rows updated for '{filename}' -> '{category}'")
+    conn.commit()
+    conn.close()
+    print("\nUpdate complete.")
+
+
 # --- Indexing ---
 def get_file_metadata(path: Path) -> dict:
     """Gathers metadata for a given file."""
@@ -858,6 +919,10 @@ def main():
     p_build = subparsers.add_parser("build-master", help="Build master question DB from YAML files.")
     p_build.add_argument("--db-path", type=str, default=None, help="Path to build DB in. Defaults to live DB path.")
     p_build.set_defaults(func=do_build_master)
+
+    p_update_schema = subparsers.add_parser("update-schema-category", help="Update schema_category based on source_file.")
+    p_update_schema.add_argument("--db-path", type=str, default=None, help="Path to SQLite DB. Uses live DB if not set.")
+    p_update_schema.set_defaults(func=do_update_schema_category)
 
     args = parser.parse_args()
     args.func(args)

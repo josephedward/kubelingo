@@ -208,3 +208,49 @@ def test_diff(setup_test_dbs, capsys):
     assert "--- Row Count Differences ---" in captured.out
     assert "table1: 1 -> 2 (Change:  1)" in captured.out
     assert "table2: N/A -> 1" in captured.out
+
+
+def test_update_schema_category(setup_test_dbs, capsys):
+    """Test the 'update-schema-category' command."""
+    # Use the live db from the fixture
+    live_db_path = setup_test_dbs / ".kubelingo" / "database.db"
+
+    # Add a questions table and some data
+    with sqlite3.connect(live_db_path) as conn:
+        conn.execute("""
+            CREATE TABLE questions (
+                id TEXT PRIMARY KEY,
+                source_file TEXT,
+                schema_category TEXT
+            )
+        """)
+        test_data = [
+            ('q1', 'some/path/vim_practice.yaml', None),
+            ('q2', 'another/path/kubectl_operations_quiz.yaml', 'Old Category'),
+            ('q3', 'unrelated.yaml', 'Some Category'),
+            ('q4', 'long/path/yaml_quiz.yaml', None),
+        ]
+        conn.executemany(
+            "INSERT INTO questions (id, source_file, schema_category) VALUES (?, ?, ?)",
+            test_data
+        )
+
+    # Use a mock args object for the command
+    args = MagicMock(db_path=str(live_db_path))
+    sqlite_manager.do_update_schema_category(args)
+
+    # Verify the results in the database
+    with sqlite3.connect(live_db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, schema_category FROM questions ORDER BY id")
+        results = dict(cursor.fetchall())
+
+    assert results['q1'] == 'Basic/Open-Ended'
+    assert results['q2'] == 'Command-Based/Syntax'
+    assert results['q3'] == 'Some Category'  # Should be unchanged
+    assert results['q4'] == 'Manifests'
+
+    captured = capsys.readouterr()
+    assert "rows updated for 'vim_practice.yaml' -> 'Basic/Open-Ended'" in captured.out
+    assert "rows updated for 'kubectl_operations_quiz.yaml' -> 'Command-Based/Syntax'" in captured.out
+    assert "rows updated for 'yaml_quiz.yaml' -> 'Manifests'" in captured.out
