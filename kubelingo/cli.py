@@ -706,6 +706,45 @@ def manage_config_interactive():
 
 
 
+def show_study_main_menu():
+    """Shows the main interactive menu for study, review, and settings."""
+    if not (questionary and Separator):
+        print(f"{Fore.RED}Error: 'questionary' library not found. Please install it with 'pip install questionary'.{Style.RESET_ALL}")
+        return
+
+    while True:
+        try:
+            action = questionary.select(
+                "Main Menu:",
+                choices=[
+                    {"name": "Start Study Mode", "value": "study"},
+                    {"name": "Question Management", "value": "questions"},
+                    {"name": "Settings", "value": "settings"},
+                    Separator(),
+                    {"name": "Exit", "value": "exit"}
+                ],
+                use_indicator=True
+            ).ask()
+
+            if action is None or action == "exit":
+                break
+
+            if action == "study":
+                if KubernetesStudyMode:
+                    study_session = KubernetesStudyMode()
+                    study_session.start_study_session()
+                else:
+                    print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
+            elif action == "questions":
+                manage_questions_interactive()
+            elif action == "settings":
+                manage_config_interactive()
+            print() # for spacing
+        except (KeyboardInterrupt, EOFError):
+            print()
+            break
+
+
 def enrich_sources():
     """Finds and adds sources for questions without them."""
     # Check for API key first
@@ -1002,11 +1041,7 @@ def main():
         if args.command and len(args.command) > 0:
             cmd_name = args.command[0]
             if cmd_name == 'study':
-                if KubernetesStudyMode:
-                    study_session = KubernetesStudyMode()
-                    study_session.start_study_session()
-                else:
-                    print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
+                show_study_main_menu()
                 return
             elif cmd_name == 'config':
                 handle_config_command(args.command)
