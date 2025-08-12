@@ -2074,9 +2074,61 @@ def handle_reorganize_question_data(args):
 # --- from: scripts/suggest_citations.py ---
 def handle_suggest_citations(args):
     """Handler for suggesting documentation citations for questions."""
-    # This feature is currently disabled due to refactoring.
-    print("The 'suggest-citations' command is temporarily disabled.")
-    pass
+    URL_MAP = {
+        'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
+        'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
+        'kubectl describe sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe',
+    }
+
+    def suggest_citation(answer_cmd):
+        """Return the first matching URL for the given command answer."""
+        if not answer_cmd or not isinstance(answer_cmd, str):
+            return None
+        for prefix, url in URL_MAP.items():
+            if answer_cmd.startswith(prefix):
+                return url
+        return None
+
+    search_dir = Path(args.directory)
+    if not search_dir.is_dir():
+        print(f"Directory not found: {search_dir}", file=sys.stderr)
+        return
+
+    paths = sorted(list(search_dir.rglob('*.json')))
+
+    if not paths:
+        print(f"No JSON question files found to analyze in {search_dir}.")
+        return
+
+    for path in paths:
+        try:
+            with open(path, encoding='utf-8') as f:
+                items = json.load(f)
+        except Exception as e:
+            print(f"Failed to load {path}: {e}")
+            continue
+
+        questions_to_check = []
+        if isinstance(items, list):
+            questions_to_check = items
+        elif isinstance(items, dict) and 'questions' in items and isinstance(items['questions'], list):
+            questions_to_check = items['questions']
+        else:
+            continue
+
+        print(f"\nFile: {path.relative_to(project_root)}")
+        found_suggestion = False
+        for idx, item in enumerate(questions_to_check):
+            if not isinstance(item, dict):
+                continue
+            answer = item.get('response') or ''
+            qtext = item.get('prompt') or item.get('question') or ''
+            citation = suggest_citation(answer)
+            if citation:
+                found_suggestion = True
+                print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
+        if not found_suggestion:
+            print("  -> No citations found in this file.")
 
 
 # --- from: scripts/validate_doc_links.py ---

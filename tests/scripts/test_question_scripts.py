@@ -475,7 +475,6 @@ def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     question_manager_mod = load_script('question_manager')
 
     # Mock project_root to be the temp directory so relative_to works
-    monkeypatch.setattr(question_manager_mod, 'project_root', str(tmp_path))
     monkeypatch.setattr(question_manager_mod, 'project_root', tmp_path)
 
     # Create dummy JSON file in a directory
