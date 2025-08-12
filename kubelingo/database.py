@@ -194,4 +194,27 @@ def prune_db_backups():
     # For now, this is a no-op.
     pass
 
-# Other functions remain unchanged...
+
+def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    """
+    Converts a database row into a dictionary representation of a question.
+
+    Args:
+        row: A sqlite3.Row object representing a question.
+
+    Returns:
+        A dictionary containing the question data.
+    """
+    return {
+        "id": row["id"],
+        "prompt": row["prompt"],
+        "response": row["response"],
+        "category": row["category"],
+        "subject": row["subject"],
+        "source": row["source"],
+        "source_file": row["source_file"],
+        "raw": row["raw"],
+        "validation_steps": row["validation_steps"],
+        "validator": json.loads(row["validator"]) if row["validator"] else None,
+        "review": bool(row["review"]),
+    }
