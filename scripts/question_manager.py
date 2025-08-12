@@ -34,6 +34,16 @@ except ImportError as e:
     print(f"Missing required packages. Please install them: pip install PyYAML tqdm requests. Error: {e}", file=sys.stderr)
     sys.exit(1)
 
+# AI packages are optional for AI-related subcommands
+try:
+    import openai
+except ImportError:
+    openai = None
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 # Kubelingo imports
 from kubelingo.database import (
     get_db_connection, SUBJECT_MATTER, init_db,
@@ -1488,6 +1498,419 @@ def handle_extract_pdf_ai(args):
         conn.close()
 
 
+# --- from: scripts/ai_categorizer.py ---
+def get_ai_system_prompt() -> str:
+    """Builds the system prompt for the AI using definitions from the codebase."""
+    exercise_categories_desc = """
+1.  **Exercise Category**: Choose ONE from the following fixed options: `basic`, `command`, `manifest`.
+    *   `basic`: For open-ended, conceptual questions (Socratic method).
+    *   `command`: For quizzes on specific single-line commands (e.g., `kubectl`, `vim`).
+    *   `manifest`: For exercises involving authoring or editing Kubernetes YAML files."""
+
+    subject_matter_list = "\n".join([f"    *   {s.value}" for s in QuestionSubject])
+    subject_matter_desc = f"""
+2.  **Subject Matter**: This is a more specific topic. Choose the most appropriate one from this list, or suggest a new, concise one if none fit well.
+{subject_matter_list}
+"""
+
+    return f"""You are an expert in Kubernetes and your task is to categorize questions for the Kubelingo learning platform.
+You must classify each question into two dimensions: Exercise Category and Subject Matter.
+{exercise_categories_desc}
+{subject_matter_desc}
+Return your answer as a JSON object with two keys: "exercise_category" and "subject_matter".
+The value for "exercise_category" MUST be one of `basic`, `command`, or `manifest`.
+
+For example:
+{{"exercise_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"}}
+"""
+
+
+def get_openai_client():
+    """Initializes and returns the OpenAI client."""
+    if not openai:
+        raise ImportError("The 'openai' package is required for the OpenAI provider. Please run 'pip install openai'.")
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable not set. It's required for the OpenAI provider.")
+    return openai.OpenAI(api_key=api_key)
+
+
+def get_gemini_client():
+    """Initializes and returns the Gemini client."""
+    if not genai:
+        raise ImportError("The 'google-generativeai' package is required for the Gemini provider. Please run 'pip install google-generativeai'.")
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set. It's required for the Gemini provider.")
+    genai.configure(api_key=api_key)
+    return genai
+
+
+def _infer_with_openai(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """Uses OpenAI to infer categories."""
+    try:
+        client = get_openai_client()
+    except (ImportError, ValueError) as e:
+        print(f"OpenAI client setup failed: {e}", file=sys.stderr)
+        return None
+
+    user_message = f"Question Prompt:\n---\n{prompt}\n---"
+    if response:
+        user_message += f"\n\nExample Answer/Solution:\n---\n{response}\n---"
+
+    try:
+        print("Sending request to OpenAI for categorization...", file=sys.stderr)
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",  # Model that supports JSON mode
+            messages=[
+                {"role": "system", "content": get_ai_system_prompt()},
+                {"role": "user", "content": user_message}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0,
+        )
+        result_str = completion.choices[0].message.content
+        result = json.loads(result_str)
+        print(f"OpenAI response received: {result_str}", file=sys.stderr)
+
+        if 'exercise_category' in result and 'subject_matter' in result:
+            return {
+                'exercise_category': result['exercise_category'],
+                'subject_matter': result['subject_matter']
+            }
+        else:
+            print(f"OpenAI response did not contain expected keys: {result_str}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error during OpenAI categorization request: {e}", file=sys.stderr)
+        return None
+
+
+def _infer_with_gemini(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """Uses Gemini to infer categories."""
+    try:
+        client = get_gemini_client()
+    except (ImportError, ValueError) as e:
+        print(f"Gemini client setup failed: {e}", file=sys.stderr)
+        return None
+
+    system_prompt = get_ai_system_prompt()
+    user_message = f"Question Prompt:\n---\n{prompt}\n---"
+    if response:
+        user_message += f"\n\nExample Answer/Solution:\n---\n{response}\n---"
+
+    try:
+        print("Sending request to Gemini for categorization...", file=sys.stderr)
+        # Use system_instruction for better model guidance
+        model = client.GenerativeModel(
+            'gemini-1.5-flash',
+            system_instruction=system_prompt
+        )
+        
+        # Ensure the model is configured for JSON output
+        config = client.types.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.0
+        )
+        
+        gemini_response = model.generate_content(
+            user_message,
+            generation_config=config,
+        )
+        result_str = gemini_response.text
+        result = json.loads(result_str)
+        print(f"Gemini response received: {result_str}", file=sys.stderr)
+
+        if 'exercise_category' in result and 'subject_matter' in result:
+            return {
+                'exercise_category': result['exercise_category'],
+                'subject_matter': result['subject_matter']
+            }
+        else:
+            print(f"Gemini response did not contain expected keys: {result_str}", file=sys.stderr)
+            return None
+    except Exception as e:
+        print(f"Error during Gemini categorization request: {e}", file=sys.stderr)
+        return None
+
+
+def infer_categories_from_text(prompt: str, response: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """
+    Uses an AI model to infer the exercise category and subject matter for a given question.
+    """
+    provider = os.environ.get("AI_PROVIDER", "openai").lower()
+
+    if provider == "gemini":
+        print("Using Gemini provider for AI categorization.", file=sys.stderr)
+        return _infer_with_gemini(prompt, response)
+    elif provider == "openai":
+        print("Using OpenAI provider for AI categorization.", file=sys.stderr)
+        return _infer_with_openai(prompt, response)
+    else:
+        print(f"Invalid AI_PROVIDER: '{provider}'. Must be 'openai' or 'gemini'.", file=sys.stderr)
+        return None
+
+
+def handle_ai_categorize(args):
+    """Handler for AI categorization of text."""
+    categories = infer_categories_from_text(args.prompt, args.response)
+    if categories:
+        print("\nSuccessfully inferred categories:")
+        print(json.dumps(categories, indent=2))
+    else:
+        print("\nFailed to infer categories.")
+        sys.exit(1)
+
+
+# --- from: scripts/check_docs_links.py ---
+def handle_check_docs_links(args):
+    """Handler for checking documentation links."""
+    DOCS_DIR = Path(project_root) / 'docs'
+    URL_REGEX = re.compile(r'https?://[^\s\)"\']+')
+
+    errors = []
+    session = requests.Session()
+    session.headers.update({'User-Agent': 'kubelingo-doc-link-checker/1.0'})
+
+    if not DOCS_DIR.is_dir():
+        print(f"Docs directory not found at: {DOCS_DIR}", file=sys.stderr)
+        sys.exit(1)
+
+    all_links = []
+    for file_path in sorted(DOCS_DIR.rglob('*.md')):
+        if file_path.name.startswith('.'):
+            continue
+        text = file_path.read_text(encoding='utf-8')
+        links = set(URL_REGEX.findall(text))
+        for link in sorted(links):
+            all_links.append((link, file_path))
+    
+    for link, file_path in tqdm(all_links, desc="Checking doc links"):
+        try:
+            resp = session.head(link, allow_redirects=True, timeout=20)
+            if resp.status_code >= 400:
+                resp = session.get(link, allow_redirects=True, timeout=20)
+            resp.raise_for_status()
+        except Exception as e:
+            errors.append(f"{file_path.relative_to(project_root)}: broken link {link} ({e})")
+    if errors:
+        print('\nBroken documentation links found:')
+        for err in errors:
+            print(' -', err)
+        sys.exit(1)
+    
+    print('\nAll documentation links are valid.')
+
+
+# --- from: scripts/check_quiz_formatting.py ---
+def handle_check_quiz_formatting(args):
+    """Handler for checking quiz YAML formatting."""
+    ID_REGEX = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+    QUIZ_DIR = Path(project_root) / 'question-data' / 'yaml'
+
+    def load_yaml_content(file_path):
+        content = ''.join(line for line in file_path.open('r', encoding='utf-8') if not line.strip().startswith('#'))
+        try:
+            return yaml.safe_load(content)
+        except Exception as e:
+            raise RuntimeError(f"YAML parsing error in {file_path}: {e}")
+
+    errors = []
+    ids_global = {}
+    
+    if not QUIZ_DIR.is_dir():
+        print(f"Quiz directory not found: {QUIZ_DIR}", file=sys.stderr)
+        return
+        
+    yaml_files = sorted(QUIZ_DIR.glob('*.yaml'))
+    print(f"Checking {len(yaml_files)} YAML files in {QUIZ_DIR}...")
+    
+    for file_path in tqdm(yaml_files, desc="Checking quiz formatting"):
+        try:
+            data = load_yaml_content(file_path)
+        except RuntimeError as e:
+            errors.append(str(e))
+            continue
+        if not isinstance(data, dict):
+            errors.append(f"{file_path.relative_to(project_root)}: top-level structure is not a dict")
+            continue
+        questions = data.get('questions')
+        if not isinstance(questions, list):
+            errors.append(f"{file_path.relative_to(project_root)}: missing 'questions' key or it's not a list")
+            continue
+        ids_local = set()
+        for idx, q in enumerate(questions, 1):
+            if not isinstance(q, dict):
+                errors.append(f"{file_path.relative_to(project_root)}[{idx}]: entry is not a dict")
+                continue
+            for key in ('id', 'category', 'prompt', 'response', 'links'):
+                if key not in q:
+                    errors.append(f"{file_path.relative_to(project_root)}[{idx}]: missing key '{key}'")
+            id_val = q.get('id')
+            if isinstance(id_val, str):
+                if not ID_REGEX.match(id_val):
+                    errors.append(f"{file_path.relative_to(project_root)}[{idx}]: id '{id_val}' not kebab-case")
+                if id_val in ids_local:
+                    errors.append(f"{file_path.relative_to(project_root)}[{idx}]: duplicate id '{id_val}' in same file")
+                ids_local.add(id_val)
+                if id_val in ids_global:
+                    errors.append(f"{file_path.relative_to(project_root)}[{idx}]: id '{id_val}' also found in {ids_global[id_val].relative_to(project_root)}")
+                ids_global[id_val] = file_path
+            else:
+                errors.append(f"{file_path.relative_to(project_root)}[{idx}]: id missing or not a string")
+            links = q.get('links')
+            if not isinstance(links, list) or not links:
+                errors.append(f"{file_path.relative_to(project_root)}[{idx}]: links should be a non-empty list")
+            else:
+                for link in links:
+                    if not (isinstance(link, str) and link.startswith(('http://', 'https://'))):
+                        errors.append(f"{file_path.relative_to(project_root)}[{idx}]: invalid link '{link}'")
+    if errors:
+        print('\nQuiz formatting errors found:')
+        for err in errors:
+            print(' -', err)
+        sys.exit(1)
+    print('\nAll quiz files passed formatting checks.')
+
+
+# --- from: scripts/reorganize_question_data.py ---
+def handle_reorganize_question_data(args):
+    """Handler to reorganize the legacy question-data directory."""
+    root = Path(project_root)
+    qd = root / 'question-data'
+    # Create archive directory
+    archive = qd / 'archive'
+    archive.mkdir(exist_ok=True)
+    # Move redundant folders into archive
+    for sub in ('json', 'md', 'yaml-bak', 'manifests'):
+        src = qd / sub
+        if src.exists():
+            dest = archive / sub
+            if dest.exists():
+                print(f"'{sub}' already archived, skipping.")
+                continue
+            shutil.move(str(src), str(dest))
+            print(f"Archived '{sub}' to 'question-data/archive/{sub}'")
+    # Consolidate unified.json into a single YAML backup
+    unified = qd / 'unified.json'
+    yaml_dir = qd / 'yaml'
+    if unified.exists() and yaml_dir.exists():
+        all_yaml = yaml_dir / 'all_questions.yaml'
+        if not all_yaml.exists():
+            shutil.copy2(str(unified), str(all_yaml))
+            print(f"Copied unified.json to '{all_yaml.name}' in yaml directory")
+    # Copy solution scripts into yaml/solutions
+    sol_src = qd / 'solutions'
+    sol_dst = yaml_dir / 'solutions'
+    if sol_src.exists():
+        for category in sol_src.iterdir():
+            if category.is_dir():
+                dst_cat = sol_dst / category.name
+                dst_cat.mkdir(parents=True, exist_ok=True)
+                for item in category.iterdir():
+                    dst_file = dst_cat / item.name
+                    if not dst_file.exists():
+                        shutil.copy2(str(item), str(dst_file))
+                print(f"Copied solutions category '{category.name}' into yaml/solutions/{category.name}")
+    print("Reorganization complete.")
+
+
+# --- from: scripts/suggest_citations.py ---
+def handle_suggest_citations(args):
+    """Handler for suggesting documentation citations for questions."""
+    URL_MAP = {
+        'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
+        'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
+        'kubectl describe sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe',
+    }
+
+    def suggest_citation(answer_cmd):
+        """Return the first matching URL for the given command answer."""
+        if not answer_cmd or not isinstance(answer_cmd, str):
+            return None
+        for prefix, url in URL_MAP.items():
+            if answer_cmd.startswith(prefix):
+                return url
+        return None
+
+    search_dir = Path(args.directory)
+    if not search_dir.is_dir():
+        print(f"Directory not found: {search_dir}", file=sys.stderr)
+        return
+
+    paths = sorted(list(search_dir.rglob('*.json')))
+
+    if not paths:
+        print(f"No JSON question files found to analyze in {search_dir}.")
+        return
+
+    for path in paths:
+        try:
+            with open(path, encoding='utf-8') as f:
+                items = json.load(f)
+        except Exception as e:
+            print(f"Failed to load {path}: {e}")
+            continue
+
+        questions_to_check = []
+        if isinstance(items, list):
+            questions_to_check = items
+        elif isinstance(items, dict) and 'questions' in items and isinstance(items['questions'], list):
+            questions_to_check = items['questions']
+        else:
+            continue
+
+        print(f"\nFile: {path.relative_to(project_root)}")
+        found_suggestion = False
+        for idx, item in enumerate(questions_to_check):
+            if not isinstance(item, dict):
+                continue
+            answer = item.get('response') or ''
+            qtext = item.get('prompt') or item.get('question') or ''
+            citation = suggest_citation(answer)
+            if citation:
+                found_suggestion = True
+                print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
+        if not found_suggestion:
+            print("  -> No citations found in this file.")
+
+
+# --- from: scripts/validate_doc_links.py ---
+def handle_validate_doc_links(args):
+    """Handler for validating documentation URLs in the database."""
+    URL_PATTERN = re.compile(r'https?://[^\s)]+')
+
+    def check_url_status(url):
+        try:
+            resp = requests.head(url, timeout=10, allow_redirects=True)
+            return resp.status_code
+        except requests.RequestException:
+            return None
+
+    questions = get_all_questions()
+    broken = []
+    print(f"Scanning {len(questions)} questions for links...")
+    for q in tqdm(questions, desc="Validating links"):
+        text = ' '.join(filter(None, [q.get('prompt'), q.get('response')]))
+        for url in URL_PATTERN.findall(text):
+            code = check_url_status(url)
+            if code is None or code >= 400:
+                broken.append((q.get('id'), url, code))
+                if not args.fail_only:
+                    print(f"\n[{q.get('id')}] {url} -> {code or 'Error'}")
+    
+    if args.fail_only and broken:
+        print("\nBroken links found:")
+        for qid, url, code in broken:
+            print(f"[{qid}] {url} -> {code or 'Error'}")
+    
+    if broken:
+        print(f"\nFound {len(broken)} broken links.")
+        sys.exit(1)
+    else:
+        print("\nNo broken links detected.")
+
+
 # --- Main CLI Router ---
 def main():
     """Main entry point for the question manager CLI."""
@@ -1620,6 +2043,36 @@ def main():
     parser_extract_pdf.add_argument("pdf_path", help="Path to the PDF file containing quiz content.")
     parser_extract_pdf.add_argument("-n", "--num", type=int, default=5, help="Number of questions to generate.")
     parser_extract_pdf.set_defaults(func=handle_extract_pdf_ai)
+
+    # --- Subparsers from consolidated scripts ---
+
+    # Sub-parser for 'ai-categorize' (from scripts/ai_categorizer.py)
+    parser_ai_cat = subparsers.add_parser('ai-categorize', help='Categorize a question prompt and response using an AI model.', description="Uses an AI model to infer the exercise category and subject matter for a given prompt and response.")
+    parser_ai_cat.add_argument("--prompt", required=True, help="The question prompt to categorize.")
+    parser_ai_cat.add_argument("--response", default=None, help="Optional example answer/solution to provide more context.")
+    parser_ai_cat.set_defaults(func=handle_ai_categorize)
+
+    # Sub-parser for 'check-docs-links' (from scripts/check_docs_links.py)
+    parser_check_docs = subparsers.add_parser('check-docs-links', help='Check for broken links in markdown files in the docs/ directory.', description="Scans all markdown files in the 'docs/' directory and reports any broken HTTP/HTTPS links.")
+    parser_check_docs.set_defaults(func=handle_check_docs_links)
+
+    # Sub-parser for 'check-quiz-formatting' (from scripts/check_quiz_formatting.py)
+    parser_check_quiz = subparsers.add_parser('check-quiz-formatting', help='Check quiz YAML files for formatting and standardization.', description="Checks quiz YAML files for formatting issues like missing keys, invalid ID formats, and duplicate IDs.")
+    parser_check_quiz.set_defaults(func=handle_check_quiz_formatting)
+
+    # Sub-parser for 'reorganize-question-data' (from scripts/reorganize_question_data.py)
+    parser_reorg_data = subparsers.add_parser('reorganize-question-data', help='Reorganize the question-data directory into a standard structure.', description="Archives legacy directories and consolidates question YAML files and solution scripts.")
+    parser_reorg_data.set_defaults(func=handle_reorganize_question_data)
+
+    # Sub-parser for 'suggest-citations' (from scripts/suggest_citations.py)
+    parser_suggest_citations = subparsers.add_parser('suggest-citations', help='Suggest documentation citations for command-quiz questions.', description="Suggests documentation citations for command-quiz questions based on known URL mappings.")
+    parser_suggest_citations.add_argument('directory', nargs='?', default='question-data', help='Directory of JSON question files to scan.')
+    parser_suggest_citations.set_defaults(func=handle_suggest_citations)
+
+    # Sub-parser for 'validate-doc-links' (from scripts/validate_doc_links.py)
+    parser_validate_links = subparsers.add_parser('validate-doc-links', help='Validate documentation URLs in questions from the database.', description="Validate documentation URLs found in question prompts and responses in the database.")
+    parser_validate_links.add_argument('--fail-only', action='store_true', help='Show only broken links')
+    parser_validate_links.set_defaults(func=handle_validate_doc_links)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
