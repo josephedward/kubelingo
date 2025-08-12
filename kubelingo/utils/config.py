@@ -10,6 +10,9 @@ PACKAGE_ROOT = os.path.join(PROJECT_ROOT, 'kubelingo')
 # Legacy alias for backward compatibility: now points to project root
 ROOT = PROJECT_ROOT
 
+# Shared context file for all agents: fundamental exercise categories
+SHARED_CONTEXT_FILE = os.path.join(PROJECT_ROOT, 'shared_context.md')
+
 # By default use project-local .kubelingo directory to ensure write access
 APP_DIR = os.path.join(PROJECT_ROOT, ".kubelingo")
 # Backup directory for timestamped DB snapshots
