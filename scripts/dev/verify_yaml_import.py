@@ -12,6 +12,8 @@ import sqlite3
 import tempfile
 import json
 import argparse
+from pathlib import Path
+from typing import List
 
 # Add project root to path to allow importing kubelingo modules
 # This is needed to run the script from the project root.
@@ -116,6 +118,28 @@ def import_yaml_to_db(yaml_path: str, conn: sqlite3.Connection):
     print(f"Imported from {source_file}: Inserted {inserted_count} new questions, skipped {skipped_duplicates} duplicates.")
     return inserted_count
 
+def find_yaml_files(paths: List[str]) -> List[Path]:
+    """Recursively finds all YAML files in a list of paths."""
+    yaml_files = set()
+    for p_str in paths:
+        path = Path(p_str)
+        if not path.exists():
+            print(f"Warning: Path not found, skipping: {path}", file=sys.stderr)
+            continue
+        
+        if path.is_dir():
+            print(f"Searching for YAML files in directory: {path}")
+            yaml_files.update(path.glob('*.yml'))
+            yaml_files.update(path.glob('*.yaml'))
+        elif path.is_file():
+            if path.suffix in ['.yml', '.yaml']:
+                yaml_files.add(path)
+            else:
+                print(f"Warning: Skipping non-YAML file: {path}", file=sys.stderr)
+
+    return sorted(list(yaml_files))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Verify YAML question import to SQLite and loading via DBLoader.",
@@ -124,28 +148,7 @@ def main():
     parser.add_argument("paths", nargs='+', help="Path(s) to YAML file(s) or directories containing them.")
     args = parser.parse_args()
 
-    yaml_files = []
-    for path in args.paths:
-        if os.path.isdir(path):
-            print(f"Searching for YAML files in directory: {path}")
-            for item in os.listdir(path):
-                if item.endswith(('.yml', '.yaml')):
-                    full_path = os.path.join(path, item)
-                    yaml_files.append(full_path)
-        elif os.path.isfile(path):
-            if path.endswith(('.yml', '.yaml')):
-                yaml_files.append(path)
-            else:
-                print(f"Warning: Skipping non-YAML file: {path}", file=sys.stderr)
-        else:
-            if 'path/to/your/quiz.yaml' in path:
-                 print(f"Error: YAML file not found at {path}", file=sys.stderr)
-                 print("Please replace 'path/to/your/quiz.yaml' with the actual path to your YAML file.", file=sys.stderr)
-                 sys.exit(1)
-            else:
-                print(f"Warning: Path not found or is not a file/directory, skipping: {path}", file=sys.stderr)
-
-    yaml_files = sorted(list(set(yaml_files)))
+    yaml_files = find_yaml_files(args.paths)
 
     if not yaml_files:
         print("Error: No YAML files found in the provided paths.", file=sys.stderr)
@@ -184,32 +187,35 @@ def main():
         
         source_files_in_db = loader.discover()
         
-        all_sources_discovered = True
-        for basename in imported_files_map:
-            if basename not in source_files_in_db:
-                print(f"ERROR: DBLoader did not discover source_file '{basename}' in the database.", file=sys.stderr)
-                all_sources_discovered = False
-        
-        if not all_sources_discovered:
-             print(f"Discovered files in DB: {source_files_in_db}", file=sys.stderr)
-             sys.exit(1)
+        imported_basenames = set(imported_files_map.keys())
+        discovered_basenames = set(source_files_in_db)
+
+        if not imported_basenames.issubset(discovered_basenames):
+            missing = sorted(list(imported_basenames - discovered_basenames))
+            print(f"ERROR: DBLoader did not discover the following source file(s): {', '.join(missing)}", file=sys.stderr)
+            print(f"Discovered files in DB: {sorted(list(discovered_basenames))}", file=sys.stderr)
+            sys.exit(1)
             
         print(f"Successfully discovered all {len(imported_files_map)} source file(s).")
+        print("\nVerifying question counts...")
 
         total_loaded = 0
-        all_counts_match = True
-        for basename, num_imported in imported_files_map.items():
+        mismatched_files = []
+        for basename, num_imported in sorted(imported_files_map.items()):
             loaded_questions = loader.load_file(basename)
             num_loaded = len(loaded_questions)
             total_loaded += num_loaded
-            print(f"- '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
-            if num_loaded != num_imported:
-                all_counts_match = False
+            
+            if num_loaded == num_imported:
+                print(f"  ✅ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+            else:
+                print(f"  ❌ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+                mismatched_files.append(basename)
         
         print("-" * 20)
         print(f"Total Imported: {total_imported}, Total Loaded: {total_loaded}")
 
-        if all_counts_match and total_imported == total_loaded:
+        if not mismatched_files and total_imported == total_loaded:
             print("\nSUCCESS: The number of loaded questions matches the number of imported questions for all files.")
         else:
             print(f"\nERROR: Mismatch in question count detected for one or more files.", file=sys.stderr)
