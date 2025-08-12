@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from kubelingo.integrations.llm import GeminiClient
 
@@ -32,7 +32,7 @@ class KubernetesStudyMode:
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
 
-    def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
+    def start_study_session(self, topic: str, user_level: str = "intermediate") -> Optional[str]:
         """Initialize a new study session using Gemini."""
         system_prompt = self._build_kubernetes_study_prompt(topic, user_level)
         user_prompt = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
@@ -42,16 +42,18 @@ class KubernetesStudyMode:
             {"role": "user", "content": user_prompt},
         ]
 
-        assistant_response = self.client.chat_completion(
-            messages=messages, temperature=0.7
-        )
+        try:
+            assistant_response = self.client.chat_completion(
+                messages=messages, temperature=0.7
+            )
+        except Exception:
+            assistant_response = None
 
         if not assistant_response:
-            assistant_response = "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later."
             self.session_active = False
-        else:
-            self.session_active = True
+            return None
 
+        self.session_active = True
         self.conversation_history = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -67,12 +69,15 @@ class KubernetesStudyMode:
 
         self.conversation_history.append({"role": "user", "content": user_input})
 
-        assistant_response = self.client.chat_completion(
-            messages=self.conversation_history, temperature=0.7
-        )
+        try:
+            assistant_response = self.client.chat_completion(
+                messages=self.conversation_history, temperature=0.7
+            )
+        except Exception:
+            assistant_response = None
 
         if not assistant_response:
-            assistant_response = "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
+            return "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
 
         self.conversation_history.append({"role": "assistant", "content": assistant_response})
 

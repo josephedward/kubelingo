@@ -31,9 +31,10 @@ class NewSession:
 
             study_session = KubernetesStudyMode()
             response = study_session.start_study_session(topic, level)
-            if "trouble connecting" in response:
-                print("\nTutor: " + response)
-                print("Please ensure your API key is valid and try again.")
+            if response is None:
+                print("\nTutor: I'm sorry, I'm having trouble connecting to my knowledge base.")
+                print("This might be due to an invalid API key or a network problem.")
+                print("Please ensure your GEMINI_API_KEY is set correctly and try again.")
                 return
 
             print(f"\nTutor: {response}")
