@@ -1,6 +1,7 @@
 mod cli;
 use anyhow::Result;
 use clap::Parser;
+use dialoguer::{theme::ColorfulTheme, Select};
 use std::env;
 use std::io::{self, Write};
 use crate::cli::{Cli, Commands};
@@ -50,7 +51,7 @@ fn show_main_menu() -> Result<()> {
                     prompt_for_api_key()?;
                 } else {
                     println!("Starting Study Mode...");
-                    // Add logic to start study mode here
+                    start_study_mode()?;
                 }
             }
             "2" => {
@@ -65,6 +66,50 @@ fn show_main_menu() -> Result<()> {
             }
         }
     }
+
+    Ok(())
+}
+
+fn start_study_mode() -> Result<()> {
+    let topics = vec![
+        "Vim",
+        "Helm",
+        "Kubectl",
+        "Kubernetes Resources",
+        "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
+        "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
+        "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",
+        "App configuration (ConfigMaps, Secrets, projected & downwardAPI volumes)",
+        "Probes & health (liveness, readiness, startup; graceful shutdown)",
+        "Resource management (requests/limits, QoS classes, HPA basics)",
+        "Jobs & CronJobs (completions, parallelism, backoff, schedules)",
+        "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)",
+        "Ingress & HTTP routing (basic rules, paths, service backends)",
+        "Networking utilities (DNS in-cluster, port-forward, exec, curl)",
+        "Persistence (PVCs, using existing StorageClasses, common volume types)",
+        "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)",
+        "Labels, annotations & selectors (label ops, field selectors, jsonpath)",
+        "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)",
+        "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)",
+        "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)",
+        "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)",
+        "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
+        "Namespaces & contexts (scoping resources, default namespace, context switching)",
+        "API discovery & docs (kubectl explain, api-resources, api-versions)",
+        "Vim for YAML editing (modes, navigation, editing commands)",
+        "Helm for Package Management (charts, releases, repositories)",
+        "Advanced Kubectl Usage (jsonpath, patch, custom columns)",
+        "Kubernetes API Resources (exploring objects with explain and api-resources)",
+    ];
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select a topic to study:")
+        .items(&topics)
+        .default(0)
+        .interact()?;
+
+    println!("\nYou selected: {}", topics[selection]);
+    // Add logic to start the selected study mode here
 
     Ok(())
 }
