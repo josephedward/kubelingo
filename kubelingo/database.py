@@ -235,3 +235,19 @@ def get_question_counts_by_schema_and_subject(conn: sqlite3.Connection) -> Dict[
         result[category][subject] = count
 
     return result
+
+
+def get_flagged_questions(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
+    """
+    Retrieves all questions flagged for review.
+
+    Args:
+        conn: SQLite connection object.
+
+    Returns:
+        A list of dictionaries representing the flagged questions.
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions WHERE review = 1")
+    rows = cursor.fetchall()
+    return [_row_to_question_dict(row) for row in rows]
