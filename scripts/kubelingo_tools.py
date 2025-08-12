@@ -441,8 +441,8 @@ def main(argv=None):
 
     # quiz
     quiz_parser = subparsers.add_parser('quiz', help='Run the interactive CLI quiz')
-    quiz_parser.add_argument('quiz_args', nargs=argparse.REMAINDER, help='Arguments forwarded to kubelingo CLI')
-    quiz_parser.set_defaults(func=run_quiz)
+    # Arguments are not defined here; they are collected by parse_known_args.
+    quiz_parser.set_defaults(func=run_quiz, quiz_args=[])
 
     # manage
     manage_parser = subparsers.add_parser('manage', help='Manage question-data')
@@ -505,11 +505,8 @@ def main(argv=None):
             continue
 
         sp = run_subparsers.add_parser(script_stem, help=f'Run script {p.name}')
-        sp.add_argument(
-            'script_args', nargs=argparse.REMAINDER,
-            help='Arguments forwarded to the script'
-        )
-        sp.set_defaults(func=run_dynamic_script, script_path=p)
+        # Arguments are not defined here; they are collected by parse_known_args.
+        sp.set_defaults(func=run_dynamic_script, script_path=p, script_args=[])
 
     # Use parse_known_args to handle passthrough arguments for 'quiz' and 'run'.
     args, remainder = parser.parse_known_args(argv)
