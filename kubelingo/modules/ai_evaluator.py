@@ -1,7 +1,7 @@
 import json
 import re
 import logging
-from kubelingo.integrations.llm import get_llm_client
+from kubelingo.integrations.llm import GeminiClient
 
 
 class AIEvaluator:
@@ -11,7 +11,7 @@ class AIEvaluator:
         Initializes the AIEvaluator. It will use the configured LLM client.
         """
         try:
-            self.client = get_llm_client()
+            self.client = GeminiClient()
         except (ImportError, ValueError) as e:
             logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
             self.client = None
@@ -78,8 +78,7 @@ Your response MUST be a JSON object with two keys:
                 {"role": "user", "content": user_content},
             ]
             response_text = self.client.chat_completion(
-                messages=messages,
-                is_json=True
+                messages=messages
             )
             return json.loads(response_text) if response_text else None
         except Exception as e:
@@ -143,7 +142,6 @@ Your response MUST be a JSON object with two keys:
         ]
         response_text = self.client.chat_completion(
             messages=messages,
-            is_json=True,
             temperature=0.7
         )
 
@@ -302,8 +300,7 @@ Be lenient with whitespace and case unless the question implies sensitivity.
                 {"role": "user", "content": user_content},
             ]
             response_text = self.client.chat_completion(
-                messages=messages,
-                is_json=True
+                messages=messages
             )
             return json.loads(response_text) if response_text else None
         except Exception as e:
