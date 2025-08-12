@@ -20,17 +20,23 @@ def bootstrap_on_startup():
     logging.info("Starting bootstrap process from consolidated YAML backup.")
 
     project_root = get_project_root()
-    backup_dir = project_root / 'yaml' / 'consolidated_backup'
-
-    if not backup_dir.is_dir():
-        logging.warning(f"Backup directory not found: {backup_dir}. Skipping bootstrap.")
-        return
-
-    logging.info(f"Searching for latest backup in {backup_dir}...")
-    yaml_backups = find_and_sort_files_by_mtime([str(backup_dir)], extensions=['.yaml', '.yml'])
+    
+    search_paths = [
+        project_root / 'yaml' / 'consolidated_backup',
+        project_root / 'backups' / 'yaml',
+    ]
+    
+    yaml_backups = []
+    for backup_dir in search_paths:
+        if backup_dir.is_dir():
+            logging.info(f"Searching for backups in {backup_dir}...")
+            found_files = find_and_sort_files_by_mtime([str(backup_dir)], extensions=['.yaml', '.yml'])
+            if found_files:
+                yaml_backups = found_files
+                break
 
     if not yaml_backups:
-        logging.warning(f"No YAML backups found in {backup_dir}. Skipping bootstrap.")
+        logging.warning(f"No YAML backups found in any search location. Searched: {[str(d) for d in search_paths]}. Skipping bootstrap.")
         return
 
     latest_backup_path = Path(yaml_backups[0])
