@@ -47,22 +47,23 @@ def import_questions(files: List[Path], conn: sqlite3.Connection):
                         if k not in q_dict:
                             q_dict[k] = v
 
-                # Capture YAML category for subject mapping
-                orig_category = q_dict.get('category')
-                # Determine DB category_id based on question type
+                # The 'category' field from YAML is the question's 'subject_matter'.
+                # We must handle it before the 'category' key is repurposed.
+                if 'category' in q_dict:
+                    q_dict['subject_matter'] = q_dict.pop('category')
+
+                # Set schema_category and category_id based on the question type.
+                # These are the three fundamental exercise categories.
                 q_type = q_dict.get('type', 'command')
                 if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
-                    cat_id = 'manifest'
+                    schema_cat = 'manifest'
                 elif q_type == 'socratic':
-                    cat_id = 'open-ended'
-                else:
-                    cat_id = 'command'
-                # Assign schema_category (internal) and DB category_id
-                q_dict['schema_category'] = cat_id
-                q_dict['category'] = cat_id
-                # Map YAML category to subject_matter for DB subject_id
-                if orig_category is not None:
-                    q_dict['subject_matter'] = orig_category
+                    schema_cat = 'basic'
+                else:  # command, etc.
+                    schema_cat = 'command'
+                q_dict['schema_category'] = schema_cat
+                q_dict['category'] = schema_cat
+
                 # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
                 if 'type' in q_dict:
                     q_dict['question_type'] = q_dict.pop('type')

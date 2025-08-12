@@ -83,8 +83,8 @@ class TestBuildQuestionDbIntegration(unittest.TestCase):
         self.assertEqual(question_data[0], "What is the basic unit of deployment in Kubernetes?")
         self.assertEqual(question_data[1], "A Pod.")
         self.assertEqual(question_data[2], "Core Concepts")
-        # Check if 'type: socratic' was correctly mapped to the 'open-ended' schema_category
-        self.assertEqual(question_data[3], "open-ended")
+        # Check if 'type: socratic' was correctly mapped to the 'basic' schema_category
+        self.assertEqual(question_data[3], "basic")
 
         # 2. Verify that the backup database files were created.
         self.assertTrue(self.master_backup_path.exists(), "Master DB backup was not created.")
