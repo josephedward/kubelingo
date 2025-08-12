@@ -514,7 +514,16 @@ def main(argv=None):
         script_stem = p.stem.replace('_', '-') # convention for cli
 
         # Don't add existing commands or scripts that are being replaced
-        if p.name in ('kubelingo_tools.py', 'maintenance_menu.py', 'full_migrate_and_cleanup.py', 'toolbox.py'):
+        # Exclude this script itself, and any scripts that have been superseded or
+        # have dedicated top-level commands.
+        if p.name in (
+            'kubelingo_tools.py',
+            'maintenance_menu.py',
+            'full_migrate_and_cleanup.py',
+            'toolbox.py',
+            'ckad.py',
+            'generator.py',
+        ):
             continue
         if script_stem in existing_commands:
             continue
