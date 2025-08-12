@@ -5,7 +5,7 @@ from typing import List, Set, Optional
 import os
 import yaml
 
-openai = None
+from kubelingo.integrations.llm import get_llm_client
 import re
 
 from kubelingo.utils.ui import Fore, Style
@@ -30,6 +30,11 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+        try:
+            self.client = get_llm_client()
+        except (ImportError, ValueError) as e:
+            logging.error(f"Failed to initialize LLM client for AIQuestionGenerator: {e}")
+            self.client = None
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
