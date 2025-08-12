@@ -4,6 +4,10 @@ from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode, KUBERNE
 class NewSession:
     """A study session for all Kubernetes-related quizzes."""
 
+    def __init__(self, logger):
+        """Initializes the session with a logger."""
+        self.logger = logger
+
     def _run_study_mode_session(self):
         """Runs an interactive study session using the Socratic method with Gemini."""
         if not os.getenv('GEMINI_API_KEY'):
