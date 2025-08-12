@@ -50,7 +50,7 @@ class KubernetesStudyMode:
 
         try:
             response_text = self.client.chat_completion(
-                messages=messages, temperature=0.5
+                messages=messages, temperature=0.5, json_mode=True
             )
             if response_text:
                 # The prompt asks for JSON, so we parse it.

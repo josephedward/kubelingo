@@ -14,7 +14,10 @@ class LLMClient(ABC):
 
     @abstractmethod
     def chat_completion(
-        self, messages: list[dict[str, str]], temperature: float = 0.0
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.0,
+        json_mode: bool = False,
     ) -> Optional[str]:
         pass
 
@@ -36,7 +39,10 @@ class GeminiClient(LLMClient):
         genai.configure(api_key=api_key)
 
     def chat_completion(
-        self, messages: list[dict[str, str]], temperature: float = 0.0
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.0,
+        json_mode: bool = False,
     ) -> Optional[str]:
         """Sends a chat completion request to the Gemini API."""
         local_messages = list(messages)  # Make a copy to avoid mutation
@@ -54,7 +60,10 @@ class GeminiClient(LLMClient):
             model = genai.GenerativeModel(
                 "gemini-1.5-pro-latest", system_instruction=system_prompt
             )
-            generation_config = genai.types.GenerationConfig(temperature=temperature)
+            generation_config = genai.types.GenerationConfig(
+                temperature=temperature,
+                response_mime_type="application/json" if json_mode else "text/plain",
+            )
             response = model.generate_content(
                 gemini_messages,
                 generation_config=generation_config,
