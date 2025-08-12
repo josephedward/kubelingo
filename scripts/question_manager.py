@@ -780,6 +780,7 @@ def handle_generate_ai_questions(args):
     cursor = conn.cursor()
     for q_dict in new_questions:
         try:
+            subject = q_dict.pop('subject', None)
             q_obj = Question(**q_dict)
             validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
             cursor.execute("""
@@ -791,7 +792,7 @@ def handle_generate_ai_questions(args):
                 q_obj.source_file or 'ai_generated',
                 json.dumps(q_obj.response) if q_obj.response is not None else None,
                 q_obj.category,
-                q_obj.subject.value if q_obj.subject else args.subject,
+                subject or args.subject,
                 'ai_generator',
                 json.dumps(q_dict),
                 json.dumps(validation_steps_for_db),
@@ -1662,6 +1663,7 @@ def handle_extract_pdf_ai(args):
         existing_prompts = get_existing_prompts(conn)
         added_count = 0
         for q_dict in new_questions:
+            subject = q_dict.pop('subject', None)
             q = Question(**q_dict)
             if q.prompt in existing_prompts:
                 print(f"Skipping existing question: {q.prompt}")
@@ -1672,13 +1674,14 @@ def handle_extract_pdf_ai(args):
 
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR REPLACE INTO questions (id, prompt, response, category, source, source_file, validation_steps, validator, review)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO questions (id, prompt, response, category, subject, source, source_file, validation_steps, validator, review)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 q.id,
                 q.prompt,
                 q.response,
                 "killershell",
+                subject,
                 "pdf_ai",
                 os.path.basename(args.pdf_path),
                 json.dumps(validation_steps_for_db),

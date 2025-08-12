@@ -121,7 +121,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     # Clear any pre-existing data from schema init and insert test data
     cursor = conn.cursor()
     cursor.execute("DELETE FROM questions")
-    cursor.execute("INSERT INTO questions (id, prompt, source_file, subject) VALUES (?, ?, ?, ?)", ('q1', '?', 'f.yaml', 'invalid-subject-for-test'))
+    cursor.execute("INSERT INTO questions (id, prompt, source_file, subject) VALUES (?, ?, ?, ?)", ('q1', '?', 'f.yaml', None))
     conn.commit()
     conn.close()
 
@@ -132,7 +132,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert 'Questions with missing or invalid subjects' in out
     assert 'subject=None' in out
-    # Assign a valid subject
+    # First, list missing subjects
     valid = dbmod.SUBJECT_MATTER[0]
     monkeypatch.setattr(sys, 'argv', ['question_manager.py', 'categorize', '--assign', '1', valid])
     mod.main()
@@ -154,11 +154,9 @@ def temp_yaml_file(tmp_path):
 - id: yaml_q1
   prompt: 'What is a pod?'
   source_file: 'test.yaml'
-  subject: 'Pods'
 - id: yaml_q2
   prompt: 'What is a service?'
   source_file: 'test.yaml'
-  subject: 'Services'
     """
     yaml_file = tmp_path / "questions.yaml"
     yaml_file.write_text(yaml_content)
@@ -203,7 +201,6 @@ def test_build_db_command_clear(tmp_path, temp_yaml_file, capsys, monkeypatch):
 - id: yaml_q3
   prompt: 'What is a namespace?'
   source_file: 'new.yaml'
-  subject: 'Namespaces'
     """
     new_yaml_file = tmp_path / "new_questions.yaml"
     new_yaml_file.write_text(new_yaml_content)
@@ -474,6 +471,7 @@ def test_categorize_text_command(capsys, monkeypatch):
 def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     """Tests the suggest-citations subcommand."""
     question_manager_mod = load_script('question_manager')
+    monkeypatch.setattr(question_manager_mod, 'project_root', tmp_path)
 
     # Create dummy JSON file in a directory
     json_dir = tmp_path / "questions_json"
