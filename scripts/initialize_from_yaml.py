@@ -1,3 +1,4 @@
+scripts/initialize_from_yaml.py
 import logging
 import sqlite3
 import sys
@@ -6,6 +7,7 @@ import yaml
 import subprocess
 import json
 from pathlib import Path
+from time import sleep
 
 # Add project root to path to allow imports from kubelingo
 try:
@@ -69,7 +71,22 @@ def initialize_from_yaml():
 
     try:
         logging.info("Clearing existing questions from the database.")
-        cursor.execute("DELETE FROM questions")
+        retry_count = 0
+        while retry_count < 5:
+            try:
+                cursor.execute("DELETE FROM questions")
+                break
+            except sqlite3.OperationalError as e:
+                if "database is locked" in str(e):
+                    logging.warning("Database is locked. Retrying...")
+                    retry_count += 1
+                    sleep(1)
+                else:
+                    raise
+        else:
+            logging.error("Failed to clear 'questions' table after multiple retries. Aborting initialization.")
+            conn.close()
+            return
     except sqlite3.Error as e:
         logging.error(f"Failed to clear 'questions' table: {e}. Aborting initialization.")
         conn.close()
@@ -118,7 +135,22 @@ def initialize_from_yaml():
                     subject_matter,
                 )
 
-                cursor.execute(sql, params)
+                retry_count = 0
+                while retry_count < 5:
+                    try:
+                        cursor.execute(sql, params)
+                        break
+                    except sqlite3.OperationalError as e:
+                        if "database is locked" in str(e):
+                            logging.warning("Database is locked. Retrying...")
+                            retry_count += 1
+                            sleep(1)
+                        else:
+                            raise
+                else:
+                    logging.error(f"Failed to insert question {q_id} after multiple retries. Skipping.")
+                    continue
+
                 question_count += 1
 
         except yaml.YAMLError as e:
