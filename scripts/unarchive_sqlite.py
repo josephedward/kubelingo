@@ -87,7 +87,8 @@ def unarchive_sqlite_files():
 
     found_files = []
     for ext in SQLITE_EXTENSIONS:
-        found_files.extend(ARCHIVE_DIR.glob(f"*{ext}"))
+        # Recursively find all sqlite files in the archive directory.
+        found_files.extend(ARCHIVE_DIR.rglob(f"*{ext}"))
 
     if not found_files:
         print("No SQLite files found in archive directory.")
