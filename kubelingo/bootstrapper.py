@@ -17,6 +17,11 @@ except ImportError:
     genai = None
 
 try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
     from dotenv import load_dotenv
 
     load_dotenv()
