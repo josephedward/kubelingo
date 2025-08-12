@@ -41,19 +41,19 @@ def test_env(tmp_path, monkeypatch):
     (manifests_archive_dir / "m.yaml").write_text(yaml.dump([{"id": "m1", "prompt": "p1"}]))
 
     # for consolidate_dbs
-    (project_dir / "backup_questions.db").touch()
-    (project_dir / "categorized.db").touch()
-    (app_dir / "kubelingo.db").touch()
+    (project_dir / "backup_questions.db").write_text("db1")
+    (project_dir / "categorized.db").write_text("db2")
+    (app_dir / "kubelingo.db").write_text("db3")
     sqlite_backup_dir = project_dir / 'backups' / 'sqlite'
     sqlite_backup_dir.mkdir(parents=True)
-    (sqlite_backup_dir / 'old.sqlite3').touch()
+    (sqlite_backup_dir / 'old.sqlite3').write_text("db4")
 
     # for merge_quizzes
     (project_dir / "source.yaml").write_text(yaml.dump([{"id": "q1", "p": "p1"}, {"id": "q2", "p": "p2"}]))
     (project_dir / "dest.yaml").write_text(yaml.dump([{"id": "q1", "p": "p1-old"}]))
 
     # for consolidate_backups
-    (project_dir / "toplevel.db").touch()
+    (project_dir / "toplevel.db").write_text("db5")
     (project_dir / "another.yaml").write_text("foo: bar")
 
     yield project_dir
