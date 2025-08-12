@@ -1,18 +1,14 @@
-import os
 import uuid
 from dataclasses import asdict
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import questionary
 import yaml
 
-from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
-from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
 KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
@@ -25,20 +21,34 @@ class KubernetesStudyMode:
         self.session_active = False
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
-        self.db_conn = get_db_connection()
-        self.questions_dir = get_project_root() / "questions" / "ai_generated"
-        os.makedirs(self.questions_dir, exist_ok=True)
 
-    def generate_term_definition_pair(
-        self, topic: str, user_level: str = "intermediate"
-    ) -> Optional[Dict[str, str]]:
-        """Generates a term and definition pair for the given topic."""
-        question = self._generate_question(
-            topic=topic, quiz_type="basic", user_level=user_level
-        )
-        if question and question.answers:
-            return {"term": question.answers[0], "definition": question.prompt}
-        return None
+    def main_menu(self):
+        """Displays the main menu and handles user selection."""
+        while True:
+            try:
+                choice = questionary.select(
+                    "Main Menu",
+                    choices=[
+                        "Start Study Session",
+                        "Review Past Questions",
+                        "Settings",
+                        "Exit",
+                    ],
+                    use_indicator=True,
+                ).ask()
+
+                if choice == "Start Study Session":
+                    self.start_study_session()
+                elif choice == "Review Past Questions":
+                    self.review_past_questions()
+                elif choice == "Settings":
+                    self.settings_menu()
+                elif choice == "Exit":
+                    print("Exiting application. Goodbye!")
+                    break
+            except (KeyboardInterrupt, TypeError):
+                print("\nExiting application. Goodbye!")
+                break
 
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a topic and quiz style, then starts the session."""
@@ -77,6 +87,16 @@ class KubernetesStudyMode:
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting study mode.")
                 break
+
+    def review_past_questions(self):
+        """Displays past questions for review."""
+        print("\nReviewing past questions is not yet implemented.")
+        # Placeholder for future implementation
+
+    def settings_menu(self):
+        """Displays the settings menu."""
+        print("\nSettings menu is not yet implemented.")
+        # Placeholder for future implementation
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
@@ -213,6 +233,17 @@ class KubernetesStudyMode:
 
         return False
 
+    def generate_term_definition_pair(
+        self, topic: str, user_level: str = "intermediate"
+    ) -> Optional[Dict[str, str]]:
+        """Generates a term and definition pair for the given topic."""
+        question = self._generate_question(
+            topic=topic, quiz_type="basic", user_level=user_level
+        )
+        if question and question.answers:
+            return {"term": question.answers[0], "definition": question.prompt}
+        return None
+
     def _generate_question(
         self, topic: str, quiz_type: str, user_level: str
     ) -> Optional[Question]:
@@ -249,7 +280,6 @@ class KubernetesStudyMode:
         except Exception as e:
             print(f"Error generating or parsing question: {e}")
             return None
-
 
     def _save_question(self, question: Question):
         """Saves a question to a YAML file and the database."""
