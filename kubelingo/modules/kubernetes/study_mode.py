@@ -24,8 +24,6 @@ class KubernetesStudyMode:
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
         self.db_conn = get_db_connection()
-        self.questions_dir = get_project_root() / "questions" / "generated_yaml"
-        self.questions_dir.mkdir(parents=True, exist_ok=True)
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
@@ -260,116 +258,6 @@ class KubernetesStudyMode:
             print(f"Error generating question: {e}")
         return None
 
-    def _generate_question(
-        self, topic: str, quiz_type: str, user_level: str
-    ) -> Optional[Question]:
-        """Generates a question using the LLM and saves it."""
-        system_prompt = self._build_question_generation_prompt(
-            topic, quiz_type, user_level
-        )
-        user_prompt = (
-            "Please generate one question based on the system prompt instructions."
-        )
-
-        try:
-            response = self.client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.8,
-                json_mode=True,
-            )
-            if not response:
-                return None
-
-            # The response is expected to be a YAML string (parsable as JSON)
-            question_data = yaml.safe_load(response)
-            question_data["id"] = str(uuid.uuid4())
-            question_data["source_file"] = str(
-                self.questions_dir / f"{question_data['id']}.yaml"
-            )
-
-            question = Question(**question_data)
-            self._save_question(question)
-            return question
-        except Exception as e:
-            print(f"Error generating or parsing question: {e}")
-            return None
-
-    def _save_question(self, question: Question):
-        """Saves a question to a YAML file and the database."""
-        # Save to YAML file
-        with open(question.source_file, "w") as f:
-            yaml.dump(asdict(question), f, sort_keys=False)
-
-        # Save to database
-        try:
-            add_question(conn=self.db_conn, **asdict(question))
-        except Exception as e:
-            print(f"Warning: Failed to save question {question.id} to database: {e}")
-
-    def _build_question_generation_prompt(
-        self, topic: str, quiz_type: str, level: str
-    ) -> str:
-        """Builds a system prompt for the LLM to generate a question as YAML."""
-
-        type_map = {
-            "basic": (
-                "basic",
-                "Create a 'basic terminology' question. The user should provide a single term as the answer. The `prompt` is the definition, and `answers` is a list with one item: the term.",
-            ),
-            "command": (
-                "command",
-                "Create a `kubectl` command-line question. The `answers` list can contain multiple functionally equivalent correct commands.",
-            ),
-            "manifest": (
-                "yaml_author",
-                "Create a YAML authoring question. The user must create a manifest from scratch. Provide the `correct_yaml`.",
-            ),
-        }
-        q_type, instructions = type_map[quiz_type]
-
-        return f"""
-# **Role: Kubernetes Quiz Generator**
-You are an expert curriculum developer for Kubernetes. Your task is to generate a single, high-quality quiz question in YAML format based on the user's request. Your output MUST BE A VALID YAML DOCUMENT.
-
-# **Request Details**
-- **Topic:** {topic}
-- **Skill Level:** {level}
-- **Quiz Type:** {quiz_type.title()}
-
-# **Instructions**
-- **{instructions}**
-- The `prompt` must be a clear question or instruction for the user.
-- `subject_matter` must exactly match the topic: "{topic}"
-- `explanation` should briefly clarify the concept or command after the user answers.
-- The output MUST be a single, valid YAML document that maps to the `Question` schema. Do not include any other text or formatting.
-
-# **YAML Schema**
-```yaml
-# id: (string, will be auto-generated)
-prompt: (string, required) - The question text presented to the user.
-type: (string, required) - Must be '{q_type}'.
-subject_matter: (string, required) - Must be '{topic}'.
-answers: (list of strings, required for command/basic) - Correct answer(s).
-correct_yaml: (string, required for manifest) - The full, correct YAML manifest.
-initial_files: (dict, optional for manifest) - Files to start with, e.g., {{'exercise.yaml': '...'}}.
-explanation: (string, optional) - Explanation of the answer.
-difficulty: (string, optional) - e.g., 'easy', 'medium', 'hard'.
-```
-
-# **Example (for a 'command' question about Pods)**
-```yaml
-prompt: "Create a kubectl command to run a Pod named 'nginx' with the 'nginx:1.14.2' image."
-type: "command"
-subject_matter: "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
-answers:
-  - "kubectl run nginx --image=nginx:1.14.2"
-explanation: "The `kubectl run` command is a quick way to create a single Pod imperatively."
-difficulty: "easy"
-```
-"""
 
     def _start_socratic_session(
         self, topic: str, user_level: str = "intermediate"
