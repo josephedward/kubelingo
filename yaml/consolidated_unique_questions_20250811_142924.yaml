@@ -14,7 +14,7 @@ questions:
   source: null
   source_file: f.yaml
   subject: null
-  type: null
+  type: command
   validation_steps: null
   validator: null
 - id: add-cmds-q1
