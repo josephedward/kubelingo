@@ -203,3 +203,35 @@ def get_questions_by_subject_matter(conn: sqlite3.Connection, subject: str) -> L
     cursor.execute("SELECT * FROM questions WHERE subject = ?", (subject,))
     rows = cursor.fetchall()
     return [_row_to_question_dict(row) for row in rows]
+
+
+def get_question_counts_by_schema_and_subject(conn: sqlite3.Connection) -> Dict[str, Dict[str, int]]:
+    """
+    Retrieves the count of questions grouped by schema and subject.
+
+    Args:
+        conn: SQLite connection object.
+
+    Returns:
+        A dictionary where keys are schema names, and values are dictionaries
+        mapping subject names to question counts.
+    """
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT category, subject, COUNT(*) as count
+        FROM questions
+        GROUP BY category, subject
+    """)
+    rows = cursor.fetchall()
+
+    result = {}
+    for row in rows:
+        category = row["category"]
+        subject = row["subject"]
+        count = row["count"]
+
+        if category not in result:
+            result[category] = {}
+        result[category][subject] = count
+
+    return result
