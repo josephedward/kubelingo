@@ -18,11 +18,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 # Mapping from YAML 'type' to database 'category' based on shared_context.md
 CATEGORY_MAPPING = {
-    'socratic': 'basic',
+    'basic': 'basic',
     'command': 'command',
     'manifest': 'manifest',
 }
-
 
 def validate_yaml_structure(yaml_data, file_path):
     """
@@ -105,6 +104,15 @@ def create_quizzes_from_backup():
                     metadata = q_data.get('metadata')
                     if isinstance(metadata, dict):
                         response_val = metadata.get('response')
+
+                # Add specific validation for 'manifest' type
+                if q_type == 'manifest':
+                    if 'vim' not in q_data.get('tools', []):
+                        logging.warning(f"Skipping manifest question {q_id}: 'vim' tool is required.")
+                        continue
+                    if 'kubectl apply' not in q_data.get('validation', []):
+                        logging.warning(f"Skipping manifest question {q_id}: 'kubectl apply' validation is required.")
+                        continue
 
                 add_question(
                     conn=conn,
