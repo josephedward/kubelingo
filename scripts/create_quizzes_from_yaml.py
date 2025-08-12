@@ -23,23 +23,6 @@ CATEGORY_MAPPING = {
     'manifest': 'manifest',
 }
 
-def validate_yaml_structure(yaml_data, file_path):
-    """
-    Validates the structure of the YAML data to ensure it is a list of questions.
-    """
-    if not isinstance(yaml_data, list):
-        logging.error(f"Invalid YAML structure in file {file_path}: Expected a list of questions.")
-        return False
-
-    for index, question in enumerate(yaml_data):
-        if not isinstance(question, dict):
-            logging.error(f"Invalid question format at index {index} in file {file_path}: Expected a dictionary.")
-            return False
-        if 'id' not in question or 'type' not in question:
-            logging.error(f"Missing required keys ('id', 'type') in question at index {index} in file {file_path}.")
-            return False
-
-    return True
 
 def create_quizzes_from_backup():
     """
@@ -85,9 +68,6 @@ def create_quizzes_from_backup():
                 logging.error(f"Skipping file {yaml_file}: content is not a list or a dict with a 'questions' key.")
                 continue
 
-            if not validate_yaml_structure(questions_data, yaml_file):
-                logging.error(f"Skipping file {yaml_file} due to invalid structure.")
-                continue
 
             for q_data in questions_data:
                 logging.debug(f"Processing question data: {q_data}")
