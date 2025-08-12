@@ -4,12 +4,15 @@ import os
 import re
 from pathlib import Path
 import pytest
+from kubelingo.database import get_db_connection, run_sql_file
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / 'scripts'
 
+
 def run(cmd, cwd=ROOT):
     return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
+
 
 def test_show_db_schema_runs(tmp_path, monkeypatch):
     # Ensure script runs without error, even if DB is empty
@@ -20,6 +23,7 @@ def test_show_db_schema_runs(tmp_path, monkeypatch):
     result = run(['python3', str(SCRIPTS / 'show_db_schema.py')])
     assert result.returncode == 0, result.stderr
     assert 'Tables:' in result.stdout
+
 
 def test_locate_sqlite_backups_basic(tmp_path):
     # Create directory with two .db files
@@ -34,6 +38,7 @@ def test_locate_sqlite_backups_basic(tmp_path):
     out = result.stdout
     assert str(file1) in out
     assert str(file2) in out
+
 
 def test_diff_sqlite_schema(tmp_path):
     # Create two small DBs with different tables
@@ -52,6 +57,7 @@ def test_diff_sqlite_schema(tmp_path):
     assert re.search(r'Removed: table alpha', out, re.IGNORECASE)
     assert re.search(r'Added: table beta', out, re.IGNORECASE)
 
+
 def test_create_sqlite_backup_error(tmp_path, monkeypatch):
     # Remove live DB if exists and set HOME to tmp, so DATABASE_FILE missing
     monkeypatch.setenv('HOME', str(tmp_path))
@@ -65,6 +71,7 @@ def test_create_sqlite_backup_error(tmp_path, monkeypatch):
     # Filename starts with prefix
     assert any(p.name.startswith('kubelingo_') and p.suffix == '.db' for p in backups)
 
+
 def test_restore_sqlite_error(tmp_path, monkeypatch):
     # No backup file -> error
     monkeypatch.setenv('HOME', str(tmp_path))
@@ -72,3 +79,26 @@ def test_restore_sqlite_error(tmp_path, monkeypatch):
     result = run(['python3', str(SCRIPTS / 'restore_sqlite.py'), str(fake)])
     assert result.returncode != 0
     assert 'Error: backup file not found' in result.stdout + result.stderr
+
+
+def test_run_sql_file(tmp_path):
+    # Test running a SQL file against the database
+    sql_file = tmp_path / "test.sql"
+    sql_file.write_text("""
+        CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT);
+        INSERT INTO test_table (name) VALUES ('Alice'), ('Bob');
+    """)
+
+    db_path = tmp_path / "test.db"
+    conn = get_db_connection(str(db_path))
+
+    # Run the SQL file
+    run_sql_file(conn, str(sql_file))
+
+    # Verify the table and data
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM test_table ORDER BY id")
+    rows = cursor.fetchall()
+    assert [row["name"] for row in rows] == ["Alice", "Bob"]
+
+    conn.close()
