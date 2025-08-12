@@ -48,12 +48,13 @@ def main():
         Choice('Restore DB from YAML Backup Version', value='restore_yaml_to_db.py'),
         Choice('Create Sqlite DB from YAML Backup Version', value='create_sqlite_db_from_yaml.py'),
         Separator('=== SQLite ==='),
-        Choice('Index all SQLite Files in Dir', value='index_sqlite'),
-        Choice('View Database Schema', value='view_sqlite_schema.py'),
-        Choice('Locate Previous SQLite Backup', value='locate_sqlite_backups.py'),
-        Choice('Diff with Backup SQLite DB', value='diff_sqlite.py'),
-        Choice('Create SQLite Backup Version', value='create_sqlite_backup.py'),
-        Choice('Restore from SQLite Backup Version', value='restore_sqlite_from_backup.py'),
+        Choice('Index all SQLite Files in Dir', value='sqlite_index'),
+        Choice('View Database Schema', value='sqlite_schema'),
+        Choice('Locate Previous SQLite Backup', value='sqlite_list'),
+        Choice('Diff with Backup SQLite DB', value='sqlite_diff'),
+        Choice('Unarchive and Prune SQLite Backups', value='sqlite_unarchive'),
+        Choice('Restore from SQLite Backup Version', value='sqlite_restore'),
+        Choice('Create DB from YAML', value='sqlite_create_from_yaml'),
         Choice('Create DB from YAML with AI Categorization', value='import_yaml_ai'),
         Separator('=== Questions ==='),
         Choice('Deduplicate Questions', value='deduplicate_questions.py'),
@@ -87,29 +88,26 @@ def main():
         choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()
         if choice:
             run_script('restore_yaml_to_db.py', choice, '--clear')
-    elif answer == 'create_sqlite_db_from_yaml.py':
-        run_script('create_sqlite_db_from_yaml.py', '--clear')
-    elif answer == 'index_sqlite':
-        files = get_all_sqlite_backups()
-        list_items(files)
-    elif answer == 'view_sqlite_schema.py':
-        run_script('view_sqlite_schema.py')
-    elif answer == 'locate_sqlite_backups.py':
-        run_script('locate_sqlite_backups.py')
-    elif answer == 'diff_sqlite.py':
-        backups = get_all_sqlite_backups()
-        if len(backups) < 2:
-            print('Need at least two backup databases to diff.')
+    elif answer == 'sqlite_create_from_yaml':
+        run_script('sqlite_manager.py', 'create-from-yaml', '--clear')
+    elif answer == 'sqlite_index':
+        run_script('sqlite_manager.py', 'index')
+    elif answer == 'sqlite_schema':
+        db_path = questionary.path("Enter path to DB file (or press Enter for default):").ask()
+        if db_path:
+             run_script('sqlite_manager.py', 'schema', db_path)
         else:
-            choices = [str(p) for p in backups]
-            old = questionary.select('Select old DB:', choices).ask()
-            new = questionary.select('Select new DB:', choices).ask()
-            if old and new:
-                run_script('diff_sqlite.py', old, new)
+             run_script('sqlite_manager.py', 'schema')
+    elif answer == 'sqlite_list':
+        run_script('sqlite_manager.py', 'list')
+    elif answer == 'sqlite_diff':
+        run_script('sqlite_manager.py', 'diff')
     elif answer == 'create_sqlite_backup.py':
         run_script('create_sqlite_backup.py')
-    elif answer == 'restore_sqlite_from_backup.py':
-        run_script('restore_sqlite_from_backup.py')
+    elif answer == 'sqlite_unarchive':
+        run_script('sqlite_manager.py', 'unarchive')
+    elif answer == 'sqlite_restore':
+        run_script('sqlite_manager.py', 'restore')
     elif answer == 'import_yaml_ai':
         db_path = questionary.text(
             'Enter the path for the new AI-categorized SQLite database file:',

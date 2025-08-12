@@ -27,52 +27,13 @@ else:
 # Adjust sys.path to import local helper modules
 sys.path.insert(0, str(repo_root))
 
-def _get_most_recent_backup(backup_dir: Path):
-    """Finds the most recent .db file in the backup directory."""
-    if not backup_dir.is_dir():
-        return None
-    
-    db_files = list(backup_dir.glob('*.db'))
-    if not db_files:
-        return None
-
-    return max(db_files, key=lambda p: p.stat().st_mtime)
-
-
-def _get_schema_text(db_path: Path) -> str:
-    """Connects to a SQLite DB and returns its schema as CREATE statements."""
-    if not db_path or not db_path.exists():
-        return f"Database file not found at: {db_path}"
-
-    try:
-        # Use a file URI with mode=ro for read-only connection
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-        cursor = conn.cursor()
-
-        # Query schema entries for tables, indexes, etc.
-        cursor.execute(
-            "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"
-        )
-        rows = cursor.fetchall()
-        conn.close()
-
-        statements = [row[0] + ';' for row in rows if row[0]]
-
-        if not statements:
-            return f"No schema information found in {db_path}."
-            
-        return '\n\n'.join(statements)
-    except sqlite3.Error as e:
-        return f"Error reading database schema: {e}"
-
-
-def _run_script(script_name: str):
+def _run_script(script_name: str, *args):
     """Helper to run a script from the scripts directory."""
     script_path = scripts_dir / script_name
     if not script_path.exists():
         print(f"Error: Script '{script_path}' not found.")
         return
-    command = [sys.executable, str(script_path)]
+    command = [sys.executable, str(script_path)] + list(args)
     print(f"Running: {' '.join(command)}")
     subprocess.run(command, check=False)
 
@@ -122,91 +83,23 @@ def task_restore_db_from_yaml():
 
 def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
-    _run_script("create_sqlite_db_from_yaml.py")
+    _run_script("sqlite_manager.py", "create-from-yaml")
 
 def task_index_sqlite():
     """Index all SQLite Files in Dir"""
-    _run_script("index_sqlite_files.py")
+    _run_script("sqlite_manager.py", "index")
 
 def task_view_db_schema():
     """View Database Schema"""
-    try:
-        import questionary
-    except ImportError:
-        print("Error: 'questionary' library not found. Please install it with:")
-        print("pip install questionary")
-        sys.exit(1)
-
-    # Need to import this late, after sys.path is adjusted
-    from kubelingo.utils.path_utils import get_live_db_path
-
-    backup_dir = repo_root / 'backups' / 'sqlite'
-    most_recent_backup = _get_most_recent_backup(backup_dir)
-
-    choices = [
-        questionary.Choice("Live Database", value="live"),
-    ]
-    if most_recent_backup:
-        choices.append(questionary.Choice(f"Most Recent Backup ({most_recent_backup.name})", value="backup"))
-
-    choices.extend([
-        questionary.Choice("Specific DB file path", value="path"),
-        questionary.Separator(),
-        questionary.Choice("Cancel", value="cancel")
-    ])
-
-    choice = questionary.select(
-        "Which database schema do you want to view?",
-        choices=choices,
-        use_indicator=True
-    ).ask()
-
-    db_path_str = None
-    if choice == "live":
-        try:
-            db_path_str = get_live_db_path()
-            if not db_path_str:
-                print("Live database path not found.", file=sys.stderr)
-                return
-        except Exception as e:
-            print(f"Error finding live database: {e}", file=sys.stderr)
-            return
-    elif choice == "backup":
-        db_path_str = most_recent_backup
-    elif choice == "path":
-        db_path_str = questionary.path("Enter the path to the SQLite database file:").ask()
-
-    if not choice or choice == "cancel" or not db_path_str:
-        print("Operation cancelled.")
-        return
-
-    db_path = Path(db_path_str)
-    print(f"\nDisplaying schema for: {db_path}\n")
-    schema_text = _get_schema_text(db_path)
-    print(schema_text)
+    _run_script("sqlite_manager.py", "schema")
 
 def task_locate_sqlite_backup():
     """Locate Previous SQLite Backup"""
-    backup_dir = repo_root / 'backups' / 'sqlite'
-    if not backup_dir.is_dir():
-        print(f"Backup directory not found: {backup_dir}")
-        return
-
-    db_files = sorted(list(backup_dir.glob('*.db')), key=lambda p: p.stat().st_mtime, reverse=True)
-
-    if not db_files:
-        print(f"No SQLite backups found in {backup_dir}")
-        return
-
-    print("\nAvailable SQLite backups (newest first):")
-    for f in db_files:
-        mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-        print(f"  - {f.name} ({mtime})")
-    print()
+    _run_script("sqlite_manager.py", "list")
 
 def task_diff_sqlite_backup():
     """Diff with Backup SQLite DB"""
-    _run_script("diff_sqlite_backups.py")
+    _run_script("sqlite_manager.py", "diff")
 
 def task_create_sqlite_backup():
     """Create SQLite Backup Version"""
@@ -214,7 +107,7 @@ def task_create_sqlite_backup():
 
 def task_restore_from_sqlite_backup():
     """Restore from SQLite Backup Version"""
-    _run_script("restore_sqlite_backup.py")
+    _run_script("sqlite_manager.py", "restore")
 
 def task_create_db_from_yaml_with_ai():
     """Create DB from YAML with AI Categorization"""
