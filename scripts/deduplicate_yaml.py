@@ -14,7 +14,6 @@ import yaml
 
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question
-from kubelingo.utils.path_utils import find_yaml_files
 
 
 def question_to_key(q: Question) -> str:
@@ -70,7 +69,7 @@ def main():
     output_file = Path(args.output_file) if args.output_file else source_dir / "unique_questions.yaml"
 
     loader = YAMLLoader()
-    yaml_files = find_yaml_files([str(source_dir)])
+    yaml_files = list(source_dir.rglob("*.yaml")) + list(source_dir.rglob("*.yml"))
 
     if not yaml_files:
         print(f"No YAML files found in '{source_dir}'.")
