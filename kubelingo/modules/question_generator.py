@@ -16,7 +16,6 @@ from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
 from kubelingo.utils.config import YAML_QUIZ_DIR
-from kubelingo.integrations.llm import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,6 @@ class AIQuestionGenerator:
         except (ImportError, ValueError) as e:
             logger.error(f"Failed to initialize GeminiClient in AIQuestionGenerator: {e}")
             self.client = None
-        self.llm_client = get_llm_client()
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
@@ -111,9 +109,6 @@ class AIQuestionGenerator:
             prompt_lines.append("- Prompt: Which component on a Kubernetes node is responsible for maintaining running containers and managing their lifecycle?")
             prompt_lines.append("  Response: kubelet")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
-            if exclude_terms:
-                exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
-                prompt_lines.append(f"- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}.")
         else:  # Command
             q_type = "command"
             response_description = "the kubectl command"
@@ -139,15 +134,18 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
+            if not self.client:
+                logger.error("LLM client not available for question generation.")
+                break
             try:
                 # Use the centralized LLM client
-                raw = self.llm_client.chat_completion(
-                    messages=[{"role": "user", "content": ai_prompt}],
+                raw = self.client.chat_completion(
+                    messages=[{"role": "system", "content": ai_prompt}],
                     temperature=0.7,
                     json_mode=True
                 )
             except Exception as e:
-                logger.error(f"LLM client failed during question generation: {e}")
+                logger.error(f"Gemini client failed during question generation: {e}")
                 break  # Stop if the client fails
 
             if not raw:
