@@ -398,8 +398,8 @@ class NewSession(StudySession):
         loader = DBLoader()
         modules = loader.discover() or []
         for src in sorted(modules):
-            name = os.path.splitext(os.path.basename(src))[0]
-            choices.append({"name": name, "value": name})
+            name = humanize_module(os.path.splitext(os.path.basename(src))[0])
+            choices.append({"name": name, "value": src})
         # Settings section
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
@@ -584,6 +584,20 @@ class NewSession(StudySession):
 
             if args.review_only:
                 questions = get_all_flagged_questions()
+            elif args.file:
+                # Load questions for the selected quiz module from the DB
+                from kubelingo.modules.db_loader import DBLoader
+                # Load via DBLoader, using args.file as the source_file identifier
+                try:
+                    loader = DBLoader()
+                    questions = loader.load_file(args.file)
+                except Exception as e:
+                    self.logger.error(f"Failed to load questions for '{args.file}': {e}")
+                    print(f"{Fore.RED}Error loading quiz '{args.file}'. See logs for details.{Style.RESET_ALL}")
+                    return
+                if not questions:
+                    print(f"{Fore.YELLOW}No questions found for '{args.file}'.{Style.RESET_ALL}")
+                    return
             elif args.category:
                 # Load questions for the selected quiz module from the DB
                 from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
@@ -736,11 +750,12 @@ class NewSession(StudySession):
                 if selected == '__flagged__':
                     initial_args.review_only = True
                     initial_args.category = None
+                    initial_args.file = None
                 else:
-                    # The selected value from the menu is the subject_matter, which we
-                    # treat as the category for filtering.
+                    # The selected value from the menu is the source_file identifier.
                     initial_args.review_only = False
-                    initial_args.category = selected
+                    initial_args.category = None
+                    initial_args.file = selected
                 # Selection recorded; restart loop to load the chosen quiz
                 continue
 
