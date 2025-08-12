@@ -142,7 +142,8 @@ Your response MUST be a JSON object with two keys:
         ]
         response_text = self.client.chat_completion(
             messages=messages,
-            temperature=0.7
+            temperature=0.7,
+            json_mode=True
         )
 
         if not response_text:

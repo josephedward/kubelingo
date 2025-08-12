@@ -219,7 +219,9 @@ class KubernetesStudyMode:
             if user_answer is None:
                 return False
             # Simple case-insensitive check for basic terminology
-            return user_answer.lower().strip() == question.response.lower().strip()
+            if not question.answers:
+                return False
+            return user_answer.lower().strip() == question.answers[0].lower().strip()
 
         if question.type == "command":
             user_answer = questionary.text("Your command:").ask()
