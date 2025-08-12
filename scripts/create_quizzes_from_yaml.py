@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path
 import sys
 import os
+import sqlite3
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
@@ -15,6 +16,24 @@ from kubelingo.utils.path_utils import get_project_root
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def validate_database(conn):
+    """
+    Validates that the database schema matches the expected structure.
+    """
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions';")
+        table_exists = cursor.fetchone()
+        if not table_exists:
+            logging.error("The 'questions' table does not exist in the database. Please check the schema.")
+            return False
+        logging.info("Database schema validated successfully.")
+        return True
+    except sqlite3.Error as e:
+        logging.error(f"Database validation failed: {e}")
+        return False
 
 
 def create_quizzes_from_backup():
@@ -67,6 +86,10 @@ def create_quizzes_from_backup():
     logging.info(f"Found latest consolidated file. Processing: {latest_file}")
     
     conn = get_db_connection()
+    if not validate_database(conn):
+        logging.error("Database validation failed. Aborting.")
+        return
+
     question_count = 0
     
     for yaml_file in yaml_files:
@@ -88,53 +111,41 @@ def create_quizzes_from_backup():
                 continue
 
             for q_data in questions_data:
-                metadata = q_data.get('metadata', {})
+                logging.debug(f"Processing question data: {q_data}")
+                q_id = q_data.get('id')
+                q_type = q_data.get('type')
                 
-                # Consolidate data from top-level and metadata, with top-level taking precedence.
-                consolidated_data = {**metadata, **q_data}
-
-                logging.debug(f"Processing question data: {consolidated_data}")
-
-                q_id = consolidated_data.get('id')
-                prompt = consolidated_data.get('prompt')
-                q_type = consolidated_data.get('type')
-                category = consolidated_data.get('category')
-                exercise_category = category or q_type
-
-                if not q_id or not prompt:
-                    logging.warning(f"Skipping question due to missing 'id' or 'prompt' in {yaml_file}: {consolidated_data}")
-                    continue
-
+                exercise_category = q_type
                 if not exercise_category:
-                    logging.warning(f"Skipping question {q_id} in {yaml_file}: missing 'category' or 'type'.")
+                    logging.warning(f"Skipping question {q_id} in {yaml_file}: missing type.")
                     continue
                 
                 # Use Gemini to process the question prompt
-                gemini_response = process_with_gemini(prompt, model=selected_model)
-                if not gemini_response:
-                    logging.warning(f"Skipping question {q_id}: Gemini processing failed.")
+                prompt = q_data.get('prompt')
+                if not prompt:
+                    logging.warning(f"Skipping question {q_id}: Missing 'prompt'.")
                     continue
 
                 # Add specific validation for 'manifest' type
                 if q_type == 'manifest':
-                    if 'vim' not in consolidated_data.get('tools', []):
+                    if 'vim' not in q_data.get('tools', []):
                         logging.warning(f"Skipping manifest question {q_id}: 'vim' tool is required.")
                         continue
-                    if 'kubectl apply' not in consolidated_data.get('validation_steps', []):
+                    if 'kubectl apply' not in q_data.get('validation', []):
                         logging.warning(f"Skipping manifest question {q_id}: 'kubectl apply' validation is required.")
                         continue
 
                 add_question(
                     conn=conn,
                     id=q_id,
-                    prompt=gemini_response,  # Store the processed prompt
+                    prompt=prompt,  # Store the processed prompt
                     source_file=str(yaml_file),
-                    response=consolidated_data.get('response'),
+                    response=q_data.get('response'),
                     category=exercise_category,
-                    source=consolidated_data.get('source'),
-                    validation_steps=consolidated_data.get('validation_steps'),
-                    validator=consolidated_data.get('validator'),
-                    review=consolidated_data.get('review', False)
+                    source=q_data.get('source'),
+                    validation_steps=q_data.get('validation'),
+                    validator=q_data.get('validator'),
+                    review=q_data.get('review', False)
                 )
                 question_count += 1
                 logging.info(f"Added question ID: {q_id} with category '{exercise_category}'.")
