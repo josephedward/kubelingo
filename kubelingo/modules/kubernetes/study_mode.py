@@ -151,6 +151,7 @@ class KubernetesStudyMode:
 
                 term = pair.get("term")
                 definition = pair.get("definition")
+                seen_terms.append(term)
 
                 print(f"\nDefinition: {definition}")
                 user_answer = questionary.text("What is the term?").ask()
