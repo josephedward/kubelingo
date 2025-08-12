@@ -77,25 +77,16 @@ def _run_script(script_name: str):
     subprocess.run(command, check=False)
 
 
-def get_available_scripts(directory: Path) -> dict[str, str]:
-    """
-    Scans the given directory for runnable python scripts and returns a dictionary
-    mapping a human-readable name to the script's filename.
-    """
-    scripts = {}
-    this_script = Path(__file__).name
-    for f in sorted(directory.rglob('*.py')):
-        if f.is_file() and f.name != this_script and not f.name.startswith('_') and f.name != '__init__.py':
-            # Make path relative to scripts dir
-            relative_path = f.relative_to(directory)
-            # Create title from path
-            title = str(relative_path.with_suffix('')).replace(os.sep, ' ').replace('_', ' ').replace('-', ' ').title()
-            scripts[title] = str(relative_path)
-    return scripts
+def task_bug_ticket():
+    """Bug Ticket"""
+    print("Creating a bug ticket is not yet implemented.")
 
+def task_index_yaml():
+    """Index all YAML Files in Dir"""
+    _run_script("index_yaml_files.py")
 
-def task_show_yaml_backups():
-    """Show Previous YAML backup(s)"""
+def task_locate_yaml_backup():
+    """Locate Previous YAML Backup"""
     backup_dir = repo_root / 'backups' / 'yaml'
     if not backup_dir.is_dir():
         print(f"Backup directory not found: {backup_dir}")
@@ -117,6 +108,25 @@ def task_show_yaml_backups():
         print(f"  - {f.name} ({mtime})")
     print()
 
+def task_view_yaml_stats():
+    """View YAML Backup Statistics"""
+    _run_script("yaml_statistics.py")
+
+def task_write_db_to_yaml():
+    """Write DB to YAML Backup Version"""
+    _run_script("export_db_to_yaml.py")
+
+def task_restore_db_from_yaml():
+    """Restore DB from YAML Backup Version"""
+    _run_script("restore_db_from_yaml.py")
+
+def task_create_db_from_yaml():
+    """Create Sqlite DB from YAML Backup Version"""
+    _run_script("create_sqlite_db_from_yaml.py")
+
+def task_index_sqlite():
+    """Index all SQLite Files in Dir"""
+    _run_script("index_sqlite_files.py")
 
 def task_view_db_schema():
     """View Database Schema"""
@@ -138,7 +148,7 @@ def task_view_db_schema():
     ]
     if most_recent_backup:
         choices.append(questionary.Choice(f"Most Recent Backup ({most_recent_backup.name})", value="backup"))
-    
+
     choices.extend([
         questionary.Choice("Specific DB file path", value="path"),
         questionary.Separator(),
@@ -165,7 +175,7 @@ def task_view_db_schema():
         db_path_str = most_recent_backup
     elif choice == "path":
         db_path_str = questionary.path("Enter the path to the SQLite database file:").ask()
-    
+
     if not choice or choice == "cancel" or not db_path_str:
         print("Operation cancelled.")
         return
@@ -175,9 +185,8 @@ def task_view_db_schema():
     schema_text = _get_schema_text(db_path)
     print(schema_text)
 
-
-def task_show_sqlite_backups():
-    """Show Previous Sqlite Backup(s)"""
+def task_locate_sqlite_backup():
+    """Locate Previous SQLite Backup"""
     backup_dir = repo_root / 'backups' / 'sqlite'
     if not backup_dir.is_dir():
         print(f"Backup directory not found: {backup_dir}")
@@ -195,10 +204,37 @@ def task_show_sqlite_backups():
         print(f"  - {f.name} ({mtime})")
     print()
 
+def task_diff_sqlite_backup():
+    """Diff with Backup SQLite DB"""
+    _run_script("diff_sqlite_backups.py")
 
-def task_bug_ticket():
-    """Bug Ticket"""
-    print("Creating a bug ticket is not yet implemented.")
+def task_create_sqlite_backup():
+    """Create SQLite Backup Version"""
+    _run_script("consolidate_dbs.py")
+
+def task_restore_from_sqlite_backup():
+    """Restore from SQLite Backup Version"""
+    _run_script("restore_sqlite_backup.py")
+
+def task_create_db_from_yaml_with_ai():
+    """Create DB from YAML with AI Categorization"""
+    _run_script("import_from_yaml_with_ai.py")
+
+def task_deduplicate_questions():
+    """Deduplicate Questions"""
+    _run_script("deduplicate_questions.py")
+
+def task_fix_question_categorization():
+    """Fix Question Categorization"""
+    _run_script("fix_question_categories.py")
+
+def task_fix_doc_links():
+    """Fix Documentation Links"""
+    _run_script("fix_links.py")
+
+def task_fix_question_formatting():
+    """Fix Question Formatting"""
+    _run_script("lint_fix_question_format.py")
 
 def run_interactive_menu():
     """Display an interactive menu for maintenance tasks."""
@@ -210,81 +246,60 @@ def run_interactive_menu():
         print("pip install questionary")
         sys.exit(1)
 
-    # --- Dynamically discover scripts ---
-    available_scripts = get_available_scripts(scripts_dir)
-
-    # --- Define custom tasks that have special logic ---
-    custom_tasks = {
-        "Show Previous YAML backup(s)": task_show_yaml_backups,
-        "View Database Schema": task_view_db_schema,
-        "Show Previous Sqlite Backup(s)": task_show_sqlite_backups,
+    tasks = {
+        # System
         "Bug Ticket": task_bug_ticket,
+        # YAML
+        "Index all YAML Files in Dir": task_index_yaml,
+        "Locate Previous YAML Backup": task_locate_yaml_backup,
+        "View YAML Backup Statistics": task_view_yaml_stats,
+        "Write DB to YAML Backup Version": task_write_db_to_yaml,
+        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
+        "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
+        # SQLite
+        "Index all SQLite Files in Dir": task_index_sqlite,
+        "View Database Schema": task_view_db_schema,
+        "Locate Previous SQLite Backup": task_locate_sqlite_backup,
+        "Diff with Backup SQLite DB": task_diff_sqlite_backup,
+        "Create SQLite Backup Version": task_create_sqlite_backup,
+        "Restore from SQLite Backup Version": task_restore_from_sqlite_backup,
+        "Create DB from YAML with AI Categorization": task_create_db_from_yaml_with_ai,
+        # Questions
+        "Deduplicate Questions": task_deduplicate_questions,
+        "Fix Question Categorization": task_fix_question_categorization,
+        "Fix Documentation Links": task_fix_doc_links,
+        "Fix Question Formatting": task_fix_question_formatting,
     }
-
-    # --- Integrate dynamic scripts with custom tasks ---
-    all_tasks = {}
-
-    # Add discovered scripts, creating a lambda to capture the script_name
-    for title, script_name in available_scripts.items():
-        all_tasks[title] = lambda script=script_name: _run_script(script)
-    
-    # Add custom tasks, which may overwrite a discovered script if the name clashes.
-    # Custom tasks take precedence.
-    all_tasks.update(custom_tasks)
-
-
-    # --- Categorize tasks for the menu ---
-    # Keywords for categorization
-    cat_yaml = ['yaml', 'yml']
-    cat_sqlite = ['sqlite', ' db', 'database', 'dbs']
-    cat_question = ['question', 'deduplicate', 'categorization', 'links', 'formatting', 'lint']
-    cat_generate = ['generate']
-    cat_fix = ['fix']
-    cat_show = ['show', 'view', 'stats', 'diff']
-    
-    # Organize choices
-    choices_by_cat = {
-        "YAML": [],
-        "SQLite & DB": [],
-        "Questions": [],
-        "Fix & Lint": [],
-        "Generate": [],
-        "Show & View": [],
-        "Other": [],
-    }
-
-    # Assign each task to a category
-    # Titles are sorted to ensure a consistent order within categories
-    for title in sorted(all_tasks.keys()):
-        lower_title = title.lower()
-        if any(kw in lower_title for kw in cat_yaml):
-            choices_by_cat["YAML"].append(title)
-        elif any(kw in lower_title for kw in cat_sqlite):
-            choices_by_cat["SQLite & DB"].append(title)
-        elif any(kw in lower_title for kw in cat_question):
-            choices_by_cat["Questions"].append(title)
-        elif any(kw in lower_title for kw in cat_fix):
-            choices_by_cat["Fix & Lint"].append(title)
-        elif any(kw in lower_title for kw in cat_generate):
-            choices_by_cat["Generate"].append(title)
-        elif any(kw in lower_title for kw in cat_show):
-            choices_by_cat["Show & View"].append(title)
-        else:
-            choices_by_cat["Other"].append(title)
-
-    # Build the final list for questionary
-    choices = []
-    for category, items in choices_by_cat.items():
-        if items:
-            choices.append(Separator(f"=== {category} ==="))
-            choices.extend(items)
-    
-    choices.extend([Separator(), "Cancel"])
 
     while True:
         choice = questionary.select(
             "Select a maintenance task:",
-            choices=choices,
+            choices=[
+                Separator("=== System ==="),
+                "Bug Ticket",
+                Separator("=== YAML ==="),
+                "Index all YAML Files in Dir",
+                "Locate Previous YAML Backup",
+                "View YAML Backup Statistics",
+                "Write DB to YAML Backup Version",
+                "Restore DB from YAML Backup Version",
+                "Create Sqlite DB from YAML Backup Version",
+                Separator("=== SQLite ==="),
+                "Index all SQLite Files in Dir",
+                "View Database Schema",
+                "Locate Previous SQLite Backup",
+                "Diff with Backup SQLite DB",
+                "Create SQLite Backup Version",
+                "Restore from SQLite Backup Version",
+                "Create DB from YAML with AI Categorization",
+                Separator("=== Questions ==="),
+                "Deduplicate Questions",
+                "Fix Question Categorization",
+                "Fix Documentation Links",
+                "Fix Question Formatting",
+                Separator(),
+                "Cancel"
+            ],
             use_indicator=True
         ).ask()
 
@@ -292,8 +307,8 @@ def run_interactive_menu():
             print("Operation cancelled.")
             break
 
-        if choice in all_tasks:
-            all_tasks[choice]()
+        if choice in tasks:
+            tasks[choice]()
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
