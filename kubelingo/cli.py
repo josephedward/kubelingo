@@ -51,6 +51,7 @@ except Exception:
     KubernetesStudyMode = None
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
+from kubelingo.integrations.llm import get_llm_client
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 try:
@@ -82,6 +83,10 @@ from kubelingo.utils.config import (
     LOG_FILE,
     get_gemini_api_key,
     save_gemini_api_key,
+    get_openai_api_key,
+    save_openai_api_key,
+    get_ai_provider,
+    get_active_api_key,
     API_KEY_FILE,
     YAML_QUIZ_DIR,
     get_cluster_configs,
@@ -171,14 +176,49 @@ def handle_config_command(cmd):
     import getpass
     if len(cmd) < 3:
         print("Usage: kubelingo config <action> <target> [args...]")
-        print("Example: kubelingo config set gemini")
+        print("Example: kubelingo config set provider")
+        print("Example: kubelingo config set openai")
         print("Example: kubelingo config list cluster")
         return
 
     action = cmd[1].lower()
     target = cmd[2].lower()
 
-    if target in ('gemini', 'api_key'):
+    if target == 'provider':
+        if action == 'set':
+            print("To select your AI provider, please set the 'KUBELINGO_AI_PROVIDER' environment variable.")
+            print("Supported values are 'openai' and 'gemini'.")
+            print("For example: export KUBELINGO_AI_PROVIDER=openai")
+        else:
+            print(f"Unknown action '{action}' for provider. Only 'set' is supported to show instructions.")
+    elif target == 'openai':
+        if action == 'view':
+            key = get_openai_api_key()
+            if key:
+                print(f'OpenAI API key: {key}')
+            else:
+                print('OpenAI API key is not set.')
+        elif action == 'set':
+            value = None
+            if len(cmd) >= 4:
+                value = cmd[3]
+            else:
+                try:
+                    value = getpass.getpass('Enter OpenAI API key: ').strip()
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                    return
+
+            if value:
+                if save_openai_api_key(value):
+                    print('OpenAI API key saved.')
+                else:
+                    print('Failed to save OpenAI API key.')
+            else:
+                print("No API key provided. No changes made.")
+        else:
+            print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
+    elif target == 'gemini':
         if action == 'view':
             key = get_gemini_api_key()
             if key:
@@ -263,7 +303,7 @@ def handle_config_command(cmd):
         else:
             print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
     else:
-        print(f"Unknown config target '{target}'. Supported: gemini, cluster.")
+        print(f"Unknown config target '{target}'. Supported: provider, openai, gemini, cluster.")
 
 def _run_script(script_path: str):
     """Helper to run a script from the project root."""
@@ -667,12 +707,17 @@ def manage_config_interactive():
         print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
         return
     try:
+        provider = get_ai_provider()
         action = questionary.select(
             "What would you like to do?",
             choices=[
-                {"name": "View current Gemini API key", "value": "view_gemini"},
+                {"name": f"Set active AI Provider (current: {provider})", "value": "set_provider"},
+                questionary.Separator("--- API Keys ---"),
+                {"name": "View OpenAI API key", "value": "view_openai"},
+                {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                {"name": "View Gemini API key", "value": "view_gemini"},
                 {"name": "Set/Update Gemini API key", "value": "set_gemini"},
-                questionary.Separator("Kubernetes Clusters"),
+                questionary.Separator("--- Kubernetes Clusters ---"),
                 {"name": "List configured clusters", "value": "list_clusters"},
                 {"name": "Add a new cluster connection", "value": "add_cluster"},
                 {"name": "Remove a cluster connection", "value": "remove_cluster"},
@@ -685,7 +730,13 @@ def manage_config_interactive():
         if action is None or action == "cancel":
             return
 
-        if action == 'view_gemini':
+        if action == 'set_provider':
+            handle_config_command(['config', 'set', 'provider'])
+        elif action == 'view_openai':
+            handle_config_command(['config', 'view', 'openai'])
+        elif action == 'set_openai':
+            handle_config_command(['config', 'set', 'openai'])
+        elif action == 'view_gemini':
             handle_config_command(['config', 'view', 'gemini'])
         elif action == 'set_gemini':
             handle_config_command(['config', 'set', 'gemini'])
@@ -756,7 +807,6 @@ def show_study_main_menu():
 
 def enrich_sources():
     """Finds and adds sources for questions without them."""
-    from kubelingo.utils.config import get_active_api_key, get_ai_provider
     # Check for API key first
     api_key = get_active_api_key()
     if not api_key:
@@ -861,12 +911,6 @@ def main():
     is_help_request = '--help' in sys.argv or '-h' in sys.argv
     is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
 
-    from kubelingo.utils.config import (
-        get_active_api_key,
-        get_ai_provider,
-        save_gemini_api_key,
-        save_openai_api_key,
-    )
     provider = get_ai_provider()
     # Prompt for API key if not set
     if not get_active_api_key():
@@ -1116,7 +1160,7 @@ def main():
             except Exception:
                 print(f"{Fore.RED}Invalid usage: --ai-questions requires COUNT and TOPIC.{Style.RESET_ALL}")
                 return
-            generator = AIQuestionGenerator()
+            generator = AIQuestionGenerator(llm_client=get_llm_client())
             questions = generator.generate_questions(topic, count)
             if not questions:
                 print(f"{Fore.RED}Failed to generate AI questions for topic '{topic}'.{Style.RESET_ALL}")
@@ -1139,7 +1183,7 @@ def main():
             return
         if args.ai_question:
             topic = args.ai_question.strip()
-            generator = AIQuestionGenerator()
+            generator = AIQuestionGenerator(llm_client=get_llm_client())
             base_q = {'prompt': f'Topic: {topic}', 'validation_steps': []}
             new_q = generator.generate_question(base_q)
             if not new_q or 'prompt' not in new_q:
