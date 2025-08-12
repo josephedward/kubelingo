@@ -1271,6 +1271,7 @@ def handle_add_service_account_questions(args):
                 json.dumps(q.get('validation_steps')),
             ))
             print(f"Added question {q['id']}")
+        conn.commit()
 
         # Summarize
         cursor.execute("SELECT * FROM questions WHERE source_file = ?", (source_file,))

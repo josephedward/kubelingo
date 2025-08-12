@@ -121,7 +121,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     # Clear any pre-existing data from schema init and insert test data
     cursor = conn.cursor()
     cursor.execute("DELETE FROM questions")
-    cursor.execute("INSERT INTO questions (id, prompt, source_file) VALUES (?, ?, ?)", ('q1', '?', 'f.yaml'))
+    cursor.execute("INSERT INTO questions (id, prompt, source_file, subject) VALUES (?, ?, ?, ?)", ('q1', '?', 'f.yaml', 'invalid-subject-for-test'))
     conn.commit()
     conn.close()
 
@@ -154,9 +154,11 @@ def temp_yaml_file(tmp_path):
 - id: yaml_q1
   prompt: 'What is a pod?'
   source_file: 'test.yaml'
+  subject: 'Pods'
 - id: yaml_q2
   prompt: 'What is a service?'
   source_file: 'test.yaml'
+  subject: 'Services'
     """
     yaml_file = tmp_path / "questions.yaml"
     yaml_file.write_text(yaml_content)
@@ -201,6 +203,7 @@ def test_build_db_command_clear(tmp_path, temp_yaml_file, capsys, monkeypatch):
 - id: yaml_q3
   prompt: 'What is a namespace?'
   source_file: 'new.yaml'
+  subject: 'Namespaces'
     """
     new_yaml_file = tmp_path / "new_questions.yaml"
     new_yaml_file.write_text(new_yaml_content)
@@ -351,7 +354,7 @@ def mock_ai_generator(monkeypatch):
         def generate_question(self, *args, **kwargs):
             return self.generate_questions(None)[0]
 
-    monkeypatch.setattr('scripts.question_manager.AIQuestionGenerator', MockGenerator)
+    monkeypatch.setattr('kubelingo.modules.question_generator.AIQuestionGenerator', MockGenerator)
     return MockGenerator
 
 
