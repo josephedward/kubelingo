@@ -24,6 +24,17 @@ class KubernetesStudyMode:
         self.questions_dir = get_project_root() / "questions" / "generated_yaml"
         self.questions_dir.mkdir(parents=True, exist_ok=True)
 
+    def generate_term_definition_pair(
+        self, topic: str, user_level: str = "intermediate"
+    ) -> Optional[Dict[str, str]]:
+        """Generates a term and definition pair for the given topic."""
+        question = self._generate_question(
+            topic=topic, quiz_type="basic", user_level=user_level
+        )
+        if question and question.answers:
+            return {"term": question.answers[0], "definition": question.prompt}
+        return None
+
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a topic and quiz style, then starts the session."""
         while True:
@@ -40,7 +51,7 @@ class KubernetesStudyMode:
                     "What style of quiz would you like?",
                     choices=[
                         "Open-Ended Socratic Dialogue",
-                        "Basic Terminology Quiz",
+                        "Basic term/definition recall",
                         "Command-line Challenge",
                         "Manifest Authoring Exercise",
                     ],
@@ -51,7 +62,7 @@ class KubernetesStudyMode:
 
                 if quiz_style == "Open-Ended Socratic Dialogue":
                     self._run_socratic_mode(topic, user_level)
-                elif quiz_style == "Basic Terminology Quiz":
+                elif quiz_style == "Basic term/definition recall":
                     self._run_basic_quiz(topic, user_level)
                 elif quiz_style == "Command-line Challenge":
                     self._run_command_quiz(topic, user_level)
