@@ -124,6 +124,7 @@ def import_questions_from_files(files: List[Path], conn: sqlite3.Connection):
     """Imports questions from a list of YAML files into the database."""
     added_count = 0
     skipped_count = 0
+    cursor = conn.cursor()
 
     for file_path in tqdm(files, desc="Importing files"):
         try:
@@ -152,19 +153,22 @@ def import_questions_from_files(files: List[Path], conn: sqlite3.Connection):
                     q_obj = Question(**q_dict)
                     validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
 
-                    add_question(
-                        conn=conn,
-                        id=q_obj.id,
-                        prompt=q_obj.prompt,
-                        source_file=q_obj.source_file,
-                        response=json.dumps(q_obj.response) if q_obj.response is not None else None,
-                        category_id=q_obj.category,
-                        subject_id=q_obj.subject.value if q_obj.subject else None,
-                        source='yaml_import',
-                        raw=json.dumps(q_dict),
-                        validation_steps=validation_steps_for_db,
-                        validator=q_obj.validator
-                    )
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        q_obj.id,
+                        q_obj.prompt,
+                        q_obj.source_file,
+                        json.dumps(q_obj.response) if q_obj.response is not None else None,
+                        q_obj.category,
+                        q_obj.subject.value if q_obj.subject else None,
+                        'yaml_import',
+                        json.dumps(q_dict),
+                        json.dumps(validation_steps_for_db),
+                        json.dumps(q_obj.validator) if q_obj.validator else None,
+                        getattr(q_obj, 'review', False)
+                    ))
                     added_count += 1
                 except sqlite3.IntegrityError:
                     skipped_count += 1
@@ -783,23 +787,27 @@ def handle_generate_ai_questions(args):
     conn = get_db_connection(args.db_path)
     added = 0
     skipped = 0
+    cursor = conn.cursor()
     for q_dict in new_questions:
         try:
             q_obj = Question(**q_dict)
             validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
-            add_question(
-                conn=conn,
-                id=q_obj.id,
-                prompt=q_obj.prompt,
-                source_file=q_obj.source_file or 'ai_generated',
-                response=json.dumps(q_obj.response) if q_obj.response is not None else None,
-                category_id=q_obj.category,
-                subject_id=q_obj.subject.value if q_obj.subject else args.subject,
-                source='ai_generator',
-                raw=json.dumps(q_dict),
-                validation_steps=validation_steps_for_db,
-                validator=q_obj.validator,
-            )
+            cursor.execute("""
+                INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                q_obj.id,
+                q_obj.prompt,
+                q_obj.source_file or 'ai_generated',
+                json.dumps(q_obj.response) if q_obj.response is not None else None,
+                q_obj.category,
+                q_obj.subject.value if q_obj.subject else args.subject,
+                'ai_generator',
+                json.dumps(q_dict),
+                json.dumps(validation_steps_for_db),
+                json.dumps(q_obj.validator) if q_obj.validator else None,
+                getattr(q_obj, 'review', False)
+            ))
             added += 1
         except sqlite3.IntegrityError:
             skipped += 1
@@ -908,19 +916,22 @@ def handle_generate_sa_questions(args):
         conn = get_db_connection()
         init_db(conn=conn)
         added = 0
+        cursor = conn.cursor()
         for q in questions:
             try:
-                add_question(
-                    conn=conn,
-                    id=q['id'],
-                    prompt=q['prompt'],
-                    source_file='service_accounts',
-                    response=q['metadata']['answer'],
-                    category_id=q.get('categories', [None])[0],
-                    source='script',
-                    validation_steps=q.get('validation_steps'),
-                    validator=None
-                )
+                cursor.execute("""
+                    INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, source, validation_steps, validator)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    q['id'],
+                    q['prompt'],
+                    'service_accounts',
+                    q['metadata']['answer'],
+                    q.get('categories', [None])[0],
+                    'script',
+                    json.dumps(q.get('validation_steps')),
+                    None
+                ))
                 added += 1
             except Exception as e:
                 print(f"Warning: could not add question '{q['id']}' to DB: {e}")
@@ -1284,22 +1295,26 @@ def handle_add_service_account_questions(args):
     ]
 
     try:
+        cursor = conn.cursor()
         # Add or replace each question in the database
         for q in questions:
-            add_question(
-                conn=conn,
-                id=q['id'],
-                prompt=q['prompt'],
-                source_file=source_file,
-                response=q.get('response'),
-                category_id=category,
-                source='script',
-                validation_steps=q.get('validation_steps'),
-            )
+            cursor.execute("""
+                INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, source, validation_steps)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                q['id'],
+                q['prompt'],
+                source_file,
+                q.get('response'),
+                category,
+                'script',
+                json.dumps(q.get('validation_steps')),
+            ))
             print(f"Added question {q['id']}")
 
         # Summarize
-        entries = get_questions_by_source_file(source_file, conn=conn)
+        cursor.execute("SELECT * FROM questions WHERE source_file = ?", (source_file,))
+        entries = cursor.fetchall()
         print(f"Total ServiceAccount questions in DB (source={source_file}): {len(entries)}")
     finally:
         conn.close()
@@ -1502,22 +1517,21 @@ def handle_extract_pdf_ai(args):
             # Convert ValidationStep objects to dicts for DB storage
             validation_steps_for_db = [vs.__dict__ for vs in q.validation_steps] if q.validation_steps else []
 
-            add_question(
-                conn,
-                id=q.id,
-                prompt=q.prompt,
-                response=q.response,
-                category_id="killershell",
-                source="pdf_ai",
-                source_file=os.path.basename(args.pdf_path),
-                validation_steps=validation_steps_for_db,
-                validator=q.validator or {},
-                review=False,
-                explanation=None,
-                pre_shell_cmds=getattr(q, "pre_shell_cmds", []) or [],
-                initial_files=getattr(q, "initial_files", {}),
-                question_type=getattr(q, "type", None),
-            )
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO questions (id, prompt, response, category, source, source_file, validation_steps, validator, review)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                q.id,
+                q.prompt,
+                q.response,
+                "killershell",
+                "pdf_ai",
+                os.path.basename(args.pdf_path),
+                json.dumps(validation_steps_for_db),
+                json.dumps(q.validator or {}),
+                False
+            ))
             added_count += 1
             print(f"Added question {q.id}")
         
