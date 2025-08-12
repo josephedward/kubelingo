@@ -425,8 +425,11 @@ def run_dynamic_script(args):
         sys.exit(1)
 
 
-def main():
-    if len(sys.argv) == 1:
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if not argv:
         run_interactive_menu()
         return
 
@@ -508,7 +511,7 @@ def main():
         )
         sp.set_defaults(func=run_dynamic_script, script_path=p)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     args.func(args)
 
 if __name__ == '__main__':

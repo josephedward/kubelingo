@@ -32,19 +32,17 @@ def mock_subprocess_run():
 @pytest.fixture
 def mock_questionary():
     """Fixture to mock the questionary library for interactive tests."""
-    # We need to mock the module within the kubelingo_tools namespace
-    with patch('kubelingo_tools.questionary') as mock:
-        # also patch Separator as it's a direct import
-        with patch('kubelingo_tools.Separator'):
+    # Since questionary is imported dynamically inside functions, we use
+    # create=True to allow patching an attribute that doesn't exist at import time.
+    with patch('kubelingo_tools.questionary', create=True) as mock:
+        with patch('kubelingo_tools.Separator', create=True):
             yield mock
 
 
 def run_tools_main(*args):
-    """Helper to run the main function of the tool with mocked sys.argv."""
-    with patch.object(sys, 'argv', ['kubelingo_tools.py'] + list(args)):
-        # Catch sys.exit calls to prevent test runner from exiting
-        with pytest.raises(SystemExit):
-            kubelingo_tools.main()
+    """Helper to run the main function of the tool with a list of arguments."""
+    # We call main directly with args, avoiding patching sys.argv
+    kubelingo_tools.main(list(args))
 
 
 # --- Tests for individual task functions ---
@@ -66,6 +64,7 @@ def test_task_full_migrate_and_cleanup(mock_run_script, mock_subprocess_run):
     # Mock filesystem and utility functions to isolate the logic
     with patch('kubelingo_tools.Path.exists', return_value=False), \
          patch('kubelingo_tools.shutil.copy2'), \
+         patch('pathlib.Path.mkdir'), \
          patch('kubelingo_tools.repo_root', Path('/fake/repo')):
         kubelingo_tools.task_full_migrate_and_cleanup()
 
@@ -108,8 +107,7 @@ def test_run_interactive_menu_cancel_immediately(mock_questionary):
 @patch('kubelingo_tools.run_interactive_menu')
 def test_main_no_args_runs_menu(mock_run_interactive_menu):
     """Test that running the script with no arguments launches the interactive menu."""
-    with patch.object(sys, 'argv', ['kubelingo_tools.py']):
-        kubelingo_tools.main()
+    kubelingo_tools.main([])
     mock_run_interactive_menu.assert_called_once()
 
 
