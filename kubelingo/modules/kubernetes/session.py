@@ -9,6 +9,7 @@ class NewSession:
         if not os.getenv('GEMINI_API_KEY'):
             print("\nStudy Mode requires a Gemini API key.")
             print("Set the GEMINI_API_KEY environment variable to enable it.")
+            print("You can generate an API key in your Gemini account settings under 'API Keys'.")
             return
 
         try:
@@ -30,6 +31,11 @@ class NewSession:
 
             study_session = KubernetesStudyMode()
             response = study_session.start_study_session(topic, level)
+            if "trouble connecting" in response:
+                print("\nTutor: " + response)
+                print("Please ensure your API key is valid and try again.")
+                return
+
             print(f"\nTutor: {response}")
 
             while True:
@@ -40,6 +46,11 @@ class NewSession:
                     
                     print("Thinking...")
                     response = study_session.continue_conversation(user_input)
+                    if "The study session has not been started" in response:
+                        print("\nTutor: " + response)
+                        print("Please start a new session.")
+                        break
+
                     print(f"\nTutor: {response}")
                 except (KeyboardInterrupt, EOFError):
                     break
