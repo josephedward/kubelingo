@@ -7,13 +7,14 @@ import sys
 import os
 import sqlite3
 import llm
+from datetime import datetime
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from kubelingo.database import get_db_connection, add_question
-from kubelingo.utils.path_utils import get_project_root
+from kubelingo.database import get_db_connection, add_question, init_db
+from kubelingo.utils.path_utils import get_project_root, get_live_db_path
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -33,22 +34,6 @@ def process_with_gemini(prompt, model="gemini-2.0-flash"):
         return None
 
 
-def validate_database(conn):
-    """
-    Validates that the database schema matches the expected structure.
-    """
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions';")
-        table_exists = cursor.fetchone()
-        if not table_exists:
-            logging.error("The 'questions' table does not exist in the database. Please check the schema.")
-            return False
-        logging.info("Database schema validated successfully.")
-        return True
-    except sqlite3.Error as e:
-        logging.error(f"Database validation failed: {e}")
-        return False
 
 
 def create_quizzes_from_backup():
@@ -79,10 +64,10 @@ def create_quizzes_from_backup():
 
     logging.info(f"Found latest consolidated file. Processing: {latest_file}")
     
-    conn = get_db_connection()
-    if not validate_database(conn):
-        logging.error("Database validation failed. Aborting.")
-        return
+    db_path = ":memory:"
+    conn = get_db_connection(db_path)
+    init_db(db_path=db_path, clear=True)
+    logging.info("In-memory database initialized and schema created.")
 
     question_count = 0
     
@@ -151,7 +136,19 @@ def create_quizzes_from_backup():
     
     if question_count > 0:
         conn.commit()
-        logging.info(f"Successfully added {question_count} questions to the database.")
+        logging.info(f"Successfully added {question_count} questions to the in-memory database.")
+
+        live_db_path = Path(get_live_db_path())
+        dump_filename = f"quiz_dump_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+        dump_path = live_db_path.parent / dump_filename
+        
+        with open(dump_path, 'w') as f:
+            for line in conn.iterdump():
+                f.write(f'{line}\n')
+        
+        logging.info(f"Database dump created at: {dump_path}")
+        logging.info(f"To load this dump into your main database, run:")
+        logging.info(f"sqlite3 '{live_db_path}' < '{dump_path}'")
     else:
         logging.info("No new questions were added to the database.")
         
