@@ -14,6 +14,7 @@ from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
 from kubelingo.utils.config import YAML_QUIZ_DIR
+from kubelingo.integrations.llm import get_llm_client
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+        self.llm_client = get_llm_client()
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
