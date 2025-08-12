@@ -47,6 +47,7 @@ from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
+from kubelingo.self_healing import run_self_healing_cycle
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
@@ -679,7 +680,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml')")
+                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml', 'self-heal')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('--list-yaml', action='store_true',
@@ -808,6 +809,9 @@ def main():
             cmd_name = args.command[0]
             if cmd_name == 'config':
                 handle_config_command(args.command)
+                return
+            elif cmd_name == 'self-heal':
+                run_self_healing_cycle()
                 return
             elif cmd_name == 'enrich-sources':
                 enrich_sources()
