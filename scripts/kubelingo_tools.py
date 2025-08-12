@@ -171,6 +171,44 @@ def task_fix_question_formatting():
     _run_script("question_manager.py", "format")
 
 
+def task_organize_generated_questions():
+    """Consolidate, import, and archive AI-generated YAML questions."""
+    print("This will consolidate, import, and archive AI-generated YAML questions.")
+    source_dir = repo_root / "questions" / "generated_yaml"
+    if not source_dir.is_dir() or not any(source_dir.iterdir()):
+        print(f"Source directory not found or is empty: {source_dir}")
+        return
+
+    consolidated_file = repo_root / "backups" / "yaml" / "ai_generated_consolidated.yaml"
+    consolidated_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # 1. Consolidate and deduplicate
+    print("\n--- Step 1: Consolidating and deduplicating generated questions ---")
+    _run_script("yaml_manager.py", "deduplicate", str(source_dir), "--output-file", str(consolidated_file))
+
+    # 2. Import into database
+    print("\n--- Step 2: Importing consolidated questions into the database ---")
+    _run_script("yaml_manager.py", "create-db", "--yaml-files", str(consolidated_file))
+
+    # 3. Archive original files
+    print("\n--- Step 3: Archiving original generated files ---")
+    archive_dir = repo_root / "archive" / "generated_yaml"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    files_to_move = list(source_dir.glob('*.yaml'))
+    if not files_to_move:
+        print("No files to archive.")
+    else:
+        print(f"Archiving {len(files_to_move)} files to {archive_dir}...")
+        for f in files_to_move:
+            try:
+                shutil.move(str(f), str(archive_dir / f.name))
+            except Exception as e:
+                print(f"Could not move {f.name}: {e}")
+
+    print("\nOrganization of generated questions is complete.")
+
+
 def task_full_migrate_and_cleanup():
     """Full migration and cleanup pipeline."""
     # 1. JSON → YAML
@@ -259,6 +297,7 @@ def run_interactive_menu():
         "Create DB from YAML with AI Categorization": task_create_db_from_yaml_with_ai,
         # Questions
         "Deduplicate Questions": task_deduplicate_questions,
+        "Organize Generated Questions": task_organize_generated_questions,
         "Fix Question Categorization": task_fix_question_categorization,
         "Fix Documentation Links": task_fix_doc_links,
         "Fix Question Formatting": task_fix_question_formatting,
@@ -288,6 +327,7 @@ def run_interactive_menu():
                 "Create DB from YAML with AI Categorization",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
+                "Organize Generated Questions",
                 "Fix Question Categorization",
                 "Fix Documentation Links",
                 "Fix Question Formatting",

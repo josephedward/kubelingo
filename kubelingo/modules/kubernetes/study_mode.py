@@ -25,7 +25,7 @@ class KubernetesStudyMode:
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
         self.db_conn = get_db_connection()
-        self.questions_dir = get_project_root() / "questions" / "ai_generated"
+        self.questions_dir = get_project_root() / "questions" / "generated_yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
 
     def main_menu(self):
@@ -203,6 +203,14 @@ class KubernetesStudyMode:
                     continue
 
                 question = questions[0]
+
+                # Save the generated question to a file
+                try:
+                    question_path = self.questions_dir / f"{question.id}.yaml"
+                    with question_path.open("w", encoding="utf-8") as f:
+                        yaml.dump(asdict(question), f, sort_keys=False, indent=2)
+                except Exception as e:
+                    print(f"\nWarning: Could not save generated question: {e}")
 
                 print(f"\n{question.prompt}")
                 correct = self._ask_and_validate(question)
