@@ -1,21 +1,22 @@
-import logging
 import json
-import uuid
-from typing import List, Set, Optional
+import logging
 import os
-import yaml
-
-from kubelingo.integrations.llm import get_llm_client
 import re
+import uuid
+import yaml
+from typing import List, Optional, Set
 
-from kubelingo.utils.ui import Fore, Style
-from typing import Optional
-from kubelingo.modules.ai_evaluator import AIEvaluator
-from kubelingo.question import Question, ValidationStep
-from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
-from kubelingo.utils.config import YAML_QUIZ_DIR
 from kubelingo.integrations.llm import get_llm_client
+from kubelingo.modules.ai_evaluator import AIEvaluator
+from kubelingo.question import Question
+from kubelingo.utils.config import YAML_QUIZ_DIR
+from kubelingo.utils.ui import Fore, Style
+from kubelingo.utils.validation import (
+    validate_kubectl_syntax,
+    validate_prompt_completeness,
+    validate_yaml_structure,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,10 @@ class AIQuestionGenerator:
             source_file = getattr(base_questions[0], 'source_file', source_file)
 
         valid_questions: List[Question] = []
+        if not self.llm_client:
+            logger.error("LLM client not available, cannot generate questions.")
+            return valid_questions
+
         # Attempt generation up to max_attempts
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
