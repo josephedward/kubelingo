@@ -123,7 +123,7 @@ def task_fix_question_categorization():
 
 def task_fix_doc_links():
     """Fix Documentation Links"""
-    _run_script("fix_links.py")
+    _run_script("question_manager.py", "fix-links")
 
 def task_fix_question_formatting():
     """Fix Question Formatting"""

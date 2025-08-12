@@ -29,8 +29,9 @@ if project_root not in sys.path:
 try:
     import yaml
     from tqdm import tqdm
+    import requests
 except ImportError as e:
-    print(f"Missing required packages. Please install them: pip install PyYAML tqdm. Error: {e}", file=sys.stderr)
+    print(f"Missing required packages. Please install them: pip install PyYAML tqdm requests. Error: {e}", file=sys.stderr)
     sys.exit(1)
 
 # Kubelingo imports
@@ -295,6 +296,65 @@ def handle_fix_categories(args):
     finally:
         conn.close()
     print("Done fixing schema categories.")
+
+
+# --- from: scripts/fix_links.py ---
+def check_url(url):
+    try:
+        resp = requests.head(url, allow_redirects=True, timeout=5)
+        return resp.status_code < 400
+    except Exception:
+        return False
+
+def handle_fix_links(args):
+    """Interactively fix broken links in question YAML files."""
+    path = Path(args.directory)
+    if not path.is_dir():
+        print(f'Directory not found: {path}', file=sys.stderr)
+        sys.exit(1)
+    for file in path.rglob('*.yaml'):
+        try:
+            with open(file, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"Could not read/parse {file}: {e}", file=sys.stderr)
+            continue
+
+        questions = []
+        if isinstance(data, dict) and 'questions' in data:
+            questions = data.get('questions', [])
+        elif isinstance(data, list):
+            questions = data
+        else:
+            continue
+
+        changed = False
+        for q in questions:
+            if not isinstance(q, dict): continue
+            links = q.get('links')
+            if not isinstance(links, list):
+                continue
+
+            for i, url in enumerate(links):
+                if not isinstance(url, str): continue
+                if not check_url(url):
+                    print(f"Broken URL in {file.name}:{q.get('id', 'N/A')}: {url}")
+                    new = input('Enter replacement or leave blank to remove: ').strip()
+                    if new:
+                        links[i] = new
+                    else:
+                        links[i] = None
+                    changed = True
+
+        if changed:
+            # Remove None entries from all questions that might have been modified
+            for q_to_clean in questions:
+                 if isinstance(q_to_clean, dict) and 'links' in q_to_clean and isinstance(q_to_clean['links'], list):
+                    q_to_clean['links'] = [u for u in q_to_clean['links'] if u is not None]
+
+            with open(file, 'w', encoding='utf-8') as f:
+                yaml.safe_dump(data, f, sort_keys=False, indent=2)
+            print(f'Updated links in {file}')
 
 
 # --- from: scripts/format_questions.py ---
@@ -831,6 +891,11 @@ def main():
     parser_fix = subparsers.add_parser('fix-categories', help='Interactively fix or assign schema_category for questions.', description="Interactively fix or assign schema_category for questions in the database.")
     parser_fix.add_argument('--list-only', action='store_true', help='Only list questions that need a category, without prompting for changes.')
     parser_fix.set_defaults(func=handle_fix_categories)
+
+    # Sub-parser for 'fix-links'
+    parser_fix_links = subparsers.add_parser('fix-links', help='Interactively fix broken documentation links in YAML files.', description="Scan question YAML files for `links` entries and interactively fix broken URLs.")
+    parser_fix_links.add_argument('directory', nargs='?', default='question-data/questions', help='Directory of YAML question files to scan.')
+    parser_fix_links.set_defaults(func=handle_fix_links)
 
     # Sub-parser for 'format'
     parser_format = subparsers.add_parser('format', help='Reformat question YAML files for style consistency.', description="Lint and reformat question YAML files for style consistency.")

@@ -59,7 +59,7 @@ def main():
         Separator('=== Questions ==='),
         Choice('Deduplicate Questions', value='deduplicate_questions.py'),
         Choice('Fix Question Categorization', value='categorize_questions.py'),
-        Choice('Fix Documentation Links', value='fix_links.py'),
+        Choice('Fix Documentation Links', value='qm_fix_links'),
         Choice('Fix Question Formatting', value='format_questions.py'),
         Separator(),
         Choice('Cancel', value=None),
@@ -119,10 +119,10 @@ def main():
         run_script('deduplicate_questions.py')
     elif answer == 'categorize_questions.py':
         run_script('categorize_questions.py')
-    elif answer == 'fix_links.py':
-        run_script('fix_links.py')
-    elif answer == 'format_questions.py':
-        run_script('format_questions.py')
+    elif answer == 'qm_fix_links':
+        run_script('question_manager.py', 'fix-links')
+    elif answer == 'qm_format':
+        run_script('question_manager.py', 'format')
     else:
         print(f'Unknown task: {answer}')
         sys.exit(1)
