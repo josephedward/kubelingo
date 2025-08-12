@@ -93,12 +93,18 @@ def create_quizzes_from_backup():
                     logging.warning(f"Skipping question {q_id} in {yaml_file}: unknown type '{q_type}'.")
                     continue
                 
+                response_val = q_data.get('response')
+                if not response_val:
+                    metadata = q_data.get('metadata')
+                    if isinstance(metadata, dict):
+                        response_val = metadata.get('response')
+
                 add_question(
                     conn=conn,
                     id=q_id,
                     prompt=q_data.get('prompt'),
                     source_file=str(yaml_file),
-                    response=q_data.get('answer'),
+                    response=response_val,
                     category=exercise_category,
                     source=q_data.get('source'),
                     validation_steps=q_data.get('validation'),
