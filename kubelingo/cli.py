@@ -741,7 +741,6 @@ def show_study_main_menu():
                         continue
 
                     study_session = KubernetesStudyMode()
-                    study_session.exclude_terms = []
                     study_session.start_study_session(user_level=level)
                 else:
                     print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
