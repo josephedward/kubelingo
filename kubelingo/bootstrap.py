@@ -54,6 +54,17 @@ def bootstrap_on_startup():
         with open(latest_backup_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
 
+        # If the YAML is a dictionary, try to find the list of questions within it.
+        if isinstance(data, dict):
+            questions_list = next((v for v in data.values() if isinstance(v, list)), None)
+            if questions_list is not None:
+                logging.info("Found a list of questions inside the YAML dictionary.")
+                data = questions_list
+            else:
+                logging.error(f"YAML file {latest_backup_path} is a dictionary but contains no list of questions. Aborting.")
+                conn.close()
+                return
+
         if not isinstance(data, list):
             logging.error(f"Expected a list of questions in {latest_backup_path}, but got {type(data)}. Aborting.")
             conn.close()
