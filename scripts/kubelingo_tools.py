@@ -46,42 +46,23 @@ def _run_script(script_name: str, *args):
 
 def task_bug_ticket():
     """Bug Ticket"""
-    print("Creating a bug ticket is not yet implemented.")
+    _run_script("bug_ticket.py")
 
 def task_index_yaml():
     """Index all YAML Files in Dir"""
-    _run_script("index_yaml_files.py")
+    _run_script("yaml_manager.py", "index")
 
 def task_locate_yaml_backup():
     """Locate Previous YAML Backup"""
-    backup_dir = repo_root / 'backups' / 'yaml'
-    if not backup_dir.is_dir():
-        print(f"Backup directory not found: {backup_dir}")
-        return
-
-    yaml_files = sorted(
-        list(backup_dir.glob('*.yaml')) + list(backup_dir.glob('*.yml')),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True
-    )
-
-    if not yaml_files:
-        print(f"No YAML backups found in {backup_dir}")
-        return
-
-    print("\nAvailable YAML backups (newest first):")
-    for f in yaml_files:
-        mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-        print(f"  - {f.name} ({mtime})")
-    print()
+    _run_script("yaml_manager.py", "list-backups")
 
 def task_view_yaml_stats():
     """View YAML Backup Statistics"""
-    _run_script("yaml_statistics.py")
+    _run_script("yaml_manager.py", "backup-stats")
 
 def task_write_db_to_yaml():
     """Write DB to YAML Backup Version"""
-    _run_script("question_manager.py", "export-to-yaml")
+    _run_script("yaml_manager.py", "export")
 
 
 def task_restore_db_from_yaml():
@@ -100,12 +81,12 @@ def task_restore_db_from_yaml():
         return
     choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()
     if choice:
-        _run_script('question_manager.py', 'import-yaml', choice, '--clear')
+        _run_script('yaml_manager.py', 'restore', choice, '--clear')
 
 
 def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
-    _run_script("sqlite_manager.py", "create-from-yaml")
+    _run_script("yaml_manager.py", "create-db")
 
 def task_index_sqlite():
     """Index all SQLite Files in Dir"""
@@ -144,7 +125,7 @@ def task_unarchive_and_prune_sqlite_backups():
 
 def task_create_sqlite_backup():
     """Create SQLite Backup Version"""
-    _run_script("consolidate_dbs.py")
+    _run_script("consolidator.py", "dbs")
 
 def task_restore_from_sqlite_backup():
     """Restore from SQLite Backup Version"""
@@ -152,7 +133,16 @@ def task_restore_from_sqlite_backup():
 
 def task_create_db_from_yaml_with_ai():
     """Create DB from YAML with AI Categorization"""
-    _run_script("import_from_yaml_with_ai.py")
+    try:
+        import questionary
+    except ImportError:
+        print("Error: 'questionary' is required. Please install it.")
+        return
+    output_db = questionary.path("Enter path for the new categorized database file:", default="categorized.db").ask()
+    if not output_db:
+        print("Operation cancelled.")
+        return
+    _run_script("yaml_manager.py", "import-ai", output_db)
 
 def task_deduplicate_questions():
     """Deduplicate Questions"""

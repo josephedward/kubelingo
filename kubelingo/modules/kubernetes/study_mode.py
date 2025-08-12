@@ -1,5 +1,7 @@
 import os
 import uuid
+import subprocess
+import sys
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
@@ -38,6 +40,7 @@ class KubernetesStudyMode:
                         "Study Mode",
                         "Review Questions",
                         "Settings",
+                        "Tools",
                         "Exit",
                     ],
                     use_indicator=True,
@@ -60,6 +63,8 @@ class KubernetesStudyMode:
                     self.review_past_questions()
                 elif choice == "Settings":
                     self.settings_menu()
+                elif choice == "Tools":
+                    self.run_tools_menu()
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting application. Goodbye!")
                 break
@@ -111,6 +116,22 @@ class KubernetesStudyMode:
         """Displays the settings menu."""
         print("\nSettings menu is not yet implemented.")
         # Placeholder for future implementation
+
+    def run_tools_menu(self):
+        """Runs the kubelingo_tools.py script to show the maintenance menu."""
+        print("\nLaunching Kubelingo Tools...")
+        tools_script_path = get_project_root() / "scripts" / "kubelingo_tools.py"
+        if not tools_script_path.exists():
+            print(f"Error: Tools script not found at {tools_script_path}")
+            return
+
+        try:
+            # Use sys.executable to ensure we're using the same Python interpreter
+            subprocess.run([sys.executable, str(tools_script_path)], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error running tools script: {e}")
+        except FileNotFoundError:
+            print(f"Error: Could not find '{sys.executable}' to run the script.")
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
