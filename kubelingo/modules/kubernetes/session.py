@@ -139,8 +139,3 @@ class NewSession(StudySession):
         pass
 
 
-if __name__ == "__main__":
-    session = NewSession(logger=logging.getLogger())
-    if session.initialize():
-        session.run_exercises(None)
-        session.cleanup()

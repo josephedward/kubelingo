@@ -51,9 +51,9 @@ class KubernetesStudyMode:
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
 
-    def generate_term_definition_pair(self, topic: str) -> Optional[Dict[str, str]]:
-        """Generates a term and definition pair for the given topic."""
-        system_prompt = self._build_term_recall_prompt(topic)
+    def generate_term_definition_pair(self, topic: str, exclude_terms: Optional[List[str]] = None) -> Optional[Dict[str, str]]:
+        """Generates a term and definition pair for the given topic, avoiding previously used terms."""
+        system_prompt = self._build_term_recall_prompt(topic, exclude_terms=exclude_terms)
         user_prompt = f"Give me a term and definition about {topic}."
 
         messages = [
@@ -151,8 +151,13 @@ The user wants to learn about: **{topic}**.
 4.  **Always End with a Question:** Your primary goal is to prompt the user to think. Every response must end with a question.
 """
 
-    def _build_term_recall_prompt(self, topic: str) -> str:
+    def _build_term_recall_prompt(self, topic: str, exclude_terms: Optional[List[str]] = None) -> str:
         """Builds a system prompt for generating term/definition pairs."""
+        exclusion_prompt = ""
+        if exclude_terms:
+            exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
+            exclusion_prompt = f'\n4. **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}.'
+
         return f"""
 # **Persona**
 You are a concise Kubernetes terminology expert. Your task is to generate a single term and its definition based on a given topic.
@@ -163,7 +168,7 @@ The user wants a term/definition pair related to: **{topic}**.
 # **Task**
 1.  Identify a single, specific, and important term from the topic `{topic}`.
 2.  Write a clear, one-sentence definition for that term.
-3.  Format your response **exclusively** as a JSON object with two keys: "term" and "definition".
+3.  Format your response **exclusively** as a JSON object with two keys: "term" and "definition".{exclusion_prompt}
 
 # **Example**
 If the topic is "Core workloads", a valid response would be:
