@@ -94,13 +94,19 @@ class KubernetesStudyMode:
 
     def _run_basic_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on basic terminology."""
-        print(f"\nStarting a 'Basic Terminology' quiz on {topic}. Type 'exit' to quit.")
+        print("\nStarting basic term/definition recall session...")
+        print("Type 'exit' or 'quit' to end the session.")
         while True:
             try:
-                term, definition = self.generate_term_definition_pair(topic, user_level)
-                if not term or not definition:
+                pair = self.generate_term_definition_pair(topic, user_level)
+                if not pair:
                     print("Failed to generate a term/definition pair. Please try again.")
-                    break
+                    if not questionary.confirm("Try again?").ask():
+                        break
+                    continue
+
+                term = pair.get("term")
+                definition = pair.get("definition")
 
                 print(f"\nDefinition: {definition}")
                 user_answer = questionary.text("What is the term?").ask()
@@ -237,34 +243,6 @@ class KubernetesStudyMode:
             print(f"Error generating or parsing question: {e}")
             return None
 
-    def generate_term_definition_pair(self, topic: str, user_level: str) -> Optional[tuple]:
-        """Generates a term and its definition using the LLM."""
-        system_prompt = f"""
-You are an expert Kubernetes tutor. Generate a term and its definition for the topic '{topic}'.
-The term should be concise, and the definition should be clear and accurate.
-"""
-        user_prompt = "Generate a term and its definition."
-
-        try:
-            response = self.client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.7,
-                json_mode=True,
-            )
-            if not response:
-                return None
-
-            # Parse the response as YAML or JSON
-            data = yaml.safe_load(response)
-            term = data.get("term")
-            definition = data.get("definition")
-            return term, definition
-        except Exception as e:
-            print(f"Error generating term/definition pair: {e}")
-            return None
 
     def _save_question(self, question: Question):
         """Saves a question to a YAML file and the database."""
