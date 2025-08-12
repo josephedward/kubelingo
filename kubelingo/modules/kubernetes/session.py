@@ -277,21 +277,25 @@ class NewSession(StudySession):
 
     def _run_study_mode_session(self):
         """Runs an interactive study session using the Socratic method."""
-        if not os.getenv('OPENAI_API_KEY'):
-            print(f"\n{Fore.RED}Study Mode requires an OpenAI API key.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Set the OPENAI_API_KEY environment variable to enable it.{Style.RESET_ALL}")
+        try:
+            # Eagerly initialize client to check for any configured AI provider key.
+            from kubelingo.integrations.llm import get_llm_client
+            get_llm_client()
+        except (ValueError, ImportError) as e:
+            print(f"\n{Fore.RED}Study Mode is unavailable: {e}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Please set OPENAI_API_KEY or GEMINI_API_KEY to enable this feature.{Style.RESET_ALL}")
             return
 
         try:
             print()  # Add a blank line for spacing before the menu
-            topic_choices = list(KUBERNETES_TOPICS.keys())
+            topic_choices = list(KUBERNETES_TOPICS)
             if not topic_choices:
                 print(f"{Fore.YELLOW}No study topics available for Study Mode.{Style.RESET_ALL}")
                 return
             
             topic = questionary.select(
                 "What Kubernetes topic would you like to study?",
-                choices=topic_choices,
+                choices=sorted(topic_choices),
                 use_indicator=True
             ).ask()
 
@@ -307,8 +311,7 @@ class NewSession(StudySession):
             if level is None:
                 return
 
-            api_key = os.getenv('OPENAI_API_KEY')
-            study_session = KubernetesStudyMode(api_key=api_key)
+            study_session = KubernetesStudyMode()
 
             response = study_session.start_study_session(topic, level)
             print(f"\n{Fore.GREEN}Tutor:{Style.RESET_ALL} {response}")

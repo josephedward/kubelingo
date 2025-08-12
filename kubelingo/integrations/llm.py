@@ -87,28 +87,32 @@ class GeminiClient(LLMClient):
         is_json: bool = False,
         temperature: float = 0.0,
     ) -> Optional[str]:
-        # Gemini uses a different structure, so we convert the message list to a single prompt.
+        # Gemini uses a 'user' and 'model' role. System prompts are handled as part of the first user message.
         system_prompt = ""
         if messages and messages[0]["role"] == "system":
-            system_prompt = messages[0]["content"]
-            messages = messages[1:]
+            system_prompt = messages.pop(0)["content"]
 
-        # Format chat history into a single string for Gemini.
-        prompt_parts = [f'{m["role"].capitalize()}: {m["content"]}' for m in messages]
-        user_prompt_str = "\n".join(prompt_parts)
+        # Convert OpenAI-style message history to Gemini's format.
+        gemini_messages = []
+        for i, message in enumerate(messages):
+            # Map 'assistant' to 'model'
+            role = "model" if message["role"] == "assistant" else "user"
+            
+            content = message["content"]
+            # Prepend system prompt to the first message of the conversation
+            if system_prompt and i == 0:
+                content = f"{system_prompt}\n\n{content}"
 
-        full_prompt = f"{system_prompt}\n\n{user_prompt_str}"
-        if is_json:
-            full_prompt += "\n\nRespond ONLY with a valid JSON object that can be parsed."
-
+            gemini_messages.append({"role": role, "parts": [content]})
+            
         try:
             # Note: Gemini's 'temperature' is part of generation_config.
             generation_config = {"temperature": temperature}
             if is_json:
                 generation_config["response_mime_type"] = "application/json"
-
+            
             response = self.model.generate_content(
-                full_prompt,
+                gemini_messages,
                 generation_config=generation_config,
             )
             return response.text

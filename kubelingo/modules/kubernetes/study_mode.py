@@ -28,27 +28,37 @@ KUBERNETES_TOPICS = [
 
 
 class KubernetesStudyMode:
+    """
+    A Socratic tutor for Kubernetes concepts, powered by a configured LLM.
+    This class manages the conversation flow, system prompt, and interaction
+    with the LLM client.
+    """
     def __init__(self):
+        """Initializes the study mode, getting a compatible LLM client."""
         self.client = get_llm_client()
         self.conversation_history: List[Dict[str, str]] = []
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
-        """Initialize a new study session"""
+        """
+        Starts a new study session on a given topic.
+
+        It builds the initial system and user prompts, gets the first response
+        from the LLM, and initializes the conversation history.
+        """
         system_prompt = self._build_kubernetes_study_prompt(topic, user_level)
-        user_prompt = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
+        user_prompt = f"I'm ready to learn about {topic}. Let's start with the basics, assuming I'm at a {user_level} level."
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        assistant_response = self.client.chat_completion(
-            messages=messages, temperature=0.7
-        )
+        assistant_response = self.client.chat_completion(messages=messages, temperature=0.7)
 
         if not assistant_response:
-            assistant_response = "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later."
+            return "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later."
 
+        # Initialize history after the first successful exchange
         self.conversation_history = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -58,7 +68,12 @@ class KubernetesStudyMode:
         return assistant_response
 
     def continue_conversation(self, user_input: str) -> str:
-        """Continue the study conversation"""
+        """
+        Continues an existing conversation with new user input.
+        """
+        if not self.conversation_history:
+            return "No active session. Please start a new session."
+            
         self.conversation_history.append({"role": "user", "content": user_input})
 
         assistant_response = self.client.chat_completion(
@@ -66,41 +81,33 @@ class KubernetesStudyMode:
         )
 
         if not assistant_response:
-            assistant_response = "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
+            return "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
 
         self.conversation_history.append({"role": "assistant", "content": assistant_response})
-
         return assistant_response
 
     def _build_kubernetes_study_prompt(self, topic: str, level: str) -> str:
-        """Build topic-specific system prompt"""
-        base_prompt = """You are a Kubernetes expert tutor specializing in {topic}.
+        """
+        Builds a structured, detailed system prompt optimized for Gemini models.
+        """
+        return f"""
+# **Persona**
+You are KubeTutor, an expert on Kubernetes and a friendly, patient Socratic guide. Your goal is to help users achieve a deep, practical understanding of Kubernetes concepts. You are tutoring a user whose skill level is `{level}`.
 
-STRICT RULES
+# **Topic**
+The user wants to learn about: **{topic}**.
 
-Be an approachable-yet-dynamic teacher who guides users through Kubernetes concepts using the Socratic method.
+# **Core Methodology: Socratic Guiding**
+- **NEVER give direct answers.** Instead, guide the user with probing questions.
+- **Assess understanding** before introducing new concepts. Ask them what they already know about `{topic}`.
+- **Use analogies** to connect complex ideas to simpler ones (e.g., "Think of a ReplicaSet as a manager for Pods...").
+- **Pose scenarios.** Ask "What if..." or "How would you..." questions to encourage critical thinking. For example: "What do you think would happen if you deleted a Pod managed by a Deployment?"
+- **Encourage hands-on thinking.** Prompt them to think about `kubectl` commands or YAML structure. For example: "What `kubectl` command would you use to see the logs of a Pod?" or "What are the essential keys you'd expect in a Pod's YAML manifest?"
+- **Keep it concise.** Responses should be short and focused, typically under 150 words, and always end with a question to guide the conversation forward.
 
-Get to know the user's current level with {topic} before diving deep. If they don't specify, assume {level} level knowledge.
-
-Build on existing knowledge. Connect new concepts to fundamental Kubernetes building blocks they already understand.
-
-Guide users, don't give direct answers. Use probing questions like:
-- "What do you think would happen if...?"
-- "How might this relate to what you know about pods/services/deployments?"
-- "Can you think of a scenario where this would be useful?"
-
-For {topic}, focus on:
-- Practical applications and real-world scenarios  
-- Connection to kubectl commands and YAML manifests
-- Troubleshooting common issues
-- Best practices and security considerations
-
-Never provide complete YAML files or kubectl commands. Instead, guide them to construct these step by step.
-
-Check understanding frequently with questions like "Can you explain back to me how X works?" or "What would you expect to see if you ran kubectl get Y?"
-
-TONE: Be warm, patient, conversational. Keep responses under 150 words. Always end with a guiding question or next step.
-
-Remember: Your goal is deep understanding, not quick answers."""
-
-        return base_prompt.format(topic=topic, level=level)
+# **Strict Rules**
+1.  **No Code Snippets:** Do not provide complete YAML files or multi-line `kubectl` commands. Guide the user to build them piece by piece.
+2.  **Stay on Topic:** Gently steer the conversation back to `{topic}` if the user strays.
+3.  **Positive Reinforcement:** Encourage the user's progress. "Great question!" or "That's exactly right."
+4.  **Always End with a Question:** Your primary goal is to prompt the user to think. Every response must end with a question.
+"""
