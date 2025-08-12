@@ -56,13 +56,17 @@ def task_locate_yaml_backup():
     """Locate Previous YAML Backup"""
     _run_script("yaml_manager.py", "list-backups")
 
-def task_view_yaml_stats():
-    """View YAML Backup Statistics"""
-    _run_script("yaml_manager.py", "backup-stats")
+def task_consolidate_unique_yaml():
+    """Consolidate Unique YAML Questions"""
+    _run_script("question_manager.py", "consolidate-unique-yaml")
 
-def task_write_db_to_yaml():
-    """Write DB to YAML Backup Version"""
-    _run_script("yaml_manager.py", "export")
+def task_diff_yaml_backups():
+    """Diff YAML Backups"""
+    _run_script("yaml_manager.py", "diff")
+
+def task_yaml_statistics():
+    """YAML Statistics"""
+    _run_script("yaml_manager.py", "stats")
 
 
 def task_restore_db_from_yaml():
@@ -252,60 +256,52 @@ def run_interactive_menu():
         sys.exit(1)
 
     tasks = {
-        # System
-        "Bug Ticket": task_bug_ticket,
         # YAML
-        "Index all YAML Files in Dir": task_index_yaml,
-        "Locate Previous YAML Backup": task_locate_yaml_backup,
-        "View YAML Backup Statistics": task_view_yaml_stats,
-        "Write DB to YAML Backup Version": task_write_db_to_yaml,
-        "Restore DB from YAML Backup Version": task_restore_db_from_yaml,
-        "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
+        "Index all Yaml Files in Dir": task_index_yaml,
+        "Consolidate Unique Yaml Questions": task_consolidate_unique_yaml,
+        "Show Previous YAML backup(s)": task_locate_yaml_backup,
+        "Diff YAML Backups": task_diff_yaml_backups,
+        "YAML Statistics": task_yaml_statistics,
         # SQLite
-        "Index all SQLite Files in Dir": task_index_sqlite,
+        "Index all Sqlite files in Dir": task_index_sqlite,
+        "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
         "View Database Schema": task_view_db_schema,
-        "Locate Previous SQLite Backup": task_locate_sqlite_backup,
-        "Diff with Backup SQLite DB": task_diff_sqlite_backup,
-        "Unarchive and Prune SQLite Backups": task_unarchive_and_prune_sqlite_backups,
-        "Create SQLite Backup Version": task_create_sqlite_backup,
-        "Restore from SQLite Backup Version": task_restore_from_sqlite_backup,
-        "Create DB from YAML with AI Categorization": task_create_db_from_yaml_with_ai,
+        "Show Previous Sqlite Backup(s)": task_locate_sqlite_backup,
+        "Diff with Backup Sqlite Db": task_diff_sqlite_backup,
+        "Restore from Sqlite Backup Version": task_restore_from_sqlite_backup,
         # Questions
         "Deduplicate Questions": task_deduplicate_questions,
-        "Organize Generated Questions": task_organize_generated_questions,
         "Fix Question Categorization": task_fix_question_categorization,
         "Fix Documentation Links": task_fix_doc_links,
         "Fix Question Formatting": task_fix_question_formatting,
+        # System
+        "Bug Ticket": task_bug_ticket,
     }
 
     while True:
         choice = questionary.select(
             "Select a maintenance task:",
             choices=[
-                Separator("=== System ==="),
-                "Bug Ticket",
                 Separator("=== YAML ==="),
-                "Index all YAML Files in Dir",
-                "Locate Previous YAML Backup",
-                "View YAML Backup Statistics",
-                "Write DB to YAML Backup Version",
-                "Restore DB from YAML Backup Version",
-                "Create Sqlite DB from YAML Backup Version",
+                "Index all Yaml Files in Dir",
+                "Consolidate Unique Yaml Questions",
+                "Show Previous YAML backup(s)",
+                "Diff YAML Backups",
+                "YAML Statistics",
                 Separator("=== SQLite ==="),
-                "Index all SQLite Files in Dir",
+                "Index all Sqlite files in Dir",
+                "Create Sqlite DB from YAML Backup Version",
                 "View Database Schema",
-                "Locate Previous SQLite Backup",
-                "Diff with Backup SQLite DB",
-                "Unarchive and Prune SQLite Backups",
-                "Create SQLite Backup Version",
-                "Restore from SQLite Backup Version",
-                "Create DB from YAML with AI Categorization",
+                "Show Previous Sqlite Backup(s)",
+                "Diff with Backup Sqlite Db",
+                "Restore from Sqlite Backup Version",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
-                "Organize Generated Questions",
                 "Fix Question Categorization",
                 "Fix Documentation Links",
                 "Fix Question Formatting",
+                Separator("=== System ==="),
+                "Bug Ticket",
                 Separator(),
                 "Cancel"
             ],
