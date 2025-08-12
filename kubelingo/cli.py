@@ -874,7 +874,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'tools', 'load-yaml', 'monitor', 'self-heal', 'heal')")
+                        help="Command to run (e.g. 'study', 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'tools', 'load-yaml', 'monitor', 'self-heal', 'heal')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('--list-yaml', action='store_true',
@@ -1001,7 +1001,14 @@ def main():
         # Handle config subcommand: kubelingo config <view|set> openai [KEY]
         if args.command and len(args.command) > 0:
             cmd_name = args.command[0]
-            if cmd_name == 'config':
+            if cmd_name == 'study':
+                if KubernetesStudyMode:
+                    study_session = KubernetesStudyMode()
+                    study_session.start_study_session()
+                else:
+                    print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
+                return
+            elif cmd_name == 'config':
                 handle_config_command(args.command)
                 return
             elif cmd_name == 'monitor':

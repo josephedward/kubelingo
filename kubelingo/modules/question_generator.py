@@ -2,6 +2,8 @@ import logging
 import json
 import uuid
 from typing import List, Set
+import os
+import yaml
 
 openai = None
 import re
@@ -10,6 +12,7 @@ from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
 from kubelingo.database import add_question
+from kubelingo.utils.config import YAML_QUIZ_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,50 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+
+    def _save_question_to_yaml(self, question: Question):
+        """Appends a generated question to a YAML file, grouped by subject."""
+        try:
+            subject = question.subject or "general"
+            category = question.category or "uncategorized"
+            # Sanitize subject to create a valid filename
+            filename_subject = subject.lower().replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "")
+            filename_subject = ''.join(c for c in filename_subject if c.isalnum() or c == '_')
+            filepath = os.path.join(YAML_QUIZ_DIR, f"ai_generated_{filename_subject}.yaml")
+
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+            existing_questions = []
+            if os.path.exists(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    try:
+                        docs = list(yaml.safe_load_all(f))
+                        for doc in docs:
+                            if isinstance(doc, list):
+                                existing_questions.extend(doc)
+                    except yaml.YAMLError:
+                        pass  # Overwrite if malformed
+
+            # Avoid duplicates by ID
+            if any(q.get('id') == question.id for q in existing_questions):
+                return
+
+            q_dict = {
+                "id": question.id,
+                "prompt": question.prompt,
+                "response": question.response,
+                "category": category,
+                "subject": subject,
+                "type": question.type,
+                "source": "ai_generated",
+                "validator": question.validator,
+            }
+            existing_questions.append(q_dict)
+
+            with open(filepath, 'w', encoding='utf-8') as f:
+                yaml.dump(existing_questions, f, default_flow_style=False, sort_keys=False)
+        except Exception as e:
+            logger.warning(f"Failed to save AI-generated question '{question.id}' to YAML: {e}")
 
     def generate_questions(
         self,
@@ -47,9 +94,11 @@ class AIQuestionGenerator:
             response_description = "the full, correct YAML manifest"
         elif category == "Basic":
             q_type = "socratic"
-            prompt_lines.append("Your task is to create conceptual questions about Kubernetes.")
-            response_description = "a concise, correct answer for reference"
+            prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
+            response_description = "the correct, single-word or hyphenated-word Kubernetes term"
         else:  # Command
+            q_type = "command"
+            response_description = "the kubectl command"
             if base_questions:
                 prompt_lines.append("Here are example questions and answers:")
                 for ex in base_questions:
@@ -131,12 +180,15 @@ class AIQuestionGenerator:
                 question = Question(
                     id=qid,
                     prompt=p,
-                    category=subject,
                     response=r,
                     type=q_type,
                     validator=validator_dict,
+                    category=category,
+                    subject=subject,
+                    source='ai_generated',
+                    source_file=source_file,
                 )
-                valid_questions.append(question)
+                
                 # Persist the generated question to the database
                 try:
                     add_question(
@@ -144,12 +196,16 @@ class AIQuestionGenerator:
                         prompt=p,
                         source_file=source_file,
                         response=r,
-                        category=subject,
-                        source='ai',
-                        validator={"type": "ai", "expected": r},
+                        category=category,
+                        subject=subject,
+                        source='ai_generated',
+                        validator=validator_dict,
                     )
-                except Exception:
-                    logger.warning(f"Failed to add AI-generated question '{qid}' to DB.")
+                    # Also save to YAML file upon successful DB insertion
+                    self._save_question_to_yaml(question)
+                    valid_questions.append(question)
+                except Exception as e:
+                    logger.warning(f"Failed to add AI-generated question '{qid}' to DB: {e}")
             if len(valid_questions) >= num_questions:
                 break
             print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
