@@ -135,4 +135,8 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
         prune_db_backups()
 
 
-# Other functions remain unchanged
+def prune_db_backups():
+    """Placeholder function to prune old database backups."""
+    # Implement logic to remove old database backups if needed.
+    # For now, this is a no-op.
+    pass
