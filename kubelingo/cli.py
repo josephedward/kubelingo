@@ -284,15 +284,21 @@ def restore_db():
     """
     import sqlite3
     from kubelingo.database import get_db_connection, add_question
-    from kubelingo.utils.config import MASTER_DATABASE_FILE
+    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
 
-    if not os.path.exists(MASTER_DATABASE_FILE):
-        print(f"{Fore.RED}Master database backup not found at '{MASTER_DATABASE_FILE}'. Cannot restore.{Style.RESET_ALL}")
+    # Choose a backup database file: prefer master, fallback to secondary
+    backup_file = None
+    if os.path.exists(MASTER_DATABASE_FILE) and os.path.getsize(MASTER_DATABASE_FILE) > 0:
+        backup_file = MASTER_DATABASE_FILE
+    elif os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0:
+        backup_file = SECONDARY_MASTER_DATABASE_FILE
+    if not backup_file:
+        print(f"{Fore.RED}No valid master database backup found. Cannot restore.{Style.RESET_ALL}")
         return
 
-    print("Merging questions from master backup...")
+    print(f"Merging questions from backup '{backup_file}'...")
     try:
-        master_conn = sqlite3.connect(f'file:{MASTER_DATABASE_FILE}?mode=ro', uri=True)
+        master_conn = sqlite3.connect(f'file:{backup_file}?mode=ro', uri=True)
         master_conn.row_factory = sqlite3.Row
         master_cursor = master_conn.cursor()
         master_cursor.execute("SELECT * FROM questions")
@@ -676,6 +682,8 @@ def main():
                         help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
+    parser.add_argument('--list-yaml', action='store_true',
+                        help='List available YAML quiz files and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
                         help='Path to custom quiz JSON file for kustom module')
     parser.add_argument('--exercises', type=str,
@@ -776,6 +784,21 @@ def main():
     else:
         # Non-interactive mode
         args = parser.parse_args()
+        # List YAML quiz files and exit
+        if getattr(args, 'list_yaml', False):
+            try:
+                from kubelingo.modules.yaml_loader import YAMLLoader
+                loader = YAMLLoader()
+                files = loader.discover()
+                if not files:
+                    print('No YAML quiz files found.')
+                else:
+                    print('Available YAML quiz files:')
+                    for path in files:
+                        print(f'  - {path}')
+            except Exception as e:
+                print(f'Error listing YAML files: {e}')
+            return
         # If --config flag provided, launch interactive config
         if getattr(args, 'config', False):
             manage_config_interactive()
@@ -799,9 +822,11 @@ def main():
                 handle_troubleshoot(args.command[1:])
                 return
             elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
-                # Import all YAML quiz questions into the database (use updated migration script)
-                script = repo_root / 'scripts' / 'migrate_yaml_questions.py'
-                subprocess.run([sys.executable, str(script)])
+                # Merge questions from the master backup into the live database
+                try:
+                    restore_db()
+                except Exception as e:
+                    print(f"{Fore.RED}Failed to migrate questions from backup: {e}{Style.RESET_ALL}")
                 return
             elif cmd_name == 'restore_db':
                 restore_db()
@@ -982,7 +1007,12 @@ def main():
             print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
             try:
                 from kubelingo.database import get_questions_by_source_file
-                questions = get_questions_by_source_file(os.path.basename(args.file))
+                # Ensure a quiz file is specified before listing categories
+                if not args.file:
+                    print(f"{Fore.YELLOW}No quiz file specified; cannot list categories.{Style.RESET_ALL}")
+                    return
+                key = os.path.basename(args.file)
+                questions = get_questions_by_source_file(key)
                 cats = sorted({q.get('category') for q in questions if q.get('category')})
                 print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
                 if cats:
