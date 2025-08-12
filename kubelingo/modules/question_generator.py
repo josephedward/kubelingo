@@ -101,6 +101,11 @@ class AIQuestionGenerator:
         if category == "Manifest":
             q_type = "yaml_author"
             prompt_lines.append("Your task is to create questions that require writing a full Kubernetes YAML manifest.")
+            if base_questions:
+                prompt_lines.append("Here are example questions and answers:")
+                for ex in base_questions:
+                    prompt_lines.append(f"- Prompt: {ex.prompt}")
+                    prompt_lines.append(f"  Response: {ex.response}")
             response_description = "the full, correct YAML manifest"
         elif category == "Basic":
             q_type = "basic"
@@ -110,6 +115,11 @@ class AIQuestionGenerator:
             prompt_lines.append("  Response: Service")
             prompt_lines.append("- Prompt: Which component on a Kubernetes node is responsible for maintaining running containers and managing their lifecycle?")
             prompt_lines.append("  Response: kubelet")
+            if base_questions:
+                prompt_lines.append("Here are more examples of existing questions to avoid duplicating:")
+                for ex in base_questions:
+                    prompt_lines.append(f"- Prompt: {ex.prompt}")
+                    prompt_lines.append(f"  Response: {ex.response}")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
         else:  # Command
             q_type = "command"
