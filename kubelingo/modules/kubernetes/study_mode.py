@@ -135,7 +135,7 @@ class KubernetesStudyMode:
 
     def _run_basic_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on basic terminology."""
-        print(f"\nStarting a 'Basic term/definition recall' session on {topic}. Type 'exit' to quit.")
+        print(f"\nStarting a 'Basic term/definition' quiz on {topic}. Type 'exit' to quit.")
         self._run_quiz_loop("basic", topic, user_level)
 
     def _run_command_quiz(self, topic: str, user_level: str):
@@ -156,21 +156,32 @@ class KubernetesStudyMode:
             "manifest": "Manifest",
         }
         category = category_map.get(quiz_type)
+        asked_items = set()
 
         while True:
             try:
+                exclude_list = list(asked_items) if quiz_type == "basic" else None
                 questions = self.question_generator.generate_questions(
                     subject=topic,
                     num_questions=1,
-                    category=category
+                    category=category,
+                    exclude_terms=exclude_list,
                 )
 
                 if not questions:
-                    if not questionary.confirm("Failed to generate a question. Try again?").ask():
+                    if not questionary.confirm(
+                        "Failed to generate a question. Try again?"
+                    ).ask():
                         break
                     continue
 
                 question = questions[0]
+
+                if quiz_type == "basic":
+                    asked_items.add(question.response)
+                else:
+                    # For other quizzes, we track by prompt to avoid repeating questions
+                    asked_items.add(question.prompt)
 
                 # Save the generated question to a file
                 try:
@@ -186,7 +197,11 @@ class KubernetesStudyMode:
                 if correct:
                     print("\nCorrect!")
                 else:
-                    print("\nNot quite.")
+                    # For basic quizzes, show the correct term
+                    if quiz_type == "basic":
+                        print(f"\nNot quite. The correct term is: {question.response}")
+                    else:
+                        print("\nNot quite.")
 
                 if question.explanation:
                     print(f"Explanation: {question.explanation}")
