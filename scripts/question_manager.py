@@ -353,6 +353,54 @@ def handle_deduplicate(args):
             conn.close()
 
 
+# --- from: scripts/find_duplicate_questions.py ---
+def handle_find_duplicates(args):
+    """Handler for finding and removing duplicate questions by prompt (keeps first)."""
+    db_path = args.db_path or get_live_db_path()
+    if not os.path.exists(db_path):
+        print(f"Error: Database file not found at {db_path}", file=sys.stderr)
+        sys.exit(1)
+
+    conn = get_db_connection(db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT prompt, COUNT(*) as cnt FROM questions GROUP BY prompt HAVING cnt > 1"
+        )
+        dups = cursor.fetchall()
+
+        if not dups:
+            print("No duplicate prompts found in the database.")
+            return
+
+        total_deleted = 0
+        for prompt, count in dups:
+            print(f"Prompt duplicated {count} times: {prompt!r}")
+            cursor.execute(
+                "SELECT rowid, id, source_file FROM questions WHERE prompt = ? ORDER BY rowid",
+                (prompt,)
+            )
+            rows = cursor.fetchall()
+            for rowid, qid, src in rows:
+                print(f"  rowid={rowid}, id={qid}, source_file={src}")
+
+            if args.delete:
+                # Keep first row, delete the rest
+                to_delete_rowids = [r[0] for r in rows[1:]]
+                if to_delete_rowids:
+                    placeholders = ",".join('?' for _ in to_delete_rowids)
+                    conn.execute(f"DELETE FROM questions WHERE rowid IN ({placeholders})", to_delete_rowids)
+                    print(f"  Deleted {len(to_delete_rowids)} duplicates for this prompt.")
+                    total_deleted += len(to_delete_rowids)
+
+        if args.delete:
+            conn.commit()
+            print(f"\nTotal duplicates deleted: {total_deleted}")
+    finally:
+        if conn:
+            conn.close()
+
+
 # --- from: scripts/enrich_question_sources.py ---
 def handle_enrich_sources(args):
     """
@@ -2165,6 +2213,12 @@ def main():
     parser_deduplicate.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
     parser_deduplicate.add_argument("--delete", action="store_true", help="Delete duplicate questions, keeping only the newest occurrence of each.")
     parser_deduplicate.set_defaults(func=handle_deduplicate)
+
+    # Sub-parser for 'find-duplicates' (from scripts/find_duplicate_questions.py)
+    parser_find_duplicates = subparsers.add_parser('find-duplicates', help='Find and optionally delete duplicate questions (keeps first).', description="Finds and optionally deletes duplicate questions based on prompt text, keeping the first occurrence.")
+    parser_find_duplicates.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
+    parser_find_duplicates.add_argument("--delete", action="store_true", help="Delete duplicate entries, keeping only the first occurrence.")
+    parser_find_duplicates.set_defaults(func=handle_find_duplicates)
 
     # Sub-parser for 'enrich-sources'
     parser_enrich = subparsers.add_parser('enrich-sources', help="Populate the 'source' field for questions based on their source file.", description="Scans the database for questions without a 'source' and populates it based on the source_file, using the ENABLED_QUIZZES mapping.")
