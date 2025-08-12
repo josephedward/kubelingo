@@ -1147,7 +1147,7 @@ def do_migrate_all(args):
     """
     init_db()
     loader = YAMLLoader()
-    dirs = [Path(QUESTIONS_DIR)]
+    dirs = [Path(d) for d in QUESTION_DIRS]
     total_added = 0
     conn = get_db_connection()
     try:
