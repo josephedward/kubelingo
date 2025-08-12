@@ -115,9 +115,8 @@ class DBLoader(BaseLoader):
                 response_data = json.dumps(response_data)
 
             # Sanitize categories
-            categories_data = qd.get('categories', [])
-            if not isinstance(categories_data, list):
-                categories_data = []
+            db_category = qd.get('category')
+            categories_data = [db_category] if db_category else []
 
             # Manually construct Question from available DB columns.
             validator_data = qd.get('validator')
