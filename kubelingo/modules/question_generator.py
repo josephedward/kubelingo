@@ -148,7 +148,7 @@ class AIQuestionGenerator:
             source_file = getattr(base_questions[0], 'source_file', source_file)
 
         valid_questions: List[Question] = []
-        if not self.client:
+        if not self.llm_client:
             logger.error("LLM client not available, cannot generate questions.")
             return valid_questions
 
