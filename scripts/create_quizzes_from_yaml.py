@@ -8,12 +8,13 @@ import os
 import sqlite3
 import llm
 from datetime import datetime
+import json
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from kubelingo.database import get_db_connection, add_question, init_db
+from kubelingo.database import get_db_connection, init_db
 from kubelingo.utils.path_utils import get_project_root, get_live_db_path
 
 # Configure logging
@@ -34,6 +35,39 @@ def process_with_gemini(prompt, model="gemini-2.0-flash"):
         return None
 
 
+def add_question(conn, id, prompt, source_file, response, category, source, validation_steps, validator, review):
+    """
+    Adds a question to the database, handling JSON serialization for complex fields.
+    """
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO questions (
+                id, prompt, source_file, response, category, source,
+                validation_steps, validator, review
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                prompt=excluded.prompt,
+                source_file=excluded.source_file,
+                response=excluded.response,
+                category=excluded.category,
+                source=excluded.source,
+                validation_steps=excluded.validation_steps,
+                validator=excluded.validator,
+                review=excluded.review;
+        """, (
+            id,
+            prompt,
+            str(source_file),
+            response,
+            category,
+            source,
+            json.dumps(validation_steps) if validation_steps is not None else None,
+            json.dumps(validator) if validator is not None else None,
+            review
+        ))
+    except sqlite3.Error as e:
+        logging.error(f"Failed to add question {id}: {e}")
 
 
 def create_quizzes_from_backup():
