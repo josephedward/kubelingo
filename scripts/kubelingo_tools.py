@@ -10,6 +10,7 @@ import json
 import re
 import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 # Determine directories
@@ -85,7 +86,26 @@ def task_consolidate_yaml():
 
 def task_show_yaml_backups():
     """Show Previous YAML backup(s)"""
-    _run_script("show_previous_yaml_backups.py")
+    backup_dir = repo_root / 'backups' / 'yaml'
+    if not backup_dir.is_dir():
+        print(f"Backup directory not found: {backup_dir}")
+        return
+
+    yaml_files = sorted(
+        list(backup_dir.glob('*.yaml')) + list(backup_dir.glob('*.yml')),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+
+    if not yaml_files:
+        print(f"No YAML backups found in {backup_dir}")
+        return
+
+    print("\nAvailable YAML backups (newest first):")
+    for f in yaml_files:
+        mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+        print(f"  - {f.name} ({mtime})")
+    print()
 
 def task_diff_yaml_backups():
     """Diff YAML Backups"""
@@ -162,7 +182,22 @@ def task_view_db_schema():
 
 def task_show_sqlite_backups():
     """Show Previous Sqlite Backup(s)"""
-    _run_script("show_previous_sqlite_backups.py")
+    backup_dir = repo_root / 'backups' / 'sqlite'
+    if not backup_dir.is_dir():
+        print(f"Backup directory not found: {backup_dir}")
+        return
+
+    db_files = sorted(list(backup_dir.glob('*.db')), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    if not db_files:
+        print(f"No SQLite backups found in {backup_dir}")
+        return
+
+    print("\nAvailable SQLite backups (newest first):")
+    for f in db_files:
+        mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+        print(f"  - {f.name} ({mtime})")
+    print()
 
 def task_diff_sqlite_backups():
     """Diff with Backup Sqlite Db"""
