@@ -35,8 +35,8 @@ class KubernetesStudyMode:
                 choice = questionary.select(
                     "Kubernetes Main Menu",
                     choices=[
-                        "Start Study Session",
-                        "Review Past Questions",
+                        "Study Mode",
+                        "Review Questions",
                         "Settings",
                         "Exit",
                     ],
@@ -47,7 +47,7 @@ class KubernetesStudyMode:
                     print("Exiting application. Goodbye!")
                     break
 
-                if choice == "Start Study Session":
+                if choice == "Study Mode":
                     level = questionary.select(
                         "What is your current overall skill level?",
                         choices=["beginner", "intermediate", "advanced"],
