@@ -37,7 +37,7 @@ def reorganize_by_ai(db_path: Optional[str] = None):
 
     conn = get_db_connection(db_path=db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM questions WHERE schema_category IS NULL OR subject_matter IS NULL")
+    cursor.execute("SELECT * FROM questions WHERE category_id IS NULL OR subject_id IS NULL")
     rows = cursor.fetchall()
     
     if not rows:
@@ -56,12 +56,11 @@ def reorganize_by_ai(db_path: Optional[str] = None):
             result = categorizer.categorize_question(q_dict)
             
             if result:
-                schema_category_from_ai = result.get("schema_category")
-                subject_matter = result.get("subject_matter")
+                category_id_from_ai = result.get("exercise_category")
+                subject_id = result.get("subject_matter")
 
-                # Map AI output to the database schema for robustness, as the model may
-                # sometimes return the descriptive text instead of the simple value.
-                schema_category_map = {
+                # Map AI output to the database schema for robustness
+                exercise_category_map = {
                     "basic": "basic",
                     "command": "command",
                     "manifest": "manifest",
@@ -69,12 +68,12 @@ def reorganize_by_ai(db_path: Optional[str] = None):
                     "Command-Based/Syntax": "command",
                     "Manifests": "manifest",
                 }
-                schema_category = schema_category_map.get(schema_category_from_ai)
+                category_id = exercise_category_map.get(category_id_from_ai)
 
-                if schema_category and subject_matter:
+                if category_id and subject_id:
                     cursor.execute(
-                        "UPDATE questions SET schema_category = ?, subject_matter = ? WHERE id = ?",
-                        (schema_category, subject_matter, q_id)
+                        "UPDATE questions SET category_id = ?, subject_id = ? WHERE id = ?",
+                        (category_id, subject_id, q_id)
                     )
                     updated_count += 1
                     pbar.set_postfix(status="Success")
@@ -105,8 +104,8 @@ def map_type_to_schema(q_type: str) -> str:
 
 
 def reorganize_by_type_mapping(db_path: Optional[str] = None):
-    """Reassign schema_category based on the question_type column."""
-    print("Reassigning schema category based on question_type...")
+    """Reassign category_id based on the question_type column."""
+    print("Reassigning exercise category (category_id) based on question_type...")
     conn = get_db_connection(db_path=db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT id, question_type FROM questions")
@@ -118,13 +117,13 @@ def reorganize_by_type_mapping(db_path: Optional[str] = None):
         q_type = row['question_type'] or ''
         new_cat = map_type_to_schema(q_type)
         cursor.execute(
-            "UPDATE questions SET schema_category = ? WHERE id = ?", (new_cat, qid)
+            "UPDATE questions SET category_id = ? WHERE id = ?", (new_cat, qid)
         )
         if cursor.rowcount > 0:
             updated += 1
     conn.commit()
     conn.close()
-    print(f"\nReassigned schema_category for {updated}/{total} questions.")
+    print(f"\nReassigned category_id for {updated}/{total} questions.")
 
 
 # --- Method 3: Rule-based from dataclass logic ---
@@ -165,9 +164,9 @@ def reorganize_by_dataclass_logic(db_path: Optional[str] = None):
                 questions_by_source[source_file] = []
             questions_by_source[source_file].append(new_category)
 
-            if new_category and new_category != q_dict.get('schema_category'):
+            if new_category and new_category != q_dict.get('category_id'):
                 cursor.execute(
-                    "UPDATE questions SET schema_category = ? WHERE id = ?",
+                    "UPDATE questions SET category_id = ? WHERE id = ?",
                     (new_category, q_dict['id'])
                 )
                 updated_count += 1

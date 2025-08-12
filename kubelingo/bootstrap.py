@@ -92,7 +92,7 @@ def bootstrap_on_startup():
 
                     if ai_result:
                         # Update with AI results, keeping fallback if AI doesn't provide a value.
-                        category_id = ai_result.get('schema_category') or category_id
+                        category_id = ai_result.get('exercise_category') or category_id
                         subject_id = ai_result.get('subject_matter') or subject_id
                         logging.info(f"AI inferred category: '{category_id}', subject: '{subject_id}' for question {q_id}.")
                     else:

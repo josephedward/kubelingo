@@ -91,43 +91,47 @@ def main():
     processed_count = 0
 
     try:
+        cursor = conn.cursor()
         with tqdm(total=len(unique_questions), desc="Categorizing Questions") as pbar:
             for question in unique_questions.values():
                 q_dict = dataclasses.asdict(question)
+                q_id = q_dict.get('id')
+                prompt = q_dict.get('prompt')
+
+                # Get categories from AI
                 ai_categories = categorizer.categorize_question(q_dict)
 
-                schema_cat = q_dict.get('schema_category')
-                subject_mat = q_dict.get('subject')
+                category_id = None
+                subject_id = q_dict.get('category') # Fallback to subject from YAML
 
                 if ai_categories:
-                    schema_cat = ai_categories.get('schema_category', schema_cat)
-                    subject_mat = ai_categories.get('subject_matter', subject_mat)
+                    category_id = ai_categories.get('exercise_category', category_id)
+                    subject_id = ai_categories.get('subject_matter', subject_id)
 
+                # Add question using the base parameters
                 add_question(
                     conn=conn,
-                    id=q_dict.get('id'),
-                    prompt=q_dict.get('prompt'),
+                    id=q_id,
+                    prompt=prompt,
                     source_file=q_dict.get('source_file'),
                     response=q_dict.get('response'),
-                    category=q_dict.get('category'),
+                    category=subject_id, # This maps to subject_id column
                     source=q_dict.get('source'),
                     validation_steps=q_dict.get('validation_steps'),
                     validator=q_dict.get('validator'),
-                    review=q_dict.get('review', False),
-                    explanation=q_dict.get('explanation'),
-                    difficulty=q_dict.get('difficulty'),
-                    pre_shell_cmds=q_dict.get('pre_shell_cmds'),
-                    initial_files=q_dict.get('initial_files'),
-                    question_type=q_dict.get('type'),
-                    answers=q_dict.get('answers'),
-                    correct_yaml=q_dict.get('correct_yaml'),
-                    metadata=q_dict.get('metadata'),
-                    schema_category=schema_cat,
-                    subject_matter=subject_mat
+                    review=q_dict.get('review', False)
                 )
+
+                # Update category_id separately
+                if category_id:
+                    cursor.execute(
+                        "UPDATE questions SET category_id = ? WHERE id = ?",
+                        (category_id, q_id)
+                    )
+
                 processed_count += 1
                 pbar.update(1)
-
+        conn.commit()
     finally:
         if conn:
             conn.close()

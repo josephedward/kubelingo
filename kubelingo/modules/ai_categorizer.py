@@ -46,7 +46,7 @@ Analyze the question's content to make the best choice. For example:
 
 Return ONLY a valid JSON object in the format:
 {{
-  "schema_category": "The full string value of the category",
+  "exercise_category": "The full string value of the category",
   "subject_matter": "The full string value of the subject"
 }}
 Do not include any other text or explanation.
@@ -75,10 +75,10 @@ Do not include any other text or explanation.
                 
             data = json.loads(response_str)
             
-            category = data.get("schema_category")
+            category = data.get("exercise_category")
             subject_matter = data.get("subject_matter")
 
-            schema_category_map = {
+            exercise_category_map = {
                 "basic": "basic",
                 "command": "command",
                 "manifest": "manifest",
@@ -88,8 +88,8 @@ Do not include any other text or explanation.
             }
             valid_subjects = [s.value for s in QuestionSubject]
 
-            if category in schema_category_map and subject_matter in valid_subjects:
-                return {"schema_category": schema_category_map[category], "subject_matter": subject_matter}
+            if category in exercise_category_map and subject_matter in valid_subjects:
+                return {"exercise_category": exercise_category_map[category], "subject_matter": subject_matter}
             else:
                 logging.warning(f"{Fore.YELLOW}\nWarning: AI returned invalid or unexpected data: {data}. Skipping.{Style.RESET_ALL}")
                 return None
