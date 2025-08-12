@@ -35,3 +35,18 @@ def test_import_from_dump_loads_questions(db_from_latest_dump):
     cursor.execute("SELECT count(*) FROM questions")
     count = cursor.fetchone()[0]
     assert count > 0, "No questions were loaded from the SQL dump."
+
+
+def test_imported_quizzes_have_expected_categories(db_from_latest_dump):
+    """
+    Checks that imported quizzes cover expected categories like 'Command' and 'Manifest'.
+    """
+    cursor = db_from_latest_dump.cursor()
+    cursor.execute("SELECT DISTINCT category FROM questions")
+    categories = {row[0] for row in cursor.fetchall()}
+
+    expected = {"Command", "Manifest"}
+    assert expected.issubset(categories), (
+        f"Database is missing expected quiz categories. "
+        f"Expected to find {expected}, but only found {categories}."
+    )
