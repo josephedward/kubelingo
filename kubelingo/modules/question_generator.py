@@ -149,29 +149,26 @@ class AIQuestionGenerator:
             logger.error("LLM client not available, cannot generate questions.")
             return valid_questions
 
-        # Attempt generation up to max_attempts
-        for attempt in range(1, self.max_attempts + 1):
-            print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}AI generation attempt...{Style.RESET_ALL}")
+        raw = None
+        try:
+            # Use the configured LLM client
+            raw = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "user", "content": ai_prompt}
+                ],
+                temperature=0.7,
+                json_mode=True
+            )
+        except Exception as e:
+            logger.error(f"LLM client failed: {e}", exc_info=True)
             raw = None
-            try:
-                # Use the configured LLM client
-                raw = self.llm_client.chat_completion(
-                    messages=[
-                        {"role": "user", "content": ai_prompt}
-                    ],
-                    temperature=0.7,
-                    json_mode=True
-                )
-            except Exception as e:
-                logger.error(f"LLM client failed on attempt {attempt}: {e}", exc_info=True)
-                break
-            
-            if not raw:
-                logger.warning("LLM client returned no content.")
-                continue
 
+        items = []
+        if not raw:
+            logger.warning("LLM client returned no content.")
+        else:
             # Parse JSON
-            items = []
             try:
                 items = json.loads(raw)
             except Exception:
@@ -181,62 +178,60 @@ class AIQuestionGenerator:
                         items = json.loads(m.group())
                     except Exception:
                         items = []
-            valid_questions.clear()
-            for obj in items or []:
-                # Support common key names for question/answer
-                p = obj.get("prompt") or obj.get("question") or obj.get("q")
-                r = obj.get("response") or obj.get("answer") or obj.get("a")
-                if not p or not r:
+
+        for obj in items or []:
+            # Support common key names for question/answer
+            p = obj.get("prompt") or obj.get("question") or obj.get("q")
+            r = obj.get("response") or obj.get("answer") or obj.get("a")
+            if not p or not r:
+                continue
+
+            if q_type == "command":
+                if not validate_kubectl_syntax(r).get("valid"):
+                    continue
+                if not validate_prompt_completeness(r, p).get("valid"):
+                    continue
+            elif q_type == "yaml_author":
+                if not validate_yaml_structure(r).get("valid"):
+                    logger.warning(f"Skipping AI-generated YAML question with invalid syntax: {p}")
                     continue
 
-                if q_type == "command":
-                    if not validate_kubectl_syntax(r).get("valid"):
-                        continue
-                    if not validate_prompt_completeness(r, p).get("valid"):
-                        continue
-                elif q_type == "yaml_author":
-                    if not validate_yaml_structure(r).get("valid"):
-                        logger.warning(f"Skipping AI-generated YAML question with invalid syntax: {p}")
-                        continue
+            validator_dict = {"type": "ai", "expected": r}
+            if q_type == "yaml_author":
+                validator_dict = {"type": "yaml_subset", "expected": r}
 
-                validator_dict = {"type": "ai", "expected": r}
-                if q_type == "yaml_author":
-                    validator_dict = {"type": "yaml_subset", "expected": r}
+            qid = f"ai-gen-{uuid.uuid4()}"
+            # Create question object
+            question = Question(
+                id=qid,
+                prompt=p,
+                response=r,
+                type=q_type,
+                validator=validator_dict,
+                category=category,
+                subject=subject,
+                source='ai_generated',
+                source_file=source_file,
+            )
 
-                qid = f"ai-gen-{uuid.uuid4()}"
-                # Create question object
-                question = Question(
+            # Persist the generated question to the database
+            try:
+                add_question(
                     id=qid,
                     prompt=p,
+                    source_file=source_file,
                     response=r,
-                    type=q_type,
-                    validator=validator_dict,
                     category=category,
                     subject=subject,
                     source='ai_generated',
-                    source_file=source_file,
+                    validator=validator_dict,
                 )
-                
-                # Persist the generated question to the database
-                try:
-                    add_question(
-                        id=qid,
-                        prompt=p,
-                        source_file=source_file,
-                        response=r,
-                        category=category,
-                        subject=subject,
-                        source='ai_generated',
-                        validator=validator_dict,
-                    )
-                    # Also save to YAML file upon successful DB insertion
-                    self._save_question_to_yaml(question)
-                    valid_questions.append(question)
-                except Exception as e:
-                    logger.warning(f"Failed to add AI-generated question '{qid}' to DB: {e}")
-            if len(valid_questions) >= num_questions:
-                break
-            print(f"{Fore.YELLOW}Only {len(valid_questions)}/{num_questions} valid AI question(s); retrying...{Style.RESET_ALL}")
+                # Also save to YAML file upon successful DB insertion
+                self._save_question_to_yaml(question)
+                valid_questions.append(question)
+            except Exception as e:
+                logger.warning(f"Failed to add AI-generated question '{qid}' to DB: {e}")
+        
         if len(valid_questions) < num_questions:
             print(f"{Fore.YELLOW}Warning: Could only generate {len(valid_questions)} AI question(s).{Style.RESET_ALL}")
         return valid_questions[:num_questions]
