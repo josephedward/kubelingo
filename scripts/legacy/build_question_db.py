@@ -47,30 +47,30 @@ def import_questions(files: List[Path], conn: sqlite3.Connection):
                         if k not in q_dict:
                             q_dict[k] = v
 
-                # Set schema_category and category based on the question type
+                # Capture YAML category for subject mapping
+                orig_category = q_dict.get('category')
+                # Determine DB category_id based on question type
                 q_type = q_dict.get('type', 'command')
                 if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
-                    schema_cat = QuestionCategory.MANIFEST.value
+                    cat_id = 'manifest'
                 elif q_type == 'socratic':
-                    schema_cat = QuestionCategory.OPEN_ENDED.value
-                else:  # command, etc.
-                    schema_cat = QuestionCategory.COMMAND.value
-                q_dict['schema_category'] = schema_cat
-                q_dict['category'] = schema_cat
-
+                    cat_id = 'open-ended'
+                else:
+                    cat_id = 'command'
+                # Assign schema_category (internal) and DB category_id
+                q_dict['schema_category'] = cat_id
+                q_dict['category'] = cat_id
+                # Map YAML category to subject_matter for DB subject_id
+                if orig_category is not None:
+                    q_dict['subject_matter'] = orig_category
                 # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
                 if 'type' in q_dict:
                     q_dict['question_type'] = q_dict.pop('type')
                 else:
                     q_dict['question_type'] = q_type
-
                 # The 'answer' field from YAML needs to be mapped to 'response' for the DB
                 if 'answer' in q_dict:
                     q_dict['response'] = q_dict.pop('answer')
-
-                # The 'category' from YAML is the question's 'subject' in the database.
-                if 'category' in q_dict:
-                    q_dict['subject_matter'] = q_dict.pop('category')
 
                 q_dict['source_file'] = file_path.name
                 # Preserve any `links` entries in metadata
