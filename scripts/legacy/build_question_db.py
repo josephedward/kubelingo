@@ -47,14 +47,16 @@ def import_questions(files: List[Path], conn: sqlite3.Connection):
                         if k not in q_dict:
                             q_dict[k] = v
 
-                # Set schema_category based on the question type
+                # Set schema_category and category based on the question type
                 q_type = q_dict.get('type', 'command')
                 if q_type in ('yaml_edit', 'yaml_author', 'live_k8s_edit'):
-                    q_dict['schema_category'] = QuestionCategory.MANIFEST.value
+                    schema_cat = QuestionCategory.MANIFEST.value
                 elif q_type == 'socratic':
-                    q_dict['schema_category'] = QuestionCategory.OPEN_ENDED.value
+                    schema_cat = QuestionCategory.OPEN_ENDED.value
                 else:  # command, etc.
-                    q_dict['schema_category'] = QuestionCategory.COMMAND.value
+                    schema_cat = QuestionCategory.COMMAND.value
+                q_dict['schema_category'] = schema_cat
+                q_dict['category'] = schema_cat
 
                 # The 'type' field from YAML needs to be mapped to 'question_type' for the DB
                 if 'type' in q_dict:
