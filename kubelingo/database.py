@@ -1,8 +1,10 @@
 import sqlite3
 import json
 import os
+import re
 import shutil
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
 
@@ -139,6 +141,10 @@ def init_db(clear: bool = False, db_path: Optional[str] = None):
 
     conn.commit()
     conn.close()
+
+    # Prune old database backups to prevent them from accumulating.
+    if db_path is None:
+        prune_db_backups()
 
 
 def add_question(
@@ -375,6 +381,49 @@ def get_question_counts_by_schema_and_subject(conn: Optional[sqlite3.Connection]
             continue
         counts.setdefault(cat_id, {})[subj_id] = cnt
     return counts
+
+
+def prune_db_backups(keep: int = 10):
+    """
+    Removes old database backups, keeping only the most recent ones.
+    Also removes associated -shm and -wal files.
+    """
+    try:
+        from kubelingo.utils.config import DATABASE_FILE
+
+        db_dir = Path(DATABASE_FILE).parent
+        if not db_dir.is_dir():
+            return
+
+        # Regex to match backup files like:
+        # 20250812_091456_113974.db
+        # kubelingo_db_20250812_092509.db
+        backup_pattern = re.compile(r"^(?:kubelingo_db_)?\d{8}_\d{6}(?:_\d+)?\.db$")
+
+        backups = [p for p in db_dir.glob('*.db') if backup_pattern.match(p.name)]
+
+        # Sort by filename, which works due to the YYYYMMDD format
+        backups.sort(key=lambda p: p.name)
+
+        if len(backups) <= keep:
+            return
+
+        to_delete = backups[:-keep]
+        for db_file in to_delete:
+            try:
+                # Delete the main .db file
+                db_file.unlink()
+
+                # Delete associated -shm and -wal files
+                for suffix in ['-shm', '-wal']:
+                    assoc_file = db_dir / (db_file.name + suffix)
+                    assoc_file.unlink(missing_ok=True)
+            except OSError:
+                # Ignore errors (e.g. file in use or permissions)
+                pass
+    except Exception:
+        # If anything goes wrong, just skip pruning. It's not critical.
+        pass
 
 
 def update_review_status(question_id: str, review: bool, conn: Optional[sqlite3.Connection] = None):
