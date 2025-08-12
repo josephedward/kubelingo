@@ -1,5 +1,6 @@
 import os
 from typing import Dict, List
+from kubelingo.utils.config import get_openai_api_key, get_gemini_api_key, save_openai_api_key, save_gemini_api_key
 
 try:
     import openai
@@ -23,41 +24,47 @@ if openai is not None and hasattr(openai, '__file__'):
         openai = real_openai
 
 
-KUBERNETES_TOPICS = {
-    "pods": [
-        "multi-container pods", "init containers", "pod lifecycle",
-        "pod networking", "resource limits", "pod security contexts"
-    ],
-    "services": [
-        "ClusterIP vs NodePort vs LoadBalancer", "service discovery",
-        "endpoints", "ingress controllers", "network policies"
-    ],
-    "deployments": [
-        "rolling updates", "rollback strategies", "replica sets",
-        "deployment strategies", "blue-green deployments"
-    ],
-    "storage": [
-        "persistent volumes", "storage classes", "volume mounts",
-        "stateful sets", "dynamic provisioning"
-    ]
-}
+KUBERNETES_TOPICS = [
+    "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
+    "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
+    "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",
+    "App configuration (ConfigMaps, Secrets, projected & downwardAPI volumes)",
+    "Probes & health (liveness, readiness, startup; graceful shutdown)",
+    "Resource management (requests/limits, QoS classes, HPA basics)",
+    "Jobs & CronJobs (completions, parallelism, backoff, schedules)",
+    "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)",
+    "Ingress & HTTP routing (basic rules, paths, service backends)",
+    "Networking utilities (DNS in-cluster, port-forward, exec, curl)",
+    "Persistence (PVCs, using existing StorageClasses, common volume types)",
+    "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)",
+    "Labels, annotations & selectors (label ops, field selectors, jsonpath)",
+    "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)",
+    "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)",
+    "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)",
+    "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)",
+    "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
+    "Namespaces & contexts (scoping resources, default namespace, context switching)",
+    "API discovery & docs (kubectl explain, api-resources, api-versions)"
+]
 
 
 class KubernetesStudyMode:
-    def __init__(self, api_key: str = None):
-        if openai is None:
-            raise ImportError("openai package not found. Please install it with 'pip install openai'")
-        
-        if api_key:
-            # Configure API key on the OpenAI module if provided
-            try:
-                openai.api_key = api_key
-            except Exception as e:
-                raise ImportError(f"Failed to set OpenAI API key: {e}")
-        # If api_key is not provided, the openai library will use the
-        # OPENAI_API_KEY environment variable if it is set.
-        # Use OpenAI module directly for chat completions
-        self.openai = openai
+    def __init__(self, api_key: str = None, backend: str = "gemini"):
+        self.backend = backend.lower()
+        if self.backend == "openai":
+            if openai is None:
+                raise ImportError("openai package not found. Please install it with 'pip install openai'")
+            if api_key:
+                try:
+                    openai.api_key = api_key
+                except Exception as e:
+                    raise ImportError(f"Failed to set OpenAI API key: {e}")
+            self.api = openai
+        elif self.backend == "gemini":
+            # Placeholder for Gemini integration
+            self.api = None  # Replace with actual Gemini client initialization
+        else:
+            raise ValueError(f"Unsupported backend: {backend}")
         self.conversation_history = []
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
@@ -66,17 +73,21 @@ class KubernetesStudyMode:
 
         initial_message = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
 
-        response = self.openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": initial_message}
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-        
-        assistant_response = response.choices[0].message.content
+        if self.backend == "openai":
+            response = self.api.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": initial_message}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+            assistant_response = response.choices[0].message.content
+        elif self.backend == "gemini":
+            # Placeholder for Gemini response handling
+            assistant_response = "Gemini backend is not yet implemented."
+
         self.conversation_history = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": initial_message},
@@ -89,14 +100,18 @@ class KubernetesStudyMode:
         """Continue the study conversation"""
         self.conversation_history.append({"role": "user", "content": user_input})
 
-        response = self.openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=self.conversation_history,
-            temperature=0.7,
-            max_tokens=500
-        )
+        if self.backend == "openai":
+            response = self.api.ChatCompletion.create(
+                model="gpt-4",
+                messages=self.conversation_history,
+                temperature=0.7,
+                max_tokens=500
+            )
+            assistant_response = response.choices[0].message.content
+        elif self.backend == "gemini":
+            # Placeholder for Gemini response handling
+            assistant_response = "Gemini backend is not yet implemented."
 
-        assistant_response = response.choices[0].message.content
         self.conversation_history.append({"role": "assistant", "content": assistant_response})
 
         return assistant_response
@@ -133,39 +148,3 @@ TONE: Be warm, patient, conversational. Keep responses under 150 words. Always e
 Remember: Your goal is deep understanding, not quick answers."""
 
         return base_prompt.format(topic=topic, level=level)
-
-    def generate_practice_question(self, topic: str, difficulty: str = "medium") -> str:
-        """Generate practice questions for specific topics"""
-        question_prompt = f"""Generate a {difficulty} difficulty practice question about {topic} in Kubernetes. 
-
-The question should:
-- Present a realistic scenario
-- Require understanding of concepts, not just memorization  
-- Be answerable through guided discovery
-- Include enough context for troubleshooting
-
-Format: Present the scenario, then ask "What questions would you ask first to troubleshoot this?" rather than asking for the direct solution."""
-
-        response = self.openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an expert Kubernetes instructor creating quiz questions."},
-                {"role": "user",   "content": question_prompt}
-            ],
-            temperature=0.8,
-            max_tokens=300
-        )
-
-        return response.choices[0].message.content
-
-    def generate_topic_questions(self, main_topic: str, count: int = 5) -> List[str]:
-        """Generate multiple questions for a topic"""
-        subtopics = KUBERNETES_TOPICS.get(main_topic, [main_topic])
-        questions = []
-
-        for i in range(count):
-            subtopic = subtopics[i % len(subtopics)]
-            question = self.generate_practice_question(f"{main_topic} - {subtopic}")
-            questions.append(question)
-
-        return questions
