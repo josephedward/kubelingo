@@ -224,7 +224,7 @@ class KubernetesStudyMode:
             if new_provider and new_provider != self.ai_provider:
                 if save_ai_provider(new_provider):
                     self.ai_provider = new_provider
-                    self.client = get_llm_client(self.ai_provider)
+                    self.client = get_llm_client()
                     self.question_generator.llm_client = self.client
                     print(
                         f"\n{Fore.GREEN}AI provider set to {self.ai_provider.capitalize()}. It will be used for future sessions.{Style.RESET_ALL}"
