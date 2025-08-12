@@ -92,39 +92,23 @@ def task_create_db_from_yaml():
     """Create Sqlite DB from YAML Backup Version"""
     _run_script("yaml_manager.py", "create-db")
 
-def task_index_sqlite():
-    """Index all SQLite Files in Dir"""
+def task_index_sqlite_files():
+    """Index Sqlite Files"""
     _run_script("sqlite_manager.py", "index")
 
 def task_view_db_schema():
     """View Database Schema"""
-    try:
-        import questionary
-    except ImportError:
-        print("Error: 'questionary' package is required for interactive prompts.")
-        print("Install with: pip install questionary")
-        # Fallback to non-interactive
-        _run_script("sqlite_manager.py", "schema")
-        return
+    # Note: This shows schema for the live/default DB.
+    # A future improvement could be to find and show schema for the most recent backup.
+    _run_script("sqlite_manager.py", "schema")
 
-    db_path = questionary.path("Enter path to DB file (or press Enter for default):").ask()
-    if db_path:
-        _run_script('sqlite_manager.py', 'schema', db_path)
-    else:
-        _run_script('sqlite_manager.py', 'schema')
-
-def task_locate_sqlite_backup():
-    """Locate Previous SQLite Backup"""
+def task_show_previous_sqlite_backups():
+    """Show Previous Sqlite Backup(s)"""
     _run_script("sqlite_manager.py", "list")
 
-def task_diff_sqlite_backup():
-    """Diff with Backup SQLite DB"""
+def task_diff_sqlite_backups():
+    """Diff with Backup Sqlite Db"""
     _run_script("sqlite_manager.py", "diff")
-
-
-def task_unarchive_and_prune_sqlite_backups():
-    """Unarchive and Prune SQLite Backups"""
-    _run_script("sqlite_manager.py", "unarchive")
 
 
 def task_create_sqlite_backup():
@@ -135,18 +119,6 @@ def task_restore_from_sqlite_backup():
     """Restore from SQLite Backup Version"""
     _run_script("sqlite_manager.py", "restore")
 
-def task_create_db_from_yaml_with_ai():
-    """Create DB from YAML with AI Categorization"""
-    try:
-        import questionary
-    except ImportError:
-        print("Error: 'questionary' is required. Please install it.")
-        return
-    output_db = questionary.path("Enter path for the new categorized database file:", default="categorized.db").ask()
-    if not output_db:
-        print("Operation cancelled.")
-        return
-    _run_script("yaml_manager.py", "import-ai", output_db)
 
 def task_deduplicate_questions():
     """Deduplicate Questions"""
@@ -165,27 +137,6 @@ def task_fix_question_formatting():
     _run_script("question_manager.py", "format")
 
 
-def task_organize_generated_questions():
-    """Consolidate, import, and archive AI-generated YAML questions."""
-    print("This will consolidate, import, and clean up AI-generated YAML questions.")
-    try:
-        import questionary
-    except ImportError:
-        print("Error: 'questionary' is required. Please install it.")
-        return
-
-    dry_run = questionary.confirm("Run in dry-run mode first to see changes?", default=True).ask()
-    if dry_run is None:  # User cancelled
-        print("Operation cancelled.")
-        return
-
-    if dry_run:
-        _run_script("yaml_manager.py", "organize-generated", "--dry-run")
-        run_again = questionary.confirm("Dry run complete. Do you want to run it for real?", default=False).ask()
-        if run_again:
-            _run_script("yaml_manager.py", "organize-generated")
-    else:
-        _run_script("yaml_manager.py", "organize-generated")
 
 
 def task_full_migrate_and_cleanup():
