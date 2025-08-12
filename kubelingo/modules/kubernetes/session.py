@@ -92,8 +92,38 @@ class NewSession(StudySession):
                 print("\nStudy session ended. Returning to main menu.")
 
             elif style == "Basic term/definition recall":
-                print(f"\nQuiz style '{style}' is not yet implemented. Coming soon!")
-                return
+                study_session = KubernetesStudyMode()
+                print("\nStarting basic term/definition recall session...")
+                print("Type 'exit' or 'quit' to end the session.")
+
+                asked_terms = []
+                while True:
+                    print("\nGenerating a new question...")
+                    pair = study_session.generate_term_definition_pair(
+                        topic, exclude_terms=asked_terms
+                    )
+
+                    if not pair or "term" not in pair or "definition" not in pair:
+                        print("\nTutor: I'm having trouble thinking of a new question. You've answered them all!")
+                        break
+
+                    term = pair["term"]
+                    definition = pair["definition"]
+                    asked_terms.append(term)
+
+                    print(f"\nDefinition: {definition}")
+
+                    user_answer = questionary.text("What is the term?").ask()
+
+                    if user_answer is None or user_answer.lower().strip() in ['exit', 'quit']:
+                        break
+
+                    if user_answer.strip().lower() == term.lower():
+                        print("\nCorrect!")
+                    else:
+                        print(f"\nNot quite. The correct term is: {term}")
+
+                print("\nTerm recall session ended. Returning to main menu.")
 
             else:
                 print(f"\nQuiz style '{style}' is not yet implemented. Coming soon!")
