@@ -11,7 +11,17 @@ from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
-KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
+# Filter out general topics that are covered by more specific ones
+_all_topics = [member.value for member in QuestionSubject]
+_topics_to_exclude = {
+    "Vim",
+    "Helm",
+    "Kubectl",
+    "Kubernetes Resources",
+}
+KUBERNETES_TOPICS = [
+    topic for topic in _all_topics if topic not in _topics_to_exclude
+]
 
 
 class KubernetesStudyMode:
