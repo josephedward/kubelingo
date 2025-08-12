@@ -56,7 +56,7 @@ class KubernetesStudyMode:
                     if not level:
                         continue
                     self.start_study_session(user_level=level)
-                elif choice == "Review Past Questions":
+                elif choice == "Review Questions":
                     self.review_past_questions()
                 elif choice == "Settings":
                     self.settings_menu()
