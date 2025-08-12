@@ -232,11 +232,11 @@ class KubernetesStudyMode:
     def _ask_and_validate(self, question: Question) -> bool:
         """Asks a question and validates the answer based on its type."""
         if question.type == "basic":
-            user_answer = questionary.text("Your answer:").ask()
+            user_answer = questionary.text("What is the term?").ask()
             if user_answer is None:
                 return False
             # Simple case-insensitive check for basic terminology
-            return user_answer.lower().strip() == question.answers[0].lower().strip()
+            return user_answer.lower().strip() == question.response.lower().strip()
 
         if question.type == "command":
             user_answer = questionary.text("Your command:").ask()
@@ -259,72 +259,6 @@ class KubernetesStudyMode:
             return is_yaml_subset(question.correct_yaml, user_yaml)
 
         return False
-
-    def generate_term_definition_pair(
-        self,
-        topic: str,
-        user_level: str = "intermediate",
-        exclude_terms: Optional[set] = None,
-    ) -> Optional[Dict[str, str]]:
-        """Generates a term and definition pair for the given topic, avoiding duplicates."""
-        system_prompt = self._build_term_definition_prompt(topic, user_level, list(exclude_terms or []))
-        user_prompt = "Please generate one term-definition pair based on the system prompt instructions."
-
-        try:
-            response = self.client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.7,
-                json_mode=True,
-            )
-            if not response:
-                return None
-
-            pair = yaml.safe_load(response)
-            if isinstance(pair, dict) and "term" in pair and "definition" in pair:
-                return pair
-        except Exception as e:
-            print(f"Error generating or parsing term-definition pair: {e}")
-        return None
-
-    def _build_term_definition_prompt(self, topic: str, level: str, exclude_terms: List[str]) -> str:
-        """Builds a system prompt for the LLM to generate a term-definition pair as JSON."""
-        excluded_list = "\n".join(f"- {term}" for term in exclude_terms)
-        return f"""
-# **Role: Kubernetes Terminology Generator**
-You are an expert on Kubernetes. Your task is to generate a single, unique term-definition pair in JSON format for a user at the `{level}` level. Your output MUST BE A VALID JSON OBJECT.
-
-# **Request Details**
-- **Topic:** {topic}
-- **Task:** Provide one term and its corresponding definition.
-
-# **Exclusion List**
-Do not generate a term from the following list:
-{excluded_list if excluded_list else "- (none)"}
-
-# **Instructions**
-- The `term` should be a single, specific Kubernetes concept relevant to the topic.
-- The `definition` should be a clear and concise explanation of the term.
-- The output MUST be a single, valid JSON object with two keys: "term" and "definition". Do not include any other text or formatting.
-
-# **JSON Schema**
-```json
-{{
-  "term": "(string, required) - The Kubernetes term.",
-  "definition": "(string, required) - The definition of the term."
-}}
-```
-
-# **Example**
-```json
-{{
-  "term": "ReplicaSet",
-  "definition": "Ensures that a specified number of pod replicas are running at any given time."
-}}
-```
-"""
 
     def _start_socratic_session(
         self, topic: str, user_level: str = "intermediate"
@@ -382,36 +316,6 @@ Do not generate a term from the following list:
         )
 
         return assistant_response
-
-    def _build_term_recall_prompt(
-        self, topic: str, exclude_terms: Optional[List[str]] = None
-    ) -> str:
-        """Builds a system prompt for generating term/definition pairs."""
-        exclusion_prompt = ""
-        if exclude_terms:
-            exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
-            exclusion_prompt = (
-                f"\n- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}."
-            )
-
-        return f"""
-# **Role: Kubernetes Terminology Expert**
-You are an expert on Kubernetes terminology. Your task is to generate a single, specific term and a clear, one-sentence definition for it based on the given topic.
-
-# **Topic**
-**{topic}**
-
-# **Instructions**
-- Identify a single, important term from the topic.
-- Write a concise and accurate one-sentence definition for that term.
-- Your response MUST be a valid JSON object with two keys: "term" and "definition".{exclusion_prompt}
-
-# **Example**
-{{
-  "term": "Pod",
-  "definition": "The smallest and simplest unit in the Kubernetes object model that you create or deploy."
-}}
-"""
 
     def _build_kubernetes_study_prompt(self, topic: str, level: str) -> str:
         """Builds a structured, detailed system prompt optimized for Gemini models."""

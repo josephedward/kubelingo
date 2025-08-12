@@ -78,6 +78,7 @@ class AIQuestionGenerator:
         num_questions: int = 1,
         base_questions: List[Question] = None,
         category: str = "Command",
+        exclude_terms: Optional[List[str]] = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -93,9 +94,12 @@ class AIQuestionGenerator:
             prompt_lines.append("Your task is to create questions that require writing a full Kubernetes YAML manifest.")
             response_description = "the full, correct YAML manifest"
         elif category == "Basic":
-            q_type = "socratic"
+            q_type = "basic"
             prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
+            if exclude_terms:
+                exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
+                prompt_lines.append(f"- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}.")
         else:  # Command
             q_type = "command"
             response_description = "the kubectl command"
