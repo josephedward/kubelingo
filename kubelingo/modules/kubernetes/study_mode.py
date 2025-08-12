@@ -11,11 +11,17 @@ import yaml
 from questionary import Separator
 
 from kubelingo.database import add_question, get_db_connection, get_flagged_questions
+import random
+
+from kubelingo.database import add_question, get_db_connection, get_flagged_questions
 from kubelingo.integrations.llm import LLMClient, get_llm_client
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
-from kubelingo.modules.question_generator import AIQuestionGenerator
+from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.config import (
+    BASIC_QUIZZES,
+    COMMAND_QUIZZES,
+    MANIFEST_QUIZZES,
     get_ai_provider,
     get_cluster_configs,
     get_gemini_api_key,
@@ -39,10 +45,8 @@ class KubernetesStudyMode:
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
-        self.question_generator = AIQuestionGenerator(llm_client=self.client)
         self.db_conn = get_db_connection()
         self.questions_dir = get_project_root() / "questions" / "generated_yaml"
-        self.exclude_terms: List[str] = []
         os.makedirs(self.questions_dir, exist_ok=True)
 
     def main_menu(self):
@@ -85,17 +89,9 @@ class KubernetesStudyMode:
                 break
 
     def start_study_session(self, user_level: str = "intermediate") -> None:
-        """Guides the user to select a topic and quiz style, then starts the session."""
+        """Guides the user to select a quiz and starts the session."""
         while True:
             try:
-                topic = questionary.select(
-                    "Which Kubernetes topic would you like to study?",
-                    choices=KUBERNETES_TOPICS,
-                    use_indicator=True,
-                ).ask()
-                if not topic:
-                    break
-
                 quiz_style = questionary.select(
                     "What style of quiz would you like?",
                     choices=[
@@ -103,20 +99,59 @@ class KubernetesStudyMode:
                         "Basic term/definition recall",
                         "Command-line Challenge",
                         "Manifest Authoring Exercise",
+                        Separator(),
+                        questionary.Choice("Back to Main Menu", value="back"),
                     ],
                     use_indicator=True,
                 ).ask()
-                if not quiz_style:
+                if not quiz_style or quiz_style == "back":
                     break
 
                 if quiz_style == "Open-Ended Socratic Dialogue":
-                    self._run_socratic_mode(topic, user_level)
-                elif quiz_style == "Basic term/definition recall":
-                    self._run_basic_quiz(topic, user_level)
-                elif quiz_style == "Command-line Challenge":
-                    self._run_command_quiz(topic, user_level)
-                elif quiz_style == "Manifest Authoring Exercise":
-                    self._run_manifest_quiz(topic, user_level)
+                    topic = questionary.select(
+                        "Which Kubernetes topic would you like to study?",
+                        choices=KUBERNETES_TOPICS,
+                        use_indicator=True,
+                    ).ask()
+                    if topic:
+                        self._run_socratic_mode(topic, user_level)
+                    continue
+
+                quiz_map = {
+                    "Basic term/definition recall": (BASIC_QUIZZES, "basic"),
+                    "Command-line Challenge": (COMMAND_QUIZZES, "command"),
+                    "Manifest Authoring Exercise": (MANIFEST_QUIZZES, "manifest"),
+                }
+                quizzes, quiz_type = quiz_map[quiz_style]
+
+                if not quizzes:
+                    print(
+                        f"{Fore.YELLOW}No '{quiz_style}' quizzes available.{Style.RESET_ALL}"
+                    )
+                    continue
+
+                choices = list(quizzes.keys())
+                choices.append(Separator())
+                choices.append(questionary.Choice("Back", value="back"))
+                selected_quiz_name = questionary.select(
+                    f"Choose a '{quiz_style}' quiz:",
+                    choices=choices,
+                    use_indicator=True,
+                ).ask()
+                if not selected_quiz_name or selected_quiz_name == "back":
+                    continue
+
+                quiz_file = quizzes[selected_quiz_name]
+                loader = YAMLLoader()
+                questions = loader.load_file(quiz_file)
+
+                if not questions:
+                    print(
+                        f"\n{Fore.YELLOW}No questions found in '{selected_quiz_name}'.{Style.RESET_ALL}"
+                    )
+                    continue
+
+                self._run_quiz_loop(questions)
 
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting study mode.")
