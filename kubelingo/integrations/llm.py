@@ -3,10 +3,17 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Optional
 
+from kubelingo.utils.config import get_ai_provider
+
 try:
     import google.generativeai as genai
 except ImportError:
     genai = None
+
+try:
+    import openai
+except ImportError:
+    openai = None
 
 
 class LLMClient(ABC):
@@ -22,6 +29,52 @@ class LLMClient(ABC):
         pass
 
 
+class OpenAIClient(LLMClient):
+    """LLM client for OpenAI models."""
+
+    def __init__(self):
+        if openai is None:
+            raise ImportError(
+                "The 'openai' package is required to use OpenAIClient. "
+                "Please install it with 'pip install openai'."
+            )
+        from kubelingo.utils.config import get_openai_api_key
+
+        api_key = get_openai_api_key()
+        if not api_key:
+            # Fallback to environment variable for broader compatibility
+            api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OpenAI API key is not set in config or OPENAI_API_KEY environment variable."
+            )
+
+        self.client = openai.OpenAI(api_key=api_key)
+
+    def chat_completion(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.0,
+        json_mode: bool = False,
+    ) -> Optional[str]:
+        """Sends a chat completion request to the OpenAI API."""
+        params = {
+            "model": "gpt-4-turbo",
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if json_mode:
+            params["response_format"] = {"type": "json_object"}
+
+        try:
+            response = self.client.chat.completions.create(**params)
+            content = response.choices[0].message.content
+            return content
+        except Exception as e:
+            logging.error(f"OpenAI API request failed: {e}", exc_info=True)
+            raise
+
+
 class GeminiClient(LLMClient):
     """LLM client for Google Gemini models."""
 
@@ -31,10 +84,16 @@ class GeminiClient(LLMClient):
                 "The 'google-generativeai' package is required to use GeminiClient. "
                 "Please install it with 'pip install google-generativeai'."
             )
+        from kubelingo.utils.config import get_gemini_api_key
 
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = get_gemini_api_key()
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set.")
+            api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+            raise ValueError(
+                "Gemini API key not found in config file or GEMINI_API_KEY environment variable."
+            )
 
         genai.configure(api_key=api_key)
 
@@ -74,17 +133,17 @@ class GeminiClient(LLMClient):
             raise  # Re-raise for the caller to handle
 
 
-def get_llm_client(client_type: str = "gemini") -> LLMClient:
+def get_llm_client() -> LLMClient:
     """
-    Factory function to get an LLM client instance.
-
-    Args:
-        client_type (str): The type of LLM client to return. Defaults to "gemini".
+    Factory function to get an LLM client instance based on user configuration.
 
     Returns:
         LLMClient: An instance of the requested LLM client.
     """
-    if client_type == "gemini":
+    provider = get_ai_provider()
+    if provider == "gemini":
         return GeminiClient()
+    elif provider == "openai":
+        return OpenAIClient()
     else:
-        raise ValueError(f"Unsupported LLM client type: {client_type}")
+        raise ValueError(f"Unsupported LLM client type in configuration: {provider}")

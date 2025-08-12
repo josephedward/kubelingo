@@ -249,33 +249,65 @@ class KubernetesStudyMode:
         action = cmd[1].lower()
         target = cmd[2].lower()
 
-        if target in ("openai", "api_key"):
+        if target == "provider":
+            if action == "set":
+                from kubelingo.utils.config import get_ai_provider, save_ai_provider
+
+                current_provider = get_ai_provider()
+                new_provider = questionary.select(
+                    "Select your preferred AI provider:",
+                    choices=["gemini", "openai"],
+                    default=current_provider,
+                ).ask()
+                if new_provider and new_provider != current_provider:
+                    if save_ai_provider(new_provider):
+                        print(f"AI provider set to '{new_provider}'.")
+                    else:
+                        print("Failed to save AI provider setting.")
+            else:
+                print(f"Unknown action '{action}' for provider. Use 'set'.")
+        elif target in ("openai", "api_key", "gemini"):
+            from kubelingo.utils.config import (
+                get_active_api_key,
+                get_ai_provider,
+                save_gemini_api_key,
+            )
+
+            provider = get_ai_provider()
+            key_name = f"{provider.capitalize()} API key"
             if action == "view":
-                key = get_openai_api_key()
+                key = get_active_api_key()
                 if key:
-                    print(f"OpenAI API key: {key}")
+                    print(f"{key_name}: {key}")
                 else:
-                    print("OpenAI API key is not set.")
+                    print(f"{key_name} is not set.")
             elif action == "set":
                 value = None
                 if len(cmd) >= 4:
                     value = cmd[3]
                 else:
                     try:
-                        value = getpass.getpass("Enter OpenAI API key: ").strip()
+                        value = getpass.getpass(f"Enter {key_name}: ").strip()
                     except (EOFError, KeyboardInterrupt):
-                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                        print(
+                            f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}"
+                        )
                         return
 
                 if value:
-                    if save_openai_api_key(value):
-                        print("OpenAI API key saved.")
+                    save_func = (
+                        save_openai_api_key
+                        if provider == "openai"
+                        else save_gemini_api_key
+                    )
+                    if save_func(value):
+                        print(f"{key_name} saved.")
                     else:
-                        print("Failed to save OpenAI API key.")
+                        print(f"Failed to save {key_name}.")
                 else:
                     print("No API key provided. No changes made.")
             else:
-                print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
+                print(f"Unknown action '{action}' for api_key. Use 'view' or 'set'.")
         elif target == "gemini":
             if action == "view":
                 key = get_gemini_api_key()
