@@ -62,9 +62,8 @@ SQLITE_BACKUP_DIRS = [
 
 
 # --- Legacy Data Directories (used ONLY by the consolidation script) ---
-# These paths are preserved to allow the one-time consolidation script to find the old files.
-# They are not used by the main application or build script.
-YAML_QUIZ_DIR = os.path.join(DATA_DIR, 'yaml')
+# This directory contains consolidated question files for bootstrapping the database.
+YAML_QUIZ_DIR = os.path.join(PROJECT_ROOT, 'yaml')
 YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
 
 
