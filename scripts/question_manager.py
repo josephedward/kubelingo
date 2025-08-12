@@ -55,7 +55,6 @@ from kubelingo.database import (
 from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
 from kubelingo.modules.ai_categorizer import AICategorizer
 from kubelingo.modules.question_generator import AIQuestionGenerator
-from kubelingo.modules.json_loader import JSONLoader
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
 from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path
@@ -1490,44 +1489,6 @@ def handle_categorize_text(args):
     else:
         print("Failed to categorize text.", file=sys.stderr)
         sys.exit(1)
-
-
-# --- from: scripts/suggest_citations.py ---
-URL_MAP = {
-    'kubectl get ns': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get',
-    'kubectl create sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#create-serviceaccount',
-    'kubectl describe sa': 'https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#describe',
-}
-
-def suggest_citation(answer_cmd):
-    """Return the first matching URL for the given command answer."""
-    for prefix, url in URL_MAP.items():
-        if answer_cmd.startswith(prefix):
-            return url
-    return None
-
-def handle_suggest_citations(args):
-    """Suggest documentation citations for command-quiz questions."""
-    loader = JSONLoader()
-    paths = loader.discover()
-    if not paths:
-        print("No JSON question files found to analyze.")
-        return
-    for path in paths:
-        try:
-            items = json.load(open(path, encoding='utf-8'))
-        except Exception as e:
-            print(f"Failed to load {path}: {e}")
-            continue
-        print(f"\nFile: {path}")
-        for idx, item in enumerate(items):
-            answer = item.get('response') or ''
-            qtext = item.get('prompt') or item.get('question') or ''
-            citation = suggest_citation(answer)
-            if citation:
-                print(f" {idx+1}. {qtext}\n     -> Suggest citation: {citation}")
-            else:
-                print(f" {idx+1}. {qtext}\n     -> No citation found.")
 
 
 # --- from: scripts/add_ui_config_questions.py ---
