@@ -331,6 +331,36 @@ class KubernetesStudyMode:
 
         return assistant_response
 
+    def _build_term_recall_prompt(
+        self, topic: str, exclude_terms: Optional[List[str]] = None
+    ) -> str:
+        """Builds a system prompt for generating term/definition pairs."""
+        exclusion_prompt = ""
+        if exclude_terms:
+            exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
+            exclusion_prompt = (
+                f"\n- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}."
+            )
+
+        return f"""
+# **Role: Kubernetes Terminology Expert**
+You are an expert on Kubernetes terminology. Your task is to generate a single, specific term and a clear, one-sentence definition for it based on the given topic.
+
+# **Topic**
+**{topic}**
+
+# **Instructions**
+- Identify a single, important term from the topic.
+- Write a concise and accurate one-sentence definition for that term.
+- Your response MUST be a valid JSON object with two keys: "term" and "definition".{exclusion_prompt}
+
+# **Example**
+{{
+  "term": "Pod",
+  "definition": "The smallest and simplest unit in the Kubernetes object model that you create or deploy."
+}}
+"""
+
     def _build_kubernetes_study_prompt(self, topic: str, level: str) -> str:
         """Builds a structured, detailed system prompt optimized for Gemini models."""
         return f"""
