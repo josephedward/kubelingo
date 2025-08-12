@@ -80,8 +80,8 @@ from kubelingo.utils.config import (
     LOGS_DIR,
     HISTORY_FILE,
     LOG_FILE,
-    get_openai_api_key,
-    save_openai_api_key,
+    get_gemini_api_key,
+    save_gemini_api_key,
     API_KEY_FILE,
     YAML_QUIZ_DIR,
     get_cluster_configs,
@@ -171,40 +171,40 @@ def handle_config_command(cmd):
     import getpass
     if len(cmd) < 3:
         print("Usage: kubelingo config <action> <target> [args...]")
-        print("Example: kubelingo config set openai")
+        print("Example: kubelingo config set gemini")
         print("Example: kubelingo config list cluster")
         return
 
     action = cmd[1].lower()
     target = cmd[2].lower()
 
-    if target in ('openai', 'api_key'):
+    if target in ('gemini', 'api_key'):
         if action == 'view':
-            key = get_openai_api_key()
+            key = get_gemini_api_key()
             if key:
-                print(f'OpenAI API key: {key}')
+                print(f'Gemini API key: {key}')
             else:
-                print('OpenAI API key is not set.')
+                print('Gemini API key is not set.')
         elif action == 'set':
             value = None
             if len(cmd) >= 4:
                 value = cmd[3]
             else:
                 try:
-                    value = getpass.getpass('Enter OpenAI API key: ').strip()
+                    value = getpass.getpass('Enter Gemini API key: ').strip()
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
                     return
 
             if value:
-                if save_openai_api_key(value):
-                    print('OpenAI API key saved.')
+                if save_gemini_api_key(value):
+                    print('Gemini API key saved.')
                 else:
-                    print('Failed to save OpenAI API key.')
+                    print('Failed to save Gemini API key.')
             else:
                 print("No API key provided. No changes made.")
         else:
-            print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
+            print(f"Unknown action '{action}' for gemini. Use 'view' or 'set'.")
     elif target == 'cluster':
         configs = get_cluster_configs()
         if action == 'list':
@@ -263,7 +263,7 @@ def handle_config_command(cmd):
         else:
             print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
     else:
-        print(f"Unknown config target '{target}'. Supported: openai, cluster.")
+        print(f"Unknown config target '{target}'. Supported: gemini, cluster.")
 
 def _run_script(script_path: str):
     """Helper to run a script from the project root."""
@@ -670,8 +670,8 @@ def manage_config_interactive():
         action = questionary.select(
             "What would you like to do?",
             choices=[
-                {"name": "View current OpenAI API key", "value": "view_openai"},
-                {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                {"name": "View current Gemini API key", "value": "view_gemini"},
+                {"name": "Set/Update Gemini API key", "value": "set_gemini"},
                 questionary.Separator("Kubernetes Clusters"),
                 {"name": "List configured clusters", "value": "list_clusters"},
                 {"name": "Add a new cluster connection", "value": "add_cluster"},
@@ -685,10 +685,10 @@ def manage_config_interactive():
         if action is None or action == "cancel":
             return
 
-        if action == 'view_openai':
-            handle_config_command(['config', 'view', 'openai'])
-        elif action == 'set_openai':
-            handle_config_command(['config', 'set', 'openai'])
+        if action == 'view_gemini':
+            handle_config_command(['config', 'view', 'gemini'])
+        elif action == 'set_gemini':
+            handle_config_command(['config', 'set', 'gemini'])
         elif action == 'list_clusters':
             handle_config_command(['config', 'list', 'cluster'])
         elif action == 'add_cluster':
@@ -757,11 +757,11 @@ def show_study_main_menu():
 def enrich_sources():
     """Finds and adds sources for questions without them."""
     # Check for API key first
-    api_key = os.getenv('OPENAI_API_KEY') or get_openai_api_key()
+    api_key = os.getenv('GEMINI_API_KEY') or get_gemini_api_key()
     if not api_key:
-        print(f"{Fore.RED}This feature requires an OpenAI API key. Please configure it first.{Style.RESET_ALL}")
+        print(f"{Fore.RED}This feature requires a Gemini API key. Please configure it first.{Style.RESET_ALL}")
         manage_config_interactive()
-        api_key = os.getenv('OPENAI_API_KEY') or get_openai_api_key()
+        api_key = os.getenv('GEMINI_API_KEY') or get_gemini_api_key()
         if not api_key:
             return
 
@@ -854,29 +854,29 @@ def main():
     if sys.stdout.isatty() and sys.stdin.isatty() and '--help' not in sys.argv and '-h' not in sys.argv:
         print_banner()
         print()
-    # Load OpenAI API key from config file or prompt user if not set
+    # Load Gemini API key from config file or prompt user if not set
     import getpass
     is_help_request = '--help' in sys.argv or '-h' in sys.argv
     is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
 
-    if not os.getenv('OPENAI_API_KEY'):
-        api_key = get_openai_api_key()
+    if not os.getenv('GEMINI_API_KEY'):
+        api_key = get_gemini_api_key()
         if api_key:
-            os.environ['OPENAI_API_KEY'] = api_key
+            os.environ['GEMINI_API_KEY'] = api_key
         elif not is_help_request and not is_config_command and sys.stdin.isatty():
             try:
-                prompt = getpass.getpass('Enter your OpenAI API key to enable AI features (leave blank to skip): ')
+                prompt = getpass.getpass('Enter your Gemini API key to enable AI features (leave blank to skip): ')
                 if prompt:
-                    if save_openai_api_key(prompt):
-                        os.environ['OPENAI_API_KEY'] = prompt.strip()
-                        print(f"{Fore.GREEN}OpenAI API key saved to {API_KEY_FILE}{Style.RESET_ALL}")
+                    if save_gemini_api_key(prompt):
+                        os.environ['GEMINI_API_KEY'] = prompt.strip()
+                        print(f"{Fore.GREEN}Gemini API key saved to {API_KEY_FILE}{Style.RESET_ALL}")
                     else:
                         print(f"{Fore.RED}Failed to save API key.{Style.RESET_ALL}")
             except (EOFError, KeyboardInterrupt):
                 print(f"\n{Fore.YELLOW}Skipping API key setup.{Style.RESET_ALL}")
-    # Warn prominently if no OpenAI API key is available (skip when showing help)
-    if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('OPENAI_API_KEY'):
-        print(f"{Fore.RED}AI explanations are disabled: no OpenAI API key provided.{Style.RESET_ALL}")
+    # Warn prominently if no Gemini API key is available (skip when showing help)
+    if '--help' not in sys.argv and '-h' not in sys.argv and not os.getenv('GEMINI_API_KEY'):
+        print(f"{Fore.RED}AI explanations are disabled: no Gemini API key provided.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(
         prog='kubelingo',
         usage='kubelingo [OPTIONS] [command]',

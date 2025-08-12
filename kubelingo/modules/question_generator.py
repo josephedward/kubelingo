@@ -90,7 +90,6 @@ class AIQuestionGenerator:
         num_questions: int = 1,
         base_questions: List[Question] = None,
         category: str = "Command",
-        exclude_terms: Optional[List[str]] = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -98,8 +97,6 @@ class AIQuestionGenerator:
         """
         if base_questions is None:
             base_questions = []
-        if exclude_terms is None:
-            exclude_terms = []
 
         # Build few-shot prompt
         prompt_lines = ["You are a Kubernetes instructor."]
@@ -138,9 +135,6 @@ class AIQuestionGenerator:
                     prompt_lines.append(f"- Prompt: {ex.prompt}")
                     prompt_lines.append(f"  Response: {ex.response}")
 
-        if exclude_terms:
-            term_list = ", ".join(f"'{t}'" for t in exclude_terms)
-            prompt_lines.append(f"Do not include questions that focus on these terms: {term_list}.")
 
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
         prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt' and 'response' keys. The 'response' should contain {response_description}.")
