@@ -212,6 +212,35 @@ A high-level overview of the monorepo structure:
 └── docs/                 # Project documentation
 ```
 
+## Self-Healing Agent
+
+Kubelingo includes a lightweight self-healing agent that automates error detection and repair
+using a local LLM (via Aider or Ollama).
+
+### Prerequisites
+- Python ≥3.8
+- Aider Chat CLI (`pip install aider-chat`)
+- Local model pulled with Ollama, e.g.: `ollama pull llama3.2:3b`
+- Git repository in a clean state
+
+### Usage
+```bash
+# Run health checks (pytest) and report failures
+python3 -m kubelingo.agent.cli monitor
+
+# Automatically create a branch, invoke the agent to fix failures,
+# rerun tests, and commit or rollback based on success
+python3 -m kubelingo.agent.cli heal
+```
+
+### Testing the Agent
+1. Introduce a deliberate test failure (e.g., edit a test in `tests/` to expect the wrong value).
+2. Run `python3 -m kubelingo.agent.cli heal`.
+3. Confirm a new branch `heal/<timestamp>` was created and that tests pass after the AI-generated patch.
+4. Inspect the commit in the branch to review the applied changes.
+
+You can also integrate `python3 -m kubelingo.agent.cli monitor` into your CI to catch failures early.
+
 ## Creating Custom Questions
 
 ### Standard Questions
