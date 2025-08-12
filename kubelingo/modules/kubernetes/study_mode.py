@@ -88,6 +88,7 @@ class KubernetesStudyMode:
             # Placeholder for Gemini response handling
             assistant_response = "Gemini backend is not yet implemented."
 
+        # Ensure conversation_history is a list of dictionaries
         self.conversation_history = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": initial_message},
