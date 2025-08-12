@@ -28,9 +28,8 @@ class AIQuestionGenerator:
     Kubernetes subjects.
     """
 
-    def __init__(self, llm_client, max_attempts_per_question: int = 5):
+    def __init__(self, llm_client):
         self.evaluator = AIEvaluator(llm_client=llm_client)
-        self.max_attempts = max_attempts_per_question
         self.llm_client = llm_client
 
     def _save_question_to_yaml(self, question: Question):
