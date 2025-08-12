@@ -151,7 +151,6 @@ class KubernetesStudyMode:
 
                 term = pair.get("term")
                 definition = pair.get("definition")
-                seen_terms.append(term)
 
                 print(f"\nDefinition: {definition}")
                 user_answer = questionary.text("What is the term?").ask()
@@ -260,19 +259,64 @@ class KubernetesStudyMode:
         exclude_terms: Optional[set] = None,
     ) -> Optional[Dict[str, str]]:
         """Generates a term and definition pair for the given topic, avoiding duplicates."""
+        system_prompt = self._build_term_definition_prompt(topic, user_level, list(exclude_terms or []))
+        user_prompt = "Please generate one term-definition pair based on the system prompt instructions."
+
         try:
-            questions = self.question_generator.generate_questions(
-                subject=topic,
-                num_questions=1,
-                category="Basic",
-                exclude_terms=list(exclude_terms) if exclude_terms else None,
+            response = self.client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.7,
+                json_mode=True,
             )
-            if questions and questions[0] and questions[0].answers:
-                question = questions[0]
-                return {"term": question.answers[0], "definition": question.prompt}
+            if not response:
+                return None
+
+            pair = yaml.safe_load(response)
+            if isinstance(pair, dict) and "term" in pair and "definition" in pair:
+                return pair
         except Exception as e:
-            print(f"Error generating question: {e}")
+            print(f"Error generating or parsing term-definition pair: {e}")
         return None
+
+    def _build_term_definition_prompt(self, topic: str, level: str, exclude_terms: List[str]) -> str:
+        """Builds a system prompt for the LLM to generate a term-definition pair as JSON."""
+        excluded_list = "\n".join(f"- {term}" for term in exclude_terms)
+        return f"""
+# **Role: Kubernetes Terminology Generator**
+You are an expert on Kubernetes. Your task is to generate a single, unique term-definition pair in JSON format for a user at the `{level}` level. Your output MUST BE A VALID JSON OBJECT.
+
+# **Request Details**
+- **Topic:** {topic}
+- **Task:** Provide one term and its corresponding definition.
+
+# **Exclusion List**
+Do not generate a term from the following list:
+{excluded_list if excluded_list else "- (none)"}
+
+# **Instructions**
+- The `term` should be a single, specific Kubernetes concept relevant to the topic.
+- The `definition` should be a clear and concise explanation of the term.
+- The output MUST be a single, valid JSON object with two keys: "term" and "definition". Do not include any other text or formatting.
+
+# **JSON Schema**
+```json
+{{
+  "term": "(string, required) - The Kubernetes term.",
+  "definition": "(string, required) - The definition of the term."
+}}
+```
+
+# **Example**
+```json
+{{
+  "term": "ReplicaSet",
+  "definition": "Ensures that a specified number of pod replicas are running at any given time."
+}}
+```
+"""
 
     def _start_socratic_session(
         self, topic: str, user_level: str = "intermediate"
