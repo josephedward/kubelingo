@@ -7,15 +7,11 @@ from kubelingo.integrations.llm import get_llm_client
 
 class AIEvaluator:
     """Uses an AI model to evaluate a user's exercise transcript."""
-    def __init__(self):
+    def __init__(self, llm_client):
         """
-        Initializes the AIEvaluator. It will use the configured LLM client.
+        Initializes the AIEvaluator with a shared LLM client.
         """
-        try:
-            self.client = get_llm_client()
-        except (ImportError, ValueError) as e:
-            logging.error(f"Failed to initialize LLM client for AIEvaluator: {e}")
-            self.client = None
+        self.client = llm_client
 
     def evaluate(self, question_data, transcript, vim_log=None):
         """
