@@ -438,12 +438,13 @@ def handle_resource_reference(args):
         fm.append("    citation: \"https://kubernetes.io/docs/reference/generated/kubernetes-api/\"")
         fm.append("")
 
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    output_path = os.path.join(project_root, 'question-data/yaml/manifests/resource_reference.yaml')
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    # Use relative path to respect CWD for testing
+    output_dir = Path('question-data/yaml/manifests')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / 'resource_reference.yaml'
     with open(output_path, 'w') as f:
         f.write("\n".join(fm))
-    print(f"Generated resource_reference.yaml with {len(out)} questions.")
+    print(f"Generated {output_path} with {len(out)} questions.")
 
 
 # --- from scripts/generate_kubectl_operations_quiz.py ---
@@ -512,12 +513,13 @@ def handle_kubectl_operations(args):
         out.append("    citation: \"https://kubernetes.io/docs/reference/kubectl/#operations\"")
         out.append("")
 
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    output_path = os.path.join(project_root, 'question-data/yaml/kubectl_operations.yaml')
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    # Use relative path to respect CWD for testing
+    output_dir = Path('question-data/yaml')
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / 'kubectl_operations.yaml'
     with open(output_path, 'w') as f:
         f.write("\n".join(out))
-    print(f"Generated kubectl_operations.yaml with {len(ops)} questions.")
+    print(f"Generated {output_path} with {len(ops)} questions.")
 
 
 # --- from scripts/generate_ai_questions.py ---
@@ -843,23 +845,24 @@ def _process_json_file_for_manifest(fname, base_dir, json_dir, manifest_dir, sol
 
 def handle_manifests(args):
     """Generates manifests and solutions from all JSON files."""
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_dir = os.path.join(base_dir, 'question-data')
-    json_dir = os.path.join(data_dir, 'json')
-    manifest_dir = os.path.join(data_dir, 'yaml', 'manifests')
-    solutions_dir = os.path.join(data_dir, 'yaml', 'solutions')
+    # base_dir is the CWD from which the script is run. This allows testing.
+    base_dir = Path.cwd()
+    data_dir = base_dir / 'question-data'
+    json_dir_default = data_dir / 'json'
+    manifest_dir = data_dir / 'yaml' / 'manifests'
+    solutions_dir = data_dir / 'yaml' / 'solutions'
 
-    os.makedirs(manifest_dir, exist_ok=True)
-    os.makedirs(solutions_dir, exist_ok=True)
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    solutions_dir.mkdir(parents=True, exist_ok=True)
 
-    json_files_dir = getattr(args, 'json_dir', json_dir)
-    if not os.path.isdir(json_files_dir):
+    json_files_dir = Path(getattr(args, 'json_dir', json_dir_default))
+    if not json_files_dir.is_dir():
         print(f"Error: JSON source directory not found: {json_files_dir}", file=sys.stderr)
         sys.exit(1)
 
     for fname in os.listdir(json_files_dir):
         if fname.endswith('.json'):
-            _process_json_file_for_manifest(fname, base_dir, json_files_dir, manifest_dir, solutions_dir)
+            _process_json_file_for_manifest(fname, str(base_dir), json_files_dir, manifest_dir, solutions_dir)
 
 
 def main():
