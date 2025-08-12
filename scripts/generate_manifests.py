@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Generate YAML quiz manifests and solution files from question-data JSON and MD.
+Generates YAML quiz manifests and solution files from question-data JSON.
+
+This can be imported and called as a library function or run as a standalone script.
 """
 import os
 import json
@@ -69,10 +71,11 @@ def process_json_file(fname):
             mf.write(f"- id: {qid}\n  question: \"{question}\"\n  solution_file: \"{solfile}\"\n  source: \"https://kubernetes.io/docs/reference/kubectl/cheatsheet/\"\n")
     print(f"Generated {manifest_path}: {len(entries)} entries")
 
-def main():
+def generate():
+    """Generates manifests and solutions from all JSON files in the quiz data directory."""
     for fname in os.listdir(JSON_DIR):
         if fname.endswith('.json'):
             process_json_file(fname)
 
 if __name__ == '__main__':
-    main()
+    generate()

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import os
+
 """
 Generate the Kubectl Operations quiz manifest based on kubectl reference.
 This creates question-data/yaml/kubectl_operations.yaml
@@ -49,21 +51,30 @@ ops = [
     ("version", "Display the Kubernetes version running on client and server."),
     ("wait", "Wait for a specific condition on one or many resources.")
 ]
-out = ["# Kubectl Operations Quiz Manifest",
-       "# Ask for operation names by description.",
-       "---"]
-for op, desc in ops:
-    out.append(f"- id: kubectl::{op}")
-    out.append(f"  question: \"{desc}\"")
-    out.append("  type: command")
-    out.append("  metadata:")
-    out.append(f"    response: \"{op}\"")
-    out.append("    validator:")
-    out.append("      type: ai")
-    out.append(f"      expected: \"{op}\"")
-    out.append("    category: \"Kubectl Operations\"")
-    out.append("    citation: \"https://kubernetes.io/docs/reference/kubectl/#operations\"")
-    out.append("")
-with open('question-data/yaml/kubectl_operations.yaml','w') as f:
-    f.write("\n".join(out))
-print(f"Generated kubectl_operations.yaml with {len(ops)} questions.")
+def generate():
+    """Generates the kubectl_operations.yaml quiz manifest."""
+    out = ["# Kubectl Operations Quiz Manifest",
+           "# Ask for operation names by description.",
+           "---"]
+    for op, desc in ops:
+        out.append(f"- id: kubectl::{op}")
+        out.append(f"  question: \"{desc}\"")
+        out.append("  type: command")
+        out.append("  metadata:")
+        out.append(f"    response: \"{op}\"")
+        out.append("    validator:")
+        out.append("      type: ai")
+        out.append(f"      expected: \"{op}\"")
+        out.append("    category: \"Kubectl Operations\"")
+        out.append("    citation: \"https://kubernetes.io/docs/reference/kubectl/#operations\"")
+        out.append("")
+
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_path = os.path.join(project_root, 'question-data/yaml/kubectl_operations.yaml')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w') as f:
+        f.write("\n".join(out))
+    print(f"Generated kubectl_operations.yaml with {len(ops)} questions.")
+
+if __name__ == '__main__':
+    generate()

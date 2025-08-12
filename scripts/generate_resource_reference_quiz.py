@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import os
+
 """
 Generate a YAML quiz manifest for Kubernetes resource references.
 
@@ -61,32 +63,40 @@ resources = [
     ("storageclasses", "sc", "storage.k8s.io/v1", False, "StorageClass"),
     ("volumeattachments", "", "storage.k8s.io/v1", False, "VolumeAttachment"),
 ]
-out = []
-for resource, shortnames, api, ns, kind in resources:
-    key = kind.lower()
-    # Only include shortnames question if a shortname exists
-    if shortnames:
-        out.append((f"{key}::shortnames", f"What is the shortname for {kind}?", shortnames))
-    out.append((f"{key}::apiversion", f"What is the API version for {kind}?", api))
-    out.append((f"{key}::namespaced", f"Is {kind} a namespaced resource? (true/false)", str(ns).lower()))
-    out.append((f"{key}::kind", f"What is the Kind name for the resource {kind}?", kind))
+def generate():
+    """Generates the resource_reference.yaml quiz manifest."""
+    out = []
+    for resource, shortnames, api, ns, kind in resources:
+        key = kind.lower()
+        # Only include shortnames question if a shortname exists
+        if shortnames:
+            out.append((f"{key}::shortnames", f"What is the shortname for {kind}?", shortnames))
+        out.append((f"{key}::apiversion", f"What is the API version for {kind}?", api))
+        out.append((f"{key}::namespaced", f"Is {kind} a namespaced resource? (true/false)", str(ns).lower()))
+        out.append((f"{key}::kind", f"What is the Kind name for the resource {kind}?", kind))
 
-fm = ["# Resource Reference Quiz Manifest",
-      "# Tests for each resource: shortnames, API version, namespaced, kind",
-      "---"]
-for qid, prompt, resp in out:
-    # Only include shortnames questions when shortnames is non-empty
-    if qid.endswith('::shortnames') and not resp:
-        continue
-    fm.append(f"- id: {qid}")
-    fm.append(f"  question: \"{prompt}\"")
-    fm.append("  type: command")
-    fm.append("  metadata:")
-    fm.append(f"    response: \"{resp}\"")
-    fm.append("    category: \"Resource Reference\"")
-    fm.append("    citation: \"https://kubernetes.io/docs/reference/generated/kubernetes-api/\"")
-    fm.append("")
+    fm = ["# Resource Reference Quiz Manifest",
+          "# Tests for each resource: shortnames, API version, namespaced, kind",
+          "---"]
+    for qid, prompt, resp in out:
+        # Only include shortnames questions when shortnames is non-empty
+        if qid.endswith('::shortnames') and not resp:
+            continue
+        fm.append(f"- id: {qid}")
+        fm.append(f"  question: \"{prompt}\"")
+        fm.append("  type: command")
+        fm.append("  metadata:")
+        fm.append(f"    response: \"{resp}\"")
+        fm.append("    category: \"Resource Reference\"")
+        fm.append("    citation: \"https://kubernetes.io/docs/reference/generated/kubernetes-api/\"")
+        fm.append("")
 
-with open('question-data/yaml/manifests/resource_reference.yaml', 'w') as f:
-    f.write("\n".join(fm))
-print("Generated resource_reference.yaml with", len(out), "questions.")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_path = os.path.join(project_root, 'question-data/yaml/manifests/resource_reference.yaml')
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w') as f:
+        f.write("\n".join(fm))
+    print("Generated resource_reference.yaml with", len(out), "questions.")
+
+if __name__ == '__main__':
+    generate()
