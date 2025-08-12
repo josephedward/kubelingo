@@ -161,67 +161,27 @@ def task_fix_question_formatting():
     _run_script("question_manager.py", "format")
 
 
-def task_process_ai_generated_questions():
-    """Interactive workflow to process and import AI-generated questions."""
+def task_organize_generated_questions():
+    """Consolidate, import, and archive AI-generated YAML questions."""
+    print("This will consolidate, import, and clean up AI-generated YAML questions.")
     try:
         import questionary
     except ImportError:
-        print("Error: 'questionary' library not found. Please install it with:")
-        print("pip install questionary")
+        print("Error: 'questionary' is required. Please install it.")
         return
 
-    print("This workflow will guide you through processing AI-generated YAML questions.")
-    source_dir = repo_root / "questions" / "generated_yaml"
-    if not source_dir.is_dir() or not any(source_dir.iterdir()):
-        print(f"Source directory for generated questions is empty: {source_dir}")
-        print("Please generate questions first (e.g., via 'kubelingo generate').")
+    dry_run = questionary.confirm("Run in dry-run mode first to see changes?", default=True).ask()
+    if dry_run is None:  # User cancelled
+        print("Operation cancelled.")
         return
 
-    # --- Step 1: Consolidate ---
-    if not questionary.confirm("Step 1: Consolidate and deduplicate YAML files from 'questions/generated_yaml'?").ask():
-        print("Workflow cancelled.")
-        return
-
-    consolidated_file = repo_root / "backups" / "yaml" / "ai_generated_consolidated.yaml"
-    consolidated_file.parent.mkdir(parents=True, exist_ok=True)
-    print(f"\n--- Consolidating into {consolidated_file} ---")
-    _run_script("yaml_manager.py", "deduplicate", str(source_dir), "--output-file", str(consolidated_file))
-
-    # --- Step 2: Import to DB ---
-    if not questionary.confirm(f"\nStep 2: Import consolidated questions into the database?").ask():
-        print("Workflow cancelled. Consolidated file is available for inspection.")
-        return
-
-    print(f"\n--- Importing from {consolidated_file} ---")
-    _run_script("sqlite_manager.py", "create-from-yaml", "--yaml-file", str(consolidated_file))
-
-    # --- Step 3: AI Categorization ---
-    if not questionary.confirm("\nStep 3: Run AI categorization for the new questions?").ask():
-        print("Skipping AI categorization.")
+    if dry_run:
+        _run_script("yaml_manager.py", "organize-generated", "--dry-run")
+        run_again = questionary.confirm("Dry run complete. Do you want to run it for real?", default=False).ask()
+        if run_again:
+            _run_script("yaml_manager.py", "organize-generated")
     else:
-        print("\n--- Running AI categorization ---")
-        _run_script("question_manager.py", "fix-categories", "--source-file", str(consolidated_file))
-
-    # --- Step 4: Archive ---
-    if not questionary.confirm("\nStep 4: Archive original source files?").ask():
-        print("Skipping archiving.")
-    else:
-        print("\n--- Archiving original files ---")
-        archive_dir = repo_root / "archive" / "generated_yaml"
-        archive_dir.mkdir(parents=True, exist_ok=True)
-
-        files_to_move = list(source_dir.glob('*.yaml')) + list(source_dir.glob('*.yml'))
-        if not files_to_move:
-            print("No files to archive.")
-        else:
-            print(f"Archiving {len(files_to_move)} files to {archive_dir}...")
-            for f in files_to_move:
-                try:
-                    shutil.move(str(f), str(archive_dir / f.name))
-                except Exception as e:
-                    print(f"Could not move {f.name}: {e}")
-
-    print("\nWorkflow for processing generated questions is complete.")
+        _run_script("yaml_manager.py", "organize-generated")
 
 
 def task_full_migrate_and_cleanup():
@@ -312,7 +272,7 @@ def run_interactive_menu():
         "Create DB from YAML with AI Categorization": task_create_db_from_yaml_with_ai,
         # Questions
         "Deduplicate Questions": task_deduplicate_questions,
-        "Process AI-Generated Questions": task_process_ai_generated_questions,
+        "Organize Generated Questions": task_organize_generated_questions,
         "Fix Question Categorization": task_fix_question_categorization,
         "Fix Documentation Links": task_fix_doc_links,
         "Fix Question Formatting": task_fix_question_formatting,
@@ -342,7 +302,7 @@ def run_interactive_menu():
                 "Create DB from YAML with AI Categorization",
                 Separator("=== Questions ==="),
                 "Deduplicate Questions",
-                "Process AI-Generated Questions",
+                "Organize Generated Questions",
                 "Fix Question Categorization",
                 "Fix Documentation Links",
                 "Fix Question Formatting",
