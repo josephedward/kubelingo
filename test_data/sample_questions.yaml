@@ -1,0 +1,37 @@
+- id: "q1"
+  type: "basic"
+  prompt: "What is a Kubernetes Pod?"
+  response: "A Pod is the smallest deployable unit in Kubernetes."
+  source: "Core Concepts"
+  validation: []
+  validator: {}
+  review: false
+
+- id: "q2"
+  type: "command"
+  prompt: "What does `kubectl get pods` do?"
+  response: "It lists all the Pods in the current namespace."
+  source: "Core Concepts"
+  validation: []
+  validator: {}
+  review: false
+
+- id: "q3"
+  type: "manifest"
+  prompt: "Write a YAML manifest for a Kubernetes Pod."
+  response: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: example-pod
+    spec:
+      containers:
+      - name: example-container
+        image: nginx
+  source: "Core Concepts"
+  validation:
+    - "kubectl apply"
+  tools:
+    - "vim"
+  validator: {}
+  review: false
