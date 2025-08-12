@@ -86,6 +86,11 @@ class AIQuestionGenerator:
         Generate up to `num_questions` kubectl command questions about the given `subject`.
         Uses few-shot prompting with examples and validates syntax before returning.
         """
+        if base_questions is None:
+            base_questions = []
+        if exclude_terms is None:
+            exclude_terms = []
+
         # Build few-shot prompt
         prompt_lines = ["You are a Kubernetes instructor."]
         q_type = "command"

@@ -596,7 +596,8 @@ def handle_ai_questions(args):
         subject=subject_for_ai,
         num_questions=args.num_questions,
         base_questions=base_questions,
-        category=args.category
+        category=args.category,
+        exclude_terms=[]
     )
 
     if not new_questions:

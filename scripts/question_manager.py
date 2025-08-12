@@ -839,7 +839,8 @@ def handle_generate_ai_questions(args):
         subject=subject_for_ai,
         num_questions=args.num_questions,
         category=args.category,
-        base_questions=[]
+        base_questions=[],
+        exclude_terms=[]
     )
 
     if not new_questions:
