@@ -140,3 +140,41 @@ def prune_db_backups():
     # Implement logic to remove old database backups if needed.
     # For now, this is a no-op.
     pass
+
+
+def add_question(
+    conn: sqlite3.Connection,
+    id: str,
+    prompt: str,
+    response: str,
+    category_id: str,
+    subject_id: str,
+    source: str,
+    source_file: str,
+    raw: str,
+    review: bool = False
+):
+    """
+    Adds a question to the database.
+
+    Args:
+        conn: SQLite connection object.
+        id: Unique identifier for the question.
+        prompt: The question prompt.
+        response: The expected response.
+        category_id: The category ID for the question.
+        subject_id: The subject ID for the question.
+        source: The source of the question.
+        source_file: The file where the question originated.
+        raw: The raw data for the question.
+        review: Whether the question is marked for review.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO questions (id, prompt, response, category_id, subject_id, source, source_file, raw, review)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (id, prompt, response, category_id, subject_id, source, source_file, raw, review)
+    )
+    conn.commit()
