@@ -157,32 +157,18 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
-                import openai
-                if 'OPENAI_API_KEY' not in os.environ:
-                    raise ValueError("OPENAI_API_KEY environment variable not set.")
-                
-                client = openai.OpenAI()
-                resp = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[{"role": "system", "content": ai_prompt}],
+                # Use the configured LLM client
+                raw = self.llm_client.chat_completion(
+                    messages=[
+                        {"role": "user", "content": ai_prompt}
+                    ],
                     temperature=0.7,
-                    response_format={"type": "json_object"},
+                    json_mode=True
                 )
-                raw = resp.choices[0].message.content
             except Exception as e:
-                logger.error("OpenAI client failed: %s", e, exc_info=True)
-                # Fallback to llm package
-                try:
-                    import llm as _llm_module
-                    # This will use the default model configured for llm, or gpt-3.5-turbo if none.
-                    llm_model = _llm_module.get_model("gpt-4-turbo")
-                    llm_resp = llm_model.prompt(ai_prompt)
-                    raw = llm_resp.text() if callable(getattr(llm_resp, "text", None)) else getattr(llm_resp, "text", str(llm_resp))
-                except Exception as llm_e:
-                    logger.error("LLM fallback failed: %s", llm_e, exc_info=True)
-                    break
+                logger.error(f"LLM client failed on attempt {attempt}: {e}", exc_info=True)
+                break
             
             if not raw:
                 logger.warning("LLM client returned no content.")
