@@ -37,7 +37,10 @@ class QuestionSubject(str, Enum):
     NAMESPACES_CONTEXTS = "Namespaces & contexts (scoping resources, default namespace, context switching)"
     API_DISCOVERY_DOCS = "API discovery & docs (kubectl explain, api-resources, api-versions)"
     KUBECTL_CLI = "Kubectl CLI usage and commands"
-    VIM = "Vim editor usage"
+    VIM = "Vim for YAML editing (modes, navigation, editing commands)"
+    HELM = "Helm for Package Management (charts, releases, repositories)"
+    ADVANCED_KUBECTL = "Advanced Kubectl Usage (jsonpath, patch, custom columns)"
+    KUBERNETES_API_RESOURCES = "Kubernetes API Resources (exploring objects with explain and api-resources)"
 
 
 @dataclass
