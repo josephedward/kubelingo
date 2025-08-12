@@ -1,5 +1,15 @@
 """
 Loader for quiz questions stored in the SQLite database.
+
+Rationale for using SQLite over YAML files:
+- Performance: Faster lookups and filtering of questions without parsing large
+  text files on each run.
+- Data Integrity: Enforces unique question IDs and a consistent data structure
+  through a schema.
+- Querying Power: Allows for complex queries (e.g., by category, review status)
+  using standard SQL.
+- Centralization: Manages all questions in a single, consolidated data store,
+  simplifying backups and maintenance.
 """
 import sqlite3
 from typing import List, Dict, Any, Optional
