@@ -290,6 +290,71 @@ def handle_export_to_yaml(args):
         print(f"{Fore.RED}Error writing to output file {args.output}: {e}{Style.RESET_ALL}")
 
 
+def handle_import_yaml(args):
+    """Import questions from YAML file(s) into the database."""
+    db_path = args.db_path or get_live_db_path()
+    print(f"Targeting database: {db_path}")
+
+    if args.clear:
+        print("Clearing database before import...")
+        db_mod.init_db(clear=True, db_path=db_path)
+
+    conn = get_db_connection(db_path=db_path)
+    cursor = conn.cursor()
+    imported_count = 0
+
+    for file_path in tqdm(args.yaml_files, desc="Importing YAML files"):
+        if not file_path.is_file():
+            print(f"\nWarning: YAML file not found, skipping: {file_path}")
+            continue
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+        except Exception as e:
+            print(f"\nError reading or parsing YAML file {file_path}: {e}")
+            continue
+
+        questions_to_import = []
+        if isinstance(data, dict) and 'questions' in data:
+            questions_to_import = data.get('questions', [])
+        elif isinstance(data, list):
+            questions_to_import = data
+
+        for q_dict in questions_to_import:
+            if not isinstance(q_dict, dict) or not q_dict.get('id') or not q_dict.get('prompt'):
+                continue
+
+            # Ensure all fields are present or None
+            q_data = {
+                'id': q_dict.get('id'),
+                'prompt': q_dict.get('prompt'),
+                'response': q_dict.get('response'),
+                'category': q_dict.get('category'),
+                'subject': q_dict.get('subject'),
+                'source': q_dict.get('source', 'yaml_import'),
+                'source_file': file_path.name,
+                'raw': q_dict.get('raw'),
+                'validation_steps': json.dumps(q_dict.get('validation_steps')) if q_dict.get('validation_steps') else None,
+                'validator': json.dumps(q_dict.get('validator')) if q_dict.get('validator') else None,
+                'review': q_dict.get('review', 0)
+            }
+
+            try:
+                cursor.execute(
+                    """INSERT OR REPLACE INTO questions (id, prompt, response, category, subject, source, source_file, raw, validation_steps, validator, review)
+                       VALUES (:id, :prompt, :response, :category, :subject, :source, :source_file, :raw, :validation_steps, :validator, :review)""",
+                    q_data
+                )
+                imported_count += 1
+            except sqlite3.Error as e:
+                print(f"\nFailed to import question {q_dict.get('id')} from {file_path.name}: {e}")
+
+    conn.commit()
+    conn.close()
+    print(f"\nImport complete. Imported {imported_count} questions.")
+
+
 # --- from: scripts/fix_question_categories.py ---
 def handle_fix_categories(args):
     """Interactively fix or assign schema_category for questions in the database."""
@@ -936,6 +1001,13 @@ def main():
     parser_export_yaml.add_argument('-o', '--output', type=Path, default=default_export_path, help=f'Output file path for the YAML export. Default: {default_export_path}')
     parser_export_yaml.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
     parser_export_yaml.set_defaults(func=handle_export_to_yaml)
+
+    # Sub-parser for 'import-yaml'
+    parser_import_yaml = subparsers.add_parser('import-yaml', help='Import questions from YAML file(s) into the database.')
+    parser_import_yaml.add_argument('yaml_files', nargs='+', type=Path, help='Path(s) to YAML file(s) to import.')
+    parser_import_yaml.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
+    parser_import_yaml.add_argument('--clear', action='store_true', help='Clear the database before importing.')
+    parser_import_yaml.set_defaults(func=handle_import_yaml)
 
     # Sub-parser for 'fix-categories'
     parser_fix = subparsers.add_parser('fix-categories', help='Interactively fix or assign schema_category for questions.', description="Interactively fix or assign schema_category for questions in the database.")
