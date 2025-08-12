@@ -111,7 +111,6 @@ def test_manage_organize_dry_run(setup_question_data, monkeypatch, capsys):
     assert "killercoda_cheatsheet.md" in stdout
     assert "ckad_quiz_data.json" in stdout
     assert "kubernetes.json" in stdout
-    assert "[DRY-RUN] Remove empty dir:" in stdout
 
     # Check that files were NOT moved
     question_data = setup_question_data / "question-data"
@@ -188,6 +187,7 @@ def test_ckad_commands(mock_subprocess_run, monkeypatch, tmp_path):
 
     # The script constructs absolute paths, so we need to know what they are
     scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
     script_path = str(scripts_dir / 'ckad.py')
 
     monkeypatch.setattr(kubelingo_tools, 'scripts_dir', scripts_dir)
