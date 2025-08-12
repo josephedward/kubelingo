@@ -125,17 +125,25 @@ def _generate_questions_from_text(
     client = openai.OpenAI()
 
     system_prompt = """You are an expert Kubernetes administrator and trainer creating quiz questions for the CKAD exam from a provided document.
-Your task is to generate new questions based on the text.
+Your task is to generate new questions based on the text. The questions can be about basic concepts and definitions, or about specific commands.
 The questions should be unique and not overlap with the provided list of existing questions.
 Output ONLY a YAML list of question objects. Each object must have 'id', 'prompt', 'answers' (a list), 'explanation', and 'source'. Use a generic source like 'Killer Shell PDF'.
-The 'id' should be unique, perhaps using a slug of the question.
+The 'id' should be a unique, perhaps using a slug of the question.
 
-Example output format:
+Example output format for a command question:
 - id: create-pod-with-image
   prompt: How do you create a pod named 'nginx' with the image 'nginx:latest'?
   answers:
     - "kubectl run nginx --image=nginx:latest"
   explanation: "The 'kubectl run' command is used to create a pod from an image."
+  source: "Killer Shell PDF"
+
+Example output format for a basic definition question:
+- id: what-is-a-service
+  prompt: What is the purpose of a Service in Kubernetes?
+  answers:
+    - "A Service in Kubernetes is an abstract way to expose an application running on a set of Pods as a network service. It provides a stable endpoint (IP address and port) for a group of pods."
+  explanation: "Services enable loose coupling between microservices and provide service discovery."
   source: "Killer Shell PDF"
 """
 
