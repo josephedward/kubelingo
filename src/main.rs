@@ -21,16 +21,51 @@ fn main() -> Result<()> {
             }
         }
     } else {
-        // Check if GEMINI_API_KEY is set, otherwise prompt the user
-        if env::var("GEMINI_API_KEY").is_err() {
-            println!("Study Mode requires a Gemini API key.");
-            println!("Set the GEMINI_API_KEY environment variable to enable it.");
-            println!("You can generate an API key in your Gemini account settings under 'API Keys'.");
-            prompt_for_api_key()?;
-        } else {
-            println!("Welcome to Kubelingo (Rust core). Use --help for commands.");
+        // Always show a main menu instead of going directly to study mode
+        show_main_menu()?;
+    }
+    Ok(())
+}
+
+fn show_main_menu() -> Result<()> {
+    loop {
+        println!("\nMain Menu:");
+        println!("1. Start Study Mode");
+        println!("2. Settings");
+        println!("3. Exit");
+
+        print!("Choose an option: ");
+        io::stdout().flush()?; // Ensure the prompt is displayed immediately
+        let mut choice = String::new();
+        io::stdin().read_line(&mut choice)?;
+        let choice = choice.trim();
+
+        match choice {
+            "1" => {
+                // Check if GEMINI_API_KEY is set, otherwise prompt the user
+                if env::var("GEMINI_API_KEY").is_err() {
+                    println!("Study Mode requires a Gemini API key.");
+                    println!("Set the GEMINI_API_KEY environment variable to enable it.");
+                    println!("You can generate an API key in your Gemini account settings under 'API Keys'.");
+                    prompt_for_api_key()?;
+                } else {
+                    println!("Starting Study Mode...");
+                    // Add logic to start study mode here
+                }
+            }
+            "2" => {
+                handle_settings_menu()?;
+            }
+            "3" => {
+                println!("Exiting application.");
+                break;
+            }
+            _ => {
+                println!("Invalid option. Please try again.");
+            }
         }
     }
+
     Ok(())
 }
 
