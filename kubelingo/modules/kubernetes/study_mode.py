@@ -1,14 +1,18 @@
+import os
 import uuid
 from dataclasses import asdict
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import questionary
 import yaml
 
+from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
+from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
 KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
@@ -21,6 +25,9 @@ class KubernetesStudyMode:
         self.session_active = False
         self.vim_editor = VimYamlEditor()
         self.question_generator = AIQuestionGenerator()
+        self.db_conn = get_db_connection()
+        self.questions_dir = get_project_root() / "questions" / "ai_generated"
+        os.makedirs(self.questions_dir, exist_ok=True)
 
     def generate_term_definition_pair(
         self, topic: str, user_level: str = "intermediate"
