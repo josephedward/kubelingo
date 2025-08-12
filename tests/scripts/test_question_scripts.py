@@ -106,6 +106,8 @@ def test_deduplicate_questions_delete(temp_db_with_duplicates, capsys, monkeypat
 def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     # Setup a fresh DB for testing
     import kubelingo.utils.config as config
+    import importlib
+    importlib.reload(config)
     # Override master backups to avoid seeding
     monkeypatch.setattr(config, 'MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
     monkeypatch.setattr(config, 'SECONDARY_MASTER_DATABASE_FILE', str(tmp_path / 'no.db'))
@@ -113,6 +115,7 @@ def test_categorize_questions_flow(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(config, 'DATABASE_FILE', str(db_file))
     # Initialize empty DB
     import kubelingo.database as dbmod
+    importlib.reload(dbmod)
     # Prevent auto-population from YAML files
     monkeypatch.setattr(dbmod, 'import_questions_from_yaml_files', lambda *args, **kwargs: None)
     # Create a connection and initialize schema directly to avoid file-based init issues in test
