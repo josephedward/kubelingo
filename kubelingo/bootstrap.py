@@ -5,21 +5,17 @@ from pathlib import Path
 import yaml
 
 from kubelingo.database import add_question, get_db_connection
+from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.utils.path_utils import find_and_sort_files_by_mtime, get_project_root
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-TYPE_TO_CATEGORY_ID = {
-    'socratic': 'basic',
-    'command': 'command',
-    'manifest': 'manifest',
-}
 
 
 def bootstrap_on_startup():
     """
     Main function to run the bootstrap process. It finds the latest YAML backup,
     clears the database, and repopulates it with questions from the YAML file.
+    It uses AI to infer exercise type and subject matter for each question.
     """
     logging.info("Starting bootstrap process from consolidated YAML backup.")
 
@@ -57,21 +53,55 @@ def bootstrap_on_startup():
             conn.close()
             return
 
+        logging.info("Initializing AI Question Generator for enrichment.")
+        ai_generator = AIQuestionGenerator()
         question_count = 0
+
+        TYPE_TO_CATEGORY_ID = {
+            'socratic': 'basic',
+            'command': 'command',
+            'live_k8s': 'command',
+            'manifest': 'manifest',
+            'yaml_author': 'manifest',
+            'yaml_edit': 'manifest',
+            'live_k8s_edit': 'manifest'
+        }
+
         for q in data:
             if not isinstance(q, dict) or 'id' not in q:
                 logging.warning(f"Skipping invalid item in YAML: {q}")
                 continue
 
             q_id = q.get('id')
+            prompt = q.get('prompt')
             logging.info(f"Processing question with id: {q_id}")
+
+            # AI inference for category and subject
+            try:
+                if not prompt:
+                    raise ValueError("Prompt is missing, cannot use AI inference.")
+
+                logging.info(f"Using AI to infer exercise type and subject for question {q_id}.")
+                base_question = {'prompt': prompt}
+                enriched_q = ai_generator.generate_question(base_question=base_question)
+
+                yaml_type = enriched_q.get('type')
+                subject_id = enriched_q.get('category')
+                logging.info(f"AI inferred type: '{yaml_type}', subject: '{subject_id}' for question {q_id}.")
+
+            except Exception as e:
+                logging.warning(f"AI inference failed for question {q_id}, falling back to YAML values. Error: {e}")
+                yaml_type = q.get('type')
+                subject_id = q.get('category')
+
+            category_id = TYPE_TO_CATEGORY_ID.get(yaml_type)
 
             add_question(
                 id=q_id,
-                prompt=q.get('prompt'),
+                prompt=prompt,
                 source_file=str(latest_backup_path),
                 response=q.get('answer'),
-                category=q.get('category'),  # This is for subject_id
+                category=subject_id,  # This is for subject_id
                 source=q.get('source'),
                 validation_steps=q.get('validation_steps'),
                 validator=q.get('validator'),
@@ -80,14 +110,11 @@ def bootstrap_on_startup():
             )
 
             # Now, update the category_id (Exercise Category)
-            yaml_type = q.get('type')
-            category_id = TYPE_TO_CATEGORY_ID.get(yaml_type)
-
             if category_id:
                 logging.info(f"Setting exercise category to '{category_id}' for question {q_id}")
                 cursor.execute("UPDATE questions SET category_id = ? WHERE id = ?", (category_id, q_id))
             else:
-                logging.warning(f"No exercise category mapping found for type '{yaml_type}' in question {q_id}")
+                logging.warning(f"Could not determine exercise category for type '{yaml_type}' in question {q_id}")
 
             question_count += 1
 
