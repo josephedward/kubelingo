@@ -249,11 +249,15 @@ class KubernetesStudyMode:
         self, topic: str, user_level: str = "intermediate"
     ) -> Optional[Dict[str, str]]:
         """Generates a term and definition pair for the given topic."""
-        question = self._generate_question(
-            topic=topic, quiz_type="basic", user_level=user_level
-        )
-        if question and question.answers:
-            return {"term": question.answers[0], "definition": question.prompt}
+        try:
+            questions = self.question_generator.generate_questions(
+                subject=topic, num_questions=1, category="Basic"
+            )
+            if questions and questions[0] and questions[0].answers:
+                question = questions[0]
+                return {"term": question.answers[0], "definition": question.prompt}
+        except Exception as e:
+            print(f"Error generating question: {e}")
         return None
 
     def _generate_question(
