@@ -59,6 +59,7 @@ except ImportError:
     # Self-healing feature not available
     def run_self_healing_cycle():
         pass
+from kubelingo.utils.path_utils import find_yaml_files
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
@@ -268,6 +269,62 @@ def handle_tools():
     manage_tools_interactive()
 
 
+def _rebuild_db_from_yaml():
+    """
+    Clears the database and rebuilds it from all discoverable YAML source files.
+    """
+    from kubelingo.database import get_db_connection, add_question
+    from kubelingo.modules.yaml_loader import YAMLLoader
+
+    print("Attempting to rebuild database from source YAML files...")
+    conn = get_db_connection()
+    try:
+        print("Clearing existing questions from the database...")
+        conn.execute("DELETE FROM questions")
+        conn.commit()
+        print("Database cleared.")
+
+        print("Discovering and loading questions from YAML files...")
+        # Search in both default YAML dir and the user's custom 'yaml' dir.
+        search_dirs = [str(YAML_QUIZ_DIR), str(repo_root / 'yaml')]
+        yaml_files = find_yaml_files(search_dirs)
+
+        if not yaml_files:
+            print(f"{Fore.RED}No YAML source files found in {search_dirs}. Cannot rebuild database.{Style.RESET_ALL}")
+            return False
+
+        total_loaded = 0
+        loader = YAMLLoader()
+        for yaml_file in yaml_files:
+            try:
+                questions = loader.load_file(str(yaml_file))
+                if not questions:
+                    continue
+                for q in questions:
+                    q_dict = asdict(q)
+                    # The 'type' key from YAML is not a DB column.
+                    q_dict.pop('type', None)
+                    add_question(conn=conn, **q_dict)
+                total_loaded += len(questions)
+                print(f"  - Loaded {len(questions)} questions from {os.path.basename(yaml_file)}")
+            except Exception as e:
+                print(f"{Fore.RED}Failed to load {yaml_file}: {e}{Style.RESET_ALL}")
+
+        conn.commit()
+        if total_loaded > 0:
+            print(f"\n{Fore.GREEN}Successfully loaded {total_loaded} questions into the database.{Style.RESET_ALL}")
+            return True
+        else:
+            print(f"{Fore.YELLOW}No questions were loaded from any YAML files.{Style.RESET_ALL}")
+            return False
+
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred during database rebuild: {e}{Style.RESET_ALL}")
+        return False
+    finally:
+        conn.close()
+
+
 def restore_db():
     """
     Merges questions from the master backup into the live database.
@@ -285,7 +342,9 @@ def restore_db():
     elif os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0:
         backup_file = SECONDARY_MASTER_DATABASE_FILE
     if not backup_file:
-        print(f"{Fore.RED}No valid master database backup found. Cannot restore.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}No valid master database backup found. Falling back to rebuilding from YAML sources.{Style.RESET_ALL}")
+        if not _rebuild_db_from_yaml():
+             print(f"{Fore.RED}Database rebuild from YAML failed. Database may be empty.{Style.RESET_ALL}")
         return
 
     print(f"Merging questions from backup '{backup_file}'...")
