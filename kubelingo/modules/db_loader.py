@@ -11,9 +11,16 @@ import os
 class DBLoader(BaseLoader):
     """Discovers and loads questions directly from the local SQLite database."""
 
+    def __init__(self, db_path: Optional[str] = None):
+        """
+        Initializes the DBLoader.
+        :param db_path: Optional path to a specific SQLite database file.
+        """
+        self.db_path = db_path
+
     def discover(self) -> List[str]:
         """Return a list of distinct source_file entries in the questions DB."""
-        conn = get_db_connection()
+        conn = get_db_connection(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT DISTINCT source_file FROM questions")
         rows = cursor.fetchall()
@@ -24,7 +31,7 @@ class DBLoader(BaseLoader):
         """Load all questions with the given source_file from the database."""
         # Allow passing full paths: match only on basename stored in DB
         key = os.path.basename(source_file)
-        conn = get_db_connection()
+        conn = get_db_connection(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM questions WHERE source_file = ?", (key,))
         rows = cursor.fetchall()
