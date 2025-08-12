@@ -88,21 +88,28 @@ def create_quizzes_from_backup():
                 continue
 
             for q_data in questions_data:
-                logging.debug(f"Processing question data: {q_data}")
-                q_id = q_data.get('id')
-                q_type = q_data.get('type')
+                metadata = q_data.get('metadata', {})
                 
-                exercise_category = q_type
+                # Consolidate data from top-level and metadata, with top-level taking precedence.
+                consolidated_data = {**metadata, **q_data}
+
+                logging.debug(f"Processing question data: {consolidated_data}")
+
+                q_id = consolidated_data.get('id')
+                prompt = consolidated_data.get('prompt')
+                q_type = consolidated_data.get('type')
+                category = consolidated_data.get('category')
+                exercise_category = category or q_type
+
+                if not q_id or not prompt:
+                    logging.warning(f"Skipping question due to missing 'id' or 'prompt' in {yaml_file}: {consolidated_data}")
+                    continue
+
                 if not exercise_category:
-                    logging.warning(f"Skipping question {q_id} in {yaml_file}: missing type.")
+                    logging.warning(f"Skipping question {q_id} in {yaml_file}: missing 'category' or 'type'.")
                     continue
                 
                 # Use Gemini to process the question prompt
-                prompt = q_data.get('prompt')
-                if not prompt:
-                    logging.warning(f"Skipping question {q_id}: Missing 'prompt'.")
-                    continue
-
                 gemini_response = process_with_gemini(prompt, model=selected_model)
                 if not gemini_response:
                     logging.warning(f"Skipping question {q_id}: Gemini processing failed.")
@@ -110,10 +117,10 @@ def create_quizzes_from_backup():
 
                 # Add specific validation for 'manifest' type
                 if q_type == 'manifest':
-                    if 'vim' not in q_data.get('tools', []):
+                    if 'vim' not in consolidated_data.get('tools', []):
                         logging.warning(f"Skipping manifest question {q_id}: 'vim' tool is required.")
                         continue
-                    if 'kubectl apply' not in q_data.get('validation', []):
+                    if 'kubectl apply' not in consolidated_data.get('validation_steps', []):
                         logging.warning(f"Skipping manifest question {q_id}: 'kubectl apply' validation is required.")
                         continue
 
@@ -122,12 +129,12 @@ def create_quizzes_from_backup():
                     id=q_id,
                     prompt=gemini_response,  # Store the processed prompt
                     source_file=str(yaml_file),
-                    response=q_data.get('response'),
+                    response=consolidated_data.get('response'),
                     category=exercise_category,
-                    source=q_data.get('source'),
-                    validation_steps=q_data.get('validation'),
-                    validator=q_data.get('validator'),
-                    review=q_data.get('review', False)
+                    source=consolidated_data.get('source'),
+                    validation_steps=consolidated_data.get('validation_steps'),
+                    validator=consolidated_data.get('validator'),
+                    review=consolidated_data.get('review', False)
                 )
                 question_count += 1
                 logging.info(f"Added question ID: {q_id} with category '{exercise_category}'.")
