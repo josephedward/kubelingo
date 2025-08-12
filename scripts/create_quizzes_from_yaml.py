@@ -40,27 +40,6 @@ def create_quizzes_from_backup():
     """
     Indexes YAML files from a consolidated backup and populates the database.
     """
-    gemini_models = [
-        "gemini-1.5-pro-latest",
-        "gemini-1.5-flash-latest",
-        "gemini-2.0-flash",
-    ]
-    print("\nPlease choose a Gemini model to use for processing questions:")
-    for i, model in enumerate(gemini_models, 1):
-        print(f"  {i}. {model}")
-
-    choice = 0
-    while not 1 <= choice <= len(gemini_models):
-        try:
-            choice_str = input(f"Enter number (1-{len(gemini_models)}): ")
-            choice = int(choice_str)
-        except (ValueError, EOFError, KeyboardInterrupt):
-            print("\nInvalid input. Aborting.")
-            sys.exit(1)
-
-    selected_model = gemini_models[choice - 1]
-    logging.info(f"Using Gemini model: {selected_model}")
-
     logging.info("Starting to create quizzes from consolidated YAML backup.")
     
     proj_root = get_project_root()
