@@ -97,6 +97,11 @@ class AIQuestionGenerator:
         elif category == "Basic":
             q_type = "basic"
             prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
+            prompt_lines.append("Here are some examples of the format:")
+            prompt_lines.append("- Prompt: What Kubernetes object provides a way to expose an application running on a set of Pods as a network service?")
+            prompt_lines.append("  Response: Service")
+            prompt_lines.append("- Prompt: Which component on a Kubernetes node is responsible for maintaining running containers and managing their lifecycle?")
+            prompt_lines.append("  Response: kubelet")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
             if exclude_terms:
                 exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
