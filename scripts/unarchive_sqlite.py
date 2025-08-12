@@ -4,12 +4,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 ARCHIVE_DIR = PROJECT_ROOT / "archive"
 SQLITE_EXTENSIONS = [".db", ".sqlite3"]
-DEST_DIR = PROJECT_ROOT / ".kubelingo" / "backups"
+DEST_DIR = PROJECT_ROOT / ".kubelingo"
 
 
 def unarchive_sqlite_files():
     """
-    Moves SQLite database files from the archive directory to .kubelingo/backups.
+    Moves SQLite database files from the archive directory to .kubelingo.
     """
     if not ARCHIVE_DIR.is_dir():
         print(f"Error: Archive directory not found at '{ARCHIVE_DIR}'")

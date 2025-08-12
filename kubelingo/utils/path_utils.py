@@ -12,7 +12,6 @@ from typing import List
 from kubelingo.utils.config import (
     DATABASE_FILE,
     QUESTION_DIRS,
-    SQLITE_BACKUP_DIRS,
     YAML_BACKUP_DIRS,
 )
 
@@ -26,16 +25,20 @@ def get_project_root() -> Path:
 def get_live_db_path() -> str:
     """
     Returns the absolute path to the most recently modified database file
-    from the configured backup directories. Falls back to the default database
-    path if no backups are found.
+    from the .kubelingo directory. Falls back to the default database
+    path if no database files are found.
     """
-    backup_dirs = get_all_sqlite_backup_dirs()
-    latest_dbs = find_and_sort_files_by_mtime(backup_dirs, [".db", ".sqlite", ".sqlite3"])
+    db_dir = get_project_root() / ".kubelingo"
+    if not db_dir.is_dir():
+        # Fallback to default if .kubelingo dir doesn't exist
+        return DATABASE_FILE
+
+    latest_dbs = find_and_sort_files_by_mtime([str(db_dir)], [".db", ".sqlite", ".sqlite3"])
 
     if latest_dbs:
         return str(latest_dbs[0])
 
-    # Fallback to default if no backups exist
+    # Fallback to default if no database files exist in .kubelingo
     return DATABASE_FILE
 
 
@@ -47,11 +50,6 @@ def get_all_question_dirs() -> List[str]:
 def get_all_yaml_backup_dirs() -> List[str]:
     """Returns a list of all configured directories for YAML backups."""
     return YAML_BACKUP_DIRS
-
-
-def get_all_sqlite_backup_dirs() -> List[str]:
-    """Returns a list of all configured directories for SQLite backups."""
-    return SQLITE_BACKUP_DIRS
 
 
 def find_and_sort_files_by_mtime(
