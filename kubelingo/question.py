@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Optional
 
 
 class QuestionCategory(str, Enum):
-    """The three core categories for all questions."""
+    """The four core categories for all questions."""
+    BASIC = "Basic/Definition"
     OPEN_ENDED = "Basic/Open-Ended"
     COMMAND = "Command-Based/Syntax"
     MANIFEST = "Manifests"
@@ -107,7 +108,7 @@ class Question:
             # Special override for specific quizzes to be categorized as 'basic'
             source_filename = os.path.basename(self.source_file) if self.source_file else ''
             if source_filename in ('general_operations.yaml', 'resource_types_reference.yaml'):
-                self.schema_category = QuestionCategory.OPEN_ENDED
+                self.schema_category = QuestionCategory.BASIC
             elif self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
                 self.schema_category = QuestionCategory.MANIFEST
             elif self.type in ('command', 'live_k8s'):

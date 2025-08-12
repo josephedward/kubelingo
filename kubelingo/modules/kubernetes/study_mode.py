@@ -1,10 +1,23 @@
 import json
 import logging
-from typing import Dict, List, Optional
+import os
+import uuid
+from typing import Any, Dict, List, Optional
 
+import questionary
+import yaml
+
+from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient
+from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
+from kubelingo.question import Question, QuestionCategory
+from kubelingo.utils.path_utils import get_project_root
 
 KUBERNETES_TOPICS = [
+    "Vim",
+    "Helm",
+    "Kubectl",
+    "Kubernetes Resources",
     "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
     "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
     "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",
