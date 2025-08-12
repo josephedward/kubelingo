@@ -135,40 +135,8 @@ class KubernetesStudyMode:
 
     def _run_basic_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on basic terminology."""
-        print("\nStarting basic term/definition recall session...")
-        print("Type 'exit' or 'quit' to end the session.")
-        used_terms = set()
-        while True:
-            try:
-                pair = self.generate_term_definition_pair(
-                    topic, user_level, exclude_terms=used_terms
-                )
-                if not pair:
-                    print("Failed to generate a term/definition pair. Please try again.")
-                    if not questionary.confirm("Try again?").ask():
-                        break
-                    continue
-
-                term = pair.get("term")
-                definition = pair.get("definition")
-
-                print(f"\nDefinition: {definition}")
-                user_answer = questionary.text("What is the term?").ask()
-                if user_answer is None or user_answer.lower() in ["exit", "quit"]:
-                    break
-
-                if user_answer.strip().lower() == term.strip().lower():
-                    print("\nCorrect!")
-                else:
-                    print(f"\nNot quite. The correct term is: {term}")
-
-                used_terms.add(term)
-
-                if not questionary.confirm("Next question?").ask():
-                    break
-            except (KeyboardInterrupt, TypeError):
-                break
-        print("\nQuiz ended. Returning to menu.")
+        print(f"\nStarting a 'Basic term/definition recall' session on {topic}. Type 'exit' to quit.")
+        self._run_quiz_loop("basic", topic, user_level)
 
     def _run_command_quiz(self, topic: str, user_level: str):
         """Runs a quiz focused on kubectl commands."""
