@@ -1,1 +1,0 @@
-scripts/initialize_from_yaml.py
