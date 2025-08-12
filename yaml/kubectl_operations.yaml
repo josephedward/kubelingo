@@ -1,0 +1,486 @@
+# Kubectl Operations Quiz Manifest
+# Ask for operation names by description.
+---
+- id: kubectl::alpha
+  question: "List the available commands that correspond to alpha features, which are not enabled in Kubernetes clusters by default."
+  type: command
+  metadata:
+    response: "alpha"
+    validator:
+      type: ai
+      expected: "alpha"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::annotate
+  question: "Add or update the annotations of one or more resources."
+  type: command
+  metadata:
+    response: "annotate"
+    validator:
+      type: ai
+      expected: "annotate"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::api-resources
+  question: "List the API resources that are available."
+  type: command
+  metadata:
+    response: "api-resources"
+    validator:
+      type: ai
+      expected: "api-resources"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::api-versions
+  question: "List the API versions that are available."
+  type: command
+  metadata:
+    response: "api-versions"
+    validator:
+      type: ai
+      expected: "api-versions"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::apply
+  question: "Apply or Update a resource from a file or stdin."
+  type: command
+  metadata:
+    response: "apply"
+    validator:
+      type: ai
+      expected: "apply"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::attach
+  question: "Attach to a running container either to view the output stream or interact with the container (stdin)."
+  type: command
+  metadata:
+    response: "attach"
+    validator:
+      type: ai
+      expected: "attach"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::auth
+  question: "Inspect authorization."
+  type: command
+  metadata:
+    response: "auth"
+    validator:
+      type: ai
+      expected: "auth"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::autoscale
+  question: "Automatically scale the set of pods that are managed by a replication controller."
+  type: command
+  metadata:
+    response: "autoscale"
+    validator:
+      type: ai
+      expected: "autoscale"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::certificate
+  question: "Modify certificate resources."
+  type: command
+  metadata:
+    response: "certificate"
+    validator:
+      type: ai
+      expected: "certificate"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::cluster-info
+  question: "Display endpoint information about the master and services in the cluster."
+  type: command
+  metadata:
+    response: "cluster-info"
+    validator:
+      type: ai
+      expected: "cluster-info"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::completion
+  question: "Output shell completion code for the specified shell (bash or zsh)."
+  type: command
+  metadata:
+    response: "completion"
+    validator:
+      type: ai
+      expected: "completion"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::config
+  question: "Modify kubeconfig files via subcommands."
+  type: command
+  metadata:
+    response: "config"
+    validator:
+      type: ai
+      expected: "config"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::convert
+  question: "Convert config files between different API versions."
+  type: command
+  metadata:
+    response: "convert"
+    validator:
+      type: ai
+      expected: "convert"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::cordon
+  question: "Mark a node as unschedulable."
+  type: command
+  metadata:
+    response: "cordon"
+    validator:
+      type: ai
+      expected: "cordon"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::cp
+  question: "Copy files and directories to and from containers."
+  type: command
+  metadata:
+    response: "cp"
+    validator:
+      type: ai
+      expected: "cp"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::create
+  question: "Create one or more resources from a file or stdin."
+  type: command
+  metadata:
+    response: "create"
+    validator:
+      type: ai
+      expected: "create"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::delete
+  question: "Delete resources either from a file, stdin, or specifying label selectors, names, or resource selectors."
+  type: command
+  metadata:
+    response: "delete"
+    validator:
+      type: ai
+      expected: "delete"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::describe
+  question: "Display the detailed state of one or more resources."
+  type: command
+  metadata:
+    response: "describe"
+    validator:
+      type: ai
+      expected: "describe"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::diff
+  question: "Diff file or stdin against live configuration."
+  type: command
+  metadata:
+    response: "diff"
+    validator:
+      type: ai
+      expected: "diff"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::drain
+  question: "Drain a node in preparation for maintenance."
+  type: command
+  metadata:
+    response: "drain"
+    validator:
+      type: ai
+      expected: "drain"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::edit
+  question: "Edit and update the definition of one or more resources on the server by using the default editor."
+  type: command
+  metadata:
+    response: "edit"
+    validator:
+      type: ai
+      expected: "edit"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::events
+  question: "List events."
+  type: command
+  metadata:
+    response: "events"
+    validator:
+      type: ai
+      expected: "events"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::exec
+  question: "Execute a command against a container in a pod."
+  type: command
+  metadata:
+    response: "exec"
+    validator:
+      type: ai
+      expected: "exec"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::explain
+  question: "Get documentation of various resources using kubectl explain."
+  type: command
+  metadata:
+    response: "explain"
+    validator:
+      type: ai
+      expected: "explain"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::expose
+  question: "Expose a resource (service, pod, or RC) as a new service."
+  type: command
+  metadata:
+    response: "expose"
+    validator:
+      type: ai
+      expected: "expose"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::get
+  question: "List one or more resources."
+  type: command
+  metadata:
+    response: "get"
+    validator:
+      type: ai
+      expected: "get"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::kustomize
+  question: "Build resources from a kustomization directory."
+  type: command
+  metadata:
+    response: "kustomize"
+    validator:
+      type: ai
+      expected: "kustomize"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::label
+  question: "Add or update the labels of one or more resources."
+  type: command
+  metadata:
+    response: "label"
+    validator:
+      type: ai
+      expected: "label"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::logs
+  question: "Print the logs for a container in a pod."
+  type: command
+  metadata:
+    response: "logs"
+    validator:
+      type: ai
+      expected: "logs"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::options
+  question: "List global command-line options for kubectl."
+  type: command
+  metadata:
+    response: "options"
+    validator:
+      type: ai
+      expected: "options"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::patch
+  question: "Update one or more fields of a resource using a patch."
+  type: command
+  metadata:
+    response: "patch"
+    validator:
+      type: ai
+      expected: "patch"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::plugin
+  question: "Provides utilities for interacting with kubectl plugins."
+  type: command
+  metadata:
+    response: "plugin"
+    validator:
+      type: ai
+      expected: "plugin"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::port-forward
+  question: "Forward one or more local ports to a pod."
+  type: command
+  metadata:
+    response: "port-forward"
+    validator:
+      type: ai
+      expected: "port-forward"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::proxy
+  question: "Run a proxy to the Kubernetes API server."
+  type: command
+  metadata:
+    response: "proxy"
+    validator:
+      type: ai
+      expected: "proxy"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::replace
+  question: "Replace a resource from a file or stdin."
+  type: command
+  metadata:
+    response: "replace"
+    validator:
+      type: ai
+      expected: "replace"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::rollout
+  question: "Manage the rollout of a resource like deployments, daemonsets, statefulsets."
+  type: command
+  metadata:
+    response: "rollout"
+    validator:
+      type: ai
+      expected: "rollout"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::run
+  question: "Run a specified image on the cluster."
+  type: command
+  metadata:
+    response: "run"
+    validator:
+      type: ai
+      expected: "run"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::scale
+  question: "Update the size of a resource (replica count)."
+  type: command
+  metadata:
+    response: "scale"
+    validator:
+      type: ai
+      expected: "scale"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::set
+  question: "Configure application resources using subcommands."
+  type: command
+  metadata:
+    response: "set"
+    validator:
+      type: ai
+      expected: "set"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::taint
+  question: "Update the taints on one or more nodes."
+  type: command
+  metadata:
+    response: "taint"
+    validator:
+      type: ai
+      expected: "taint"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::top
+  question: "Display resource usage of pods or nodes."
+  type: command
+  metadata:
+    response: "top"
+    validator:
+      type: ai
+      expected: "top"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::uncordon
+  question: "Mark a node as schedulable."
+  type: command
+  metadata:
+    response: "uncordon"
+    validator:
+      type: ai
+      expected: "uncordon"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::version
+  question: "Display the Kubernetes version running on client and server."
+  type: command
+  metadata:
+    response: "version"
+    validator:
+      type: ai
+      expected: "version"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
+
+- id: kubectl::wait
+  question: "Wait for a specific condition on one or many resources."
+  type: command
+  metadata:
+    response: "wait"
+    validator:
+      type: ai
+      expected: "wait"
+    category: "Kubectl Operations"
+    citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
