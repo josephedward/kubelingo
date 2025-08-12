@@ -13,6 +13,7 @@ import logging
 
 from kubelingo.database import get_questions_by_subject_matter, get_question_counts_by_schema_and_subject, get_flagged_questions, update_review_status, add_question
 from kubelingo.utils.ui import Fore, Style, yaml, humanize_module
+from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
 from difflib import SequenceMatcher, unified_diff
 try:
     import questionary
@@ -46,6 +47,8 @@ import os
 
 from kubelingo.modules.base.loader import load_session
 from kubelingo.modules.question_generator import AIQuestionGenerator
+import os
+from kubelingo.modules.db_loader import DBLoader
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset, validate_yaml_structure
 from kubelingo.question import Question, QuestionCategory
 # Existing import
@@ -373,17 +376,13 @@ class NewSession(StudySession):
         print("=== YAML Editing Session Complete ===")
 
     def _build_interactive_menu_choices(self):
-        """Build the list of available quizzes for the interactive menu using YAML-defined quizzes."""
+        """Build the list of available quizzes from the database modules."""
+        choices = []
+        # Review section
         try:
-            from kubelingo.utils.config import ENABLED_QUIZZES
-        except ImportError:
-            ENABLED_QUIZZES = {}
-        # Review flags
-        try:
-            flagged = get_all_flagged_questions() or []
+            flagged = get_flagged_questions() or []
         except Exception:
             flagged = []
-        choices = []
         if questionary:
             choices.append(questionary.Separator("--- Review ---"))
         choices.append({
@@ -393,12 +392,15 @@ class NewSession(StudySession):
         })
         # Study mode
         choices.append({"name": "Study Mode (Socratic Tutor)", "value": "__study__"})
-        # Quizzes
+        # Quiz modules from database
         if questionary:
             choices.append(questionary.Separator("--- Quizzes ---"))
-        for name in ENABLED_QUIZZES:
+        loader = DBLoader()
+        modules = loader.discover() or []
+        for src in sorted(modules):
+            name = os.path.splitext(os.path.basename(src))[0]
             choices.append({"name": name, "value": name})
-        # Settings
+        # Settings section
         if questionary:
             choices.append(questionary.Separator("--- Settings ---"))
         choices.extend([
@@ -546,72 +548,68 @@ class NewSession(StudySession):
             os.environ['KUBELINGO_SESSION_ID'] = session_id
             questions = []
             ai_generation_enabled = True
-            # Handle --list-questions: load static questions from file and exit before DB lookup
+            # Handle --list-questions: list prompts from a quiz module in the DB and exit
             if getattr(args, 'list_questions', False):
-                if not args.category:
-                    print(f"{Fore.RED}Please specify a quiz with --quiz <quiz_name> to list questions.{Style.RESET_ALL}")
+                quiz_name = getattr(args, 'quiz', None) or getattr(args, 'category', None)
+                if not quiz_name:
+                    print(f"{Fore.RED}Please specify a quiz with --quiz or --category to list questions.{Style.RESET_ALL}")
                     return
-                # Load questions from database by subject matter
                 try:
-                    from kubelingo.question import Question as QuestionObject
-                    question_dicts = get_questions_by_subject_matter(args.category)
-                    static_questions = [QuestionObject(**q) for q in question_dicts]
+                    from kubelingo.modules.db_loader import DBLoader
+                    from kubelingo.utils.ui import humanize_module
+                    loader = DBLoader()
+                    modules = loader.discover()
+                    # Map humanized names (basenames) to source_file
+                    mapping = {}
+                    for src_item in modules:
+                        base = os.path.basename(src_item)
+                        key = humanize_module(os.path.splitext(base)[0]).lower()
+                        mapping[key] = src_item
+                    src = mapping.get(quiz_name.lower())
+                    if not src:
+                        print(f"{Fore.RED}Quiz '{quiz_name}' not found in database modules.{Style.RESET_ALL}")
+                        return
+                    # Load questions via DBLoader
+                    questions = loader.load_file(src)
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for listing: {e}")
-                    static_questions = []
-                # Determine how many questions to list
-                total = len(static_questions)
-                num_arg = getattr(args, 'num', 0) or getattr(args, 'num_questions', 0)
-                requested = num_arg if num_arg and num_arg > 0 else total
-                clones_needed = max(0, requested - total)
-                # Combine static and AI-generated questions
-                combined = list(static_questions)
-                if clones_needed > 0 and ai_generation_enabled:
-                    # Notify user of AI question generation for listing
-                    print(f"\n{Fore.CYAN}Generating {clones_needed} additional AI questions...{Style.RESET_ALL}")
-                    try:
-                        # Instantiate AI generator via module lookup to respect patches
-                        import kubelingo.modules.question_generator as qg_module
-                        generator = qg_module.AIQuestionGenerator()
-                        subject = _get_subject_for_questions(static_questions[0]) if static_questions else ''
-                        # Generate AI-backed questions, including context of existing questions
-                        ai_qs = generator.generate_questions(
-                            subject,
-                            num_questions=clones_needed,
-                            base_questions=static_questions
-                        )
-                        # Append generated Question objects
-                        combined.extend(ai_qs)
-                    except Exception as e:
-                        self.logger.error(f"Failed to list AI questions: {e}", exc_info=True)
-                        print(f"{Fore.RED}Error: Could not list AI-generated questions.{Style.RESET_ALL}")
-                
+                    print(f"{Fore.RED}Error loading quiz '{quiz_name}'.{Style.RESET_ALL}")
+                    return
                 # Print the list and exit
                 print("\nList of Questions:")
-                for idx, q_item in enumerate(combined, start=1):
-                    # Support both dicts and Question objects
-                    if hasattr(q_item, 'prompt'):
-                        prompt_text = q_item.prompt
-                    else:
-                        prompt_text = q_item.get('prompt', '<no prompt>')
-                    print(f"{idx}. {prompt_text}")
+                for idx, q in enumerate(questions, start=1):
+                    prompt = getattr(q, 'prompt', '') or ''
+                    print(f"{idx}. {prompt.strip()}")
                 return
 
             if args.review_only:
                 questions = get_all_flagged_questions()
             elif args.category:
-                # Load questions from database by subject matter
+                # Load questions for the selected quiz module from the DB
+                from kubelingo.utils.config import BASIC_QUIZZES, COMMAND_QUIZZES, MANIFEST_QUIZZES
+                from kubelingo.modules.db_loader import DBLoader
+                # Map quiz name to source_file
+                if args.category in BASIC_QUIZZES:
+                    src = BASIC_QUIZZES[args.category]
+                elif args.category in COMMAND_QUIZZES:
+                    src = COMMAND_QUIZZES[args.category]
+                elif args.category in MANIFEST_QUIZZES:
+                    src = MANIFEST_QUIZZES[args.category]
+                else:
+                    print(f"{Fore.RED}Quiz '{args.category}' not found in available quizzes.{Style.RESET_ALL}")
+                    return
+                # Load via DBLoader
                 try:
-                    questions = get_questions_by_subject_matter(args.category)
+                    loader = DBLoader()
+                    questions = loader.load_file(src)
                 except Exception as e:
                     self.logger.error(f"Failed to load questions for '{args.category}': {e}")
-                    print(f"{Fore.RED}Error loading questions for '{args.category}'. See logs for details.{Style.RESET_ALL}")
+                    print(f"{Fore.RED}Error loading quiz '{args.category}'. See logs for details.{Style.RESET_ALL}")
                     return
-                # No questions found
                 if not questions:
                     print(f"{Fore.YELLOW}No questions found for '{args.category}'.{Style.RESET_ALL}")
                     return
-                # Determine how many questions to ask and generate additional via AI if needed
+                # Determine if AI extras are needed
                 requested = getattr(args, 'num_questions', getattr(args, 'num', 0))
                 initial_count = len(questions)
                 if requested and requested > initial_count:
@@ -620,24 +618,19 @@ class NewSession(StudySession):
                     added = []
                     try:
                         from kubelingo.question import Question as QuestionObject
-                        import kubelingo.modules.question_generator as qg_module
-                        generator = qg_module.AIQuestionGenerator()
+                        from kubelingo.modules.question_generator import AIQuestionGenerator
+                        generator = AIQuestionGenerator()
                         base_questions = [QuestionObject(**q) for q in questions]
                         subject = _get_subject_for_questions(questions[0]) if questions else ''
-                        ai_qs = generator.generate_questions(
-                            subject,
-                            num_questions=clones_needed,
-                            base_questions=base_questions
-                        )
+                        ai_qs = generator.generate_questions(subject, num_questions=clones_needed, base_questions=base_questions)
                         for ai_q in ai_qs:
                             from dataclasses import asdict as _asdict
                             questions.append(_asdict(ai_q))
                             added.append(ai_q)
                     except Exception:
-                        self.logger.error(f"Failed to generate AI questions for interactive quiz.", exc_info=True)
-                    # Warn if not all requested questions could be generated
+                        self.logger.error("Failed to generate AI questions for interactive quiz.", exc_info=True)
                     if added and len(added) < clones_needed:
-                        print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with {len(added)} generated.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Warning: Could not generate all requested AI questions. Proceeding with {len(added)} extras.{Style.RESET_ALL}")
                     elif not added:
                         print(f"{Fore.YELLOW}Warning: Could not generate {clones_needed} unique AI questions. Proceeding with 0 generated.{Style.RESET_ALL}")
                 # Summary for category-based quiz
