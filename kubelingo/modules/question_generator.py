@@ -8,6 +8,7 @@ import yaml
 openai = None
 import re
 from kubelingo.utils.ui import Fore, Style
+from typing import Optional
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question, ValidationStep
 from kubelingo.utils.validation import validate_kubectl_syntax, validate_prompt_completeness, validate_yaml_structure
