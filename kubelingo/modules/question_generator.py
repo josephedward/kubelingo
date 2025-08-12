@@ -134,23 +134,33 @@ class AIQuestionGenerator:
             # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
                 import openai
-                resp = openai.ChatCompletion.create(
-                    model="gpt-4",
+
+                client = openai.OpenAI()
+                resp = client.chat.completions.create(
+                    model="gpt-4-turbo",
                     messages=[{"role": "system", "content": ai_prompt}],
                     temperature=0.7,
+                    response_format={"type": "json_object"},
                 )
                 raw = resp.choices[0].message.content
             except Exception as e:
                 logger.debug("OpenAI client failed: %s", e)
+                print(f"{Fore.RED}OpenAI API call failed: {e}{Style.RESET_ALL}")
             # Fallback to llm package
             if raw is None:
                 try:
                     import llm as _llm_module
+
                     llm_model = _llm_module.get_model()
                     llm_resp = llm_model.prompt(ai_prompt)
-                    raw = llm_resp.text() if callable(getattr(llm_resp, "text", None)) else getattr(llm_resp, "text", str(llm_resp))
+                    raw = (
+                        llm_resp.text()
+                        if callable(getattr(llm_resp, "text", None))
+                        else getattr(llm_resp, "text", str(llm_resp))
+                    )
                 except Exception as e:
                     logger.error("LLM fallback failed: %s", e)
+                    print(f"{Fore.RED}LLM fallback failed: {e}{Style.RESET_ALL}")
                     break
             # Parse JSON
             items = []
