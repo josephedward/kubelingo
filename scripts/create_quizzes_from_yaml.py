@@ -17,12 +17,6 @@ from kubelingo.utils.path_utils import get_project_root
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Mapping from YAML 'type' to database 'category' based on shared_context.md
-CATEGORY_MAPPING = {
-    'basic': 'basic',
-    'command': 'command',
-    'manifest': 'manifest',
-}
 
 def process_with_gemini(prompt, model="gemini-2.0-flash"):
     """
@@ -94,9 +88,9 @@ def create_quizzes_from_backup():
                 q_id = q_data.get('id')
                 q_type = q_data.get('type')
                 
-                exercise_category = CATEGORY_MAPPING.get(q_type)
+                exercise_category = q_type
                 if not exercise_category:
-                    logging.warning(f"Skipping question {q_id} in {yaml_file}: unknown type '{q_type}'.")
+                    logging.warning(f"Skipping question {q_id} in {yaml_file}: missing type.")
                     continue
                 
                 # Use Gemini to process the question prompt
