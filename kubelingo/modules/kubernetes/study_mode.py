@@ -98,16 +98,6 @@ class KubernetesStudyMode:
                 print("\nExiting study mode.")
                 break
 
-    def review_past_questions(self):
-        """Displays past questions for review."""
-        print("\nReviewing past questions is not yet implemented.")
-        # Placeholder for future implementation
-
-    def settings_menu(self):
-        """Displays the settings menu."""
-        print("\nSettings menu is not yet implemented.")
-        # Placeholder for future implementation
-
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
         initial_response = self._start_socratic_session(topic, user_level)

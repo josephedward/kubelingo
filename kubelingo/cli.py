@@ -731,8 +731,17 @@ def show_study_main_menu():
 
             if action == "study":
                 if KubernetesStudyMode:
+                    level = questionary.select(
+                        "What is your current overall skill level?",
+                        choices=["beginner", "intermediate", "advanced"],
+                        default="intermediate",
+                        use_indicator=True,
+                    ).ask()
+                    if not level:
+                        continue
+
                     study_session = KubernetesStudyMode()
-                    study_session.start_study_session()
+                    study_session.start_study_session(user_level=level)
                 else:
                     print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
             elif action == "questions":
