@@ -10,6 +10,7 @@ import argparse
 import os
 import sys
 import sqlite3
+import json
 from collections import defaultdict, Counter
 from datetime import datetime
 from pathlib import Path
@@ -30,12 +31,50 @@ except ImportError as e:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, get_all_questions, SUBJECT_MATTER, _row_to_question_dict
+    get_db_connection, SUBJECT_MATTER, init_db, add_question
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.modules.ai_categorizer import AICategorizer
+import kubelingo.utils.config as cfg
+import kubelingo.database as db_mod
 from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path
 from kubelingo.utils.ui import Fore, Style
+
+
+def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    """Converts a sqlite3.Row from the questions table to a dictionary."""
+    if not row:
+        return {}
+    q_dict = dict(row)
+    # Fields that are stored as JSON strings in the DB
+    for key in ['validation_steps', 'answers', 'tags', 'links']:
+        if key in q_dict and q_dict[key] and isinstance(q_dict[key], str):
+            try:
+                q_dict[key] = json.loads(q_dict[key])
+            except json.JSONDecodeError:
+                # Keep as string if not valid JSON
+                pass
+    return q_dict
+
+
+def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+    """Fetches all questions from the database."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+    try:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM questions")
+        rows = cursor.fetchall()
+        questions = [_row_to_question_dict(row) for row in rows]
+    finally:
+        if close_conn:
+            conn.close()
+
+    return questions
 
 
 # --- from: scripts/categorize_questions.py ---
@@ -608,6 +647,71 @@ def handle_verify(args):
     verify_questions(database_path)
 
 
+# --- from: scripts/add_ui_config_questions.py ---
+def handle_add_ui_config(args):
+    """Add UI configuration questions into the database."""
+    # This function's logic is from scripts/add_ui_config_questions.py
+    # It ensures the user's local database is targeted.
+    home_cfg_dir = os.path.expanduser('~/.kubelingo')
+    os.makedirs(home_cfg_dir, exist_ok=True)
+    cfg.APP_DIR = home_cfg_dir
+    cfg.DATABASE_FILE = os.path.join(home_cfg_dir, 'kubelingo.db')
+    db_mod.DATABASE_FILE = cfg.DATABASE_FILE
+
+    # Initialize database schema and get connection
+    init_db()
+    conn = get_db_connection()
+
+    try:
+        # Define UI config footer question manually
+        starting_yaml = (
+            "footer:\n"
+            "  version: \"CKAD Simulator Kubernetes 1.33\"\n"
+            "  link: \"https://killer.sh\""
+        )
+        correct_yaml = (
+            "footer:\n"
+            "  version: \"CKAD Simulator Kubernetes 1.34\"\n"
+            "  link: \"https://killer.sh\""
+        )
+        questions = [
+            {
+                'id': 'ui_config::footer::0',
+                'prompt': 'Bump the version string in the footer from "CKAD Simulator Kubernetes 1.33" to "CKAD Simulator Kubernetes 1.34" in the UI configuration file.',
+                'starting_yaml': starting_yaml,
+                'correct_yaml': correct_yaml,
+                'category': 'Footer',
+            }
+        ]
+
+        source_file = 'ui_config_script'
+        added = 0
+        for q in questions:
+            validator = {'type': 'yaml', 'expected': q['correct_yaml']}
+            try:
+                # Merged from script, fixing missing conn and adapting to db signature
+                add_question(
+                    conn=conn,
+                    id=q['id'],
+                    prompt=q['prompt'],
+                    source_file=source_file,
+                    response=None,
+                    category_id=q.get('category'),
+                    subject_id=None,
+                    source='script',
+                    raw=str(q),
+                    validation_steps=[],
+                    validator=validator
+                )
+                print(f"Added UI question {q['id']}")
+                added += 1
+            except Exception as e:
+                print(f"Failed to add question {q['id']}: {e}")
+        print(f"Total UI questions added: {added}")
+    finally:
+        conn.close()
+
+
 # --- Main CLI Router ---
 def main():
     """Main entry point for the question manager CLI."""
@@ -663,6 +767,10 @@ def main():
     parser_verify = subparsers.add_parser('verify', help='Verify data integrity and counts of questions in a database.', description="Connects to the database and prints a summary of question counts per category and runs data integrity checks.")
     parser_verify.add_argument("db_path", nargs="?", default=None, help="Path to the SQLite database file. If not provided, uses the live database.")
     parser_verify.set_defaults(func=handle_verify)
+
+    # Sub-parser for 'add-ui-config'
+    parser_add_ui = subparsers.add_parser('add-ui-config', help='Add hardcoded UI configuration questions to the database.', description="Adds a predefined set of UI configuration questions to the user's local database.")
+    parser_add_ui.set_defaults(func=handle_add_ui_config)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
