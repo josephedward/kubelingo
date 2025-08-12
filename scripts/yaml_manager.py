@@ -14,6 +14,7 @@ import subprocess
 import json
 import re
 import time
+import tempfile
 from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
@@ -35,6 +36,17 @@ try:
         get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions
     )
     from kubelingo.question import Question
+    import yaml
+    from tqdm import tqdm
+    from rich.console import Console
+    from rich.progress import track
+    import llm
+
+    from kubelingo.database import (
+        get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions
+    )
+    from kubelingo.question import Question
+    from kubelingo.modules.db_loader import DBLoader
     from kubelingo.modules.yaml_loader import YAMLLoader
     from kubelingo.modules.ai_categorizer import AICategorizer
     from kubelingo.utils import path_utils
@@ -44,7 +56,8 @@ try:
         find_yaml_files
     )
     from kubelingo.utils.config import (
-        YAML_BACKUP_DIRS, DATABASE_FILE, ENABLED_QUIZZES, QUESTION_DIRS
+        YAML_BACKUP_DIRS, DATABASE_FILE, ENABLED_QUIZZES, QUESTION_DIRS,
+        BACKUP_DATABASE_FILE, YAML_QUIZ_BACKUP_DIR
     )
     from kubelingo.utils.ui import Fore, Style
 except ImportError as e:
@@ -1043,6 +1056,406 @@ def do_statistics(args):
         print("  No questions with 'category' field found.")
 
 
+# --- group_backup_yaml_questions ---
+def do_group_backups(args):
+    """
+    Group all legacy YAML backup quizzes into a single "legacy_yaml" module.
+    """
+    conn = get_db_connection() # Uses live DB by default
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM questions WHERE source = 'backup'")
+    total = cursor.fetchone()[0]
+    if total == 0:
+        print("No backup YAML questions found to group.")
+        conn.close()
+        return
+    cursor.execute(
+        "UPDATE questions SET source_file = 'legacy_yaml' WHERE source = 'backup'"
+    )
+    conn.commit()
+    conn.close()
+    print(f"Grouped {total} backup YAML questions into module 'legacy_yaml'.")
+    try:
+        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print(f"Database backup updated at: {BACKUP_DATABASE_FILE}")
+    except Exception as e:
+        print(f"Failed to backup database: {e}")
+
+
+# --- import_yaml_bak_questions ---
+def do_import_bak(args):
+    """
+    Import all YAML-backed quiz questions into the live Kubelingo database.
+    """
+    init_db()
+    yaml_bak_dir = project_root / 'question-data' / 'yaml-bak'
+    if not yaml_bak_dir.is_dir():
+        print(f"Backup YAML directory not found: {yaml_bak_dir}")
+        return
+
+    loader = YAMLLoader()
+    total = 0
+    conn = get_db_connection()
+    try:
+        for pattern in ('*.yaml', '*.yml'):
+            for path in sorted(yaml_bak_dir.glob(pattern)):
+                print(f"Importing questions from: {path.name}")
+                try:
+                    questions = loader.load_file(str(path))
+                except Exception as e:
+                    print(f"  Failed to load {path.name}: {e}")
+                    continue
+                for q in questions:
+                    steps = [asdict(s) for s in getattr(q, 'validation_steps', [])]
+                    validator = None
+                    metadata = getattr(q, 'metadata', {}) or {}
+                    expected = metadata.get('correct_yaml')
+                    if expected:
+                        validator = {'type': 'yaml', 'expected': expected}
+                    try:
+                        add_question(
+                            conn=conn,
+                            id=q.id,
+                            prompt=q.prompt,
+                            source_file=path.name,
+                            response=getattr(q, 'response', None),
+                            category=(q.categories[0] if getattr(q, 'categories', None) else getattr(q, 'category', None)),
+                            source='backup',
+                            validation_steps=steps,
+                            validator=validator,
+                        )
+                        total += 1
+                    except Exception as e:
+                        print(f"  Could not add {q.id}: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    print(f"Imported {total} questions from YAML backup into the DB.")
+
+    try:
+        shutil.copy2(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print(f"Database backup created at: {BACKUP_DATABASE_FILE}")
+    except Exception as e:
+        print(f"Failed to backup database: {e}")
+
+
+# --- migrate_all_yaml_questions ---
+def do_migrate_all(args):
+    """
+    Migrate all YAML-based quiz questions into the Kubelingo SQLite database.
+    """
+    init_db()
+    loader = YAMLLoader()
+    dirs = [Path(QUESTIONS_DIR)]
+    total_added = 0
+    conn = get_db_connection()
+    try:
+        for yaml_dir in dirs:
+            if not yaml_dir.is_dir():
+                continue
+            print(f"Processing YAML directory: {yaml_dir}")
+            patterns = ['*.yaml', '*.yml', '*.yaml.bak']
+            for pat in patterns:
+                for path in sorted(yaml_dir.glob(pat)):
+                    try:
+                        questions = loader.load_file(str(path))
+                    except Exception as e:
+                        print(f"Failed to load {path}: {e}")
+                        continue
+                    if not questions:
+                        continue
+                    source_file = path.name
+                    for q in questions:
+                        vs = []
+                        for step in getattr(q, 'validation_steps', []):
+                            vs.append(asdict(step))
+                        validator = None
+                        metadata = getattr(q, 'metadata', {}) or {}
+                        expected = metadata.get('correct_yaml')
+                        if expected:
+                            validator = {'type': 'yaml', 'expected': expected}
+                        try:
+                            add_question(
+                                conn=conn,
+                                id=q.id,
+                                prompt=q.prompt,
+                                source_file=source_file,
+                                response=None,
+                                category=(q.categories[0] if getattr(q, 'categories', None) else None),
+                                source=getattr(q, 'source', None),
+                                validation_steps=vs,
+                                validator=validator,
+                                # Preserve full question schema
+                                question_type=getattr(q, 'type', None),
+                                answers=getattr(q, 'answers', None),
+                                correct_yaml=getattr(q, 'correct_yaml', None),
+                                pre_shell_cmds=getattr(q, 'pre_shell_cmds', None),
+                                initial_files=getattr(q, 'initial_files', None),
+                                explanation=getattr(q, 'explanation', None),
+                                difficulty=getattr(q, 'difficulty', None),
+                                schema_category=getattr(getattr(q, 'schema_category', None), 'value', None),
+                            )
+                            total_added += 1
+                        except Exception as e:
+                            print(f"Failed to add {q.id} from {source_file}: {e}")
+    finally:
+        if conn:
+            conn.close()
+    print(f"Migration complete: {total_added} YAML questions added to database.")
+
+
+# --- migrate_from_yaml_bak ---
+def do_migrate_bak(args):
+    """
+    Clears the database, loads all questions from YAML files in the backup
+    directory, saves them to the database, and then creates a new pristine
+    backup of the populated database.
+    """
+    print("Starting migration of questions from 'yaml-bak' directory to database...")
+
+    # 1. Clear the existing database
+    print("Clearing the database to ensure a fresh import...")
+    init_db(clear=True)
+    conn = get_db_connection()
+
+    # 2. Load questions from yaml-bak
+    print(f"Searching for YAML files in: {YAML_QUIZ_BACKUP_DIR}")
+    if not os.path.isdir(YAML_QUIZ_BACKUP_DIR):
+        print(f"Error: Backup directory not found at '{YAML_QUIZ_BACKUP_DIR}'")
+        sys.exit(1)
+
+    yaml_loader = YAMLLoader()
+    total_questions_added = 0
+
+    try:
+        for filename in sorted(os.listdir(YAML_QUIZ_BACKUP_DIR)):
+            if not filename.endswith(('.yaml', '.yml')):
+                continue
+
+            file_path = os.path.join(YAML_QUIZ_BACKUP_DIR, filename)
+            print(f"  -> Processing file: {filename}")
+            try:
+                questions = yaml_loader.load_file(file_path)
+                if not questions:
+                    print(f"     No questions found in {filename}.")
+                    continue
+
+                intended_source_file = file_path.replace(os.sep + 'yaml-bak' + os.sep, os.sep + 'yaml' + os.sep)
+
+                for q in questions:
+                    add_question(
+                        conn=conn,
+                        id=q.id,
+                        prompt=q.prompt,
+                        source_file=intended_source_file,
+                        response=getattr(q, 'response', None),
+                        category=getattr(q, 'category', None),
+                        source=getattr(q, 'source', "https://kubernetes.io/docs/home/"),
+                        validation_steps=[asdict(vs) for vs in getattr(q, 'validation_steps', [])],
+                        validator=getattr(q, 'validator', None),
+                        explanation=getattr(q, 'explanation', None)
+                    )
+                total_questions_added += len(questions)
+                print(f"     Added {len(questions)} questions from {filename}.")
+
+            except Exception as e:
+                print(f"     Error processing {filename}: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    print(f"\nTotal questions added to the database: {total_questions_added}")
+
+    if total_questions_added == 0:
+        print("\nNo questions were added. Aborting backup.")
+        return
+
+    # 3. Back up the newly populated database to the pristine location
+    print(f"\nBacking up new database to '{BACKUP_DATABASE_FILE}'...")
+    try:
+        backup_dir = os.path.dirname(BACKUP_DATABASE_FILE)
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+
+        shutil.copyfile(DATABASE_FILE, BACKUP_DATABASE_FILE)
+        print("Backup successful.")
+        print(f"Pristine database at '{BACKUP_DATABASE_FILE}' has been updated.")
+    except Exception as e:
+        print(f"Error creating backup: {e}")
+
+
+# --- verify_yaml_import ---
+def _create_db_schema_for_verify(conn: sqlite3.Connection):
+    """Creates the questions table in the SQLite database for verification."""
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS questions (
+        id TEXT PRIMARY KEY,
+        prompt TEXT,
+        source_file TEXT,
+        response TEXT,
+        category TEXT,
+        source TEXT,
+        validation_steps TEXT,
+        validator TEXT,
+        review BOOLEAN,
+        question_type TEXT,
+        type TEXT,
+        subject_matter TEXT,
+        metadata TEXT,
+        categories TEXT,
+        difficulty TEXT,
+        pre_shell_cmds TEXT,
+        initial_files TEXT,
+        explanation TEXT
+    )
+    """)
+    conn.commit()
+
+def _import_yaml_to_db_for_verify(yaml_path: str, conn: sqlite3.Connection):
+    """
+    Reads questions from a YAML file and imports them into the DB.
+    """
+    try:
+        with open(yaml_path, 'r') as f:
+            data = yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"Error: YAML file not found at {yaml_path}", file=sys.stderr)
+        return 0
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}", file=sys.stderr)
+        return 0
+
+    questions = data.get('questions', [])
+    if not questions:
+        print(f"Info: No questions found in {os.path.basename(yaml_path)}.")
+        return 0
+
+    source_file = os.path.basename(yaml_path)
+    cursor = conn.cursor()
+    
+    inserted_count = 0
+    questions_to_process = [q for q in questions if q.get('id')]
+    num_skipped_no_id = len(questions) - len(questions_to_process)
+
+    if num_skipped_no_id > 0:
+        print(f"Info: In {source_file}, skipping {num_skipped_no_id} questions that have no ID.")
+
+    for q in questions_to_process:
+        params = {
+            'id': q.get('id'),
+            'prompt': q.get('prompt', ''),
+            'source_file': source_file,
+            'response': q.get('response'),
+            'category': q.get('category'), # Legacy field
+            'source': q.get('source'),
+            'validation_steps': json.dumps(q.get('validation_steps', [])),
+            'validator': json.dumps(q.get('validator', {})),
+            'review': q.get('review', False),
+            'question_type': q.get('type') or q.get('question_type', 'command'),
+            'type': q.get('type'), # Legacy field
+            'subject_matter': q.get('subject_matter'),
+            'metadata': json.dumps(q.get('metadata', {})),
+            'categories': json.dumps(q.get('categories', [])),
+            'difficulty': q.get('difficulty'),
+            'pre_shell_cmds': json.dumps(q.get('pre_shell_cmds', [])),
+            'initial_files': json.dumps(q.get('initial_files', {})),
+            'explanation': q.get('explanation')
+        }
+        
+        columns = ', '.join(params.keys())
+        placeholders = ', '.join(':' + key for key in params.keys())
+        sql = f"INSERT OR IGNORE INTO questions ({columns}) VALUES ({placeholders})"
+        cursor.execute(sql, params)
+        if cursor.rowcount > 0:
+            inserted_count += 1
+
+    conn.commit()
+    skipped_duplicates = len(questions_to_process) - inserted_count
+    print(f"Imported from {source_file}: Inserted {inserted_count} new questions, skipped {skipped_duplicates} duplicates.")
+    return inserted_count
+
+def do_verify(args):
+    """Verify YAML question import to SQLite and loading via DBLoader."""
+    yaml_files = find_yaml_files_from_paths(args.paths)
+
+    if not yaml_files:
+        print("Error: No YAML files found in the provided paths.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Found {len(yaml_files)} YAML file(s) to process.")
+    
+    tmp_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    db_path = tmp_db_file.name
+    tmp_db_file.close()
+
+    try:
+        print(f"Using temporary database: {db_path}")
+        
+        conn = sqlite3.connect(db_path)
+        _create_db_schema_for_verify(conn)
+
+        total_imported = 0
+        imported_files_map = {}  # basename -> count
+
+        for yaml_file in yaml_files:
+            num_imported = _import_yaml_to_db_for_verify(str(yaml_file), conn)
+            total_imported += num_imported
+            imported_files_map[os.path.basename(str(yaml_file))] = num_imported
+        
+        conn.close()
+
+        if total_imported == 0:
+            print("No questions found in any YAML file. Exiting.")
+            return
+
+        print(f"\nTotal questions imported: {total_imported}")
+        print("\nVerifying import using DBLoader...")
+        loader = DBLoader(db_path=db_path)
+        
+        source_files_in_db = loader.discover()
+        
+        imported_basenames = set(imported_files_map.keys())
+        discovered_basenames = set(source_files_in_db)
+
+        if not imported_basenames.issubset(discovered_basenames):
+            missing = sorted(list(imported_basenames - discovered_basenames))
+            print(f"ERROR: DBLoader did not discover the following source file(s): {', '.join(missing)}", file=sys.stderr)
+            print(f"Discovered files in DB: {sorted(list(discovered_basenames))}", file=sys.stderr)
+            sys.exit(1)
+            
+        print(f"Successfully discovered all {len(imported_files_map)} source file(s).")
+        print("\nVerifying question counts...")
+
+        total_loaded = 0
+        mismatched_files = []
+        for basename, num_imported in sorted(imported_files_map.items()):
+            loaded_questions = loader.load_file(basename)
+            num_loaded = len(loaded_questions)
+            total_loaded += num_loaded
+            
+            if num_loaded == num_imported:
+                print(f"  ✅ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+            else:
+                print(f"  ❌ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+                mismatched_files.append(basename)
+        
+        print("-" * 20)
+        print(f"Total Imported: {total_imported}, Total Loaded: {total_loaded}")
+
+        if not mismatched_files and total_imported == total_loaded:
+            print("\nSUCCESS: The number of loaded questions matches the number of imported questions for all files.")
+        else:
+            print(f"\nERROR: Mismatch in question count detected for one or more files.", file=sys.stderr)
+            sys.exit(1)
+
+    finally:
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print(f"Temporary database {db_path} cleaned up.")
+
+
 def main():
     """Main CLI entrypoint."""
     parser = argparse.ArgumentParser(
@@ -1129,6 +1542,27 @@ def main():
     p_stats = subparsers.add_parser('stats', help="Get statistics about questions in YAML files.")
     p_stats.add_argument("path", nargs='?', default=None, help="Path to a YAML file or directory.")
     p_stats.set_defaults(func=do_statistics)
+
+    # group-backups
+    p_group_backups = subparsers.add_parser('group-backups', help="Group legacy YAML backup quizzes into a single module.")
+    p_group_backups.set_defaults(func=do_group_backups)
+
+    # import-bak
+    p_import_bak = subparsers.add_parser('import-bak', help="Import questions from legacy YAML backup directory.")
+    p_import_bak.set_defaults(func=do_import_bak)
+
+    # migrate-all
+    p_migrate_all = subparsers.add_parser('migrate-all', help="Migrate all YAML questions from standard directories to DB.")
+    p_migrate_all.set_defaults(func=do_migrate_all)
+
+    # migrate-bak
+    p_migrate_bak = subparsers.add_parser('migrate-bak', help="Clear DB and migrate from YAML backup directory.")
+    p_migrate_bak.set_defaults(func=do_migrate_bak)
+
+    # verify
+    p_verify = subparsers.add_parser('verify', help="Verify YAML question import and loading.")
+    p_verify.add_argument("paths", nargs='+', help="Path(s) to YAML file(s) or directories to verify.")
+    p_verify.set_defaults(func=do_verify)
 
     args = parser.parse_args()
     args.func(args)
