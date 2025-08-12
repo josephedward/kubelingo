@@ -28,17 +28,10 @@ class AIQuestionGenerator:
     Kubernetes subjects.
     """
 
-    def __init__(self, max_attempts_per_question: int = 5):
-        self.evaluator = AIEvaluator()
+    def __init__(self, llm_client, max_attempts_per_question: int = 5):
+        self.evaluator = AIEvaluator(llm_client=llm_client)
         self.max_attempts = max_attempts_per_question
-        self.llm_client = None
-        try:
-            # Dynamically get client to avoid circular dependency issues at import time
-            from kubelingo.integrations.llm import get_llm_client
-            provider = os.environ.get("AI_PROVIDER", "gemini").lower()
-            self.llm_client = get_llm_client(provider)
-        except (ImportError, ValueError) as e:
-            logging.error(f"Failed to initialize LLM client for AIQuestionGenerator: {e}")
+        self.llm_client = llm_client
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
@@ -90,6 +83,7 @@ class AIQuestionGenerator:
         num_questions: int = 1,
         base_questions: List[Question] = None,
         category: str = "Command",
+        exclude_terms: Optional[List[str]] = None,
     ) -> List[Question]:
         """
         Generate up to `num_questions` kubectl command questions about the given `subject`.
@@ -125,6 +119,9 @@ class AIQuestionGenerator:
                 for ex in base_questions:
                     prompt_lines.append(f"- Prompt: {ex.prompt}")
                     prompt_lines.append(f"  Response: {ex.response}")
+            if exclude_terms:
+                exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
+                prompt_lines.append(f"- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}.")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
         else:  # Command
             q_type = "command"
@@ -161,9 +158,11 @@ class AIQuestionGenerator:
                     logger.error("LLM client not available, skipping generation attempt.")
                     continue
                 # Use the configured LLM client
+                user_prompt = "Please generate questions based on the instructions."
                 raw = self.llm_client.chat_completion(
                     messages=[
-                        {"role": "user", "content": ai_prompt}
+                        {"role": "system", "content": ai_prompt},
+                        {"role": "user", "content": user_prompt},
                     ],
                     temperature=0.7,
                     json_mode=True
