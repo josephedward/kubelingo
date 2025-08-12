@@ -271,9 +271,9 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
     if "type" in q_dict: q_dict["question_type"] = q_dict.pop("type")
     if "subject" in q_dict: q_dict["subject_matter"] = q_dict.pop("subject")
     q_type = q_dict.get("question_type", "command")
-    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"): q_dict["schema_category"] = "manifest"
-    elif q_type in ("command", "kubectl"): q_dict["schema_category"] = "command"
-    else: q_dict["schema_category"] = "basic"
+    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"): q_dict["category_id"] = "manifest"
+    elif q_type in ("command", "kubectl"): q_dict["category_id"] = "command"
+    else: q_dict["category_id"] = "basic"
     if not q_dict.get("category"):
         if q_dict.get("question_type") in ("yaml_edit", "yaml_author"): q_dict["category"] = "YAML Authoring"
         elif q_dict.get("subject_matter"): q_dict["category"] = q_dict["subject_matter"]
@@ -291,7 +291,7 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
 def _populate_db_from_yaml(yaml_files, db_path=None):
     if not yaml_files: print("No YAML files found to process."); return
     conn = get_db_connection(db_path=db_path)
-    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "validation_steps", "validator", "review", "question_type", "schema_category", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
+    allowed_args = {"id", "prompt", "source_file", "response", "subject_id", "source", "validation_steps", "validator", "review", "question_type", "category_id", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
     unmatched_categories, skipped_no_category, question_count = set(), 0, 0
     try:
         for file_path in yaml_files:

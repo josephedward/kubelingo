@@ -199,8 +199,8 @@ def test_diff(setup_test_dbs, capsys):
 
     # Schema diff
     assert "--- Schema Differences ---" in captured.out
-    assert "CREATE TABLE table2(name TEXT);" in captured.out
-    assert "CREATE TABLE table1(id INT, description TEXT);" in captured.out
+    assert "CREATE TABLE table2 (name TEXT);" in captured.out
+    assert "CREATE TABLE table1 (id INT, description TEXT);" in captured.out
 
     # Row count diff
     assert "--- Row Count Differences ---" in captured.out
