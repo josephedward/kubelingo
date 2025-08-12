@@ -5,7 +5,6 @@ import yaml
 from pathlib import Path
 import sys
 import os
-import subprocess
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
@@ -17,22 +16,6 @@ from kubelingo.utils.path_utils import get_project_root
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
-def process_with_gemini(prompt, model="gemini-2.0-flash"):
-    """
-    Uses the llm-gemini plugin to process a prompt with the specified model.
-    """
-    try:
-        result = subprocess.run(
-            ["llm", "-m", model, prompt],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error processing with Gemini: {e.stderr}")
-        return None
 
 def create_quizzes_from_backup():
     """
