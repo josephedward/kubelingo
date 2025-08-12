@@ -178,8 +178,8 @@ class KubernetesStudyMode:
                         "value": "set_provider",
                     },
                     Separator("API Keys"),
-                    {"name": "View current API key", "value": "view_api_key"},
-                    {"name": "Set/Update API key", "value": "set_api_key"},
+                    {"name": f"View API key for {current_provider.capitalize()}", "value": "view_api_key"},
+                    {"name": f"Set/Update API key for {current_provider.capitalize()}", "value": "set_api_key"},
                     Separator("Kubernetes Clusters"),
                     {"name": "List configured clusters", "value": "list_clusters"},
                     {"name": "Add a new cluster connection", "value": "add_cluster"},
@@ -225,7 +225,7 @@ class KubernetesStudyMode:
                 if save_ai_provider(new_provider):
                     self.ai_provider = new_provider
                     self.client = get_llm_client()
-                    self.question_generator.client = self.client
+                    self.question_generator.llm_client = self.client
                     print(
                         f"\n{Fore.GREEN}AI provider set to {self.ai_provider.capitalize()}. It will be used for future sessions.{Style.RESET_ALL}"
                     )
@@ -358,7 +358,7 @@ class KubernetesStudyMode:
             else:
                 print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
         else:
-            print(f"Unknown config target '{target}'. Supported: openai, gemini, cluster.")
+            print(f"Unknown config target '{target}'. Supported: provider, api_key, cluster.")
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
