@@ -133,37 +133,21 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            # Try OpenAI client via dynamic import (supports monkeypatching)
             try:
-                import openai
-
-                client = openai.OpenAI()
-                resp = client.chat.completions.create(
-                    model="gpt-4-turbo",
-                    messages=[{"role": "system", "content": ai_prompt}],
+                # Use the centralized LLM client
+                raw = self.llm_client.chat_completion(
+                    messages=[{"role": "user", "content": ai_prompt}],
                     temperature=0.7,
-                    response_format={"type": "json_object"},
+                    json_mode=True
                 )
-                raw = resp.choices[0].message.content
             except Exception as e:
-                logger.debug("OpenAI client failed: %s", e)
-                print(f"{Fore.RED}OpenAI API call failed: {e}{Style.RESET_ALL}")
-            # Fallback to llm package
-            if raw is None:
-                try:
-                    import llm as _llm_module
+                logger.error(f"LLM client failed during question generation: {e}")
+                break  # Stop if the client fails
 
-                    llm_model = _llm_module.get_model()
-                    llm_resp = llm_model.prompt(ai_prompt)
-                    raw = (
-                        llm_resp.text()
-                        if callable(getattr(llm_resp, "text", None))
-                        else getattr(llm_resp, "text", str(llm_resp))
-                    )
-                except Exception as e:
-                    logger.error("LLM fallback failed: %s", e)
-                    print(f"{Fore.RED}LLM fallback failed: {e}{Style.RESET_ALL}")
-                    break
+            if not raw:
+                logger.warning("LLM client returned no content.")
+                continue
+
             # Parse JSON
             items = []
             try:
