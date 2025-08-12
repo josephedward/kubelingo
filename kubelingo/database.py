@@ -162,3 +162,27 @@ def add_question(
         (id, prompt, response, category_id, subject_id, source, source_file, raw, review)
     )
     conn.commit()
+
+
+def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    """
+    Converts a SQLite row object into a dictionary representing a question.
+
+    Args:
+        row: A SQLite row object.
+
+    Returns:
+        A dictionary containing the question data.
+    """
+    return {
+        "id": row["id"],
+        "prompt": row["prompt"],
+        "response": row["response"],
+        "category": row["category"],
+        "subject": row["subject"],
+        "source": row["source"],
+        "source_file": row["source_file"],
+        "validation_steps": json.loads(row["validation_steps"]) if row["validation_steps"] else [],
+        "validator": row["validator"],
+        "review": bool(row["review"]),
+    }
