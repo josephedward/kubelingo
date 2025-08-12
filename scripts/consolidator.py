@@ -174,12 +174,19 @@ def consolidate_dbs():
             by_hash[h] = (ctime, p)
 
     for ctime, p in sorted(by_hash.values(), reverse=True):
-        ts = datetime.fromtimestamp(ctime).strftime('%Y%m%d_%H%M%S')
-        new_name = f"kubelingo_db_{ts}.db"
+        ts_obj = datetime.fromtimestamp(ctime)
+        # Add microseconds for uniqueness
+        ts_str = ts_obj.strftime('%Y%m%d_%H%M%S_%f')
+        new_name = f"kubelingo_db_{ts_str}.db"
         dst = dest_dir / new_name
-        if dst.exists():
-            print(f"Skipping existing: {dst}")
-            continue
+
+        # Handle rare filename collisions
+        counter = 1
+        while dst.exists():
+            new_name = f"kubelingo_db_{ts_str}_{counter}.db"
+            dst = dest_dir / new_name
+            counter += 1
+
         try:
             p.rename(dst)
             print(f"Moved {p} -> {dst}")
