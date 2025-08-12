@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path
 import sys
 import os
+import subprocess
 
 # Add project root to path to allow imports of kubelingo
 project_root = Path(__file__).resolve().parent.parent
@@ -23,6 +24,21 @@ CATEGORY_MAPPING = {
     'manifest': 'manifest',
 }
 
+def process_with_gemini(prompt, model="gemini-2.0-flash"):
+    """
+    Uses the llm-gemini plugin to process a prompt with the specified model.
+    """
+    try:
+        result = subprocess.run(
+            ["llm", "-m", model, prompt],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error processing with Gemini: {e.stderr}")
+        return None
 
 def create_quizzes_from_backup():
     """
@@ -73,7 +89,6 @@ def create_quizzes_from_backup():
                 )
                 continue
 
-
             for q_data in questions_data:
                 logging.debug(f"Processing question data: {q_data}")
                 q_id = q_data.get('id')
@@ -84,11 +99,16 @@ def create_quizzes_from_backup():
                     logging.warning(f"Skipping question {q_id} in {yaml_file}: unknown type '{q_type}'.")
                     continue
                 
-                response_val = q_data.get('response')
-                if not response_val:
-                    metadata = q_data.get('metadata')
-                    if isinstance(metadata, dict):
-                        response_val = metadata.get('response')
+                # Use Gemini to process the question prompt
+                prompt = q_data.get('prompt')
+                if not prompt:
+                    logging.warning(f"Skipping question {q_id}: Missing 'prompt'.")
+                    continue
+
+                gemini_response = process_with_gemini(prompt)
+                if not gemini_response:
+                    logging.warning(f"Skipping question {q_id}: Gemini processing failed.")
+                    continue
 
                 # Add specific validation for 'manifest' type
                 if q_type == 'manifest':
@@ -102,9 +122,9 @@ def create_quizzes_from_backup():
                 add_question(
                     conn=conn,
                     id=q_id,
-                    prompt=q_data.get('prompt'),
+                    prompt=gemini_response,  # Store the processed prompt
                     source_file=str(yaml_file),
-                    response=response_val,
+                    response=q_data.get('response'),
                     category=exercise_category,
                     source=q_data.get('source'),
                     validation_steps=q_data.get('validation'),
