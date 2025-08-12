@@ -1,6 +1,5 @@
+import llm
 from typing import Dict, List
-
-from kubelingo.integrations.llm import get_llm_client
 
 
 KUBERNETES_TOPICS = [
@@ -28,86 +27,76 @@ KUBERNETES_TOPICS = [
 
 
 class KubernetesStudyMode:
-    """
-    A Socratic tutor for Kubernetes concepts, powered by a configured LLM.
-    This class manages the conversation flow, system prompt, and interaction
-    with the LLM client.
-    """
-    def __init__(self):
-        """Initializes the study mode, getting a compatible LLM client."""
-        self.client = get_llm_client()
-        self.conversation_history: List[Dict[str, str]] = []
+    """A Socratic tutor for Kubernetes topics, powered by Gemini."""
+
+    def __init__(self, model_id: str = "gemini-1.5-pro-latest"):
+        """
+        Initializes the study mode with a specific Gemini model.
+
+        Args:
+            model_id: The `llm` model ID for the Gemini model to use.
+
+        Raises:
+            Exception: If the llm-gemini plugin is not installed or the API key is missing.
+        """
+        try:
+            self.model = llm.get_model(model_id)
+            if not self.model.key:
+                # The model object may exist but the key might be missing.
+                # This will trigger the exception handler in session.py
+                raise ValueError("Gemini API key not found.")
+        except llm.UnknownModelError:
+            raise ImportError("Model not found. Is llm-gemini installed? `pip install llm-gemini`")
+        except Exception as e:
+            # Re-raise to be caught by the session runner
+            raise e
+
+        self.conversation = None
 
     def start_study_session(self, topic: str, user_level: str = "intermediate") -> str:
-        """
-        Starts a new study session on a given topic.
-
-        It builds the initial system and user prompts, gets the first response
-        from the LLM, and initializes the conversation history.
-        """
+        """Initialize a new study session."""
         system_prompt = self._build_kubernetes_study_prompt(topic, user_level)
-        user_prompt = f"I'm ready to learn about {topic}. Let's start with the basics, assuming I'm at a {user_level} level."
+        user_prompt = f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
+        # Create a new conversation with the system prompt
+        self.conversation = self.model.conversation()
+        response = self.conversation.prompt(user_prompt, system=system_prompt)
 
-        assistant_response = self.client.chat_completion(messages=messages, temperature=0.7)
-
-        if not assistant_response:
+        if not response or not response.text:
             return "I'm sorry, I'm having trouble connecting to my knowledge base. Please try again later."
-
-        # Initialize history after the first successful exchange
-        self.conversation_history = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-            {"role": "assistant", "content": assistant_response},
-        ]
-
-        return assistant_response
+        
+        return response.text
 
     def continue_conversation(self, user_input: str) -> str:
-        """
-        Continues an existing conversation with new user input.
-        """
-        if not self.conversation_history:
-            return "No active session. Please start a new session."
-            
-        self.conversation_history.append({"role": "user", "content": user_input})
+        """Continue the study conversation."""
+        if not self.conversation:
+            return "The study session has not been started. Please start a session first."
 
-        assistant_response = self.client.chat_completion(
-            messages=self.conversation_history, temperature=0.7
-        )
+        response = self.conversation.prompt(user_input)
 
-        if not assistant_response:
+        if not response or not response.text:
             return "I'm sorry, I seem to be having connection issues. Could you please repeat your question?"
 
-        self.conversation_history.append({"role": "assistant", "content": assistant_response})
-        return assistant_response
+        return response.text
 
     def _build_kubernetes_study_prompt(self, topic: str, level: str) -> str:
-        """
-        Builds a structured, detailed system prompt optimized for Gemini models.
-        """
+        """Builds a new Socratic-style prompt tailored for Gemini."""
         return f"""
-# **Persona**
-You are KubeTutor, an expert on Kubernetes and a friendly, patient Socratic guide. Your goal is to help users achieve a deep, practical understanding of Kubernetes concepts. You are tutoring a user whose skill level is `{level}`.
+You are an expert Kubernetes tutor. Your name is KubeLingo.
+Your student wants to learn about "{topic}".
+Their self-assessed skill level is "{level}".
 
-# **Topic**
-The user wants to learn about: **{topic}**.
+Your teaching style is strictly Socratic. You must guide the student to discover answers themselves.
+- NEVER give direct answers, commands, or YAML examples.
+- ALWAYS respond with a guiding question.
+- Start by assessing their current knowledge of "{topic}". Ask them to explain it in their own words.
+- Connect new topics to core concepts like Pods, Services, and Deployments.
+- Keep your responses concise, friendly, and encouraging.
+- End every response with a question to prompt the student.
 
-# **Core Methodology: Socratic Guiding**
-- **NEVER give direct answers.** Instead, guide the user with probing questions.
-- **Assess understanding** before introducing new concepts. Ask them what they already know about `{topic}`.
-- **Use analogies** to connect complex ideas to simpler ones (e.g., "Think of a ReplicaSet as a manager for Pods...").
-- **Pose scenarios.** Ask "What if..." or "How would you..." questions to encourage critical thinking. For example: "What do you think would happen if you deleted a Pod managed by a Deployment?"
-- **Encourage hands-on thinking.** Prompt them to think about `kubectl` commands or YAML structure. For example: "What `kubectl` command would you use to see the logs of a Pod?" or "What are the essential keys you'd expect in a Pod's YAML manifest?"
-- **Keep it concise.** Responses should be short and focused, typically under 150 words, and always end with a question to guide the conversation forward.
-
-# **Strict Rules**
-1.  **No Code Snippets:** Do not provide complete YAML files or multi-line `kubectl` commands. Guide the user to build them piece by piece.
-2.  **Stay on Topic:** Gently steer the conversation back to `{topic}` if the user strays.
-3.  **Positive Reinforcement:** Encourage the user's progress. "Great question!" or "That's exactly right."
-4.  **Always End with a Question:** Your primary goal is to prompt the user to think. Every response must end with a question.
+Example Interaction:
+Student: I want to learn about ConfigMaps.
+You: Great! To start, what's your understanding of what a ConfigMap is and what problem it solves in Kubernetes?
+Student: I think it's for configuration data.
+You: Exactly! And why is it better to use a ConfigMap instead of putting configuration directly inside a container image? What advantage does that give you?
 """
