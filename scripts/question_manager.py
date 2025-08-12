@@ -11,6 +11,10 @@ import os
 import sys
 import sqlite3
 import json
+import re
+import subprocess
+import tempfile
+import shutil
 from collections import defaultdict, Counter
 from datetime import datetime
 from pathlib import Path
@@ -712,6 +716,89 @@ def handle_add_ui_config(args):
         conn.close()
 
 
+# --- from: scripts/import_pdf_questions.py ---
+def handle_import_pdf(args):
+    """Import new quiz questions from a PDF file into the database."""
+    # This logic is from scripts/import_pdf_questions.py
+    init_db()
+
+    pdf_path = Path(args.pdf_file)
+    if not pdf_path.is_file():
+        print(f"Error: PDF not found at {pdf_path}", file=sys.stderr)
+        return
+
+    # Convert PDF to text via pdftotext
+    try:
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.txt', delete=False) as tmp:
+            txt_path = tmp.name
+        # Use capture_output to avoid printing stdout, but show stderr on error
+        subprocess.run(['pdftotext', str(pdf_path), txt_path], check=True, capture_output=True, text=True)
+        print("Successfully extracted text from PDF.")
+    except FileNotFoundError:
+        print("Error: 'pdftotext' command not found.", file=sys.stderr)
+        print("Please install poppler-utils (e.g., 'sudo apt-get install poppler-utils' or 'brew install poppler').", file=sys.stderr)
+        if 'txt_path' in locals() and os.path.exists(txt_path):
+            os.remove(txt_path)
+        return
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to extract text from PDF: {e.stderr}", file=sys.stderr)
+        if 'txt_path' in locals() and os.path.exists(txt_path):
+            os.remove(txt_path)
+        return
+
+    with open(txt_path, 'r', encoding='utf-8', errors='ignore') as f:
+        text = f.read()
+    os.remove(txt_path)
+
+    parts = re.split(r"Question\s+(\d+)\s*\|", text)
+    imported = 0
+    conn = get_db_connection()
+    try:
+        for i in range(1, len(parts), 2):
+            qnum = parts[i].strip()
+            content = parts[i+1].strip()
+            lines = content.splitlines()
+            if not lines:
+                continue
+            title = lines[0].strip()
+            body = '\n'.join(lines[1:]).strip()
+            prompt = f"Simulator Question {qnum}: {title}\n{body}" if body else f"Simulator Question {qnum}: {title}"
+
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM questions WHERE prompt LIKE ?", (f"%Simulator Question {qnum}:%",))
+            if cursor.fetchone()[0] > 0:
+                print(f"Skipping Question {qnum}, already in DB.")
+                continue
+
+            qid = f"sim_pdf::{qnum}"
+            try:
+                add_question(
+                    conn=conn, id=qid, prompt=prompt, source_file='pdf_simulator', response=None,
+                    category_id='Simulator', subject_id=None, source='pdf', raw=prompt,
+                    validation_steps=[], validator=None
+                )
+                print(f"Added Question {qnum} to DB.")
+                imported += 1
+            except Exception as e:
+                print(f"Failed to add Question {qnum}: {e}")
+    finally:
+        conn.close()
+
+    print(f"Imported {imported} new questions from PDF.")
+
+    if imported > 0 and not args.no_backup:
+        try:
+            live_db_path = cfg.DATABASE_FILE
+            backup_db_path = cfg.BACKUP_DATABASE_FILE
+            if not live_db_path or not backup_db_path:
+                print("DATABASE_FILE or BACKUP_DATABASE_FILE not configured, skipping backup.", file=sys.stderr)
+                return
+            shutil.copy2(live_db_path, backup_db_path)
+            print(f"Backed up live DB to {backup_db_path}")
+        except Exception as e:
+            print(f"Failed to backup DB: {e}", file=sys.stderr)
+
+
 # --- Main CLI Router ---
 def main():
     """Main entry point for the question manager CLI."""
@@ -771,6 +858,13 @@ def main():
     # Sub-parser for 'add-ui-config'
     parser_add_ui = subparsers.add_parser('add-ui-config', help='Add hardcoded UI configuration questions to the database.', description="Adds a predefined set of UI configuration questions to the user's local database.")
     parser_add_ui.set_defaults(func=handle_add_ui_config)
+
+    # Sub-parser for 'import-pdf'
+    parser_import_pdf = subparsers.add_parser('import-pdf', help='Import questions from a PDF file.', description="Import new quiz questions from the 'Killer Shell - Exam Simulators.pdf' into the Kubelingo database.")
+    default_pdf_path = os.path.join(project_root, 'Killer Shell - Exam Simulators.pdf')
+    parser_import_pdf.add_argument('pdf_file', nargs='?', default=default_pdf_path, help=f"Path to the PDF file to import questions from. Default: {default_pdf_path}")
+    parser_import_pdf.add_argument('--no-backup', action='store_true', help="Do not back up the database after importing questions.")
+    parser_import_pdf.set_defaults(func=handle_import_pdf)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
