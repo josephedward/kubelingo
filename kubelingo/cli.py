@@ -38,16 +38,26 @@ if __name__ == '__main__' and __package__ is None:
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
-from kubelingo.modules.kubernetes.session import (
-    get_all_flagged_questions,
-    NewSession,
-)
-from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
+try:
+    from kubelingo.modules.kubernetes.session import (
+        get_all_flagged_questions,
+        NewSession,
+    )
+    from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
+except Exception:
+    get_all_flagged_questions = None
+    NewSession = None
+    KubernetesStudyMode = None
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
-from kubelingo.self_healing import run_self_healing_cycle
+try:
+    from kubelingo.self_healing import run_self_healing_cycle
+except ImportError:
+    # Self-healing feature not available
+    def run_self_healing_cycle():
+        pass
 from kubelingo.utils.ui import (
     Fore, Style, print_banner, humanize_module, show_session_type_help, show_quiz_type_help
 )
@@ -680,7 +690,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml', 'self-heal')")
+                        help="Command to run (e.g. 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'troubleshoot', 'load-yaml', 'monitor', 'self-heal', 'heal')")
     parser.add_argument('--list-modules', action='store_true',
                         help='List available exercise modules and exit')
     parser.add_argument('--list-yaml', action='store_true',
@@ -810,7 +820,18 @@ def main():
             if cmd_name == 'config':
                 handle_config_command(args.command)
                 return
-            elif cmd_name == 'self-heal':
+            elif cmd_name == 'monitor':
+                from kubelingo.agent.monitor import HealthMonitor
+                monitor = HealthMonitor(repo_path=repo_root)
+                print("Running health monitor to detect issues...")
+                has_issues, output = monitor.detect_issues()
+                if not has_issues:
+                    print("✅ No issues detected. All tests passed.")
+                else:
+                    print("🚨 Issues detected. Test output:")
+                    print(output)
+                return
+            elif cmd_name in ('self-heal', 'heal'):
                 run_self_healing_cycle()
                 return
             elif cmd_name == 'enrich-sources':
