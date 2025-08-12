@@ -12,6 +12,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 from kubelingo.utils.path_utils import find_sqlite_files, get_all_sqlite_files_in_repo
+from kubelingo.utils.config import SQLITE_BACKUP_DIRS
 from kubelingo.utils.ui import Fore, Style
 
 
@@ -37,7 +38,8 @@ def main():
         default=[],
         help="One or more directories to scan. If not provided, scans the entire repository.",
     )
-    args = parser.parse_args()
+    # Ignore unrecognized args when invoked via test harness
+    args, _ = parser.parse_known_args()
 
     index_file_path = project_root / "backups" / "sqlite_index.yaml"
 
@@ -48,12 +50,32 @@ def main():
         sys.exit(1)
 
     try:
+        # Determine directories to scan:
+        # 1. CLI args if provided
+        # 2. Configured backup dirs if overridden (not default .kubelingo/backups)
+        # 3. Full repository scan otherwise
+        default_backup = project_root / ".kubelingo" / "backups"
         if args.dirs:
+            scan_dirs = args.dirs
             print(f"{Fore.CYAN}--- Indexing SQLite files in specified directories ---{Style.RESET_ALL}")
-            sqlite_files = find_sqlite_files(args.dirs)
+        elif SQLITE_BACKUP_DIRS and any(Path(d) != default_backup for d in SQLITE_BACKUP_DIRS):
+            scan_dirs = SQLITE_BACKUP_DIRS
+            print(f"{Fore.CYAN}--- Indexing SQLite files in configured backup directories ---{Style.RESET_ALL}")
         else:
+            scan_dirs = None
             print(f"{Fore.CYAN}--- Indexing all SQLite files in repository ---{Style.RESET_ALL}")
+        if scan_dirs:
+            sqlite_files = find_sqlite_files(scan_dirs)
+        else:
             sqlite_files = get_all_sqlite_files_in_repo()
+        # Print directories and files for reference
+        if scan_dirs:
+            print("Directories scanned for SQLite files:")
+            for d in scan_dirs:
+                print(f"  {d}")
+        print("SQLite files to index:")
+        for p in sqlite_files:
+            print(f"  {p}")
 
         all_files = sorted(list(set(sqlite_files)))
 
