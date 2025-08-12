@@ -186,13 +186,17 @@ Example response:
         f"Dispatching to AI backend '{ai_backend}' for question ID: {q_id}"
     )
 
-    if ai_backend == "gemini":
-        return _infer_with_gemini(prompt, q_id)
-    elif ai_backend == "openai":
-        return _infer_with_openai(prompt, q_id)
-    else:
+    backend_map = {
+        "openai": _infer_with_openai,
+        "gemini": _infer_with_gemini,
+    }
+    backend_func = backend_map.get(ai_backend)
+
+    if not backend_func:
         logging.warning(f"Unsupported AI_BACKEND '{ai_backend}'. Defaulting to OpenAI.")
-        return _infer_with_openai(prompt, q_id)
+        backend_func = _infer_with_openai
+    
+    return backend_func(prompt, q_id)
 
 
 
