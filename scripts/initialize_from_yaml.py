@@ -13,6 +13,7 @@ try:
         sys.path.insert(0, str(project_root))
     from kubelingo.database import get_db_connection
     from kubelingo.utils.path_utils import get_project_root
+    from scripts.ai_categorizer import infer_categories_from_text
 except ImportError:
     # Fallback for when script is run standalone without kubelingo in path
     logging.error("Could not import kubelingo modules. Ensure kubelingo is in PYTHONPATH.")
@@ -20,20 +21,10 @@ except ImportError:
         return Path.cwd()
     def get_db_connection():
         raise NotImplementedError("kubelingo.database.get_db_connection not available")
+    def infer_categories_from_text(prompt, response):
+        return None
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Mapping from YAML 'type' to database 'Exercise Category' as per shared_context.md
-# and logic in kubelingo/question.py.
-TYPE_TO_EXERCISE_CATEGORY = {
-    'socratic': 'basic',
-    'command': 'command',
-    'live_k8s': 'command',
-    'manifest': 'manifest',  # category name, could be legacy type
-    'yaml_author': 'manifest',
-    'yaml_edit': 'manifest',
-    'live_k8s_edit': 'manifest'
-}
 
 def initialize_from_yaml():
     """
@@ -96,24 +87,24 @@ def initialize_from_yaml():
                     logging.warning(f"Skipping question with no prompt in {relative_path}")
                     continue
 
-                yaml_type = question_data.get('type')
-                
-                # Logic from kubelingo/question.py __post_init__
-                source_filename = yaml_file.name
-                if source_filename in ('general_operations.yaml', 'resource_types_reference.yaml'):
-                    exercise_category = 'basic'
-                else:
-                    exercise_category = TYPE_TO_EXERCISE_CATEGORY.get(yaml_type)
-                
-                subject_matter = question_data.get('category')
+                response = question_data.get('response')
 
-                if not exercise_category:
-                    logging.warning(f"Question in {relative_path} has unknown or missing type '{yaml_type}'. Defaulting to 'command'.")
-                    exercise_category = 'command'
+                logging.info(f"Inferring categories with AI for: '{prompt[:70]}...'")
+                categories = infer_categories_from_text(prompt, response)
+
+                if not categories:
+                    logging.warning(f"AI categorization failed for question in {relative_path}. Skipping.")
+                    continue
+
+                exercise_category = categories.get('exercise_category')
+                subject_matter = categories.get('subject_matter')
+
+                if not exercise_category or not subject_matter:
+                    logging.warning(f"AI did not return complete categories for question in {relative_path}. Response: {categories}. Skipping.")
+                    continue
 
                 q_id = question_data.get('id', str(uuid.uuid4()))
-                response = question_data.get('response')
-                
+
                 # Per instructions, using schema from shared_context.md.
                 # This assumes 'questions' table has 'category_id' and 'subject_id' columns.
                 sql = """
@@ -126,9 +117,9 @@ def initialize_from_yaml():
                     response,
                     str(relative_path),
                     exercise_category,
-                    subject_matter
+                    subject_matter,
                 )
-                
+
                 cursor.execute(sql, params)
                 question_count += 1
 
