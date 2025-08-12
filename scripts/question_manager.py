@@ -36,10 +36,11 @@ except ImportError as e:
 
 # Kubelingo imports
 from kubelingo.database import (
-    get_db_connection, SUBJECT_MATTER, init_db
+    get_db_connection, SUBJECT_MATTER, init_db, add_question, get_questions_by_source_file
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.modules.ai_categorizer import AICategorizer
+from kubelingo.modules.question_generator import AIQuestionGenerator
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
 from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path
@@ -471,6 +472,80 @@ def handle_export_to_yaml(args):
         print(str(args.output))
     except IOError as e:
         print(f"{Fore.RED}Error writing to output file {args.output}: {e}{Style.RESET_ALL}")
+
+
+# --- from: scripts/enrich_unseen_questions.py ---
+def handle_enrich_unseen(args):
+    """Generate new questions from a source file if they don't exist in the database."""
+    if not os.environ.get("OPENAI_API_KEY") and not args.dry_run:
+        print("ERROR: OPENAI_API_KEY environment variable not set. Cannot generate questions.", file=sys.stderr)
+        sys.exit(1)
+
+    # Load existing prompts to filter out already-imported questions
+    conn = None
+    try:
+        conn = get_db_connection()
+        existing_prompts = get_existing_prompts(conn)
+        print(f"INFO: Found {len(existing_prompts)} existing questions in the database.")
+    except Exception as e:
+        print(f"WARNING: Could not connect to database or fetch questions: {e}", file=sys.stderr)
+        existing_prompts = set()
+    finally:
+        if conn:
+            conn.close()
+
+    try:
+        with open(args.source_file, 'r', encoding='utf-8') as f:
+            source_questions = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"ERROR: Error reading source file {args.source_file}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    unseen_questions = []
+    for question in source_questions:
+        prompt = question.get('prompt') or question.get('question')
+        if prompt and prompt not in existing_prompts:
+            unseen_questions.append(question)
+
+    print(f"INFO: Found {len(unseen_questions)} unseen questions in {args.source_file}.")
+
+    if args.dry_run:
+        print("INFO: Dry run enabled. Listing unseen question prompts:")
+        for i, q in enumerate(unseen_questions[:args.num_questions]):
+            print(f"  {i+1}. {q.get('prompt') or q.get('question')}")
+        return
+
+    if not unseen_questions:
+        print("INFO: No new questions to generate.")
+        return
+
+    generator = AIQuestionGenerator()
+    generated_questions = []
+
+    questions_to_generate = unseen_questions[:args.num_questions]
+    print(f"INFO: Attempting to generate up to {len(questions_to_generate)} new questions...")
+
+    for i, base_question in enumerate(questions_to_generate):
+        prompt = base_question.get('prompt') or base_question.get('question')
+        print(f"INFO: [{i+1}/{len(questions_to_generate)}] Generating question for prompt: \"{prompt}\"")
+        try:
+            new_question = generator.generate_question(base_question)
+            if new_question:
+                generated_questions.append(new_question)
+                print("  -> SUCCESS: Successfully generated question.")
+            else:
+                print("  -> WARNING: Failed to generate question (AI returned empty response).")
+        except Exception as e:
+            print(f"  -> ERROR: An error occurred during generation: {e}")
+
+    if generated_questions:
+        output_path = Path(args.output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w') as f:
+            yaml.dump(generated_questions, f, default_flow_style=False, sort_keys=False)
+        print(f"SUCCESS: Successfully generated {len(generated_questions)} new questions and saved them to {args.output_file}")
+    else:
+        print("WARNING: No questions were generated.")
 
 
 def handle_import_yaml(args):
