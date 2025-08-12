@@ -144,8 +144,10 @@ class AIQuestionGenerator:
 
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
         prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt' and 'response' keys. The 'response' should contain {response_description}.")
-        ai_prompt = "\n".join(prompt_lines)
-        logger.debug("AI few-shot prompt: %s", ai_prompt)
+        system_prompt = prompt_lines[0]
+        user_prompt = "\n".join(prompt_lines[1:])
+        logger.debug("AI System Prompt: %s", system_prompt)
+        logger.debug("AI User Prompt: %s", user_prompt)
 
         source_file = "ai_generated"
         if base_questions:
@@ -158,24 +160,22 @@ class AIQuestionGenerator:
         for attempt in range(1, self.max_attempts + 1):
             print(f"{Fore.CYAN}AI generation attempt {attempt}/{self.max_attempts}...{Style.RESET_ALL}")
             raw = None
-            if not self.client:
-                logger.error("LLM client not available for question generation.")
-                break
-
             try:
-                # Gemini works best with a 'user' role for direct prompts.
-                messages = [{"role": "user", "content": ai_prompt}]
-                raw = self.client.chat_completion(
-                    messages=messages,
+                # Use the configured LLM client
+                raw = self.llm_client.chat_completion(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
                     temperature=0.7,
                     json_mode=True
                 )
             except Exception as e:
-                logger.error(f"LLM client failed during question generation: {e}")
-                break
+                logger.error(f"LLM client failed on attempt {attempt}: {e}", exc_info=True)
+                continue
 
             if not raw:
-                logger.warning("LLM client returned no content.")
+                logger.warning("LLM client returned no content on attempt %d.", attempt)
                 continue
 
             # Parse JSON
