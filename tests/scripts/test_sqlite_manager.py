@@ -210,6 +210,119 @@ def test_diff(setup_test_dbs, capsys):
     assert "table2: N/A -> 1" in captured.out
 
 
+def test_normalize_sources(setup_test_dbs, capsys):
+    """Test the 'normalize-sources' command."""
+    live_db_path = setup_test_dbs / ".kubelingo" / "database.db"
+
+    with sqlite3.connect(live_db_path) as conn:
+        conn.execute("DROP TABLE IF EXISTS live_table")
+        conn.execute("CREATE TABLE questions (id TEXT, source_file TEXT)")
+        conn.execute("INSERT INTO questions VALUES ('q1', '/full/path/to/file1.yaml')")
+        conn.execute("INSERT INTO questions VALUES ('q2', 'file2.yaml')")  # Already normalized
+        conn.execute("INSERT INTO questions VALUES ('q3', 'another/dir/file3.yaml')")
+
+    args = MagicMock(db_path=str(live_db_path))
+    sqlite_manager.do_normalize_sources(args)
+
+    with sqlite3.connect(live_db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, source_file FROM questions ORDER BY id")
+        results = dict(cursor.fetchall())
+
+    assert results['q1'] == 'file1.yaml'
+    assert results['q2'] == 'file2.yaml'
+    assert results['q3'] == 'file3.yaml'
+
+    captured = capsys.readouterr()
+    assert "Updated 2 source_file entries" in captured.out
+
+
+def test_prune_empty(setup_test_dbs, capsys):
+    """Test the 'prune-empty' command."""
+    kubelingo_dir = setup_test_dbs / ".kubelingo"
+    archive_dir = setup_test_dbs / "archive"
+
+    # Create empty and non-empty DBs
+    (kubelingo_dir / "empty.db").touch()
+    (archive_dir / "also_empty.sqlite3").touch()
+
+    non_empty_db = kubelingo_dir / "not_empty.db"
+    with sqlite3.connect(non_empty_db) as conn:
+        conn.execute("CREATE TABLE t (id INT)")
+
+    args = MagicMock()
+    sqlite_manager.do_prune_empty(args)
+
+    assert not (kubelingo_dir / "empty.db").exists()
+    assert not (archive_dir / "also_empty.sqlite3").exists()
+    assert non_empty_db.exists()
+
+    captured = capsys.readouterr()
+    assert "Deleting empty database: .kubelingo/empty.db" in captured.out
+    assert "Deleting empty database: archive/also_empty.sqlite3" in captured.out
+    assert "Deleted 2 empty database(s)" in captured.out
+
+
+def test_list_modules(setup_test_dbs, capsys):
+    """Test the 'list-modules' command."""
+    live_db_path = setup_test_dbs / ".kubelingo" / "database.db"
+
+    with sqlite3.connect(live_db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS live_table")
+        # A minimal schema for DBLoader to work
+        cursor.execute("CREATE TABLE questions (id TEXT, source_file TEXT, prompt TEXT, category TEXT, review BOOLEAN)")
+        cursor.execute("INSERT INTO questions VALUES ('q1', 'module1.yaml', 'p1', 'c1', 0)")
+        cursor.execute("INSERT INTO questions VALUES ('q2', 'module1.yaml', 'p2', 'c1', 0)")
+        cursor.execute("INSERT INTO questions VALUES ('q3', 'module2.yaml', 'p3', 'c2', 0)")
+
+    # DBLoader uses get_db_connection, which relies on the DATABASE_FILE constant
+    with patch('kubelingo.database.DATABASE_FILE', str(live_db_path)):
+        args = MagicMock()
+        sqlite_manager.do_list_modules(args)
+
+    captured = capsys.readouterr()
+    assert "Available DB quiz modules" in captured.out
+    assert "- module1: 2" in captured.out
+    assert "- module2: 1" in captured.out
+
+
+def test_fix_sources(setup_test_dbs, capsys):
+    """Test the 'fix-sources' command."""
+    live_db_path = setup_test_dbs / ".kubelingo" / "database.db"
+
+    with sqlite3.connect(live_db_path) as conn:
+        conn.execute("DROP TABLE IF EXISTS live_table")
+        # This schema needs to be comprehensive enough for the `add_question` call
+        conn.execute("""
+            CREATE TABLE questions (
+                id TEXT PRIMARY KEY, prompt TEXT, source_file TEXT, response TEXT, category TEXT, source TEXT,
+                validation_steps TEXT, validator TEXT, review INTEGER, question_type TEXT,
+                schema_category TEXT, answers TEXT, correct_yaml TEXT, difficulty TEXT,
+                explanation TEXT, initial_files TEXT, pre_shell_cmds TEXT, subject_matter TEXT,
+                metadata TEXT
+            )
+        """)
+        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q1', 'Concepts', 'wrong.yaml')")
+        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q2', 'Concepts', 'some/file.yaml')")
+        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q3', 'Other', 'other.yaml')")
+
+    args = MagicMock(db_path=str(live_db_path))
+    sqlite_manager.do_fix_sources(args)
+
+    with sqlite3.connect(live_db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, source_file FROM questions ORDER BY id")
+        results = dict(cursor.fetchall())
+
+    assert results['q1'] == 'some/file.yaml'
+    assert results['q2'] == 'some/file.yaml'
+    assert results['q3'] == 'other.yaml'  # Unchanged
+
+    captured = capsys.readouterr()
+    assert "Updated 1 question(s)" in captured.out
+
+
 def test_update_schema_category(setup_test_dbs, capsys):
     """Test the 'update-schema-category' command."""
     # Use the live db from the fixture

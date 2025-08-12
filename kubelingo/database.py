@@ -6,7 +6,7 @@ import shutil
 import sys
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from kubelingo.question import Question
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
 from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
@@ -63,46 +63,43 @@ def run_sql_file(conn: sqlite3.Connection, sql_file_path: str):
         raise sqlite3.DatabaseError(f"Error executing SQL script: {e}")
 
 
-def add_question(
-    id: str,
-    prompt: str,
-    source_file: str,
-    response: str,
-    category: str,
-    source: str,
-    validator: Dict[str, Any],
-):
+def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
     """
-    Adds a question to the database.
-
-    Args:
-        id: Unique identifier for the question.
-        prompt: The question prompt.
-        source_file: The source file of the question.
-        response: The expected response to the question.
-        category: The category of the question.
-        source: The source of the question (e.g., 'ai').
-        validator: A dictionary containing validation information.
-
-    Raises:
-        sqlite3.DatabaseError: If there is an error inserting the question.
+    Adds or replaces a question in the database using keyword arguments.
+    It can operate on a provided connection or manage its own.
     """
-    conn = get_db_connection()
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
     try:
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO questions (
-                id, prompt, response, category, source, source_file, validator
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (id, prompt, response, category, source, source_file, json.dumps(validator)),
-        )
-        conn.commit()
-    except sqlite3.DatabaseError as e:
-        raise sqlite3.DatabaseError(f"Error adding question to database: {e}")
+        cursor.execute("PRAGMA table_info(questions)")
+        table_columns = {row[1] for row in cursor.fetchall()}
+
+        q_dict = {k: v for k, v in kwargs.items() if k in table_columns}
+
+        for key, value in q_dict.items():
+            if isinstance(value, (dict, list)):
+                q_dict[key] = json.dumps(value)
+            elif is_dataclass(value):
+                q_dict[key] = json.dumps(asdict(value))
+            elif isinstance(value, bool):
+                q_dict[key] = int(value)
+
+        if 'id' not in q_dict:
+            return  # Cannot insert a question without an ID
+
+        columns = ', '.join(q_dict.keys())
+        placeholders = ', '.join('?' * len(q_dict))
+        sql = f"INSERT OR REPLACE INTO questions ({columns}) VALUES ({placeholders})"
+        cursor.execute(sql, tuple(q_dict.values()))
+
+        if manage_connection:
+            conn.commit()
     finally:
-        conn.close()
+        if manage_connection and conn:
+            conn.close()
 
 
 def get_questions_by_subject_matter(subject: str) -> List[Dict[str, Any]]:

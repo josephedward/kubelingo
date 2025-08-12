@@ -20,6 +20,9 @@ project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+# Define a default backup file path.
+BACKUP_DATABASE_FILE = project_root / "backups" / "kubelingo.db"
+
 try:
     import questionary
     import yaml
@@ -36,7 +39,6 @@ from kubelingo.modules.db_loader import DBLoader
 from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question
 from kubelingo.utils.config import (
-    BACKUP_DATABASE_FILE,
     DATABASE_FILE,
     DATA_DIR,
     ENABLED_QUIZZES,
