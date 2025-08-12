@@ -50,3 +50,31 @@ def test_imported_quizzes_have_expected_categories(db_from_latest_dump):
         f"Database is missing expected quiz categories. "
         f"Expected to find {expected}, but only found {categories}."
     )
+
+
+def test_can_ask_and_answer_question(db_from_latest_dump):
+    """
+    Ensures that a question can be retrieved and answered.
+    """
+    cursor = db_from_latest_dump.cursor()
+    cursor.execute("SELECT id, question_text FROM questions LIMIT 1")
+    question = cursor.fetchone()
+    assert question is not None, "No question was retrieved from the database."
+
+    question_id, question_text = question
+    assert question_text, "The retrieved question has no text."
+
+    # Simulate answering the question
+    cursor.execute(
+        "INSERT INTO answers (question_id, answer_text) VALUES (?, ?)",
+        (question_id, "Sample answer"),
+    )
+    db_from_latest_dump.commit()
+
+    # Verify the answer was recorded
+    cursor.execute(
+        "SELECT answer_text FROM answers WHERE question_id = ?", (question_id,)
+    )
+    answer = cursor.fetchone()
+    assert answer is not None, "The answer was not recorded in the database."
+    assert answer[0] == "Sample answer", "The recorded answer does not match."
