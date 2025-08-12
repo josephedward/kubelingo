@@ -1,4 +1,5 @@
 import os
+import logging
 from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode, KUBERNETES_TOPICS
 
 class NewSession:
@@ -76,5 +77,5 @@ class NewSession:
 
 
 if __name__ == "__main__":
-    session = NewSession()
+    session = NewSession(logger=logging.getLogger())
     session._run_study_mode_session()
