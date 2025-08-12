@@ -175,7 +175,7 @@ def test_build_db_command(tmp_path, temp_yaml_file, capsys, monkeypatch):
     # Check output
     captured = capsys.readouterr()
     assert "Found 1 YAML files to import." in captured.out
-    assert "Import complete. Added: 2, Skipped/Existing: 0" in captured.out
+    assert "Added: 2, Skipped/Existing: 0" in captured.out
 
     # Check db content
     conn = sqlite3.connect(db_path)
@@ -212,7 +212,7 @@ def test_build_db_command_clear(tmp_path, temp_yaml_file, capsys, monkeypatch):
     # Check output
     captured = capsys.readouterr()
     assert f"Removed existing database at {db_path}" in captured.out
-    assert "Import complete. Added: 1, Skipped/Existing: 0" in captured.out
+    assert "Added: 1, Skipped/Existing: 0" in captured.out
 
     # Check db content is only the new question
     conn = sqlite3.connect(db_path)
@@ -344,7 +344,6 @@ def mock_ai_generator(monkeypatch):
                     "response": "some response",
                     "validation_steps": [],
                     "validator": {},
-                    "subject": "Mocked",
                     "category": "Command",
                 }
             ]
@@ -471,6 +470,9 @@ def test_categorize_text_command(capsys, monkeypatch):
 def test_suggest_citations_command(tmp_path, capsys, monkeypatch):
     """Tests the suggest-citations subcommand."""
     question_manager_mod = load_script('question_manager')
+
+    # Mock project_root to be the temp directory so relative_to works
+    monkeypatch.setattr(question_manager_mod, 'project_root', str(tmp_path))
     monkeypatch.setattr(question_manager_mod, 'project_root', tmp_path)
 
     # Create dummy JSON file in a directory
