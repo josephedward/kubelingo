@@ -31,6 +31,11 @@ class AIQuestionGenerator:
     def __init__(self, max_attempts_per_question: int = 5):
         self.evaluator = AIEvaluator()
         self.max_attempts = max_attempts_per_question
+        self.llm_client = None
+        try:
+            self.llm_client = get_llm_client()
+        except (ImportError, ValueError) as e:
+            logger.error(f"Failed to initialize LLM client for AIQuestionGenerator: {e}")
 
     def _save_question_to_yaml(self, question: Question):
         """Appends a generated question to a YAML file, grouped by subject."""
