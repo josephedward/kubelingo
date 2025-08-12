@@ -1,19 +1,28 @@
+import getpass
 import os
-import uuid
 import subprocess
 import sys
+import uuid
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
 import questionary
 import yaml
+from questionary import Separator
 
-from kubelingo.database import add_question, get_db_connection
+from kubelingo.database import add_question, get_db_connection, get_flagged_questions
 from kubelingo.integrations.llm import GeminiClient
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.question import Question, QuestionSubject
+from kubelingo.utils.config import (
+    get_cluster_configs,
+    get_openai_api_key,
+    save_cluster_configs,
+    save_openai_api_key,
+)
 from kubelingo.utils.path_utils import get_project_root
+from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
 KUBERNETES_TOPICS = [member.value for member in QuestionSubject]
@@ -109,13 +118,27 @@ class KubernetesStudyMode:
 
     def review_past_questions(self):
         """Displays past questions for review."""
-        print("\nReviewing past questions is not yet implemented.")
-        # Placeholder for future implementation
+        try:
+            flagged_questions = get_flagged_questions()
+            if not flagged_questions:
+                print(
+                    f"{Fore.YELLOW}\nNo questions are currently flagged for review.{Style.RESET_ALL}"
+                )
+                return
+
+            print(f"\n{Fore.CYAN}Questions flagged for review:{Style.RESET_ALL}")
+            for q in flagged_questions:
+                source_info = f"({q['source_file']})" if q.get("source_file") else ""
+                print(f"  - [{q['id']}] {q['prompt']} {source_info}")
+
+        except Exception as e:
+            print(
+                f"{Fore.RED}\nCould not retrieve flagged questions: {e}{Style.RESET_ALL}"
+            )
 
     def settings_menu(self):
         """Displays the settings menu."""
-        print("\nSettings menu is not yet implemented.")
-        # Placeholder for future implementation
+        self._manage_config_interactive()
 
     def run_tools_menu(self):
         """Runs the kubelingo_tools.py script to show the maintenance menu."""
@@ -132,6 +155,143 @@ class KubernetesStudyMode:
             print(f"Error running tools script: {e}")
         except FileNotFoundError:
             print(f"Error: Could not find '{sys.executable}' to run the script.")
+
+    def _manage_config_interactive(self):
+        """Interactive prompt for managing configuration."""
+        try:
+            action = questionary.select(
+                "What would you like to do?",
+                choices=[
+                    {"name": "View current OpenAI API key", "value": "view_openai"},
+                    {"name": "Set/Update OpenAI API key", "value": "set_openai"},
+                    Separator("Kubernetes Clusters"),
+                    {"name": "List configured clusters", "value": "list_clusters"},
+                    {"name": "Add a new cluster connection", "value": "add_cluster"},
+                    {"name": "Remove a cluster connection", "value": "remove_cluster"},
+                    Separator(),
+                    {"name": "Cancel", "value": "cancel"},
+                ],
+                use_indicator=True,
+            ).ask()
+
+            if action is None or action == "cancel":
+                return
+
+            if action == "view_openai":
+                self._handle_config_command(["config", "view", "openai"])
+            elif action == "set_openai":
+                self._handle_config_command(["config", "set", "openai"])
+            elif action == "list_clusters":
+                self._handle_config_command(["config", "list", "cluster"])
+            elif action == "add_cluster":
+                self._handle_config_command(["config", "add", "cluster"])
+            elif action == "remove_cluster":
+                self._handle_config_command(["config", "remove", "cluster"])
+
+            print()
+
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return
+
+    def _handle_config_command(self, cmd):
+        """Handles 'config' subcommands."""
+        if len(cmd) < 3:
+            print("Usage: kubelingo config <action> <target> [args...]")
+            print("Example: kubelingo config set openai")
+            print("Example: kubelingo config list cluster")
+            return
+
+        action = cmd[1].lower()
+        target = cmd[2].lower()
+
+        if target in ("openai", "api_key"):
+            if action == "view":
+                key = get_openai_api_key()
+                if key:
+                    print(f"OpenAI API key: {key}")
+                else:
+                    print("OpenAI API key is not set.")
+            elif action == "set":
+                value = None
+                if len(cmd) >= 4:
+                    value = cmd[3]
+                else:
+                    try:
+                        value = getpass.getpass("Enter OpenAI API key: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
+                        return
+
+                if value:
+                    if save_openai_api_key(value):
+                        print("OpenAI API key saved.")
+                    else:
+                        print("Failed to save OpenAI API key.")
+                else:
+                    print("No API key provided. No changes made.")
+            else:
+                print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
+        elif target == "cluster":
+            configs = get_cluster_configs()
+            if action == "list":
+                if not configs:
+                    print("No Kubernetes cluster connections configured.")
+                    return
+                print("Configured Kubernetes clusters:")
+                for name, details in configs.items():
+                    print(f"  - {name} (context: {details.get('context', 'N/A')})")
+
+            elif action == "add":
+                print("Adding a new Kubernetes cluster connection.")
+                try:
+                    name = questionary.text("Enter a name for this connection:").ask()
+                    if not name:
+                        print("Connection name cannot be empty. Aborting.")
+                        return
+                    if name in configs:
+                        print(f"A connection named '{name}' already exists. Aborting.")
+                        return
+
+                    context = questionary.text("Enter the kubectl context to use:").ask()
+                    if not context:
+                        print("Context cannot be empty. Aborting.")
+                        return
+
+                    configs[name] = {"context": context}
+                    if save_cluster_configs(configs):
+                        print(f"Cluster connection '{name}' saved.")
+                    else:
+                        print("Failed to save cluster configuration.")
+                except (KeyboardInterrupt, EOFError):
+                    print(
+                        f"\n{Fore.YELLOW}Cluster configuration cancelled.{Style.RESET_ALL}"
+                    )
+
+            elif action == "remove":
+                if not configs:
+                    print("No Kubernetes cluster connections configured to remove.")
+                    return
+
+                try:
+                    choices = list(configs.keys())
+                    name_to_remove = questionary.select(
+                        "Which cluster connection do you want to remove?", choices=choices
+                    ).ask()
+
+                    if name_to_remove:
+                        del configs[name_to_remove]
+                        if save_cluster_configs(configs):
+                            print(f"Cluster connection '{name_to_remove}' removed.")
+                        else:
+                            print("Failed to save cluster configuration.")
+                except (KeyboardInterrupt, EOFError):
+                    print(f"\n{Fore.YELLOW}Cluster removal cancelled.{Style.RESET_ALL}")
+
+            else:
+                print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
+        else:
+            print(f"Unknown config target '{target}'. Supported: openai, cluster.")
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""
