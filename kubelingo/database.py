@@ -380,7 +380,7 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
         return {}
     q_dict = dict(row)
     # Fields that are stored as JSON strings in the DB
-    for key in ['validation_steps', 'answers', 'tags', 'links', 'validator']:
+    for key in ['validation_steps', 'answers', 'tags', 'links', 'validator', 'response']:
         if key in q_dict and q_dict[key] and isinstance(q_dict[key], str):
             try:
                 q_dict[key] = json.loads(q_dict[key])
