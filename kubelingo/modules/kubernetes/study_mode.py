@@ -30,17 +30,17 @@ class KubernetesStudyMode:
         while True:
             try:
                 choice = questionary.select(
-                    "Main Menu",
+                    "Kubernetes Main Menu",
                     choices=[
-                        "Start Study Session",
-                        "Review Past Questions",
+                        "Study Mode",
+                        "Review Questions",
                         "Settings",
                         "Exit",
                     ],
                     use_indicator=True,
                 ).ask()
 
-                if choice == "Start Study Session":
+                if choice == "Study Mode":
                     level = questionary.select(
                         "What is your current overall skill level?",
                         choices=["beginner", "intermediate", "advanced"],
@@ -49,7 +49,7 @@ class KubernetesStudyMode:
                     if not level:
                         continue
                     self.start_study_session(user_level=level)
-                elif choice == "Review Past Questions":
+                elif choice == "Review Questions":
                     self.review_past_questions()
                 elif choice == "Settings":
                     self.settings_menu()
