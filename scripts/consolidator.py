@@ -60,36 +60,60 @@ def sha256_checksum(file_path: Path, block_size=65536) -> str:
 
 # --- New Functionality: List Questions from Database ---
 
-def list_questions():
-    """
-    Lists all questions stored in the database, including their metadata.
-    """
+def list_questions(args):
+    """Lists questions from the database with optional filters."""
     if not get_db_connection or not sqlite3:
         print("Error: Database functionality is not available.", file=sys.stderr)
         sys.exit(1)
 
+    conn = None
     try:
         conn = get_db_connection()
+        conn.row_factory = sqlite3.Row  # Ensure we can access columns by name
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT id, prompt, category, subject, source_file, created_at, updated_at
-            FROM questions
-            ORDER BY created_at DESC
-        """)
-        questions = cursor.fetchall()
+        query = "SELECT id, category, subject, source_file FROM questions"
+        conditions = []
+        params = []
 
-        if not questions:
-            print("No questions found in the database.")
+        if args.category:
+            conditions.append("category = ?")
+            params.append(args.category)
+        if args.subject:
+            conditions.append("subject LIKE ?")
+            params.append(f"%{args.subject}%")
+        if args.source_file:
+            conditions.append("source_file LIKE ?")
+            params.append(f"%{args.source_file}%")
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY category, subject, source_file"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        if not rows:
+            print("No questions found matching the specified criteria.")
             return
 
-        print(f"{'ID':<36} {'Category':<10} {'Subject':<20} {'Source File':<40} {'Created At':<20} {'Updated At':<20}")
-        print("-" * 140)
-        for q in questions:
-            print(f"{q['id']:<36} {q['category']:<10} {q['subject']:<20} {q['source_file']:<40} {q['created_at']:<20} {q['updated_at']:<20}")
+        print(f"\nFound {len(rows)} questions matching criteria.\n")
+        print(f"{'ID':<38} {'CATEGORY':<15} {'SUBJECT':<35} {'SOURCE'}")
+        print("-" * 150)
+
+        for row in rows:
+            subject_str = row["subject"] or "N/A"
+            if len(subject_str) > 32:
+                subject_str = subject_str[:29] + "..."
+
+            category_str = row["category"] or "N/A"
+            source_str = row["source_file"] or "N/A"
+            print(f"{row['id']:<38} {category_str:<15} {subject_str:<35} {source_str}")
 
     except sqlite3.Error as e:
-        print(f"Error querying the database: {e}", file=sys.stderr)
+        print(f"Database error: {e}", file=sys.stderr)
+        sys.exit(1)
     finally:
         if conn:
             conn.close()
@@ -190,13 +214,20 @@ subparsers = parser.add_subparsers(dest="command", required=True, help="Availabl
 p_backups = subparsers.add_parser("backups", help="Consolidate all data files (*.db, *.sqlite3, *.yaml) into a single archive directory.")
 p_backups.set_defaults(func=consolidate_backups)
 
-p_list_questions = subparsers.add_parser("list-questions", help="List all questions stored in the database, including metadata.")
+p_list_questions = subparsers.add_parser("list-questions", help="List questions from the database with metadata.")
+p_list_questions.add_argument("--category", help="Filter by question category (e.g., basic, command).")
+p_list_questions.add_argument("--subject", help="Filter by subject (supports partial matching).")
+p_list_questions.add_argument("--source-file", help="Filter by source file path (supports partial matching).")
 p_list_questions.set_defaults(func=list_questions)
 
 def main():
     args = parser.parse_args()
     if hasattr(args, 'func'):
-        args.func()
+        # Pass args to functions that need them
+        if args.command in ['list-questions']:
+            args.func(args)
+        else:
+            args.func()
 
 if __name__ == '__main__':
     main()
