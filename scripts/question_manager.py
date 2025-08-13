@@ -89,64 +89,23 @@ class MockArgs:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-def interactive_generator_menu():
-    """Interactive menu for question generator commands."""
-    while True:
-        choice = questionary.select(
-            "Select a question generator:",
-            choices=[
-                "From PDF",
-                "From AI (subject-based)",
-                "Kubernetes Resource Reference",
-                "Kubernetes Operations",
-                "Service Account Questions",
-                "Manifests from JSON",
-                "Back"
-            ],
-        ).ask()
-
-        if choice == "Back" or choice is None:
-            break
-        
-        # Dispatch to handlers
-        if choice == "From PDF":
-            pdf_path = questionary.path("Path to PDF file:").ask()
-            if not pdf_path: continue
-            output_file = questionary.text("Path for output YAML:", default="generated_from_pdf.yaml").ask()
-            if not output_file: continue
-            num_q = questionary.text("Number of questions per chunk:", default="5").ask()
-            if not num_q: continue
-            handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
-        elif choice == "From AI (subject-based)":
-            subjects = sorted([s.value for s in QuestionSubject])
-            subject = questionary.select(
-                "Subject for the new questions (e.g., 'Kubernetes Service Accounts'):",
-                choices=subjects
-            ).ask()
-            if not subject: continue
-            category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
-            num_questions = int(questionary.text("Number of questions to generate:", default="3").ask())
-            example_source_file = questionary.text("Example source file (from DB, optional):").ask()
-            output_file = questionary.text("Output YAML file:", default="ai_generated_questions.yaml").ask()
-            if not output_file: continue
-            handle_ai_questions(MockArgs(
-                subject=subject, category=category, num_questions=num_questions, 
-                example_source_file=example_source_file, output_file=output_file
-            ))
-        elif choice == "Kubernetes Resource Reference":
-            handle_resource_reference(MockArgs())
-            print("\nDone.")
-        elif choice == "Kubernetes Operations":
-            handle_kubectl_operations(MockArgs())
-            print("\nDone.")
-        elif choice == "Service Account Questions":
-            to_db = questionary.confirm("Add generated questions to the database?", default=False).ask()
-            num = int(questionary.text("Number of questions to output (0 for all):", default="0").ask())
-            output = questionary.text("Output JSON file (optional):").ask()
-            handle_service_account(MockArgs(to_db=to_db, num=num, output=output))
-        elif choice == "Manifests from JSON":
-            handle_manifests(MockArgs())
-            print("\nDone.")
+def _handle_generate_ai_questions_interactive():
+    """Handles interactive AI-based question generation."""
+    subjects = sorted([s.value for s in QuestionSubject])
+    subject = questionary.select(
+        "Subject for the new questions (e.g., 'Kubernetes Service Accounts'):",
+        choices=subjects
+    ).ask()
+    if not subject: return
+    category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
+    num_questions = int(questionary.text("Number of questions to generate:", default="3").ask())
+    example_source_file = questionary.text("Example source file (from DB, optional):").ask()
+    output_file = questionary.text("Output YAML file:", default="ai_generated_questions.yaml").ask()
+    if not output_file: return
+    handle_ai_questions(MockArgs(
+        subject=subject, category=category, num_questions=num_questions, 
+        example_source_file=example_source_file, output_file=output_file
+    ))
 
 def interactive_question_manager_menu():
     """Interactive menu for question manager script."""
@@ -168,7 +127,7 @@ def interactive_question_manager_menu():
             print("Exiting question manager.")
             break
         elif choice == "Generate Questions":
-            interactive_generator_menu()
+            _handle_generate_ai_questions_interactive()
         elif choice == "Add Questions":
             print("This will import questions from YAML files using AI for categorization.")
             db_path = questionary.text("Enter path for the new/updated database:", default=get_live_db_path()).ask()
