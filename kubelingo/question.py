@@ -80,7 +80,7 @@ class Question:
     id: str
     prompt: str
     # Question modality
-    type: str = 'command'
+    type_: str = 'command'
     # The schema category this question belongs to.
     schema_category: Optional["QuestionCategory"] = None
     # Subject matter area for the question.
@@ -145,13 +145,13 @@ class Question:
 
         # Derive schema_category from question type for schema enforcement if not provided
         if self.schema_category is None:
-            if self.type == 'socratic':
+            if self.type_ == 'socratic':
                 self.schema_category = QuestionCategory.OPEN_ENDED
-            elif self.type == 'basic_terminology':
+            elif self.type_ == 'basic_terminology':
                 self.schema_category = QuestionCategory.BASIC_TERMINOLOGY
-            elif self.type == 'command':
+            elif self.type_ == 'command':
                 self.schema_category = QuestionCategory.COMMAND_SYNTAX
-            elif self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
+            elif self.type_ in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
                 self.schema_category = QuestionCategory.YAML_MANIFEST
             else:
                 # Default for unknown or legacy types.
@@ -167,20 +167,20 @@ class Question:
         """
         Determines if a question has enough information to be answered and validated.
         """
-        if self.type in ('yaml_author', 'yaml_edit'):
+        if self.type_ in ('yaml_author', 'yaml_edit'):
             # These need a definitive correct YAML to compare against.
             return bool(self.correct_yaml)
 
-        if self.type == 'command':
+        if self.type_ == 'command':
             # Command questions can be validated against a list of acceptable commands
             # or through specific validation steps. `answers` holds the commands.
             return bool(self.answers or self.validation_steps)
 
-        if self.type in ('live_k8s', 'live_k8s_edit'):
+        if self.type_ in ('live_k8s', 'live_k8s_edit'):
             # Live exercises require explicit steps to validate the state of the cluster.
             return bool(self.validation_steps)
 
-        if self.type == 'socratic':
+        if self.type_ == 'socratic':
             # Socratic questions are conversational and don't have a simple solvable state.
             return True
 
