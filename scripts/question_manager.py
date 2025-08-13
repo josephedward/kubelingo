@@ -767,6 +767,14 @@ def handle_ai_questions(args):
 
     generator = AIQuestionGenerator(llm_client=llm_client)
 
+    # Map UI category to internal category.
+    # The generator expects specific types like 'socratic', 'command', etc.
+    # UI uses friendlier names like 'Basic'.
+    category_map = {
+        'Basic': 'socratic',
+    }
+    internal_category = category_map.get(args.category, args.category)
+
     subject_for_ai = args.subject
     if not base_questions:
         print("No base questions provided as examples. Using a more detailed prompt for the AI.")
@@ -782,7 +790,7 @@ def handle_ai_questions(args):
         subject=subject_for_ai,
         num_questions=args.num_questions,
         base_questions=base_questions,
-        category=args.category,
+        category=internal_category,
         exclude_terms=[]
     )
 
