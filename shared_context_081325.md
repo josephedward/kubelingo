@@ -66,6 +66,19 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Cause**: The "Study Mode (Socratic Tutor)" menu option incorrectly calls logic that is designed for drilling existing questions (`_run_study_subject_menu`), which first searches the database. Instead, it should immediately enter a question generation flow, asking the user for a topic to study.
 - **Bug**: `TypeError: the JSON object must be str, bytes or bytearray, not method` during AI question generation.
 - **Cause**: The `question_generator` expects the LLM client's `chat_completion` method to return a raw string. However, the client can return a response object. The code did not convert this object to a string before attempting to parse it as JSON, leading to a `TypeError`.
+- **Bug**: AI question generation fails silently.
+- **Log**:
+  ```
+  ? --- Manage Questions --- Generate Questions (generator)
+  ? Select a question generator: From AI (subject-based)
+  ? Subject for the new questions (e.g., 'Kubernetes Service Accounts'): Services
+  ...
+  Generating 3 questions about 'Services'...
+  AI generation attempt...
+  Warning: Could only generate 0 AI question(s).
+  AI failed to generate any questions.
+  ```
+- **Cause**: The AI question generator can fail if the prompt sent to the LLM is not effective enough, or if the model returns an empty or unexpected response. The system lacks sufficient logging to diagnose these failures. Prompts for some categories are not robust, especially when no example ("few-shot") questions are provided, leading to poor quality responses from the LLM.
 
 ## Tests
 - make sure you can generate questions of all 4 types and all 21 subjects (81 examples in all)
