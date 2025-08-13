@@ -686,6 +686,70 @@ def _setup_ai_provider_interactive(force_setup=False):
             print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
 
 
+def _run_yaml_quiz_interactive(study_session):
+    """Interactive prompt to select and run a quiz from a YAML file."""
+    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.utils.ui import humanize_module
+    import argparse
+
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+
+    loader = YAMLLoader()
+    try:
+        # discover() searches default paths, which includes 'yaml/'
+        files = loader.discover()
+    except Exception as e:
+        print(f"{Fore.RED}Error discovering YAML files: {e}{Style.RESET_ALL}")
+        return
+
+    if not files:
+        print(f"{Fore.YELLOW}No YAML quiz files found.{Style.RESET_ALL}")
+        return
+
+    choices = []
+    for f in files:
+        name = humanize_module(os.path.splitext(os.path.basename(f))[0])
+        choices.append(questionary.Choice(title=name, value=f))
+
+    choices.extend([Separator(), {"name": "Cancel", "value": None}])
+
+    yaml_file = questionary.select(
+        "Select a YAML quiz to run:",
+        choices=choices
+    ).ask()
+
+    if not yaml_file:
+        return
+
+    # The existing study_session is a SocraticMode instance, which is a KubernetesSession.
+    # It's set up to work with questions from the DB.
+    # We can use its run_exercises method, but we need to pass it args for a file-based quiz.
+    print(f"\n{Fore.CYAN}Starting quiz from '{os.path.basename(yaml_file)}'...{Style.RESET_ALL}")
+    try:
+        # We can reuse the `args` structure from the CLI parser.
+        # Minimal args needed to run a file-based quiz.
+        mock_args = argparse.Namespace(
+            file=yaml_file,
+            module='kubernetes', # run with kubernetes session logic
+            num=0,
+            category=None,
+            review_only=False,
+            ai_eval=hasattr(study_session, 'client') and study_session.client is not None,
+            randomize=False,
+            # Add other args with default values if run_exercises needs them
+            k8s_mode=True,
+            exercises=None,
+            cluster_context=None
+        )
+        study_session.run_exercises(mock_args)
+    except Exception as e:
+        print(f"{Fore.RED}An unexpected error occurred during the quiz: {e}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.CYAN}Quiz session finished. Returning to main menu.{Style.RESET_ALL}")
+
+
 def _run_socratic_mode(study_session: SocraticMode):
     """Runs an interactive Socratic study session."""
     try:
@@ -742,6 +806,10 @@ def run_interactive_main_menu():
                 ),
                 Separator("--- Drill ---"),
                 questionary.Choice(
+                    "Quiz from YAML file",
+                    value=("drill", "yaml_file"),
+                ),
+                questionary.Choice(
                     f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED.value, 0)})",
                     value=("drill", QuestionCategory.OPEN_ENDED),
                     disabled=api_key_required_msg if not has_api_key else "",
@@ -785,8 +853,11 @@ def run_interactive_main_menu():
                 elif action == "review":
                     study_session.review_past_questions()
             elif menu == "drill":
-                # This should launch a drill-down quiz for the selected category.
-                _run_drill_mode(study_session, action)
+                if action == "yaml_file":
+                    _run_yaml_quiz_interactive(study_session)
+                else:
+                    # This should launch a drill-down quiz for the selected category.
+                    _run_drill_mode(study_session, action)
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
