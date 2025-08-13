@@ -52,13 +52,13 @@ try:
     from kubelingo.integrations.llm import get_llm_client
     from kubelingo.utils import path_utils
     from kubelingo.utils.path_utils import (
-        get_project_root, get_live_db_path, find_yaml_files_from_paths,
+        get_project_root, find_yaml_files_from_paths,
         get_all_question_dirs, get_all_yaml_files_in_repo, find_and_sort_files_by_mtime,
         find_yaml_files, find_sqlite_files, get_all_sqlite_files_in_repo
     )
     from kubelingo.utils.config import (
         YAML_BACKUP_DIRS, DATABASE_FILE, QUESTION_DIRS, MASTER_DATABASE_FILE,
-        SECONDARY_MASTER_DATABASE_FILE, SQLITE_BACKUP_DIRS
+        SECONDARY_MASTER_DATABASE_FILE, SQLITE_BACKUP_DIRS, get_live_db_path
     )
     from kubelingo.utils.ui import Fore, Style
 
