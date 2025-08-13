@@ -9,7 +9,6 @@ from datetime import datetime
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from kubelingo.modules.base.loader import BaseLoader
 from kubelingo.question import Question, QuestionCategory, ValidationStep
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
 from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
@@ -351,6 +350,7 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
     return q_dict
 
 
+from kubelingo.modules.base.loader import BaseLoader
 class DBLoader(BaseLoader):
     """Discovers and loads questions directly from the local SQLite database."""
 
