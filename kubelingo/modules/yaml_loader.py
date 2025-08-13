@@ -167,8 +167,12 @@ class YAMLLoader(BaseLoader):
                     if subject_mat:
                         question_data['subject_id'] = subject_mat
 
+                # Set canonical fields
+                question_data['id'] = qid
+                question_data['source_file'] = path
+
                 # Create question object, it will handle internal normalization
-                questions.append(Question(id=qid, source_file=path, **question_data))
+                questions.append(Question(**question_data))
 
             return questions
 
@@ -199,6 +203,10 @@ class YAMLLoader(BaseLoader):
                     if subject_mat:
                         question_data['subject_id'] = subject_mat
 
-                questions.append(Question(id=qid, source_file=path, **question_data))
+                # Set canonical fields
+                question_data['id'] = qid
+                question_data['source_file'] = path
+
+                questions.append(Question(**question_data))
 
         return questions
