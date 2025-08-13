@@ -933,6 +933,11 @@ def run_interactive_main_menu():
                 questionary.Choice("AI", value=("settings", "ai")),
                 questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
+                questionary.Choice(
+                    "Categorize Questions (AI)",
+                    value=("settings", "categorize_ai"),
+                    disabled=api_key_required_msg if not has_api_key else ""
+                ),
                 questionary.Choice("View YAML Questions", value=("settings", "view_yaml")),
                 questionary.Choice("Help", value=("settings", "help")),
                 questionary.Choice("Report Bug", value=("settings", "bug")),
@@ -965,6 +970,8 @@ def run_interactive_main_menu():
                     manage_cluster_config_interactive()
                 elif action == "questions":
                     _run_question_management()
+                elif action == "categorize_ai":
+                    study_session.run_ai_categorization()
                 elif action == "view_yaml":
                     _list_yaml_questions()
                 elif action == "help":
