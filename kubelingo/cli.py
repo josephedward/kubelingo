@@ -193,6 +193,7 @@ def handle_config_command(cmd):
             else:
                 print(f'{provider.capitalize()} API key is not set.')
         elif action == 'set':
+            from kubelingo.integrations.llm import OpenAIClient, GeminiClient
             value = None
             if len(cmd) >= 4:
                 value = cmd[3]
@@ -204,10 +205,15 @@ def handle_config_command(cmd):
                     return
 
             if value:
-                if save_api_key(provider, value):
-                    print(f'{provider.capitalize()} API key saved.')
+                test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
+                print(f"Testing {provider.capitalize()} API key...")
+                if test_func(value):
+                    if save_api_key(provider, value):
+                        print(f"{Fore.GREEN}✓ {provider.capitalize()} API key is valid and has been saved.{Style.RESET_ALL}")
+                    else:
+                        print(f"{Fore.RED}✗ {provider.capitalize()} API key is valid, but failed to save it.{Style.RESET_ALL}")
                 else:
-                    print(f'Failed to save {provider.capitalize()} API key.')
+                    print(f"{Fore.RED}✗ The provided API key appears to be invalid. It has not been saved.{Style.RESET_ALL}")
             else:
                 print("No API key provided. No changes made.")
         else:
