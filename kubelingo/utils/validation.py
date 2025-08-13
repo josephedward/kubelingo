@@ -52,10 +52,11 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
 
         # Map each answer to the file path
         for answer in answers:
-            if answer in answer_map:
-                answer_map[answer].append(file_path)
+            normalized_answer = str(answer).strip().lower()  # Normalize answers for comparison
+            if normalized_answer in answer_map:
+                answer_map[normalized_answer].append(file_path)
             else:
-                answer_map[answer] = [file_path]
+                answer_map[normalized_answer] = [file_path]
 
     # Identify duplicates
     for paths in answer_map.values():
