@@ -104,6 +104,23 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
             conn.close()
 
 
+def get_questions_for_cli() -> List[Dict[str, Any]]:
+    """
+    Retrieves all questions from the database for display in the CLI.
+
+    Returns:
+        A list of dictionaries representing the questions.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, prompt, category, subject FROM questions ORDER BY id")
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def get_questions_by_subject_matter(subject: str) -> List[Dict[str, Any]]:
     """
     Retrieves questions from the database filtered by subject matter.
