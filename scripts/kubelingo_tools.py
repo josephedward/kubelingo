@@ -23,6 +23,7 @@ if str(repo_root) not in sys.path:
 
 from kubelingo.database import get_db_connection
 from kubelingo.utils.path_utils import get_live_db_path
+from kubelingo.question import QuestionSubject
 
 # Import handlers from the consolidated question_manager script
 # Note: This relies on the sys.path modification above to find the 'scripts' module
@@ -92,7 +93,11 @@ def _generate_questions():
         handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
     
     elif choice == "From AI (subject-based)":
-        subject = questionary.text("Subject for the new questions (e.g., 'Kubernetes Service Accounts'):").ask()
+        subjects = sorted([s.value for s in QuestionSubject])
+        subject = questionary.select(
+            "Subject for the new questions:",
+            choices=subjects
+        ).ask()
         if not subject: return
         category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
         num_q = questionary.text("Number of questions to generate?", default="3").ask()
