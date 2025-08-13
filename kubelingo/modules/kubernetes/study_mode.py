@@ -515,7 +515,9 @@ class KubernetesStudyMode:
         print(f"\nStarting a 'Manifest Authoring' exercise on {topic}. Type 'exit' to quit.")
         self._run_quiz_loop("manifest", topic, QuestionCategory.YAML_MANIFEST)
 
-    def _run_quiz_loop(self, quiz_type: str, topic: str):
+    def _run_quiz_loop(
+        self, quiz_type: str, topic: str, category_enum: QuestionCategory
+    ):
         """Generic loop for generating and asking questions."""
         if not self.client:
             print(
@@ -524,12 +526,7 @@ class KubernetesStudyMode:
             questionary.confirm("Press Enter to continue...").ask()
             return
 
-        category_map = {
-            "basic": "Basic",
-            "command": "Command",
-            "manifest": "Manifest",
-        }
-        category = category_map.get(quiz_type)
+        category = category_enum.value
         asked_items = set()
 
         while True:
