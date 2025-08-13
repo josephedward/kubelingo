@@ -145,25 +145,75 @@ class KubernetesStudyMode:
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
+        if not getattr(self, "_keys_checked", False):
+            self._check_api_keys_on_startup()
+            self._keys_checked = True
+
         while True:
             try:
+                choices = []
+                # Review Flagged
+                flagged_count = len(get_flagged_questions())
+                choices.append(
+                    questionary.Choice(
+                        f"Review Flagged Questions ({flagged_count})", value="review"
+                    )
+                )
+
+                # Socratic tutor
+                socratic_disabled = not self.client
+                socratic_choice_text = "Study Mode (Socratic Tutor)"
+                if socratic_disabled:
+                    socratic_choice_text += " (API key required)"
+                choices.append(
+                    questionary.Choice(
+                        socratic_choice_text,
+                        value="socratic",
+                        disabled=socratic_disabled,
+                    )
+                )
+
+                # Exercises
+                exercise_types = {
+                    "Basic Exercises": ["basic"],
+                    "Command-Based Exercises": ["command"],
+                    "Manifest-Based Exercises": ["yaml_author", "yaml_edit"],
+                }
+
+                for title, types in exercise_types.items():
+                    choices.append(Separator(f"--- {title} ---"))
+                    subjects = self._get_subjects_with_counts_by_type(types)
+                    for subject, count in subjects.items():
+                        choices.append(
+                            questionary.Choice(
+                                f"{subject} ({count} questions)",
+                                value=("quiz", types, subject),
+                            )
+                        )
+
+                choices.append(Separator("--- Settings ---"))
+                choices.extend(
+                    [
+                        questionary.Choice("API Keys", value="settings"),
+                        questionary.Choice("Cluster Configuration", value="tools"),
+                        questionary.Choice("Troubleshooting", value="tools"),
+                        questionary.Choice("Help", value="help"),
+                        Separator(),
+                        questionary.Choice("Exit App", value="exit"),
+                    ]
+                )
+
                 choice = questionary.select(
-                    "Kubernetes Main Menu",
-                    choices=[
-                        "Study Mode",
-                        "Review Questions",
-                        "Settings",
-                        "Tools",
-                        "Exit",
-                    ],
-                    use_indicator=True,
+                    "Kubelingo Main Menu", choices=choices, use_indicator=True
                 ).ask()
 
-                if choice is None or choice == "Exit":
+                if choice is None or choice == "exit":
                     print("Exiting application. Goodbye!")
                     break
 
-                if choice == "Study Mode":
+                if choice == "review":
+                    self.review_past_questions()
+                elif choice == "socratic":
                     level = questionary.select(
                         "What is your current overall skill level?",
                         choices=["beginner", "intermediate", "advanced"],
@@ -171,13 +221,26 @@ class KubernetesStudyMode:
                     ).ask()
                     if not level:
                         continue
-                    self.start_study_session(user_level=level)
-                elif choice == "Review Questions":
-                    self.review_past_questions()
-                elif choice == "Settings":
+                    topic = questionary.select(
+                        "Which Kubernetes topic would you like to study?",
+                        choices=KUBERNETES_TOPICS,
+                        use_indicator=True,
+                    ).ask()
+                    if topic:
+                        self._run_socratic_mode(topic, level)
+                elif isinstance(choice, tuple) and choice[0] == "quiz":
+                    _, quiz_types, subject = choice
+                    questions = self._get_questions_by_subject_and_type(
+                        subject, quiz_types
+                    )
+                    self._run_quiz(questions)
+                elif choice == "settings":
                     self.settings_menu()
-                elif choice == "Tools":
+                elif choice == "tools":
                     self.run_tools_menu()
+                elif choice == "help":
+                    print("Help not yet implemented.")
+
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting application. Goodbye!")
                 break
@@ -291,151 +354,39 @@ class KubernetesStudyMode:
                 f"{Fore.RED}Failed to index new question {question_path.name}: {e}{Style.RESET_ALL}"
             )
 
-    def _get_question_counts_by_type(self) -> Dict[str, int]:
-        """Gets the count of questions for each type from the database."""
-        counts = {"basic": 0, "command": 0, "manifest": 0}
-        query = "SELECT type, COUNT(*) FROM questions WHERE type IN ('basic', 'command', 'yaml_author', 'yaml_edit') GROUP BY type"
-        try:
-            cursor = self.db_conn.cursor()
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            for row_type, count in rows:
-                if row_type == "basic":
-                    counts["basic"] += count
-                elif row_type == "command":
-                    counts["command"] += count
-                elif row_type in ("yaml_author", "yaml_edit"):
-                    counts["manifest"] += count
-            return counts
-        except Exception as e:
-            print(f"{Fore.RED}Error fetching question counts: {e}{Style.RESET_ALL}")
-            return counts
-
-    def start_study_session(self, user_level: str = "intermediate") -> None:
-        """Guides the user to select a quiz and starts the session."""
-        if not getattr(self, "_keys_checked", False):
-            self._check_api_keys_on_startup()
-            self._keys_checked = True
-
-        while True:
-            try:
-                counts = self._get_question_counts_by_type()
-                socratic_disabled = not self.client
-                socratic_choice_text = "Open-Ended Socratic Dialogue"
-                if socratic_disabled:
-                    socratic_choice_text += " (API key required)"
-
-                quiz_style_choices = [
-                    questionary.Choice(
-                        socratic_choice_text,
-                        value="socratic",
-                        disabled=socratic_disabled,
-                    ),
-                    questionary.Choice(
-                        f"Basic term/definition recall ({counts['basic']} questions)",
-                        value="basic",
-                        disabled=counts["basic"] == 0,
-                    ),
-                    questionary.Choice(
-                        f"Command-line Challenge ({counts['command']} questions)",
-                        value="command",
-                        disabled=counts["command"] == 0,
-                    ),
-                    questionary.Choice(
-                        f"Manifest Authoring Exercise ({counts['manifest']} questions)",
-                        value="manifest",
-                        disabled=counts["manifest"] == 0,
-                    ),
-                    Separator(),
-                    questionary.Choice("Back to Main Menu", value="back"),
-                ]
-
-                quiz_style_val = questionary.select(
-                    "What style of quiz would you like?",
-                    choices=quiz_style_choices,
-                    use_indicator=True,
-                ).ask()
-
-                if not quiz_style_val or quiz_style_val == "back":
-                    break
-
-                if quiz_style_val == "socratic":
-                    topic = questionary.select(
-                        "Which Kubernetes topic would you like to study?",
-                        choices=KUBERNETES_TOPICS,
-                        use_indicator=True,
-                    ).ask()
-                    if topic:
-                        self._run_socratic_mode(topic, user_level)
-                    continue
-
-                quiz_type_map = {
-                    "basic": {
-                        "types": ["basic"],
-                        "name": "Basic term/definition recall",
-                    },
-                    "command": {
-                        "types": ["command"],
-                        "name": "Command-line Challenge",
-                    },
-                    "manifest": {
-                        "types": ["yaml_author", "yaml_edit"],
-                        "name": "Manifest Authoring Exercise",
-                    },
-                }
-
-                quiz_info = quiz_type_map[quiz_style_val]
-                quiz_types = quiz_info["types"]
-                quiz_style_name = quiz_info["name"]
-
-                subjects = self._get_subjects_by_type(quiz_types)
-                if not subjects:
-                    print(
-                        f"{Fore.YELLOW}No subjects found for '{quiz_style_name}' quizzes.{Style.RESET_ALL}"
-                    )
-                    continue
-
-                subject_choices = subjects + [
-                    Separator(),
-                    questionary.Choice("Back", value="back"),
-                ]
-                selected_subject = questionary.select(
-                    f"Choose a subject for '{quiz_style_name}':",
-                    choices=subject_choices,
-                    use_indicator=True,
-                ).ask()
-
-                if not selected_subject or selected_subject == "back":
-                    continue
-
-                questions = self._get_questions_by_subject_and_type(
-                    selected_subject, quiz_types
-                )
-
-                self._run_quiz(questions)
-
-            except (KeyboardInterrupt, TypeError):
-                print("\nExiting study mode.")
-                break
-
     def review_past_questions(self):
-        """Displays past questions for review."""
+        """Runs a quiz with questions that have been flagged for review."""
         try:
-            flagged_questions = get_flagged_questions()
-            if not flagged_questions:
+            flagged_question_dicts = get_flagged_questions()
+            if not flagged_question_dicts:
                 print(
                     f"{Fore.YELLOW}\nNo questions are currently flagged for review.{Style.RESET_ALL}"
                 )
                 return
 
-            print(f"\n{Fore.CYAN}Questions flagged for review:{Style.RESET_ALL}")
-            for q in flagged_questions:
-                source_info = f"({q['source_file']})" if q.get("source_file") else ""
-                print(f"  - [{q['id']}] {q['prompt']} {source_info}")
+            questions = []
+            for q_dict in flagged_question_dicts:
+                # Deserialize JSON fields
+                for key in [
+                    "validation_steps",
+                    "validator",
+                    "pre_shell_cmds",
+                    "initial_files",
+                    "answers",
+                ]:
+                    if q_dict.get(key) and isinstance(q_dict[key], str):
+                        try:
+                            q_dict[key] = json.loads(q_dict[key])
+                        except (json.JSONDecodeError, TypeError):
+                            q_dict[key] = None
+                questions.append(Question(**q_dict))
+
+            print(f"\nStarting review session with {len(questions)} flagged question(s).")
+            self._run_quiz(questions)
 
         except Exception as e:
             print(
-                f"{Fore.RED}\nCould not retrieve flagged questions: {e}{Style.RESET_ALL}"
+                f"{Fore.RED}\nCould not retrieve or run flagged questions: {e}{Style.RESET_ALL}"
             )
 
     def settings_menu(self):
