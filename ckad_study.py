@@ -31,7 +31,7 @@ def get_llm_feedback(question, user_answer, correct_solution):
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.0-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         prompt = f"""
         You are a Kubernetes expert helping a student study for the CKAD exam.
         The student was asked the following question:
