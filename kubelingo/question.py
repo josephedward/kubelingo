@@ -85,6 +85,7 @@ class Question:
     schema_category: Optional["QuestionCategory"] = None
     # Subject matter area for the question.
     subject_matter: Optional["QuestionSubject"] = None
+    subject: Optional[str] = None
 
     # --- Modality-specific fields ---
     # For `command` questions
@@ -127,6 +128,20 @@ class Question:
             except ValueError:
                 # If it's not a valid category, we'll let it be derived from type.
                 self.schema_category = None
+
+        # Ensure subject_matter is an enum member if provided as a string
+        if isinstance(self.subject_matter, str):
+            try:
+                self.subject_matter = QuestionSubject(self.subject_matter)
+            except ValueError:
+                self.subject_matter = None
+
+        # Handle legacy `subject` field and convert to subject_matter
+        if self.subject and not self.subject_matter:
+            try:
+                self.subject_matter = QuestionSubject(self.subject)
+            except ValueError:
+                pass  # Ignore invalid legacy subjects
 
         # Derive schema_category from question type for schema enforcement if not provided
         if self.schema_category is None:
