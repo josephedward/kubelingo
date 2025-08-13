@@ -47,6 +47,15 @@ The application's startup sequence has several critical design flaws and bugs th
   ```
 - **Cause**: The `SUBJECT_MATTER` constant, which defines Kubernetes topics, was removed from `kubelingo.utils.config` but `kubelingo.database.py` still attempts to import it from there. This constant is now sourced from the `QuestionSubject` enum in `kubelingo.question`.
 
+## Tests
+- make sure you can generate questions of all 4 types and all 21 subjects (81 examples in all)
+- make sure you can add questions and parse/reformat from any type of document
+- make sure you can answer questions in the manner we have specified for each type of question
+- test for generated questions to be automatically added to /yaml and tracked by database
+- test that you can delete questions
+- test that you can fix triaged questions
+- test that you do not make duplicate questions
+
 ## Proposed High-Level Fixes
 1.  **Refactor Startup Sequence**: Move the API key and provider check to be the very first action in `initialize_app`. The database bootstrap logic should be removed from the startup path entirely.
 2.  **Adopt a Metadata-Only DB Model**: The database should only store pointers to YAML questions (e.g., file path + question ID) and user-specific metadata. Loading questions should be done on-demand from YAML files.
