@@ -114,6 +114,72 @@ def handle_build_index(args):
         conn.close()
 
 
+def handle_build_db(args):
+    """
+    Builds a fresh question database from the single source YAML file.
+    Creates a new DB, indexes the YAML, and then replaces the live DB.
+    """
+    print(f"{Fore.CYAN}--- Building new question database from source YAML ---{Style.RESET_ALL}")
+
+    live_db_path = Path(get_live_db_path())
+    live_db_dir = live_db_path.parent
+    live_db_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    build_db_path = live_db_dir / f"kubelingo.db.build-{timestamp}"
+
+    print(f"Building new database at: {build_db_path}")
+
+    conn = None
+    try:
+        # 1. Connect to and initialize the new build DB
+        conn = db_mod.get_db_connection(db_path=str(build_db_path))
+        init_db(conn=conn, clear=True)
+        print("  - Initialized new database schema.")
+
+        # 2. Index the single source YAML file into the new DB
+        # index_all_yaml_questions handles verbose output
+        index_all_yaml_questions(conn=conn, verbose=True, force_ai_categorize=args.ai_categorize)
+
+        conn.commit()
+        print(f"\n{Fore.GREEN}Successfully built new database.{Style.RESET_ALL}")
+
+    except Exception as e:
+        print(f"\n{Fore.RED}Error building database: {e}{Style.RESET_ALL}")
+        if conn:
+            conn.close()
+            conn = None  # To prevent finally closing it again
+        if build_db_path.exists():
+            build_db_path.unlink()
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+
+    # 3. Replace the live database with the newly built one
+    print(f"\nReplacing live database at: {live_db_path}")
+
+    # Backup existing live DB
+    if live_db_path.exists():
+        backup_path = live_db_dir / f"kubelingo.db.bak-{timestamp}"
+        print(f"  - Backing up current live database to: {backup_path}")
+        try:
+            live_db_path.rename(backup_path)
+        except OSError as e:
+            print(f"{Fore.RED}Error backing up database: {e}{Style.RESET_ALL}")
+            sys.exit(1)
+
+    # Move new build DB to be the live DB
+    try:
+        build_db_path.rename(live_db_path)
+        print(f"  - New database is now live.")
+    except OSError as e:
+        print(f"{Fore.RED}Error activating new database: {e}{Style.RESET_ALL}")
+        sys.exit(1)
+
+    print(f"\n{Fore.GREEN}Database build process complete.{Style.RESET_ALL}")
+
+
 def handle_list_triaged(args):
     """Lists all questions marked for triage."""
     conn = db_mod.get_db_connection()
@@ -1984,8 +2050,8 @@ def _import_yaml_to_db_for_verify(yaml_path: str, conn: sqlite3.Connection):
         db_dict = {
             'id': q.id,
             'source_file': source_file,
-            'category_id': q.schema_category.value if q.schema_category else None,
-            'subject_id': q.subject_matter.value if q.subject_matter else None,
+            'category_id': q.category_id.value if q.category_id else None,
+            'subject_id': q.subject_id.value if q.subject_id else None,
             'review': q.review,
             'triage': q.triage,
             'content_hash': content_hash
@@ -3134,6 +3200,10 @@ def main():
         p_build_index.add_argument('directory', default='yaml/questions', nargs='?', help='Path to the directory containing YAML question files. Defaults to "yaml/questions".')
         p_build_index.add_argument('--quiet', action='store_true', help="Suppress progress output.")
         p_build_index.set_defaults(func=handle_build_index)
+
+        p_build_db = subparsers.add_parser('build-db', help='Builds a fresh question DB from the single source YAML.', description="Builds a new database from the configured SINGLE_SOURCE_YAML_FILE, and replaces the live database.")
+        p_build_db.add_argument('--ai-categorize', action='store_true', help="Force use of AI to categorize questions if category/subject are missing.")
+        p_build_db.set_defaults(func=handle_build_db)
 
         p_list_triage = subparsers.add_parser('list-triage', help='Lists all questions marked for triage.')
         p_list_triage.set_defaults(func=handle_list_triaged)
