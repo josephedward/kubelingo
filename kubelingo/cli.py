@@ -949,7 +949,7 @@ def enrich_sources():
                     prompt=q['prompt'],
                     source_file=q['source_file'],
                     response=q.get('response'),
-                    category=q.get('category'),
+                    category_id=q.get('category_id'),
                     source=source_url,
                     validation_steps=q.get('validation_steps'),
                     validator=q.get('validator'),

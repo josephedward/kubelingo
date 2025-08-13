@@ -224,7 +224,7 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 db_dict = {
                     'id': q_obj.id,
                     'source_file': q_obj.source_file,
-                    'schema_category': q_obj.schema_category.value if q_obj.schema_category else None,
+                    'category_id': q_obj.schema_category.value if q_obj.schema_category else None,
                     'subject_id': q_obj.subject_matter.value if q_obj.subject_matter else None,
                     'review': getattr(q_obj, 'review', False),
                     'triage': getattr(q_obj, 'triage', False),
@@ -274,7 +274,7 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,
             source_file TEXT NOT NULL,
-            schema_category TEXT,
+            category_id TEXT,
             subject_id TEXT,
             review BOOLEAN NOT NULL DEFAULT 0,
             triage BOOLEAN NOT NULL DEFAULT 0,
