@@ -44,100 +44,6 @@ def _run_script(script_name: str, *args):
     subprocess.run(command, check=False)
 
 
-def task_bug_ticket():
-    """Bug Ticket"""
-    _run_script("bug_ticket.py")
-
-def task_index_yaml():
-    """Index all YAML Files in Dir"""
-    _run_script("yaml_manager.py", "index")
-
-def task_consolidate_unique_yaml_questions():
-    """Consolidate Unique Yaml Questions"""
-    _run_script("question_manager.py", "consolidate-unique-yaml")
-
-
-def task_show_previous_yaml_backups():
-    """Show Previous YAML backup(s)"""
-    _run_script("yaml_manager.py", "list-backups")
-
-
-def task_diff_yaml_backups():
-    """Diff YAML Backups"""
-    _run_script("yaml_manager.py", "diff")
-
-
-def task_yaml_statistics():
-    """YAML Statistics"""
-    _run_script("yaml_manager.py", "stats")
-
-
-def task_restore_db_from_yaml():
-    """Restore DB from YAML Backup Version"""
-    try:
-        import questionary
-        from kubelingo.utils.path_utils import get_all_yaml_backups
-    except ImportError:
-        print("Error: 'questionary' or kubelingo modules not found.")
-        print("Install with: pip install questionary")
-        return
-
-    backups = get_all_yaml_backups()
-    if not backups:
-        print("No YAML backups found to restore from.")
-        return
-    choice = questionary.select('Select YAML backup to restore:', [str(p) for p in backups]).ask()
-    if choice:
-        _run_script('yaml_manager.py', 'restore', choice, '--clear')
-
-
-def task_create_db_from_yaml():
-    """Create Sqlite DB from YAML Backup Version"""
-    _run_script("yaml_manager.py", "create-db")
-
-def task_index_sqlite_files():
-    """Index Sqlite Files"""
-    _run_script("sqlite_manager.py", "index")
-
-def task_view_db_schema():
-    """View Database Schema"""
-    # Note: This shows schema for the live/default DB.
-    # A future improvement could be to find and show schema for the most recent backup.
-    _run_script("sqlite_manager.py", "schema")
-
-def task_show_previous_sqlite_backups():
-    """Show Previous Sqlite Backup(s)"""
-    _run_script("sqlite_manager.py", "list")
-
-def task_diff_sqlite_backups():
-    """Diff with Backup Sqlite Db"""
-    _run_script("sqlite_manager.py", "diff")
-
-
-def task_create_sqlite_backup():
-    """Create SQLite Backup Version"""
-    _run_script("consolidator.py", "dbs")
-
-def task_restore_from_sqlite_backup():
-    """Restore from SQLite Backup Version"""
-    _run_script("sqlite_manager.py", "restore")
-
-
-def task_deduplicate_questions():
-    """Deduplicate Questions"""
-    _run_script("question_manager.py", "deduplicate")
-
-def task_fix_question_categorization():
-    """Fix Question Categorization"""
-    _run_script("question_manager.py", "fix-categories")
-
-def task_fix_doc_links():
-    """Fix Documentation Links"""
-    _run_script("question_manager.py", "fix-links")
-
-def task_fix_question_formatting():
-    """Fix Question Formatting"""
-    _run_script("question_manager.py", "format")
 
 
 
@@ -203,62 +109,24 @@ def run_interactive_menu():
     """Display an interactive menu for maintenance tasks."""
     try:
         import questionary
-        from questionary import Separator
     except ImportError:
         print("Error: 'questionary' library not found. Please install it with:")
         print("pip install questionary")
         sys.exit(1)
 
-    tasks = {
-        # YAML
-        "Index all Yaml Files in Dir": task_index_yaml,
-        "Consolidate Unique Yaml Questions": task_consolidate_unique_yaml_questions,
-        "Show Previous YAML backup(s)": task_show_previous_yaml_backups,
-        "Diff YAML Backups": task_diff_yaml_backups,
-        "YAML Statistics": task_yaml_statistics,
-        # SQLite
-        "Index Sqlite Files": task_index_sqlite_files,
-        "Create Sqlite DB from YAML Backup Version": task_create_db_from_yaml,
-        "View Database Schema": task_view_db_schema,
-        "Show Previous Sqlite Backup(s)": task_show_previous_sqlite_backups,
-        "Diff with Backup Sqlite Db": task_diff_sqlite_backups,
-        "Restore from Sqlite Backup Version": task_restore_from_sqlite_backup,
-        # Questions
-        "Deduplicate Questions": task_deduplicate_questions,
-        "Fix Question Categorization": task_fix_question_categorization,
-        "Fix Documentation Links": task_fix_doc_links,
-        "Fix Question Formatting": task_fix_question_formatting,
-        # System
-        "Bug Ticket": task_bug_ticket,
-    }
+    scripts = [
+        "bug_ticket.py",
+        "consolidator.py",
+        "generator.py",
+        "question_manager.py",
+        "sqlite_manager.py",
+        "yaml_manager.py",
+    ]
 
     while True:
         choice = questionary.select(
-            "Select a maintenance task:",
-            choices=[
-                Separator("=== YAML ==="),
-                "Index all Yaml Files in Dir",
-                "Consolidate Unique Yaml Questions",
-                "Show Previous YAML backup(s)",
-                "Diff YAML Backups",
-                "YAML Statistics",
-                Separator("=== Sqlite ==="),
-                "Index Sqlite Files",
-                "Create Sqlite DB from YAML Backup Version",
-                "View Database Schema",
-                "Show Previous Sqlite Backup(s)",
-                "Diff with Backup Sqlite Db",
-                "Restore from Sqlite Backup Version",
-                Separator("=== Questions ==="),
-                "Deduplicate Questions",
-                "Fix Question Categorization",
-                "Fix Documentation Links",
-                "Fix Question Formatting",
-                Separator("=== System ==="),
-                "Bug Ticket",
-                Separator(),
-                "Cancel"
-            ],
+            "Select a tool script to run:",
+            choices=scripts + ["Cancel"],
             use_indicator=True
         ).ask()
 
@@ -266,8 +134,12 @@ def run_interactive_menu():
             print("Operation cancelled.")
             break
 
-        if choice in tasks:
-            tasks[choice]()
+        # `choice` is now the script name, e.g., "yaml_manager.py"
+        args_str = questionary.text(f"Enter arguments for {choice} (optional):").ask()
+        if args_str is None:  # User cancelled
+            continue
+        args = args_str.split() if args_str else []
+        _run_script(choice, *args)
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
