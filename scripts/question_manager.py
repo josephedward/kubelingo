@@ -43,7 +43,7 @@ try:
     # Kubelingo imports
     import kubelingo.database as db_mod
     from kubelingo.database import (
-        get_db_connection, add_question, init_db, get_all_questions
+        get_db_connection, add_question, init_db, get_all_questions, index_all_yaml_questions
     )
     from kubelingo.question import Question, ValidationStep, QuestionSubject
     from kubelingo.modules.question_generator import AIQuestionGenerator
