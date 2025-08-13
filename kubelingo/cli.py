@@ -485,46 +485,15 @@ def _run_question_management():
         print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
 
 
-def _run_drill_mode(category: QuestionCategory):
+def _run_drill_mode(study_session, category: QuestionCategory):
     """Runs a quiz drill for a specific question category."""
-    import logging
-    logger = logging.getLogger('kubelingo_drill')
-
-    class MockArgs:
-        """Mocks argparse arguments for session runners."""
-        def __init__(self, category_val: str):
-            self.category = category_val
-            self.num = 0  # Ask all questions in category
-            self.randomize = True
-            self.review_only = False
-            # Enable AI eval if an API key is available
-            self.ai_eval = get_active_api_key() is not None
-            self.file = None
-            # Default/dummy values for other potential args
-            self.module = 'kubernetes'
-            self.custom_file = None
-            self.exercises = None
-            self.cluster_context = None
-            self.start_cluster = False
-
     print(f"\n{Fore.CYAN}Starting drill for '{category.value}' questions...{Style.RESET_ALL}")
     try:
-        session = load_session('kubernetes', logger)
-        if session:
-            init_ok = session.initialize()
-            if not init_ok:
-                print(f"{Fore.RED}Drill mode initialization failed.{Style.RESET_ALL}")
-                return
-
-            drill_args = MockArgs(category.value)
-            session.run_exercises(drill_args)
-            session.cleanup()
-        else:
-            print(f"{Fore.RED}Failed to load quiz session for drill mode.{Style.RESET_ALL}")
-    except (ImportError, AttributeError) as e:
-        print(f"{Fore.RED}Error loading quiz session: {e}{Style.RESET_ALL}")
+        # Instead of loading a new session, use the one from the interactive menu.
+        # This ensures the context is maintained correctly.
+        study_session._run_study_subject_menu(category)
     except Exception as e:
-        print(f"{Fore.RED}An error occurred during the drill session: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
 
     print(f"\n{Fore.CYAN}Drill session finished. Returning to main menu.{Style.RESET_ALL}")
 
@@ -805,7 +774,7 @@ def run_interactive_main_menu():
                     study_session.review_past_questions()
             elif menu == "drill":
                 # This should launch a drill-down quiz for the selected category.
-                _run_drill_mode(action)
+                _run_drill_mode(study_session, action)
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
