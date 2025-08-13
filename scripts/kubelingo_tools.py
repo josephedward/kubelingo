@@ -206,11 +206,11 @@ def main():
     }
     menu_choices = [
         questionary.Choice(
-            title="Generate Questions (generator)",
+            title="Generate Questions",
             value="generate"
         ),
         questionary.Choice(
-            title="Add Questions (using AI schema inference, rewriting and reformatting the given questions as needed)",
+            title="Add Questions",
             value="add"
         ),
         questionary.Choice(
@@ -218,7 +218,7 @@ def main():
             value="remove"
         ),
         questionary.Choice(
-            title="Triaged Questions (should list and allow for deletion or AI editing)",
+            title="Triaged Questions",
             value="triage"
         ),
         questionary.Separator(),
