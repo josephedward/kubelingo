@@ -99,6 +99,7 @@ class SocraticMode:
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
+        self._index_all_yaml_files()
 
 
     def run_drill_menu(self):
@@ -410,9 +411,10 @@ class SocraticMode:
     def _index_all_yaml_files(self):
         """Finds and indexes all YAML question files into the database."""
         try:
+            print("Checking for new or updated questions...")
             yaml_files = get_all_yaml_files()
             if yaml_files:
-                index_yaml_files(yaml_files, self.db_conn, verbose=False)
+                index_yaml_files(yaml_files, self.db_conn, verbose=True)
         except Exception as e:
             print(f"{Fore.RED}Error during YAML file indexing: {e}{Style.RESET_ALL}")
 
