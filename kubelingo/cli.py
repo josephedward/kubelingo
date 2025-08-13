@@ -544,83 +544,59 @@ def _run_question_management():
 
 
 def _run_drill_mode(study_session, category: QuestionCategory):
-    """Runs a quiz drill for a specific question category."""
+    """Runs a quiz drill for a specific question category, with a subject drill-down menu."""
     print(f"\n{Fore.CYAN}Starting drill for '{category.value}' questions...{Style.RESET_ALL}")
     try:
         # Special case for Open Ended, which is a Socratic-style session, not a drill.
         if category == QuestionCategory.OPEN_ENDED:
             study_session._run_socratic_mode_entry()
-        else:
-            # Instead of loading a new session, use the one from the interactive menu.
-            # This ensures the context is maintained correctly.
-            study_session._run_subject_drill_menu(category)
-    except Exception as e:
-        print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
+            return
 
-    print(f"\n{Fore.CYAN}Drill session finished. Returning to main menu.{Style.RESET_ALL}")
+        from kubelingo.database import get_question_counts_by_subject
 
-
-def _run_yaml_quiz_interactive(study_session):
-    """Interactive prompt for selecting and running a quiz from a YAML file."""
-    if questionary is None:
-        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
-        return
-
-    from kubelingo.modules.yaml_loader import YAMLLoader
-    from kubelingo.utils.ui import humanize_module
-    import argparse
-
-    loader = YAMLLoader()
-    try:
-        files = loader.discover()
-        if not files:
-            print(f"{Fore.YELLOW}No YAML quiz files found.{Style.RESET_ALL}")
+        subject_counts = get_question_counts_by_subject(category.value)
+        if not subject_counts:
+            print(f"{Fore.YELLOW}No subjects found for category '{category.value}'. Returning to main menu.{Style.RESET_ALL}")
             return
 
         choices = []
-        for path in files:
-            base = os.path.splitext(os.path.basename(path))[0]
-            name = humanize_module(base)
-            choices.append(questionary.Choice(title=f"{name} ({os.path.basename(path)})", value=path))
+        for subject_id, count in sorted(subject_counts.items()):
+            display_name = ' '.join(word.capitalize() for word in subject_id.replace('_', '-').split('-'))
+            choices.append(questionary.Choice(title=f"{display_name} ({count})", value=subject_id))
 
-        choices.append(questionary.Separator())
-        choices.append(questionary.Choice(title="Cancel", value="cancel"))
+        choices.extend([Separator(), questionary.Choice(title="Back to Main Menu", value="back")])
 
-        selected_file = questionary.select(
-            "Select a YAML quiz to run:",
-            choices=choices,
-            use_indicator=True
+        selected_subject = questionary.select(
+            f"Select a subject for {category.value}:", choices=choices, use_indicator=True
         ).ask()
 
-        if not selected_file or selected_file == "cancel":
-            print(f"{Fore.YELLOW}No quiz selected.{Style.RESET_ALL}")
+        if not selected_subject or selected_subject == "back":
             return
 
-        num_str = questionary.text(
-            "Enter number of questions (or press Enter for all):",
-            default=""
-        ).ask()
-        num_questions = 0
-        if num_str and num_str.isdigit() and int(num_str) > 0:
-            num_questions = int(num_str)
-
-        # Mock args for run_exercises
+        # run_exercises will need to be adapted to handle filtering by subject.
+        # We pass it as if it does.
+        import argparse
         mock_args = argparse.Namespace(
-            file=selected_file,
-            num=num_questions,
-            category=None,
+            file=None,
+            num=0,
+            category=category.value,
+            subject=selected_subject,
             review_only=False,
-            randomize=True # good default for YAML quizzes
+            randomize=True,
+            ai_eval=hasattr(study_session, 'client') and study_session.client is not None,
+            k8s_mode=True,
+            exercises=None,
+            cluster_context=None
         )
-        
-        # SocraticMode (the study_session object) inherits from KubernetesSession.
-        # Its run_exercises method is designed to handle this kind of quiz.
         study_session.run_exercises(mock_args)
 
     except (KeyboardInterrupt, EOFError):
-        print(f"\n{Fore.YELLOW}YAML quiz selection cancelled.{Style.RESET_ALL}")
+        # A newline is needed to prevent the next prompt from appearing on the same line.
+        print()
     except Exception as e:
-        print(f"{Fore.RED}An error occurred while running the YAML quiz: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}An unexpected error occurred during drill mode: {e}{Style.RESET_ALL}")
+
+    print(f"\n{Fore.CYAN}Drill session finished. Returning to main menu.{Style.RESET_ALL}")
 
 
 def _list_indexed_files():
@@ -931,10 +907,6 @@ def run_interactive_main_menu():
                 ),
                 Separator("--- Drill ---"),
                 questionary.Choice(
-                    "Quiz from YAML file",
-                    value=("drill", "yaml"),
-                ),
-                questionary.Choice(
                     f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED.value, 0)})",
                     value=("drill", QuestionCategory.OPEN_ENDED),
                     disabled=api_key_required_msg if not has_api_key else "",
@@ -979,11 +951,8 @@ def run_interactive_main_menu():
                 elif action == "review":
                     study_session.review_past_questions()
             elif menu == "drill":
-                if action == "yaml":
-                    _run_yaml_quiz_interactive(study_session)
-                else:
-                    # This should launch a drill-down quiz for the selected category.
-                    _run_drill_mode(study_session, action)
+                # This should launch a drill-down quiz for the selected category.
+                _run_drill_mode(study_session, action)
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
