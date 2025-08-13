@@ -69,15 +69,27 @@ Do not include any other text or explanation.
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": user_prompt},
             ]
-            response_str = self.client.chat_completion(
+            response = self.client.chat_completion(
                 messages=messages,
                 json_mode=True,
                 temperature=0.0
             )
 
-            if not response_str:
+            if not response:
                 return None
-                
+
+            response_str = response
+            if not isinstance(response, str):
+                # Handle response objects that have a `text` attribute or method.
+                if hasattr(response, 'text'):
+                    text_attr = getattr(response, 'text')
+                    if callable(text_attr):
+                        response_str = text_attr()
+                    else:
+                        response_str = text_attr
+                else: # Fallback for unknown object types
+                    response_str = str(response)
+
             data = json.loads(response_str)
             
             category = data.get("exercise_category")

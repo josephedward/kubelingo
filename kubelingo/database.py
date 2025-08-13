@@ -317,6 +317,10 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
             for q_dict in questions_to_add:
                 if 'id' not in q_dict or 'prompt' not in q_dict: continue
 
+                # Map legacy 'subject' field to 'subject_matter' for backward compatibility
+                if 'subject' in q_dict and 'subject_matter' not in q_dict:
+                    q_dict['subject_matter'] = q_dict.pop('subject')
+
                 q_dict['source_file'] = rel_path
                 q_obj = Question(**q_dict)
 
