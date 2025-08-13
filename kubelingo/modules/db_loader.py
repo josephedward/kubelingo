@@ -16,8 +16,22 @@ import json
 from typing import List, Dict, Any, Optional
 from kubelingo.modules.base_loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
-from kubelingo.database import get_db_connection, _row_to_question_dict
+from kubelingo.database import get_db_connection
 import os
+
+
+def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    """Converts a sqlite3.Row object to a dictionary, deserializing JSON fields."""
+    q_dict = dict(row)
+    for key, value in q_dict.items():
+        if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
+            try:
+                q_dict[key] = json.loads(value)
+            except json.JSONDecodeError:
+                # Not a JSON string, leave as is
+                pass
+    return q_dict
+
 
 class DBLoader(BaseLoader):
     """Discovers and loads questions directly from the local SQLite database."""

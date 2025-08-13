@@ -13,7 +13,6 @@ from kubelingo.question import Question
 from kubelingo.utils.config import YAML_QUIZ_DIR
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import (
-    validate_prompt_completeness,
     validate_yaml_structure,
 )
 
@@ -184,10 +183,7 @@ class AIQuestionGenerator:
             if not p or not r:
                 continue
 
-            if q_type == "command":
-                if not validate_prompt_completeness(r, p).get("valid"):
-                    continue
-            elif q_type == "yaml_author":
+            if q_type == "yaml_author":
                 if not validate_yaml_structure(r).get("valid"):
                     logger.warning(f"Skipping AI-generated YAML question with invalid syntax: {p}")
                     continue
