@@ -8,11 +8,11 @@ from typing import Any, Dict, List, Optional
 
 
 class QuestionCategory(str, Enum):
-    """The four core categories for all questions."""
+    """High-level category for a question, determining its evaluation method."""
     OPEN_ENDED = "Open-Ended"
-    BASIC = "Basic Terminology"
-    COMMAND = "Command Syntax"
-    MANIFEST = "YAML Manifest"
+    BASIC_TERMINOLOGY = "Basic Terminology"
+    COMMAND_SYNTAX = "Command Syntax"
+    YAML_MANIFEST = "YAML Manifest"
 
 
 class QuestionSubject(str, Enum):
@@ -30,9 +30,9 @@ class QuestionSubject(str, Enum):
     NETWORKING_UTILITIES = "Networking utilities (DNS in-cluster, port-forward, exec, curl)"
     PERSISTENCE = "Persistence (PVCs, using existing StorageClasses, common volume types)"
     OBSERVABILITY_TROUBLESHOOTING = "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"
-    METADATA_LABELS_SELECTORS = "Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)"
+    LABELS_SELECTORS = "Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)"
     IMPERATIVE_DECLARATIVE = "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)"
-    CONTAINER_IMAGE_REGISTRY = "Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)"
+    IMAGE_REGISTRY = "Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)"
     SECURITY_BASICS = "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)"
     SERVICE_ACCOUNTS = "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)"
     SCHEDULING = "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)"
