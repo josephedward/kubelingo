@@ -1025,9 +1025,6 @@ def main():
             elif cmd_name == 'questions':
                 manage_questions_interactive()
                 return
-            elif cmd_name == 'tools':
-                manage_questions_interactive()
-                return
             elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
                 # Merge questions from the master backup into the live database
                 try:
