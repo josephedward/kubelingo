@@ -125,7 +125,7 @@ class KubernetesStudyMode:
             quiz_type = quiz_type_map.get(category)
 
             if quiz_type:
-                self._run_quiz_loop(quiz_type, subject_choice)
+                self._run_quiz_loop(quiz_type, subject_choice, category)
             else:
                 print(
                     f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
@@ -240,7 +240,7 @@ class KubernetesStudyMode:
             quiz_type = quiz_type_map.get(category)
 
             if quiz_type:
-                self._run_quiz_loop(quiz_type, subject.value)
+                self._run_quiz_loop(quiz_type, subject.value, category)
             else:
                 print(
                     f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
@@ -503,17 +503,17 @@ class KubernetesStudyMode:
     def _run_basic_quiz(self, topic: str):
         """Runs a quiz focused on basic terminology."""
         print(f"\nStarting a 'Basic term/definition' quiz on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("basic", topic)
+        self._run_quiz_loop("basic", topic, QuestionCategory.BASIC_TERMINOLOGY)
 
     def _run_command_quiz(self, topic: str):
         """Runs a quiz focused on kubectl commands."""
         print(f"\nStarting a 'Command-line Challenge' on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("command", topic)
+        self._run_quiz_loop("command", topic, QuestionCategory.COMMAND_SYNTAX)
 
     def _run_manifest_quiz(self, topic: str):
         """Runs a quiz focused on authoring Kubernetes manifests."""
         print(f"\nStarting a 'Manifest Authoring' exercise on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("manifest", topic)
+        self._run_quiz_loop("manifest", topic, QuestionCategory.YAML_MANIFEST)
 
     def _run_quiz_loop(self, quiz_type: str, topic: str):
         """Generic loop for generating and asking questions."""
@@ -538,7 +538,7 @@ class KubernetesStudyMode:
                 base_question = {
                     "subject": topic,
                     "type": quiz_type,
-                    "category": category,
+                    "schema_category": category,
                     "base_questions": [asdict(q) for q in context_questions],
                 }
                 if quiz_type == "basic":
@@ -560,7 +560,7 @@ class KubernetesStudyMode:
 
                 question_dict.setdefault('type', quiz_type)
                 question_dict.setdefault('subject', topic)
-                question_dict.setdefault('category', category)
+                question_dict.setdefault('schema_category', category)
                 question_dict.setdefault('source', 'ai_generated')
                 question = Question(**question_dict)
 
