@@ -760,37 +760,38 @@ def _setup_ai_provider_interactive(force_setup=False):
     provider = get_ai_provider()
     # Ask for provider if not set or if forcing setup
     if not provider or force_setup:
-        current_provider = provider.strip() if provider else None
+        provider_choices = [{"name": p.capitalize(), "value": p} for p in SUPPORTED_AI_PROVIDERS]
+        # Ensure the default value is valid, otherwise questionary crashes.
+        default_provider = provider if provider in SUPPORTED_AI_PROVIDERS else None
+
         new_provider = questionary.select(
-            "--- AI Provider ---\nPlease select an AI provider:",
-            choices=[
-                {"name": "OpenAI", "value": "openai"},
-                {"name": "Gemini", "value": "gemini"},
-            ],
-            default=current_provider,
+            "--- AI Provider ---\nPlease select an AI provider for feedback and study features:",
+            choices=provider_choices,
+            default=default_provider,
             use_indicator=True,
         ).ask()
 
         if not new_provider:
             if force_setup: print(f"{Fore.YELLOW}No provider selected. No changes made.{Style.RESET_ALL}")
-            return
+            return  # Exit if user cancels provider selection
         provider = new_provider
         save_ai_provider(provider)
         print(f"AI provider set to {provider.capitalize()}.")
 
-    # Ask for API key if not set or if forcing setup
+    # Ask for API key if a provider is set, but the key is missing.
+    # Also asks if `force_setup` is True, allowing key to be overwritten.
     if provider and (not get_api_key(provider) or force_setup):
-        if not force_setup:
-            print(f"\nAn API key for {provider.capitalize()} is required to enable AI features.")
-        else:
-            if get_api_key(provider) and not questionary.confirm(f"API key for {provider.capitalize()} is set. Overwrite?").ask():
+        # When forcing, check if a key exists and ask for overwrite confirmation.
+        if force_setup and get_api_key(provider):
+            if not questionary.confirm(f"API key for {provider.capitalize()} is already set. Overwrite?").ask():
                 return
-        
+        elif not get_api_key(provider):
+            # On first-time setup, print a helpful message.
+            print(f"\nAn API key for {provider.capitalize()} is required to enable AI features.")
+
         try:
             key_value = getpass.getpass(f"Enter your {provider.capitalize()} API key: ").strip()
             if key_value:
-                # Note: llm-openai seems to be a non-existent package. The `llm` library
-                # uses the `openai` package directly. Test will likely fail if `openai` is not installed.
                 test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
                 if test_func(key_value):
                     if save_api_key(provider, key_value):
