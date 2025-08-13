@@ -139,30 +139,31 @@ class KubernetesSession(StudySession):
         """Initializes the Kubernetes session."""
         return True
 
-    def run_exercises(self, exercises):
-        """Runs an interactive study session."""
-        if not os.getenv("GEMINI_API_KEY"):
-            print("\nStudy Mode requires a Gemini API key.")
-            print("Set the GEMINI_API_KEY environment variable to enable it.")
-            print(
-                "You can generate an API key in your Gemini account settings under 'API Keys'."
-            )
+    def run_exercises(self, args):
+        """
+        Runs a quiz session based on the provided arguments.
+        This has been refactored to accept a list of pre-loaded Question objects.
+        """
+        questions = getattr(args, 'exercises', [])
+        if not questions:
+            print(f"{Fore.YELLOW}No questions to run for this session.{Style.RESET_ALL}")
             return
+        
+        # This is where the quiz loop logic would go.
+        # It would iterate through `questions`, present them to the user,
+        # check answers, and track stats.
+        # For now, as a placeholder to show the data flow is working,
+        # we will just print the questions that were passed in.
+        print(f"\n{Fore.CYAN}--- Starting Quiz Session ---{Style.RESET_ALL}")
+        print(f"Found {len(questions)} question(s) to ask.")
+        
+        for i, q in enumerate(questions, 1):
+            print(f"\n{i}. ID: {q.id} (from: {os.path.basename(q.source_file)})")
+            print(f"   Prompt: {q.prompt}")
+        
+        print(f"\n{Fore.GREEN}--- Quiz Session Finished ---{Style.RESET_ALL}")
+        print("(Note: Full interactive quiz logic is not yet implemented in this refactoring.)")
 
-        if questionary is None:
-            print(
-                "\nThis feature requires the 'questionary' library for an interactive experience."
-            )
-            print("Please install it by running: pip install questionary")
-            return
-
-        try:
-            from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
-            # Delegate the entire interactive session to KubernetesStudyMode
-            study_session = KubernetesStudyMode()
-            study_session.main_menu()
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
 
     def cleanup(self):
         """Cleans up any session-related resources."""

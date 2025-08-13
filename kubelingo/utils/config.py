@@ -1,6 +1,7 @@
 import os
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
+from pathlib import Path
 
 # The absolute path to the project root directory, which contains the 'kubelingo' package and 'scripts'.
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))

@@ -36,7 +36,6 @@ if __name__ == '__main__' and __package__ is None:
     sys.path.insert(0, os.path.dirname(pkg_dir))
     __package__ = 'kubelingo'
 
-from kubelingo.bootstrap import initialize_app
 from kubelingo.question import QuestionCategory
 
 # Base session loader
@@ -338,75 +337,7 @@ def restore_db():
     _rebuild_db_from_yaml()
 
 
-def handle_load_yaml(cmd_args):
-    """Loads questions from a YAML file, clearing the database first."""
-    if len(cmd_args) != 1:
-        print(f"{Fore.RED}Usage: kubelingo load-yaml <path-to-yaml-file>{Style.RESET_ALL}")
-        return
-
-    yaml_file = cmd_args[0]
-    if not os.path.exists(yaml_file):
-        print(f"{Fore.RED}File not found: {yaml_file}{Style.RESET_ALL}")
-        return
-
-    if questionary is None:
-        print(f"{Fore.RED}`questionary` package not installed. Cannot proceed with interactive confirmation.{Style.RESET_ALL}")
-        return
-
-    try:
-        confirmed = questionary.confirm(
-            f"This will CLEAR all questions from the database and load new ones from '{os.path.basename(yaml_file)}'. "
-            "This action cannot be undone. Are you sure?",
-            default=False
-        ).ask()
-        if not confirmed:
-            print(f"{Fore.YELLOW}Import cancelled.{Style.RESET_ALL}")
-            return
-
-        from kubelingo.database import get_db_connection, add_question
-        from kubelingo.modules.yaml_loader import YAMLLoader
-
-        print("Clearing existing questions from the database...")
-        conn = get_db_connection()
-        try:
-            conn.execute("DELETE FROM questions")
-            conn.commit()
-            print("Database cleared.")
-
-            print(f"Loading questions from {yaml_file}...")
-            loader = YAMLLoader()
-            questions = loader.load_file(yaml_file)
-
-            if not questions:
-                print(f"{Fore.YELLOW}No questions found in {yaml_file}.{Style.RESET_ALL}")
-                conn.close()
-                return
-
-            for q in questions:
-                # Prepare a dictionary with only the metadata fields that add_question expects,
-                # mapping from the Question dataclass fields to the database column names.
-                meta_dict = {
-                    'id': q.id,
-                    'source_file': q.source_file,
-                    'category_id': q.schema_category,
-                    'subject_id': q.subject_matter,
-                    'question_type': q.type_,
-                    'source': q.source,
-                    'review': q.review,
-                    'triage': q.triage,
-                }
-                add_question(conn=conn, **meta_dict)
-
-            conn.commit()
-            print(f"{Fore.GREEN}Successfully loaded {len(questions)} questions into the database.{Style.RESET_ALL}")
-
-        finally:
-            conn.close()
-
-    except (KeyboardInterrupt, EOFError):
-        print(f"\n{Fore.YELLOW}Import process cancelled.{Style.RESET_ALL}")
-    except Exception as e:
-        print(f"{Fore.RED}An error occurred during import: {e}{Style.RESET_ALL}")
+# handle_load_yaml is obsolete and removed. Database is managed by bootstrap_database.py
 
 
 def _run_bug_ticket_script():
@@ -481,24 +412,32 @@ def _run_drill_mode(study_session, category: QuestionCategory):
     """Runs a quiz drill for a specific question category, with a subject drill-down menu."""
     print(f"\n{Fore.CYAN}Starting drill for '{category.value}' questions...{Style.RESET_ALL}")
     try:
+        from kubelingo.database import get_question_counts_by_subject
+        from kubelingo.modules.yaml_loader import YAMLLoader
+        from kubelingo.database import get_questions_by_filter
+
         # Special case for Open Ended, which is a Socratic-style session, not a drill.
         if category == QuestionCategory.OPEN_ENDED:
-            study_session._run_socratic_mode_entry()
+            # Socratic mode needs to be re-evaluated in the new architecture.
+            # For now, we can say it's not a drill.
+            if hasattr(study_session, '_run_socratic_mode_entry'):
+                study_session._run_socratic_mode_entry()
+            else:
+                print(f"{Fore.YELLOW}Socratic mode is not available in this session type.{Style.RESET_ALL}")
             return
-
-        from kubelingo.database import get_question_counts_by_subject
 
         subject_counts = get_question_counts_by_subject(category.value)
         if not subject_counts:
-            print(f"{Fore.YELLOW}No subjects found for category '{category.value}'. Returning to main menu.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}No questions found for category '{category.value}'. Returning to main menu.{Style.RESET_ALL}")
+            # Here we could offer to generate them
             return
 
-        choices = []
+        choices = [questionary.Choice(title="All Subjects", value="all")]
         for subject_id, count in sorted(subject_counts.items()):
-            display_name = ' '.join(word.capitalize() for word in subject_id.replace('_', '-').split('-'))
+            display_name = ' '.join(word.capitalize() for word in subject_id.replace('_', ' ').split('-'))
             choices.append(questionary.Choice(title=f"{display_name} ({count})", value=subject_id))
 
-        choices.extend([Separator(), questionary.Choice(title="Back to Main Menu", value="back")])
+        choices.extend([Separator(), questionary.Choice(title="Back", value="back")])
 
         selected_subject = questionary.select(
             f"Select a subject for {category.value}:", choices=choices, use_indicator=True
@@ -507,26 +446,63 @@ def _run_drill_mode(study_session, category: QuestionCategory):
         if not selected_subject or selected_subject == "back":
             return
 
-        # run_exercises will need to be adapted to handle filtering by subject.
-        # We pass it as if it does.
+        subject_filter = selected_subject if selected_subject != "all" else None
+        
+        # 1. Get question metadata from DB
+        question_metadatas = get_questions_by_filter(category=category.value, subject=subject_filter)
+
+        if not question_metadatas:
+            print(f"{Fore.YELLOW}No questions found for the selected criteria.{Style.RESET_ALL}")
+            return
+            
+        # 2. Load full question content from YAML files
+        loader = YAMLLoader()
+        questions_to_ask = []
+        # Group by source file to minimize file IO
+        questions_by_file = {}
+        for meta in question_metadatas:
+            source_file = meta['source_file']
+            if source_file not in questions_by_file:
+                questions_by_file[source_file] = []
+            questions_by_file[source_file].append(meta['id'])
+
+        project_root = Path(__file__).resolve().parent.parent
+        for rel_path, qids in questions_by_file.items():
+            full_path = project_root / rel_path
+            if full_path.exists():
+                all_from_file = loader.load_file(str(full_path))
+                questions_to_ask.extend([q for q in all_from_file if q.id in qids])
+            else:
+                print(f"{Fore.YELLOW}Warning: source file not found: {full_path}{Style.RESET_ALL}")
+
+        if not questions_to_ask:
+            print(f"{Fore.RED}Error: Found metadata but could not load question content from YAML.{Style.RESET_ALL}")
+            return
+
+        # 3. Pass full Question objects to the session runner
+        # We need to adapt run_exercises to take a list of questions directly.
+        # Create a mock_args object for compatibility if needed.
         import argparse
         mock_args = argparse.Namespace(
-            file=None,
+            # Pass the loaded questions via the 'exercises' attribute
+            exercises=questions_to_ask,
+            # Other flags for the session
             num=0,
-            category=category.value,
-            subject=selected_subject,
-            review_only=False,
             randomize=True,
             ai_eval=hasattr(study_session, 'client') and study_session.client is not None,
+            # Legacy/compatibility flags
+            file=None,
+            category=category.value,
+            subject=subject_filter,
+            review_only=False,
             k8s_mode=True,
-            exercises=None,
             cluster_context=None
         )
+        # Assuming run_exercises will be refactored to check for `args.exercises` first.
         study_session.run_exercises(mock_args)
 
     except (KeyboardInterrupt, EOFError):
-        # A newline is needed to prevent the next prompt from appearing on the same line.
-        print()
+        print() # Newline for clean exit
     except Exception as e:
         print(f"{Fore.RED}An unexpected error occurred during drill mode: {e}{Style.RESET_ALL}")
 
@@ -859,12 +835,13 @@ def run_interactive_main_menu():
                     f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST.value, 0)})",
                     value=("drill", QuestionCategory.YAML_MANIFEST)
                 ),
-                Separator("--- Settings ---"),
-                questionary.Choice("AI", value=("settings", "ai")),
-                questionary.Choice("Clusters", value=("settings", "cluster")),
+                Separator("--- Settings & Data ---"),
+                questionary.Choice("AI Provider & Keys", value=("settings", "ai")),
+                questionary.Choice("Kubernetes Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
+                questionary.Choice("Bootstrap/Rebuild Database", value=("data", "bootstrap")),
                 questionary.Choice("Help", value=("settings", "help")),
-                questionary.Choice("Report Bug (bug ticket script)", value=("settings", "bug")),
+                questionary.Choice("Report Bug", value=("settings", "bug")),
                 Separator(),
                 questionary.Choice("Exit App", value="exit"),
             ]
@@ -889,6 +866,9 @@ def run_interactive_main_menu():
             elif menu == "drill":
                 # This should launch a drill-down quiz for the selected category.
                 _run_drill_mode(study_session, action)
+            elif menu == "data":
+                if action == "bootstrap":
+                    _run_bootstrap_script()
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
@@ -896,8 +876,6 @@ def run_interactive_main_menu():
                     manage_cluster_config_interactive()
                 elif action == "questions":
                     _run_question_management()
-                elif action == "categorize_ai":
-                    study_session.run_ai_categorization()
                 elif action == "view_yaml":
                     _list_yaml_questions()
                 elif action == "help":
@@ -1025,19 +1003,9 @@ def main():
         # It's non-intrusive if everything is already configured.
         _setup_ai_provider_interactive(force_setup=False)
 
-    # Centralized startup: DB bootstrapping. Must run after interactive setup.
-    try:
-        initialize_app()
-    except Exception:
-        # In interactive mode, we want to show the UI even if the DB is locked.
-        # We allow execution to continue. The UI code must be robust enough
-        # to handle the DB being unavailable.
-        if is_interactive:
-            pass  # The UI will show a more specific warning.
-        else:
-            # In non-interactive mode, it's better to fail fast.
-            print(f"{Fore.RED}Error: Database initialization failed.{Style.RESET_ALL}", file=sys.stderr)
-            raise
+    # The application no longer performs any startup bootstrapping.
+    # The database is expected to be created by the user via the bootstrap script.
+    # `get_db_connection` will handle cases where the DB is missing.
 
     # --- Interactive Mode: AI Provider and API Key Setup ---
     # The initial provider setup is now handled by initialize_app().
@@ -1095,7 +1063,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'study', 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'load-yaml', 'monitor', 'self-heal', 'heal', 'test-ai')")
+                        help="Command to run (e.g. 'study', 'kubernetes', 'sandbox pty', 'config', 'questions', 'bootstrap-db', 'enrich-sources', 'monitor', 'self-heal', 'heal', 'test-ai')")
     parser.add_argument('--list-yaml', action='store_true',
                         help='List available YAML quiz files and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -1221,23 +1189,13 @@ def main():
                 enrich_sources()
                 return
             elif cmd_name == 'load-yaml':
-                handle_load_yaml(args.command[1:])
+                print(f"{Fore.YELLOW}The 'load-yaml' command is obsolete. Use the 'Bootstrap/Rebuild Database' menu option or 'bootstrap-db' command.{Style.RESET_ALL}")
                 return
             elif cmd_name == 'questions':
                 _run_question_management()
                 return
-            elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
-                # Merge questions from the master backup into the live database
-                try:
-                    restore_db()
-                except Exception as e:
-                    print(f"{Fore.RED}Failed to migrate questions from backup: {e}{Style.RESET_ALL}")
-                return
-            elif cmd_name == 'restore_db':
-                restore_db()
-                return
-            elif cmd_name == 'rebuild-db':
-                _rebuild_db_from_yaml()
+            elif cmd_name == 'bootstrap-db':
+                _run_bootstrap_script()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:

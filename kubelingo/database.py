@@ -27,27 +27,28 @@ from kubelingo.utils.path_utils import get_project_root
 
 def get_db_connection(db_path: Optional[str] = None):
     """Establishes a connection to the SQLite database."""
-    db_file = db_path or DATABASE_FILE
+    # Always get the latest path unless a specific one is provided.
+    db_file = db_path or get_live_db_path()
 
-    # Ensure the database directory exists
-    db_dir = os.path.dirname(db_file)
-    if db_dir:
-        try:
-            os.makedirs(db_dir, exist_ok=True)
-        except Exception:
-            pass
+    if not db_file or not os.path.exists(db_file):
+        print(
+            "Warning: No database found. Please run 'scripts/bootstrap_database.py' to create one.",
+            file=sys.stderr
+        )
+        # Return a connection to an in-memory database to allow the app to run.
+        # It will appear to have no questions.
+        conn = sqlite3.connect(":memory:")
+        init_db(conn=conn)  # Create schema in memory db.
+        conn.row_factory = sqlite3.Row
+        return conn
 
-    # Attempt connection. For default DB, try fallback on error.
     try:
         conn = sqlite3.connect(db_file)
-    except Exception:
-        if db_path is None:  # Only fallback for the default database
-            fallback = os.path.join(os.getcwd(), 'kubelingo.db')
-            conn = sqlite3.connect(fallback)
-        else:
-            raise  # Re-raise exception if a specific path was provided and failed
-    conn.row_factory = sqlite3.Row
-    return conn
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        print(f"Error connecting to database {db_file}: {e}", file=sys.stderr)
+        raise
 
 
 def run_sql_file(conn: sqlite3.Connection, sql_file_path: str):
