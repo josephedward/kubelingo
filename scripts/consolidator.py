@@ -14,9 +14,8 @@ from textwrap import indent
 
 try:
     import yaml
-    from InquirerPy import inquirer
 except ImportError:
-    print("Error: Required packages are missing. Please install them using: pip install PyYAML InquirerPy", file=sys.stderr)
+    print("Error: Required packages are missing. Please install them using: pip install PyYAML", file=sys.stderr)
     sys.exit(1)
 
 # Add project root to path to allow importing kubelingo modules if needed

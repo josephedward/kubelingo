@@ -16,6 +16,7 @@ import json
 import re
 import os
 import sqlite3
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
@@ -32,6 +33,14 @@ else:
 
 # Adjust sys.path to import local helper modules
 sys.path.insert(0, str(repo_root))
+
+try:
+    from kubelingo.database import get_db_connection, get_flagged_questions
+except ImportError:
+    print("Could not import kubelingo modules. DB-related features might not work.", file=sys.stderr)
+    get_db_connection = None
+    get_flagged_questions = None
+
 
 def _run_script(script_name: str, *args):
     """Helper to run a script from the scripts directory."""
