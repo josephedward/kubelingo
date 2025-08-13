@@ -146,7 +146,7 @@ class SocraticMode:
                     f"{Fore.YELLOW}No specific subjects found. Running quiz for all {len(all_category_questions)} questions in '{category.value}'.{Style.RESET_ALL}"
                 )
                 questionary.confirm("Press Enter to continue...").ask()
-                self._run_quiz(all_category_questions)
+                self.run_exercises(all_category_questions)
             else:
                 print(
                     f"\n{Fore.YELLOW}No questions found for '{category.value}'.{Style.RESET_ALL}"
@@ -251,7 +251,7 @@ class SocraticMode:
 
         questionary.confirm("Press Enter to continue...").ask()
 
-    def _run_quiz(self, questions: List[Question]):
+    def run_exercises(self, questions: List[Question]):
         """
         Runs an interactive quiz session with a given list of questions.
         Includes a menu for each question for navigation and actions.
@@ -343,7 +343,7 @@ class SocraticMode:
             category, subject.value
         )
         if questions:
-            self._run_quiz(questions)
+            self.run_exercises(questions)
         else:
             if not self.question_generator:
                 print(
@@ -504,7 +504,7 @@ class SocraticMode:
                 questions.append(Question(**q_dict))
 
             print(f"\nStarting review session with {len(questions)} flagged question(s).")
-            self._run_quiz(questions)
+            self.run_exercises(questions)
 
         except Exception as e:
             print(
