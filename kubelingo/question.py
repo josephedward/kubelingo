@@ -17,7 +17,7 @@ class QuestionCategory(str, Enum):
 
 class QuestionSubject(str, Enum):
     """Subject matter areas for Kubernetes questions."""
-    LINUX_SYNTAX = "Linux Syntax(Commands from Vim, Kubectl, Docker, Helm)"
+    LINUX_SYNTAX = "Linux Syntax(Commands from Bash, Vim, Kubectl, Docker, Helm)"
     CORE_WORKLOADS = "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
     POD_DESIGN = "Pod design patterns (initContainers, sidecars, lifecycle hooks)"
     COMMAND_ARGS_ENV = "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)"
@@ -26,7 +26,7 @@ class QuestionSubject(str, Enum):
     RESOURCE_MANAGEMENT = "Resource management (requests/limits, QoS classes, HPA basics)"
     JOBS_CRONJOBS = "Jobs & CronJobs (completions, parallelism, backoff, schedules)"
     SERVICES = "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)"
-    INGRESS_ROUTING = "Ingress & HTTP routing (basic rules, paths, service backends)"
+    INGRESS_ROUTING = "Ingress/Egress & HTTP routing (basic rules, paths, service backends)"
     NETWORKING_UTILITIES = "Networking utilities (DNS in-cluster, port-forward, exec, curl)"
     PERSISTENCE = "Persistence (PVCs, using existing StorageClasses, common volume types)"
     OBSERVABILITY_TROUBLESHOOTING = "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"

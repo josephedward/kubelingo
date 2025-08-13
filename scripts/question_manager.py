@@ -95,29 +95,47 @@ def interactive_question_manager_menu():
 
     while True:
         choice = questionary.select(
-            "Select a command:",
-            choices=["build-index", "list-triage", "triage-question", "untriage-question", "remove-question", "Exit"],
+            "--- Manage Questions ---",
+            choices=[
+                "Generate Questions",
+                "Add Questions",
+                "Remove Question",
+                "View Triaged Questions",
+                "Exit"
+            ],
+            use_indicator=True
         ).ask()
 
         if choice == "Exit" or choice is None:
             print("Exiting question manager.")
             break
-        elif choice == "build-index":
-            directory = questionary.text('Path to the directory containing YAML question files?', default='yaml/questions').ask()
-            if not directory: continue
-            quiet = questionary.confirm("Suppress progress output?", default=False).ask()
-            handle_build_index(MockArgs(directory=directory, quiet=quiet))
-        elif choice == "list-triage":
-            handle_list_triaged(MockArgs())
-        elif choice == "triage-question":
-            qid = questionary.text("Enter the ID of the question to triage:").ask()
-            if qid: handle_set_triage_status(MockArgs(question_id=qid, un_triage=False))
-        elif choice == "untriage-question":
-            qid = questionary.text("Enter the ID of the question to un-triage:").ask()
-            if qid: handle_set_triage_status(MockArgs(question_id=qid, un_triage=True))
-        elif choice == "remove-question":
+        elif choice == "Generate Questions":
+            generator_script_path = project_root / 'scripts' / 'generator.py'
+            print(f"This will run the question generator script at: {generator_script_path}")
+            print("You will need to provide arguments to it. For help, run: python {generator_script_path} --help")
+            command_str = questionary.text("Enter arguments for generator.py (e.g., 'ai-questions --subject \"Pods\" --output-file new.yaml'):").ask()
+            if command_str:
+                command = [sys.executable, str(generator_script_path)] + command_str.split()
+                subprocess.run(command)
+        elif choice == "Add Questions":
+            print("This will import questions from YAML files using AI for categorization.")
+            db_path = questionary.text("Enter path for the new/updated database:", default=get_live_db_path()).ask()
+            search_dir = questionary.text("Enter directory to search for YAML files:", default=str(project_root / 'yaml')).ask()
+            if db_path and search_dir:
+                do_import_ai(MockArgs(output_db=db_path, search_dir=[search_dir]))
+        elif choice == "Remove Question":
             qid = questionary.text("Enter the ID of the question to remove:").ask()
             if qid: handle_remove_question(MockArgs(question_id=qid))
+        elif choice == "View Triaged Questions":
+            handle_list_triaged(MockArgs())
+            # Here you could add more interactivity for editing/deleting triaged questions
+            qid = questionary.text("Enter ID of triaged question to edit or remove (or leave blank to cancel):").ask()
+            if qid:
+                action = questionary.select("What to do with this question?", choices=["Remove", "Untriage", "Cancel"]).ask()
+                if action == "Remove":
+                    handle_remove_question(MockArgs(question_id=qid))
+                elif action == "Untriage":
+                    handle_set_triage_status(MockArgs(question_id=qid, un_triage=True))
 
 
 def handle_build_index(args):
@@ -1861,7 +1879,6 @@ def do_migrate_all(args):
                                 pre_shell_cmds=getattr(q, 'pre_shell_cmds', None),
                                 initial_files=getattr(q, 'initial_files', None),
                                 explanation=getattr(q, 'explanation', None),
-                                difficulty=getattr(q, 'difficulty', None),
                                 schema_category=getattr(getattr(q, 'schema_category', None), 'value', None),
                             )
                             total_added += 1
@@ -1968,7 +1985,6 @@ def _create_db_schema_for_verify(conn: sqlite3.Connection):
         subject_matter TEXT,
         metadata TEXT,
         categories TEXT,
-        difficulty TEXT,
         pre_shell_cmds TEXT,
         initial_files TEXT,
         explanation TEXT
@@ -2021,7 +2037,6 @@ def _import_yaml_to_db_for_verify(yaml_path: str, conn: sqlite3.Connection):
             'subject_matter': q.get('subject_matter'),
             'metadata': json.dumps(q.get('metadata', {})),
             'categories': json.dumps(q.get('categories', [])),
-            'difficulty': q.get('difficulty'),
             'pre_shell_cmds': json.dumps(q.get('pre_shell_cmds', [])),
             'initial_files': json.dumps(q.get('initial_files', {})),
             'explanation': q.get('explanation')

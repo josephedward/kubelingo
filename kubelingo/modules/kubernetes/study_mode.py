@@ -112,14 +112,14 @@ class KubernetesStudyMode:
                     "Visit Source",
                     "Next Question",
                     "Previous Question",
-                    "Triage Question",
+                    "Triage",
                     Separator(),
-                    "Back to Menu",
+                    "Back",
                 ],
                 use_indicator=True
             ).ask()
 
-            if action is None or action == "Back to Menu":
+            if action is None or action == "Back":
                 break
             elif action == "Answer Question":
                 correct = self._ask_and_validate(question)
@@ -148,7 +148,7 @@ class KubernetesStudyMode:
                 current_index += 1
             elif action == "Previous Question":
                 current_index -= 1
-            elif action == "Triage Question":
+            elif action == "Triage":
                 self.session_manager.triage_question(question.id)
                 print(f"{Fore.YELLOW}Question '{question.id}' has been marked for triage.{Style.RESET_ALL}")
                 questionary.confirm("Press Enter to continue...").ask()
