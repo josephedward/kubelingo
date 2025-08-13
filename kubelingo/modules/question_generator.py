@@ -10,7 +10,7 @@ from kubelingo.database import add_question
 from kubelingo.integrations.llm import get_llm_client
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question
-from kubelingo.utils.config import YAML_QUIZ_DIR
+from kubelingo.utils.config import QUESTIONS_DIR
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import (
     validate_yaml_structure,
@@ -38,7 +38,7 @@ class AIQuestionGenerator:
             # Sanitize subject to create a valid filename
             filename_subject = subject.lower().replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "")
             filename_subject = ''.join(c for c in filename_subject if c.isalnum() or c == '_')
-            filepath = os.path.join(YAML_QUIZ_DIR, f"ai_generated_{filename_subject}.yaml")
+            filepath = os.path.join(QUESTIONS_DIR, f"ai_generated_{filename_subject}.yaml")
 
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
