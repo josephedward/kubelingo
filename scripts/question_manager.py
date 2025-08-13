@@ -2210,6 +2210,58 @@ def do_verify(args):
             os.remove(db_path)
             print(f"Temporary database {db_path} cleaned up.")
 
+def do_recategorize_ai(args):
+    """Recategorize questions in the database using AI, filling in missing fields."""
+    print(f"{Fore.CYAN}--- Recategorizing questions with AI ---{Style.RESET_ALL}")
+    try:
+        categorizer = AICategorizer()
+    except (ImportError, ValueError) as e:
+        print(f"{Fore.RED}Failed to initialize AI Categorizer: {e}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Please ensure you have configured an AI provider and API key.{Style.RESET_ALL}")
+        sys.exit(1)
+
+    conn = get_db_connection()
+    try:
+        all_questions = get_all_questions(conn)
+
+        questions_to_categorize = []
+        if getattr(args, 'force', False):
+            print("Forcing recategorization for all questions.")
+            questions_to_categorize = all_questions
+        else:
+            questions_to_categorize = [
+                q for q in all_questions
+                if not q.get('category_id') or not q.get('subject_id')
+            ]
+
+        if not questions_to_categorize:
+            print(f"{Fore.GREEN}All questions are already categorized. Use --force to re-run on all.{Style.RESET_ALL}")
+            return
+
+        print(f"Found {len(questions_to_categorize)} questions to categorize.")
+
+        updated_count = 0
+        with tqdm(total=len(questions_to_categorize), desc="Categorizing Questions") as pbar:
+            for q_dict in questions_to_categorize:
+                # The categorizer expects a dict with 'prompt'.
+                # The dicts from get_all_questions are perfect.
+                ai_categories = categorizer.categorize_question(q_dict)
+                if ai_categories:
+                    q_dict['category_id'] = ai_categories.get('exercise_category')
+                    q_dict['subject_id'] = ai_categories.get('subject_matter')
+
+                    # add_question will do an INSERT OR REPLACE, so this updates the question
+                    add_question(conn, **q_dict)
+                    updated_count += 1
+                pbar.update(1)
+
+        conn.commit()
+        print(f"\n{Fore.GREEN}Successfully categorized {updated_count} questions.{Style.RESET_ALL}")
+
+    finally:
+        conn.close()
+
+
 def do_organize_generated(args):
     """Consolidate, import, and clean up AI-generated YAML questions."""
     source_dir = Path(args.source_dir)
@@ -3073,6 +3125,7 @@ def _manage_database():
                 "Unarchive & Prune",
                 "Prune Empty DBs",
                 "Normalize Source Paths",
+                "Recategorize Questions with AI",
                 questionary.Separator(),
                 "Back"
             ],
@@ -3130,6 +3183,9 @@ def _manage_database():
         elif choice == "Normalize Source Paths":
             db_path = questionary.path("Path to DB (blank for default):").ask() or None
             do_normalize_sources(MockArgs(db_path=db_path))
+        elif choice == "Recategorize Questions with AI":
+            force = questionary.confirm("Force recategorization for all questions?").ask()
+            do_recategorize_ai(MockArgs(force=force))
 
         print() # spacing
 
@@ -3277,6 +3333,10 @@ def main():
         p_organize.add_argument('--no-cleanup', action='store_true', help="Do not delete original individual YAML files after consolidation.")
         p_organize.add_argument('--dry-run', action='store_true', help="Show what would be done without making changes.")
         p_organize.set_defaults(func=do_organize_generated)
+
+        p_recategorize_ai = subparsers.add_parser('recategorize-ai', help="Use AI to categorize all questions in the database.")
+        p_recategorize_ai.add_argument('--force', action='store_true', help="Force recategorization for all questions, even those already categorized.")
+        p_recategorize_ai.set_defaults(func=do_recategorize_ai)
 
         args = parser.parse_args()
         if hasattr(args, 'func'):
