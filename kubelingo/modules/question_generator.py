@@ -6,7 +6,6 @@ import uuid
 import yaml
 from typing import List, Optional, Set
 
-from kubelingo.database import add_question
 from kubelingo.integrations.llm import get_llm_client
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.question import Question
@@ -226,24 +225,10 @@ class AIQuestionGenerator:
                 explanation=explanation,
             )
 
-            # Persist the generated question to the database
-            try:
-                add_question(
-                    id=qid,
-                    prompt=p,
-                    source_file=source_file,
-                    answers=json.dumps(ans),
-                    category=category,
-                    subject=subject,
-                    source='ai_generated',
-                    validator=validator_dict,
-                    explanation=explanation,
-                )
-                # Also save to YAML file upon successful DB insertion
-                self._save_question_to_yaml(question)
-                valid_questions.append(question)
-            except Exception as e:
-                logger.warning(f"Failed to add AI-generated question '{qid}' to DB: {e}")
+            # Persist the generated question to a YAML file.
+            # The database is populated by an indexing process that reads from YAML files.
+            self._save_question_to_yaml(question)
+            valid_questions.append(question)
         
         if len(valid_questions) < num_questions:
             print(f"{Fore.YELLOW}Warning: Could only generate {len(valid_questions)} AI question(s).{Style.RESET_ALL}")
