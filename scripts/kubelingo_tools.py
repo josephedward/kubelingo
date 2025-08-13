@@ -199,10 +199,10 @@ def _manage_triaged_questions():
 def main():
     """Display the question management menu."""
     tasks = {
-        "Generate Questions": _generate_questions,
-        "Add Questions": _add_questions,
+        "Generate Questions (generator)": _generate_questions,
+        "Add Questions (using AI schema inference, rewriting and reformatting the given questions as needed)": _add_questions,
         "Remove Questions": _remove_questions,
-        "Triaged Questions": _manage_triaged_questions,
+        "Triaged Questions (should list and allow for deletion or AI editing)": _manage_triaged_questions,
     }
 
     menu_choices = [
