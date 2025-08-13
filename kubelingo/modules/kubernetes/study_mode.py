@@ -137,13 +137,23 @@ class KubernetesStudyMode:
         print("\nQuiz ended. Returning to menu.")
 
     def _run_socratic_mode_entry(self):
-        """Gets user input before starting socratic mode."""
-        level = questionary.select(
-            "What is your current overall skill level?",
-            choices=["beginner", "intermediate", "advanced"],
-            default="intermediate",
+        """Gets user input for study type and topic, then starts the session."""
+        session_choices = [
+            questionary.Choice("Socratic Tutor (conversational learning)", value="socratic"),
+            Separator("--- Quizzes ---"),
+            questionary.Choice(QuestionCategory.OPEN_ENDED.value, value=QuestionCategory.OPEN_ENDED),
+            questionary.Choice(QuestionCategory.BASIC_TERMINOLOGY.value, value=QuestionCategory.BASIC_TERMINOLOGY),
+            questionary.Choice(QuestionCategory.COMMAND_SYNTAX.value, value=QuestionCategory.COMMAND_SYNTAX),
+            questionary.Choice(QuestionCategory.YAML_MANIFEST.value, value=QuestionCategory.YAML_MANIFEST),
+        ]
+
+        session_type = questionary.select(
+            "What type of study session would you like to start?",
+            choices=session_choices,
+            use_indicator=True
         ).ask()
-        if not level:
+
+        if not session_type:
             return
 
         topic = questionary.select(
@@ -151,8 +161,15 @@ class KubernetesStudyMode:
             choices=KUBERNETES_TOPICS,
             use_indicator=True,
         ).ask()
-        if topic:
-            self._run_socratic_mode(topic, level)
+
+        if not topic:
+            return
+
+        if session_type == "socratic":
+            self._run_socratic_mode(topic, "intermediate")
+        elif isinstance(session_type, QuestionCategory):
+            questions = self._get_questions_by_category_and_subject(session_type, topic)
+            self._run_quiz(questions)
 
     def _get_question_count_by_category(self, category: QuestionCategory) -> int:
         """Fetches question count for a given category."""
@@ -573,9 +590,10 @@ class KubernetesStudyMode:
         ]
 
         try:
-            assistant_response = self.client.chat_completion(
+            assistant_response_obj = self.client.chat_completion(
                 messages=messages, temperature=0.7
             )
+            assistant_response = assistant_response_obj.text if assistant_response_obj else None
         except Exception:
             assistant_response = None
 
@@ -600,9 +618,10 @@ class KubernetesStudyMode:
         self.conversation_history.append({"role": "user", "content": user_input})
 
         try:
-            assistant_response = self.client.chat_completion(
+            assistant_response_obj = self.client.chat_completion(
                 messages=self.conversation_history, temperature=0.7
             )
+            assistant_response = assistant_response_obj.text if assistant_response_obj else None
         except Exception:
             assistant_response = None
 
