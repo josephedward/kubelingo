@@ -111,6 +111,7 @@ SUBJECT_MATTER = [
 
 
 # --- API Keys & Provider ---
+SUPPORTED_AI_PROVIDERS = ['gemini', 'openai']
 AI_PROVIDER_FILE = os.path.join(APP_DIR, 'ai_provider')
 
 
@@ -173,7 +174,7 @@ def get_ai_provider() -> Optional[str]:
         try:
             with open(AI_PROVIDER_FILE, 'r', encoding='utf-8') as f:
                 provider = f.read().strip()
-                if provider in ('gemini', 'openai'):
+                if provider in SUPPORTED_AI_PROVIDERS:
                     return provider
         except Exception:
             pass

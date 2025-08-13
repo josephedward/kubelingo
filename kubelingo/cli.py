@@ -83,6 +83,7 @@ from kubelingo.utils.config import (
     get_cluster_configs,
     save_cluster_configs,
     SQLITE_BACKUP_DIRS,
+    SUPPORTED_AI_PROVIDERS,
 )
 
 def show_history():
@@ -182,7 +183,7 @@ def handle_config_command(cmd):
             print("For example: export KUBELINGO_AI_PROVIDER=openai")
         else:
             print(f"Unknown action '{action}' for provider. Only 'set' is supported to show instructions.")
-    elif target in ('openai', 'gemini'):
+    elif target in SUPPORTED_AI_PROVIDERS:
         provider = target
         if action == 'view':
             key = get_api_key(provider)
@@ -673,22 +674,28 @@ def manage_config_interactive():
         return
     try:
         provider = get_ai_provider()
+
+        menu_choices = [
+            {"name": f"Set active AI Provider (current: {provider or 'Not set'})", "value": "set_provider"},
+            questionary.Separator("--- API Keys ---"),
+        ]
+        for p in SUPPORTED_AI_PROVIDERS:
+            menu_choices.extend([
+                {"name": f"View {p.capitalize()} API key", "value": f"view_{p}"},
+                {"name": f"Set/Update {p.capitalize()} API key", "value": f"set_{p}"},
+            ])
+        menu_choices.extend([
+            questionary.Separator("--- Kubernetes Clusters ---"),
+            {"name": "List configured clusters", "value": "list_clusters"},
+            {"name": "Add a new cluster connection", "value": "add_cluster"},
+            {"name": "Remove a cluster connection", "value": "remove_cluster"},
+            questionary.Separator(),
+            {"name": "Cancel", "value": "cancel"}
+        ])
+
         action = questionary.select(
             "What would you like to do?",
-            choices=[
-                {"name": f"Set active AI Provider (current: {provider})", "value": "set_provider"},
-                questionary.Separator("--- API Keys ---"),
-                {"name": "View OpenAI API key", "value": "view_openai"},
-                {"name": "Set/Update OpenAI API key", "value": "set_openai"},
-                {"name": "View Gemini API key", "value": "view_gemini"},
-                {"name": "Set/Update Gemini API key", "value": "set_gemini"},
-                questionary.Separator("--- Kubernetes Clusters ---"),
-                {"name": "List configured clusters", "value": "list_clusters"},
-                {"name": "Add a new cluster connection", "value": "add_cluster"},
-                {"name": "Remove a cluster connection", "value": "remove_cluster"},
-                questionary.Separator(),
-                {"name": "Cancel", "value": "cancel"}
-            ],
+            choices=menu_choices,
             use_indicator=True
         ).ask()
 
@@ -696,15 +703,14 @@ def manage_config_interactive():
             return
 
         if action == 'set_provider':
-            handle_config_command(['config', 'set', 'provider'])
-        elif action == 'view_openai':
-            handle_config_command(['config', 'view', 'openai'])
-        elif action == 'set_openai':
-            handle_config_command(['config', 'set', 'openai'])
-        elif action == 'view_gemini':
-            handle_config_command(['config', 'view', 'gemini'])
-        elif action == 'set_gemini':
-            handle_config_command(['config', 'set', 'gemini'])
+            # Run the full interactive setup flow
+            _setup_ai_provider_interactive(force_setup=True)
+        elif action.startswith('view_'):
+            p = action.split('_')[1]
+            handle_config_command(['config', 'view', p])
+        elif action.startswith('set_'):
+            p = action.split('_')[1]
+            handle_config_command(['config', 'set', p])
         elif action == 'list_clusters':
             handle_config_command(['config', 'list', 'cluster'])
         elif action == 'add_cluster':
@@ -989,11 +995,17 @@ def main():
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
-    # Centralized startup: API key checks and DB bootstrapping
+    # --- Interactive Mode: AI Provider and API Key Setup ---
+    is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
+    if is_interactive:
+        # On first run (or if config is missing), this will prompt for setup.
+        # It's non-intrusive if everything is already configured.
+        _setup_ai_provider_interactive(force_setup=False)
+
+    # Centralized startup: DB bootstrapping. Must run after interactive setup.
     initialize_app()
 
     # --- Interactive Mode: AI Provider and API Key Setup ---
-    is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
     # The initial provider setup is now handled by initialize_app().
 
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
@@ -1001,16 +1013,8 @@ def main():
         # rewrite to explicit sandbox-mode flag
         sys.argv = [sys.argv[0], sys.argv[1], '--sandbox-mode', sys.argv[2]] + sys.argv[3:]
     # Only display banner when running interactively (not help or piped output)
-    if sys.stdout.isatty() and sys.stdin.isatty() and '--help' not in sys.argv and '-h' not in sys.argv:
+    if is_interactive and '--help' not in sys.argv and '-h' not in sys.argv:
         print_banner()
-
-        provider = get_ai_provider()
-        if provider and not get_active_api_key():
-            key_env_var = f"{provider.upper()}_API_KEY"
-            print(f"\nStudy Mode requires a {provider.capitalize()} API key.")
-            print(f"Set the {key_env_var} environment variable to enable it.")
-            print(f"You can generate an API key in your {provider.capitalize()} account settings under 'API Keys'.")
-
         print()
     parser = argparse.ArgumentParser(
         prog='kubelingo',
