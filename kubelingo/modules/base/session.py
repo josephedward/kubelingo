@@ -11,7 +11,6 @@ try:
 except ImportError:
     questionary = None
 
-from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 from kubelingo.utils.config import HISTORY_FILE, FLAGGED_QUESTIONS_FILE, DATA_DIR
 from kubelingo.utils.ui import Fore, Style
 
@@ -158,6 +157,7 @@ class KubernetesSession(StudySession):
             return
 
         try:
+            from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
             # Delegate the entire interactive session to KubernetesStudyMode
             study_session = KubernetesStudyMode()
             study_session.main_menu()

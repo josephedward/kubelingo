@@ -29,6 +29,8 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Cause**: In the main menu's settings, if the user tries to change the AI provider, the application crashes if the currently configured provider (e.g., 'gemini') is not available in the list of choices. This can happen if dependencies for a provider are not installed, making it an invalid selection. The UI attempts to use the invalid provider as the default selection, causing a `ValueError`.
 - **Bug**: Features requiring an API key are available even when no key is set, leading to confusing failures.
 - **Cause**: The main menu does not disable options that depend on AI when a valid API key is not configured, providing poor feedback to the user.
+- **Bug**: `ImportError: cannot import name 'add_question' from partially initialized module 'kubelingo.database' (most likely due to a circular import)`.
+- **Cause**: A circular dependency is created during startup: `database.py` imports `modules.base.loader`, which eventually imports `modules.kubernetes.study_mode`, which in turn imports `database.py`. This recursive dependency prevents the application from initializing.
 
 ## Proposed High-Level Fixes
 1.  **Refactor Startup Sequence**: Move the API key and provider check to be the very first action in `initialize_app`. The database bootstrap logic should be removed from the startup path entirely.

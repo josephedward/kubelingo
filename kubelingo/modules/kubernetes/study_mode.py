@@ -15,7 +15,6 @@ import yaml
 from questionary import Separator
 
 from kubelingo.database import (
-    add_question,
     get_db_connection,
     get_flagged_questions,
     index_yaml_files,
