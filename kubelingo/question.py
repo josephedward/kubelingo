@@ -86,9 +86,9 @@ class Question:
     # Question modality
     type_: str = 'command'
     # The schema category this question belongs to.
-    category: Optional[str] = None
+    category_id: Optional[QuestionCategory] = None
     # Subject matter area for the question.
-    subject: Optional[str] = None
+    subject_id: Optional[QuestionSubject] = None
 
     # --- Modality-specific fields ---
     # For `command` questions
@@ -121,6 +121,7 @@ class Question:
 
     # --- Legacy compatibility ---
     category: Optional[str] = None
+    subject: Optional[str] = None
     response: Optional[str] = None
 
     def __post_init__(self):

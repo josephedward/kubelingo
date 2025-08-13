@@ -331,6 +331,29 @@ def _run_bug_ticket_script():
         print(f"{Fore.RED}Error running bug ticket script: {e}{Style.RESET_ALL}")
 
 
+def _rebuild_db_from_yaml():
+    """Builds a fresh database from the single source YAML file."""
+    from kubelingo.database import build_from_yaml
+    from kubelingo.utils.config import SINGLE_SOURCE_YAML_FILE
+
+    print(f"\n{Fore.CYAN}--- Rebuilding database from source YAML ---{Style.RESET_ALL}")
+    if questionary and questionary.confirm(
+        "This will replace the current question database with a new one built from the source YAML file. "
+        "This is a destructive action. Continue?",
+        default=False
+    ).ask():
+        try:
+            build_from_yaml(SINGLE_SOURCE_YAML_FILE, verbose=True)
+        except SystemExit as e:
+            # build_from_yaml calls sys.exit(1) on failure.
+            if e.code != 0:
+                print(f"\n{Fore.RED}Database rebuild failed.{Style.RESET_ALL}")
+        except Exception as e:
+            print(f"\n{Fore.RED}An unexpected error occurred during rebuild: {e}{Style.RESET_ALL}")
+    else:
+        print(f"\n{Fore.YELLOW}Database rebuild cancelled.{Style.RESET_ALL}")
+
+
 def _list_yaml_questions():
     """Lists questions from YAML files."""
     from kubelingo.modules.yaml_loader import YAMLLoader
