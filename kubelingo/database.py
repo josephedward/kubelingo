@@ -9,8 +9,8 @@ from datetime import datetime
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from kubelingo.question import Question, QuestionCategory, ValidationStep
-from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
+from kubelingo.question import Question, QuestionCategory, QuestionSubject, ValidationStep
+from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE
 from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
 
 
@@ -328,8 +328,8 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
 
     for category in QuestionCategory:
         cursor.execute("INSERT OR IGNORE INTO question_categories (id) VALUES (?);", (category.value,))
-    for _subj in SUBJECT_MATTER:
-        cursor.execute("INSERT OR IGNORE INTO question_subjects (id) VALUES (?);", (_subj,))
+    for subject in QuestionSubject:
+        cursor.execute("INSERT OR IGNORE INTO question_subjects (id) VALUES (?);", (subject.value,))
 
     conn.commit()
 
