@@ -268,6 +268,17 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
 
     # Schema creation and seeding
     cursor = conn.cursor()
+
+    # --- Simple schema migration ---
+    # In-place rename 'schema_category' to 'category_id' if an old DB schema is detected.
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions'")
+    if cursor.fetchone():
+        # Table exists, check columns
+        cursor.execute("PRAGMA table_info(questions)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'category_id' not in columns and 'schema_category' in columns:
+            cursor.execute("ALTER TABLE questions RENAME COLUMN schema_category TO category_id")
+
     cursor.execute("CREATE TABLE IF NOT EXISTS question_categories (id TEXT PRIMARY KEY)")
     cursor.execute("CREATE TABLE IF NOT EXISTS question_subjects (id TEXT PRIMARY KEY)")
     cursor.execute("""
