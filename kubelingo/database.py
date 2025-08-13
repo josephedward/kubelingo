@@ -14,19 +14,6 @@ from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_
 from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
 
 
-def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
-    """Converts a sqlite3.Row object to a dictionary, deserializing JSON fields."""
-    q_dict = dict(row)
-    for key, value in q_dict.items():
-        if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
-            try:
-                q_dict[key] = json.loads(value)
-            except json.JSONDecodeError:
-                # Not a JSON string, leave as is
-                pass
-    return q_dict
-
-
 def get_db_connection(db_path: Optional[str] = None):
     """Establishes a connection to the SQLite database."""
     db_file = db_path or DATABASE_FILE
