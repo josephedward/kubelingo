@@ -37,15 +37,38 @@ The main menu will be structured as follows:
    ○ Command Syntax (105)
    ○ YAML Manifest (44)
    --- Settings ---
-   ○ AI Provider (API keys)
-   ○ Cluster Configuration
-   ○ Tool Scripts
-   ○ Triaged Questions
+   ○ AI
+   ○ Clusters
+   ○ Question Management
    ○ Help
+   ○ Report Bug
    ○ Exit App
 ```
 
-### 3.2. Drill Down Menu
+### 3.2. AI Settings Menu
+Selecting "AI" from the Settings menu will open a dedicated sub-menu for managing AI providers and API keys:
+```
+What would you like to do? (Use arrow keys)
+» ○ Set active AI Provider (current: Gemini)
+  --- API Keys ---
+  ○ View Gemini API Key (Set (from file))
+  ○ Set/Update Gemini API Key
+  ○ View Openai API Key (Set (from env))
+  ○ Set/Update Openai API Key
+```
+
+### 3.3. Study Mode Menu
+Selecting "Study Mode" from the Learn menu will first prompt for the exercise type:
+```
+--- Exercise Type ---
+   ○ Open-Ended
+   ○ Basic Terminology
+   ○ Command Syntax
+   ○ YAML Manifests
+```
+After selecting an exercise type, the user will be shown the subject matter menu to begin the session.
+
+### 3.4. Drill Down Menu
 Selecting a "Drill" category will lead to a sub-menu of subject matter categories:
 ```
    ○ Linux Syntax (Commands from Bash, Vim, Kubectl, Docker, Helm)
@@ -71,7 +94,7 @@ Selecting a "Drill" category will lead to a sub-menu of subject matter categorie
    ○ API discovery & docs (kubectl explain, api-resources, api-versions)
 ```
 
-### 3.3. Question Interaction Menu
+### 3.5. Question Interaction Menu
 When answering a question, the user will have these options:
 ```
 ○ Answer Question
@@ -82,17 +105,15 @@ When answering a question, the user will have these options:
 ○ Back (returns to previous menu)
 ```
 
-### 3.4. Tool Scripts Menu
-The 'Tool Scripts' option in Settings will present a menu to run maintenance scripts:
+### 3.6. Question Management Menu
+The "Question Management" option in Settings provides tools for content curation. This menu will be orchestrated by `scripts/kubelingo_tools.py` and consolidated management scripts.
 ```
-○ bug_ticket.py
-○ consolidator.py
-○ generator.py
-○ question_manager.py
-○ sqlite_manager.py
-○ yaml_manager.py
+○ Generate Questions
+○ Add Questions
+○ Remove Questions
+○ Triaged Questions
 ```
-This menu will be orchestrated by `scripts/kubelingo_tools.py`. The underlying scripts should be refactored for clarity and efficiency.
+This interface replaces the direct-script-execution model with a more user-friendly, function-oriented approach. The underlying scripts should be refactored to support these actions.
 
 ## 4. Data Architecture
 The application will follow a "YAML as source of truth" model.
@@ -102,6 +123,7 @@ The application will follow a "YAML as source of truth" model.
 - **Backups**: Regular backups of the `/yaml` directory will be maintained.
 
 ## 5. Question Schema
+The schema will not include a `difficulty` field. Difficulty is subjective and can be inferred later from user performance data, rather than being a static attribute.
 
 ### 5.1. Question Types
 1.  **Open-Ended**: Requires AI fuzzy matching for evaluation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
@@ -136,12 +158,13 @@ Categories are subordinate to Question Types. Simplified short names should be u
 
 
 ## 6. Core Application Rules & Logic
+- **Single CLI Interface**: All functionality must be coordinated from a single, cohesive command-line application.
 - **Adding Questions**: Must be easy via a well-defined schema or through AI parsing.
 - **AI Feedback**: AI-driven feedback or explanation should be provided for every answer, explaining the correct response or the subject matter for simpler questions.
 - **Study Mode**: Questions generated in Study Mode must adhere to the schema and be saved to a YAML file, with metadata updated in the database.
 - **Review System**: Questions answered incorrectly are automatically flagged for review. Answering correctly removes the flag. This is not user-configurable.
 - **Triage System**: Users can flag problematic questions for maintainer review via the "Triage" option.
-- **No Deletion**: Questions are never deleted. Problematic ones are triaged.
+- **No Automatic Deletion**: The application must never automatically delete questions. Deletion is a manual, explicit action available to maintainers through the Question Management tools. Problematic questions should generally be triaged rather than deleted.
 - **Execution Environment**: No live cluster integration is required initially. Command and manifest evaluation will use dry-run capabilities.
 - **Database Integrity**: The database is for metadata only and should never be cleared automatically.
 - **Enrichment**: AI-based content enrichment should only occur during question generation or triage, not on application startup.

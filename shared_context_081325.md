@@ -38,8 +38,10 @@ The application's startup sequence has several critical design flaws and bugs th
 5.  **Enforce API Key Setup via UI**: Disable menu items that require an API key if one is not present. This guides the user to configure the application correctly before using AI-dependent features.
 
 ## Resolution and New Design
-A comprehensive new design has been specified to address these issues and guide future development. The full specification, including UI mockups, architectural principles, and feature requirements, is now the canonical guide for refactoring the application.
+A comprehensive new design has been specified to address these issues and guide future development. This specification consolidates previous architectural documents (`ARCHITECTURE.md`, `API_REFERENCE.md`), developer notes (`Instruct_081325.rtf`), and the original `design_spec.md` into a single, canonical guide.
+
+The full specification, including UI mockups, architectural principles, and feature requirements, is now the definitive source of truth for refactoring the application.
 
 **See: [Application Design Specification](./docs/design_spec.md)**
 
-All development should align with this new specification.
+All development must align with this new, consolidated specification.
