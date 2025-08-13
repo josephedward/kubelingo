@@ -722,51 +722,181 @@ def manage_config_interactive():
 
 
 
-def show_study_main_menu():
-    """Shows the main interactive menu for study, review, and settings."""
+def _run_tools_script():
+    """Runs the kubelingo_tools.py script to show the maintenance menu."""
+    print("\nLaunching Kubelingo Tools...")
+    tools_script_path = repo_root / "scripts" / "kubelingo_tools.py"
+    if not tools_script_path.exists():
+        print(f"{Fore.RED}Error: Tools script not found at {tools_script_path}{Style.RESET_ALL}")
+        return
+
+    try:
+        # Use sys.executable to ensure we're using the same Python interpreter
+        subprocess.run([sys.executable, str(tools_script_path)], check=False)
+    except subprocess.CalledProcessError as e:
+        print(f"{Fore.RED}Error running tools script: {e}{Style.RESET_ALL}")
+    except FileNotFoundError:
+        print(f"{Fore.RED}Error: Could not find '{sys.executable}' to run the script.{Style.RESET_ALL}")
+
+
+def _setup_ai_provider_interactive(force_setup=False):
+    """
+    Interactive prompt for setting up AI provider and API keys.
+    If force_setup is False, it only prompts if settings are missing.
+    """
+    if not questionary:
+        return
+
+    from kubelingo.utils.config import get_ai_provider, save_ai_provider, get_api_key, save_api_key
+    from kubelingo.integrations.llm import OpenAIClient, GeminiClient
+    import getpass
+
+    provider = get_ai_provider()
+    # Ask for provider if not set or if forcing setup
+    if not provider or force_setup:
+        new_provider = questionary.select(
+            "--- AI Provider ---\nPlease select an AI provider:",
+            choices=[
+                {"name": "OpenAI", "value": "openai"},
+                {"name": "Gemini", "value": "gemini"},
+            ],
+            default=provider,
+            use_indicator=True,
+        ).ask()
+
+        if not new_provider:
+            if force_setup: print(f"{Fore.YELLOW}No provider selected. No changes made.{Style.RESET_ALL}")
+            return
+        provider = new_provider
+        save_ai_provider(provider)
+        print(f"AI provider set to {provider.capitalize()}.")
+
+    # Ask for API key if not set or if forcing setup
+    if provider and (not get_api_key(provider) or force_setup):
+        if not force_setup:
+            print(f"\nAn API key for {provider.capitalize()} is required to enable AI features.")
+        else:
+            if get_api_key(provider) and not questionary.confirm(f"API key for {provider.capitalize()} is set. Overwrite?").ask():
+                return
+        
+        try:
+            key_value = getpass.getpass(f"Enter your {provider.capitalize()} API key: ").strip()
+            if key_value:
+                # Note: llm-openai seems to be a non-existent package. The `llm` library
+                # uses the `openai` package directly. Test will likely fail if `openai` is not installed.
+                test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
+                if test_func(key_value):
+                    if save_api_key(provider, key_value):
+                        print(f"{Fore.GREEN}✓ API key is valid and has been saved.{Style.RESET_ALL}\n")
+                    else:
+                        print(f"{Fore.RED}✗ API key is valid, but failed to save it.{Style.RESET_ALL}\n")
+                else:
+                    print(f"{Fore.RED}✗ The provided API key appears to be invalid. It has not been saved.{Style.RESET_ALL}\n")
+            else:
+                if force_setup: print(f"{Fore.YELLOW}No key provided. No changes made.{Style.RESET_ALL}\n")
+        except (KeyboardInterrupt, EOFError):
+            print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
+
+
+def run_interactive_main_menu():
+    """Displays the main interactive menu for the application."""
     if not (questionary and Separator):
         print(f"{Fore.RED}Error: 'questionary' library not found. Please install it with 'pip install questionary'.{Style.RESET_ALL}")
         return
 
+    study_session = KubernetesStudyMode()
+
     while True:
         try:
-            action = questionary.select(
-                "Main Menu:",
-                choices=[
-                    {"name": "Start Study Mode", "value": "study"},
-                    {"name": "Question Management", "value": "questions"},
-                    {"name": "Settings", "value": "settings"},
-                    Separator(),
-                    {"name": "Exit", "value": "exit"}
-                ],
-                use_indicator=True
+            # Re-check client in loop in case API key is set during session
+            if not study_session.client:
+                try:
+                    study_session.client = get_llm_client()
+                except (ValueError, ImportError):
+                    study_session.client = None
+
+            # --- Get counts for menu ---
+            try:
+                from kubelingo.database import get_flagged_questions
+                missed_count = len(get_flagged_questions())
+                question_counts = {
+                    cat: study_session._get_question_count_by_category(cat) for cat in QuestionCategory
+                }
+            except Exception:
+                missed_count = 'N/A'
+                question_counts = {cat: 'N/A' for cat in QuestionCategory}
+
+            # --- Build Menu Choices ---
+            choices = [
+                Separator("--- Learn ---"),
+                questionary.Choice(
+                    "Study Mode (Socratic Tutor)",
+                    value=("learn", "socratic"),
+                    disabled=not study_session.client,
+                ),
+                questionary.Choice(
+                    f"Missed Questions ({missed_count})",
+                    value=("learn", "review"),
+                    disabled=missed_count == 0 or missed_count == 'N/A',
+                ),
+                Separator("--- Drill ---"),
+                questionary.Choice(
+                    f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED, 'N/A')})",
+                    value=("drill", QuestionCategory.OPEN_ENDED),
+                ),
+                questionary.Choice(
+                    f"Basic Terminology ({question_counts.get(QuestionCategory.BASIC_TERMINOLOGY, 'N/A')})",
+                    value=("drill", QuestionCategory.BASIC_TERMINOLOGY),
+                ),
+                questionary.Choice(
+                    f"Command Syntax ({question_counts.get(QuestionCategory.COMMAND_SYNTAX, 'N/A')})",
+                    value=("drill", QuestionCategory.COMMAND_SYNTAX),
+                ),
+                questionary.Choice(
+                    f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST, 'N/A')})",
+                    value=("drill", QuestionCategory.YAML_MANIFEST),
+                ),
+                Separator("--- Settings ---"),
+                questionary.Choice("API Keys", value=("settings", "api")),
+                questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
+                questionary.Choice("Tool Scripts", value=("settings", "tools")),
+                questionary.Choice("Triaged Questions", value=("settings", "triage")),
+                questionary.Choice("Help", value=("settings", "help")),
+                Separator(),
+                questionary.Choice("Exit App", value="exit"),
+            ]
+
+            choice = questionary.select(
+                "Kubelingo Main Menu", choices=choices, use_indicator=True
             ).ask()
 
-            if action is None or action == "exit":
+            if choice is None or choice == "exit":
+                print("Exiting application. Goodbye!")
                 break
 
-            if action == "study":
-                if KubernetesStudyMode:
-                    level = questionary.select(
-                        "What is your current overall skill level?",
-                        choices=["beginner", "intermediate", "advanced"],
-                        default="intermediate",
-                        use_indicator=True,
-                    ).ask()
-                    if not level:
-                        continue
+            menu, action = choice
 
-                    study_session = KubernetesStudyMode()
-                    study_session.start_study_session(user_level=level)
-                else:
-                    print(f"{Fore.RED}Study mode is not available.{Style.RESET_ALL}")
-            elif action == "questions":
-                manage_questions_interactive()
-            elif action == "settings":
-                manage_config_interactive()
-            print() # for spacing
-        except (KeyboardInterrupt, EOFError):
-            print()
+            if menu == "learn":
+                if action == "socratic":
+                    study_session._run_socratic_mode_entry()
+                elif action == "review":
+                    study_session.review_past_questions()
+            elif menu == "drill":
+                study_session._run_drill_menu(action)
+            elif menu == "settings":
+                if action == "api":
+                    _setup_ai_provider_interactive(force_setup=True)
+                elif action == "cluster":
+                    study_session._cluster_config_menu()
+                elif action == "tools":
+                    _run_tools_script()
+                elif action == "triage":
+                    study_session._view_triaged_questions()
+                elif action == "help":
+                    show_session_type_help()
+
+        except (KeyboardInterrupt, TypeError, EOFError):
+            print("\nExiting application. Goodbye!")
             break
 
 
@@ -864,48 +994,8 @@ def main():
     # --- Interactive Mode: AI Provider and API Key Setup ---
     is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
     if is_interactive:
-        if questionary:
-            from kubelingo.utils.config import (
-                get_ai_provider, save_ai_provider, get_api_key, save_api_key
-            )
-            from kubelingo.integrations.llm import OpenAIClient, GeminiClient
-            import getpass
-
-            provider = get_ai_provider()
-            if not provider:
-                print(f"{Style.BRIGHT}Welcome to Kubelingo! Let's set up your AI provider.{Style.RESET_ALL}")
-                provider = questionary.select(
-                    "--- AI Provider ---\nPlease select an AI provider for feedback and study features:",
-                    choices=[
-                        {"name": "OpenAI (recommended for best results)", "value": "openai"},
-                        {"name": "Gemini", "value": "gemini"},
-                    ],
-                    use_indicator=True,
-                ).ask()
-                if provider:
-                    save_ai_provider(provider)
-                    print(f"AI provider set to {provider.capitalize()}.")
-                else:
-                    print(f"{Fore.YELLOW}No provider selected. AI-powered features will be disabled.{Style.RESET_ALL}")
-
-            provider = get_ai_provider()  # Get again in case it was just set
-            if provider and not get_api_key(provider):
-                print(f"\nAn API key for {provider.capitalize()} is required.")
-                try:
-                    key_value = getpass.getpass(f"Enter your {provider.capitalize()} API key: ").strip()
-                    if key_value:
-                        test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
-                        if test_func(key_value):
-                            if save_api_key(provider, key_value):
-                                print(f"{Fore.GREEN}✓ API key is valid and has been saved.{Style.RESET_ALL}\n")
-                            else:
-                                print(f"{Fore.RED}✗ API key is valid, but failed to save it.{Style.RESET_ALL}\n")
-                        else:
-                            print(f"{Fore.RED}✗ The provided API key appears to be invalid. It has not been saved.{Style.RESET_ALL}\n")
-                    else:
-                        print(f"{Fore.YELLOW}No key provided. AI features will be disabled.{Style.RESET_ALL}\n")
-                except (KeyboardInterrupt, EOFError):
-                    print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
+        # On first run, silently check and prompt only if necessary.
+        _setup_ai_provider_interactive(force_setup=False)
 
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
@@ -1033,34 +1123,8 @@ def main():
         subprocess.run(cmd)
         return
     # For bare invocation (no flags or commands), present an interactive menu.
-    # Otherwise, parse arguments from command line.
     if len(sys.argv) == 1:
-        # Interactive mode.
-        args = argparse.Namespace(
-            file=None, num=0, randomize=False, category=None, list_categories=False,
-            history=False, review_only=False, ai_eval=False, command=[], list_modules=False,
-            custom_file=None, exercises=None, cluster_context=None, live=False, k8s_mode=False,
-            pty=True, docker=False, sandbox_mode='pty', exercise_module=None, module='kubernetes',
-            start_cluster=False
-        )
-
-        if not (questionary and sys.stdin.isatty() and sys.stdout.isatty()):
-            print("Interactive mode requires 'questionary' package and an interactive terminal.")
-            return
-
-        logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(message)s')
-        logger = logging.getLogger()
-        session = load_session(args.module, logger)
-        if not session or not session.initialize():
-            print(Fore.RED + f"Module '{args.module}' initialization failed." + Style.RESET_ALL)
-            return
-
-        try:
-            # For bare 'kubelingo' invocations, the session runner will present a DB-driven menu.
-            session.run_exercises(args)
-            session.cleanup()
-        except (KeyboardInterrupt, EOFError):
-            print(f"\n{Fore.YELLOW}Exiting.{Style.RESET_ALL}")
+        run_interactive_main_menu()
         return
     else:
         # Non-interactive mode
@@ -1088,7 +1152,7 @@ def main():
         if args.command and len(args.command) > 0:
             cmd_name = args.command[0]
             if cmd_name == 'study':
-                show_study_main_menu()
+                run_interactive_main_menu()
                 return
             elif cmd_name == 'config':
                 handle_config_command(args.command)

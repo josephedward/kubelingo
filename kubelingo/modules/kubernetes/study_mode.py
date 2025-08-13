@@ -67,75 +67,6 @@ class KubernetesStudyMode:
         os.makedirs(self.questions_dir, exist_ok=True)
 
 
-    def main_menu(self):
-        """Displays the main menu and handles user selection."""
-        while True:
-            try:
-                # --- Get counts for menu ---
-                missed_count = len(get_flagged_questions())
-
-                # --- Build Menu Choices ---
-                choices = [
-                    Separator("--- Learn ---"),
-                    questionary.Choice(
-                        "Study Mode (Socratic Tutor)",
-                        value=("learn", "socratic"),
-                        disabled=not self.client,
-                    ),
-                    questionary.Choice(
-                        f"Missed Questions ({missed_count})",
-                        value=("learn", "review"),
-                        disabled=missed_count == 0,
-                    ),
-                    Separator("--- Drill ---"),
-                ]
-                # Dynamically build drill choices from QuestionCategory
-                for category in QuestionCategory:
-                    count = self._get_question_count_by_category(category)
-                    choices.append(
-                        questionary.Choice(
-                            f"{category.value.replace('_', ' ').title()} ({count})",
-                            value=("drill", category),
-                            disabled=count == 0,
-                        )
-                    )
-
-                choices.extend([
-                    Separator("--- Settings ---"),
-                    questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
-                    questionary.Choice("Tool Scripts", value=("settings", "tools")),
-                    questionary.Choice("Triaged Questions", value=("settings", "triage")),
-                    questionary.Choice("Help", value=("settings", "help")),
-                    Separator(),
-                    questionary.Choice("Exit App", value="exit"),
-                ])
-
-                choice = questionary.select(
-                    "Kubelingo Main Menu", choices=choices, use_indicator=True
-                ).ask()
-
-                if choice is None or choice == "exit":
-                    print("Exiting application. Goodbye!")
-                    break
-
-                menu, action = choice
-
-                if menu == "learn":
-                    if action == "socratic":
-                        self._run_socratic_mode_entry()
-                    elif action == "review":
-                        self.review_past_questions()
-                elif menu == "drill":
-                    self._run_drill_menu(action)
-                elif menu == "settings":
-                    if action == "tools":
-                        self.run_tools_menu()
-                    else:
-                        print(f"'{action}' is not yet implemented.")
-
-            except (KeyboardInterrupt, TypeError):
-                print("\nExiting application. Goodbye!")
-                break
 
     def _run_quiz(self, questions: List[Question]):
         """
@@ -205,7 +136,7 @@ class KubernetesStudyMode:
 
         print("\nQuiz ended. Returning to menu.")
 
-    def _run_socratic_mode_setup(self):
+    def _run_socratic_mode_entry(self):
         """Gets user input before starting socratic mode."""
         level = questionary.select(
             "What is your current overall skill level?",
