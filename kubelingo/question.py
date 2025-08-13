@@ -150,7 +150,7 @@ class Question:
         if self.category_id is None:
             if self.type_ == 'socratic':
                 self.category_id = QuestionCategory.OPEN_ENDED
-            elif self.type_ == 'basic_terminology':
+            elif self.type_ in ('basic_terminology', 'basic'):
                 self.category_id = QuestionCategory.BASIC_TERMINOLOGY
             elif self.type_ == 'command':
                 self.category_id = QuestionCategory.COMMAND_SYNTAX

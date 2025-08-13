@@ -153,6 +153,11 @@ class YAMLLoader(BaseLoader):
                 if 'type' in question_data:
                     question_data['type_'] = question_data.pop('type')
 
+                # Infer subject matter
+                subject_mat = self._infer_subject_matter(item)
+                if subject_mat:
+                    question_data['subject_id'] = subject_mat
+
                 # Create question object, it will handle internal normalization
                 questions.append(Question(id=qid, source_file=path, **question_data))
 
@@ -172,6 +177,11 @@ class YAMLLoader(BaseLoader):
                     question_data['type_'] = question_data.pop('type')
                 if 'question' in question_data and 'prompt' not in question_data:
                     question_data['prompt'] = question_data.pop('question')
+
+                # Infer subject matter
+                subject_mat = self._infer_subject_matter(item)
+                if subject_mat:
+                    question_data['subject_id'] = subject_mat
 
                 questions.append(Question(id=qid, source_file=path, **question_data))
 
