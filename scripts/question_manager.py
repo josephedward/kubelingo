@@ -85,11 +85,11 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return ""
 
 
-def find_similar_question_groups(file_paths: List[Path], similarity_threshold: float = 0.8) -> List[List[Dict[str, Any]]]:
+def find_duplicate_question_groups_by_answer(file_paths: List[Path]) -> List[List[Dict[str, Any]]]:
     """
-    Finds groups of similar questions from a list of YAML file paths based on answer similarity.
+    Finds groups of questions with identical answers from a list of YAML file paths.
     """
-    questions_info = []
+    answers_map = defaultdict(list)
     for file_path in file_paths:
         if not file_path.is_file():
             continue
@@ -114,50 +114,18 @@ def find_similar_question_groups(file_paths: List[Path], similarity_threshold: f
                                 answer = " ".join(map(str, answer))
 
                             if answer and isinstance(answer, str):
-                                questions_info.append({
+                                answers_map[answer.strip()].append({
                                     'file_path': file_path,
                                     'prompt': q.get('prompt', ''), # Keep prompt for context in reporting
-                                    'answer': answer,
+                                    'answer': answer.strip(),
                                     'question_data': q
                                 })
         except Exception as e:
             print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
 
-    if not questions_info:
-        return []
-
-    # Build adjacency list for graph of similar questions
-    adj = defaultdict(list)
-    for i in range(len(questions_info)):
-        for j in range(i + 1, len(questions_info)):
-            answer1 = questions_info[i]['answer']
-            answer2 = questions_info[j]['answer']
-            similarity = difflib.SequenceMatcher(None, answer1, answer2).ratio()
-            if similarity >= similarity_threshold:
-                adj[i].append(j)
-                adj[j].append(i)
-
-    # Find connected components (clusters) using BFS
-    clusters = []
-    visited = [False] * len(questions_info)
-    for i in range(len(questions_info)):
-        if not visited[i]:
-            component = []
-            queue = [i]
-            visited[i] = True
-            head = 0
-            while head < len(queue):
-                u = queue[head]
-                head += 1
-                component.append(questions_info[u])
-                for v in adj[u]:
-                    if not visited[v]:
-                        visited[v] = True
-                        queue.append(v)
-            if len(component) > 1:
-                clusters.append(component)
-
-    return clusters
+    # Filter for answers that have more than one question associated with them.
+    duplicate_groups = [group for group in answers_map.values() if len(group) > 1]
+    return duplicate_groups
 
 
 def get_existing_prompts(conn) -> Set[str]:
@@ -473,18 +441,17 @@ def handle_deduplicate(args):
 
 
 def handle_deduplicate_files(args):
-    """Handler for finding and reporting semantically duplicate files by content."""
+    """Handler for finding and reporting duplicate files by exact answer content."""
     file_paths = [Path(f) for f in args.files]
-    similarity_threshold = args.threshold
 
-    similar_question_groups = find_similar_question_groups(file_paths, similarity_threshold)
+    duplicate_question_groups = find_duplicate_question_groups_by_answer(file_paths)
 
-    if not similar_question_groups:
-        print(f"No similar questions found with a threshold of {similarity_threshold}.", file=sys.stderr)
+    if not duplicate_question_groups:
+        print("No duplicate questions found based on answer content.", file=sys.stderr)
         return
 
-    print(f"# Found {len(similar_question_groups)} groups of similar questions (answer similarity > {similarity_threshold*100:.0f}%).")
-    print("# This tool suggests which files to remove based on answer similarity.")
+    print(f"# Found {len(duplicate_question_groups)} groups of questions with duplicate answers.")
+    print("# This tool suggests which files to remove based on exact answer matches.")
     print("# It keeps the first file in each group (sorted by path) and suggests removing the others.")
     print("# Please review carefully before running the generated commands.")
 
@@ -496,10 +463,10 @@ def handle_deduplicate_files(args):
 
         file_to_keep_info = group[0]
         print(f"\n# --- Group {i+1} ---")
+        answer_to_show = str(file_to_keep_info.get('answer', '')).strip()
+        print(f"# Answer: \"{answer_to_show}\"")
         print(f"# Keeping file: '{file_to_keep_info['file_path']}'")
         print(f"#   Prompt: \"{file_to_keep_info.get('prompt')}\"")
-        answer_to_show = str(file_to_keep_info.get('answer', '')).strip()
-        print(f"#   Answer: \"{answer_to_show}\"")
 
         for item in group[1:]:
             file_to_delete = item['file_path']
@@ -507,12 +474,10 @@ def handle_deduplicate_files(args):
             if file_to_delete != file_to_keep_info['file_path']:
                 files_to_remove.add(file_to_delete)
                 print(f"# Suggest removing file: '{file_to_delete}'")
-                print(f"#   Similar Prompt: \"{item.get('prompt')}\"")
-                similar_answer_to_show = str(item.get('answer', '')).strip()
-                print(f"#   Similar Answer: \"{similar_answer_to_show}\"")
+                print(f"#   Prompt: \"{item.get('prompt')}\"")
 
     if not files_to_remove:
-        print("\n# No files to suggest for removal (similar questions might be in the same file or already processed).")
+        print("\n# No files to suggest for removal (duplicate questions might be in the same file).")
         return
 
     print("\n\n# --- Suggested git rm commands ---")
