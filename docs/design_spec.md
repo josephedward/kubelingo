@@ -35,7 +35,7 @@ The main menu will be structured as follows:
    ○ Open Ended Questions (6)
    ○ Basic Terminology (205)
    ○ Command Syntax (105)
-   ○ YAML Manifest (44)
+   ○ YAML Manifests (44)
    --- Settings ---
    ○ AI
    ○ Clusters
@@ -129,7 +129,7 @@ The schema will not include a `difficulty` field. Difficulty is subjective and c
 1.  **Open-Ended**: Requires AI to do fuzzy matching on an explanation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
 2.  **Basic Terminology**: Single-word/command answers. Can be evaluated without AI but are generated with AI. Can be easily added via AI parsing. Graded on `Enter`.
 3.  **Command Syntax**: Evaluated by executing the command (e.g., with `kubectl --dry-run=client`). Requires AI to validate alternative correct answers (e.g., aliases, different flags). Graded on `Enter`.
-4.  **YAML Manifest**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
+4.  **YAML Manifests**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
 
 ### 5.2. Subject Matter Categories
 Categories are subordinate to Question Types. Simplified short names should be used in the YAML/DB schema (e.g., `linux-syntax`, `core-workloads`).

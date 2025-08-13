@@ -17,7 +17,7 @@ class QuestionCategory(str, Enum):
 
 class QuestionSubject(str, Enum):
     """Subject matter areas for Kubernetes questions."""
-    LINUX_SYNTAX = "Linux Syntax(Commands from Bash, Vim, Kubectl, Docker, Helm)"
+    LINUX_SYNTAX = "Linux Syntax (Commands from Bash, Vim, Kubectl, Docker, Helm)"
     CORE_WORKLOADS = "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
     POD_DESIGN = "Pod design patterns (initContainers, sidecars, lifecycle hooks)"
     COMMAND_ARGS_ENV = "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)"
