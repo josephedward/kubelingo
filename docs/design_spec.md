@@ -171,3 +171,11 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - **AI Provider Management**: The user can change providers and manage API keys via the "AI Provider" setting. The application will indicate the active provider and recognize keys set in the environment.
 - **Offline Mode**: Only "Basic Terminology" questions are available offline, as they can be evaluated without AI.
 - **Duplicate Check**: The application should check for and avoid generating duplicate or overly similar questions.
+
+## 7. Testing and Validation
+- **Question Generation**: Must support generating questions for all 4 question types and all 21 subjects.
+- **Question Ingestion**: Ensure questions can be added and reformatted from various document types.
+- **Answering Mechanics**: Validate that each question type can be answered according to its specified interaction model.
+- **Data Persistence**: Generated questions must be automatically saved to YAML files and indexed in the database.
+- **Content Management**: Verify that questions can be deleted and that triaged questions can be fixed.
+- **Uniqueness**: The system must prevent the creation of duplicate questions.
