@@ -63,137 +63,36 @@ from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
 
-def sha256_checksum(file_path: Path, block_size=65536) -> str:
-    """Calculates the SHA256 checksum of a file."""
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for block in iter(lambda: f.read(block_size), b""):
-            sha256.update(block)
-    return sha256.hexdigest()
+def remove_duplicate_yaml_files(directory: str):
+    """
+    Removes duplicate YAML files in the specified directory based on the "answer" field.
 
+    Args:
+        directory: Path to the directory containing YAML files.
+    """
+    # Find all YAML files in the directory
+    yaml_files = [str(p) for p in Path(directory).glob("*.yaml")]
 
-def find_duplicate_files_by_checksum(file_paths: List[Path]) -> Dict[str, List[Path]]:
-    """Finds duplicate files from a list of Paths based on their content."""
-    checksums = defaultdict(list)
-    for file_path in file_paths:
-        if file_path.is_file():
+    # Load YAML content
+    yaml_data = load_yaml_files(yaml_files)
+
+    # Find duplicates
+    duplicates = find_duplicate_answers(yaml_data)
+
+    # Remove duplicates, keeping one file per set
+    for duplicate_set in duplicates:
+        # Keep the first file, delete the rest
+        for file_to_delete in duplicate_set[1:]:
             try:
-                checksum = sha256_checksum(file_path)
-                checksums[checksum].append(file_path)
-            except IOError as e:
-                print(f"Warning: Could not read file {file_path}: {e}", file=sys.stderr)
-
-    return {k: v for k, v in checksums.items() if len(v) > 1}
+                os.remove(file_to_delete)
+                print(f"Deleted duplicate file: {file_to_delete}")
+            except Exception as e:
+                print(f"Error deleting file {file_to_delete}: {e}")
 
 
-def find_duplicate_question_groups_by_answer(file_paths: List[Path]) -> List[List[Dict[str, Any]]]:
-    """
-    Finds groups of questions with identical answers from a list of YAML file paths.
-    """
-    answers_map = defaultdict(list)
-    for file_path in file_paths:
-        if not file_path.is_file():
-            continue
-        try:
-            with file_path.open('r', encoding='utf-8') as f:
-                # Support multi-document YAML files. Use UnsafeLoader to handle python-specific tags.
-                # WARNING: Using UnsafeLoader is a security risk if the files are not from a trusted source.
-                data_docs = yaml.load_all(f, Loader=yaml.UnsafeLoader)
-                for data in data_docs:
-                    if not data:
-                        continue
-                    qs_in_doc = []
-                    if isinstance(data, dict) and 'questions' in data:
-                        qs_in_doc = data.get('questions', [])
-                    elif isinstance(data, list):
-                        qs_in_doc = data
-
-                    for q in qs_in_doc:
-                        if isinstance(q, dict):
-                            # Prioritize 'response' field, but also check for 'answer' as a fallback.
-                            answer = q.get('response') or q.get('answer')
-                            if isinstance(answer, list):
-                                answer = " ".join(map(str, answer))
-
-                            if answer and isinstance(answer, str):
-                                answers_map[answer.strip()].append({
-                                    'file_path': file_path,
-                                    'prompt': q.get('prompt', ''), # Keep prompt for context in reporting
-                                    'answer': answer.strip(),
-                                    'question_data': q
-                                })
-        except Exception as e:
-            print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
-
-    # Filter for answers that have more than one question associated with them.
-    duplicate_groups = [group for group in answers_map.values() if len(group) > 1]
-    return duplicate_groups
-
-
-def handle_deduplicate_files(args):
-    """Handler for finding and reporting duplicate files."""
-    file_paths = [Path(f) for f in args.files]
-
-    if args.method == 'answer':
-        # --- Deduplicate by exact answer content ---
-        duplicate_question_groups = find_duplicate_question_groups_by_answer(file_paths)
-        if not duplicate_question_groups:
-            print("No duplicate questions found based on answer content.", file=sys.stderr)
-            return
-
-        print(f"# Found {len(duplicate_question_groups)} groups of questions with duplicate answers.")
-        print("# It keeps the first file in each group (sorted by path) and suggests removing the others.")
-        print("# Please review carefully before running the generated commands.")
-
-        files_to_remove = set()
-        for i, group in enumerate(duplicate_question_groups):
-            group.sort(key=lambda x: str(x['file_path']))
-            file_to_keep_info = group[0]
-            print(f"\n# --- Group {i+1} ---")
-            answer_to_show = str(file_to_keep_info.get('answer', '')).strip()
-            print(f"# Answer: \"{answer_to_show}\"")
-            print(f"# Keeping file: '{file_to_keep_info['file_path']}'")
-
-            for item in group[1:]:
-                file_to_delete = item['file_path']
-                if file_to_delete != file_to_keep_info['file_path']:
-                    files_to_remove.add(file_to_delete)
-                    print(f"# Suggest removing file: '{file_to_delete}'")
-
-        if not files_to_remove:
-            print("\n# No files to suggest for removal (duplicate questions might be in the same file).")
-            return
-
-        print("\n\n# --- Suggested git rm commands ---")
-        for p in sorted(list(files_to_remove)):
-            print(f"git rm '{p}'")
-        print(f"\n# Total files to be removed: {len(files_to_remove)}", file=sys.stderr)
-
-    elif args.method == 'checksum':
-        # --- Deduplicate by file content checksum ---
-        duplicates = find_duplicate_files_by_checksum(file_paths)
-        if not duplicates:
-            print("No duplicate files found based on content checksum.", file=sys.stderr)
-            return
-
-        print("# Found duplicate files. Run the following commands to remove them:")
-        files_to_remove = set()
-        for checksum, paths in duplicates.items():
-            paths.sort()
-            file_to_keep = paths[0]
-            print(f"\n# Duplicates with checksum {checksum} (keeping '{file_to_keep}')")
-            for p in paths[1:]:
-                files_to_remove.add(p)
-                print(f"# Suggest removing file: '{p}'")
-
-        if not files_to_remove:
-            print("\n# No files to suggest for removal.")
-            return
-
-        print("\n\n# --- Suggested git rm commands ---")
-        for p in sorted(list(files_to_remove)):
-            print(f"git rm '{p}'")
-        print(f"\n# Total files to be removed: {len(files_to_remove)}", file=sys.stderr)
+def handle_remove_duplicates(args):
+    """Handler for removing duplicate YAML files."""
+    remove_duplicate_yaml_files(args.directory)
 
 
 # --- Main CLI Router ---
@@ -205,23 +104,17 @@ def main():
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
 
-    # Sub-parser for 'deduplicate-files'
-    parser_deduplicate_files = subparsers.add_parser(
-        'deduplicate-files',
-        help='Find and report duplicate question files by content or by answer.',
-        description="Finds duplicate files using different methods and suggests `git rm` commands."
+    # Sub-parser for 'remove-duplicates'
+    parser_remove_duplicates = subparsers.add_parser(
+        'remove-duplicates',
+        help='Remove duplicate YAML files based on the "answer" field.',
+        description="Scans a directory for YAML files and removes duplicates based on the 'answer' field."
     )
-    parser_deduplicate_files.add_argument('files', nargs='+', help='File paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").')
-    parser_deduplicate_files.add_argument(
-        '--method',
-        choices=['checksum', 'answer'],
-        default='checksum',
-        help="Deduplication method:\n"
-             " - checksum: Find files with identical content (fast, exact matches).\n"
-             " - answer: Find questions with identical answers inside YAML files (slower, requires parsing).\n"
-             "Default: checksum"
+    parser_remove_duplicates.add_argument(
+        'directory',
+        help='Path to the directory containing YAML files to scan for duplicates.'
     )
-    parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
+    parser_remove_duplicates.set_defaults(func=handle_remove_duplicates)
 
     # Other subcommands...
 
