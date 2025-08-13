@@ -27,10 +27,14 @@ try:
     from kubelingo.utils.config import APP_DIR
     from kubelingo.utils.path_utils import get_all_question_dirs, find_yaml_files
     from kubelingo.modules.ai_categorizer import AICategorizer
+    from kubelingo.database import get_db_connection
+    import sqlite3
 except ImportError:
-    print("Could not import kubelingo modules. Using fallbacks. AI categorization will be disabled.", file=sys.stderr)
+    print("Could not import kubelingo modules. Using fallbacks. AI categorization and DB updates will be disabled.", file=sys.stderr)
     APP_DIR = project_root / '.kubelingo' # fallback
     AICategorizer = None
+    get_db_connection = None
+    sqlite3 = None
     def get_all_question_dirs():
         q_dir = project_root / 'question-data'
         return [str(q_dir)] if q_dir.is_dir() else []
@@ -384,6 +388,14 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
 
     dest_dir.mkdir(parents=True, exist_ok=True)
 
+    conn = None
+    if get_db_connection and sqlite3:
+        try:
+            conn = get_db_connection()
+            print("Database connection established to update question metadata.")
+        except Exception as e:
+            print(f"Warning: Could not connect to database. File metadata in DB will not be updated. Error: {e}", file=sys.stderr)
+
     categorizer = AICategorizer() if 'AICategorizer' in globals() and AICategorizer else None
     if categorizer:
         print("AI categorizer loaded. Will attempt to categorize questions without a subject.")
@@ -438,10 +450,39 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
             shutil.move(file_path, new_path)
             print(f"Moved {file_path.relative_to(project_root)} to {new_path.relative_to(project_root)}")
             moved_count += 1
+
+            if conn:
+                q_id = question.get('id')
+                if not q_id:
+                    print(f"  Warning: Question in {new_path.name} has no ID. Cannot update database record.")
+                    continue
+
+                try:
+                    relative_path = str(new_path.relative_to(project_root))
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE questions SET source = ?, type = ?, subject = ? WHERE id = ?",
+                        (relative_path, q_type, subject, q_id)
+                    )
+                    if cursor.rowcount > 0:
+                        print(f"  Queued DB update for question ID {q_id}.")
+                    else:
+                        print(f"  Warning: Question ID {q_id} not found in database for update.")
+                except sqlite3.Error as e:
+                    print(f"  Error queueing DB update for question ID {q_id}: {e}", file=sys.stderr)
         except Exception as e:
             print(f"Error processing {file_path}: {e}", file=sys.stderr)
 
     print(f"\nSuccessfully moved {moved_count} question files.")
+
+    if conn:
+        try:
+            conn.commit()
+            print("Committed database changes.")
+        except sqlite3.Error as e:
+            print(f"Error committing database changes: {e}", file=sys.stderr)
+        finally:
+            conn.close()
 
     if delete_source:
         print("Note: Source files are moved, not copied. The --delete-source flag is implicit.")
