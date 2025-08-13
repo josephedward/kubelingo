@@ -1,7 +1,7 @@
 # Application Design Specification
 
 ## 1. Guiding Principles
-- **Question Organization**: The system must support easy organization of questions.
+- **Question Organization**: Questions should be easy to organize.
 - **Difficulty**: Initial focus is on capturing questions, not fine-grained difficulty levels. Questions are questions, and the goal is to be able to answer all of them.
 - **Architecture**: Maintain a simple and understandable command-line interface (CLI) architecture.
 - **Context**: Leverage documentation in the `/docs` directory to provide context for development.
@@ -29,36 +29,36 @@ The application will feature a clear, menu-driven interface.
 The main menu will be structured as follows:
 ```
    --- Learn ---
-   ○ Study Mode (Socratic Tutor)
+   ○ Socratic Mode (Socratic Tutor)
    ○ Missed Questions (2)
    --- Drill ---
    ○ Open Ended Questions (6)
    ○ Basic Terminology (205)
    ○ Command Syntax (105)
-   ○ YAML Manifests (44)
+   ○ YAML Manifest (44)
    --- Settings ---
    ○ AI
    ○ Clusters
    ○ Question Management
    ○ Help
-   ○ Report Bug
+   ○ Report Bug (bug ticket script)
    ○ Exit App
 ```
 
 ### 3.2. AI Settings Menu
 Selecting "AI" from the Settings menu will open a dedicated sub-menu for managing AI providers and API keys:
 ```
-What would you like to do? (Use arrow keys)
-» ○ Set active AI Provider (current: Gemini)
-  --- API Keys ---
-  ○ View Gemini API Key (Set (from file))
-  ○ Set/Update Gemini API Key
-  ○ View Openai API Key (Set (from env))
-  ○ Set/Update Openai API Key
+What would you like to do? (Use arrow keys) 
+» ○ Set active AI Provider (current: Gemini) 
+    --- API Keys --- 
+    ○ View Gemini API Key (Set (from file)) 
+    ○ Set/Update Gemini API Key 
+    ○ View Openai API Key (Set (from env)) 
+    ○ Set/Update Openai API Key
 ```
 
-### 3.3. Study Mode Menu
-Selecting "Study Mode" from the Learn menu will first prompt for the exercise type:
+### 3.3. Socratic Mode Menu
+Selecting "Socratic Mode" from the Learn menu will first prompt for the exercise type:
 ```
 --- Exercise Type ---
    ○ Open-Ended
@@ -108,6 +108,7 @@ When answering a question, the user will have these options:
 ### 3.6. Question Management Menu
 The "Question Management" option in Settings provides tools for content curation. This menu will be orchestrated by `scripts/kubelingo_tools.py` and consolidated management scripts.
 ```
+--- Manage Questions ---
 ○ Generate Questions
 ○ Add Questions
 ○ Remove Questions
@@ -126,10 +127,10 @@ The application will follow a "YAML as source of truth" model.
 The schema will not include a `difficulty` field. Difficulty is subjective and can be inferred later from user performance data, rather than being a static attribute.
 
 ### 5.1. Question Types
-1.  **Open-Ended**: Requires AI to do fuzzy matching on an explanation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
+1.  **Open-Ended**: Requires AI to do fuzzy matching on an explanation. These are generated during "Socratic Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
 2.  **Basic Terminology**: Single-word/command answers. Can be evaluated without AI but are generated with AI. Can be easily added via AI parsing. Graded on `Enter`.
 3.  **Command Syntax**: Evaluated by executing the command (e.g., with `kubectl --dry-run=client`). Requires AI to validate alternative correct answers (e.g., aliases, different flags). Graded on `Enter`.
-4.  **YAML Manifests**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
+4.  **YAML Manifest**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
 
 ### 5.2. Subject Matter Categories
 Categories are subordinate to Question Types. Simplified short names should be used in the YAML/DB schema (e.g., `linux-syntax`, `core-workloads`).
@@ -161,14 +162,14 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - **Single CLI Interface**: All functionality must be coordinated from a single, cohesive command-line application.
 - **Adding Questions**: Must be easy via a well-defined schema or through AI parsing.
 - **AI Feedback**: AI-driven feedback or explanation should be provided for every answer, explaining the correct response or the subject matter for simpler questions.
-- **Study Mode**: Questions generated in Study Mode must adhere to the schema and be saved to a YAML file, with metadata updated in the database.
+- **Study Mode**: "Socratic Mode" generates questions. Questions generated must adhere to the schema and be saved to a YAML file, with metadata updated in the database.
 - **Review System**: Questions answered incorrectly are automatically flagged for review. Answering correctly removes the flag. This is not user-configurable.
 - **Triage System**: Users can flag problematic questions for maintainer review via the "Triage" option.
 - **No Automatic Deletion**: The application must never automatically delete questions. Deletion is a manual, explicit action available to maintainers through the Question Management tools. Problematic questions should generally be triaged rather than deleted.
 - **Execution Environment**: No live cluster integration is required initially. Command and manifest evaluation will use dry-run capabilities.
 - **Database Integrity**: The database is for metadata only and should never be cleared automatically.
 - **Enrichment**: AI-based content enrichment should only occur during question generation or triage, not on application startup.
-- **AI Provider Management**: The user can change providers and manage API keys via the "AI Provider" setting. The application will indicate the active provider and recognize keys set in the environment.
+- **AI Provider Management**: The user can change providers and manage API keys via the "AI" setting. The application will indicate the active provider and recognize keys set in the environment.
 - **Offline Mode**: Only "Basic Terminology" questions are available offline, as they can be evaluated without AI.
 - **Duplicate Check**: The application should check for and avoid generating duplicate or overly similar questions.
 
