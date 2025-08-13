@@ -16,16 +16,22 @@ class YAMLLoader(BaseLoader):
     """Discovers and parses YAML question modules."""
 
     def discover(self) -> List[str]:
-        """Discovers YAML files in all configured question directories."""
+        """Discovers YAML files in all configured question directories, including 'yaml'."""
         paths: List[str] = []
-        for directory in QUESTION_DIRS:
+        # Use a set to handle duplicates gracefully
+        search_dirs = set(QUESTION_DIRS)
+        search_dirs.add('yaml')
+
+        for directory in search_dirs:
             if not directory or not os.path.isdir(directory):
                 continue
 
-            for fname in os.listdir(directory):
-                if fname.endswith(('.yaml', '.yml')):
-                    paths.append(os.path.join(directory, fname))
-        return sorted(paths)
+            for root, _, files in os.walk(directory):
+                for fname in files:
+                    if fname.endswith(('.yaml', '.yml')):
+                        paths.append(os.path.join(root, fname))
+                        
+        return sorted(list(set(paths)))
 
     def load_file(self, path: str) -> List[Question]:
         # Load and normalize YAML file into Question objects
@@ -111,6 +117,8 @@ class YAMLLoader(BaseLoader):
                 if not initial_files and 'initial_yaml' in item:
                     initial_files['exercise.yaml'] = item['initial_yaml']
 
+                answers_list = [step.cmd for step in validation_steps if step.cmd]
+
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
@@ -119,6 +127,7 @@ class YAMLLoader(BaseLoader):
                     # Include any provided correct YAML for edit questions
                     correct_yaml=item.get('correct_yaml'),
                     prompt=item.get('prompt', ''),
+                    answers=answers_list,
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
                     validation_steps=validation_steps,
@@ -164,6 +173,8 @@ class YAMLLoader(BaseLoader):
                 if not initial_files and 'initial_yaml' in item:
                     initial_files['exercise.yaml'] = item['initial_yaml']
 
+                answers_list = [step.cmd for step in validation_steps if step.cmd]
+
                 questions.append(Question(
                     id=qid,
                     type=item.get('type') or 'command',
@@ -172,6 +183,7 @@ class YAMLLoader(BaseLoader):
                     # Include any provided correct YAML
                     correct_yaml=item.get('correct_yaml'),
                     prompt=(item.get('prompt') or item.get('question', '')),
+                    answers=answers_list,
                     pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
                     initial_files=initial_files,
                     validation_steps=validation_steps,

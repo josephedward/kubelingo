@@ -1494,19 +1494,31 @@ def do_import_ai(args):
                 q_id = q_dict.get('id')
                 prompt = q_dict.get('prompt')
                 ai_categories = categorizer.categorize_question(q_dict)
-                category_id = None
-                subject_id = q_dict.get('category')
+
+                # Start with values from YAML, then override with AI
+                category = q_dict.get('schema_category') or q_dict.get('type')
+                subject = q_dict.get('subject_matter')
+
                 if ai_categories:
-                    category_id = ai_categories.get('exercise_category', category_id)
-                    subject_id = ai_categories.get('subject_matter', subject_id)
+                    category = ai_categories.get('exercise_category', category)
+                    subject = ai_categories.get('subject_matter', subject)
+
+                # The `add_question` function handles JSON serialization.
                 add_question(
-                    conn=conn, id=q_id, prompt=prompt, source_file=q_dict.get('source_file'),
-                    response=q_dict.get('response'), category=subject_id, source=q_dict.get('source'),
-                    validation_steps=q_dict.get('validation_steps'), validator=q_dict.get('validator'),
-                    review=q_dict.get('review', False)
+                    conn=conn,
+                    id=q_id,
+                    prompt=prompt,
+                    source_file=q_dict.get('source_file'),
+                    answers=q_dict.get('answers'),
+                    category=category,
+                    subject=subject,
+                    source=q_dict.get('source'),
+                    type=q_dict.get('question_type') or q_dict.get('type'),
+                    validator=q_dict.get('validator'),
+                    review=q_dict.get('review', False),
+                    explanation=q_dict.get('explanation'),
+                    validation_steps=q_dict.get('validation_steps')
                 )
-                if category_id:
-                    cursor.execute("UPDATE questions SET category_id = ? WHERE id = ?", (category_id, q_id))
                 processed_count += 1
                 pbar.update(1)
         conn.commit()
