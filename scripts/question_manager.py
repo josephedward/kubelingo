@@ -58,7 +58,7 @@ from kubelingo.question import Question, ValidationStep, QuestionCategory, Quest
 # from kubelingo.modules.ai_categorizer import AICategorizer # NOTE: This is now handled locally
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
-from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path, load_yaml_files
+from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path
 from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
