@@ -145,10 +145,6 @@ class KubernetesStudyMode:
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
-        if not getattr(self, "_keys_checked", False):
-            self._check_api_keys_on_startup()
-            self._keys_checked = True
-
         while True:
             try:
                 choice = questionary.select(
@@ -305,11 +301,24 @@ class KubernetesStudyMode:
 
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a quiz and starts the session."""
+        if not getattr(self, "_keys_checked", False):
+            self._check_api_keys_on_startup()
+            self._keys_checked = True
+
         while True:
             try:
                 counts = self._get_question_counts_by_type()
+                socratic_disabled = not self.client
+                socratic_choice_text = "Open-Ended Socratic Dialogue"
+                if socratic_disabled:
+                    socratic_choice_text += " (API key required)"
+
                 quiz_style_choices = [
-                    questionary.Choice("Open-Ended Socratic Dialogue", value="socratic"),
+                    questionary.Choice(
+                        socratic_choice_text,
+                        value="socratic",
+                        disabled=socratic_disabled,
+                    ),
                     questionary.Choice(
                         f"Basic term/definition recall ({counts['basic']} questions)",
                         value="basic",
