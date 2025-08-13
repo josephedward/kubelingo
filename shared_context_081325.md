@@ -33,3 +33,10 @@ The application's startup sequence has several critical design flaws and bugs th
 2.  **Adopt a Metadata-Only DB Model**: The database should only store pointers to YAML questions (e.g., file path + question ID) and user-specific metadata. Loading questions should be done on-demand from YAML files.
 3.  **Remove Startup Bootstrap**: Eliminate the `bootstrap_on_startup` function. Database setup should be handled by a one-time migration script or an initial setup check.
 4.  **Fix Database Schema**: A script needs to be created or run to update the database schema to include `category_id` and any other missing columns.
+
+## Resolution and New Design
+A comprehensive new design has been specified to address these issues and guide future development. The full specification, including UI mockups, architectural principles, and feature requirements, is now the canonical guide for refactoring the application.
+
+**See: [Application Design Specification](./docs/design_spec.md)**
+
+All development should align with this new specification.
