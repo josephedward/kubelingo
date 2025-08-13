@@ -74,8 +74,7 @@ try:
     # Kubelingo imports
     import kubelingo.database as db_mod
     from kubelingo.database import (
-        get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions,
-        get_questions_by_source_file
+        get_db_connection, add_question, init_db, get_all_questions
     )
     from kubelingo.question import Question, ValidationStep
     from kubelingo.modules.question_generator import AIQuestionGenerator
@@ -771,45 +770,19 @@ def handle_ai_questions(args):
     if 'OPENAI_API_KEY' not in os.environ:
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
-    if not all([AIQuestionGenerator, get_questions_by_source_file, yaml]):
+    if not all([AIQuestionGenerator, DBLoader, yaml]):
         print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
         sys.exit(1)
 
     base_questions = []
     if args.example_source_file:
         print(f"Loading example questions from source file '{args.example_source_file}' in the database...")
-        question_dicts = get_questions_by_source_file(args.example_source_file)
+        loader = DBLoader()
+        base_questions = loader.load_file(args.example_source_file)
 
-        if not question_dicts:
+        if not base_questions:
             print(f"Warning: No example questions found in the database for source file '{args.example_source_file}'.")
         else:
-            for q_dict in question_dicts:
-                try:
-                    validation_steps = [
-                        ValidationStep(**vs) for vs in q_dict.get('validation_steps', []) if vs
-                    ]
-                    if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
-                        validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
-
-                    categories = q_dict.get('categories')
-                    if not categories:
-                        category_str = q_dict.get('category')
-                        categories = [category_str] if category_str else ['General']
-
-                    base_questions.append(Question(
-                        id=q_dict.get('id', ''),
-                        prompt=q_dict.get('prompt', ''),
-                        response=q_dict.get('response'),
-                        type=q_dict.get('type', ''),
-                        pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
-                        initial_files=q_dict.get('initial_files', {}),
-                        validation_steps=validation_steps,
-                        explanation=q_dict.get('explanation'),
-                        categories=categories,
-                        metadata=q_dict.get('metadata', {})
-                    ))
-                except (TypeError, KeyError) as e:
-                    print(f"Warning: Could not convert question dict from DB to Question object: {e}")
             print(f"Using {len(base_questions)} questions from the database as examples.")
 
     generator = AIQuestionGenerator()
@@ -1446,6 +1419,19 @@ def do_diff(args):
     else:
         print("Please provide either two files to compare, or no files to compare all backups.", file=sys.stderr)
         sys.exit(1)
+
+def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
+    """Converts a sqlite3.Row object to a dictionary, deserializing JSON fields."""
+    q_dict = dict(row)
+    for key, value in q_dict.items():
+        if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
+            try:
+                q_dict[key] = json.loads(value)
+            except json.JSONDecodeError:
+                # Not a JSON string, leave as is
+                pass
+    return q_dict
+
 
 def _export_db_to_yaml_func(output_file: str, db_path: Optional[str] = None) -> int:
     """Exports questions from the database to a YAML file."""
@@ -2803,46 +2789,19 @@ def handle_ai_questions(args):
     if 'OPENAI_API_KEY' not in os.environ:
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
-    if not all([AIQuestionGenerator, get_questions_by_source_file, yaml]):
+    if not all([AIQuestionGenerator, DBLoader, yaml]):
         print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
         sys.exit(1)
 
     base_questions = []
     if args.example_source_file:
         print(f"Loading example questions from source file '{args.example_source_file}' in the database...")
-        question_dicts = get_questions_by_source_file(args.example_source_file)
+        loader = DBLoader()
+        base_questions = loader.load_file(args.example_source_file)
 
-        if not question_dicts:
+        if not base_questions:
             print(f"Warning: No example questions found in the database for source file '{args.example_source_file}'.")
         else:
-            for q_dict in question_dicts:
-                try:
-                    validation_steps = [
-                        ValidationStep(**vs) for vs in q_dict.get('validation_steps', []) if vs
-                    ]
-                    if not validation_steps and q_dict.get('type') == 'command' and q_dict.get('response'):
-                        validation_steps.append(ValidationStep(cmd=q_dict['response'], matcher={'exit_code': 0}))
-
-                    categories = q_dict.get('categories')
-                    if not categories:
-                        category_str = q_dict.get('category')
-                        categories = [category_str] if category_str else ['General']
-
-                    base_questions.append(Question(
-                        id=q_dict.get('id', ''),
-                        prompt=q_dict.get('prompt', ''),
-                        response=q_dict.get('response'),
-                        type=q_dict.get('type', ''),
-                        pre_shell_cmds=q_dict.get('pre_shell_cmds', []),
-                        initial_files=q_dict.get('initial_files', {}),
-                        validation_steps=validation_steps,
-                        explanation=q_dict.get('explanation'),
-                        categories=categories,
-                        difficulty=q_dict.get('difficulty'),
-                        metadata=q_dict.get('metadata', {})
-                    ))
-                except (TypeError, KeyError) as e:
-                    print(f"Warning: Could not convert question dict from DB to Question object: {e}")
             print(f"Using {len(base_questions)} questions from the database as examples.")
 
     generator = AIQuestionGenerator()
