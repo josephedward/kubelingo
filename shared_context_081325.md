@@ -108,6 +108,18 @@ The application's startup sequence has several critical design flaws and bugs th
   ```
 - **Cause**: The "Generate Questions" menu in the Question Management tools presents too many options, creating a confusing user experience. The primary and most powerful generation method is "From AI (subject-based)". The other options are legacy or less common, and clutter the interface.
 - **Resolution**: To streamline the user experience, the question generator selection menu should be removed. The "Generate Questions" option should directly start the "From AI (subject-based)" workflow.
+- **Bug**: The `kubelingo_tools.py` script incorrectly displays the main application menu.
+- **Cause**: The `main` function in `scripts/kubelingo_tools.py` was incorrectly displaying the main application UI, which is intended to be launched by the `kubelingo` command. This script is meant for developers to manage question data, but it was instead acting as the main application entry point.
+- **Log**:
+  ```
+  ./scripts/kubelingo_tools.py
+  Startup AI configuration check...
+  ? --- KubeLingo --- (Use arrow keys)
+    --- Learn ---
+  » ○ Socratic Mode (Socratic Tutor)
+    ...
+  ```
+- **Resolution**: The `main` function in `kubelingo_tools.py` was updated to directly invoke the question management menu (`_show_question_management_menu`), aligning the script's behavior with its intended purpose as a developer tool.
 
 ## Tests
 - make sure you can generate questions of all 4 types and all 21 subjects (81 examples in all)

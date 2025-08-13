@@ -386,66 +386,8 @@ def _show_question_management_menu():
 
 
 def main():
-    """Display the main application menu."""
-    # Placeholder for startup AI configuration
-    _startup_ai_configuration()
-
-    # Dummy data for counts, as per the new design
-    missed_count = 2
-    open_ended_count = 60
-    basic_terminology_count = 700
-    command_syntax_count = 244
-    yaml_manifest_count = 80
-
-    tasks = {
-        "socratic": _learn_socratic,
-        "missed": _learn_missed,
-        "drill_open_ended": _drill_open_ended,
-        "drill_basic": _drill_basic_terminology,
-        "drill_command": _drill_command_syntax,
-        "drill_yaml": _drill_yaml_manifest,
-        "settings_ai": _settings_ai,
-        "settings_clusters": _settings_clusters,
-        "settings_questions": _show_question_management_menu,
-        "settings_help": _settings_help,
-        "report_bug": _settings_report_bug,
-    }
-
-    while True:
-        menu_choices = [
-            questionary.Separator("--- Learn ---"),
-            questionary.Choice("Socratic Mode (Socratic Tutor)", value="socratic"),
-            questionary.Choice(f"Missed Questions ({missed_count})", value="missed"),
-            questionary.Separator("--- Drill ---"),
-            questionary.Choice(f"Open Ended Questions ({open_ended_count})", value="drill_open_ended"),
-            questionary.Choice(f"Basic Terminology ({basic_terminology_count})", value="drill_basic"),
-            questionary.Choice(f"Command Syntax ({command_syntax_count})", value="drill_command"),
-            questionary.Choice(f"YAML Manifest ({yaml_manifest_count})", value="drill_yaml"),
-            questionary.Separator("--- Settings ---"),
-            questionary.Choice("AI", value="settings_ai"),
-            questionary.Choice("Clusters", value="settings_clusters"),
-            questionary.Choice("Question Management", value="settings_questions"),
-            questionary.Choice("Help", value="settings_help"),
-            questionary.Choice("Report Bug", value="report_bug"),
-            questionary.Separator(),
-            "Exit",
-        ]
-
-        choice = questionary.select(
-            "--- KubeLingo ---",
-            choices=menu_choices,
-            use_indicator=True
-        ).ask()
-
-        if not choice or choice == "Exit":
-            print("Exiting KubeLingo.")
-            break
-
-        task_function = tasks.get(choice)
-        if task_function:
-            task_function()
-
-        print() # for spacing
+    """Displays the question management menu."""
+    _show_question_management_menu()
 
 
 if __name__ == '__main__':
