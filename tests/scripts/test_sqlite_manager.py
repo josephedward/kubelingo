@@ -287,42 +287,6 @@ def test_list_modules(setup_test_dbs, capsys):
     assert "- module2: 1" in captured.out
 
 
-def test_fix_sources(setup_test_dbs, capsys):
-    """Test the 'fix-sources' command."""
-    live_db_path = setup_test_dbs / ".kubelingo" / "database.db"
-
-    with sqlite3.connect(live_db_path) as conn:
-        conn.execute("DROP TABLE IF EXISTS live_table")
-        # This schema needs to be comprehensive enough for the `add_question` call
-        conn.execute("""
-            CREATE TABLE questions (
-                id TEXT PRIMARY KEY, prompt TEXT, source_file TEXT, response TEXT, category TEXT, source TEXT,
-                validation_steps TEXT, validator TEXT, review INTEGER, question_type TEXT,
-                schema_category TEXT, answers TEXT, correct_yaml TEXT, difficulty TEXT,
-                explanation TEXT, initial_files TEXT, pre_shell_cmds TEXT, subject_matter TEXT,
-                metadata TEXT
-            )
-        """)
-        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q1', 'Concepts', 'wrong.yaml')")
-        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q2', 'Concepts', 'some/file.yaml')")
-        conn.execute("INSERT INTO questions (id, category, source_file) VALUES ('q3', 'Other', 'other.yaml')")
-
-    args = MagicMock(db_path=str(live_db_path))
-    sqlite_manager.do_fix_sources(args)
-
-    with sqlite3.connect(live_db_path) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, source_file FROM questions ORDER BY id")
-        results = dict(cursor.fetchall())
-
-    assert results['q1'] == 'some/file.yaml'
-    assert results['q2'] == 'some/file.yaml'
-    assert results['q3'] == 'other.yaml'  # Unchanged
-
-    captured = capsys.readouterr()
-    assert "Updated 1 question(s)" in captured.out
-
-
 def test_update_schema_category(setup_test_dbs, capsys):
     """Test the 'update-schema-category' command."""
     # Use the live db from the fixture

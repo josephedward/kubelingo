@@ -257,54 +257,6 @@ def do_prune_empty(args):
     print(f"\nScan complete. Deleted {deleted_count} empty database(s).")
 
 
-# --- Fix Source Paths ---
-def do_fix_sources(args):
-    """Ensures source_file paths in the database match the canonical paths in ENABLED_QUIZZES."""
-    print("Fixing source_file paths in the database...")
-    db_path = args.db_path or get_live_db_path()
-    conn = get_db_connection(db_path=db_path)
-
-    all_questions = get_all_questions(conn)
-    if not all_questions:
-        print("No questions found in the database.")
-        conn.close()
-        return
-
-    category_to_source_file = ENABLED_QUIZZES
-    allowed_args = {
-        "id", "prompt", "source_file", "response", "category", "source",
-        "validation_steps", "validator", "review", "question_type",
-        "schema_category", "answers", "correct_yaml", "difficulty",
-        "explanation", "initial_files", "pre_shell_cmds", "subject_matter",
-        "metadata",
-    }
-
-    updated_count = 0
-    try:
-        for q_dict in all_questions:
-            category = q_dict.get("category")
-            if not category:
-                continue
-
-            correct_source_file = category_to_source_file.get(category)
-            if not correct_source_file:
-                continue
-
-            if q_dict.get("source_file") != correct_source_file:
-                q_dict["source_file"] = correct_source_file
-                q_dict_for_db = {k: v for k, v in q_dict.items() if k in allowed_args}
-                add_question(conn=conn, **q_dict_for_db)
-                updated_count += 1
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        print(f"Error updating source files: {e}", file=sys.stderr)
-    finally:
-        conn.close()
-
-    print(f"Finished. Updated {updated_count} question(s).")
-
-
 # --- Build Master DB ---
 def import_questions_for_master(files: list[Path], conn: sqlite3.Connection):
     """Loads all questions from a list of YAML file paths and adds them to the database."""
@@ -926,10 +878,6 @@ def main():
 
     p_prune = subparsers.add_parser("prune-empty", help="Scan for and remove empty database files.")
     p_prune.set_defaults(func=do_prune_empty)
-
-    p_fix = subparsers.add_parser("fix-sources", help="Fix source_file paths based on question category.")
-    p_fix.add_argument("--db-path", type=str, default=None, help="Path to SQLite DB. Uses live DB if not set.")
-    p_fix.set_defaults(func=do_fix_sources)
 
     p_build = subparsers.add_parser("build-master", help="Build master question DB from YAML files.")
     p_build.add_argument("--db-path", type=str, default=None, help="Path to build DB in. Defaults to live DB path.")
