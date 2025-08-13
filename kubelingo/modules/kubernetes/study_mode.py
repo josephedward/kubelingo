@@ -34,6 +34,7 @@ from kubelingo.utils.config import (
 )
 from kubelingo.utils.path_utils import get_project_root
 from kubelingo.modules.ai_evaluator import AIEvaluator
+from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
@@ -57,9 +58,11 @@ class KubernetesStudyMode:
         try:
             self.client: LLMClient = get_llm_client()
             self.ai_evaluator = AIEvaluator(llm_client=self.client)
+            self.question_generator = AIQuestionGenerator(llm_client=self.client)
         except (ValueError, ImportError):
             self.client = None  # Handle case where no key is set yet
             self.ai_evaluator = None
+            self.question_generator = None
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
@@ -202,7 +205,37 @@ class KubernetesStudyMode:
             questions = self._get_questions_by_category_and_subject(
                 category, subject_choice
             )
-            self._run_quiz(questions)
+            if questions:
+                self._run_quiz(questions)
+            else:
+                if not self.question_generator:
+                    print(
+                        f"\n{Fore.YELLOW}AI features are not available. Please configure an AI provider in Settings.{Style.RESET_ALL}"
+                    )
+                    questionary.confirm("Press Enter to continue...").ask()
+                    return
+
+                if not questionary.confirm(
+                    f"No questions found for '{subject_choice}' in '{category.value}'.\n"
+                    "Would you like to generate some now using AI?",
+                    default=True,
+                ).ask():
+                    return
+
+                quiz_type_map = {
+                    QuestionCategory.BASIC_TERMINOLOGY: "basic",
+                    QuestionCategory.COMMAND_SYNTAX: "command",
+                    QuestionCategory.YAML_MANIFEST: "manifest",
+                }
+                quiz_type = quiz_type_map.get(category)
+
+                if quiz_type:
+                    self._run_quiz_loop(quiz_type, subject_choice)
+                else:
+                    print(
+                        f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
+                    )
+                    questionary.confirm("Press Enter to continue...").ask()
 
     def _get_subjects_with_counts_by_category(self, category: QuestionCategory) -> Dict[str, int]:
         """Fetches unique subjects and their question counts for a given category."""
