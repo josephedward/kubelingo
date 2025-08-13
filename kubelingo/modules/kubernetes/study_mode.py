@@ -306,6 +306,27 @@ class KubernetesStudyMode:
             )
             return []
 
+    def _get_question_counts_by_subject(
+        self, category: QuestionCategory
+    ) -> Dict[str, int]:
+        """Fetches question counts for all subjects within a given category."""
+        query = """
+            SELECT subject_id, COUNT(*)
+            FROM questions
+            WHERE category_id = ?
+            GROUP BY subject_id
+        """
+        counts = {}
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, (category.value,))
+            rows = cursor.fetchall()
+            for subject_val, count in rows:
+                counts[subject_val] = count
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching question counts: {e}{Style.RESET_ALL}")
+        return counts
+
     def _index_all_yaml_files(self):
         """Finds and indexes all YAML question files into the database."""
         try:
