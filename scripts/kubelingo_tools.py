@@ -6,6 +6,7 @@ Kubelingo: An interactive menu for managing questions.
 import sys
 from pathlib import Path
 import subprocess
+import argparse
 
 try:
     import questionary
@@ -24,6 +25,7 @@ if str(repo_root) not in sys.path:
 from kubelingo.database import get_db_connection
 from kubelingo.utils.path_utils import get_live_db_path
 from kubelingo.question import QuestionSubject
+from kubelingo.utils.config import DATABASE_FILE
 
 # Import handlers from the consolidated question_manager script
 # Note: This relies on the sys.path modification above to find the 'scripts' module
@@ -33,7 +35,36 @@ try:
         handle_resource_reference, handle_kubectl_operations,
         handle_manifests, handle_service_account,
         handle_remove_question,
-        handle_set_triage_status
+        handle_set_triage_status,
+        handle_build_index,
+        handle_list_triaged,
+        handle_ai_quiz,
+        handle_validation_steps,
+        do_consolidate,
+        do_create_quizzes,
+        do_deduplicate,
+        do_diff,
+        do_export,
+        do_import_ai,
+        do_index,
+        do_init,
+        do_list_backups,
+        do_backup_stats,
+        do_statistics,
+        do_group_backups,
+        do_import_bak,
+        do_migrate_all,
+        do_migrate_bak,
+        do_verify,
+        do_organize_generated,
+        do_index_sqlite,
+        do_schema,
+        do_list_sqlite,
+        do_unarchive,
+        do_restore,
+        do_create_from_yaml,
+        do_diff_db,
+        _manage_database
     )
 except ImportError as e:
     print(f"Failed to import from scripts.question_manager: {e}", file=sys.stderr)
@@ -203,6 +234,8 @@ def _manage_triaged_questions():
 
 def main():
     """Display the question management menu."""
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser(
             description="A unified tool for managing Kubelingo's questions, YAML, and database files.",
             formatter_class=argparse.RawTextHelpFormatter,
         )
