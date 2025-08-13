@@ -14,7 +14,7 @@ Rationale for using SQLite over YAML files:
 import sqlite3
 import json
 from typing import List, Dict, Any, Optional
-from kubelingo.modules.base_loader import BaseLoader
+from kubelingo.modules.base.loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
 from kubelingo.database import get_db_connection
 import os

@@ -1,6 +1,26 @@
+"""
+Defines the BaseLoader interface for question-data loaders, and provides
+functions for discovering and loading modules and study sessions.
+"""
 import os
 import importlib
+from abc import ABC, abstractmethod
+from typing import List
+
 from kubelingo.modules.base.session import StudySession
+from kubelingo.question import Question
+
+class BaseLoader(ABC):
+    @abstractmethod
+    def discover(self) -> List[str]:
+        """Return a list of file paths this loader can load."""
+        pass
+
+    @abstractmethod
+    def load_file(self, path: str) -> List[Question]:
+        """Parse the file at `path` and return a list of Question objects."""
+        pass
+
 
 def discover_modules():
     """Scans for modules in the kubelingo/modules directory."""

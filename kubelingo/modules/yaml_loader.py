@@ -7,7 +7,7 @@ try:
 except ImportError:
     yaml = None
 from typing import List
-from kubelingo.modules.base_loader import BaseLoader
+from kubelingo.modules.base.loader import BaseLoader
 from kubelingo.question import Question, ValidationStep, QuestionCategory
 from kubelingo.utils.config import QUESTIONS_DIR
 
