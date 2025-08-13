@@ -382,7 +382,42 @@ class KubernetesStudyMode:
         except Exception as e:
             print(f"{Fore.RED}Error fetching triaged questions: {e}{Style.RESET_ALL}")
 
+    def _get_random_questions_for_context(self, limit: int = 5) -> List[Question]:
+        """Fetches a few random questions from the DB to use as generation context."""
+        query = "SELECT * FROM questions ORDER BY RANDOM() LIMIT ?"
+        try:
+            self.db_conn.row_factory = sqlite3.Row
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, (limit,))
+            rows = cursor.fetchall()
+            questions = []
 
+            for row in rows:
+                q_dict = dict(row)
+                if "category_id" in q_dict:
+                    q_dict["schema_category"] = q_dict.pop("category_id")
+                if "subject_id" in q_dict:
+                    q_dict["subject_matter"] = q_dict.pop("subject_id")
+                q_dict.pop("raw", None)  # Not a field in Question dataclass
+
+                # Deserialize JSON fields
+                for key in [
+                    "validation_steps",
+                    "validator",
+                    "pre_shell_cmds",
+                    "initial_files",
+                    "answers",
+                ]:
+                    if q_dict.get(key) and isinstance(q_dict[key], str):
+                        try:
+                            q_dict[key] = json.loads(q_dict[key])
+                        except (json.JSONDecodeError, TypeError):
+                            q_dict[key] = None
+                questions.append(Question(**q_dict))
+            return questions
+        except Exception:
+            # Silently fail, context is optional.
+            return []
 
     def _handle_config_command(self, target: str):
         """Handles interactive configuration for a specific target (e.g., 'cluster')."""
@@ -492,10 +527,12 @@ class KubernetesStudyMode:
 
         while True:
             try:
+                context_questions = self._get_random_questions_for_context()
                 base_question = {
                     "subject": topic,
                     "type": quiz_type,
                     "category": category,
+                    "base_questions": [asdict(q) for q in context_questions],
                 }
                 if quiz_type == "basic":
                     base_question['exclude_terms'] = list(asked_items)
