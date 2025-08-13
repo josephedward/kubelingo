@@ -63,6 +63,40 @@ from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
 
+def interactive_question_manager_menu():
+    """Interactive menu for question manager script."""
+    try:
+        import questionary
+    except ImportError:
+        print("Error: Required packages are missing. Please install them using: pip install questionary", file=sys.stderr)
+        sys.exit(1)
+
+    choice = questionary.select(
+        "Select a command:",
+        choices=["build-index", "Exit"],
+    ).ask()
+
+    if choice == "build-index":
+        directory = questionary.text(
+            'Path to the directory containing YAML question files?',
+            default='yaml/questions'
+        ).ask()
+        if not directory:
+            return
+
+        quiet = questionary.confirm("Suppress progress output?", default=False).ask()
+
+        # Create a mock args object
+        class MockArgs:
+            pass
+        args = MockArgs()
+        args.directory = directory
+        args.quiet = quiet
+        handle_build_index(args)
+    elif choice == "Exit" or choice is None:
+        print("Exiting question manager.")
+        return
+
 def handle_build_index(args):
     """Handler for building/updating the question index from YAML files."""
     print("Building question index from YAML files...")
@@ -88,40 +122,43 @@ def handle_build_index(args):
 # --- Main CLI Router ---
 def main():
     """Main entry point for the question manager CLI."""
-    parser = argparse.ArgumentParser(
-        description="A unified CLI for managing Kubelingo questions.",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser(
+            description="A unified CLI for managing Kubelingo questions.",
+            formatter_class=argparse.RawTextHelpFormatter
+        )
+        subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
 
 
-    # Sub-parser for 'build-index'
-    parser_build_index = subparsers.add_parser(
-        'build-index',
-        help='Builds or updates the question index from YAML files.',
-        description="Scans YAML files in a directory, hashes them, and updates the SQLite question database."
-    )
-    parser_build_index.add_argument(
-        'directory',
-        default='yaml/questions',
-        nargs='?',
-        help='Path to the directory containing YAML question files. Defaults to "yaml/questions".'
-    )
-    parser_build_index.add_argument(
-        '--quiet',
-        action='store_true',
-        help="Suppress progress output."
-    )
-    parser_build_index.set_defaults(func=handle_build_index)
+        # Sub-parser for 'build-index'
+        parser_build_index = subparsers.add_parser(
+            'build-index',
+            help='Builds or updates the question index from YAML files.',
+            description="Scans YAML files in a directory, hashes them, and updates the SQLite question database."
+        )
+        parser_build_index.add_argument(
+            'directory',
+            default='yaml/questions',
+            nargs='?',
+            help='Path to the directory containing YAML question files. Defaults to "yaml/questions".'
+        )
+        parser_build_index.add_argument(
+            '--quiet',
+            action='store_true',
+            help="Suppress progress output."
+        )
+        parser_build_index.set_defaults(func=handle_build_index)
 
 
-    # Other subcommands...
+        # Other subcommands...
 
-    args = parser.parse_args()
-    if hasattr(args, 'func'):
-        args.func(args)
+        args = parser.parse_args()
+        if hasattr(args, 'func'):
+            args.func(args)
+        else:
+            parser.print_help()
     else:
-        parser.print_help()
+        interactive_question_manager_menu()
 
 
 if __name__ == '__main__':

@@ -57,74 +57,6 @@ def sha256_checksum(file_path: Path, block_size=65536) -> str:
     return sha256.hexdigest()
 
 
-# --- New Functionality: Interactive Selector ---
-
-def interactive_selector():
-    """Displays an interactive selector for Kubernetes exercises."""
-    if not get_db_connection or not sqlite3:
-        print("Error: Database functionality is not available.", file=sys.stderr)
-        sys.exit(1)
-
-    conn = None
-    try:
-        conn = get_db_connection()
-        conn.row_factory = sqlite3.Row  # Ensure we can access columns by name
-        cursor = conn.cursor()
-
-        # Query for counts by category and subject
-        cursor.execute("""
-            SELECT category, subject, COUNT(*) as count
-            FROM questions
-            GROUP BY category, subject
-        """)
-        rows = cursor.fetchall()
-
-        # Organize data into a nested structure
-        data = defaultdict(lambda: defaultdict(int))
-        for row in rows:
-            category = row["category"] or "Uncategorized"
-            subject = row["subject"] or "Uncategorized"
-            data[category][subject] = row["count"]
-
-        # Build choices for the selector
-        choices = []
-        choices.append("--- Review ---")
-        choices.append(f"○ Review Flagged Questions ({data.get('Review', {}).get('Flagged', 0)})")
-        choices.append("○ Study Mode (Socratic Tutor)")
-        choices.append("--- Basic Exercises ---")
-        for subject, count in data.get("basic", {}).items():
-            choices.append(f"○ {subject} ({count} questions)")
-        choices.append("--- Command-Based Exercises ---")
-        for subject, count in data.get("command", {}).items():
-            choices.append(f"○ {subject} ({count} questions)")
-        choices.append("--- Manifest-Based Exercises ---")
-        for subject, count in data.get("manifest", {}).items():
-            choices.append(f"○ {subject} ({count} questions)")
-        choices.append("--- Settings ---")
-        choices.append("○ API Keys")
-        choices.append("○ Cluster Configuration")
-        choices.append("○ Troubleshooting")
-        choices.append("○ Help Documentation")
-        choices.append("○ Exit App")
-
-        # Display the selector
-        selected = inquirer.select(
-            message="Choose a Kubernetes exercise:",
-            choices=choices,
-            pointer="»",
-            default=None,
-        ).execute()
-
-        print(f"You selected: {selected}")
-
-    except sqlite3.Error as e:
-        print(f"Database error: {e}", file=sys.stderr)
-        sys.exit(1)
-    finally:
-        if conn:
-            conn.close()
-
-
 # --- From consolidate_backups.py ---
 
 def consolidate_backups():
@@ -215,18 +147,18 @@ parser = argparse.ArgumentParser(
     description="A consolidated tool for managing question data, manifests, and backups.",
     formatter_class=argparse.RawTextHelpFormatter
 )
-subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
 p_backups = subparsers.add_parser("backups", help="Consolidate all data files (*.db, *.sqlite3, *.yaml) into a single archive directory.")
 p_backups.set_defaults(func=consolidate_backups)
 
-p_selector = subparsers.add_parser("selector", help="Interactive selector for Kubernetes exercises.")
-p_selector.set_defaults(func=interactive_selector)
-
 def main():
     args = parser.parse_args()
-    if hasattr(args, 'func'):
+    # If a command is given, run it. Otherwise, run the default action.
+    if hasattr(args, 'func') and args.command:
         args.func()
+    else:
+        consolidate_backups()
 
 if __name__ == '__main__':
     main()
