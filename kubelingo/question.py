@@ -102,7 +102,6 @@ class Question:
     # --- Legacy compatibility ---
     category: Optional[str] = None
     response: Optional[str] = None
-    validation: List[Any] = field(default_factory=list)
 
     def __post_init__(self):
         # Derive schema_category from question type for schema enforcement if not provided

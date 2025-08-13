@@ -34,6 +34,7 @@ from kubelingo.utils.config import (
     save_cluster_configs,
 )
 from kubelingo.utils.path_utils import get_project_root
+from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import commands_equivalent, is_yaml_subset
 
@@ -56,8 +57,10 @@ class KubernetesStudyMode:
         self.ai_provider = get_ai_provider()
         try:
             self.client: LLMClient = get_llm_client()
+            self.ai_evaluator = AIEvaluator(llm_client=self.client)
         except (ValueError, ImportError):
             self.client = None  # Handle case where no key is set yet
+            self.ai_evaluator = None
         self.conversation_history: List[Dict[str, str]] = []
         self.session_active = False
         self.vim_editor = VimYamlEditor()
@@ -552,11 +555,25 @@ class KubernetesStudyMode:
             user_answer = questionary.text("Your command:").ask()
             if user_answer is None:
                 return False
-            # Allow multiple correct answers, check for functional equivalence
-            for ans in question.answers:
-                if commands_equivalent(user_answer, ans):
-                    return True
-            return False
+
+            if not self.ai_evaluator:
+                print(f"{Fore.YELLOW}AI evaluator not available. Falling back to exact match.{Style.RESET_ALL}")
+                # Fallback to simple check if AI is not configured
+                for ans in question.answers:
+                    if commands_equivalent(user_answer, ans):
+                        return True
+                return False
+
+            # Use AI for more flexible evaluation
+            q_dict = asdict(question)
+            eval_result = self.ai_evaluator.evaluate_command(q_dict, user_answer)
+
+            if eval_result:
+                print(f"\n{Fore.CYAN}Feedback: {eval_result.get('reasoning', 'No reasoning provided.')}{Style.RESET_ALL}")
+                return eval_result.get('correct', False)
+            else:
+                print(f"{Fore.RED}AI evaluation failed. Please check your connection or API key.{Style.RESET_ALL}")
+                return False
 
         if question.type in ("yaml_author", "yaml_edit"):
             initial_content = question.initial_files.get("exercise.yaml", "")
