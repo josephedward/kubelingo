@@ -2311,10 +2311,19 @@ def main():
     # Sub-parser for 'deduplicate-files'
     parser_deduplicate_files = subparsers.add_parser(
         'deduplicate-files',
-        help='Find and report duplicate questions by answer content in YAML files.',
-        description="Finds files with identical question answers and suggests `git rm` commands for the duplicates."
+        help='Find and report duplicate question files by content or by answer.',
+        description="Finds duplicate files using different methods and suggests `git rm` commands."
     )
     parser_deduplicate_files.add_argument('files', nargs='+', help='File paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").')
+    parser_deduplicate_files.add_argument(
+        '--method',
+        choices=['checksum', 'answer'],
+        default='checksum',
+        help="Deduplication method:\n"
+             " - checksum: Find files with identical content (fast, exact matches).\n"
+             " - answer: Find questions with identical answers inside YAML files (slower, requires parsing).\n"
+             "Default: checksum"
+    )
     parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Sub-parser for 'find-duplicates' (from scripts/find_duplicate_questions.py)
