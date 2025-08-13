@@ -46,6 +46,7 @@ QUESTIONS_DIR = os.getenv('KUBELINGO_QUESTIONS_DIR') or os.path.join(DATA_DIR, '
 # This now merges the former QUESTION_SOURCE_DIRS and QUESTION_DIRS
 QUESTION_DIRS = [
     QUESTIONS_DIR,  # Primary, consolidated directory
+    os.path.join(PROJECT_ROOT, 'yaml'),  # For questions organized by category/subject
     os.path.join(PROJECT_ROOT, 'backups', 'yaml'),
     os.path.join(PROJECT_ROOT, 'question-data', 'yaml'),
 ]

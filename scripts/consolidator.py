@@ -370,7 +370,10 @@ def merge_solutions():
 
 def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_source: bool):
     """
-    Organizes individual AI-generated YAML question files into subject-specific files.
+    Organizes individual YAML question files from a flat source directory into a
+    structured destination directory based on category and subject.
+    It moves files, assuming one question per file.
+    Example: .../yaml/some_id.yaml -> .../yaml/basic/core_workloads/some_id.yaml
     """
     source_dir = Path(source_dir_path)
     dest_dir = Path(dest_dir_path)
@@ -385,95 +388,63 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
     if categorizer:
         print("AI categorizer loaded. Will attempt to categorize questions without a subject.")
 
-    yaml_files = list(source_dir.glob("*.yaml"))
+    yaml_files = [p for p in source_dir.glob("*.yaml") if p.is_file()]
     if not yaml_files:
-        print(f"No YAML files found in {source_dir}")
+        print(f"No YAML files found at the top-level of {source_dir} to organize.")
         return
 
     print(f"Found {len(yaml_files)} YAML files to organize.")
 
-    # Step 1: Group all questions by subject from all source files.
-    questions_by_subject = defaultdict(list)
-    total_questions_processed = 0
-    processed_files = []
+    moved_count = 0
     for file_path in yaml_files:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
-                if not isinstance(questions, list):
-                    if isinstance(questions, dict):
-                        questions = [questions]
+                question = yaml.safe_load(f)
+                if isinstance(question, list):
+                    if len(question) == 1:
+                        question = question[0]
                     else:
-                        print(f"Warning: Skipping {file_path.name}, content is not a list or dict.")
+                        print(f"Warning: Skipping {file_path.name}, as it contains multiple questions.")
                         continue
 
-            for question in questions:
-                total_questions_processed += 1
-                if not isinstance(question, dict):
-                    continue
+            if not isinstance(question, dict):
+                print(f"Warning: Skipping {file_path.name}, as its content is not a single question dict.")
+                continue
 
-                subject = question.get("subject")
-                if not subject and categorizer:
-                    try:
-                        ai_cats = categorizer.categorize_question(question)
-                        if ai_cats:
-                            subject = ai_cats.get("subject_matter")
-                            print(f"  Categorized question {question.get('id', '')} as '{subject}'")
-                    except Exception as e:
-                        print(f"AI categorization failed for question {question.get('id', 'N/A')}: {e}", file=sys.stderr)
+            q_type = question.get('type', 'socratic').lower()
+            category = 'basic' if q_type == 'socratic' else q_type
 
-                subject = subject or "general"
-                questions_by_subject[subject].append(question)
-            processed_files.append(file_path)
+            subject = question.get("subject")
+            if not subject and categorizer:
+                try:
+                    ai_cats = categorizer.categorize_question(question)
+                    if ai_cats and ai_cats.get("subject_matter"):
+                        subject = ai_cats["subject_matter"]
+                        print(f"  Categorized question {question.get('id', file_path.stem)} as '{subject}'")
+                except Exception as e:
+                    print(f"AI categorization failed for {file_path.name}: {e}", file=sys.stderr)
+            subject = subject or "general"
+
+            subject_slug = ''.join(c for c in subject.lower().replace(" ", "_") if c.isalnum() or c == '_')
+
+            final_dest_dir = Path(dest_dir_path) / category / subject_slug
+            final_dest_dir.mkdir(parents=True, exist_ok=True)
+            new_path = final_dest_dir / file_path.name
+
+            if new_path.exists():
+                print(f"Warning: Destination file {new_path.relative_to(project_root)} exists, skipping.")
+                continue
+
+            shutil.move(file_path, new_path)
+            print(f"Moved {file_path.relative_to(project_root)} to {new_path.relative_to(project_root)}")
+            moved_count += 1
         except Exception as e:
             print(f"Error processing {file_path}: {e}", file=sys.stderr)
 
-    print(f"\nProcessed {total_questions_processed} questions into {len(questions_by_subject)} subjects.")
+    print(f"\nSuccessfully moved {moved_count} question files.")
 
-    # Step 2: Write out the consolidated files.
-    organized_count = 0
-    for subject, new_questions in questions_by_subject.items():
-        # Sanitize subject to create a valid filename
-        filename_subject = subject.lower().replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "")
-        filename_subject = ''.join(c for c in filename_subject if c.isalnum() or c == '_')
-        dest_filepath = dest_dir / f"ai_generated_{filename_subject}.yaml"
-
-        existing_questions = []
-        if dest_filepath.exists():
-            with open(dest_filepath, 'r', encoding='utf-8') as f_read:
-                try:
-                    docs = list(yaml.load_all(f_read, Loader=yaml.UnsafeLoader))
-                    for doc in docs:
-                        if isinstance(doc, list):
-                            existing_questions.extend(doc)
-                except yaml.YAMLError:
-                    print(f"Warning: Could not parse existing file {dest_filepath}, it may be overwritten.")
-
-        existing_ids = {q.get('id') for q in existing_questions if q.get('id')}
-        questions_to_add = []
-        for question in new_questions:
-            q_id = question.get('id')
-            if not q_id or q_id not in existing_ids:
-                questions_to_add.append(question)
-                if q_id:
-                    existing_ids.add(q_id)
-
-        if not questions_to_add:
-            continue
-
-        all_questions_for_file = existing_questions + questions_to_add
-        organized_count += len(questions_to_add)
-
-        with open(dest_filepath, 'w', encoding='utf-8') as f_write:
-            yaml.dump(all_questions_for_file, f_write, default_flow_style=False, sort_keys=False)
-
-    print(f"\nSuccessfully organized {organized_count} new questions.")
-
-    # Step 3: Delete source files if requested.
     if delete_source:
-        for file_path in processed_files:
-            file_path.unlink()
-        print(f"Deleted {len(processed_files)} source files.")
+        print("Note: Source files are moved, not copied. The --delete-source flag is implicit.")
 
 
 # --- Main CLI ---
@@ -502,10 +473,10 @@ p_merge_quizzes.set_defaults(func=lambda args: merge_quizzes(args.source, args.d
 p_merge_solutions = subparsers.add_parser("merge-solutions", help="Merge individual solution files into a single YAML per category.")
 p_merge_solutions.set_defaults(func=merge_solutions)
 
-p_organize = subparsers.add_parser("organize-ai-questions", help="Organize individual AI-generated questions into subject-based files.")
-p_organize.add_argument("--source-dir", default="yaml", help="Directory containing the individual question files.")
-p_organize.add_argument("--dest-dir", default="yaml/questions", help="Directory to save the consolidated subject-based files.")
-p_organize.add_argument("--delete-source", action="store_true", help="Delete the source files after organizing them.")
+p_organize = subparsers.add_parser("organize-ai-questions", help="Organize flat question files into a category/subject directory structure.")
+p_organize.add_argument("--source-dir", default="yaml", help="Source directory with flat YAML files to organize.")
+p_organize.add_argument("--dest-dir", default="yaml", help="Destination directory to create category/subject structure in.")
+p_organize.add_argument("--delete-source", action="store_true", help="This flag is noted but the script now moves files, making it implicit.")
 p_organize.set_defaults(func=lambda args: organize_ai_questions(args.source_dir, args.dest_dir, args.delete_source))
 
 def main():
