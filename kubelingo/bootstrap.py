@@ -183,7 +183,7 @@ def bootstrap_on_startup():
                 prompt=prompt,
                 source_file=str(latest_backup_path),
                 response=q.get('answer'),
-                category=subject_id,  # This is subject_matter, which maps to subject_id
+                subject_id=subject_id,  # This is subject_matter, which maps to subject_id
                 source=q.get('source'),
                 validation_steps=q.get('validation_steps'),
                 validator=q.get('validator'),
@@ -191,10 +191,10 @@ def bootstrap_on_startup():
                 conn=conn
             )
 
-            # Update the Exercise Category (category_id) in a separate step.
+            # Update the Exercise Category (schema_category) in a separate step.
             if category_id:
                 logging.info(f"Setting exercise category to '{category_id}' for question {q_id}")
-                cursor.execute("UPDATE questions SET category_id = ? WHERE id = ?", (category_id, q_id))
+                cursor.execute("UPDATE questions SET schema_category = ? WHERE id = ?", (category_id, q_id))
             else:
                 logging.warning(f"Could not determine exercise category for question {q_id}")
 
