@@ -120,6 +120,14 @@ class Question:
     response: Optional[str] = None
 
     def __post_init__(self):
+        # Ensure schema_category is an enum member if provided as a string
+        if isinstance(self.schema_category, str):
+            try:
+                self.schema_category = QuestionCategory(self.schema_category)
+            except ValueError:
+                # If it's not a valid category, we'll let it be derived from type.
+                self.schema_category = None
+
         # Derive schema_category from question type for schema enforcement if not provided
         if self.schema_category is None:
             if self.type == 'socratic':
@@ -128,7 +136,7 @@ class Question:
                 self.schema_category = QuestionCategory.BASIC_TERMINOLOGY
             elif self.type == 'command':
                 self.schema_category = QuestionCategory.COMMAND_SYNTAX
-            elif self.type in ('yaml_author', 'yaml_edit'):
+            elif self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
                 self.schema_category = QuestionCategory.YAML_MANIFEST
             else:
                 # Default for unknown or legacy types.

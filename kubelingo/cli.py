@@ -305,8 +305,9 @@ def _rebuild_db_from_yaml():
     print("Attempting to rebuild database from source YAML files...")
     conn = get_db_connection()
     try:
-        print("Clearing existing questions from the database...")
+        print("Clearing existing questions and index from the database...")
         conn.execute("DELETE FROM questions")
+        conn.execute("DELETE FROM indexed_files")
         conn.commit()
         print("Database cleared.")
 
@@ -1266,6 +1267,9 @@ def main():
                 return
             elif cmd_name == 'restore_db':
                 restore_db()
+                return
+            elif cmd_name == 'rebuild-db':
+                _rebuild_db_from_yaml()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
