@@ -136,10 +136,22 @@ class SocraticMode:
         subject_choices.sort(key=lambda c: c.title)
 
         if not subject_choices:
-            print(
-                f"\n{Fore.YELLOW}No questions found for '{category.value}'.{Style.RESET_ALL}"
+            # If no subjects are found, run a quiz with all questions for the category.
+            # This handles cases where questions have a category but no subject.
+            all_category_questions = self._get_questions_by_category_and_subject(
+                category, None
             )
-            questionary.confirm("Press Enter to continue...").ask()
+            if all_category_questions:
+                print(
+                    f"{Fore.YELLOW}No specific subjects found. Running quiz for all {len(all_category_questions)} questions in '{category.value}'.{Style.RESET_ALL}"
+                )
+                questionary.confirm("Press Enter to continue...").ask()
+                self._run_quiz(all_category_questions)
+            else:
+                print(
+                    f"\n{Fore.YELLOW}No questions found for '{category.value}'.{Style.RESET_ALL}"
+                )
+                questionary.confirm("Press Enter to continue...").ask()
             return
 
         subject_choices.append(Separator())
@@ -363,14 +375,23 @@ class SocraticMode:
                 questionary.confirm("Press Enter to continue...").ask()
 
     def _get_questions_by_category_and_subject(
-        self, category: QuestionCategory, subject: str
+        self, category: QuestionCategory, subject: Optional[str]
     ) -> List[Question]:
-        """Fetches questions from the database for a given category and subject."""
-        query = f"SELECT * FROM questions WHERE category_id = ? AND subject_id = ?"
+        """
+        Fetches questions from the database for a given category and, optionally, a subject.
+        If subject is None, fetches all questions for the category.
+        """
+        params = [category.value]
+        if subject:
+            query = "SELECT * FROM questions WHERE category_id = ? AND subject_id = ?"
+            params.append(subject)
+        else:
+            query = "SELECT * FROM questions WHERE category_id = ?"
+
         try:
             self.db_conn.row_factory = sqlite3.Row
             cursor = self.db_conn.cursor()
-            cursor.execute(query, (category.value, subject))
+            cursor.execute(query, tuple(params))
             rows = cursor.fetchall()
             questions = []
 

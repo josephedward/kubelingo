@@ -891,11 +891,15 @@ def run_interactive_main_menu():
     while True:
         try:
             # Re-check client in loop in case API key is set during session
-            if not study_session.client:
-                try:
-                    study_session.client = get_llm_client()
-                except (ValueError, ImportError):
-                    study_session.client = None
+            api_key = get_active_api_key()
+            if api_key:
+                if not study_session.client:
+                    try:
+                        study_session.client = get_llm_client()
+                    except (ValueError, ImportError):
+                        study_session.client = None
+            else:
+                study_session.client = None  # Ensure client is None if no key
 
             has_api_key = bool(study_session.client)
             api_key_required_msg = "API Key Required"
