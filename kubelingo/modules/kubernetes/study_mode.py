@@ -87,10 +87,7 @@ class KubernetesStudyMode:
         ).ask()
 
         if category_choice and category_choice != "back":
-            if category_choice == QuestionCategory.OPEN_ENDED:
-                self._run_socratic_mode_entry()
-            else:
-                self._run_drill_menu(category_choice)
+            self._run_drill_menu(category_choice)
 
     def _run_quiz(self, questions: List[Question]):
         """
@@ -223,6 +220,7 @@ class KubernetesStudyMode:
                     return
 
                 quiz_type_map = {
+                    QuestionCategory.OPEN_ENDED: "socratic",
                     QuestionCategory.BASIC_TERMINOLOGY: "basic",
                     QuestionCategory.COMMAND_SYNTAX: "command",
                     QuestionCategory.YAML_MANIFEST: "manifest",
@@ -626,6 +624,12 @@ class KubernetesStudyMode:
                 return False
             # Check if the user's YAML is a subset of the required solution
             return is_yaml_subset(question.correct_yaml, user_yaml)
+
+        if question.type == "socratic":
+            # For Socratic questions, just prompt for input and treat as 'correct'
+            # to show explanation. There's no single right answer.
+            questionary.text("Your thoughts? (Press Enter to continue)").ask()
+            return True
 
         return False
 
