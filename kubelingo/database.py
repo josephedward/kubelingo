@@ -220,6 +220,23 @@ def get_indexed_files(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
             conn.close()
 
 
+def get_unique_source_files(conn: sqlite3.Connection = None) -> List[str]:
+    """Retrieves a list of unique source_file values from the questions table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT source_file FROM questions WHERE source_file IS NOT NULL")
+        sources = [row[0] for row in cursor.fetchall()]
+        return sources
+    finally:
+        if close_conn and conn:
+            conn.close()
+
+
 def index_all_yaml_questions(verbose: bool = True):
     """Discovers and indexes all YAML question files from the repository."""
     if verbose:
@@ -355,19 +372,12 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                         category_id = ai_categories.get('exercise_category', category_id)
                         subject_id = ai_categories.get('subject_matter', subject_id)
 
-                # Instead of direct insert, use add_question to handle metadata and core content.
+                # Instead of direct insert, use add_question to handle metadata.
                 db_dict = {
                     'id': q_obj.id,
-                    'prompt': q_obj.prompt,
                     'source_file': q_obj.source_file,
                     'category_id': category_id,
                     'subject_id': subject_id,
-                    'question_type': q_obj.type,
-                    'answers': json.dumps(q_obj.answers) if q_obj.answers else None,
-                    'correct_yaml': q_obj.correct_yaml,
-                    'validation_steps': json.dumps([asdict(vs) for vs in q_obj.validation_steps]) if q_obj.validation_steps else None,
-                    'explanation': q_obj.explanation,
-                    'source': q_obj.source,
                     'review': getattr(q_obj, 'review', False),
                     'triage': getattr(q_obj, 'triage', False),
                     'content_hash': content_hash,
@@ -426,16 +436,9 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,
-            prompt TEXT,
             source_file TEXT NOT NULL,
             category_id TEXT,
             subject_id TEXT,
-            question_type TEXT,
-            answers TEXT,
-            correct_yaml TEXT,
-            validation_steps TEXT,
-            explanation TEXT,
-            source TEXT,
             review BOOLEAN NOT NULL DEFAULT 0,
             triage BOOLEAN NOT NULL DEFAULT 0,
             content_hash TEXT,
