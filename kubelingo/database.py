@@ -307,7 +307,7 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
     for file_path in file_iterator:
         try:
             file_hash = _get_file_hash(file_path)
-            rel_path = str(file_path.relative_to(project_root))
+            rel_path = str(file_path.resolve().relative_to(project_root))
 
             cursor.execute("SELECT content_hash FROM indexed_files WHERE file_path = ?", (rel_path,))
             result = cursor.fetchone()

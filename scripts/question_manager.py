@@ -1507,7 +1507,7 @@ def _get_file_metadata(path: Path) -> dict:
     """Gathers metadata for a given file."""
     stat = path.stat()
     return {
-        "path": str(path.relative_to(project_root)), "size_bytes": stat.st_size,
+        "path": str(path.resolve().relative_to(project_root)), "size_bytes": stat.st_size,
         "last_modified": datetime.datetime.fromtimestamp(stat.st_mtime).isoformat(),
     }
 
@@ -2110,7 +2110,7 @@ def do_recategorize_ai(args):
         for file_path in loader.discover():
             try:
                 # Ensure source_file is a relative path for consistency with DB
-                relative_path = str(Path(file_path).relative_to(project_root_path))
+                relative_path = str(Path(file_path).resolve().relative_to(project_root_path))
                 questions = loader.load_file(file_path)
                 for q in questions:
                     q.source_file = relative_path
