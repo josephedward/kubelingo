@@ -16,7 +16,7 @@ class TestConfig(unittest.TestCase):
         """
         with patch.dict(os.environ, {}, clear=True):
             importlib.reload(config)
-            expected_path = os.path.join(config.DATA_DIR, 'questions')
+            expected_path = os.path.join(config.PROJECT_ROOT, 'yaml')
             self.assertEqual(config.QUESTIONS_DIR, expected_path)
 
         # Reload again outside the patch to restore the module to its original state

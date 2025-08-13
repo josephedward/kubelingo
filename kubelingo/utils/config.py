@@ -28,10 +28,6 @@ except Exception:
     # Could not create directories (permissions?), ignore
     pass
 
-# Data directories for built-in quiz files are located at the project root.
-# Data directories for built-in quiz files are located at the project root.
-DATA_DIR = os.path.join(PROJECT_ROOT, 'question-data')
-
 # The single, consolidated directory for all question data. This can be overridden by
 # the KUBELINGO_QUESTIONS_DIR environment variable to allow using an external
 # question data repository. The build_question_db.py script will use this as the sole source.
@@ -46,9 +42,6 @@ QUESTIONS_DIR = os.getenv('KUBELINGO_QUESTIONS_DIR') or os.path.join(PROJECT_ROO
 # This now merges the former QUESTION_SOURCE_DIRS and QUESTION_DIRS
 QUESTION_DIRS = [
     QUESTIONS_DIR,  # Primary, consolidated directory
-    os.path.join(PROJECT_ROOT, 'yaml'),  # For questions organized by category/subject
-    os.path.join(PROJECT_ROOT, 'backups', 'yaml'),
-    os.path.join(PROJECT_ROOT, 'question-data', 'yaml'),
 ]
 
 # Candidate directories for YAML backup files.
