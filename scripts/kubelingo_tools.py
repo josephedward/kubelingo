@@ -4,7 +4,6 @@ Kubelingo: An interactive menu for managing questions.
 """
 
 import sys
-import subprocess
 from pathlib import Path
 
 try:
