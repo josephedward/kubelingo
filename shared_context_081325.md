@@ -46,6 +46,8 @@ The application's startup sequence has several critical design flaws and bugs th
   ImportError: cannot import name 'SUBJECT_MATTER' from 'kubelingo.utils.config' (/Users/user/Documents/GitHub/kubelingo/kubelingo/utils/config.py)
   ```
 - **Cause**: The `SUBJECT_MATTER` constant, which defines Kubernetes topics, was removed from `kubelingo.utils.config` but `kubelingo.database.py` still attempts to import it from there. This constant is now sourced from the `QuestionSubject` enum in `kubelingo.question`.
+- **Bug**: Socratic study mode fails silently with a generic "Sorry, I couldn't start the session" message.
+- **Cause**: When an AI provider is not configured (e.g., missing API key), the Socratic study mode, which depends on an LLM client, fails. Instead of guiding the user to the settings page, it displays a vague error and returns to the menu, creating a poor user experience. The underlying error is caught by a broad `except Exception` block, hiding the root cause.
 
 ## Tests
 - make sure you can generate questions of all 4 types and all 21 subjects (81 examples in all)
