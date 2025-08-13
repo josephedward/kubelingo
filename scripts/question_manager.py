@@ -22,41 +22,6 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any, Set, Tuple
 
 # --- Imports from generator.py ---
-# Load real OpenAI package, avoiding local openai.py stub if present
-# This is a precaution from one of the original scripts.
-cwd = os.getcwd()
-sys_path_backup = sys.path.copy()
-sys.path = [p for p in sys.path if p not in ('', cwd)]
-try:
-    import openai
-except ImportError:
-    # This is a soft failure; only commands requiring openai will fail.
-    openai = None
-finally:
-    sys.path = sys_path_backup
-
-try:
-    import fitz  # PyMuPDF
-except ImportError:
-    fitz = None
-
-# Load real OpenAI package, avoiding local openai.py stub if present
-# This is a precaution from one of the original scripts.
-cwd = os.getcwd()
-sys_path_backup = sys.path.copy()
-sys.path = [p for p in sys.path if p not in ('', cwd)]
-try:
-    import openai
-except ImportError:
-    # This is a soft failure; only commands requiring openai will fail.
-    openai = None
-finally:
-    sys.path = sys_path_backup
-
-try:
-    import fitz  # PyMuPDF
-except ImportError:
-    fitz = None
 
 # Add project root to path to allow imports from kubelingo
 try:
@@ -992,6 +957,9 @@ def handle_service_account(args):
         questions = questions[:args.num]
     json_out = json.dumps(questions, indent=2)
     if args.output:
+        output_dir = os.path.dirname(args.output)
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(json_out)
         print(f"Wrote {len(questions)} questions to {args.output}")
