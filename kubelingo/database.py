@@ -394,15 +394,18 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
 
 def build_from_yaml(yaml_file_path: str, verbose: bool = True):
     """
-    Builds the database from a single YAML file, replacing the existing live DB.
+    Builds a new timestamped database from a single YAML file.
     """
     yaml_path = Path(yaml_file_path)
     if not yaml_path.is_file():
         if verbose:
             print(f"Error: Source YAML file not found at '{yaml_file_path}'", file=sys.stderr)
-        sys.exit(1)
+        raise FileNotFoundError(f"Source YAML file not found: {yaml_file_path}")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    new_db_filename = f"kubelingo_{timestamp}.db"
+    new_db_path = os.path.join(APP_DIR, new_db_filename)
+
     # Create temp DB in .kubelingo to ensure it's on the same filesystem for atomic move.
     os.makedirs(APP_DIR, exist_ok=True)
     temp_db_path = os.path.join(APP_DIR, f"kubelingo_build_{timestamp}.db")
@@ -428,25 +431,25 @@ def build_from_yaml(yaml_file_path: str, verbose: bool = True):
         # Clean up temp file on failure
         if os.path.exists(temp_db_path):
             os.remove(temp_db_path)
-        sys.exit(1)
+        raise
     finally:
         if conn:
             conn.close()
 
-    # 3. Safely replace the live database
+    # 3. Safely move the new database to its final destination
     try:
         if verbose:
-            print(f"\nReplacing live database at '{DATABASE_FILE}'...")
+            print(f"\nFinalizing new database at '{new_db_path}'...")
         # shutil.move is atomic on most POSIX systems if src/dst are on the same filesystem
-        shutil.move(temp_db_path, DATABASE_FILE)
+        shutil.move(temp_db_path, new_db_path)
         if verbose:
             print("Database build successful.")
-            print(f"Live database is now located at: {DATABASE_FILE}")
+            print(f"New live database is now located at: {new_db_path}")
     except Exception as e:
         if verbose:
-            print(f"\nError replacing live database: {e}", file=sys.stderr)
+            print(f"\nError finalizing new database: {e}", file=sys.stderr)
             print(f"The new database is available at '{temp_db_path}'")
-        sys.exit(1)
+        raise
 
 
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):
