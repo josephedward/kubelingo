@@ -53,8 +53,55 @@ def _run_script(script_name: str, *args):
     subprocess.run(command, check=False)
 
 
+def task_run_bug_ticket():
+    """Run bug_ticket.py"""
+    _run_script("bug_ticket.py")
 
+def task_run_consolidator():
+    """Run consolidator.py"""
+    _run_script("consolidator.py")
 
+def task_run_generator():
+    """Run generator.py"""
+    _run_script("generator.py")
+
+def task_run_question_manager():
+    """Run question_manager.py"""
+    _run_script("question_manager.py")
+
+def task_run_sqlite_manager():
+    """Run sqlite_manager.py"""
+    _run_script("sqlite_manager.py")
+
+def task_run_yaml_manager():
+    """Run yaml_manager.py"""
+    _run_script("yaml_manager.py")
+
+def task_tool_scripts():
+    """Display a menu to run a tool script."""
+    try:
+        import questionary
+    except ImportError:
+        print("Error: 'questionary' library not found. Please install it with: pip install questionary")
+        sys.exit(1)
+
+    tasks = {
+        "bug_ticket.py": task_run_bug_ticket,
+        "consolidator.py": task_run_consolidator,
+        "generator.py": task_run_generator,
+        "question_manager.py": task_run_question_manager,
+        "sqlite_manager.py": task_run_sqlite_manager,
+        "yaml_manager.py": task_run_yaml_manager,
+    }
+    
+    choice = questionary.select(
+        "Select a tool script to run:",
+        choices=list(tasks.keys()) + [questionary.Separator(), "Back"],
+        use_indicator=True
+    ).ask()
+
+    if choice and choice != "Back":
+        tasks[choice]()
 
 
 def task_full_migrate_and_cleanup():
@@ -115,7 +162,7 @@ def task_full_migrate_and_cleanup():
 
 
 def run_interactive_menu():
-    """Display an interactive menu for maintenance tasks."""
+    """Display an interactive menu for the application."""
     try:
         import questionary
         from questionary import Separator
@@ -123,30 +170,89 @@ def run_interactive_menu():
         print("Error: 'questionary' library not found. Please install it with:")
         print("pip install questionary")
         sys.exit(1)
+    
+    if not get_db_connection or not get_flagged_questions:
+        print("Database modules not loaded. Cannot display question counts.", file=sys.stderr)
+        missed_count = 'N/A'
+        question_counts = defaultdict(lambda: 'N/A')
+    else:
+        conn = get_db_connection()
+        if not conn:
+            print("Could not connect to database.", file=sys.stderr)
+            missed_count = 'N/A'
+            question_counts = defaultdict(lambda: 'N/A')
+        else:
+            try:
+                missed_count = len(get_flagged_questions(conn))
 
-    script_choices = [
-        "bug_ticket.py",
-        "consolidator.py",
-        "generator.py",
-        "question_manager.py",
-        "sqlite_manager.py",
-        "yaml_manager.py",
-    ]
+                cursor = conn.cursor()
+                cursor.execute("SELECT category, COUNT(*) FROM questions GROUP BY category")
+                rows = cursor.fetchall()
+                counts_by_category = {row[0]: row[1] for row in rows}
+                
+                question_counts = {
+                    "Open Ended Questions": counts_by_category.get('basic', 0),
+                    "Basic Terminology": 0,  # NOTE: No clear way to count this yet.
+                    "Command Syntax": counts_by_category.get('command', 0),
+                    "YAML Manifest": counts_by_category.get('manifest', 0),
+                }
+            except Exception as e:
+                print(f"Error querying database for question counts: {e}", file=sys.stderr)
+                missed_count = 'N/A'
+                question_counts = defaultdict(lambda: 'N/A')
+            finally:
+                if conn:
+                    conn.close()
 
+    tasks = {
+        "Study Mode (Socratic Tutor)": lambda: print("Not implemented yet."),
+        "Missed Questions": lambda: print("Not implemented yet."),
+        "Open Ended Questions": lambda: print("Not implemented yet."),
+        "Basic Terminology": lambda: print("Not implemented yet."),
+        "Command Syntax": lambda: print("Not implemented yet."),
+        "YAML Manifest": lambda: print("Not implemented yet."),
+        "API Keys": lambda: print("Not implemented yet."),
+        "Cluster Configuration": lambda: print("Not implemented yet."),
+        "Tool Scripts": task_tool_scripts,
+        "Triaged Questions": lambda: print("Not implemented yet."),
+        "Help": lambda: print("Not implemented yet."),
+        "Exit App": lambda: sys.exit(0),
+    }
+    
     while True:
         choice = questionary.select(
-            "Select a tool script to run:",
-            choices=script_choices + [Separator(), "Cancel"],
+            "Select an option:",
+            choices=[
+                Separator("--- Learn ---"),
+                "Study Mode (Socratic Tutor)",
+                f"Missed Questions ({missed_count})",
+                Separator("--- Drill ---"),
+                f"Open Ended Questions ({question_counts['Open Ended Questions']})",
+                f"Basic Terminology ({question_counts['Basic Terminology']})",
+                f"Command Syntax ({question_counts['Command Syntax']})",
+                f"YAML Manifest ({question_counts['YAML Manifest']})",
+                Separator("--- Settings ---"),
+                "API Keys",
+                "Cluster Configuration",
+                "Tool Scripts",
+                "Triaged Questions",
+                "Help",
+                Separator(),
+                "Exit App"
+            ],
             use_indicator=True
         ).ask()
 
-        if choice is None or choice == "Cancel":
-            print("Operation cancelled.")
+        if choice is None or choice == "Exit App":
+            print("Exiting.")
             break
 
-        # Each script is expected to handle its own arguments or interactive menu.
-        _run_script(choice)
-        print("\n--- Script finished. Returning to tools menu. ---\n")
+        base_choice = re.sub(r'\s*\([\w/]+\)$', '', choice)
+        
+        if base_choice in tasks:
+            tasks[base_choice]()
+        else:
+            print("Invalid choice.")
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
