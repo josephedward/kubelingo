@@ -96,10 +96,10 @@ def handle_deduplicate_files(args):
                             
                             answer_str = ""
                             if isinstance(answer_val, list):
-                                # Strip each item before joining to handle whitespace variations
-                                answer_str = " ".join(str(item).strip() for item in answer_val)
+                                # Strip each item, convert to lower case, and join to handle variations
+                                answer_str = " ".join(str(item).strip().lower() for item in answer_val)
                             elif answer_val is not None:
-                                answer_str = str(answer_val).strip()
+                                answer_str = str(answer_val).strip().lower()
 
                             if answer_str:
                                 answers_map[answer_str].add(str(file_path))
