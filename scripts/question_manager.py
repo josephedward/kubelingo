@@ -121,14 +121,14 @@ def handle_list_triaged(args):
         sys.exit(1)
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, prompt FROM questions WHERE triage = 1")
+        cursor.execute("SELECT id, source_file FROM questions WHERE triage = 1")
         rows = cursor.fetchall()
         if not rows:
             print("No triaged questions found.")
         else:
             print(f"Found {len(rows)} triaged questions:")
             for row in rows:
-                print(f"  - ID: {row[0]}\n    Prompt: {row[1][:100]}...")
+                print(f"  - ID: {row[0]} (from: {row[1]})")
     except Exception as e:
         print(f"Error listing triaged questions: {e}", file=sys.stderr)
         if "no such column: triage" in str(e):
@@ -171,13 +171,13 @@ def handle_remove_question(args):
     
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT prompt FROM questions WHERE id = ?", (args.question_id,))
+        cursor.execute("SELECT id FROM questions WHERE id = ?", (args.question_id,))
         row = cursor.fetchone()
         if not row:
             print(f"Error: Question with ID '{args.question_id}' not found.")
             return
 
-        confirm = questionary.confirm(f"Are you sure you want to delete question '{args.question_id}' ({row[0][:50]}...)?").ask()
+        confirm = questionary.confirm(f"Are you sure you want to delete question metadata for ID '{args.question_id}'? The question will remain in its source YAML file.").ask()
         if not confirm:
             print("Deletion cancelled.")
             return
@@ -197,20 +197,25 @@ def handle_remove_question(args):
 # --- Functions from original generator.py ---
 
 def _get_existing_prompts_for_pdf_gen() -> List[str]:
-    """Fetches all existing question prompts from the database."""
-    prompts = []
+    """Fetches all existing question prompts from all YAML files."""
+    print("Scanning all YAML files for existing question prompts...")
+    loader = YAMLLoader()
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT prompt FROM questions")
-        rows = cursor.fetchall()
-        prompts = [row[0] for row in rows if row[0]]
-        conn.close()
-    except sqlite3.Error as e:
-        print(f"Database error: {e}", file=sys.stderr)
+        yaml_files = get_all_yaml_files_in_repo()
+        all_questions = []
+        for file_path in yaml_files:
+            try:
+                all_questions.extend(loader.load_file(str(file_path)))
+            except Exception:
+                # Ignore files that fail to parse
+                continue
+        
+        prompts = [q.prompt for q in all_questions if q.prompt]
+        print(f"Found {len(prompts)} existing questions in {len(yaml_files)} YAML files.")
+        return prompts
+    except Exception as e:
+        print(f"Error scanning YAML files: {e}", file=sys.stderr)
         sys.exit(1)
-    print(f"Found {len(prompts)} existing questions in the database.")
-    return prompts
 
 
 def _extract_text_from_pdf(pdf_path: str) -> str:
@@ -1333,18 +1338,49 @@ def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
 
 
 def _export_db_to_yaml_func(output_file: str, db_path: Optional[str] = None) -> int:
-    """Exports questions from the database to a YAML file."""
+    """Exports questions referenced in the database to a single YAML file."""
     conn = get_db_connection(db_path=db_path)
     conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM questions")
-    rows = cur.fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM questions")
+    all_meta = cursor.fetchall()
     conn.close()
-    data = [_row_to_question_dict(row) for row in rows]
+
+    loader = YAMLLoader()
+    project_root = get_project_root()
+    
+    questions_by_file = {}
+    for meta_row in all_meta:
+        source_file = meta_row['source_file']
+        if source_file not in questions_by_file:
+            questions_by_file[source_file] = []
+        questions_by_file[source_file].append(meta_row['id'])
+
+    all_questions_content = {}
+    for source_file, _ in questions_by_file.items():
+        try:
+            full_path = project_root / source_file
+            questions = loader.load_file(str(full_path))
+            for q in questions:
+                all_questions_content[q.id] = asdict(q)
+        except Exception as e:
+            print(f"Warning: Could not load questions from {source_file}: {e}", file=sys.stderr)
+
+    exported_questions = []
+    for meta_row in all_meta:
+        q_id = meta_row['id']
+        if q_id in all_questions_content:
+            # Merge DB metadata over YAML content
+            content = all_questions_content[q_id]
+            meta_dict = _row_to_question_dict(meta_row)
+            content.update(meta_dict)
+            exported_questions.append(content)
+
     with open(output_file, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
-    print(f"Exported {len(data)} questions to {output_file}")
-    return len(data)
+        yaml.safe_dump(exported_questions, f, default_flow_style=False, sort_keys=False)
+        
+    print(f"Exported {len(exported_questions)} questions to {output_file}")
+    return len(exported_questions)
 
 def do_export(args):
     """Export questions DB to YAML."""
@@ -1482,94 +1518,37 @@ def _categorize_with_gemini(prompt: str) -> dict:
         return {}
 
 def do_init(args):
-    """Initializes the application database from consolidated YAML backups."""
+    """Initializes the database from consolidated YAML backups."""
     logging.info("Starting database initialization from consolidated YAML backups...")
+    root = get_project_root()
+    conn = get_db_connection()
     try:
-        root = get_project_root()
-        conn = get_db_connection()
-    except Exception as e:
-        logging.error(f"Error during initial setup: {e}")
-        return
-    backup_dir = root / 'yaml' / 'consolidated_backup'
-    if not backup_dir.is_dir():
-        logging.warning(f"Consolidated backup directory not found: {backup_dir}")
-        return
-    yaml_files = sorted(list(backup_dir.glob('**/*.yaml')) + list(backup_dir.glob('**/*.yml')))
-    if not yaml_files:
-        logging.info(f"No YAML files found in {backup_dir}.")
-        return
-    logging.info(f"Found {len(yaml_files)} YAML files to process in {backup_dir}.")
-    cursor = conn.cursor()
-    try:
-        logging.info("Clearing existing questions from the database.")
-        retry_count = 0
-        while retry_count < 5:
-            try:
-                cursor.execute("DELETE FROM questions")
-                break
-            except sqlite3.OperationalError as e:
-                if "database is locked" in str(e):
-                    logging.warning("Database is locked. Retrying...")
-                    retry_count += 1
-                    time.sleep(1)
-                else: raise
-        else:
-            logging.error("Failed to clear 'questions' table after multiple retries. Aborting.")
-            conn.close()
+        backup_dir = root / 'yaml' / 'consolidated_backup'
+        if not backup_dir.is_dir():
+            logging.warning(f"Consolidated backup directory not found: {backup_dir}")
             return
-    except sqlite3.Error as e:
-        logging.error(f"Failed to clear 'questions' table: {e}. Aborting.")
-        conn.close()
-        return
-    question_count = 0
-    for yaml_file in yaml_files:
-        relative_path = yaml_file.relative_to(root)
-        logging.info(f"Processing file: {relative_path}")
-        try:
-            with open(yaml_file, 'r', encoding='utf-8') as f:
-                data = yaml.safe_load(f)
-            if not isinstance(data, list):
-                logging.warning(f"YAML file {relative_path} does not contain a list of questions. Skipping.")
-                continue
-            for question_data in data:
-                if not isinstance(question_data, dict):
-                    logging.warning(f"Skipping non-dictionary item in {relative_path}")
-                    continue
-                prompt = question_data.get('prompt')
-                if not prompt:
-                    logging.warning(f"Skipping question with no prompt in {relative_path}")
-                    continue
-                logging.info(f"Categorizing question with llm-gemini: '{prompt[:70]}...'")
-                categories = _categorize_with_gemini(prompt)
-                exercise_category = categories.get('exercise_category', 'custom')
-                subject_matter = categories.get('subject_matter', 'Unknown')
-                q_id = question_data.get('id', str(uuid.uuid4()))
-                sql = "INSERT INTO questions (id, prompt, response, source_file, category_id, subject_id) VALUES (?, ?, ?, ?, ?, ?)"
-                params = (q_id, prompt, question_data.get('response'), str(relative_path), exercise_category, subject_matter)
-                retry_count = 0
-                while retry_count < 5:
-                    try:
-                        cursor.execute(sql, params)
-                        break
-                    except sqlite3.OperationalError as e:
-                        if "database is locked" in str(e):
-                            logging.warning("Database is locked. Retrying...")
-                            retry_count += 1
-                            time.sleep(1)
-                        else: raise
-                else:
-                    logging.error(f"Failed to insert question {q_id} after multiple retries. Skipping.")
-                    continue
-                question_count += 1
-        except yaml.YAMLError as e:
-            logging.error(f"Error parsing YAML file {relative_path}: {e}")
-        except sqlite3.Error as e:
-            logging.error(f"Database error while processing a question from {relative_path}: {e}")
-        except Exception as e:
-            logging.error(f"An unexpected error occurred while processing {relative_path}: {e}")
-    conn.commit()
-    conn.close()
-    logging.info(f"Database initialization complete. Loaded {question_count} questions.")
+
+        yaml_files = sorted(list(backup_dir.glob('**/*.yaml')) + list(backup_dir.glob('**/*.yml')))
+        if not yaml_files:
+            logging.info(f"No YAML files found in {backup_dir}.")
+            return
+
+        logging.info(f"Found {len(yaml_files)} YAML files to process in {backup_dir}.")
+
+        # Clear the database and re-initialize the schema.
+        init_db(clear=True, conn=conn)
+        logging.info("Database cleared for initialization.")
+        
+        # Use the central indexing function to populate the DB.
+        db_mod.index_yaml_files(yaml_files, conn, verbose=True)
+
+    except Exception as e:
+        logging.error(f"An error occurred during database initialization: {e}")
+    finally:
+        if conn:
+            conn.close()
+            
+    logging.info(f"Database initialization complete.")
 
 def do_list_backups(args):
     """Finds and prints all YAML backup files."""
@@ -2120,39 +2099,63 @@ def do_recategorize_ai(args):
         sys.exit(1)
 
     conn = get_db_connection()
+    loader = YAMLLoader()
+    project_root = get_project_root()
     try:
-        all_questions = get_all_questions(conn)
+        all_questions_meta = get_all_questions(conn)
 
-        questions_to_categorize = []
+        questions_to_categorize_meta = []
         if getattr(args, 'force', False):
             print("Forcing recategorization for all questions.")
-            questions_to_categorize = all_questions
+            questions_to_categorize_meta = all_questions_meta
         else:
-            questions_to_categorize = [
-                q for q in all_questions
+            questions_to_categorize_meta = [
+                q for q in all_questions_meta
                 if not q.get('category_id') or not q.get('subject_id')
             ]
 
-        if not questions_to_categorize:
+        if not questions_to_categorize_meta:
             print(f"{Fore.GREEN}All questions are already categorized. Use --force to re-run on all.{Style.RESET_ALL}")
             return
 
-        print(f"Found {len(questions_to_categorize)} questions to categorize.")
+        print(f"Found {len(questions_to_categorize_meta)} questions to categorize.")
 
+        questions_by_file = {}
+        for q_meta in questions_to_categorize_meta:
+            source_file = q_meta.get('source_file')
+            if source_file not in questions_by_file:
+                questions_by_file[source_file] = []
+            questions_by_file[source_file].append(q_meta['id'])
+        
         updated_count = 0
-        with tqdm(total=len(questions_to_categorize), desc="Categorizing Questions") as pbar:
-            for q_dict in questions_to_categorize:
-                # The categorizer expects a dict with 'prompt'.
-                # The dicts from get_all_questions are perfect.
-                ai_categories = categorizer.categorize_question(q_dict)
-                if ai_categories:
-                    q_dict['category_id'] = ai_categories.get('exercise_category')
-                    q_dict['subject_id'] = ai_categories.get('subject_matter')
+        with tqdm(total=len(questions_to_categorize_meta), desc="Categorizing Questions") as pbar:
+            for source_file, q_ids in questions_by_file.items():
+                try:
+                    full_path = project_root / source_file
+                    questions_in_file = {q.id: asdict(q) for q in loader.load_file(str(full_path))}
+                except Exception as e:
+                    tqdm.write(f"Warning: could not load {source_file}: {e}")
+                    pbar.update(len(q_ids))
+                    continue
 
-                    # add_question will do an INSERT OR REPLACE, so this updates the question
-                    add_question(conn, **q_dict)
-                    updated_count += 1
-                pbar.update(1)
+                for q_id in q_ids:
+                    if q_id not in questions_in_file:
+                        pbar.update(1)
+                        continue
+                    
+                    q_content_dict = questions_in_file[q_id]
+                    ai_categories = categorizer.categorize_question(q_content_dict)
+
+                    if ai_categories:
+                        update_dict = {
+                            'id': q_id,
+                            'source_file': source_file,
+                            'category_id': ai_categories.get('exercise_category'),
+                            'subject_id': ai_categories.get('subject_matter'),
+                        }
+                        add_question(conn, **update_dict)
+                        updated_count += 1
+                    pbar.update(1)
 
         conn.commit()
         print(f"\n{Fore.GREEN}Successfully categorized {updated_count} questions.{Style.RESET_ALL}")
