@@ -36,6 +36,8 @@ if __name__ == '__main__' and __package__ is None:
     sys.path.insert(0, os.path.dirname(pkg_dir))
     __package__ = 'kubelingo'
 
+from kubelingo.bootstrap import initialize_app
+
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
@@ -883,12 +885,6 @@ def main():
         return
 
     os.makedirs(LOGS_DIR, exist_ok=True)
-    # Initialize the questions database and ensure schema is up-to-date (adds 'review' column)
-    try:
-        from kubelingo.database import init_db
-        init_db()
-    except Exception:
-        pass
     # Initialize logging for both interactive and non-interactive modes
     import logging
     log_level = os.getenv('KUBELINGO_LOG_LEVEL', 'INFO').upper()
@@ -898,6 +894,10 @@ def main():
         level=numeric_level,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+
+    # Centralized startup: API key checks and DB bootstrapping
+    initialize_app()
+
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
         # rewrite to explicit sandbox-mode flag
@@ -906,31 +906,6 @@ def main():
     if sys.stdout.isatty() and sys.stdin.isatty() and '--help' not in sys.argv and '-h' not in sys.argv:
         print_banner()
         print()
-    # Load Gemini API key from config file or prompt user if not set
-    import getpass
-    is_help_request = '--help' in sys.argv or '-h' in sys.argv
-    is_config_command = len(sys.argv) > 1 and sys.argv[1] == 'config'
-
-    provider = get_ai_provider()
-    # Prompt for API key if not set
-    if not get_active_api_key():
-        if not is_help_request and not is_config_command and sys.stdin.isatty():
-            try:
-                key_name = f"{provider.capitalize()} API key"
-                prompt_text = f'Enter your {key_name} to enable AI features (leave blank to skip): '
-                prompt = getpass.getpass(prompt_text)
-                if prompt:
-                    save_func = save_openai_api_key if provider == "openai" else save_gemini_api_key
-                    if save_func(prompt.strip()):
-                        print(f"{Fore.GREEN}{key_name} saved.{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.RED}Failed to save API key.{Style.RESET_ALL}")
-            except (EOFError, KeyboardInterrupt):
-                print(f"\n{Fore.YELLOW}Skipping API key setup.{Style.RESET_ALL}")
-
-    # Warn prominently if no API key is available (skip when showing help)
-    if '--help' not in sys.argv and '-h' not in sys.argv and not get_active_api_key():
-        print(f"{Fore.RED}AI features are disabled: no API key configured for {provider}.{Style.RESET_ALL}")
     parser = argparse.ArgumentParser(
         prog='kubelingo',
         usage='kubelingo [OPTIONS] [command]',
