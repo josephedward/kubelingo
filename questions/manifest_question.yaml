@@ -1,0 +1,14 @@
+questions:
+  - question: "Create a Pod manifest for a pod named 'simple-pod'. The pod should use the 'nginx:1.21-alpine' image and have a label 'app=webserver'."
+    type: "manifest"
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: simple-pod
+        labels:
+          app: webserver
+      spec:
+        containers:
+        - name: nginx-container
+          image: nginx:1.21-alpine
