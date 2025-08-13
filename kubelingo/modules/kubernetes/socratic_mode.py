@@ -354,15 +354,15 @@ class SocraticMode:
         self, category: QuestionCategory, subject: Optional[str]
     ) -> List[Question]:
         """
-        Fetches questions from the database for a given category and, optionally, a subject.
+        Finds question files from the database and loads them from YAML.
         If subject is None, fetches all questions for the category.
         """
         params = [category.value]
         if subject:
-            query = "SELECT * FROM questions WHERE category_id = ? AND subject_id = ?"
+            query = "SELECT id, source_file FROM questions WHERE category_id = ? AND subject_id = ?"
             params.append(subject)
         else:
-            query = "SELECT * FROM questions WHERE category_id = ?"
+            query = "SELECT id, source_file FROM questions WHERE category_id = ?"
 
         try:
             self.db_conn.row_factory = sqlite3.Row
@@ -372,27 +372,14 @@ class SocraticMode:
             questions = []
 
             for row in rows:
-                q_dict = dict(row)
-                if 'category_id' in q_dict:
-                    q_dict['schema_category'] = q_dict.pop('category_id')
-                if 'subject_id' in q_dict:
-                    q_dict['subject_matter'] = q_dict.pop('subject_id')
-                q_dict.pop('raw', None)  # Not a field in Question dataclass
-
-                # Deserialize JSON fields
-                for key in [
-                    "validation_steps",
-                    "validator",
-                    "pre_shell_cmds",
-                    "initial_files",
-                    "answers",
-                ]:
-                    if q_dict.get(key) and isinstance(q_dict[key], str):
-                        try:
-                            q_dict[key] = json.loads(q_dict[key])
-                        except (json.JSONDecodeError, TypeError):
-                            q_dict[key] = None
-                questions.append(Question(**q_dict))
+                qid = row["id"]
+                source_file = row["source_file"]
+                if source_file:
+                    question = self._load_question_from_yaml(source_file)
+                    if question:
+                        # The ID from the DB is the canonical ID.
+                        question.id = qid
+                        questions.append(question)
             return questions
         except Exception as e:
             print(
@@ -446,6 +433,23 @@ class SocraticMode:
                 f"{Fore.RED}Failed to index new question {question_path.name}: {e}{Style.RESET_ALL}"
             )
 
+    def _load_question_from_yaml(self, file_path: str) -> Optional[Question]:
+        """Loads a single Question object from a YAML file."""
+        try:
+            if not os.path.isabs(file_path):
+                file_path = os.path.join(str(get_project_root()), file_path)
+
+            if not os.path.exists(file_path):
+                print(f"{Fore.YELLOW}Warning: Question file not found: {file_path}{Style.RESET_ALL}")
+                return None
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                q_dict = yaml.safe_load(f)
+                return Question(**q_dict)
+        except (yaml.YAMLError, TypeError) as e:
+            print(f"{Fore.YELLOW}Warning: Could not load/parse question from {file_path}: {e}{Style.RESET_ALL}")
+            return None
+
     def review_past_questions(self):
         """Runs a quiz with questions that have been flagged for review."""
         try:
@@ -457,27 +461,18 @@ class SocraticMode:
                 return
 
             questions = []
-            for q_dict in flagged_question_dicts:
-                if 'category_id' in q_dict:
-                    q_dict['schema_category'] = q_dict.pop('category_id')
-                if 'subject_id' in q_dict:
-                    q_dict['subject_matter'] = q_dict.pop('subject_id')
-                q_dict.pop('raw', None)  # Not a field in Question dataclass
+            for q_meta in flagged_question_dicts:
+                source_file = q_meta.get("source_file")
+                qid = q_meta.get("id")
+                if source_file and qid:
+                    question = self._load_question_from_yaml(source_file)
+                    if question:
+                        question.id = qid
+                        questions.append(question)
 
-                # Deserialize JSON fields
-                for key in [
-                    "validation_steps",
-                    "validator",
-                    "pre_shell_cmds",
-                    "initial_files",
-                    "answers",
-                ]:
-                    if q_dict.get(key) and isinstance(q_dict[key], str):
-                        try:
-                            q_dict[key] = json.loads(q_dict[key])
-                        except (json.JSONDecodeError, TypeError):
-                            q_dict[key] = None
-                questions.append(Question(**q_dict))
+            if not questions:
+                print(f"{Fore.YELLOW}\nCould not load any flagged questions.{Style.RESET_ALL}")
+                return
 
             print(f"\nStarting review session with {len(questions)} flagged question(s).")
             self.run_exercises(questions)
@@ -525,8 +520,10 @@ class SocraticMode:
             print(f"{Fore.RED}Error fetching triaged questions: {e}{Style.RESET_ALL}")
 
     def _get_random_questions_for_context(self, limit: int = 5) -> List[Question]:
-        """Fetches a few random questions from the DB to use as generation context."""
-        query = "SELECT * FROM questions ORDER BY RANDOM() LIMIT ?"
+        """
+        Fetches metadata for random questions from DB and loads them from YAML for context.
+        """
+        query = "SELECT id, source_file FROM questions ORDER BY RANDOM() LIMIT ?"
         try:
             self.db_conn.row_factory = sqlite3.Row
             cursor = self.db_conn.cursor()
@@ -535,27 +532,13 @@ class SocraticMode:
             questions = []
 
             for row in rows:
-                q_dict = dict(row)
-                if "category_id" in q_dict:
-                    q_dict["schema_category"] = q_dict.pop("category_id")
-                if "subject_id" in q_dict:
-                    q_dict["subject_matter"] = q_dict.pop("subject_id")
-                q_dict.pop("raw", None)  # Not a field in Question dataclass
-
-                # Deserialize JSON fields
-                for key in [
-                    "validation_steps",
-                    "validator",
-                    "pre_shell_cmds",
-                    "initial_files",
-                    "answers",
-                ]:
-                    if q_dict.get(key) and isinstance(q_dict[key], str):
-                        try:
-                            q_dict[key] = json.loads(q_dict[key])
-                        except (json.JSONDecodeError, TypeError):
-                            q_dict[key] = None
-                questions.append(Question(**q_dict))
+                qid = row["id"]
+                source_file = row["source_file"]
+                if source_file:
+                    question = self._load_question_from_yaml(source_file)
+                    if question:
+                        question.id = qid
+                        questions.append(question)
             return questions
         except Exception:
             # Silently fail, context is optional.
