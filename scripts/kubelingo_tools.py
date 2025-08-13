@@ -198,13 +198,6 @@ def _manage_triaged_questions():
 
 def main():
     """Display the question management menu."""
-    tasks = {
-        "generate": _generate_questions,
-        "add": _add_questions,
-        "remove": _remove_questions,
-        "triage": _manage_triaged_questions,
-    }
-
     menu_choices = [
         questionary.Choice(
             title="Generate Questions (generator)",
@@ -237,7 +230,14 @@ def main():
             print("Exiting question management.")
             break
 
-        tasks[choice]()
+        if choice == "generate":
+            _generate_questions()
+        elif choice == "add":
+            _add_questions()
+        elif choice == "remove":
+            _remove_questions()
+        elif choice == "triage":
+            _manage_triaged_questions()
 
         print() # Add a newline for better spacing
         if not questionary.confirm("Return to the Question Management Menu?", default=True).ask():
