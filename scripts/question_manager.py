@@ -66,6 +66,18 @@ except ImportError as e:
     sys.exit(1)
 
 
+# Optional imports for specific generators
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+
+
 # --- Handlers from original question_manager.py ---
 
 class MockArgs:
