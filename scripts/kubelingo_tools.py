@@ -199,13 +199,31 @@ def _manage_triaged_questions():
 def main():
     """Display the question management menu."""
     tasks = {
-        "Generate Questions (generator)": _generate_questions,
-        "Add Questions (using AI schema inference, rewriting and reformatting the given questions as needed)": _add_questions,
-        "Remove Questions": _remove_questions,
-        "Triaged Questions (should list and allow for deletion or AI editing)": _manage_triaged_questions,
+        "generate": _generate_questions,
+        "add": _add_questions,
+        "remove": _remove_questions,
+        "triage": _manage_triaged_questions,
     }
-
-    menu_choices = list(tasks.keys()) + [questionary.Separator(), "Exit"]
+    menu_choices = [
+        questionary.Choice(
+            title="Generate Questions (generator)",
+            value="generate"
+        ),
+        questionary.Choice(
+            title="Add Questions (using AI schema inference, rewriting and reformatting the given questions as needed)",
+            value="add"
+        ),
+        questionary.Choice(
+            title="Remove Questions",
+            value="remove"
+        ),
+        questionary.Choice(
+            title="Triaged Questions (should list and allow for deletion or AI editing)",
+            value="triage"
+        ),
+        questionary.Separator(),
+        "Exit",
+    ]
 
     while True:
         choice = questionary.select(
