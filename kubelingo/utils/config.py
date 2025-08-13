@@ -55,12 +55,6 @@ SQLITE_BACKUP_DIRS = [
 ]
 
 
-# --- Legacy Data Directories (used ONLY by the consolidation script) ---
-# This directory contains consolidated question files for bootstrapping the database.
-YAML_QUIZ_DIR = os.path.join(PROJECT_ROOT, 'yaml')
-YAML_QUESTIONS_FILE = os.path.join(YAML_QUIZ_DIR, 'yaml_exercises_quiz.yaml')
-
-
 # --- Database ---
 # Writable database for user data (history, AI questions) stored in the project's .kubelingo directory.
 DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
