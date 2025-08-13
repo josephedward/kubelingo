@@ -74,59 +74,57 @@ class KubernetesStudyMode:
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
+        # This mapping helps translate user-friendly menu items to database query values.
+        DRILL_MAPPING = {
+            "Open-Ended": ["socratic"],
+            "Basic Terminology": ["basic"],  # Assuming a 'basic' type exists or will be added
+            "Command Syntax": ["command"],
+            "YAML Manifest": ["yaml_author", "yaml_edit"],
+        }
+
         while True:
             try:
-                choices = []
-                # Review Flagged
-                flagged_count = len(get_flagged_questions())
-                choices.append(
-                    questionary.Choice(
-                        f"Review Flagged Questions ({flagged_count})", value="review"
-                    )
-                )
-
-                # Socratic tutor
-                socratic_disabled = not self.client
-                socratic_choice_text = "Study Mode (Socratic Tutor)"
-                if socratic_disabled:
-                    socratic_choice_text += " (API key required)"
-                choices.append(
-                    questionary.Choice(
-                        socratic_choice_text,
-                        value="socratic",
-                        disabled=socratic_disabled,
-                    )
-                )
-
-                # Exercises
-                exercise_types = {
-                    "Basic Exercises": ["basic"],
-                    "Command-Based Exercises": ["command"],
-                    "Manifest-Based Exercises": ["yaml_author", "yaml_edit"],
+                # --- Get counts for menu ---
+                missed_count = len(get_flagged_questions())
+                drill_counts = {
+                    name: self._get_question_count_by_types(types)
+                    for name, types in DRILL_MAPPING.items()
                 }
 
-                for title, types in exercise_types.items():
-                    choices.append(Separator(f"--- {title} ---"))
-                    subjects = self._get_subjects_with_counts_by_type(types)
-                    for subject, count in subjects.items():
-                        choices.append(
-                            questionary.Choice(
-                                f"{subject} ({count} questions)",
-                                value=("quiz", types, subject),
-                            )
+                # --- Build Menu Choices ---
+                choices = [
+                    Separator("--- Learn ---"),
+                    questionary.Choice(
+                        "Study Mode (Socratic Tutor)",
+                        value=("learn", "socratic"),
+                        disabled=not self.client,
+                    ),
+                    questionary.Choice(
+                        f"Missed Questions ({missed_count})",
+                        value=("learn", "review"),
+                        disabled=missed_count == 0,
+                    ),
+                    Separator("--- Drill ---"),
+                ]
+                for name, count in drill_counts.items():
+                    choices.append(
+                        questionary.Choice(
+                            f"{name} ({count})",
+                            value=("drill", name),
+                            disabled=count == 0,
                         )
+                    )
 
-                choices.append(Separator("--- Settings ---"))
-                choices.extend(
-                    [
-                        questionary.Choice("API Keys", value="settings"),
-                        questionary.Choice("Cluster Configuration", value="tools"),
-                        questionary.Choice("Troubleshooting", value="tools"),
-                        questionary.Choice("Help", value="help"),
-                        Separator(),
-                        questionary.Choice("Exit App", value="exit"),
-                    ]
-                )
+                choices.extend([
+                    Separator("--- Settings ---"),
+                    questionary.Choice("API Keys", value=("settings", "api")),
+                    questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
+                    questionary.Choice("Tool Scripts", value=("settings", "tools")),
+                    questionary.Choice("Triaged Questions", value=("settings", "triage")),
+                    questionary.Choice("Help", value=("settings", "help")),
+                    Separator(),
+                    questionary.Choice("Exit App", value="exit"),
+                ])
 
                 choice = questionary.select(
                     "Kubelingo Main Menu", choices=choices, use_indicator=True
@@ -136,35 +134,22 @@ class KubernetesStudyMode:
                     print("Exiting application. Goodbye!")
                     break
 
-                if choice == "review":
-                    self.review_past_questions()
-                elif choice == "socratic":
-                    level = questionary.select(
-                        "What is your current overall skill level?",
-                        choices=["beginner", "intermediate", "advanced"],
-                        default="intermediate",
-                    ).ask()
-                    if not level:
-                        continue
-                    topic = questionary.select(
-                        "Which Kubernetes topic would you like to study?",
-                        choices=KUBERNETES_TOPICS,
-                        use_indicator=True,
-                    ).ask()
-                    if topic:
-                        self._run_socratic_mode(topic, level)
-                elif isinstance(choice, tuple) and choice[0] == "quiz":
-                    _, quiz_types, subject = choice
-                    questions = self._get_questions_by_subject_and_type(
-                        subject, quiz_types
-                    )
-                    self._run_quiz(questions)
-                elif choice == "settings":
-                    self.settings_menu()
-                elif choice == "tools":
-                    self.run_tools_menu()
-                elif choice == "help":
-                    print("Help not yet implemented.")
+                menu, action = choice
+
+                if menu == "learn":
+                    if action == "socratic":
+                        self._run_socratic_mode_entry()
+                    elif action == "review":
+                        self.review_past_questions()
+                elif menu == "drill":
+                    self._run_drill_menu(action, DRILL_MAPPING[action])
+                elif menu == "settings":
+                    if action == "api":
+                        self.settings_menu()
+                    elif action == "tools":
+                        self.run_tools_menu()
+                    else:
+                        print(f"'{action}' is not yet implemented.")
 
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting application. Goodbye!")

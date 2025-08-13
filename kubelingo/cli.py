@@ -898,6 +898,54 @@ def main():
     # Centralized startup: API key checks and DB bootstrapping
     initialize_app()
 
+    # --- Interactive Mode: AI Provider and API Key Setup ---
+    is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
+    if is_interactive:
+        if questionary:
+            from kubelingo.utils.config import (
+                get_ai_provider, save_ai_provider, get_active_api_key,
+                save_openai_api_key, save_gemini_api_key
+            )
+            from kubelingo.integrations.llm import OpenAIClient, GeminiClient
+            import getpass
+
+            provider = get_ai_provider()
+            if not provider:
+                print(f"{Style.BRIGHT}Welcome to Kubelingo! Let's set up your AI provider.{Style.RESET_ALL}")
+                provider = questionary.select(
+                    "--- AI Provider ---\nPlease select an AI provider to use for feedback and study mode:",
+                    choices=[
+                        {"name": "OpenAI (recommended for best results)", "value": "openai"},
+                        {"name": "Gemini", "value": "gemini"},
+                    ],
+                    use_indicator=True,
+                ).ask()
+                if provider:
+                    save_ai_provider(provider)
+                    print(f"AI provider set to {provider.capitalize()}.")
+                else:
+                    print(f"{Fore.YELLOW}No provider selected. AI-powered features will be disabled.{Style.RESET_ALL}")
+
+            provider = get_ai_provider()  # Get again in case it was just set
+            if provider and not get_active_api_key():
+                print(f"\nAn API key for {provider.capitalize()} is required.")
+                try:
+                    key_value = getpass.getpass(f"Enter your {provider.capitalize()} API key: ").strip()
+                    if key_value:
+                        test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
+                        save_func = save_openai_api_key if provider == 'openai' else save_gemini_api_key
+                        if test_func(key_value):
+                            if save_func(key_value):
+                                print(f"{Fore.GREEN}✓ API key is valid and has been saved.{Style.RESET_ALL}\n")
+                            else:
+                                print(f"{Fore.RED}✗ API key is valid, but failed to save it.{Style.RESET_ALL}\n")
+                        else:
+                            print(f"{Fore.RED}✗ The provided API key appears to be invalid. It has not been saved.{Style.RESET_ALL}\n")
+                    else:
+                        print(f"{Fore.YELLOW}No key provided. AI features will be disabled.{Style.RESET_ALL}\n")
+                except (KeyboardInterrupt, EOFError):
+                    print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
+
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
         # rewrite to explicit sandbox-mode flag

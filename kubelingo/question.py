@@ -9,14 +9,15 @@ from typing import Any, Dict, List, Optional
 
 class QuestionCategory(str, Enum):
     """The four core categories for all questions."""
-    BASIC = "Basic/Definition"
-    OPEN_ENDED = "Basic/Open-Ended"
-    COMMAND = "Command-Based/Syntax"
-    MANIFEST = "Manifests"
+    OPEN_ENDED = "Open-Ended"
+    BASIC = "Basic Terminology"
+    COMMAND = "Command Syntax"
+    MANIFEST = "YAML Manifest"
 
 
 class QuestionSubject(str, Enum):
     """Subject matter areas for Kubernetes questions."""
+    LINUX_SYNTAX = "Linux Syntax(Commands from Bash, Vim, Kubectl, Docker, Helm)"
     CORE_WORKLOADS = "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
     POD_DESIGN = "Pod design patterns (initContainers, sidecars, lifecycle hooks)"
     COMMAND_ARGS_ENV = "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)"
@@ -29,19 +30,14 @@ class QuestionSubject(str, Enum):
     NETWORKING_UTILITIES = "Networking utilities (DNS in-cluster, port-forward, exec, curl)"
     PERSISTENCE = "Persistence (PVCs, using existing StorageClasses, common volume types)"
     OBSERVABILITY_TROUBLESHOOTING = "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"
-    LABELS_SELECTORS = "Labels, annotations & selectors (label ops, field selectors, jsonpath)"
+    METADATA_LABELS_SELECTORS = "Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)"
     IMPERATIVE_DECLARATIVE = "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)"
-    IMAGE_REGISTRY = "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)"
+    CONTAINER_IMAGE_REGISTRY = "Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)"
     SECURITY_BASICS = "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)"
     SERVICE_ACCOUNTS = "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)"
     SCHEDULING = "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)"
     NAMESPACES_CONTEXTS = "Namespaces & contexts (scoping resources, default namespace, context switching)"
     API_DISCOVERY_DOCS = "API discovery & docs (kubectl explain, api-resources, api-versions)"
-    KUBECTL_CLI = "Kubectl CLI usage and commands"
-    VIM = "Vim for YAML editing (modes, navigation, editing commands)"
-    HELM = "Helm for Package Management (charts, releases, repositories)"
-    ADVANCED_KUBECTL = "Advanced Kubectl Usage (jsonpath, patch, custom columns)"
-    KUBERNETES_API_RESOURCES = "Kubernetes API Resources (exploring objects with explain and api-resources)"
 
 
 @dataclass
@@ -96,6 +92,7 @@ class Question:
     metadata: Dict[str, Any] = field(default_factory=dict)
     validator: Optional[Dict[str, Any]] = None
     source_file: Optional[str] = None
+    triaged: bool = False
 
     # --- Tracking metadata ---
     created_at: Optional[str] = field(default=None)

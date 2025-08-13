@@ -1,19 +1,13 @@
-import os
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from kubelingo.utils.config import get_ai_provider
 
 try:
-    import google.generativeai as genai
+    import llm
 except ImportError:
-    genai = None
-
-try:
-    import openai
-except ImportError:
-    openai = None
+    llm = None
 
 
 class LLMClient(ABC):
@@ -35,35 +29,44 @@ class LLMClient(ABC):
 
 
 class OpenAIClient(LLMClient):
-    """LLM client for OpenAI models."""
+    """LLM client for OpenAI models, using the `llm` library."""
 
     @staticmethod
     def test_key(key: str) -> bool:
         """Tests an OpenAI API key without creating a client instance."""
-        if not openai or not key:
+        if not llm:
             return False
         try:
-            client = openai.OpenAI(api_key=key)
-            client.models.list()
-            return True
+            model = llm.get_model("gpt-3.5-turbo")
+            model.key = key
+            # A short prompt to test the key
+            response = model.prompt("test")
+            return bool(response.text)
         except Exception:
             return False
 
     def __init__(self):
-        if openai is None:
+        if llm is None:
             raise ImportError(
-                "The 'openai' package is required to use OpenAIClient. "
-                "Please install it with 'pip install openai'."
+                "The 'llm' and 'llm-openai' packages are required. "
+                "Please install with 'pip install llm llm-openai'."
             )
         from kubelingo.utils.config import get_openai_api_key
 
         api_key = get_openai_api_key()
         if not api_key:
             raise ValueError(
-                "OpenAI API key is not set in config or OPENAI_API_KEY environment variable."
+                "OpenAI API key is not set. Use 'kubelingo config' to set it."
             )
 
-        self.client = openai.OpenAI(api_key=api_key)
+        try:
+            self.model = llm.get_model("gpt-4-turbo")
+            self.model.key = api_key
+        except Exception as e:
+            raise ValueError(
+                "Failed to initialize OpenAI model via `llm`. Is an API key configured? "
+                "You can set it with `llm keys set openai`."
+            ) from e
 
     def chat_completion(
         self,
@@ -71,74 +74,72 @@ class OpenAIClient(LLMClient):
         temperature: float = 0.0,
         json_mode: bool = False,
     ) -> Optional[str]:
-        """Sends a chat completion request to the OpenAI API."""
-        params = {
-            "model": "gpt-4-turbo",
-            "messages": messages,
-            "temperature": temperature,
-        }
-        if json_mode:
-            params["response_format"] = {"type": "json_object"}
+        """Sends a chat completion request to the OpenAI API via `llm`."""
+        system_prompt = ""
+        if messages and messages[0]["role"] == "system":
+            system_prompt = messages.pop(0)["content"]
+
+        conversation = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
 
         try:
-            response = self.client.chat.completions.create(**params)
-            content = response.choices[0].message.content
-            return content
+            response = self.model.prompt(
+                system=system_prompt,
+                prompt=conversation,
+                temperature=temperature,
+            )
+            return response.text
         except Exception as e:
-            logging.error(f"OpenAI API request failed: {e}", exc_info=True)
+            logging.error(f"OpenAI API request via `llm` failed: {e}", exc_info=True)
             raise
 
     def test_connection(self) -> bool:
         """Tests the connection to the OpenAI API by making a minimal request."""
         try:
-            # Listing models is a lightweight way to check auth
-            self.client.models.list()
-            return True
-        except openai.AuthenticationError:
-            logging.warning("OpenAI API key is invalid.")
-            return False
+            response = self.model.prompt("test")
+            return bool(response.text)
         except Exception as e:
-            logging.error(f"Failed to connect to OpenAI: {e}")
+            logging.error(f"Failed to connect to OpenAI via `llm`: {e}")
             return False
 
 
 class GeminiClient(LLMClient):
-    """LLM client for Google Gemini models."""
+    """LLM client for Google Gemini models, using the `llm` library."""
 
     @staticmethod
     def test_key(key: str) -> bool:
         """Tests a Gemini API key without creating a client instance."""
-        if not genai or not key:
+        if not llm:
             return False
-        # Store current key to restore it later, preventing side effects
-        current_key = getattr(genai.conf, "api_key", None)
         try:
-            genai.configure(api_key=key)
-            # Listing models is a lightweight way to check auth
-            for _ in genai.list_models():
-                break  # Just need to know the iterator doesn't fail
-            return True
+            model = llm.get_model("gemini-pro")
+            model.key = key
+            response = model.prompt("test")
+            return bool(response.text)
         except Exception:
             return False
-        finally:
-            # Restore previous config to avoid side effects
-            genai.configure(api_key=current_key)
 
     def __init__(self):
-        if genai is None:
+        if llm is None:
             raise ImportError(
-                "The 'google-generativeai' package is required to use GeminiClient. "
-                "Please install it with 'pip install google-generativeai'."
+                "The 'llm' and 'llm-gemini' packages are required. "
+                "Please install with 'pip install llm llm-gemini'."
             )
         from kubelingo.utils.config import get_gemini_api_key
 
         api_key = get_gemini_api_key()
         if not api_key:
             raise ValueError(
-                "Gemini API key not found in config file or GEMINI_API_KEY environment variable."
+                "Gemini API key is not set. Use 'kubelingo config' to set it."
             )
 
-        genai.configure(api_key=api_key)
+        try:
+            self.model = llm.get_model("gemini-1.5-pro-latest")
+            self.model.key = api_key
+        except Exception as e:
+            raise ValueError(
+                "Failed to initialize Gemini model via `llm`. Is an API key configured? "
+                "You can set it with `llm keys set gemini`."
+            ) from e
 
     def chat_completion(
         self,
@@ -146,44 +147,31 @@ class GeminiClient(LLMClient):
         temperature: float = 0.0,
         json_mode: bool = False,
     ) -> Optional[str]:
-        """Sends a chat completion request to the Gemini API."""
-        local_messages = list(messages)  # Make a copy to avoid mutation
+        """Sends a chat completion request to the Gemini API via `llm`."""
         system_prompt = ""
-        if local_messages and local_messages[0]["role"] == "system":
-            system_prompt = local_messages.pop(0)["content"]
+        if messages and messages[0]["role"] == "system":
+            system_prompt = messages.pop(0)["content"]
 
-        # Convert message history to Gemini's format.
-        gemini_messages = []
-        for message in local_messages:
-            role = "model" if message["role"] == "assistant" else "user"
-            gemini_messages.append({"role": role, "parts": [message["content"]]})
+        conversation = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
 
         try:
-            model = genai.GenerativeModel(
-                "gemini-1.5-pro-latest", system_instruction=system_prompt
-            )
-            generation_config = genai.types.GenerationConfig(
+            response = self.model.prompt(
+                system=system_prompt,
+                prompt=conversation,
                 temperature=temperature,
-                response_mime_type="application/json" if json_mode else "text/plain",
-            )
-            response = model.generate_content(
-                gemini_messages,
-                generation_config=generation_config,
             )
             return response.text
         except Exception as e:
-            logging.error(f"Gemini API request failed: {e}", exc_info=True)
-            raise  # Re-raise for the caller to handle
+            logging.error(f"Gemini API request via `llm` failed: {e}", exc_info=True)
+            raise
 
     def test_connection(self) -> bool:
-        """Tests the connection to the Gemini API by listing available models."""
+        """Tests the connection to the Gemini API by making a minimal request."""
         try:
-            # Listing models is a lightweight way to check auth
-            genai.list_models()
-            return True
+            response = self.model.prompt("test")
+            return bool(response.text)
         except Exception as e:
-            # The google-generativeai library can raise a generic Exception for auth errors
-            logging.warning(f"Gemini API key appears to be invalid. Error: {e}")
+            logging.error(f"Failed to connect to Gemini via `llm`: {e}")
             return False
 
 
