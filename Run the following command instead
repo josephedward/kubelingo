@@ -1,1 +1,0 @@
-python scripts/question_manager.py deduplicate-files questions/ai-generated/*.yaml
