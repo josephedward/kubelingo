@@ -1,5 +1,8 @@
 import getpass
+import json
 import os
+import random
+import sqlite3
 import subprocess
 import sys
 import uuid
@@ -11,17 +14,10 @@ import yaml
 from questionary import Separator
 
 from kubelingo.database import add_question, get_db_connection, get_flagged_questions
-import random
-
-from kubelingo.database import add_question, get_db_connection, get_flagged_questions
 from kubelingo.integrations.llm import LLMClient, get_llm_client
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
-from kubelingo.modules.yaml_loader import YAMLLoader
 from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.config import (
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    MANIFEST_QUIZZES,
     get_ai_provider,
     get_cluster_configs,
     get_gemini_api_key,
@@ -88,6 +84,87 @@ class KubernetesStudyMode:
                 print("\nExiting application. Goodbye!")
                 break
 
+    def _run_quiz(self, questions: List[Question]):
+        """Runs a quiz with a list of questions."""
+        if not questions:
+            print(f"\n{Fore.YELLOW}No questions available for this topic.{Style.RESET_ALL}")
+            return
+
+        # Randomize question order for variety
+        random.shuffle(questions)
+
+        for question in questions:
+            try:
+                print(f"\n{question.prompt}")
+                correct = self._ask_and_validate(question)
+
+                if correct:
+                    print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                else:
+                    print(f"\n{Fore.RED}Not quite.{Style.RESET_ALL}")
+                    if question.answers:
+                        # Assuming the first answer is a good one to show
+                        print(f"A correct answer is: {question.answers[0]}")
+
+                if question.explanation:
+                    print(f"Explanation: {question.explanation}")
+
+                if not questionary.confirm("Next question?").ask():
+                    break
+            except (KeyboardInterrupt, TypeError):
+                break
+        print("\nQuiz ended. Returning to menu.")
+
+    def _get_subjects_by_type(self, quiz_types: List[str]) -> List[str]:
+        """Fetches unique subjects for given quiz types from the database."""
+        placeholders = ",".join("?" for _ in quiz_types)
+        query = f"SELECT DISTINCT subject FROM questions WHERE type IN ({placeholders}) AND subject IS NOT NULL ORDER BY subject"
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, quiz_types)
+            subjects = [row[0] for row in cursor.fetchall()]
+            return subjects
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
+            return []
+
+    def _get_questions_by_subject_and_type(
+        self, subject: str, quiz_types: List[str]
+    ) -> List[Question]:
+        """Fetches questions from the database for a given subject and quiz types."""
+        placeholders = ",".join("?" for _ in quiz_types)
+        query = f"SELECT * FROM questions WHERE subject = ? AND type IN ({placeholders})"
+        try:
+            self.db_conn.row_factory = sqlite3.Row
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, [subject] + quiz_types)
+            rows = cursor.fetchall()
+            questions = []
+
+            column_names = [d[0] for d in cursor.description]
+            for row in rows:
+                q_dict = dict(zip(column_names, row))
+                # Deserialize JSON fields
+                for key in [
+                    "validation_steps",
+                    "validator",
+                    "pre_shell_cmds",
+                    "initial_files",
+                    "answers",
+                ]:
+                    if q_dict.get(key) and isinstance(q_dict[key], str):
+                        try:
+                            q_dict[key] = json.loads(q_dict[key])
+                        except (json.JSONDecodeError, TypeError):
+                            q_dict[key] = None
+                questions.append(Question(**q_dict))
+            return questions
+        except Exception as e:
+            print(
+                f"{Fore.RED}Error fetching questions from database: {e}{Style.RESET_ALL}"
+            )
+            return []
+
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a quiz and starts the session."""
         while True:
@@ -117,41 +194,38 @@ class KubernetesStudyMode:
                         self._run_socratic_mode(topic, user_level)
                     continue
 
-                quiz_map = {
-                    "Basic term/definition recall": (BASIC_QUIZZES, "basic"),
-                    "Command-line Challenge": (COMMAND_QUIZZES, "command"),
-                    "Manifest Authoring Exercise": (MANIFEST_QUIZZES, "manifest"),
+                quiz_type_map = {
+                    "Basic term/definition recall": ["basic"],
+                    "Command-line Challenge": ["command"],
+                    "Manifest Authoring Exercise": ["yaml_author", "yaml_edit"],
                 }
-                quizzes, quiz_type = quiz_map[quiz_style]
+                quiz_types = quiz_type_map[quiz_style]
 
-                if not quizzes:
+                subjects = self._get_subjects_by_type(quiz_types)
+                if not subjects:
                     print(
-                        f"{Fore.YELLOW}No '{quiz_style}' quizzes available.{Style.RESET_ALL}"
+                        f"{Fore.YELLOW}No subjects found for '{quiz_style}' quizzes.{Style.RESET_ALL}"
                     )
                     continue
 
-                choices = list(quizzes.keys())
-                choices.append(Separator())
-                choices.append(questionary.Choice("Back", value="back"))
-                selected_quiz_name = questionary.select(
-                    f"Choose a '{quiz_style}' quiz:",
+                choices = subjects + [
+                    Separator(),
+                    questionary.Choice("Back", value="back"),
+                ]
+                selected_subject = questionary.select(
+                    f"Choose a subject for '{quiz_style}':",
                     choices=choices,
                     use_indicator=True,
                 ).ask()
-                if not selected_quiz_name or selected_quiz_name == "back":
+
+                if not selected_subject or selected_subject == "back":
                     continue
 
-                quiz_file = quizzes[selected_quiz_name]
-                loader = YAMLLoader()
-                questions = loader.load_file(quiz_file)
+                questions = self._get_questions_by_subject_and_type(
+                    selected_subject, quiz_types
+                )
 
-                if not questions:
-                    print(
-                        f"\n{Fore.YELLOW}No questions found in '{selected_quiz_name}'.{Style.RESET_ALL}"
-                    )
-                    continue
-
-                self._run_quiz_loop(questions)
+                self._run_quiz(questions)
 
             except (KeyboardInterrupt, TypeError):
                 print("\nExiting study mode.")

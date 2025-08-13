@@ -1,18 +1,8 @@
 """
 Backward-compatibility module to expose top-level configurations.
 """
-# Backward-compatibility module to expose top-level configurations.
-from kubelingo.utils.config import (
-    BASIC_QUIZZES,
-    COMMAND_QUIZZES,
-    ENABLED_QUIZZES,
-    MANIFEST_QUIZZES,
-)
+# This file is retained for backward compatibility but is now empty
+# as quiz configurations are loaded directly from the database.
 
 # Export default public API
-__all__ = [
-    'BASIC_QUIZZES',
-    'COMMAND_QUIZZES',
-    'ENABLED_QUIZZES',
-    'MANIFEST_QUIZZES',
-]
+__all__ = []
