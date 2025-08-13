@@ -317,6 +317,7 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
             validation_steps TEXT,
             validator TEXT,
             review BOOLEAN NOT NULL DEFAULT 0,
+            triage BOOLEAN NOT NULL DEFAULT 0,
             content_hash TEXT,
             created_at TIMESTAMP,
             updated_at TIMESTAMP

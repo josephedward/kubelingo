@@ -156,7 +156,7 @@ class KubernetesStudyMode:
 
     def _get_question_count_by_category(self, category: QuestionCategory) -> int:
         """Fetches question count for a given category."""
-        query = "SELECT COUNT(*) FROM questions WHERE schema_category = ?"
+        query = "SELECT COUNT(*) FROM questions WHERE category_id = ?"
         try:
             cursor = self.db_conn.cursor()
             cursor.execute(query, (category.value,))
@@ -191,7 +191,7 @@ class KubernetesStudyMode:
 
     def _get_subjects_with_counts_by_category(self, category: QuestionCategory) -> Dict[str, int]:
         """Fetches unique subjects and their question counts for a given category."""
-        query = "SELECT subject_matter, COUNT(*) FROM questions WHERE schema_category = ? AND subject_matter IS NOT NULL GROUP BY subject_matter ORDER BY subject_matter"
+        query = "SELECT subject_id, COUNT(*) FROM questions WHERE category_id = ? AND subject_id IS NOT NULL GROUP BY subject_id ORDER BY subject_id"
         try:
             cursor = self.db_conn.cursor()
             cursor.execute(query, (category.value,))
@@ -204,7 +204,7 @@ class KubernetesStudyMode:
         self, category: QuestionCategory, subject: str
     ) -> List[Question]:
         """Fetches questions from the database for a given category and subject."""
-        query = f"SELECT * FROM questions WHERE schema_category = ? AND subject_matter = ?"
+        query = f"SELECT * FROM questions WHERE category_id = ? AND subject_id = ?"
         try:
             self.db_conn.row_factory = sqlite3.Row
             cursor = self.db_conn.cursor()
@@ -212,9 +212,14 @@ class KubernetesStudyMode:
             rows = cursor.fetchall()
             questions = []
 
-            column_names = [d[0] for d in cursor.description]
             for row in rows:
-                q_dict = dict(zip(column_names, row))
+                q_dict = dict(row)
+                if 'category_id' in q_dict:
+                    q_dict['schema_category'] = q_dict.pop('category_id')
+                if 'subject_id' in q_dict:
+                    q_dict['subject_matter'] = q_dict.pop('subject_id')
+                q_dict.pop('raw', None)  # Not a field in Question dataclass
+
                 # Deserialize JSON fields
                 for key in [
                     "validation_steps",
@@ -264,6 +269,12 @@ class KubernetesStudyMode:
 
             questions = []
             for q_dict in flagged_question_dicts:
+                if 'category_id' in q_dict:
+                    q_dict['schema_category'] = q_dict.pop('category_id')
+                if 'subject_id' in q_dict:
+                    q_dict['subject_matter'] = q_dict.pop('subject_id')
+                q_dict.pop('raw', None)  # Not a field in Question dataclass
+
                 # Deserialize JSON fields
                 for key in [
                     "validation_steps",

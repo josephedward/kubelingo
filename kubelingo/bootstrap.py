@@ -6,7 +6,7 @@ from pathlib import Path
 import questionary
 import yaml
 
-from kubelingo.database import add_question, get_db_connection
+from kubelingo.database import add_question, get_db_connection, init_db
 from kubelingo.integrations.llm import GeminiClient, OpenAIClient
 from kubelingo.modules.ai_categorizer import AICategorizer
 from kubelingo.utils.config import (
