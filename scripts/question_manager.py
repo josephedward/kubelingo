@@ -67,7 +67,8 @@ def handle_deduplicate_files(args):
     """
     Handler for finding and suggesting removal of duplicate YAML files based on answer content.
     """
-    answers_map = defaultdict(list)
+    # Use a set for paths to automatically handle duplicates within the same file.
+    answers_map = defaultdict(set)
     file_paths = [Path(f) for f in args.files]
 
     for file_path in file_paths:
@@ -95,16 +96,18 @@ def handle_deduplicate_files(args):
                             
                             answer_str = ""
                             if isinstance(answer_val, list):
-                                answer_str = " ".join(map(str, answer_val)).strip()
-                            elif isinstance(answer_val, str):
-                                answer_str = answer_val.strip()
+                                # Strip each item before joining to handle whitespace variations
+                                answer_str = " ".join(str(item).strip() for item in answer_val)
+                            elif answer_val is not None:
+                                answer_str = str(answer_val).strip()
 
                             if answer_str:
-                                answers_map[answer_str].append(str(file_path))
+                                answers_map[answer_str].add(str(file_path))
         except Exception as e:
             print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
 
     files_to_remove = set()
+    # A group is a duplicate if the same answer appears in more than one file.
     duplicate_groups = {k: v for k, v in answers_map.items() if len(v) > 1}
 
     if not duplicate_groups:
@@ -116,9 +119,9 @@ def handle_deduplicate_files(args):
     print("# It keeps the first file in each group (sorted alphabetically) and suggests removing the others.")
     print("# Please review carefully before running the generated commands.")
 
-    for answer, paths in duplicate_groups.items():
+    for answer, paths_set in duplicate_groups.items():
         # Sort for deterministic behavior
-        paths.sort()
+        paths = sorted(list(paths_set))
         file_to_keep = paths[0]
         print(f"\n# Answer: \"{answer}\"")
         print(f"#   Keeping: {file_to_keep}")
@@ -128,7 +131,8 @@ def handle_deduplicate_files(args):
             print(f"#   Removing: {path_to_remove}")
 
     if not files_to_remove:
-        print("\n# No files to suggest for removal.")
+        # This case can happen if duplicates are found but they are all in the same file.
+        print("\n# No duplicate files to suggest for removal.")
         return
 
     print("\n\n# --- Suggested git rm commands ---")
