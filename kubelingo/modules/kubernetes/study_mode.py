@@ -226,6 +226,18 @@ class KubernetesStudyMode:
             print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
             return []
 
+    def _get_subjects_with_counts_by_type(self, quiz_types: List[str]) -> Dict[str, int]:
+        """Fetches unique subjects and their question counts for given quiz types."""
+        placeholders = ",".join("?" for _ in quiz_types)
+        query = f"SELECT subject, COUNT(*) FROM questions WHERE type IN ({placeholders}) AND subject IS NOT NULL GROUP BY subject ORDER BY subject"
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, quiz_types)
+            return {row[0]: row[1] for row in cursor.fetchall()}
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
+            return {}
+
     def _get_questions_by_subject_and_type(
         self, subject: str, quiz_types: List[str]
     ) -> List[Question]:
