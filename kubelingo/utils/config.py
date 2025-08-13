@@ -40,10 +40,7 @@ QUESTIONS_DIR = os.getenv('KUBELINGO_QUESTIONS_DIR') or os.path.join(PROJECT_ROO
 
 # Candidate directories for question sources (YAML/YML files).
 # This now merges the former QUESTION_SOURCE_DIRS and QUESTION_DIRS
-QUESTION_DIRS = list(set([
-    QUESTIONS_DIR,  # Primary, consolidated directory
-    os.path.join(PROJECT_ROOT, 'yaml'),
-]))
+QUESTION_DIRS = [QUESTIONS_DIR]
 
 # Candidate directories for YAML backup files.
 YAML_BACKUP_DIRS = [
