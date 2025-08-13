@@ -1,149 +1,129 @@
-<!-- Maintenance and Troubleshooting Scripts Overview -->
-# Maintenance and Troubleshooting Scripts
+# Kubelingo Maintenance and Management Scripts
 
-This document outlines the purpose and intended functionality of various maintenance and troubleshooting scripts in the `scripts/` directory. These scripts help manage question data stored in YAML backups and the central SQLite database.
+This document provides an overview of the command-line tools used for development, maintenance, and data management within the Kubelingo project. These scripts provide a powerful interface for managing YAML and SQLite data sources, generating new content, and ensuring data hygiene.
 
-Scripts are grouped into four categories:
-1. System
-2. YAML
-3. SQLite
-4. Questions
+## The Central Orchestrator: `kubelingo_tools.py`
 
-For each task, the documentation includes:
-- **Purpose**: What the script achieves.
-- **Script**: Suggested script filename.
-- **Behavior**: High-level description of operations.
-- **Existing Scripts**: Reference to legacy or current scripts to adapt.
-- **AI Prompts**: Example prompts when AI interaction is required.
+The primary entry point for most maintenance tasks is `kubelingo_tools.py`. It acts as a unified orchestrator that can be run in two modes:
 
----
-## 1. System
+1.  **Interactive Menu**: Running the script without any arguments launches an interactive menu that guides you through common tasks.
+    ```bash
+    ./scripts/kubelingo_tools.py
+    ```
+2.  **Direct Command Execution**: You can call specific subcommands to perform tasks directly. This is useful for scripting and automation.
+    ```bash
+    # Run the quiz interface
+    ./scripts/kubelingo_tools.py quiz
 
-### Bug Ticket
-- **Purpose**: Collect and manage outstanding issues or bug reports.
-- **Script**: `scripts/bug_ticket.py` (to be created)
-- **Behavior**: Maintains a Markdown or JSON file listing bug tickets, supports adding new entries with descriptions, tags, and status updates.
-- **Existing Scripts**: None specifically; could adapt issue management code from project templates.
-- **AI Prompts**: "Please describe the bug, including steps to reproduce and any error messages."
+    # Run a generator
+    ./scripts/kubelingo_tools.py generate kubectl-operations
+
+    # Dynamically run another script
+    ./scripts/kubelingo_tools.py run yaml_manager.py stats
+    ```
+
+`kubelingo_tools.py` delegates most of its functionality to the specialized manager scripts detailed below.
 
 ---
-## 2. YAML Backup Management
 
-### Index All YAML Files
-- **Purpose**: Scans all configured question and backup directories to find YAML files and creates a central index file (`backups/index.yaml`) with their metadata.
-- **Script**: `scripts/index_yaml_files.py`
-- **Behavior**: Uses `get_all_yaml_files()` and `get_all_yaml_backups()` to discover files. For each file, it records the path, size, and last modified time. The index helps other scripts and tools quickly locate relevant files without re-scanning the filesystem.
-- **Existing Scripts**: `scripts/index_yaml_files.py`.
-- **AI Prompts**: None.
+## Core Management Scripts
 
-### Locate Previous YAML Backup
-- **Purpose**: Find and list YAML backup files containing question data.
-- **Script**: `scripts/locate_yaml_backups.py`
-- **Behavior**: Scans one or more directories for `*.yaml`/`*.yml` files, supports regex filtering and JSON output.
-- **Existing Scripts**: `scripts/locate_yaml_backups.py` (verify and enhance filtering, AI summary options).
-- **AI Prompts**: None.
+The following scripts contain the core logic for managing different aspects of the Kubelingo ecosystem.
 
-### View YAML Backup Statistics
-- **Purpose**: Analyze a YAML backup file and report metrics (total questions, per-category counts, file size, modification time).
-- **Script**: `scripts/yaml_backup_stats.py`
-- **Behavior**: Loads YAML using `kubelingo.modules.yaml_loader.YAMLLoader`, computes statistics, outputs human-readable or JSON, optionally generates an AI summary.
-- **Existing Scripts**: `scripts/yaml_backup_stats.py` (ensure all imports, including `Counter`, are correct).
-- **AI Prompts**: "Would you like a natural-language summary of these statistics?"
+### 1. YAML Management (`yaml_manager.py`)
 
-### Write DB to YAML Backup Version
-- **Purpose**: Export current SQLite database questions into a versioned YAML backup.
-- **Script**: `scripts/export_db_to_yaml.py`
-- **Behavior**: Initializes or connects to DB via `init_db()`, fetches questions with `get_all_questions()`, writes YAML to `question-data-backup/<timestamp>.yaml` or specified path.
-- **Existing Scripts**: `scripts/export_db_to_yaml.py` (remove duplicate code blocks, use `yaml.safe_dump`, handle output paths correctly).
-- **AI Prompts**: "Provide an optional description or label for this backup:"
+This script is a comprehensive tool for all operations related to YAML question files.
 
-### Restore DB from YAML Backup Version
-- **Purpose**: Import or merge questions from a YAML backup into the active database.
-- **Script**: `scripts/restore_yaml_to_db.py`
-- **Behavior**: Parses YAML with `yaml.safe_load`, maps `'type'` to `question_type`, optionally clears DB (`--clear`), calls `add_question()` for each entry, reports summary.
-- **Existing Scripts**: `scripts/restore_yaml_to_db.py` (add key renaming, filter unexpected kwargs).
-- **AI Prompts**:
-  - "Clear existing database before restoring? (yes/no)"
-  - "How should duplicate question IDs be handled? [merge|overwrite|skip]"
+**Usage**: `./scripts/yaml_manager.py [command]`
 
----
-## 3. SQLite Database Management
+| Command               | Description                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| `consolidate`         | Finds all YAML files and consolidates unique questions into a single file.           |
+| `create-db`           | Populates the SQLite database from specified YAML files.                             |
+| `deduplicate`         | Scans a directory for YAML files, finds duplicate questions, and creates a consolidated unique file. |
+| `diff`                | Compares two YAML backup files to show changes in questions.                         |
+| `export`              | Exports all questions from the SQLite database into a single YAML file.              |
+| `import-ai`           | Imports questions from YAML, using an AI model to categorize them.                   |
+| `index`               | Creates a central index (`backups/index.yaml`) of all YAML files with metadata.      |
+| `init`                | Initializes the database from consolidated YAML backups.                             |
+| `restore`             | Restores questions from YAML files into the database, with an option to clear it first. |
+| `list-backups`        | Finds and lists all YAML backup files, sorted by modification time.                  |
+| `stats`               | Calculates and prints statistics about questions in YAML files (e.g., counts by type and category). |
+| `backup-stats`        | Shows detailed statistics for the latest YAML backup file.                           |
+| `group-backups`       | Groups legacy backup questions into a 'legacy_yaml' module in the database.          |
+| `import-bak`          | Imports questions from the legacy `question-data/yaml-bak` directory into the DB.    |
+| `migrate-all`         | Migrates all YAML questions from standard directories to the database.               |
+| `migrate-bak`         | Clears the DB and migrates all questions from the `yaml-bak` directory.              |
+| `verify`              | Verifies that YAML questions can be imported to a temporary DB and loaded correctly. |
+| `organize-generated`  | Consolidates, imports, and cleans up AI-generated YAML questions from a source directory. |
 
-### Index All SQLite Files
-- **Purpose**: Scans the entire project repository to find all SQLite database files (`*.db`).
-- **Script**: `scripts/index_sqlite_files.py`
-- **Behavior**: Uses `get_all_sqlite_files_in_repo()` to find all database files. It prints a list of the located files. Unlike the YAML indexer, it does not currently write to an index file but provides a quick way to list all discoverable databases.
-- **Existing Scripts**: `scripts/index_sqlite_files.py`.
-- **AI Prompts**: None.
+### 2. SQLite Database Management (`sqlite_manager.py`)
 
-### View Database Schema
-- **Purpose**: Display the schema of the SQLite database (tables, columns, indexes).
-- **Script**: `scripts/view_sqlite_schema.py`
-- **Behavior**: Connects to configured DB file, runs `PRAGMA table_info()` or dumps `.schema`, outputs to console or file.
-- **Existing Scripts**: None; implement as small helper using `kubelingo.database.get_db_connection()`.
-- **AI Prompts**: None.
+This script provides tools for managing the SQLite database (`kubelingo.db`), which serves as the primary data store for questions.
 
-### Locate Previous SQLite Backup
-- **Purpose**: List available SQLite backup files by timestamp or version.
-- **Script**: `scripts/locate_sqlite_backups.py`
-- **Behavior**: Scans `question-data-backup/` for `.db` files, outputs metadata in table or JSON.
-- **Existing Scripts**: None; could reuse logic from `locate_yaml_backups.py`.
-- **AI Prompts**: None.
+**Usage**: `./scripts/sqlite_manager.py [command]`
 
-### Diff with Backup SQLite DB
-- **Purpose**: Compare the active database against a backup to identify schema or data changes.
-- **Script**: `scripts/diff_sqlite_backup.py`
-- **Behavior**: Uses `sqldiff` or dumps both DBs to SQL, runs a unified diff, summarizes differences.
-- **Existing Scripts**: None; consider invoking external `sqldiff` tool or Python difflib.
-- **AI Prompts**: "Show schema changes, data changes, or both?"
+| Command                 | Description                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `index`                 | Finds all SQLite files and creates an index file (`backups/sqlite_index.yaml`) with metadata. |
+| `schema`                | Displays the full SQL schema of the database.                                            |
+| `list`                  | Lists all located SQLite backup files, sorted by modification time.                      |
+| `diff`                  | Compares two SQLite databases, showing differences in schema and row counts.             |
+| `restore`               | Restores the live database from a selected backup file.                                  |
+| `create-from-yaml`      | Populates the database from YAML files (similar to `yaml_manager.py restore`).           |
+| `migrate-from-yaml`     | Migrates questions from various YAML source directories into the database.               |
+| `build-master`          | Builds the master database from all YAML files in the `questions/` directory.            |
+| `normalize-sources`     | Normalizes `source_file` paths in the DB to be just the basename (e.g., `path/to/file.yaml` -> `file.yaml`). |
+| `list-modules`          | Lists all distinct `source_file` values in the DB, representing quiz modules.            |
+| `prune-empty`           | Scans for and deletes empty (zero-table) SQLite database files.                          |
+| `unarchive`             | Moves SQLite files from the `archive/` directory to `.kubelingo/` and prunes old versions. |
+| `update-schema-category`| Updates the `schema_category` field in the DB based on the `source_file` name.           |
+| `fix-sources`           | Corrects `source_file` paths based on the question's category.                           |
 
-### Create SQLite Backup Version
-- **Purpose**: Create a timestamped copy of the current SQLite database file.
-- **Script**: `scripts/create_sqlite_backup.py`
-- **Behavior**: Copies `kubelingo.db` from app directory to `question-data-backup/` with a timestamped filename, supports `--label`.
-- **Existing Scripts**: None.
-- **AI Prompts**: "Enter a label or description for this backup (optional):"
+### 3. Question Content Generation (`generator.py`)
 
-### Restore from SQLite Backup Version
-- **Purpose**: Restore or merge from a selected SQLite backup into the active database.
-- **Script**: `scripts/restore_sqlite_backup.py`
-- **Behavior**: Offers options to overwrite the entire DB or merge specific tables, prompts user before destructive operations.
-- **Existing Scripts**: None; can reuse file-copy logic and possibly integrate `add_question()` for table-level merging.
-- **AI Prompts**: "Overwrite entire database or merge table-by-table?"
+This script is used to generate new quiz questions and manifests from various sources.
 
----
-## 4. Question Data Maintenance
+**Usage**: `./scripts/generator.py [command]`
 
-### Deduplicate Questions
-- **Purpose**: Identify and resolve duplicate questions in the database or YAML backups.
-- **Script**: `scripts/deduplicate_questions.py`
-- **Behavior**: Computes hashes or uses AI similarity to group duplicates, prompts user to choose or merge.
-- **Existing Scripts**: `scripts/legacy/find_duplicate_questions.py`.
-- **AI Prompts**: "These questions look similar; select canonical version or merge fields:"
+| Command               | Description                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `from-pdf`            | Extracts text from a PDF and uses an AI model to generate new quiz questions.             |
+| `ai-quiz`             | Generates a small, general-purpose Kubernetes quiz using an AI model.                     |
+| `ai-questions`        | Generates questions on a specific subject using an AI model, optionally using existing questions as examples. |
+| `resource-reference`  | Generates a static quiz manifest (`resource_reference.yaml`) for Kubernetes resource metadata (API version, shortnames, etc.). |
+| `kubectl-operations`  | Generates a static quiz manifest (`kubectl_operations.yaml`) for `kubectl` command names. |
+| `service-account`     | Generates a static set of questions related to Kubernetes ServiceAccounts.              |
+| `validation-steps`    | Auto-generates `validation_steps` for questions based on their YAML answer.               |
+| `manifests`           | Generates YAML quiz manifests and solution files from legacy JSON question data.          |
 
-### Fix Question Categorization
-- **Purpose**: Ensure all questions in the database have a consistent `schema_category` based on their type and content.
-- **Script**: `scripts/reorganize_question_categories.py`
-- **Behavior**: Iterates through all questions in the database, determines the correct schema category based on the logic in the `Question` dataclass, and updates the database. It reports on any quiz files that contain questions with mixed categories.
-- **Existing Scripts**: `scripts/reorganize_question_categories.py`.
-- **AI Prompts**: None.
+### 4. Question Data Management (`question_manager.py`)
 
-### Fix Documentation Links
-- **Purpose**: Validate and repair broken documentation URLs in question metadata.
-- **Script**: `scripts/validate_doc_links.py`
-- **Behavior**: Performs HTTP HEAD requests for each URL, flags broken links, suggests replacements via AI or known patterns.
-- **Existing Scripts**: None; may adapt link-checking logic from web frameworks.
-- **AI Prompts**: "Link {url} returned {status}; provide an updated URL or mark as deprecated:"
+This script handles high-level maintenance and organization of question data.
 
-### Fix Question Formatting
-- **Purpose**: Lint and correct formatting issues in question definitions (YAML or DB).
-- **Script**: `scripts/lint_fix_question_format.py`
-- **Behavior**: Enforces required fields, normalizes YAML indentation, escapes characters, updates entries in place.
-- **Existing Scripts**: None; can leverage `kubelingo.modules.yaml_loader` validation logic.
-- **AI Prompts**: "Field '{field}' is missing for question '{id}'; please provide a value:"
+**Usage**: `./scripts/question_manager.py [command]`
 
----
-## Additional Recommendations
-- Consolidate common backup logic into a single `scripts/backup_manager.py` with subcommands for `yaml` and `sqlite`.
-- Consider a unified CLI entrypoint (e.g., `kubelingo maintenance <task>`) rather than individual scripts.
-- Centralize AI integration in a shared module for consistent prompts, logging, and error handling.
+| Command               | Description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
+| `build-index`         | Indexes YAML files and updates the question database. This command ensures the DB is in sync with the latest YAML source files. |
+
+### 5. Data Consolidation (`consolidator.py`)
+
+This script provides tools for archiving data files and an interactive exercise selector.
+
+**Usage**: `./scripts/consolidator.py [command]`
+
+| Command               | Description                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `backups`             | Scans the entire project for data files (`.db`, `.sqlite3`, `.yaml`) and moves them into a central `archive/` directory, removing duplicates. |
+| `selector`            | Launches an interactive menu to browse and select study topics from the database.        |
+
+### 6. Bug & Issue Tracking (`bug_ticket.py`)
+
+A simple utility for logging issues or ideas without leaving the terminal.
+
+**Usage**: `./scripts/bug_ticket.py`
+
+- Prompts the user for a description, location, and category of an issue.
+- Uses the system's `$EDITOR` for detailed, multi-line descriptions.
+- Appends the new ticket to `docs/bug_tickets.yaml`.
