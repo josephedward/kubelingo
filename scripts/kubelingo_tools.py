@@ -99,67 +99,29 @@ def _run_script(script_name: str, *args):
         return False
 
 def _generate_questions():
-    """Handles the 'Generate Questions' option with an interactive menu."""
-    choice = questionary.select(
-        "Select a question generator:",
-        choices=[
-            "From PDF", 
-            "From AI (subject-based)",
-            "Kubernetes Resource Reference",
-            "Kubernetes Operations",
-            "Service Account Questions",
-            "Manifests from JSON",
-            questionary.Separator(),
-            "Back"
-        ]
+    """Handles AI-based question generation."""
+    subjects = sorted([s.value for s in QuestionSubject])
+    subject = questionary.select(
+        "Subject for the new questions:",
+        choices=subjects
     ).ask()
+    if not subject: return
 
-    if not choice or choice == "Back":
-        return
-
-    if choice == "From PDF":
-        pdf_path = questionary.text("Path to the PDF file:").ask()
-        if not pdf_path: return
-        output_file = questionary.text("Path to the output YAML file:", default="yaml/generated/from_pdf.yaml").ask()
-        if not output_file: return
-        num_q = questionary.text("Number of questions per chunk?", default="5").ask()
-        handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
+    category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
+    num_q = questionary.text("Number of questions to generate?", default="3").ask()
     
-    elif choice == "From AI (subject-based)":
-        subjects = sorted([s.value for s in QuestionSubject])
-        subject = questionary.select(
-            "Subject for the new questions:",
-            choices=subjects
-        ).ask()
-        if not subject: return
+    # Sanitize subject to prevent issues with special characters like '&'
+    ai_safe_subject = subject.replace(' & ', ' and ').replace('&', 'and')
+    filename_safe_subject = ai_safe_subject.lower().replace(' ', '_')
+    
+    output_file = questionary.text("Path to the output YAML file:", default=f"yaml/generated/{filename_safe_subject}.yaml").ask()
+    if not output_file: return
+    example_file = questionary.text("(Optional) Path to YAML source file for example questions:").ask()
 
-        category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
-        num_q = questionary.text("Number of questions to generate?", default="3").ask()
-        
-        # Sanitize subject to prevent issues with special characters like '&'
-        ai_safe_subject = subject.replace(' & ', ' and ').replace('&', 'and')
-        filename_safe_subject = ai_safe_subject.lower().replace(' ', '_')
-        
-        output_file = questionary.text("Path to the output YAML file:", default=f"yaml/generated/{filename_safe_subject}.yaml").ask()
-        if not output_file: return
-        example_file = questionary.text("(Optional) Path to YAML source file for example questions:").ask()
-
-        handle_ai_questions(MockArgs(
-            subject=ai_safe_subject, category=category, num_questions=int(num_q), 
-            output_file=output_file, example_source_file=example_file
-        ))
-
-    elif choice == "Kubernetes Resource Reference":
-        handle_resource_reference(MockArgs())
-
-    elif choice == "Kubernetes Operations":
-        handle_kubectl_operations(MockArgs())
-
-    elif choice == "Service Account Questions":
-        handle_service_account(MockArgs(to_db=False, num=0, output="questions/generated_json/service_accounts.json"))
-
-    elif choice == "Manifests from JSON":
-        handle_manifests(MockArgs(json_dir="question-data/json"))
+    handle_ai_questions(MockArgs(
+        subject=ai_safe_subject, category=category, num_questions=int(num_q), 
+        output_file=output_file, example_source_file=example_file
+    ))
 
 def _add_questions():
     """Handles 'Add Questions' - import from YAML with AI schema inference, rewriting, and reformatting."""

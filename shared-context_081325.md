@@ -17,3 +17,10 @@ This document outlines the fixes for two issues identified in the interactive mo
 *   **Root Cause:** The check for AI readiness (`has_api_key` in `kubelingo/cli.py`) was too lenient. It only verified the existence of an LLM client object, which could be instantiated even without a valid API key. The failure occurred only when the client tried to make an API call.
 *   **Fix:** The logic in `run_interactive_main_menu` was improved to explicitly check for an active API key using `get_active_api_key()`. If no key is present, the LLM client is set to `None`, which correctly disables the AI-related menu items.
 *   **Outcome:** AI-dependent features are now correctly disabled in the UI when not configured, preventing users from entering a broken session and providing a clearer indication that setup is required.
+
+## 3. Simplified Question Generation Menu
+
+*   **Problem:** The "Generate Questions" option in the `scripts/kubelingo_tools.py` script presented a confusing list of seven different generator types, including "From PDF" and "Kubernetes Resource Reference".
+*   **Root Cause:** The `_generate_questions` function was designed to offer every possible question generation method via a menu, but the primary and most common use case is AI-based generation.
+*   **Fix:** The menu was removed. The "Generate Questions" option now directly calls the AI-based subject generator (`handle_ai_questions`), streamlining the interactive workflow. Other generators remain available as CLI subcommands.
+*   **Outcome:** The user experience for generating questions is simplified. Instead of being presented with a list of options, users are taken directly to the most common and powerful generation tool.
