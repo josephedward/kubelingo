@@ -37,6 +37,7 @@ if __name__ == '__main__' and __package__ is None:
     __package__ = 'kubelingo'
 
 from kubelingo.bootstrap import initialize_app
+from kubelingo.question import QuestionCategory
 
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
