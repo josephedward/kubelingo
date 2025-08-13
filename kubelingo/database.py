@@ -21,7 +21,12 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from kubelingo.question import Question, QuestionCategory, QuestionSubject, ValidationStep
-from kubelingo.utils.config import APP_DIR, DATABASE_FILE, SINGLE_SOURCE_YAML_FILE
+from kubelingo.utils.config import (
+    APP_DIR,
+    DATABASE_FILE,
+    SINGLE_SOURCE_YAML_FILE,
+    get_live_db_path,
+)
 from kubelingo.utils.path_utils import get_project_root
 
 
