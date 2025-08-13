@@ -5,7 +5,7 @@ import os
 import pytest
 pytest.skip("Skipping real vimrunner integration tests", allow_module_level=True)
 try:
-    from kubelingo.modules.kubernetes.vimrunner import Server
+    from kubelingo.modules.kubernetes.vim_yaml_editor import Server
 except ImportError:
     pass
 
