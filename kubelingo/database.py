@@ -1,3 +1,14 @@
+"""
+Manages the application's SQLite database connection and operations.
+
+This module is designed based on the principle that YAML files are the single
+source of truth for question content. The database only stores metadata about
+questions (e.g., source file, review status, content hash) to facilitate quick
+lookups and tracking user-specific state.
+
+The DBLoader class was removed from this module to resolve a circular import
+dependency and to enforce this metadata-only database design.
+"""
 import sqlite3
 import json
 import os
