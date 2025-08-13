@@ -195,7 +195,7 @@ def generate_more_questions(topic, existing_question):
           - question: "Your new question here."
             solution: "The new solution here."
         """
-        response = model.generate_content(response.text.replace("`", ""))
+        response = model.generate_content(prompt)
         # Clean the response to only get the YAML part
         cleaned_response = response.text.strip()
         if cleaned_response.startswith('```yaml'):
