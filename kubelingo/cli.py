@@ -707,17 +707,38 @@ def _run_yaml_quiz_interactive(study_session):
     if not yaml_file:
         return
 
-    # The SocraticMode session's run_exercises method expects a list of Question objects.
+    # Load questions from the selected YAML file first.
+    try:
+        exercises = loader.load_file(yaml_file)
+        if not exercises:
+            print(f"{Fore.YELLOW}No questions could be loaded from '{os.path.basename(yaml_file)}'.{Style.RESET_ALL}")
+            return
+    except Exception as e:
+        print(f"{Fore.RED}An unexpected error occurred while loading the quiz file: {e}{Style.RESET_ALL}")
+        return
+
+
+    # The existing study_session is a SocraticMode instance, which is a KubernetesSession.
+    # It's set up to work with questions from the DB.
+    # We can use its run_exercises method, but we need to pass it args for a file-based quiz.
     print(f"\n{Fore.CYAN}Starting quiz from '{os.path.basename(yaml_file)}'...{Style.RESET_ALL}")
     try:
-        # Load the questions from the selected YAML file.
-        questions = loader.load_file(yaml_file)
-        if not questions:
-            print(f"{Fore.YELLOW}No questions found in '{os.path.basename(yaml_file)}'.{Style.RESET_ALL}")
-            return
-
-        # Now pass the loaded list of questions to the session runner.
-        study_session.run_exercises(questions)
+        # We can reuse the `args` structure from the CLI parser.
+        # Minimal args needed to run a file-based quiz.
+        mock_args = argparse.Namespace(
+            file=yaml_file,
+            module='kubernetes', # run with kubernetes session logic
+            num=0,
+            category=None,
+            review_only=False,
+            ai_eval=hasattr(study_session, 'client') and study_session.client is not None,
+            randomize=False,
+            # Add other args with default values if run_exercises needs them
+            k8s_mode=True,
+            exercises=exercises, # Pass loaded questions directly
+            cluster_context=None
+        )
+        study_session.run_exercises(mock_args)
     except Exception as e:
         print(f"{Fore.RED}An unexpected error occurred during the quiz: {e}{Style.RESET_ALL}")
 

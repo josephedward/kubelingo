@@ -155,10 +155,10 @@ class YAMLLoader(BaseLoader):
                 if 'type' in question_data:
                     question_data['type_'] = question_data.pop('type')
 
-                # Map legacy YAML keys to new dataclass field names before inference.
-                if 'schema_category' in item:
+                # Manual mapping for legacy/different YAML field names
+                if 'schema_category' in item and 'category_id' not in question_data:
                     question_data['category_id'] = item['schema_category']
-                if 'subject_matter' in item:
+                if 'subject_matter' in item and 'subject_id' not in question_data:
                     question_data['subject_id'] = item['subject_matter']
 
                 # Infer subject matter only if not explicitly provided.
@@ -191,10 +191,10 @@ class YAMLLoader(BaseLoader):
                 if 'question' in question_data and 'prompt' not in question_data:
                     question_data['prompt'] = question_data.pop('question')
 
-                # Map legacy YAML keys to new dataclass field names before inference.
-                if 'schema_category' in item:
+                # Manual mapping for legacy/different YAML field names
+                if 'schema_category' in item and 'category_id' not in question_data:
                     question_data['category_id'] = item['schema_category']
-                if 'subject_matter' in item:
+                if 'subject_matter' in item and 'subject_id' not in question_data:
                     question_data['subject_id'] = item['subject_matter']
 
                 # Infer subject matter only if not explicitly provided.
