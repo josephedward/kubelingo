@@ -147,10 +147,10 @@ class AIQuestionGenerator:
             return valid_questions
 
         print(f"{Fore.CYAN}AI generation attempt...{Style.RESET_ALL}")
-        raw = None
+        raw_response = None
         try:
             # Use the configured LLM client
-            raw = self.llm_client.chat_completion(
+            raw_response = self.llm_client.chat_completion(
                 messages=[
                     {"role": "user", "content": ai_prompt}
                 ],
@@ -159,12 +159,13 @@ class AIQuestionGenerator:
             )
         except Exception as e:
             logger.error(f"LLM client failed: {e}", exc_info=True)
-            raw = None
+            raw_response = None
 
         items = []
-        if not raw:
+        if not raw_response:
             logger.warning("LLM client returned no content.")
         else:
+            raw = str(raw_response)
             # Parse JSON
             try:
                 items = json.loads(raw)
