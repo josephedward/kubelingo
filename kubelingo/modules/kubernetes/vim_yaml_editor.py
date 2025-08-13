@@ -355,3 +355,8 @@ class VimYamlEditor:
                     print(expected_raw)
                 return False
             starting = user_yaml_str
+
+
+def vim_commands_quiz():
+    """Placeholder for a Vim commands quiz."""
+    print("Vim commands quiz is not yet implemented.")
