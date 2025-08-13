@@ -130,6 +130,10 @@ def _generate_questions():
             choices=subjects
         ).ask()
         if not subject: return
+
+        # Sanitize subject to prevent issues with special characters like '&'
+        subject = subject.replace(' & ', ' and ').replace('&', 'and')
+
         category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
         num_q = questionary.text("Number of questions to generate?", default="3").ask()
         sanitized_subject = subject.lower().replace(' ', '_').replace('&', 'and')
