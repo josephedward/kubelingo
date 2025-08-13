@@ -517,6 +517,13 @@ class KubernetesStudyMode:
 
     def _run_quiz_loop(self, quiz_type: str, topic: str):
         """Generic loop for generating and asking questions."""
+        if not self.client:
+            print(
+                f"\n{Fore.YELLOW}AI client not configured. Please set up your AI provider in 'Settings > AI'.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
         category_map = {
             "basic": "Basic",
             "command": "Command",
