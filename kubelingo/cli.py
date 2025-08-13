@@ -80,7 +80,7 @@ from kubelingo.utils.config import (
     get_api_key,
     get_api_key_with_source,
     save_api_key,
-    YAML_QUIZ_DIR,
+    QUESTIONS_DIR,
     get_cluster_configs,
     save_cluster_configs,
     SQLITE_BACKUP_DIRS,
@@ -287,7 +287,7 @@ def _rebuild_db_from_yaml():
 
         print("Discovering and loading questions from YAML files...")
         # Search in both default YAML dir and the user's custom 'yaml' dir.
-        search_dirs = [str(YAML_QUIZ_DIR), str(repo_root / 'yaml')]
+        search_dirs = [str(QUESTIONS_DIR), str(repo_root / 'yaml')]
         yaml_files = find_yaml_files(search_dirs)
 
         if not yaml_files:
