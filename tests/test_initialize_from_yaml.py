@@ -1,16 +1,13 @@
 import os
-import sys
 import sqlite3
 import tempfile
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Add scripts directory to sys.path to allow for import
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
 
 # Import the function to test
-from initialize_from_yaml import initialize_from_yaml
+from scripts.initialize_from_yaml import initialize_from_yaml
 
 # Mock database connection
 @pytest.fixture
@@ -51,7 +48,7 @@ def mock_yaml_file():
 # Mock AICategorizer
 @pytest.fixture
 def mock_ai_categorizer():
-    with patch("initialize_from_yaml.AICategorizer.categorize_question") as mock_categorize:
+    with patch("scripts.initialize_from_yaml.AICategorizer.categorize_question") as mock_categorize:
         def mock_categorize_side_effect(self, question):
             prompt = question['prompt']
             if "Kubernetes Pod" in prompt:
@@ -72,9 +69,9 @@ def mock_ai_categorizer():
 # Test function
 def test_initialize_from_yaml(mock_db, mock_yaml_file, mock_ai_categorizer):
     # Mock the get_db_connection function to return the mock database
-    with patch("initialize_from_yaml.get_db_connection", return_value=mock_db):
+    with patch("scripts.initialize_from_yaml.get_db_connection", return_value=mock_db):
         # Mock the get_project_root function to return the directory containing the mock YAML file
-        with patch("initialize_from_yaml.get_project_root", return_value=Path(mock_yaml_file).parent):
+        with patch("scripts.initialize_from_yaml.get_project_root", return_value=Path(mock_yaml_file).parent):
             # Run the function
             initialize_from_yaml()
 
