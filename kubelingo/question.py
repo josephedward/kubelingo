@@ -97,6 +97,11 @@ class Question:
     validator: Optional[Dict[str, Any]] = None
     source_file: Optional[str] = None
 
+    # --- Tracking metadata ---
+    created_at: Optional[str] = field(default=None)
+    updated_at: Optional[str] = field(default=None)
+    content_hash: Optional[str] = field(default=None)
+
     # --- Legacy compatibility ---
     category: Optional[str] = None
     response: Optional[str] = None

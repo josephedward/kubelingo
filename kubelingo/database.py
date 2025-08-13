@@ -69,6 +69,7 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
     """
     Adds or replaces a question in the database using keyword arguments.
     It can operate on a provided connection or manage its own.
+    It now tracks creation and update timestamps, and a content hash to detect changes.
     """
     manage_connection = conn is None
     if manage_connection:
@@ -76,11 +77,34 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
 
     try:
         cursor = conn.cursor()
+        q_id = kwargs.get('id')
+        if not q_id:
+            return  # Cannot insert a question without an ID
+
+        # Preserve created_at on replace by fetching it first.
+        cursor.execute("SELECT created_at FROM questions WHERE id = ?", (q_id,))
+        result = cursor.fetchone()
+        existing_created_at = result[0] if result else None
+
         cursor.execute("PRAGMA table_info(questions)")
         table_columns = {row[1] for row in cursor.fetchall()}
 
         q_dict = {k: v for k, v in kwargs.items() if k in table_columns}
 
+        # Set timestamps
+        now = datetime.now().isoformat()
+        q_dict['updated_at'] = now
+        q_dict['created_at'] = existing_created_at or now
+
+        # Calculate content hash from a stable representation of the question data.
+        hash_dict = q_dict.copy()
+        for key in ['created_at', 'updated_at', 'content_hash']:
+            hash_dict.pop(key, None)
+
+        stable_repr = json.dumps(hash_dict, sort_keys=True, default=str)
+        q_dict['content_hash'] = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
+
+        # Serialize complex types to JSON strings.
         for key, value in q_dict.items():
             if isinstance(value, (dict, list)):
                 q_dict[key] = json.dumps(value)
@@ -88,9 +112,6 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
                 q_dict[key] = json.dumps(asdict(value))
             elif isinstance(value, bool):
                 q_dict[key] = int(value)
-
-        if 'id' not in q_dict:
-            return  # Cannot insert a question without an ID
 
         columns = ', '.join(q_dict.keys())
         placeholders = ', '.join('?' * len(q_dict))
@@ -181,19 +202,22 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 q_obj = Question(**q_dict)
                 validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
 
-                cursor.execute("""
-                    INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    q_obj.id, q_obj.prompt, q_obj.source_file,
-                    json.dumps(q_obj.response) if q_obj.response is not None else None,
-                    q_obj.category,
-                    q_obj.subject.value if q_obj.subject else None,
-                    'yaml_import', json.dumps(q_dict),
-                    json.dumps(validation_steps_for_db),
-                    json.dumps(q_obj.validator) if q_obj.validator else None,
-                    getattr(q_obj, 'review', False)
-                ))
+                # Instead of direct insert, use add_question to handle metadata.
+                db_dict = q_dict.copy()
+                db_dict.update({
+                    'id': q_obj.id,
+                    'prompt': q_obj.prompt,
+                    'source_file': q_obj.source_file,
+                    'response': q_obj.response,
+                    'category': q_obj.category,
+                    'subject': q_obj.subject.value if q_obj.subject else None,
+                    'source': 'yaml_import',
+                    'raw': json.dumps(q_dict),
+                    'validation_steps': validation_steps_for_db,
+                    'validator': q_obj.validator,
+                    'review': getattr(q_obj, 'review', False),
+                })
+                add_question(conn, **db_dict)
 
             # Update indexed_files table
             cursor.execute("""
@@ -245,7 +269,10 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
             raw TEXT,
             validation_steps TEXT,
             validator TEXT,
-            review BOOLEAN NOT NULL DEFAULT 0
+            review BOOLEAN NOT NULL DEFAULT 0,
+            content_hash TEXT,
+            created_at TIMESTAMP,
+            updated_at TIMESTAMP
         )
     """)
 
