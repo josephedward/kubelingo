@@ -479,32 +479,82 @@ def handle_load_yaml(cmd_args):
         print(f"{Fore.RED}An error occurred during import: {e}{Style.RESET_ALL}")
 
 
-def manage_questions_interactive():
-    """Interactive menu for question management tasks."""
-    if not (questionary and Separator):
-        print(f"{Fore.RED}Error: 'questionary' library not found. Please install it with 'pip install questionary'.{Style.RESET_ALL}")
+def _run_bug_ticket_script():
+    """Runs the bug_ticket.py script."""
+    print("\nLaunching Bug Ticket Reporter...")
+    script_path = repo_root / "scripts" / "bug_ticket.py"
+    if not script_path.exists():
+        print(f"{Fore.RED}Error: Bug ticket script not found at {script_path}{Style.RESET_ALL}")
         return
 
-    # This function now acts as a launcher for the dedicated question manager script.
-    # The script itself contains the interactive logic.
-    print("\nLaunching Question Manager...")
-    script_path = repo_root / "scripts" / "question_manager.py"
-    if not script_path.is_file():
-        print(f"{Fore.RED}Error: Question manager script not found at {script_path}{Style.RESET_ALL}")
+    try:
+        subprocess.run([sys.executable, str(script_path)], check=False)
+    except Exception as e:
+        print(f"{Fore.RED}Error running bug ticket script: {e}{Style.RESET_ALL}")
+
+
+def _run_question_management():
+    """Runs the kubelingo_tools.py script to show the question management menu."""
+    print("\nLaunching Question Management...")
+    tools_script_path = repo_root / "scripts" / "kubelingo_tools.py"
+    if not tools_script_path.is_file():
+        print(f"{Fore.RED}Error: Question management script not found at {tools_script_path}{Style.RESET_ALL}")
         return
     
-    command = [sys.executable, str(script_path)]
+    command = [sys.executable, str(tools_script_path)]
     print(f"\n{Fore.CYAN}Running: {' '.join(map(str, command))}{Style.RESET_ALL}")
     
     try:
-        # We run this without arguments to trigger its interactive menu.
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
         print(f"{Fore.RED}Script exited with error code {e.returncode}.{Style.RESET_ALL}")
     except KeyboardInterrupt:
-        print(f"\n{Fore.YELLOW}Exiting question manager.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}Exiting Question Management.{Style.RESET_ALL}")
     except Exception as e:
         print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
+
+
+def manage_cluster_config_interactive():
+    """Interactive prompt for managing Kubernetes cluster configurations."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+    try:
+        configs = get_cluster_configs()
+        menu_choices = [
+            questionary.Separator("--- Kubernetes Clusters ---"),
+            {"name": "List configured clusters", "value": "list_clusters"},
+            {"name": "Add a new cluster connection", "value": "add_cluster"},
+        ]
+        if configs:
+            menu_choices.append({"name": "Remove a cluster connection", "value": "remove_cluster"})
+        
+        menu_choices.extend([
+            questionary.Separator(),
+            {"name": "Cancel", "value": "cancel"}
+        ])
+
+        action = questionary.select(
+            "Select a cluster configuration action:",
+            choices=menu_choices,
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "cancel":
+            return
+
+        if action == 'list_clusters':
+            handle_config_command(['config', 'list', 'cluster'])
+        elif action == 'add_cluster':
+            handle_config_command(['config', 'add', 'cluster'])
+        elif action == 'remove_cluster':
+            handle_config_command(['config', 'remove', 'cluster'])
+
+        print()
+
+    except (KeyboardInterrupt, EOFError):
+        print()
+        return
 
 
 def manage_config_interactive():
@@ -533,12 +583,12 @@ def manage_config_interactive():
             ])
 
         menu_choices.extend([
-            questionary.Separator("---------------"),
+            questionary.Separator(),
             {"name": "Cancel", "value": "cancel"}
         ])
 
         action = questionary.select(
-            "What would you like to do?",
+            "Select an AI provider configuration action:",
             choices=menu_choices,
             use_indicator=True
         ).ask()
@@ -651,16 +701,14 @@ def run_interactive_main_menu():
 
             # --- Get counts for menu ---
             try:
-                from kubelingo.database import get_flagged_questions
-                missed_count = len(get_flagged_questions()) if has_api_key else 0
-                question_counts = {
-                    cat: study_session._get_question_count_by_category(cat) for cat in QuestionCategory
-                }
+                from kubelingo.database import get_flagged_questions, get_question_counts_by_category
+                missed_count = len(get_flagged_questions())
+                question_counts = get_question_counts_by_category()
             except Exception:
                 missed_count = 'N/A'
-                question_counts = {cat: 'N/A' for cat in QuestionCategory}
+                question_counts = {cat.value: 'N/A' for cat in QuestionCategory}
 
-            # --- Build Menu Choices ---
+
             # --- Build Menu Choices ---
             choices = [
                 Separator("--- Learn ---"),
@@ -678,27 +726,26 @@ def run_interactive_main_menu():
                 ),
                 Separator("--- Drill ---"),
                 questionary.Choice(
-                    f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED, 'N/A')})",
+                    f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED.value, 0)})",
                     value=("drill", QuestionCategory.OPEN_ENDED),
-                    disabled=api_key_required_msg if not has_api_key else ""
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
-                    f"Basic Terminology ({question_counts.get(QuestionCategory.BASIC_TERMINOLOGY, 'N/A')})",
-                    value=("drill", QuestionCategory.BASIC_TERMINOLOGY),
+                    f"Basic Terminology ({question_counts.get(QuestionCategory.BASIC_TERMINOLOGY.value, 0)})",
+                    value=("drill", QuestionCategory.BASIC_TERMINOLOGY)
                 ),
                 questionary.Choice(
-                    f"Command Syntax ({question_counts.get(QuestionCategory.COMMAND_SYNTAX, 'N/A')})",
+                    f"Command Syntax ({question_counts.get(QuestionCategory.COMMAND_SYNTAX.value, 0)})",
                     value=("drill", QuestionCategory.COMMAND_SYNTAX),
-                    disabled=api_key_required_msg if not has_api_key else ""
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
-                    f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST, 'N/A')})",
-                    value=("drill", QuestionCategory.YAML_MANIFEST),
-                    disabled=api_key_required_msg if not has_api_key else ""
+                    f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST.value, 0)})",
+                    value=("drill", QuestionCategory.YAML_MANIFEST)
                 ),
                 Separator("--- Settings ---"),
                 questionary.Choice("AI", value=("settings", "ai")),
-                questionary.Choice("Clusters", value=("settings", "clusters")),
+                questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
                 questionary.Choice("Help", value=("settings", "help")),
                 questionary.Choice("Report Bug", value=("settings", "bug")),
@@ -718,23 +765,24 @@ def run_interactive_main_menu():
 
             if menu == "learn":
                 if action == "study":
+                    # This would ideally lead to submenus for type and subject.
                     study_session.run_study_mode()
                 elif action == "review":
                     study_session.review_past_questions()
             elif menu == "drill":
-                category = action
-                study_session._run_drill_menu(category)
+                # This should launch a drill-down quiz for the selected category.
+                print(f"Drill mode for '{action.value}' not fully implemented yet.")
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
-                elif action == "clusters":
-                    study_session._cluster_config_menu()
+                elif action == "cluster":
+                    manage_cluster_config_interactive()
                 elif action == "questions":
-                    manage_questions_interactive()
-                elif action == "bug":
-                    _run_script('scripts/bug_ticket.py')
+                    _run_question_management()
                 elif action == "help":
                     show_session_type_help()
+                elif action == "bug":
+                    _run_bug_ticket_script()
 
         except (KeyboardInterrupt, TypeError, EOFError):
             print("\nExiting application. Goodbye!")
