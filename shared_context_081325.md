@@ -32,6 +32,19 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Bug**: `ImportError: cannot import name 'add_question' from partially initialized module 'kubelingo.database' (most likely due to a circular import)`.
 - **Cause**: A circular dependency is created during startup: `database.py` imports `modules.base.loader`, which eventually imports `modules.kubernetes.study_mode`, which in turn imports `database.py`. This recursive dependency prevents the application from initializing.
 - **Bug**: `ImportError: cannot import name 'SUBJECT_MATTER' from 'kubelingo.utils.config'`.
+  ```
+  Running kubelingo
+  Traceback (most recent call last):
+    File "/Users/user/.pyenv/versions/3.11.0/bin/kubelingo", line 3, in <module>
+      from kubelingo.cli import main
+    File "/Users/user/Documents/GitHub/kubelingo/kubelingo/cli.py", line 39, in <module>
+      from kubelingo.bootstrap import initialize_app
+    File "/Users/user/Documents/GitHub/kubelingo/kubelingo/bootstrap.py", line 3, in <module>
+      from kubelingo.database import init_db
+    File "/Users/user/Documents/GitHub/kubelingo/kubelingo/database.py", line 14, in <module>
+      from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
+  ImportError: cannot import name 'SUBJECT_MATTER' from 'kubelingo.utils.config' (/Users/user/Documents/GitHub/kubelingo/kubelingo/utils/config.py)
+  ```
 - **Cause**: The `SUBJECT_MATTER` constant, which defines Kubernetes topics, was removed from `kubelingo.utils.config` but `kubelingo.database.py` still attempts to import it from there. This constant is now sourced from the `QuestionSubject` enum in `kubelingo.question`.
 
 ## Proposed High-Level Fixes
