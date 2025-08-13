@@ -41,7 +41,6 @@ from kubelingo.question import Question
 from kubelingo.utils.config import (
     DATABASE_FILE,
     DATA_DIR,
-    ENABLED_QUIZZES,
     MASTER_DATABASE_FILE,
     QUESTIONS_DIR,
     SECONDARY_MASTER_DATABASE_FILE,
@@ -57,6 +56,10 @@ from kubelingo.utils.path_utils import (
     get_live_db_path,
 )
 from kubelingo.utils.ui import Fore, Style
+
+
+# This was removed from config, define locally to avoid breaking script logic.
+ENABLED_QUIZZES = {}
 
 
 # --- Migrate from YAML ---

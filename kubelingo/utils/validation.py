@@ -96,6 +96,41 @@ def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
         return {"valid": False, "reason": f"YAML syntax error: {e}"}
 
 
+def is_yaml_subset(subset_yaml: str, superset_yaml: str) -> bool:
+    """
+    Checks if one YAML document is a structural subset of another.
+    - Dictionaries are checked recursively. All keys in subset must be in superset.
+    - Lists are checked for item presence. All items in subset must be in superset.
+    - Other values are checked for equality.
+    """
+    if not yaml:
+        return False  # PyYAML not available
+
+    try:
+        subset = yaml.safe_load(subset_yaml)
+        superset = yaml.safe_load(superset_yaml)
+    except (yaml.YAMLError, AttributeError):
+        # Handle cases where input is not valid YAML or not loadable
+        return False
+
+    def _is_subset_recursive(sub, sup):
+        if isinstance(sub, dict) and isinstance(sup, dict):
+            return all(
+                k in sup and _is_subset_recursive(v, sup[k])
+                for k, v in sub.items()
+            )
+        if isinstance(sub, list) and isinstance(sup, list):
+            # For each item in the subset list, we must find a matching item in the superset list.
+            return all(
+                any(_is_subset_recursive(sub_item, sup_item) for sup_item in sup)
+                for sub_item in sub
+            )
+        # For scalar values (str, int, bool, etc.), check for direct equality.
+        return sub == sup
+
+    return _is_subset_recursive(subset, superset)
+
+
 def validate_prompt_completeness(command: str, prompt: str) -> Dict[str, Any]:
     """
     Validates that a generated kubectl command's key arguments are present
