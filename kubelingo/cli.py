@@ -464,6 +464,42 @@ def _run_bug_ticket_script():
         print(f"{Fore.RED}Error running bug ticket script: {e}{Style.RESET_ALL}")
 
 
+def _list_yaml_questions():
+    """Lists questions from YAML files."""
+    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.utils.ui import Fore, Style
+    import os
+
+    print(f"\n{Fore.CYAN}--- Questions from YAML files ---{Style.RESET_ALL}")
+    loader = YAMLLoader()
+    try:
+        # The discover method should find all relevant YAML files.
+        yaml_files = loader.discover()
+        if not yaml_files:
+            print(f"{Fore.YELLOW}No YAML question files found.{Style.RESET_ALL}")
+            return
+
+        print(f"Found {len(yaml_files)} YAML file(s). Loading questions...")
+        all_questions = []
+        for file_path in yaml_files:
+            try:
+                questions = loader.load_file(file_path)
+                if questions:
+                    print(f"\n{Fore.GREEN}File: {os.path.basename(file_path)}{Style.RESET_ALL} ({len(questions)} questions)")
+                    for i, q in enumerate(questions):
+                        print(f"  {i+1}. [{q.id}] {q.prompt[:100]}")
+                all_questions.extend(questions)
+            except Exception as e:
+                print(f"{Fore.YELLOW}Warning: Could not load or parse {os.path.basename(file_path)}: {e}{Style.RESET_ALL}")
+
+        if not all_questions:
+            print(f"{Fore.YELLOW}No questions could be loaded from any YAML files.{Style.RESET_ALL}")
+
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
+    print() # for spacing
+
+
 def _run_question_management():
     """Runs the kubelingo_tools.py script to show the question management menu."""
     print("\nLaunching Question Management...")
@@ -894,6 +930,7 @@ def run_interactive_main_menu():
                 questionary.Choice("AI", value=("settings", "ai")),
                 questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
+                questionary.Choice("View YAML Questions", value=("settings", "view_yaml")),
                 questionary.Choice("Help", value=("settings", "help")),
                 questionary.Choice("Report Bug", value=("settings", "bug")),
                 Separator(),
@@ -928,6 +965,8 @@ def run_interactive_main_menu():
                     manage_cluster_config_interactive()
                 elif action == "questions":
                     _run_question_management()
+                elif action == "view_yaml":
+                    _list_yaml_questions()
                 elif action == "help":
                     show_session_type_help()
                 elif action == "bug":
