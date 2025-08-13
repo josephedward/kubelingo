@@ -202,7 +202,7 @@ def consolidate_dbs():
     if yaml_files:
         for yf in yaml_files:
             try:
-                docs = list(yaml.load_all(yf.read_text(encoding='utf-8'), Loader=yaml.FullLoader))
+                docs = list(yaml.load_all(yf.read_text(encoding='utf-8'), Loader=yaml.UnsafeLoader))
             except Exception:
                 continue
             if docs and isinstance(docs[-1], dict) and list(docs[-1].keys()) == ['entries'] and docs[-1].get('entries') == []:
@@ -241,7 +241,7 @@ def consolidate_manifests():
     all_questions = []
     for manifest_file in sorted(archive_dir.glob('*.yaml')):
         try:
-            docs = list(yaml.load_all(manifest_file.read_text(encoding='utf-8'), Loader=yaml.FullLoader))
+            docs = list(yaml.load_all(manifest_file.read_text(encoding='utf-8'), Loader=yaml.UnsafeLoader))
         except Exception as e:
             sys.stderr.write(f"Failed to parse {manifest_file}: {e}\n")
             continue
@@ -280,11 +280,11 @@ def merge_quizzes(source: str, destination: str, delete_source: bool):
 
     try:
         with open(source, 'r', encoding='utf-8') as f:
-            source_questions = yaml.load(f, Loader=yaml.FullLoader) or []
+            source_questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
 
         if os.path.exists(destination):
             with open(destination, 'r', encoding='utf-8') as f:
-                dest_questions = yaml.load(f, Loader=yaml.FullLoader) or []
+                dest_questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
         else:
             print(f"Warning: Destination file '{destination}' not found. It will be created.")
             dest_questions = []
@@ -393,10 +393,11 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
     # Step 1: Group all questions by subject from all source files.
     questions_by_subject = defaultdict(list)
     total_questions_processed = 0
+    processed_files = []
     for file_path in yaml_files:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                questions = yaml.load(f, Loader=yaml.FullLoader) or []
+                questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
                 if not isinstance(questions, list):
                     if isinstance(questions, dict):
                         questions = [questions]
@@ -421,6 +422,7 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
 
                 subject = subject or "general"
                 questions_by_subject[subject].append(question)
+            processed_files.append(file_path)
         except Exception as e:
             print(f"Error processing {file_path}: {e}", file=sys.stderr)
 
@@ -438,7 +440,7 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
         if dest_filepath.exists():
             with open(dest_filepath, 'r', encoding='utf-8') as f_read:
                 try:
-                    docs = list(yaml.load_all(f_read, Loader=yaml.FullLoader))
+                    docs = list(yaml.load_all(f_read, Loader=yaml.UnsafeLoader))
                     for doc in docs:
                         if isinstance(doc, list):
                             existing_questions.extend(doc)
@@ -467,9 +469,9 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
 
     # Step 3: Delete source files if requested.
     if delete_source:
-        for file_path in yaml_files:
+        for file_path in processed_files:
             file_path.unlink()
-        print(f"Deleted {len(yaml_files)} source files.")
+        print(f"Deleted {len(processed_files)} source files.")
 
 
 # --- Main CLI ---
