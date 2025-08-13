@@ -495,7 +495,7 @@ def _run_drill_mode(study_session, category: QuestionCategory):
         else:
             # Instead of loading a new session, use the one from the interactive menu.
             # This ensures the context is maintained correctly.
-            study_session._run_study_subject_menu(category)
+            study_session._run_subject_drill_menu(category)
     except Exception as e:
         print(f"{Fore.RED}An unexpected error occurred: {e}{Style.RESET_ALL}")
 
