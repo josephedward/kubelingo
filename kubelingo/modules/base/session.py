@@ -11,7 +11,7 @@ try:
 except ImportError:
     questionary = None
 
-from kubelingo.utils.config import HISTORY_FILE, FLAGGED_QUESTIONS_FILE
+from kubelingo.utils.config import HISTORY_FILE
 from kubelingo.utils.ui import Fore, Style
 
 
