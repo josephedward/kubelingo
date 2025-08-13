@@ -23,29 +23,85 @@ if str(repo_root) not in sys.path:
 from kubelingo.database import get_db_connection
 from kubelingo.utils.path_utils import get_live_db_path
 
-def _run_script(script_name: str, *args):
-    """Helper to run a script from the scripts directory."""
-    script_path = scripts_dir / script_name
-    if not script_path.exists():
-        print(f"Error: Script '{script_path}' not found.", file=sys.stderr)
-        return False
-    command = [sys.executable, str(script_path)] + [str(a) for a in args]
-    print(f"Running: {' '.join(command)}")
-    try:
-        subprocess.run(command, check=True)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error running script {script_name}: {e}", file=sys.stderr)
-        return False
-    except KeyboardInterrupt:
-        print(f"\nScript {script_name} interrupted.", file=sys.stderr)
-        return False
+# Import handlers from the consolidated question_manager script
+# Note: This relies on the sys.path modification above to find the 'scripts' module
+try:
+    from scripts.question_manager import (
+        handle_ai_questions, handle_from_pdf, handle_ai_quiz, 
+        handle_resource_reference, handle_kubectl_operations,
+        handle_manifests, handle_service_account,
+        do_import_ai,
+        handle_remove_question,
+        handle_set_triage_status
+    )
+except ImportError as e:
+    print(f"Failed to import from scripts.question_manager: {e}", file=sys.stderr)
+    print("Please ensure you are running this script from the repository root.", file=sys.stderr)
+    sys.exit(1)
+
+
+class MockArgs:
+    """Helper to create mock argparse.Namespace objects for function calls."""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 def _generate_questions():
-    """Handles the 'Generate Questions' option."""
-    print("This will launch the question generator script interactively.")
-    # The generator script has its own interactive prompts if run without args
-    _run_script("generator.py") 
+    """Handles the 'Generate Questions' option with an interactive menu."""
+    choice = questionary.select(
+        "Select a question generator:",
+        choices=[
+            "From PDF", 
+            "From AI (subject-based)",
+            "From AI (quiz-style)",
+            "Kubernetes Resource Reference",
+            "Kubernetes Operations",
+            "Service Account Questions",
+            "Manifests from JSON",
+            questionary.Separator(),
+            "Back"
+        ]
+    ).ask()
+
+    if not choice or choice == "Back":
+        return
+
+    if choice == "From PDF":
+        pdf_path = questionary.text("Path to the PDF file:").ask()
+        if not pdf_path: return
+        output_file = questionary.text("Path to the output YAML file:", default="questions/generated_yaml/from_pdf.yaml").ask()
+        if not output_file: return
+        num_q = questionary.text("Number of questions per chunk?", default="5").ask()
+        handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
+    
+    elif choice == "From AI (subject-based)":
+        subject = questionary.text("Subject for the new questions (e.g., 'Kubernetes Service Accounts'):").ask()
+        if not subject: return
+        category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
+        num_q = questionary.text("Number of questions to generate?", default="3").ask()
+        output_file = questionary.text("Path to the output YAML file:", default=f"questions/generated_yaml/{subject.lower().replace(' ', '_')}.yaml").ask()
+        if not output_file: return
+        example_file = questionary.text("(Optional) Source file in DB for example questions:").ask()
+        handle_ai_questions(MockArgs(
+            subject=subject, category=category, num_questions=int(num_q), 
+            output_file=output_file, example_source_file=example_file
+        ))
+
+    elif choice == "From AI (quiz-style)":
+        num = questionary.text("Number of questions to generate?", default="5").ask()
+        output = questionary.text("Output JSON file path:", default="questions/generated_json/ai_quiz.json").ask()
+        handle_ai_quiz(MockArgs(num=int(num), output=output, mock=False))
+
+    elif choice == "Kubernetes Resource Reference":
+        handle_resource_reference(MockArgs())
+
+    elif choice == "Kubernetes Operations":
+        handle_kubectl_operations(MockArgs())
+
+    elif choice == "Service Account Questions":
+        handle_service_account(MockArgs(to_db=False, num=0, output="questions/generated_json/service_accounts.json"))
+
+    elif choice == "Manifests from JSON":
+        handle_manifests(MockArgs(json_dir="question-data/json"))
 
 def _add_questions():
     """Handles 'Add Questions' - import from YAML with AI schema inference, rewriting, and reformatting."""
@@ -71,8 +127,8 @@ def _remove_questions():
     if not question_id:
         return
     
-    # The 'remove' command in question_manager handles confirmation
-    _run_script("question_manager.py", "remove", question_id)
+    # The handler function includes a confirmation prompt.
+    handle_remove_question(MockArgs(question_id=question_id))
 
 def _manage_triaged_questions():
     """Interactive menu for managing triaged questions."""
@@ -84,7 +140,6 @@ def _manage_triaged_questions():
     while True:
         try:
             cursor = conn.cursor()
-            # Assuming 'triage' is a boolean column that exists.
             cursor.execute("SELECT id, prompt FROM questions WHERE triage = 1")
             rows = cursor.fetchall()
         except Exception as e:
@@ -118,9 +173,9 @@ def _manage_triaged_questions():
         ).ask()
 
         if action == "Un-triage":
-            _run_script("question_manager.py", "untriage", question_id)
+            handle_set_triage_status(MockArgs(question_id=question_id, un_triage=True))
         elif action == "Delete":
-            _run_script("question_manager.py", "remove", question_id)
+            handle_remove_question(MockArgs(question_id=question_id))
         elif action == "AI Edit (Not Implemented)":
             questionary.print("AI editing is not yet implemented.", style="bold yellow")
         elif not action or action == "Cancel":
