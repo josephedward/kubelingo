@@ -317,7 +317,17 @@ def import_questions_for_master(files: list[Path], conn: sqlite3.Connection):
             questions_data = yaml.safe_load(f)
             if not questions_data:
                 continue
-            for q_dict in questions_data:
+
+            questions_list = questions_data
+            if isinstance(questions_data, dict):
+                questions_list = questions_data.get('questions', [questions_data])
+
+            if not isinstance(questions_list, list):
+                continue
+
+            for q_dict in questions_list:
+                if not isinstance(q_dict, dict):
+                    continue
                 if 'metadata' in q_dict and isinstance(q_dict['metadata'], dict):
                     metadata = q_dict.pop('metadata')
                     metadata.pop('links', None)
