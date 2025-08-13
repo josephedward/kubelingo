@@ -95,6 +95,14 @@ The application's startup sequence has several critical design flaws and bugs th
 3.  **Remove Startup Bootstrap**: Eliminate the `bootstrap_on_startup` function. Database setup should be handled by a one-time migration script or an initial setup check.
 4.  **Fix Database Schema**: A script needs to be created or run to update the database schema to include `category_id` and any other missing columns.
 5.  **Enforce API Key Setup via UI**: Disable menu items that require an API key if one is not present. This guides the user to configure the application correctly before using AI-dependent features.
+6.  **Make YAML Loading Robust**: Refactor the YAML loading logic used by scripts (likely in `kubelingo/modules/yaml_loader.py`) to handle format variations.
+    - Use `yaml.FullLoader` to temporarily handle Python-specific tags, but log warnings to encourage cleanup.
+    - Make the `Question` object instantiation tolerant to unknown fields in the YAML source.
+    - Use `yaml.safe_load_all` to correctly parse files that contain lists of questions or multiple YAML documents.
+7.  **Improve AI Generation Reliability**: Make the `AIQuestionGenerator` more reliable and easier to debug.
+    - Add detailed logging of the full prompt sent to the LLM and the raw response received.
+    - Improve the few-shot prompts with high-quality, generic examples for all question categories to ensure the generator works even without base questions.
+    - Ensure the LLM client response is converted to a string before JSON parsing to prevent type errors.
 
 ## Resolution and New Design
 A comprehensive new design has been specified to address these issues and guide future development. This specification consolidates previous architectural documents (`ARCHITECTURE.md`, `API_REFERENCE.md`), developer notes (`Instruct_081325.rtf`), and the original `design_spec.md` into a single, canonical guide.
