@@ -96,21 +96,9 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
         q_dict['updated_at'] = now
         q_dict['created_at'] = existing_created_at or now
 
-        # Calculate content hash from a stable representation of the question data.
-        hash_dict = q_dict.copy()
-        for key in ['created_at', 'updated_at', 'content_hash']:
-            hash_dict.pop(key, None)
-
-        stable_repr = json.dumps(hash_dict, sort_keys=True, default=str)
-        q_dict['content_hash'] = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
-
-        # Serialize complex types to JSON strings.
+        # Convert boolean values to integers for SQLite compatibility.
         for key, value in q_dict.items():
-            if isinstance(value, (dict, list)):
-                q_dict[key] = json.dumps(value)
-            elif is_dataclass(value):
-                q_dict[key] = json.dumps(asdict(value))
-            elif isinstance(value, bool):
+            if isinstance(value, bool):
                 q_dict[key] = int(value)
 
         columns = ', '.join(q_dict.keys())
@@ -135,16 +123,6 @@ def get_flagged_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dic
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM questions WHERE review = 1")
         questions = [dict(row) for row in cursor.fetchall()]
-
-        # Deserialize JSON fields where appropriate
-        for q in questions:
-            for key, value in q.items():
-                if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
-                    try:
-                        q[key] = json.loads(value)
-                    except json.JSONDecodeError:
-                        # Not a JSON string, leave as is
-                        pass
         return questions
     finally:
         if manage_connection and conn:
@@ -161,16 +139,6 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM questions")
         questions = [dict(row) for row in cursor.fetchall()]
-
-        # Deserialize JSON fields where appropriate
-        for q in questions:
-            for key, value in q.items():
-                if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
-                    try:
-                        q[key] = json.loads(value)
-                    except json.JSONDecodeError:
-                        # Not a JSON string, leave as is
-                        pass
         return questions
     finally:
         if manage_connection and conn:
@@ -247,23 +215,21 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
 
                 q_dict['source_file'] = rel_path
                 q_obj = Question(**q_dict)
-                validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
+
+                # Calculate content hash from a stable representation of the question data.
+                stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
+                content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
                 # Instead of direct insert, use add_question to handle metadata.
-                db_dict = q_dict.copy()
-                db_dict.update({
+                db_dict = {
                     'id': q_obj.id,
-                    'prompt': q_obj.prompt,
                     'source_file': q_obj.source_file,
-                    'response': q_obj.response,
                     'schema_category': q_obj.schema_category.value if q_obj.schema_category else None,
                     'subject_id': q_obj.subject_matter.value if q_obj.subject_matter else None,
-                    'source': 'yaml_import',
-                    'raw': json.dumps(q_dict),
-                    'validation_steps': validation_steps_for_db,
-                    'validator': q_obj.validator,
                     'review': getattr(q_obj, 'review', False),
-                })
+                    'triage': getattr(q_obj, 'triage', False),
+                    'content_hash': content_hash,
+                }
                 add_question(conn, **db_dict)
 
             # Update indexed_files table
@@ -307,15 +273,9 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,
-            prompt TEXT NOT NULL,
-            response TEXT,
+            source_file TEXT NOT NULL,
             schema_category TEXT,
             subject_id TEXT,
-            source TEXT,
-            source_file TEXT NOT NULL,
-            raw TEXT,
-            validation_steps TEXT,
-            validator TEXT,
             review BOOLEAN NOT NULL DEFAULT 0,
             triage BOOLEAN NOT NULL DEFAULT 0,
             content_hash TEXT,
