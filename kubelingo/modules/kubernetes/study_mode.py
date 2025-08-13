@@ -404,9 +404,19 @@ class KubernetesStudyMode:
 
     def _run_socratic_mode(self, topic: str):
         """Runs the conversational Socratic tutoring mode."""
+        if not self.client:
+            print(
+                f"\n{Fore.YELLOW}AI client not configured. Please set up your AI provider in 'Settings > AI'.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
         initial_response = self._start_socratic_session(topic)
         if not initial_response:
-            print("Sorry, I couldn't start the session. Please try again.")
+            print(
+                f"{Fore.RED}\nSorry, I couldn't start the session. Please check your AI configuration and network connection.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
             return
 
         print(f"\nKubeTutor: {initial_response}")
