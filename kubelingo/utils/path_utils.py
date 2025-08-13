@@ -6,6 +6,8 @@ critical data, making scripts and the application more resilient to changes
 in directory structure.
 """
 import sys
+import os
+import shutil
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -175,3 +177,38 @@ def load_yaml_files(file_paths: List[str]) -> Dict[str, Any]:
         except Exception as e:
             print(f"Error loading YAML file {file_path}: {e}", file=sys.stderr)
     return yaml_data
+
+
+def organize_yaml_files(yaml_files: List[Path], output_dir: Path):
+    """
+    Organizes YAML files into subdirectories based on their content.
+
+    Args:
+        yaml_files: List of YAML file paths to organize.
+        output_dir: The base directory to organize files into.
+    """
+    for yaml_file in yaml_files:
+        try:
+            with open(yaml_file, 'r', encoding='utf-8') as f:
+                content = yaml.safe_load(f)
+
+            # Determine the category or purpose of the file
+            if isinstance(content, dict) and 'questions' in content:
+                subdir = output_dir / "questions"
+            elif isinstance(content, dict) and 'category' in content:
+                subdir = output_dir / "categories"
+            else:
+                subdir = output_dir / "misc"
+
+            # Ensure the subdirectory exists
+            subdir.mkdir(parents=True, exist_ok=True)
+
+            # Rename the file based on its content
+            new_name = yaml_file.stem + ".yaml"
+            new_path = subdir / new_name
+
+            # Move the file to the new location
+            shutil.move(str(yaml_file), str(new_path))
+            print(f"Moved {yaml_file} to {new_path}")
+        except Exception as e:
+            print(f"Error organizing file {yaml_file}: {e}", file=sys.stderr)
