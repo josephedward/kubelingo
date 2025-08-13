@@ -1015,6 +1015,8 @@ def main():
         level=numeric_level,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
+    # Silence verbose HTTP logs from the httpx library (used by llm)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     # --- Interactive Mode: AI Provider and API Key Setup ---
     is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
