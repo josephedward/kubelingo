@@ -297,7 +297,8 @@ def _run_script(script_path: str):
 
 def _rebuild_db_from_yaml():
     """
-    Clears the database and rebuilds it from all discoverable YAML source files.
+    Clears the database and rebuilds it from all discoverable YAML source files by
+    delegating to the more robust `index_yaml_files` function.
     """
     from kubelingo.database import get_db_connection, index_yaml_files
 
@@ -310,7 +311,7 @@ def _rebuild_db_from_yaml():
         conn.commit()
         print("Database cleared.")
 
-        print("Discovering and loading questions from YAML files...")
+        print("Discovering and indexing questions from YAML files...")
         # Search in the configured questions directory.
         search_dirs = [str(QUESTIONS_DIR)]
         yaml_files = find_yaml_files(search_dirs)
@@ -319,18 +320,13 @@ def _rebuild_db_from_yaml():
             print(f"{Fore.RED}No YAML source files found in {search_dirs}. Cannot rebuild database.{Style.RESET_ALL}")
             return False
 
-        # Delegate to the centralized indexing function, which now handles AI categorization
+        # Delegate to the main indexing function. Since we cleared indexed_files,
+        # it will process all files. `index_yaml_files` also prints progress.
         index_yaml_files(yaml_files, conn, verbose=True)
 
-        # Check if questions were actually loaded
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM questions")
-        total_loaded = cursor.fetchone()[0]
-
-        conn.commit()
-        if total_loaded > 0:
-            # The success message is already printed by index_yaml_files,
-            # but we return True for the caller.
+        count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+        if count > 0:
+            print(f"\n{Fore.GREEN}Database rebuild complete. Found {count} questions.{Style.RESET_ALL}")
             return True
         else:
             print(f"{Fore.YELLOW}No questions were loaded from any YAML files.{Style.RESET_ALL}")
