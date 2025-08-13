@@ -204,7 +204,10 @@ def organize_yaml_files(yaml_files: List[Path], output_dir: Path):
             subdir.mkdir(parents=True, exist_ok=True)
 
             # Rename the file based on its content
-            new_name = yaml_file.stem + ".yaml"
+            if 'id' in content:
+                new_name = f"question_{content['id']}.yaml"
+            else:
+                new_name = yaml_file.stem + ".yaml"
             new_path = subdir / new_name
 
             # Move the file to the new location
