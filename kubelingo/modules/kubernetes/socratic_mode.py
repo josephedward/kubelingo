@@ -108,19 +108,22 @@ class SocraticMode:
             questionary.Choice(cat.value, value=cat) for cat in QuestionCategory
         ]
         choices.append(Separator())
+        choices.append(questionary.Choice("Generate New Questions (AI)", value="generate_ai"))
         choices.append(questionary.Choice("Back", value="back"))
 
-        category_choice = questionary.select(
+        choice = questionary.select(
             "--- Exercise Type ---",
             choices=choices,
             use_indicator=True
         ).ask()
 
-        if category_choice and category_choice != "back":
-            if category_choice == QuestionCategory.OPEN_ENDED:
+        if choice and choice != "back":
+            if choice == "generate_ai":
+                self._run_ai_question_generation_menu()
+            elif choice == QuestionCategory.OPEN_ENDED:
                 self._run_socratic_mode_entry()
             else:
-                self._run_subject_drill_menu(category_choice)
+                self._run_subject_drill_menu(choice)
 
     def _run_subject_drill_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given category for study."""
