@@ -286,16 +286,19 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
     """
     Indexes questions from a list of YAML files into the database,
     skipping files that have not changed since the last index.
+    This now uses YAMLLoader to centralize parsing logic.
     """
     try:
         import yaml
         from tqdm import tqdm
         from kubelingo.modules.ai_categorizer import AICategorizer
+        from kubelingo.modules.yaml_loader import YAMLLoader
     except ImportError:
         if verbose:
             print("Required packages (PyYAML, tqdm, etc.) not found. Please install them.", file=sys.stderr)
         return
 
+    loader = YAMLLoader()
     cursor = conn.cursor()
     project_root = get_project_root()
     indexed_count = 0
@@ -332,44 +335,15 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
             # First, remove any existing questions from this file.
             cursor.execute("DELETE FROM questions WHERE source_file = ?", (rel_path,))
 
-            with file_path.open('r', encoding='utf-8') as f:
-                # Use UnsafeLoader to handle legacy YAML files with Python object tags.
-                # This is insecure if loading untrusted YAML, but necessary for these repo files.
-                data_docs = yaml.load_all(f, Loader=yaml.UnsafeLoader)
-                questions_to_add = []
-                for data in data_docs:
-                    if not data:
-                        continue
-                    # Robustly handle different YAML structures and ensure we only process dicts
-                    if isinstance(data, dict) and 'questions' in data and isinstance(data['questions'], list):
-                        questions_to_add.extend([q for q in data['questions'] if isinstance(q, dict)])
-                    elif isinstance(data, list):
-                        questions_to_add.extend([q for q in data if isinstance(q, dict)])
-                    elif isinstance(data, dict) and ('id' in data or 'prompt' in data):
-                        questions_to_add.append(data)
+            questions_to_add = loader.load_file(str(file_path))
 
-            for q_dict in questions_to_add:
-                if 'id' not in q_dict or 'prompt' not in q_dict: continue
+            for q_obj in questions_to_add:
+                q_obj.source_file = rel_path  # Ensure relative path is used
 
-                # Map legacy 'subject' field to 'subject_matter' for backward compatibility
-                if 'subject' in q_dict and 'subject_matter' not in q_dict:
-                    q_dict['subject_matter'] = q_dict.pop('subject')
+                # Use asdict to get a dictionary for AI categorization and hashing
+                q_dict = asdict(q_obj)
 
-                # Map legacy 'validation' field to 'validation_steps'
-                if 'validation' in q_dict and 'validation_steps' not in q_dict:
-                    q_dict['validation_steps'] = q_dict.pop('validation')
-
-                q_dict['source_file'] = rel_path
-
-                # Filter dictionary to only include fields defined in the Question dataclass
-                # to prevent errors when loading legacy YAML files with extra fields.
-                question_fields = set(Question.__dataclass_fields__.keys())
-                filtered_q_dict = {k: v for k, v in q_dict.items() if k in question_fields}
-                q_obj = Question(**filtered_q_dict)
-
-                # Calculate content hash from a stable representation of the question data.
-                # Use asdict(q_obj) to ensure hash is based on actual question content.
-                stable_repr = json.dumps(asdict(q_obj), sort_keys=True, default=str)
+                stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
                 content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
                 # Get category and subject from the question object first.
@@ -385,10 +359,10 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                         category_id = ai_categories.get('exercise_category', category_id)
                         subject_id = ai_categories.get('subject_matter', subject_id)
 
-                # Instead of direct insert, use add_question to handle metadata.
+                # Use add_question to handle metadata insertion.
                 db_dict = {
                     'id': q_obj.id,
-                    'source_file': q_obj.source_file,
+                    'source_file': rel_path,
                     'category_id': category_id,
                     'subject_id': subject_id,
                     'review': getattr(q_obj, 'review', False),
