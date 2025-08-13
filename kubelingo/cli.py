@@ -46,7 +46,7 @@ from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.integrations.llm import get_llm_client
-from kubelingo.modules.db_loader import DBLoader
+# from kubelingo.modules.db_loader import DBLoader
 from kubelingo.sandbox import spawn_pty_shell, launch_container_sandbox
 try:
     from kubelingo.self_healing import run_self_healing_cycle
@@ -135,35 +135,6 @@ def show_history():
     print(Style.RESET_ALL)
 
 
-def show_modules():
-    """Display available DB-backed modules."""
-    print(f"{Fore.CYAN}Available quiz modules (from database):{Style.RESET_ALL}")
-    try:
-        from kubelingo.modules.db_loader import DBLoader
-        loader = DBLoader()
-        modules = loader.discover()
-        if not modules:
-            print(f"{Fore.YELLOW}No modules found in the database.{Style.RESET_ALL}")
-            print(f"You can populate it using 'kubelingo import-json' or 'kubelingo migrate-yaml'.")
-            return
-
-        grouped = {}
-        for mod_path in modules:
-            name, ext = os.path.splitext(os.path.basename(mod_path))
-            if not ext:  # Handle cases where source_file might not have an extension
-                ext = ".unknown"
-            ext = ext.lstrip('.').upper()
-            if ext not in grouped:
-                grouped[ext] = []
-            grouped[ext].append(humanize_module(name))
-
-        for ext, mods in sorted(grouped.items()):
-            print(f"  {Fore.GREEN}{ext}:{Style.RESET_ALL}")
-            for name in sorted(mods):
-                print(f"    {Fore.YELLOW}{name}{Style.RESET_ALL}")
-
-    except Exception as e:
-        print(f"{Fore.RED}Failed to load modules from database: {e}{Style.RESET_ALL}")
 def handle_config_command(cmd):
     """Handles 'config' subcommands."""
     import getpass
@@ -944,8 +915,6 @@ def main():
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
                         help="Command to run (e.g. 'study', 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'load-yaml', 'monitor', 'self-heal', 'heal')")
-    parser.add_argument('--list-modules', action='store_true',
-                        help='List available exercise modules and exit')
     parser.add_argument('--list-yaml', action='store_true',
                         help='List available YAML quiz files and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -1140,11 +1109,11 @@ def main():
             return
 
         if args.quiz:
-            # Dynamically discover available quiz modules from the database for --quiz
+            # Dynamically discover available quiz modules from YAML files for --quiz
             try:
-                from kubelingo.modules.db_loader import DBLoader
+                from kubelingo.modules.yaml_loader import YAMLLoader
                 from kubelingo.utils.ui import humanize_module
-                loader = DBLoader()
+                loader = YAMLLoader()
                 modules = loader.discover()
                 quiz_map = {}
                 for src in modules:
@@ -1178,12 +1147,9 @@ def main():
                 return
 
         args.module = None
-        # Early flags: history and list-modules
+        # Early flags: history
         if args.history:
             show_history()
-            return
-        if args.list_modules:
-            show_modules()
             return
 
 
@@ -1231,9 +1197,9 @@ def main():
 
         # If unified exercise requested, load and list questions
         if args.exercise_module:
-            # Load quizzes from the live database only
-            from kubelingo.modules.db_loader import DBLoader
-            loader = DBLoader()
+            # Load quizzes from YAML files
+            from kubelingo.modules.yaml_loader import YAMLLoader
+            loader = YAMLLoader()
             questions = []
             for src in loader.discover():
                 name = os.path.splitext(os.path.basename(src))[0]
@@ -1254,18 +1220,20 @@ def main():
             # which is handled by the module's session runner.
             # The logic will fall through to the module execution block at the end.
 
-        # Global flags handling (note: history and list-modules are handled earlier)
+        # Global flags handling (note: history is handled earlier)
         if args.list_categories:
             print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
             try:
-                from kubelingo.modules.db_loader import get_questions_by_source_file
+                from kubelingo.modules.yaml_loader import YAMLLoader
                 # Ensure a quiz file is specified before listing categories
                 if not args.file:
                     print(f"{Fore.YELLOW}No quiz file specified; cannot list categories.{Style.RESET_ALL}")
                     return
-                key = os.path.basename(args.file)
-                questions = get_questions_by_source_file(key)
-                cats = sorted({q.get('category') for q in questions if q.get('category')})
+
+                loader = YAMLLoader()
+                questions = loader.load_file(args.file)
+                cats = sorted({q.category for q in questions if q.category})
+
                 print(f"{Fore.CYAN}Available Categories:{Style.RESET_ALL}")
                 if cats:
                     for cat in cats:
