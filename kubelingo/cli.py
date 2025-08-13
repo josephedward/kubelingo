@@ -1258,7 +1258,7 @@ def main():
         if args.list_categories:
             print(f"{Fore.YELLOW}Note: Categories are based on the loaded quiz data file.{Style.RESET_ALL}")
             try:
-                from kubelingo.database import get_questions_by_source_file
+                from kubelingo.modules.db_loader import get_questions_by_source_file
                 # Ensure a quiz file is specified before listing categories
                 if not args.file:
                     print(f"{Fore.YELLOW}No quiz file specified; cannot list categories.{Style.RESET_ALL}")
