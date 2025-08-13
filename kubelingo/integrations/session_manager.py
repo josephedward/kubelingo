@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Optional
 
 from .gosandbox_integration import GoSandboxIntegration
-from kubelingo.utils.ui import Fore, Style
 
 class CKADStudySession:
     def __init__(self, gosandbox_path: str = "../gosandbox"):
@@ -96,7 +95,8 @@ class CKADStudySession:
         
         # Import and run the vim editor
         from modules.vim_yaml_editor import VimYamlEditor, vim_commands_quiz
-        
+        from kubelingo.utils.ui import Fore, Style
+
         editor = VimYamlEditor()
         
         print(Fore.CYAN + "\n=== CKAD Study Session with Cloud Context ===" + Style.RESET_ALL)
