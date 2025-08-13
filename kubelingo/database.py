@@ -179,6 +179,40 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
             conn.close()
 
 
+def get_indexed_files(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+    """Fetches all indexed files from the database."""
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT file_path, last_indexed FROM indexed_files ORDER BY file_path")
+        files = [dict(row) for row in cursor.fetchall()]
+        return files
+    finally:
+        if manage_connection and conn:
+            conn.close()
+
+
+def index_all_yaml_questions(verbose: bool = True):
+    """Discovers and indexes all YAML question files from the repository."""
+    if verbose:
+        print("Discovering all YAML files in repository to index...")
+    all_yaml_files = get_all_yaml_files_in_repo()
+
+    if not all_yaml_files:
+        if verbose:
+            print("No YAML files found to index.")
+        return
+
+    conn = get_db_connection()
+    try:
+        index_yaml_files(all_yaml_files, conn, verbose=verbose)
+    finally:
+        conn.close()
+
+
 def _get_file_hash(file_path: Path) -> str:
     """
     Calculates the SHA256 hash of a file's content.

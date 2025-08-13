@@ -485,6 +485,25 @@ def _run_question_management():
         print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
 
 
+def _list_indexed_files():
+    """Lists all question files currently indexed in the database."""
+    from kubelingo.database import get_indexed_files
+    print("\nListing indexed question files from database...")
+    try:
+        files = get_indexed_files()
+        if not files:
+            print(f"{Fore.YELLOW}No files have been indexed yet.{Style.RESET_ALL}")
+            print("You can run 'Index Question Files' from the menu to populate the database.")
+            return
+
+        print(f"{Fore.CYAN}Found {len(files)} indexed files:{Style.RESET_ALL}")
+        for f in files:
+            print(f"  - {f['file_path']} (last indexed: {f['last_indexed']})")
+        print()
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred while fetching indexed files: {e}{Style.RESET_ALL}")
+
+
 def manage_cluster_config_interactive():
     """Interactive prompt for managing Kubernetes cluster configurations."""
     if questionary is None:
@@ -718,6 +737,8 @@ def run_interactive_main_menu():
                 questionary.Choice("AI", value=("settings", "ai")),
                 questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
+                questionary.Choice("Index Question Files", value=("settings", "index_files")),
+                questionary.Choice("List Indexed Files", value=("settings", "list_indexed")),
                 questionary.Choice("Help", value=("settings", "help")),
                 questionary.Choice("Report Bug", value=("settings", "bug")),
                 Separator(),
@@ -750,6 +771,11 @@ def run_interactive_main_menu():
                     manage_cluster_config_interactive()
                 elif action == "questions":
                     _run_question_management()
+                elif action == "index_files":
+                    from kubelingo.database import index_all_yaml_questions
+                    index_all_yaml_questions()
+                elif action == "list_indexed":
+                    _list_indexed_files()
                 elif action == "help":
                     show_session_type_help()
                 elif action == "bug":
