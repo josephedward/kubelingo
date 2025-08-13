@@ -97,22 +97,23 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
         result = cursor.fetchone()
         existing_created_at = result[0] if result else None
 
-        cursor.execute("PRAGMA table_info(questions)")
-        table_columns = {row[1] for row in cursor.fetchall()}
-
-        q_dict = {k: v for k, v in kwargs.items() if k in table_columns}
+        # Explicitly define metadata columns to be inserted, ignoring others.
+        metadata_columns = [
+            'id', 'source_file', 'category_id', 'subject_id', 'review',
+            'triage', 'content_hash'
+        ]
+        q_dict = {k: v for k, v in kwargs.items() if k in metadata_columns}
 
         # Set timestamps
         now = datetime.now().isoformat()
         q_dict['updated_at'] = now
         q_dict['created_at'] = existing_created_at or now
 
-        # Convert boolean values to integers and complex types to JSON strings for SQLite compatibility.
+        # Convert boolean values to integers for SQLite compatibility.
+        # We intentionally do not serialize complex types to prevent storing question content.
         for key, value in q_dict.items():
             if isinstance(value, bool):
                 q_dict[key] = int(value)
-            elif isinstance(value, (list, dict)):
-                q_dict[key] = json.dumps(value)
 
         columns = ', '.join(q_dict.keys())
         placeholders = ', '.join('?' * len(q_dict))
