@@ -182,6 +182,7 @@ def generate_more_questions(topic, existing_question):
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        question_type = random.choice(['command', 'manifest'])
         prompt = f"""
         You are a Kubernetes expert creating questions for a CKAD study guide.
         Based on the following example question about '{topic}', please generate one new, distinct but related question.
@@ -191,14 +192,26 @@ def generate_more_questions(topic, existing_question):
         {yaml.dump({'questions': [existing_question]})}
         ---
 
-        Your new question should be in the same topic area but test a slightly different aspect or use different parameters.
+        Your new question should be a {question_type}-based question.
+        - If it's a 'command' question, the solution should be a single or multi-line shell command (e.g., kubectl).
+        - If it's a 'manifest' question, the solution should be a complete YAML manifest and the question should be phrased to ask for a manifest.
+
+        The new question should be in the same topic area but test a slightly different aspect or use different parameters.
         Provide the output in valid YAML format, as a single item in a 'questions' list.
-        The solution should be a correct, working command or manifest.
-        The question should be solvable from the command line or via a manifest.
-        For example:
+        The solution must be correct and working.
+
+        Example for a manifest question:
         questions:
-          - question: "Your new question here."
-            solution: "The new solution here."
+          - question: "Create a manifest for a Pod named 'new-pod'..."
+            solution: |
+              apiVersion: v1
+              kind: Pod
+              ...
+
+        Example for a command question:
+        questions:
+          - question: "Create a pod named 'new-pod' imperatively..."
+            solution: "kubectl run new-pod --image=nginx"
         """
         response = model.generate_content(prompt)
         # Clean the response to only get the YAML part
