@@ -832,10 +832,13 @@ def run_interactive_main_menu():
                 except (ValueError, ImportError):
                     study_session.client = None
 
+            has_api_key = bool(study_session.client)
+            api_key_required_msg = "API Key Required"
+
             # --- Get counts for menu ---
             try:
                 from kubelingo.database import get_flagged_questions
-                missed_count = len(get_flagged_questions())
+                missed_count = len(get_flagged_questions()) if has_api_key else 0
                 question_counts = {
                     cat: study_session._get_question_count_by_category(cat) for cat in QuestionCategory
                 }
@@ -849,17 +852,20 @@ def run_interactive_main_menu():
                 questionary.Choice(
                     "Study Mode (Socratic Tutor)",
                     value=("learn", "socratic"),
-                    disabled=not study_session.client,
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
-                    f"Missed Questions ({missed_count})",
+                    f"Missed Questions ({missed_count if has_api_key else 'N/A'})",
                     value=("learn", "review"),
-                    disabled=missed_count == 0 or missed_count == 'N/A',
+                    disabled=(api_key_required_msg if not has_api_key
+                              else "No questions to review" if missed_count == 0 or missed_count == 'N/A'
+                              else ""),
                 ),
                 Separator("--- Drill ---"),
                 questionary.Choice(
                     f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED, 'N/A')})",
                     value=("drill", QuestionCategory.OPEN_ENDED),
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
                     f"Basic Terminology ({question_counts.get(QuestionCategory.BASIC_TERMINOLOGY, 'N/A')})",
@@ -868,16 +874,22 @@ def run_interactive_main_menu():
                 questionary.Choice(
                     f"Command Syntax ({question_counts.get(QuestionCategory.COMMAND_SYNTAX, 'N/A')})",
                     value=("drill", QuestionCategory.COMMAND_SYNTAX),
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
                     f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST, 'N/A')})",
                     value=("drill", QuestionCategory.YAML_MANIFEST),
+                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 Separator("--- Settings ---"),
                 questionary.Choice("AI Provider", value=("settings", "api")),
                 questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
                 questionary.Choice("Tool Scripts", value=("settings", "tools")),
-                questionary.Choice("Triaged Questions", value=("settings", "triage")),
+                questionary.Choice(
+                    "Triaged Questions",
+                    value=("settings", "triage"),
+                    disabled=api_key_required_msg if not has_api_key else ""
+                ),
                 questionary.Choice("Help", value=("settings", "help")),
                 Separator(),
                 questionary.Choice("Exit App", value="exit"),

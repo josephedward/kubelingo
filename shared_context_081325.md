@@ -27,12 +27,15 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Cause**: The database schema is out of sync with the application's code, which now expects a `category_id` column that doesn't exist. This occurs during both the bootstrap process and when fetching question counts, indicating the database migration/setup logic is broken or missing.
 - **Bug**: `ValueError: Invalid 'default' value passed. The value ('gemini') does not exist in the set of choices.` when selecting an AI provider.
 - **Cause**: In the main menu's settings, if the user tries to change the AI provider, the application crashes if the currently configured provider (e.g., 'gemini') is not available in the list of choices. This can happen if dependencies for a provider are not installed, making it an invalid selection. The UI attempts to use the invalid provider as the default selection, causing a `ValueError`.
+- **Bug**: Features requiring an API key are available even when no key is set, leading to confusing failures.
+- **Cause**: The main menu does not disable options that depend on AI when a valid API key is not configured, providing poor feedback to the user.
 
 ## Proposed High-Level Fixes
 1.  **Refactor Startup Sequence**: Move the API key and provider check to be the very first action in `initialize_app`. The database bootstrap logic should be removed from the startup path entirely.
 2.  **Adopt a Metadata-Only DB Model**: The database should only store pointers to YAML questions (e.g., file path + question ID) and user-specific metadata. Loading questions should be done on-demand from YAML files.
 3.  **Remove Startup Bootstrap**: Eliminate the `bootstrap_on_startup` function. Database setup should be handled by a one-time migration script or an initial setup check.
 4.  **Fix Database Schema**: A script needs to be created or run to update the database schema to include `category_id` and any other missing columns.
+5.  **Enforce API Key Setup via UI**: Disable menu items that require an API key if one is not present. This guides the user to configure the application correctly before using AI-dependent features.
 
 ## Resolution and New Design
 A comprehensive new design has been specified to address these issues and guide future development. The full specification, including UI mockups, architectural principles, and feature requirements, is now the canonical guide for refactoring the application.
