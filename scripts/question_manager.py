@@ -87,7 +87,7 @@ def extract_text_from_pdf(pdf_path: str) -> str:
 
 def find_similar_question_groups(file_paths: List[Path], similarity_threshold: float = 0.8) -> List[List[Dict[str, Any]]]:
     """
-    Finds groups of similar questions from a list of YAML file paths based on prompt similarity.
+    Finds groups of similar questions from a list of YAML file paths based on answer similarity.
     """
     questions_info = []
     for file_path in file_paths:
@@ -95,8 +95,8 @@ def find_similar_question_groups(file_paths: List[Path], similarity_threshold: f
             continue
         try:
             with file_path.open('r', encoding='utf-8') as f:
-                # Support multi-document YAML files
-                data_docs = yaml.safe_load_all(f)
+                # Support multi-document YAML files. Use FullLoader to handle python-specific tags.
+                data_docs = yaml.load_all(f, Loader=yaml.FullLoader)
                 for data in data_docs:
                     if not data:
                         continue
@@ -107,8 +107,19 @@ def find_similar_question_groups(file_paths: List[Path], similarity_threshold: f
                         qs_in_doc = data
 
                     for q in qs_in_doc:
-                        if isinstance(q, dict) and 'prompt' in q:
-                            questions_info.append({'file_path': file_path, 'prompt': q['prompt'], 'question_data': q})
+                        if isinstance(q, dict):
+                            # Prioritize 'response' field, but also check for 'answer' as a fallback.
+                            answer = q.get('response') or q.get('answer')
+                            if isinstance(answer, list):
+                                answer = " ".join(map(str, answer))
+
+                            if answer and isinstance(answer, str):
+                                questions_info.append({
+                                    'file_path': file_path,
+                                    'prompt': q.get('prompt', ''), # Keep prompt for context in reporting
+                                    'answer': answer,
+                                    'question_data': q
+                                })
         except Exception as e:
             print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
 
@@ -119,9 +130,9 @@ def find_similar_question_groups(file_paths: List[Path], similarity_threshold: f
     adj = defaultdict(list)
     for i in range(len(questions_info)):
         for j in range(i + 1, len(questions_info)):
-            prompt1 = questions_info[i]['prompt']
-            prompt2 = questions_info[j]['prompt']
-            similarity = difflib.SequenceMatcher(None, prompt1, prompt2).ratio()
+            answer1 = questions_info[i]['answer']
+            answer2 = questions_info[j]['answer']
+            similarity = difflib.SequenceMatcher(None, answer1, answer2).ratio()
             if similarity >= similarity_threshold:
                 adj[i].append(j)
                 adj[j].append(i)
@@ -472,8 +483,8 @@ def handle_deduplicate_files(args):
         print(f"No similar questions found with a threshold of {similarity_threshold}.", file=sys.stderr)
         return
 
-    print(f"# Found {len(similar_question_groups)} groups of similar questions (similarity > {similarity_threshold*100:.0f}%).")
-    print("# This tool suggests which files to remove based on prompt similarity.")
+    print(f"# Found {len(similar_question_groups)} groups of similar questions (answer similarity > {similarity_threshold*100:.0f}%).")
+    print("# This tool suggests which files to remove based on answer similarity.")
     print("# It keeps the first file in each group (sorted by path) and suggests removing the others.")
     print("# Please review carefully before running the generated commands.")
 
@@ -486,7 +497,9 @@ def handle_deduplicate_files(args):
         file_to_keep_info = group[0]
         print(f"\n# --- Group {i+1} ---")
         print(f"# Keeping file: '{file_to_keep_info['file_path']}'")
-        print(f"#   Prompt: \"{file_to_keep_info['prompt']}\"")
+        print(f"#   Prompt: \"{file_to_keep_info.get('prompt')}\"")
+        answer_to_show = str(file_to_keep_info.get('answer', '')).strip()
+        print(f"#   Answer: \"{answer_to_show}\"")
 
         for item in group[1:]:
             file_to_delete = item['file_path']
@@ -494,7 +507,9 @@ def handle_deduplicate_files(args):
             if file_to_delete != file_to_keep_info['file_path']:
                 files_to_remove.add(file_to_delete)
                 print(f"# Suggest removing file: '{file_to_delete}'")
-                print(f"#   Similar Prompt: \"{item['prompt']}\"")
+                print(f"#   Similar Prompt: \"{item.get('prompt')}\"")
+                similar_answer_to_show = str(item.get('answer', '')).strip()
+                print(f"#   Similar Answer: \"{similar_answer_to_show}\"")
 
     if not files_to_remove:
         print("\n# No files to suggest for removal (similar questions might be in the same file or already processed).")
