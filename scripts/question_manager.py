@@ -158,6 +158,7 @@ def interactive_question_manager_menu():
                 "Add Questions",
                 "Remove Question",
                 "View Triaged Questions",
+                "Database Management",
                 "Exit"
             ],
             use_indicator=True
@@ -187,6 +188,8 @@ def interactive_question_manager_menu():
                     handle_remove_question(MockArgs(question_id=qid))
                 elif action == "Untriage":
                     handle_set_triage_status(MockArgs(question_id=qid, un_triage=True))
+        elif choice == "Database Management":
+            _manage_database()
 
 
 def handle_build_index(args):

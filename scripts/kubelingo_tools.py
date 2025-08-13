@@ -65,7 +65,8 @@ try:
         do_restore,
         do_create_from_yaml,
         do_diff_db,
-        _manage_database
+        _manage_database,
+        interactive_question_manager_menu
     )
 except ImportError as e:
     print(f"Failed to import from scripts.question_manager: {e}", file=sys.stderr)
@@ -333,56 +334,8 @@ def _settings_report_bug():
 
 def _show_question_management_menu():
     """Displays the question and data management menu, formerly the main interactive mode."""
-    tasks = {
-        "generate": _generate_questions,
-        "add": _add_questions,
-        "remove": _remove_questions,
-        "triage": _manage_triaged_questions,
-        "database": _manage_database,
-    }
-    menu_choices = [
-        questionary.Choice(
-            title="Generate Questions",
-            value="generate"
-        ),
-        questionary.Choice(
-            title="Add Questions",
-            value="add"
-        ),
-        questionary.Choice(
-            title="Remove Questions",
-            value="remove"
-        ),
-        questionary.Choice(
-            title="Triaged Questions",
-            value="triage"
-        ),
-        questionary.Choice(
-            title="Database Management",
-            value="database"
-        ),
-        questionary.Separator(),
-        "Back",
-    ]
-
-    while True:
-        choice = questionary.select(
-            "--- Question & Data Management ---",
-            choices=menu_choices,
-            use_indicator=True
-        ).ask()
-
-        if not choice or choice == "Back":
-            break
-
-        task_function = tasks.get(choice)
-        if task_function:
-            task_function()
-
-        print() # Add a newline for better spacing
-        if not questionary.confirm("Return to the Management Menu?", default=True).ask():
-            break
-        print() # Add a newline for better spacing
+    # This now directly calls the unified interactive menu from question_manager.py
+    interactive_question_manager_menu()
 
 
 def main():
