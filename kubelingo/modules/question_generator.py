@@ -63,7 +63,7 @@ class AIQuestionGenerator:
                 "answers": question.answers,
                 "category": category,
                 "subject": subject,
-                "type": question.type_,
+                "type_": question.type_,
                 "source": "ai_generated",
                 "validator": question.validator,
                 "explanation": getattr(question, 'explanation', None),
