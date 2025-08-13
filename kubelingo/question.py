@@ -82,9 +82,9 @@ class Question:
     # Question modality
     type_: str = 'command'
     # The schema category this question belongs to.
-    schema_category: Optional["QuestionCategory"] = None
+    category_id: Optional["QuestionCategory"] = None
     # Subject matter area for the question.
-    subject_matter: Optional["QuestionSubject"] = None
+    subject_id: Optional["QuestionSubject"] = None
     subject: Optional[str] = None
 
     # --- Modality-specific fields ---
@@ -121,41 +121,41 @@ class Question:
     response: Optional[str] = None
 
     def __post_init__(self):
-        # Ensure schema_category is an enum member if provided as a string
-        if isinstance(self.schema_category, str):
+        # Ensure category_id is an enum member if provided as a string
+        if isinstance(self.category_id, str):
             try:
-                self.schema_category = QuestionCategory(self.schema_category)
+                self.category_id = QuestionCategory(self.category_id)
             except ValueError:
                 # If it's not a valid category, we'll let it be derived from type.
-                self.schema_category = None
+                self.category_id = None
 
-        # Ensure subject_matter is an enum member if provided as a string
-        if isinstance(self.subject_matter, str):
+        # Ensure subject_id is an enum member if provided as a string
+        if isinstance(self.subject_id, str):
             try:
-                self.subject_matter = QuestionSubject(self.subject_matter)
+                self.subject_id = QuestionSubject(self.subject_id)
             except ValueError:
-                self.subject_matter = None
+                self.subject_id = None
 
-        # Handle legacy `subject` field and convert to subject_matter
-        if self.subject and not self.subject_matter:
+        # Handle legacy `subject` field and convert to subject_id
+        if self.subject and not self.subject_id:
             try:
-                self.subject_matter = QuestionSubject(self.subject)
+                self.subject_id = QuestionSubject(self.subject)
             except ValueError:
                 pass  # Ignore invalid legacy subjects
 
-        # Derive schema_category from question type for schema enforcement if not provided
-        if self.schema_category is None:
+        # Derive category_id from question type for schema enforcement if not provided
+        if self.category_id is None:
             if self.type_ == 'socratic':
-                self.schema_category = QuestionCategory.OPEN_ENDED
+                self.category_id = QuestionCategory.OPEN_ENDED
             elif self.type_ == 'basic_terminology':
-                self.schema_category = QuestionCategory.BASIC_TERMINOLOGY
+                self.category_id = QuestionCategory.BASIC_TERMINOLOGY
             elif self.type_ == 'command':
-                self.schema_category = QuestionCategory.COMMAND_SYNTAX
+                self.category_id = QuestionCategory.COMMAND_SYNTAX
             elif self.type_ in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
-                self.schema_category = QuestionCategory.YAML_MANIFEST
+                self.category_id = QuestionCategory.YAML_MANIFEST
             else:
                 # Default for unknown or legacy types.
-                self.schema_category = QuestionCategory.COMMAND_SYNTAX
+                self.category_id = QuestionCategory.COMMAND_SYNTAX
 
         # Legacy compatibility mapping
         if self.category and not self.categories:

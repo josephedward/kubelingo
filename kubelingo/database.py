@@ -346,8 +346,8 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
                 # Get category and subject from the question object first.
-                category_id = q_obj.schema_category.value if q_obj.schema_category else None
-                subject_id = q_obj.subject_matter.value if q_obj.subject_matter else None
+                category_id = q_obj.category_id.value if q_obj.category_id else None
+                subject_id = q_obj.subject_id.value if q_obj.subject_id else None
 
                 # If missing, try to categorize with AI.
                 if ai_categorizer_available and (not category_id or not subject_id):
