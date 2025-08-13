@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from .gosandbox_integration import GoSandboxIntegration
-from kubelingo.cli import Fore, Style
+from kubelingo.utils.ui import Fore, Style
 
 class CKADStudySession:
     def __init__(self, gosandbox_path: str = "../gosandbox"):
