@@ -501,24 +501,21 @@ def _list_yaml_questions():
 
 
 def _run_question_management():
-    """Runs the kubelingo_tools.py script to show the question management menu."""
+    """Shows the question management menu from scripts/question_manager.py."""
     print("\nLaunching Question Management...")
-    tools_script_path = repo_root / "scripts" / "kubelingo_tools.py"
-    if not tools_script_path.is_file():
-        print(f"{Fore.RED}Error: Question management script not found at {tools_script_path}{Style.RESET_ALL}")
-        return
-    
-    command = [sys.executable, str(tools_script_path)]
-    print(f"\n{Fore.CYAN}Running: {' '.join(map(str, command))}{Style.RESET_ALL}")
-    
     try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"{Fore.RED}Script exited with error code {e.returncode}.{Style.RESET_ALL}")
-    except KeyboardInterrupt:
+        # Import dynamically to avoid issues with script-like modules
+        from scripts.question_manager import interactive_question_manager_menu
+        interactive_question_manager_menu()
+        # The called function prints its own exit message.
+        print(f"\n{Fore.CYAN}Returning to main menu.{Style.RESET_ALL}")
+    except (KeyboardInterrupt, EOFError):
         print(f"\n{Fore.YELLOW}Exiting Question Management.{Style.RESET_ALL}")
+    except ImportError as e:
+        print(f"{Fore.RED}Could not load question manager: {e}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Please ensure 'scripts/question_manager.py' exists and is runnable.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}An error occurred during question management: {e}{Style.RESET_ALL}")
 
 
 def _run_drill_mode(study_session, category: QuestionCategory):
