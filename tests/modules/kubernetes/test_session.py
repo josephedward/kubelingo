@@ -2,12 +2,12 @@ import pytest
 from unittest.mock import patch, MagicMock
 from kubelingo.modules.kubernetes.session import NewSession
 
-@patch('kubelingo.modules.kubernetes.session.DBLoader')
-@patch('kubelingo.modules.kubernetes.session.get_all_flagged_questions', return_value=[])
-def test_build_interactive_menu_shows_question_counts(mock_get_flagged, mock_db_loader):
+@patch('kubelingo.modules.base.session.YAMLLoader')
+@patch('kubelingo.modules.base.session.get_all_flagged_questions', return_value=[])
+def test_build_interactive_menu_shows_question_counts(mock_get_flagged, mock_yaml_loader):
     """Verify that the interactive menu displays question counts for configured quizzes."""
-    # Mock DBLoader to return 10 questions for each configured quiz path
-    mock_loader = mock_db_loader.return_value
+    # Mock YAMLLoader to return 10 questions for each configured quiz path
+    mock_loader = mock_yaml_loader.return_value
     mock_loader.load_file.return_value = [MagicMock()] * 10
 
     # Instantiate session and get menu choices
