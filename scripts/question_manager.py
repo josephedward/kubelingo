@@ -63,12 +63,15 @@ from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
 
-def remove_duplicate_yaml_files(directory: str):
+def find_duplicate_yaml_files(directory: str) -> List[str]:
     """
-    Removes duplicate YAML files in the specified directory based on the "answer" field.
+    Finds duplicate YAML files in the specified directory based on the "answer" field.
 
     Args:
         directory: Path to the directory containing YAML files.
+
+    Returns:
+        A list of file paths to remove.
     """
     # Find all YAML files in the directory
     yaml_files = [str(p) for p in Path(directory).glob("*.yaml")]
@@ -78,21 +81,31 @@ def remove_duplicate_yaml_files(directory: str):
 
     # Find duplicates
     duplicates = find_duplicate_answers(yaml_data)
+    files_to_remove = []
 
-    # Remove duplicates, keeping one file per set
+    # Collect duplicates for removal, keeping one file per set
     for duplicate_set in duplicates:
-        # Keep the first file, delete the rest
-        for file_to_delete in duplicate_set[1:]:
-            try:
-                os.remove(file_to_delete)
-                print(f"Deleted duplicate file: {file_to_delete}")
-            except Exception as e:
-                print(f"Error deleting file {file_to_delete}: {e}")
+        # Keep the first file, mark the rest for removal
+        files_to_remove.extend(duplicate_set[1:])
+
+    return files_to_remove
 
 
-def handle_remove_duplicates(args):
-    """Handler for removing duplicate YAML files."""
-    remove_duplicate_yaml_files(args.directory)
+def handle_deduplicate_files(args):
+    """Handler for finding and suggesting removal of duplicate YAML files."""
+    files_to_remove = find_duplicate_yaml_files(args.directory)
+
+    if not files_to_remove:
+        print("No duplicate files found.", file=sys.stderr)
+        return
+
+    print("# Found duplicate YAML files. To remove them, run the following commands:")
+    # Use a set to handle any potential duplicates in the list, then sort for deterministic output
+    unique_files_to_remove = sorted(list(set(files_to_remove)))
+    for file_path in unique_files_to_remove:
+        print(f"git rm '{file_path}'")
+
+    print(f"\n# Total files to be removed: {len(unique_files_to_remove)}", file=sys.stderr)
 
 
 # --- Main CLI Router ---
@@ -104,17 +117,17 @@ def main():
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
 
-    # Sub-parser for 'remove-duplicates'
-    parser_remove_duplicates = subparsers.add_parser(
-        'remove-duplicates',
-        help='Remove duplicate YAML files based on the "answer" field.',
-        description="Scans a directory for YAML files and removes duplicates based on the 'answer' field."
+    # Sub-parser for 'deduplicate-files'
+    parser_deduplicate_files = subparsers.add_parser(
+        'deduplicate-files',
+        help='Find duplicate YAML files by answer and suggest removal commands.',
+        description="Scans a directory for YAML files with duplicate answers and prints 'git rm' commands for them."
     )
-    parser_remove_duplicates.add_argument(
+    parser_deduplicate_files.add_argument(
         'directory',
         help='Path to the directory containing YAML files to scan for duplicates.'
     )
-    parser_remove_duplicates.set_defaults(func=handle_remove_duplicates)
+    parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Other subcommands...
 
