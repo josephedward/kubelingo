@@ -754,13 +754,14 @@ def _setup_ai_provider_interactive(force_setup=False):
     provider = get_ai_provider()
     # Ask for provider if not set or if forcing setup
     if not provider or force_setup:
+        current_provider = provider.strip() if provider else None
         new_provider = questionary.select(
             "--- AI Provider ---\nPlease select an AI provider:",
             choices=[
                 {"name": "OpenAI", "value": "openai"},
                 {"name": "Gemini", "value": "gemini"},
             ],
-            default=provider,
+            default=current_provider,
             use_indicator=True,
         ).ask()
 
