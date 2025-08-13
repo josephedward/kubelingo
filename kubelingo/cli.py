@@ -380,17 +380,26 @@ def restore_db():
         for row in master_questions:
             q_dict = dict(zip(column_names, row))
 
-            # The add_question function expects complex types, not JSON strings.
-            for key in ['validation_steps', 'validator', 'pre_shell_cmds', 'initial_files', 'answers']:
-                if q_dict.get(key) and isinstance(q_dict[key], str):
-                    try:
-                        q_dict[key] = json.loads(q_dict[key])
-                    except (json.JSONDecodeError, TypeError):
-                        # On error, set to a sensible default. add_question handles None.
-                        q_dict[key] = None
+            # Construct a dictionary with only the metadata fields that add_question expects.
+            # This makes the merge robust to schema changes between the backup and live DB.
+            meta_dict = {
+                'id': q_dict.get('id'),
+                'source_file': q_dict.get('source_file'),
+                'category_id': q_dict.get('category_id') or q_dict.get('schema_category'),
+                'subject_id': q_dict.get('subject_id'),
+                'question_type': q_dict.get('question_type'),
+                'source': q_dict.get('source'),
+                'review': q_dict.get('review', False),
+                'triage': q_dict.get('triage', False),
+                'content_hash': q_dict.get('content_hash'),
+            }
+            # Filter out entries where the key was not in the source dict.
+            meta_dict = {k: v for k, v in meta_dict.items() if v is not None}
+            if not meta_dict.get('id'):
+                continue # Cannot add a question without an ID.
 
             # add_question uses INSERT OR REPLACE, which is what we want for a merge.
-            add_question(conn=live_conn, **q_dict)
+            add_question(conn=live_conn, **meta_dict)
             updated_count += 1
 
         live_conn.close()
@@ -445,11 +454,19 @@ def handle_load_yaml(cmd_args):
                 return
 
             for q in questions:
-                q_dict = asdict(q)
-                # The 'type' key may exist in some source YAML files, but it's not a field
-                # in the 'questions' database table. We must remove it before calling add_question.
-                q_dict.pop('type', None)
-                add_question(conn=conn, **q_dict)
+                # Prepare a dictionary with only the metadata fields that add_question expects,
+                # mapping from the Question dataclass fields to the database column names.
+                meta_dict = {
+                    'id': q.id,
+                    'source_file': q.source_file,
+                    'category_id': q.schema_category,
+                    'subject_id': q.subject_matter,
+                    'question_type': q.type_,
+                    'source': q.source,
+                    'review': q.review,
+                    'triage': q.triage,
+                }
+                add_question(conn=conn, **meta_dict)
 
             conn.commit()
             print(f"{Fore.GREEN}Successfully loaded {len(questions)} questions into the database.{Style.RESET_ALL}")
@@ -961,7 +978,7 @@ def run_interactive_main_menu():
 
 
 def enrich_sources():
-    """Finds and adds sources for questions without them."""
+    """Finds and adds sources for questions without them by loading content from YAML files."""
     # Check for API key first
     api_key = get_active_api_key()
     if not api_key:
@@ -972,20 +989,24 @@ def enrich_sources():
         if not api_key:
             return
 
-    from kubelingo.database import get_all_questions, add_question, get_db_connection
+    from kubelingo.database import get_all_questions, get_db_connection
     from kubelingo.modules.ai_evaluator import AIEvaluator
+    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.utils.path_utils import get_all_yaml_files_in_repo
 
     print(f"{Fore.CYAN}Starting source enrichment for all questions in the database...{Style.RESET_ALL}")
     evaluator = AIEvaluator()
+    loader = YAMLLoader()
+    all_yaml_files = {f.name: f for f in get_all_yaml_files_in_repo()}
 
-    all_questions = get_all_questions()
-    questions_to_update = [q for q in all_questions if not q.get('source')]
+    all_questions_meta = get_all_questions()
+    questions_to_update_meta = [q for q in all_questions_meta if not q.get('source')]
 
-    if not questions_to_update:
+    if not questions_to_update_meta:
         print(f"{Fore.GREEN}All questions already have sources. Nothing to do.{Style.RESET_ALL}")
         return
 
-    print(f"\nFound {Fore.YELLOW}{len(questions_to_update)}{Style.RESET_ALL} questions without a source. Starting enrichment...\n")
+    print(f"\nFound {Fore.YELLOW}{len(questions_to_update_meta)}{Style.RESET_ALL} questions without a source. Loading from YAML and enriching...\n")
 
     conn = get_db_connection()
     if not conn:
@@ -994,34 +1015,48 @@ def enrich_sources():
 
     updated_count = 0
     failed_count = 0
-    for q in questions_to_update:
-        prompt = q.get('prompt')
-        print(f"  - Processing question ID {q['id']}: '{prompt[:60].strip()}...'")
-        source_url = evaluator.find_source_for_question(prompt)
-        if source_url:
-            print(f"    {Fore.GREEN}-> Found source: {source_url}{Style.RESET_ALL}")
-            try:
-                # add_question can be used to update existing questions by ID
-                add_question(
-                    conn,
-                    id=q['id'],
-                    prompt=q['prompt'],
-                    source_file=q['source_file'],
-                    response=q.get('response'),
-                    category_id=q.get('category_id'),
-                    source=source_url,
-                    validation_steps=q.get('validation_steps'),
-                    validator=q.get('validator'),
-                    review=q.get('review', False)
-                )
-                conn.commit()
-                updated_count += 1
-            except Exception as e:
-                print(f"    {Fore.RED}-> Failed to update question {q['id']} in DB: {e}{Style.RESET_ALL}")
+    # Group by file to load each YAML only once
+    questions_by_file = {}
+    for q_meta in questions_to_update_meta:
+        source_file = q_meta.get('source_file')
+        if source_file not in questions_by_file:
+            questions_by_file[source_file] = []
+        questions_by_file[source_file].append(q_meta['id'])
+
+    for source_file, q_ids in questions_by_file.items():
+        if source_file not in all_yaml_files:
+            print(f"    {Fore.YELLOW}Warning: Could not find source file '{source_file}' for {len(q_ids)} questions. Skipping.{Style.RESET_ALL}")
+            failed_count += len(q_ids)
+            continue
+
+        try:
+            questions_in_file = {q.id: q for q in loader.load_file(str(all_yaml_files[source_file]))}
+        except Exception as e:
+            print(f"    {Fore.RED}Error loading {source_file}: {e}{Style.RESET_ALL}")
+            failed_count += len(q_ids)
+            continue
+
+        for q_id in q_ids:
+            if q_id not in questions_in_file:
                 failed_count += 1
-        else:
-            print(f"    {Fore.YELLOW}-> Could not find a source.{Style.RESET_ALL}")
-            failed_count += 1
+                continue
+            
+            q = questions_in_file[q_id]
+            print(f"  - Processing question ID {q.id}: '{q.prompt[:60].strip()}...'")
+            source_url = evaluator.find_source_for_question(q.prompt)
+            if source_url:
+                print(f"    {Fore.GREEN}-> Found source: {source_url}{Style.RESET_ALL}")
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE questions SET source = ? WHERE id = ?", (source_url, q_id))
+                    conn.commit()
+                    updated_count += 1
+                except Exception as e:
+                    print(f"    {Fore.RED}-> Failed to update question {q_id} in DB: {e}{Style.RESET_ALL}")
+                    failed_count += 1
+            else:
+                print(f"    {Fore.YELLOW}-> Could not find a source.{Style.RESET_ALL}")
+                failed_count += 1
 
     conn.close()
     print(f"\n{Fore.CYAN}Enrichment complete.{Style.RESET_ALL}")
