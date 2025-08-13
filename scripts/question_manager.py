@@ -70,32 +70,33 @@ def interactive_question_manager_menu():
     except ImportError:
         print("Error: Required packages are missing. Please install them using: pip install questionary", file=sys.stderr)
         sys.exit(1)
+        
+    class MockArgs:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
 
-    choice = questionary.select(
-        "Select a command:",
-        choices=["build-index", "Exit"],
-    ).ask()
-
-    if choice == "build-index":
-        directory = questionary.text(
-            'Path to the directory containing YAML question files?',
-            default='yaml/questions'
+    while True:
+        choice = questionary.select(
+            "Select a command:",
+            choices=["build-index", "list-triage", "triage-question", "untriage-question", "Exit"],
         ).ask()
-        if not directory:
-            return
 
-        quiet = questionary.confirm("Suppress progress output?", default=False).ask()
-
-        # Create a mock args object
-        class MockArgs:
-            pass
-        args = MockArgs()
-        args.directory = directory
-        args.quiet = quiet
-        handle_build_index(args)
-    elif choice == "Exit" or choice is None:
-        print("Exiting question manager.")
-        return
+        if choice == "Exit" or choice is None:
+            print("Exiting question manager.")
+            break
+        elif choice == "build-index":
+            directory = questionary.text('Path to the directory containing YAML question files?', default='yaml/questions').ask()
+            if not directory: continue
+            quiet = questionary.confirm("Suppress progress output?", default=False).ask()
+            handle_build_index(MockArgs(directory=directory, quiet=quiet))
+        elif choice == "list-triage":
+            handle_list_triaged(MockArgs())
+        elif choice == "triage-question":
+            qid = questionary.text("Enter the ID of the question to triage:").ask()
+            if qid: handle_set_triage_status(MockArgs(question_id=qid, un_triage=False))
+        elif choice == "untriage-question":
+            qid = questionary.text("Enter the ID of the question to un-triage:").ask()
+            if qid: handle_set_triage_status(MockArgs(question_id=qid, un_triage=True))
 
 def handle_build_index(args):
     """Handler for building/updating the question index from YAML files."""
@@ -115,6 +116,60 @@ def handle_build_index(args):
     try:
         db_mod.index_yaml_files(yaml_files, conn, verbose=not args.quiet)
         print("Index build complete.")
+    finally:
+        conn.close()
+
+
+def handle_list_triaged(args):
+    """Lists all questions marked for triage."""
+    conn = db_mod.get_db_connection()
+    if not conn:
+        print("Could not connect to database.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        # Assuming triage is a boolean column
+        cursor = conn.cursor()
+        # I am assuming a `triage` column exists based on the design document.
+        cursor.execute("SELECT id, prompt FROM questions WHERE triage = 1")
+        rows = cursor.fetchall()
+        if not rows:
+            print("No triaged questions found.")
+        else:
+            print(f"Found {len(rows)} triaged questions:")
+            for row in rows:
+                print(f"  - ID: {row[0]}\n    Prompt: {row[1][:100]}...")
+    except Exception as e:
+        print(f"Error listing triaged questions: {e}", file=sys.stderr)
+        # Suggest a possible fix if the column is missing
+        if "no such column: triage" in str(e):
+            print("Hint: The 'triage' column might be missing. You may need to update your database schema.", file=sys.stderr)
+    finally:
+        conn.close()
+
+
+def handle_set_triage_status(args):
+    """Sets the triage status for a given question ID."""
+    conn = db_mod.get_db_connection()
+    if not conn:
+        print("Could not connect to database.", file=sys.stderr)
+        sys.exit(1)
+    
+    status_bool = not args.un_triage # True for triage, False for un-triage
+
+    try:
+        cursor = conn.cursor()
+        # I am assuming a `triage` column exists based on the design document.
+        cursor.execute("UPDATE questions SET triage = ? WHERE id = ?", (status_bool, args.question_id))
+        if cursor.rowcount == 0:
+            print(f"Error: Question with ID '{args.question_id}' not found.")
+        else:
+            conn.commit()
+            action = "Triaged" if status_bool else "Un-triaged"
+            print(f"Successfully {action} question with ID '{args.question_id}'.")
+    except Exception as e:
+        print(f"Error updating triage status: {e}", file=sys.stderr)
+        if "no such column: triage" in str(e):
+            print("Hint: The 'triage' column might be missing. You may need to update your database schema.", file=sys.stderr)
     finally:
         conn.close()
 
@@ -151,6 +206,21 @@ def main():
 
 
         # Other subcommands...
+
+        # Sub-parser for 'list-triage'
+        parser_list_triage = subparsers.add_parser('list-triage', help='Lists all questions marked for triage.')
+        parser_list_triage.set_defaults(func=handle_list_triaged)
+
+        # Sub-parser for 'triage'
+        parser_triage = subparsers.add_parser('triage', help='Marks a question for triage.')
+        parser_triage.add_argument('question_id', help='The ID of the question to triage.')
+        parser_triage.set_defaults(func=handle_set_triage_status, un_triage=False)
+
+        # Sub-parser for 'untriage'
+        parser_untriage = subparsers.add_parser('untriage', help='Removes a question from triage.')
+        parser_untriage.add_argument('question_id', help='The ID of the question to un-triage.')
+        parser_untriage.set_defaults(func=handle_set_triage_status, un_triage=True)
+
 
         args = parser.parse_args()
         if hasattr(args, 'func'):
