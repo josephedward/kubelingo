@@ -89,66 +89,6 @@ class MockArgs:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-def _handle_generate_ai_questions_interactive():
-    """Handles interactive AI-based question generation."""
-    subjects = sorted([s.value for s in QuestionSubject])
-    subject = questionary.select(
-        "Subject for the new questions (e.g., 'Kubernetes Service Accounts'):",
-        choices=subjects
-    ).ask()
-    if not subject: return
-    category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
-    num_questions = int(questionary.text("Number of questions to generate:", default="3").ask())
-    example_source_file = questionary.text("Example source file (from DB, optional):").ask()
-    output_file = questionary.text("Output YAML file:", default="ai_generated_questions.yaml").ask()
-    if not output_file: return
-    handle_ai_questions(MockArgs(
-        subject=subject, category=category, num_questions=num_questions, 
-        example_source_file=example_source_file, output_file=output_file
-    ))
-
-def interactive_question_manager_menu():
-    """Interactive menu for question manager script."""
-    while True:
-        choice = questionary.select(
-            "--- Manage Questions ---",
-            choices=[
-                "Generate Questions",
-                "Add Questions",
-                "Remove Question",
-                "View Triaged Questions",
-                "Database Management",
-                "Exit"
-            ],
-            use_indicator=True
-        ).ask()
-
-        if choice == "Exit" or choice is None:
-            print("Exiting question manager.")
-            break
-        elif choice == "Generate Questions":
-            _handle_generate_ai_questions_interactive()
-        elif choice == "Add Questions":
-            print("This will import questions from YAML files using AI for categorization.")
-            db_path = questionary.text("Enter path for the new/updated database:", default=get_live_db_path()).ask()
-            search_dir = questionary.text("Enter directory to search for YAML files:", default=str(project_root / 'yaml')).ask()
-            if db_path and search_dir:
-                do_import_ai(MockArgs(output_db=db_path, search_dir=[search_dir]))
-        elif choice == "Remove Question":
-            qid = questionary.text("Enter the ID of the question to remove:").ask()
-            if qid: handle_remove_question(MockArgs(question_id=qid))
-        elif choice == "View Triaged Questions":
-            handle_list_triaged(MockArgs())
-            # Here you could add more interactivity for editing/deleting triaged questions
-            qid = questionary.text("Enter ID of triaged question to edit or remove (or leave blank to cancel):").ask()
-            if qid:
-                action = questionary.select("What to do with this question?", choices=["Remove", "Untriage", "Cancel"]).ask()
-                if action == "Remove":
-                    handle_remove_question(MockArgs(question_id=qid))
-                elif action == "Untriage":
-                    handle_set_triage_status(MockArgs(question_id=qid, un_triage=True))
-        elif choice == "Database Management":
-            _manage_database()
 
 
 def handle_build_index(args):
@@ -3066,87 +3006,6 @@ def do_diff_db(args):
         except sqlite3.Error as e:
             print(f"Error comparing row counts: {e}")
 
-def _manage_database():
-    """Interactive menu for managing database."""
-    while True:
-        choice = questionary.select(
-            "--- Database Management ---",
-            choices=[
-                "Index SQLite files",
-                "Show DB Schema",
-                "List SQLite Backups",
-                "Restore from Backup",
-                "Diff two Databases",
-                "Migrate from YAML",
-                "Create DB from YAML",
-                "Build Master DB",
-                "List DB Modules",
-                "Unarchive & Prune",
-                "Prune Empty DBs",
-                "Normalize Source Paths",
-                "Recategorize Questions with AI",
-                questionary.Separator(),
-                "Back"
-            ],
-            use_indicator=True
-        ).ask()
-
-        if not choice or choice == "Back":
-            break
-
-        if choice == "Index SQLite files":
-            dirs = questionary.text("Directories to scan (comma-separated, blank for all):").ask()
-            dir_list = [d.strip() for d in dirs.split(',')] if dirs else []
-            do_index_sqlite(MockArgs(dirs=dir_list))
-        elif choice == "Show DB Schema":
-            db_path = questionary.text("Path to DB (blank for default):").ask() or None
-            output = questionary.text("Output file (blank for console):").ask() or None
-            do_schema(MockArgs(db_path=db_path, output=output))
-        elif choice == "List SQLite Backups":
-            path_only = questionary.confirm("Only show paths?").ask()
-            dirs = questionary.text("Directories to scan (comma-separated, blank for default):").ask()
-            dir_list = [d.strip() for d in dirs.split(',')] if dirs else None
-            do_list_sqlite(MockArgs(path_only=path_only, directories=dir_list))
-        elif choice == "Restore from Backup":
-            backup_db = questionary.path("Path to backup DB (interactive if blank):").ask() or None
-            no_pre_backup = questionary.confirm("Skip pre-restore backup?").ask()
-            yes = questionary.confirm("Skip confirmation prompt?").ask()
-            do_restore(MockArgs(backup_db=backup_db, no_pre_backup=no_pre_backup, yes=yes))
-        elif choice == "Diff two Databases":
-            db_a = questionary.path("Path to first DB (interactive if blank):").ask() or None
-            db_b = questionary.path("Path to second DB (interactive if blank):").ask() or None
-            no_schema = questionary.confirm("Skip schema comparison?").ask()
-            no_counts = questionary.confirm("Skip row count comparison?").ask()
-            do_diff_db(MockArgs(db_a=db_a, db_b=db_b, no_schema=no_schema, no_counts=no_counts))
-        elif choice == "Migrate from YAML":
-            file = questionary.path("Specific YAML file to migrate (optional):").ask() or None
-            source_dirs_str = questionary.text("Source directories (comma-separated, optional):").ask()
-            source_dirs = [d.strip() for d in source_dirs_str.split(',')] if source_dirs_str else None
-            clear = questionary.confirm("Clear DB before migrating?").ask()
-            do_migrate_from_yaml(MockArgs(file=file, source_dirs=source_dirs, clear=clear))
-        elif choice == "Create DB from YAML":
-            yaml_files_str = questionary.text("YAML files to use (comma-separated, blank for latest backup):").ask()
-            yaml_files = [y.strip() for y in yaml_files_str.split(',')] if yaml_files_str else None
-            db_path = questionary.path("Path to DB (blank for default):").ask() or None
-            clear = questionary.confirm("Clear DB before populating?").ask()
-            do_create_from_yaml(MockArgs(yaml_files=yaml_files, db_path=db_path, clear=clear))
-        elif choice == "Build Master DB":
-             db_path = questionary.path("Path to build DB in (blank for default):").ask() or None
-             do_build_master(MockArgs(db_path=db_path))
-        elif choice == "List DB Modules":
-            do_list_modules(MockArgs())
-        elif choice == "Unarchive & Prune":
-            do_unarchive(MockArgs())
-        elif choice == "Prune Empty DBs":
-            do_prune_empty(MockArgs())
-        elif choice == "Normalize Source Paths":
-            db_path = questionary.path("Path to DB (blank for default):").ask() or None
-            do_normalize_sources(MockArgs(db_path=db_path))
-        elif choice == "Recategorize Questions with AI":
-            force = questionary.confirm("Force recategorization for all questions?").ask()
-            do_recategorize_ai(MockArgs(force=force))
-
-        print() # spacing
 
 
 def main():
@@ -3302,8 +3161,6 @@ def main():
             args.func(args)
         else:
             parser.print_help()
-    else:
-        interactive_question_manager_menu()
 
 
 if __name__ == "__main__":
