@@ -499,8 +499,8 @@ p_merge_solutions = subparsers.add_parser("merge-solutions", help="Merge individ
 p_merge_solutions.set_defaults(func=merge_solutions)
 
 p_organize = subparsers.add_parser("organize-ai-questions", help="Organize individual AI-generated questions into subject-based files.")
-p_organize.add_argument("--source-dir", default="questions/generated_yaml", help="Directory containing the individual question files.")
-p_organize.add_argument("--dest-dir", default="questions/yaml", help="Directory to save the consolidated subject-based files.")
+p_organize.add_argument("--source-dir", default="yaml", help="Directory containing the individual question files.")
+p_organize.add_argument("--dest-dir", default="question-data/yaml", help="Directory to save the consolidated subject-based files.")
 p_organize.add_argument("--delete-source", action="store_true", help="Delete the source files after organizing them.")
 p_organize.set_defaults(func=lambda args: organize_ai_questions(args.source_dir, args.dest_dir, args.delete_source))
 
