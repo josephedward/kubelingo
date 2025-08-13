@@ -30,10 +30,5 @@ def test_gemini_chat_completion():
     messages = [{"role": "user", "content": "what is 1+1?"}]
     response = client.chat_completion(messages)
     assert response is not None, "The response from chat_completion was None."
-
-    # The response from the llm library is an object. The traceback from the
-    # previous run indicates `str(response)` does not return the text content.
-    # The error message "<bound method Response.text...>" suggests `response.text`
-    # is a method. We will call it to get the text.
-    text_response = response.text()
-    assert "2" in text_response, f"Expected '2' in response text, but got: {text_response}"
+    assert isinstance(response, str), f"Expected a string response, but got {type(response)}"
+    assert "2" in response, f"Expected '2' in response text, but got: {response}"

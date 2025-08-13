@@ -87,7 +87,7 @@ class OpenAIClient(LLMClient):
                 prompt=conversation,
                 temperature=temperature,
             )
-            return response.text
+            return response.text()
         except Exception as e:
             logging.error(f"OpenAI API request via `llm` failed: {e}", exc_info=True)
             raise
@@ -114,7 +114,7 @@ class GeminiClient(LLMClient):
             model = llm.get_model("gemini-pro")
             model.key = key
             response = model.prompt("test")
-            return bool(response.text)
+            return bool(response.text())
         except Exception:
             return False
 
@@ -169,7 +169,7 @@ class GeminiClient(LLMClient):
         """Tests the connection to the Gemini API by making a minimal request."""
         try:
             response = self.model.prompt("test")
-            return bool(response.text)
+            return bool(response.text())
         except Exception as e:
             logging.error(f"Failed to connect to Gemini via `llm`: {e}")
             return False
