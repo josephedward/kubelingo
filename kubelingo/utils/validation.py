@@ -64,3 +64,27 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
             duplicates.append(paths)
 
     return duplicates
+
+
+def validate_prompt_completeness(response: str, prompt: str) -> Dict[str, Any]:
+    """
+    Validates that a response is complete and relevant to the given prompt.
+
+    Args:
+        response: The response to validate.
+        prompt: The prompt that the response is supposed to answer.
+
+    Returns:
+        A dictionary with validation results, including whether the response is valid.
+    """
+    if not response or not prompt:
+        return {"valid": False, "reason": "Response or prompt is empty."}
+
+    # Check if the response contains at least one word from the prompt
+    prompt_words = set(re.findall(r'\w+', prompt.lower()))
+    response_words = set(re.findall(r'\w+', response.lower()))
+
+    if not prompt_words.intersection(response_words):
+        return {"valid": False, "reason": "Response does not address the prompt."}
+
+    return {"valid": True}
