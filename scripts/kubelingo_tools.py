@@ -42,7 +42,6 @@ def main():
     """Display a menu to run a tool script."""
     tasks = {
         "bug_ticket.py": lambda: _run_script("bug_ticket.py"),
-        "consolidator.py": lambda: _run_script("consolidator.py"),
         "generator.py": lambda: _run_script("generator.py"),
         "question_manager.py": lambda: _run_script("question_manager.py"),
         "sqlite_manager.py": lambda: _run_script("sqlite_manager.py"),
