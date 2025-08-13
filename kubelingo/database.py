@@ -308,11 +308,13 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 data_docs = yaml.load_all(f, Loader=yaml.UnsafeLoader)
                 questions_to_add = []
                 for data in data_docs:
-                    if not data: continue
-                    if isinstance(data, dict) and 'questions' in data:
-                        questions_to_add.extend(data['questions'])
+                    if not data:
+                        continue
+                    # Robustly handle different YAML structures and ensure we only process dicts
+                    if isinstance(data, dict) and 'questions' in data and isinstance(data['questions'], list):
+                        questions_to_add.extend([q for q in data['questions'] if isinstance(q, dict)])
                     elif isinstance(data, list):
-                        questions_to_add.extend(data)
+                        questions_to_add.extend([q for q in data if isinstance(q, dict)])
                     elif isinstance(data, dict) and ('id' in data or 'prompt' in data):
                         questions_to_add.append(data)
 
@@ -322,6 +324,10 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 # Map legacy 'subject' field to 'subject_matter' for backward compatibility
                 if 'subject' in q_dict and 'subject_matter' not in q_dict:
                     q_dict['subject_matter'] = q_dict.pop('subject')
+
+                # Map legacy 'validation' field to 'validation_steps'
+                if 'validation' in q_dict and 'validation_steps' not in q_dict:
+                    q_dict['validation_steps'] = q_dict.pop('validation')
 
                 q_dict['source_file'] = rel_path
 
