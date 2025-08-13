@@ -1,0 +1,18 @@
+- answers: []
+  category: General Operations
+  correct_yaml: null
+  difficulty: null
+  explanation: null
+  id: q1
+  initial_files: {}
+  pre_shell_cmds: []
+  prompt: hello
+  response: null
+  review: false
+  schema_category: basic
+  source: null
+  source_file: f.yaml
+  subject: null
+  type: basic
+  validation_steps: null
+  validator: null
