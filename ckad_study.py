@@ -37,21 +37,51 @@ def main():
     questions = data['questions']
     random.shuffle(questions)
 
-    for i, q in enumerate(questions):
-        clear_screen()
-        print(f"Question {i+1}/{len(questions)} (Topic: {args.topic})")
-        print("-" * 40)
-        print(q['question'])
-        print("-" * 40)
-        input("Press Enter to reveal the solution...")
-        print("\nSolution:\n")
-        print(q['solution'])
-        print("-" * 40)
-        if i < len(questions) - 1:
-            input("Press Enter for the next question...")
+    try:
+        for i, q in enumerate(questions):
+            clear_screen()
+            print(f"Question {i+1}/{len(questions)} (Topic: {args.topic})")
+            print("-" * 40)
+            print(q['question'])
+            print("-" * 40)
+            print("Enter command(s). Type 'done' to check, or 'solution' to see the answer.")
 
-    clear_screen()
-    print("Great job! You've completed all questions for this topic.")
+            user_commands = []
+            while True:
+                try:
+                    cmd = input("> ")
+                except EOFError:
+                    print()  # for a newline
+                    user_commands = None  # Treat as giving up
+                    break
+
+                if cmd.strip().lower() == 'done':
+                    break
+                if cmd.strip().lower() == 'solution':
+                    user_commands = None  # Flag to show solution
+                    break
+                if cmd.strip():
+                    user_commands.append(cmd.strip())
+
+            if user_commands is None:
+                print("\nSolution:\n")
+                print(q['solution'])
+            else:
+                solution_commands = [cmd.strip() for cmd in q['solution'].strip().split('\n') if cmd.strip()]
+                if user_commands == solution_commands:
+                    print("\nCorrect! Well done.")
+                else:
+                    print("\nNot quite. Here's the expected solution:\n")
+                    print(q['solution'])
+
+            print("-" * 40)
+            if i < len(questions) - 1:
+                input("Press Enter for the next question...")
+
+        clear_screen()
+        print("Great job! You've completed all questions for this topic.")
+    except KeyboardInterrupt:
+        print("\n\nStudy session ended. Goodbye!")
 
 if __name__ == "__main__":
     main()
