@@ -50,6 +50,12 @@ except ImportError:
         yaml = None
 
 
+try:
+    import questionary
+except ImportError:
+    questionary = None
+
+
 # --- Kubelingo module imports ---
 try:
     from kubelingo.database import (
@@ -223,6 +229,24 @@ def handle_from_pdf(args):
     if not get_db_connection:
         print("Could not import get_db_connection. Check kubelingo installation.", file=sys.stderr)
         sys.exit(1)
+
+    if not getattr(args, 'pdf_path', None):
+        if not questionary:
+            print("Error: Missing --pdf-path. Interactive mode requires 'questionary' library.", file=sys.stderr)
+            sys.exit(1)
+        args.pdf_path = questionary.path("Enter path to the PDF file:").ask()
+        if not args.pdf_path:
+            print("PDF path is required. Exiting.")
+            sys.exit(1)
+
+    if not getattr(args, 'output_file', None):
+        if not questionary:
+            print("Error: Missing --output-file. Interactive mode requires 'questionary' library.", file=sys.stderr)
+            sys.exit(1)
+        args.output_file = questionary.path("Enter path for the output YAML file:", default="generated_questions.yaml").ask()
+        if not args.output_file:
+            print("Output file path is required. Exiting.")
+            sys.exit(1)
 
     existing_prompts = _get_existing_prompts_for_pdf_gen()
     pdf_text = _extract_text_from_pdf(args.pdf_path)
@@ -536,6 +560,24 @@ def handle_kubectl_operations(args):
 
 def handle_ai_questions(args):
     """Handles 'ai-questions' subcommand."""
+    if not getattr(args, 'subject', None):
+        if not questionary:
+            print("Error: Missing --subject. Interactive mode requires 'questionary' library.", file=sys.stderr)
+            sys.exit(1)
+        args.subject = questionary.text("Enter subject for the new questions (e.g., 'Kubernetes Service Accounts'):").ask()
+        if not args.subject:
+            print("Subject is required. Exiting.")
+            sys.exit(1)
+
+    if not getattr(args, 'output_file', None):
+        if not questionary:
+            print("Error: Missing --output-file. Interactive mode requires 'questionary' library.", file=sys.stderr)
+            sys.exit(1)
+        args.output_file = questionary.path("Enter path for the output YAML file:", default="ai_questions.yaml").ask()
+        if not args.output_file:
+            print("Output file path is required. Exiting.")
+            sys.exit(1)
+
     if 'OPENAI_API_KEY' not in os.environ:
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
@@ -737,6 +779,16 @@ def _process_file_for_validation(path: Path, overwrite: bool):
 
 def handle_validation_steps(args):
     """Handles 'validation-steps' subcommand."""
+    if not getattr(args, 'in_path', None):
+        if not questionary:
+            print("Error: Missing in_path. Interactive mode requires 'questionary' library.", file=sys.stderr)
+            sys.exit(1)
+        in_path_str = questionary.path("Enter path to JSON file or directory to process:").ask()
+        if not in_path_str:
+            print("Input path is required. Exiting.")
+            sys.exit(1)
+        args.in_path = Path(in_path_str)
+
     if not yaml:
         print("PyYAML not found. Please install it with 'pip install pyyaml'", file=sys.stderr)
         sys.exit(1)
@@ -888,62 +940,82 @@ def handle_manifests(args):
 def main():
     """Main entrypoint for the generator script."""
     parser = argparse.ArgumentParser(
-        description="Unified script for generating various quiz assets for Kubelingo.",
+        description="Unified script for generating various quiz assets for Kubelingo. Can be run interactively.",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest='command', required=True, help='Sub-command help')
+    subparsers = parser.add_subparsers(dest='command', help='Sub-command help')
+
+    handlers = {}
 
     # from-pdf
     p_from_pdf = subparsers.add_parser('from-pdf', help="Generate Kubelingo quiz questions from a PDF.")
-    p_from_pdf.add_argument("--pdf-path", required=True, help="Path to the PDF file.")
-    p_from_pdf.add_argument("--output-file", required=True, help="Path to save the generated YAML file.")
+    p_from_pdf.add_argument("--pdf-path", help="Path to the PDF file.")
+    p_from_pdf.add_argument("--output-file", help="Path to save the generated YAML file.")
     p_from_pdf.add_argument("--num-questions-per-chunk", type=int, default=5, help="Number of questions to generate per text chunk.")
-    p_from_pdf.set_defaults(func=handle_from_pdf)
+    handlers['from-pdf'] = handle_from_pdf
 
     # ai-quiz
     p_ai_quiz = subparsers.add_parser('ai-quiz', help='Generate and validate Kubernetes quizzes via OpenAI')
     p_ai_quiz.add_argument('--num', type=int, default=5, help='Number of questions to generate')
     p_ai_quiz.add_argument('--mock', action='store_true', help='Use mock data for testing validation')
     p_ai_quiz.add_argument('--output', default=None, help='Output JSON file path')
-    p_ai_quiz.set_defaults(func=handle_ai_quiz)
+    handlers['ai-quiz'] = handle_ai_quiz
 
     # resource-reference
     p_ref = subparsers.add_parser('resource-reference', help="Generate a YAML quiz for Kubernetes resource references.")
-    p_ref.set_defaults(func=handle_resource_reference)
+    handlers['resource-reference'] = handle_resource_reference
 
     # kubectl-operations
     p_ops = subparsers.add_parser('kubectl-operations', help="Generate the Kubectl Operations quiz manifest.")
-    p_ops.set_defaults(func=handle_kubectl_operations)
+    handlers['kubectl-operations'] = handle_kubectl_operations
 
     # ai-questions
     p_ai_q = subparsers.add_parser('ai-questions', help="Generate AI questions and save them to a YAML file.")
-    p_ai_q.add_argument("--subject", required=True, help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
+    p_ai_q.add_argument("--subject", help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
     p_ai_q.add_argument("--category", choices=['Basic', 'Command', 'Manifest'], default='Command', help="Category of questions to generate.")
     p_ai_q.add_argument("--num-questions", type=int, default=3, help="Number of questions to generate.")
     p_ai_q.add_argument("--example-source-file", help="Filename of a quiz module to use as a source of example questions from the database.")
-    p_ai_q.add_argument("--output-file", required=True, help="Path to the output YAML file.")
-    p_ai_q.set_defaults(func=handle_ai_questions)
+    p_ai_q.add_argument("--output-file", help="Path to the output YAML file.")
+    handlers['ai-questions'] = handle_ai_questions
 
     # validation-steps
     p_val = subparsers.add_parser('validation-steps', help="Generate validation_steps for Kubernetes questions")
-    p_val.add_argument('in_path', type=Path, help="JSON file or directory to process")
+    p_val.add_argument('in_path', type=Path, nargs='?', default=None, help="JSON file or directory to process")
     p_val.add_argument('--overwrite', action='store_true', help="Overwrite original files")
-    p_val.set_defaults(func=handle_validation_steps)
+    handlers['validation-steps'] = handle_validation_steps
 
     # service-account
     p_sa = subparsers.add_parser('service-account', help="Generate static Kubernetes ServiceAccount questions.")
     p_sa.add_argument('--to-db', action='store_true', help='Add generated questions to the kubelingo database')
     p_sa.add_argument('-n', '--num', type=int, default=0, help='Number of questions to output (default: all)')
     p_sa.add_argument('-o', '--output', type=str, help='Write generated questions to a JSON file')
-    p_sa.set_defaults(func=handle_service_account)
+    handlers['service-account'] = handle_service_account
 
     # manifests
     p_man = subparsers.add_parser('manifests', help="Generates YAML quiz manifests and solution files from question-data JSON.")
-    p_man.set_defaults(func=handle_manifests)
+    handlers['manifests'] = handle_manifests
 
     args = parser.parse_args()
-    if hasattr(args, 'func'):
-        args.func(args)
+
+    if not args.command:
+        if not questionary:
+            print("Error: 'questionary' library not found. Please install it for interactive mode.", file=sys.stderr)
+            parser.print_help()
+            sys.exit(1)
+
+        command = questionary.select(
+            "Which generator would you like to run?",
+            choices=list(handlers.keys()) + [questionary.Separator(), "Cancel"],
+            use_indicator=True
+        ).ask()
+        if not command or command == "Cancel":
+            print("No command selected. Exiting.")
+            return
+        args.command = command
+
+    handler = handlers.get(args.command)
+    if handler:
+        handler(args)
     else:
         parser.print_help()
 
