@@ -1,17 +1,17 @@
 - id: "q1"
-  type: "basic"
+  type: "basic_terminology"
   prompt: "What is a Kubernetes Pod?"
-  response: "A Pod is the smallest deployable unit in Kubernetes."
+  answers:
+    - "A Pod is the smallest deployable unit in Kubernetes."
   source: "Core Concepts"
-  validation: []
-  validator: {}
   review: false
-
+  schema_category: "Basic Terminology"
+  subject_matter: "Core Workloads"
 
 - id: "q3"
-  type: "manifest"
-  prompt: "Write a YAML manifest for a Kubernetes Pod."
-  response: |
+  type: "yaml_author"
+  prompt: "Write a YAML manifest for a Kubernetes Pod named 'example-pod' with an 'nginx' container."
+  correct_yaml: |
     apiVersion: v1
     kind: Pod
     metadata:
@@ -21,9 +21,6 @@
       - name: example-container
         image: nginx
   source: "Core Concepts"
-  validation:
-    - "kubectl apply"
-  tools:
-    - "vim"
-  validator: {}
   review: false
+  schema_category: "YAML Manifest"
+  subject_matter: "Core Workloads"

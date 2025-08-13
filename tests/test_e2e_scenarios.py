@@ -295,3 +295,46 @@ class TestE2EScenarios:
         assert result.returncode == 0, f"Second generation call failed: {result.stderr}"
 
         assert len(get_all_db_questions(test_env["db_path"])) == 1
+
+    @pytest.mark.e2e
+    def test_rebuild_db_command(self, test_env):
+        """
+        Tests that the rebuild-db command correctly clears and re-populates the
+        database from YAML source files.
+        """
+        questions_dir = test_env["questions_dir"]
+        db_path = test_env["db_path"]
+        env = test_env["env"]
+
+        # Create a sample question file
+        q_file = questions_dir / "sample_questions.yaml"
+        q_data = {
+            "questions": [{
+                "id": "rebuild-test-q1",
+                "prompt": "What is a pod?",
+                "answers": ["A pod is a group of one or more containers."],
+                "subject_matter": QuestionSubject.CORE_WORKLOADS.value,
+                "schema_category": QuestionCategory.OPEN_ENDED.value,
+                "type": "socratic"
+            }]
+        }
+        with open(q_file, 'w') as f:
+            yaml.dump(q_data, f)
+
+        # Run the rebuild-db command
+        rebuild_cmd = ["python", "-m", "kubelingo.cli", "rebuild-db"]
+        result = run_cli_command(rebuild_cmd, env)
+        assert result.returncode == 0, f"rebuild-db command failed: {result.stderr}"
+
+        # Verify the question is in the database
+        questions = get_all_db_questions(db_path)
+        assert len(questions) == 1
+        assert questions[0]["id"] == "rebuild-test-q1"
+        assert questions[0]["subject_matter"] == QuestionSubject.CORE_WORKLOADS.value
+
+        # Run rebuild again to ensure idempotency (no duplicates)
+        result = run_cli_command(rebuild_cmd, env)
+        assert result.returncode == 0, f"Second rebuild-db command failed: {result.stderr}"
+
+        questions = get_all_db_questions(db_path)
+        assert len(questions) == 1, "Rebuilding the DB created duplicate questions."

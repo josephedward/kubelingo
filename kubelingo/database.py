@@ -107,10 +107,12 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
         q_dict['updated_at'] = now
         q_dict['created_at'] = existing_created_at or now
 
-        # Convert boolean values to integers for SQLite compatibility.
+        # Convert boolean values to integers and complex types to JSON strings for SQLite compatibility.
         for key, value in q_dict.items():
             if isinstance(value, bool):
                 q_dict[key] = int(value)
+            elif isinstance(value, (list, dict)):
+                q_dict[key] = json.dumps(value)
 
         columns = ', '.join(q_dict.keys())
         placeholders = ', '.join('?' * len(q_dict))
@@ -322,10 +324,16 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                     q_dict['subject_matter'] = q_dict.pop('subject')
 
                 q_dict['source_file'] = rel_path
-                q_obj = Question(**q_dict)
+
+                # Filter dictionary to only include fields defined in the Question dataclass
+                # to prevent errors when loading legacy YAML files with extra fields.
+                question_fields = set(Question.__dataclass_fields__.keys())
+                filtered_q_dict = {k: v for k, v in q_dict.items() if k in question_fields}
+                q_obj = Question(**filtered_q_dict)
 
                 # Calculate content hash from a stable representation of the question data.
-                stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
+                # Use asdict(q_obj) to ensure hash is based on actual question content.
+                stable_repr = json.dumps(asdict(q_obj), sort_keys=True, default=str)
                 content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
                 # Get category and subject from the question object first.
