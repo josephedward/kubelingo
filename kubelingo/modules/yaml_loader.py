@@ -49,7 +49,7 @@ class YAMLLoader(BaseLoader):
                     content = '\n'.join(lines[idx:])
                     break
         # Parse all YAML documents
-        docs = list(yaml.safe_load_all(content))
+        docs = list(yaml.load_all(content, Loader=yaml.FullLoader))
         raw = docs[0] if docs else {}
         # If first document is not question data (e.g., a docstring), use second
         if not isinstance(raw, (list, dict)) and len(docs) > 1:

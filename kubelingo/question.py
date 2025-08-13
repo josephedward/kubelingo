@@ -102,6 +102,7 @@ class Question:
     explanation: Optional[str] = None
     categories: List[str] = field(default_factory=list)
     source: Optional[str] = None
+    difficulty: Optional[str] = None
     review: bool = False  # Automatically managed based on answer correctness
     triage: bool = False  # Manually flagged by user for being problematic
     metadata: Dict[str, Any] = field(default_factory=dict)
