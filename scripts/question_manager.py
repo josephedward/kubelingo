@@ -154,18 +154,6 @@ def main():
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
 
-    # Sub-parser for 'deduplicate-files'
-    parser_deduplicate_files = subparsers.add_parser(
-        'deduplicate-files',
-        help='Find duplicate YAML files by answer and suggest removal commands.',
-        description="Scans a list of YAML files for duplicate answers and prints 'git rm' commands for them."
-    )
-    parser_deduplicate_files.add_argument(
-        'files',
-        nargs='+',
-        help='List of file paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").'
-    )
-    parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Other subcommands...
 
