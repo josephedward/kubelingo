@@ -286,8 +286,8 @@ def _rebuild_db_from_yaml():
         print("Database cleared.")
 
         print("Discovering and loading questions from YAML files...")
-        # Search in both default YAML dir and the user's custom 'yaml' dir.
-        search_dirs = [str(QUESTIONS_DIR), str(repo_root / 'yaml')]
+        # Search in the configured questions directory.
+        search_dirs = [str(QUESTIONS_DIR)]
         yaml_files = find_yaml_files(search_dirs)
 
         if not yaml_files:
