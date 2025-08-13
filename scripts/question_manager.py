@@ -94,7 +94,8 @@ class MockArgs:
 def handle_build_index(args):
     """Handler for building/updating the question index from YAML files."""
     print("Building question index from YAML files...")
-    question_dir = Path(args.directory)
+    # Ensure the question directory is resolved to an absolute path
+    question_dir = Path(args.directory).resolve()
     if not question_dir.is_dir():
         print(f"Error: Directory not found at {question_dir}", file=sys.stderr)
         sys.exit(1)
