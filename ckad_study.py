@@ -137,9 +137,14 @@ def handle_vim_edit(question):
         print("This question does not have a solution to validate against for vim edit.")
         return None, None, False
 
+    question_comment = '\n'.join([f'# {line}' for line in question['question'].split('\n')])
     starter_content = question.get('starter_manifest', '')
+    
+    header = f"{question_comment}\n\n# --- Start your YAML manifest below --- \n"
+    full_content = header + starter_content
+
     with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False) as tmp:
-        tmp.write(starter_content)
+        tmp.write(full_content)
         tmp.flush()
         tmp_path = tmp.name
     
@@ -313,9 +318,7 @@ def main():
             print("-" * 40)
             print(q['question'])
             print("-" * 40)
-            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'flag', 'generate'.")
-            if q.get('type') == 'manifest':
-                print("This question expects a YAML manifest. Type 'vim' to edit.")
+            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'flag', 'generate', 'vim'.")
 
             user_commands = []
             special_action = None
@@ -330,11 +333,8 @@ def main():
 
                 if cmd_lower == 'done':
                     break
-                elif cmd_lower in ['solution', 'flag', 'generate', 'skip']:
+                elif cmd_lower in ['solution', 'flag', 'generate', 'skip', 'vim']:
                     special_action = cmd_lower
-                    break
-                elif cmd_lower == 'vim' and q.get('type') == 'manifest':
-                    special_action = 'vim'
                     break
                 elif cmd.strip():
                     user_commands.append(cmd.strip())
