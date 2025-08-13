@@ -156,71 +156,134 @@ class KubernetesStudyMode:
                 break
 
     def _run_quiz(self, questions: List[Question]):
-        """Runs a quiz with a list of questions."""
+        """
+        Runs an interactive quiz session with a given list of questions.
+        Includes a menu for each question for navigation and actions.
+        """
         if not questions:
             print(f"\n{Fore.YELLOW}No questions available for this topic.{Style.RESET_ALL}")
             return
 
-        # Randomize question order for variety
         random.shuffle(questions)
+        current_index = 0
 
-        for question in questions:
-            try:
-                print(f"\n{question.prompt}")
+        while 0 <= current_index < len(questions):
+            question = questions[current_index]
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(f"Question {current_index + 1}/{len(questions)}")
+            print(f"{Style.BRIGHT}{question.prompt}{Style.RESET_ALL}\n")
+
+            action = questionary.select(
+                "Choose an action:",
+                choices=[
+                    "Answer Question",
+                    "Visit Source",
+                    "Next Question",
+                    "Previous Question",
+                    "Triage Question",
+                    Separator(),
+                    "Back to Menu",
+                ],
+                use_indicator=True
+            ).ask()
+
+            if action is None or action == "Back to Menu":
+                break
+            elif action == "Answer Question":
                 correct = self._ask_and_validate(question)
-
                 if correct:
                     print(f"\n{Fore.GREEN}Correct!{Style.RESET_ALL}")
+                    self.session_manager.unmark_question_for_review(question.id)
                 else:
                     print(f"\n{Fore.RED}Not quite.{Style.RESET_ALL}")
                     if question.answers:
-                        # Assuming the first answer is a good one to show
                         print(f"A correct answer is: {question.answers[0]}")
-
+                    self.session_manager.mark_question_for_review(question.id)
+                
                 if question.explanation:
-                    print(f"Explanation: {question.explanation}")
+                    print(f"\n{Fore.CYAN}Explanation: {question.explanation}{Style.RESET_ALL}")
 
-                if not questionary.confirm("Next question?").ask():
-                    break
-            except (KeyboardInterrupt, TypeError):
-                break
+                questionary.confirm("Press Enter to continue...").ask()
+                current_index += 1
+            elif action == "Visit Source":
+                if question.source and question.source.startswith("http"):
+                    print(f"Opening source: {question.source}")
+                    subprocess.run(['open', question.source], check=False)
+                else:
+                    print("No valid source URL available for this question.")
+                questionary.confirm("Press Enter to continue...").ask()
+            elif action == "Next Question":
+                current_index += 1
+            elif action == "Previous Question":
+                current_index -= 1
+            elif action == "Triage Question":
+                self.session_manager.triage_question(question.id)
+                print(f"{Fore.YELLOW}Question '{question.id}' has been marked for triage.{Style.RESET_ALL}")
+                questionary.confirm("Press Enter to continue...").ask()
+
         print("\nQuiz ended. Returning to menu.")
 
-    def _get_subjects_by_type(self, quiz_types: List[str]) -> List[str]:
-        """Fetches unique subjects for given quiz types from the database."""
-        placeholders = ",".join("?" for _ in quiz_types)
-        query = f"SELECT DISTINCT subject FROM questions WHERE type IN ({placeholders}) AND subject IS NOT NULL ORDER BY subject"
-        try:
-            cursor = self.db_conn.cursor()
-            cursor.execute(query, quiz_types)
-            subjects = [row[0] for row in cursor.fetchall()]
-            return subjects
-        except Exception as e:
-            print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
-            return []
+    def _run_socratic_mode_setup(self):
+        """Gets user input before starting socratic mode."""
+        level = questionary.select(
+            "What is your current overall skill level?",
+            choices=["beginner", "intermediate", "advanced"],
+            default="intermediate",
+        ).ask()
+        if not level:
+            return
 
-    def _get_subjects_with_counts_by_type(self, quiz_types: List[str]) -> Dict[str, int]:
-        """Fetches unique subjects and their question counts for given quiz types."""
-        placeholders = ",".join("?" for _ in quiz_types)
-        query = f"SELECT subject, COUNT(*) FROM questions WHERE type IN ({placeholders}) AND subject IS NOT NULL GROUP BY subject ORDER BY subject"
+        topic = questionary.select(
+            "Which Kubernetes topic would you like to study?",
+            choices=KUBERNETES_TOPICS,
+            use_indicator=True,
+        ).ask()
+        if topic:
+            self._run_socratic_mode(topic, level)
+
+    def _run_drill_menu(self, category: QuestionCategory):
+        """Shows a sub-menu of subjects for a given question category."""
+        subjects = self._get_subjects_with_counts_by_category(category)
+        if not subjects:
+            print(f"{Fore.YELLOW}No subjects found for category '{category.value}'.{Style.RESET_ALL}")
+            return
+
+        choices = [
+            questionary.Choice(f"{subject} ({count} questions)", value=subject)
+            for subject, count in subjects.items()
+        ]
+        choices.append(Separator())
+        choices.append(questionary.Choice("Back", value="back"))
+
+        subject_choice = questionary.select(
+            f"Select a subject for '{category.value}':",
+            choices=choices
+        ).ask()
+
+        if subject_choice and subject_choice != "back":
+            questions = self._get_questions_by_category_and_subject(category, subject_choice)
+            self._run_quiz(questions)
+
+    def _get_subjects_with_counts_by_category(self, category: QuestionCategory) -> Dict[str, int]:
+        """Fetches unique subjects and their question counts for a given category."""
+        query = "SELECT subject_matter, COUNT(*) FROM questions WHERE schema_category = ? AND subject_matter IS NOT NULL GROUP BY subject_matter ORDER BY subject_matter"
         try:
             cursor = self.db_conn.cursor()
-            cursor.execute(query, quiz_types)
+            cursor.execute(query, (category.value,))
             return {row[0]: row[1] for row in cursor.fetchall()}
         except Exception as e:
             print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
             return {}
 
-    def _get_questions_by_subject_and_type(
-        self, subject: str, quiz_types: List[str]
+    def _get_questions_by_category_and_subject(
+        self, category: QuestionCategory, subject: str
     ) -> List[Question]:
-        """Fetches questions from the database for a given subject and quiz types."""
-        placeholders = ",".join("?" for _ in quiz_types)
-        query = f"SELECT * FROM questions WHERE subject = ? AND type IN ({placeholders})"
+        """Fetches questions from the database for a given category and subject."""
+        query = f"SELECT * FROM questions WHERE schema_category = ? AND subject_matter = ?"
         try:
             self.db_conn.row_factory = sqlite3.Row
             cursor = self.db_conn.cursor()
-            cursor.execute(query, [subject] + quiz_types)
+            cursor.execute(query, (category.value, subject))
             rows = cursor.fetchall()
             questions = []
 
@@ -299,9 +362,18 @@ class KubernetesStudyMode:
                 f"{Fore.RED}\nCould not retrieve or run flagged questions: {e}{Style.RESET_ALL}"
             )
 
-    def settings_menu(self):
-        """Displays the settings menu."""
-        self._manage_config_interactive()
+    def _api_keys_menu(self):
+        """Interactive prompt for managing API keys."""
+        try:
+            from kubelingo.cli import _setup_ai_provider_interactive
+            _setup_ai_provider_interactive()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            return
+
+    def _cluster_config_menu(self):
+        """Interactive prompt for managing cluster configurations."""
+        self._handle_config_command("cluster")
 
     def run_tools_menu(self):
         """Runs the kubelingo_tools.py script to show the maintenance menu."""
@@ -313,168 +385,43 @@ class KubernetesStudyMode:
 
         try:
             # Use sys.executable to ensure we're using the same Python interpreter
-            subprocess.run([sys.executable, str(tools_script_path)], check=True)
+            subprocess.run([sys.executable, str(tools_script_path)], check=False)
         except subprocess.CalledProcessError as e:
             print(f"Error running tools script: {e}")
         except FileNotFoundError:
             print(f"Error: Could not find '{sys.executable}' to run the script.")
 
-    def _manage_config_interactive(self):
-        """Interactive prompt for managing configuration."""
+    def _view_triaged_questions(self):
+        """Lists all questions currently marked for triage."""
+        query = "SELECT id, prompt, source_file FROM questions WHERE triage = 1"
         try:
-            from kubelingo.utils.config import get_ai_provider
+            cursor = self.db_conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            if not rows:
+                print(f"{Fore.YELLOW}No questions are currently marked for triage.{Style.RESET_ALL}")
+                return
+            print("The following questions are marked for triage:")
+            for qid, prompt, source_file in rows:
+                print(f" - [{qid}] {prompt} (from: {source_file})")
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching triaged questions: {e}{Style.RESET_ALL}")
 
-            current_provider = get_ai_provider()
 
+
+    def _handle_config_command(self, target: str):
+        """Handles interactive configuration for a specific target (e.g., 'cluster')."""
+        configs = get_cluster_configs()
+        if target == "cluster":
             action = questionary.select(
-                "What would you like to do?",
-                choices=[
-                    Separator("AI Provider Settings"),
-                    {
-                        "name": f"Select AI Provider (current: {current_provider.capitalize()})",
-                        "value": "set_provider",
-                    },
-                    Separator("API Keys"),
-                    {"name": f"View API key for {current_provider.capitalize()}", "value": "view_api_key"},
-                    {"name": f"Set/Update API key for {current_provider.capitalize()}", "value": "set_api_key"},
-                    Separator("Kubernetes Clusters"),
-                    {"name": "List configured clusters", "value": "list_clusters"},
-                    {"name": "Add a new cluster connection", "value": "add_cluster"},
-                    {"name": "Remove a cluster connection", "value": "remove_cluster"},
-                    Separator(),
-                    {"name": "Cancel", "value": "cancel"},
-                ],
-                use_indicator=True,
+                "Cluster Configuration:",
+                choices=["List configured clusters", "Add a new cluster", "Remove a cluster", "Back"]
             ).ask()
 
-            if action is None or action == "cancel":
+            if action is None or action == "Back":
                 return
 
-            if action == "set_provider":
-                self._select_ai_provider()
-            elif action == "view_api_key":
-                self._handle_config_command(["config", "view", "api_key"])
-            elif action == "set_api_key":
-                self._handle_config_command(["config", "set", "api_key"])
-            elif action == "list_clusters":
-                self._handle_config_command(["config", "list", "cluster"])
-            elif action == "add_cluster":
-                self._handle_config_command(["config", "add", "cluster"])
-            elif action == "remove_cluster":
-                self._handle_config_command(["config", "remove", "cluster"])
-
-            print()
-
-        except (KeyboardInterrupt, EOFError):
-            print()
-            return
-
-    def _select_ai_provider(self):
-        """Allows user to select the AI provider."""
-        try:
-            new_provider = questionary.select(
-                "Select your preferred AI provider:",
-                choices=["gemini", "openai"],
-                default=self.ai_provider,
-            ).ask()
-
-            if new_provider and new_provider != self.ai_provider:
-                if save_ai_provider(new_provider):
-                    self.ai_provider = new_provider
-                    self.client = get_llm_client()
-                    self.question_generator.llm_client = self.client
-                    print(
-                        f"\n{Fore.GREEN}AI provider set to {self.ai_provider.capitalize()}. It will be used for future sessions.{Style.RESET_ALL}"
-                    )
-                else:
-                    print(
-                        f"\n{Fore.RED}Failed to save AI provider setting.{Style.RESET_ALL}"
-                    )
-
-        except (KeyboardInterrupt, EOFError):
-            print(f"\n{Fore.YELLOW}AI provider selection cancelled.{Style.RESET_ALL}")
-
-    def _handle_config_command(self, cmd):
-        """Handles 'config' subcommands."""
-        if len(cmd) < 3:
-            print("Usage: kubelingo config <action> <target> [args...]")
-            print("Example: kubelingo config set api_key")
-            print("Example: kubelingo config list cluster")
-            return
-
-        action = cmd[1].lower()
-        target = cmd[2].lower()
-
-        if target == "provider":
-            if action == "set":
-                # This logic is handled by _select_ai_provider now.
-                self._select_ai_provider()
-            else:
-                print(f"Unknown action '{action}' for provider. Use 'set'.")
-
-        elif target == "api_key":
-            from kubelingo.utils.config import (
-                get_active_api_key,
-                get_ai_provider,
-                save_gemini_api_key,
-                save_openai_api_key,
-            )
-
-            provider = get_ai_provider()
-            key_name = f"{provider.capitalize()} API key"
-
-            if action == "view":
-                key = get_active_api_key()
-                if key:
-                    print(f"\n{key_name}: {key}")
-                else:
-                    print(f"\n{key_name} is not set.")
-            elif action == "set":
-                value = None
-                if len(cmd) >= 4:
-                    value = cmd[3]
-                else:
-                    try:
-                        value = getpass.getpass(f"Enter {key_name}: ").strip()
-                    except (EOFError, KeyboardInterrupt):
-                        print(
-                            f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}"
-                        )
-                        return
-
-                if value:
-                    test_func = (
-                        OpenAIClient.test_key
-                        if provider == "openai"
-                        else GeminiClient.test_key
-                    )
-                    if test_func(value):
-                        print(f"{Fore.GREEN}✓ API key is valid.{Style.RESET_ALL}")
-                        save_func = (
-                            save_openai_api_key
-                            if provider == "openai"
-                            else save_gemini_api_key
-                        )
-                        if save_func(value):
-                            print(f"{Fore.GREEN}{key_name} saved.{Style.RESET_ALL}")
-                            # Re-initialize the client with the new key
-                            try:
-                                self.client = get_llm_client()
-                                print(f"{Fore.GREEN}LLM client re-initialized successfully.{Style.RESET_ALL}")
-                            except (ValueError, ImportError) as e:
-                                self.client = None
-                                print(f"{Fore.RED}Failed to re-initialize LLM client: {e}{Style.RESET_ALL}")
-                        else:
-                            print(f"{Fore.RED}Failed to save {key_name}.{Style.RESET_ALL}")
-                    else:
-                        print(f"{Fore.RED}✗ The provided {key_name} is invalid. It has not been saved.{Style.RESET_ALL}")
-                else:
-                    print("\nNo API key provided. No changes made.")
-            else:
-                print(f"Unknown action '{action}' for api_key. Use 'view' or 'set'.")
-        elif target == "cluster":
-            configs = get_cluster_configs()
-            if action == "list":
+            if action == "List configured clusters":
                 if not configs:
                     print("No Kubernetes cluster connections configured.")
                     return
@@ -482,56 +429,35 @@ class KubernetesStudyMode:
                 for name, details in configs.items():
                     print(f"  - {name} (context: {details.get('context', 'N/A')})")
 
-            elif action == "add":
+            elif action == "Add a new cluster":
                 print("Adding a new Kubernetes cluster connection.")
                 try:
                     name = questionary.text("Enter a name for this connection:").ask()
-                    if not name:
-                        print("Connection name cannot be empty. Aborting.")
-                        return
+                    if not name: return
                     if name in configs:
                         print(f"A connection named '{name}' already exists. Aborting.")
                         return
-
                     context = questionary.text("Enter the kubectl context to use:").ask()
-                    if not context:
-                        print("Context cannot be empty. Aborting.")
-                        return
+                    if not context: return
 
                     configs[name] = {"context": context}
-                    if save_cluster_configs(configs):
-                        print(f"Cluster connection '{name}' saved.")
-                    else:
-                        print("Failed to save cluster configuration.")
+                    if save_cluster_configs(configs): print(f"Cluster connection '{name}' saved.")
+                    else: print("Failed to save cluster configuration.")
                 except (KeyboardInterrupt, EOFError):
-                    print(
-                        f"\n{Fore.YELLOW}Cluster configuration cancelled.{Style.RESET_ALL}"
-                    )
+                    print(f"\n{Fore.YELLOW}Cluster configuration cancelled.{Style.RESET_ALL}")
 
-            elif action == "remove":
+            elif action == "Remove a cluster":
                 if not configs:
-                    print("No Kubernetes cluster connections configured to remove.")
+                    print("No clusters to remove.")
                     return
-
                 try:
-                    choices = list(configs.keys())
-                    name_to_remove = questionary.select(
-                        "Which cluster connection do you want to remove?", choices=choices
-                    ).ask()
-
+                    name_to_remove = questionary.select("Which cluster to remove?", choices=list(configs.keys())).ask()
                     if name_to_remove:
                         del configs[name_to_remove]
-                        if save_cluster_configs(configs):
-                            print(f"Cluster connection '{name_to_remove}' removed.")
-                        else:
-                            print("Failed to save cluster configuration.")
+                        if save_cluster_configs(configs): print(f"Cluster '{name_to_remove}' removed.")
+                        else: print("Failed to save configuration.")
                 except (KeyboardInterrupt, EOFError):
                     print(f"\n{Fore.YELLOW}Cluster removal cancelled.{Style.RESET_ALL}")
-
-            else:
-                print(f"Unknown action '{action}' for cluster. Use 'list', 'add', or 'remove'.")
-        else:
-            print(f"Unknown config target '{target}'. Supported: provider, api_key, cluster.")
 
     def _run_socratic_mode(self, topic: str, user_level: str):
         """Runs the conversational Socratic tutoring mode."""

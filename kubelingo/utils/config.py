@@ -86,6 +86,7 @@ SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backu
 # Predefined subject-matter categories for questions (subcategory within exercise types).
 # Each question's 'category' field must match one of these values for consistent classification.
 SUBJECT_MATTER = [
+    "Linux Syntax(Commands from Bash, Vim, Kubectl, Docker, Helm)",
     "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
     "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
     "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",
@@ -102,12 +103,10 @@ SUBJECT_MATTER = [
     "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)",
     "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)",
     "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)",
-    "ServiceAccounts in apps (mounting SA, minimal RBAC for app access)",
+    "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)",
     "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
     "Namespaces & contexts (scoping resources, default namespace, context switching)",
     "API discovery & docs (kubectl explain, api-resources, api-versions)",
-    "Kubectl CLI usage and commands",
-    "Vim editor usage",
 ]
 
 

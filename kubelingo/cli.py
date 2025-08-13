@@ -41,16 +41,7 @@ from kubelingo.bootstrap import initialize_app
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
-try:
-    from kubelingo.modules.kubernetes.session import (
-        get_all_flagged_questions,
-        NewSession,
-    )
-    from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
-except Exception:
-    get_all_flagged_questions = None
-    NewSession = None
-    KubernetesStudyMode = None
+from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.integrations.llm import get_llm_client

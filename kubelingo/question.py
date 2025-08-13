@@ -88,7 +88,8 @@ class Question:
     categories: List[str] = field(default_factory=list)
     difficulty: Optional[str] = None
     source: Optional[str] = None
-    review: bool = False
+    review: bool = False  # Automatically managed based on answer correctness
+    triage: bool = False  # Manually flagged by user for being problematic
     metadata: Dict[str, Any] = field(default_factory=dict)
     validator: Optional[Dict[str, Any]] = None
     source_file: Optional[str] = None
@@ -107,45 +108,23 @@ class Question:
     def __post_init__(self):
         # Derive schema_category from question type for schema enforcement if not provided
         if self.schema_category is None:
-            # Special override for specific quizzes to be categorized as 'basic'
-            source_filename = os.path.basename(self.source_file) if self.source_file else ''
-            if source_filename in ('general_operations.yaml', 'resource_types_reference.yaml'):
-                self.schema_category = QuestionCategory.BASIC
-            elif self.type in ('yaml_author', 'yaml_edit', 'live_k8s_edit'):
-                self.schema_category = QuestionCategory.MANIFEST
-            elif self.type in ('command', 'live_k8s'):
-                self.schema_category = QuestionCategory.COMMAND
-            elif self.type == 'socratic':
+            if self.type == 'socratic':
                 self.schema_category = QuestionCategory.OPEN_ENDED
+            elif self.type == 'basic_terminology':
+                self.schema_category = QuestionCategory.BASIC_TERMINOLOGY
+            elif self.type == 'command':
+                self.schema_category = QuestionCategory.COMMAND_SYNTAX
+            elif self.type in ('yaml_author', 'yaml_edit'):
+                self.schema_category = QuestionCategory.YAML_MANIFEST
             else:
                 # Default for unknown or legacy types.
-                self.schema_category = QuestionCategory.COMMAND
+                self.schema_category = QuestionCategory.COMMAND_SYNTAX
 
-        # Map legacy category → categories
+        # Legacy compatibility mapping
         if self.category and not self.categories:
             self.categories = [self.category]
-        # Legacy response → answers
         if self.response is not None and not self.answers:
             self.answers = [self.response]
-        # Legacy response → validation_steps for command questions
-        if self.type == 'command' and self.response and not self.validation_steps and not self.validation:
-            try:
-                step = ValidationStep(cmd=self.response, matcher={'exit_code': 0})
-                self.validation_steps = [step]
-            except Exception:
-                pass
-        # Legacy validation list → validation_steps
-        if self.validation and not self.validation_steps:
-            steps = []
-            for v in self.validation:
-                if isinstance(v, ValidationStep):
-                    steps.append(v)
-                elif isinstance(v, dict):
-                    cmd = v.get('cmd') or v.get('command') or ''
-                    matcher = v.get('matcher', {})
-                    steps.append(ValidationStep(cmd=cmd, matcher=matcher))
-            if steps:
-                self.validation_steps = steps
 
     def is_solvable(self) -> bool:
         """

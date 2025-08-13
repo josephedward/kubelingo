@@ -76,7 +76,19 @@ class SessionManager:
         """Removes 'review' flag from the matching question in its source YAML file."""
         self._update_review_status(question_id, review=False)
 
-    
+    def _update_triage_status(self, question_id: str, triage: bool):
+        """Updates the 'triage' flag for a question in the SQLite database."""
+        try:
+            from kubelingo.database import update_triage_status
+            update_triage_status(question_id, triage)
+        except Exception as e:
+            self.logger.error(f"Failed to update triage status in DB for QID {question_id}: {e}")
+
+    def triage_question(self, question_id: str):
+        """Marks a question for triage."""
+        self._update_triage_status(question_id, triage=True)
+
+
 class StudySession:
     """Base class for a study session for a specific subject."""
 
