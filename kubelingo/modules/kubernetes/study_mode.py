@@ -90,7 +90,10 @@ class KubernetesStudyMode:
         ).ask()
 
         if category_choice and category_choice != "back":
-            self._run_drill_menu(category_choice)
+            if category_choice == QuestionCategory.OPEN_ENDED:
+                self._run_socratic_mode_entry()
+            else:
+                self._run_study_subject_menu(category_choice)
 
     def _run_study_subject_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given category to generate questions for study."""
@@ -207,84 +210,42 @@ class KubernetesStudyMode:
         if topic:
             self._run_socratic_mode(topic)
 
-    def _get_question_count_by_category(self, category: QuestionCategory) -> int:
-        """Fetches question count for a given category."""
-        query = "SELECT COUNT(*) FROM questions WHERE category_id = ?"
-        try:
-            cursor = self.db_conn.cursor()
-            cursor.execute(query, (category.value,))
-            count = cursor.fetchone()[0]
-            return count if count is not None else 0
-        except Exception as e:
-            print(f"{Fore.RED}Error fetching question count from database: {e}{Style.RESET_ALL}")
-            return 0
+    def run_drill_quiz(self, category: QuestionCategory, subject: QuestionSubject):
+        """Runs a quiz with existing questions for a specific category and subject."""
+        questions = self._get_questions_by_category_and_subject(
+            category, subject.value
+        )
+        if questions:
+            self._run_quiz(questions)
+        else:
+            if not self.question_generator:
+                print(
+                    f"\n{Fore.YELLOW}No questions found for this topic and AI features are not available.{Style.RESET_ALL}"
+                )
+                questionary.confirm("Press Enter to continue...").ask()
+                return
 
-    def _run_drill_menu(self, category: QuestionCategory):
-        """Shows a sub-menu of subjects for a given question category."""
-        subjects_with_counts = self._get_subjects_with_counts_by_category(category)
+            if not questionary.confirm(
+                f"No questions found for '{subject.value}' in '{category.value}'.\n"
+                "Would you like to generate some now using AI?",
+                default=True,
+            ).ask():
+                return
 
-        choices = [
-            questionary.Choice(
-                f"{subject.value} ({subjects_with_counts.get(subject.value, 0)} questions)",
-                value=subject.value,
-            )
-            for subject in QuestionSubject
-        ]
-        choices.append(Separator())
-        choices.append(questionary.Choice("Back", value="back"))
+            quiz_type_map = {
+                QuestionCategory.BASIC_TERMINOLOGY: "basic",
+                QuestionCategory.COMMAND_SYNTAX: "command",
+                QuestionCategory.YAML_MANIFEST: "manifest",
+            }
+            quiz_type = quiz_type_map.get(category)
 
-        subject_choice = questionary.select(
-            f"Select a subject for '{category.value}':",
-            choices=choices,
-        ).ask()
-
-        if subject_choice and subject_choice != "back":
-            questions = self._get_questions_by_category_and_subject(
-                category, subject_choice
-            )
-            if questions:
-                self._run_quiz(questions)
+            if quiz_type:
+                self._run_quiz_loop(quiz_type, subject.value)
             else:
-                if not self.question_generator:
-                    print(
-                        f"\n{Fore.YELLOW}AI features are not available. Please configure an AI provider in Settings.{Style.RESET_ALL}"
-                    )
-                    questionary.confirm("Press Enter to continue...").ask()
-                    return
-
-                if not questionary.confirm(
-                    f"No questions found for '{subject_choice}' in '{category.value}'.\n"
-                    "Would you like to generate some now using AI?",
-                    default=True,
-                ).ask():
-                    return
-
-                quiz_type_map = {
-                    QuestionCategory.OPEN_ENDED: "socratic",
-                    QuestionCategory.BASIC_TERMINOLOGY: "basic",
-                    QuestionCategory.COMMAND_SYNTAX: "command",
-                    QuestionCategory.YAML_MANIFEST: "manifest",
-                }
-                quiz_type = quiz_type_map.get(category)
-
-                if quiz_type:
-                    self._run_quiz_loop(quiz_type, subject_choice)
-                else:
-                    print(
-                        f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
-                    )
-                    questionary.confirm("Press Enter to continue...").ask()
-
-    def _get_subjects_with_counts_by_category(self, category: QuestionCategory) -> Dict[str, int]:
-        """Fetches unique subjects and their question counts for a given category."""
-        query = "SELECT subject_id, COUNT(*) FROM questions WHERE category_id = ? AND subject_id IS NOT NULL GROUP BY subject_id ORDER BY subject_id"
-        try:
-            cursor = self.db_conn.cursor()
-            cursor.execute(query, (category.value,))
-            return {row[0]: row[1] for row in cursor.fetchall()}
-        except Exception as e:
-            print(f"{Fore.RED}Error fetching subjects from database: {e}{Style.RESET_ALL}")
-            return {}
+                print(
+                    f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
+                )
+                questionary.confirm("Press Enter to continue...").ask()
 
     def _get_questions_by_category_and_subject(
         self, category: QuestionCategory, subject: str
