@@ -174,25 +174,18 @@ def validate_prompt_completeness(command: str, prompt: str) -> Dict[str, Any]:
         return {"valid": True, "reason": f"Validator failed with an error: {e}"}
 
 
-def validate_prompt_completeness(response: str, prompt: str) -> Dict[str, Any]:
+def commands_equivalent(user_cmd: str, expected_cmd: str) -> bool:
     """
-    Validates that a response is complete and relevant to the given prompt.
-
-    Args:
-        response: The response to validate.
-        prompt: The prompt that the response is supposed to answer.
-
-    Returns:
-        A dictionary with validation results, including whether the response is valid.
+    Compares two shell commands for functional equivalence, using a
+    high-performance Rust implementation if available.
     """
-    if not response or not prompt:
-        return {"valid": False, "reason": "Response or prompt is empty."}
+    if RUST_VALIDATOR_ENABLED and rust_commands_equivalent:
+        try:
+            return rust_commands_equivalent(user_cmd, expected_cmd)
+        except Exception:
+            # Fall through to Python validator on Rust error
+            pass
 
-    # Check if the response contains at least one word from the prompt
-    prompt_words = set(re.findall(r'\w+', prompt.lower()))
-    response_words = set(re.findall(r'\w+', response.lower()))
-
-    if not prompt_words.intersection(response_words):
-        return {"valid": False, "reason": "Response does not address the prompt."}
-
-    return {"valid": True}
+    # Fallback Python implementation
+    normalize = lambda cmd: ' '.join(shlex.split(cmd.strip().lower()))
+    return normalize(user_cmd) == normalize(expected_cmd)
