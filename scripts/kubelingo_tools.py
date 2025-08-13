@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Kubelingo Tools: An interactive menu for managing questions.
+Kubelingo: An interactive menu for managing questions.
 """
 
 import sys
@@ -50,7 +50,7 @@ def _generate_questions():
 
 def _add_questions():
     """Handles 'Add Questions' - import from YAML with AI categorization."""
-    print("This tool imports questions from YAML files, using AI to help categorize them.")
+    print("This tool imports questions from YAML files, using AI for schema inference and reformatting.")
     db_path = get_live_db_path()
     output_db = questionary.text(
         "Enter the path for the new/updated SQLite database:",
@@ -130,7 +130,7 @@ def _manage_triaged_questions():
 
 
 def main():
-    """Display the main question management menu."""
+    """Display the question management menu."""
     tasks = {
         "Generate Questions": _generate_questions,
         "Add Questions": _add_questions,
@@ -140,7 +140,7 @@ def main():
     
     while True:
         choice = questionary.select(
-            "Question Management Menu:",
+            "--- Manage Questions ---",
             choices=list(tasks.keys()) + [questionary.Separator(), "Exit"],
             use_indicator=True
         ).ask()
