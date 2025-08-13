@@ -899,7 +899,7 @@ def run_interactive_main_menu():
             choices = [
                 Separator("--- Learn ---"),
                 questionary.Choice(
-                    "Study Mode (Socratic Tutor)",
+                    "Socratic Mode",
                     value=("learn", "study"),
                     disabled=api_key_required_msg if not has_api_key else "",
                 ),
@@ -933,14 +933,8 @@ def run_interactive_main_menu():
                 questionary.Choice("AI", value=("settings", "ai")),
                 questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
-                questionary.Choice(
-                    "Categorize Questions (AI)",
-                    value=("settings", "categorize_ai"),
-                    disabled=api_key_required_msg if not has_api_key else ""
-                ),
-                questionary.Choice("View YAML Questions", value=("settings", "view_yaml")),
                 questionary.Choice("Help", value=("settings", "help")),
-                questionary.Choice("Report Bug", value=("settings", "bug")),
+                questionary.Choice("Report Bug (bug ticket script)", value=("settings", "bug")),
                 Separator(),
                 questionary.Choice("Exit App", value="exit"),
             ]
