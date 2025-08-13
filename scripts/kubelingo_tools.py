@@ -86,7 +86,7 @@ def _generate_questions():
     if choice == "From PDF":
         pdf_path = questionary.text("Path to the PDF file:").ask()
         if not pdf_path: return
-        output_file = questionary.text("Path to the output YAML file:", default="questions/generated_yaml/from_pdf.yaml").ask()
+        output_file = questionary.text("Path to the output YAML file:", default="yaml/generated/from_pdf.yaml").ask()
         if not output_file: return
         num_q = questionary.text("Number of questions per chunk?", default="5").ask()
         handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
@@ -96,7 +96,7 @@ def _generate_questions():
         if not subject: return
         category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
         num_q = questionary.text("Number of questions to generate?", default="3").ask()
-        output_file = questionary.text("Path to the output YAML file:", default=f"questions/generated_yaml/{subject.lower().replace(' ', '_')}.yaml").ask()
+        output_file = questionary.text("Path to the output YAML file:", default=f"yaml/generated/{subject.lower().replace(' ', '_')}.yaml").ask()
         if not output_file: return
         example_file = questionary.text("(Optional) Path to YAML source file for example questions:").ask()
         handle_ai_questions(MockArgs(
@@ -128,7 +128,7 @@ def _add_questions():
 
     search_dir = questionary.text(
         "Enter the directory to search for YAML files:",
-        default="questions/generated_yaml"
+        default="yaml/generated"
     ).ask()
     if not search_dir: return
 
