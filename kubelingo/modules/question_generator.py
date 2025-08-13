@@ -132,7 +132,7 @@ class AIQuestionGenerator:
 
 
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
-        prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt', 'response', and 'explanation' keys. The 'response' should contain {response_description}. The 'explanation' should be a brief clarification of the answer.")
+        prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt', 'answers', and 'explanation' keys. The 'answers' must be a list of one or more strings. The first answer is the primary correct one. The 'explanation' should be a brief clarification of the answer.")
         ai_prompt = "\n".join(prompt_lines)
         logger.debug("AI few-shot prompt: %s", ai_prompt)
 
@@ -181,26 +181,34 @@ class AIQuestionGenerator:
         for obj in items or []:
             # Support common key names for question/answer
             p = obj.get("prompt") or obj.get("question") or obj.get("q")
-            r = obj.get("response") or obj.get("answer") or obj.get("a")
+            ans = obj.get("answers")  # Expecting a list of strings
             explanation = obj.get("explanation")
-            if not p or not r:
+            if not ans:
+                # Fallback for old 'response' or 'answer' keys
+                r = obj.get("response") or obj.get("answer") or obj.get("a")
+                if r and isinstance(r, str):
+                    ans = [r]
+
+            if not p or not ans or not isinstance(ans, list) or not ans[0]:
                 continue
 
+            primary_answer = ans[0]
+
             if q_type == "yaml_author":
-                if not validate_yaml_structure(r).get("valid"):
+                if not validate_yaml_structure(primary_answer).get("valid"):
                     logger.warning(f"Skipping AI-generated YAML question with invalid syntax: {p}")
                     continue
 
-            validator_dict = {"type": "ai", "expected": r}
+            validator_dict = {"type": "ai", "expected": primary_answer}
             if q_type == "yaml_author":
-                validator_dict = {"type": "yaml_subset", "expected": r}
+                validator_dict = {"type": "yaml_subset", "expected": primary_answer}
 
             qid = f"ai-gen-{uuid.uuid4()}"
             # Create question object
             question = Question(
                 id=qid,
                 prompt=p,
-                answers=[r],
+                answers=ans,
                 type=q_type,
                 validator=validator_dict,
                 category=category,
@@ -216,7 +224,7 @@ class AIQuestionGenerator:
                     id=qid,
                     prompt=p,
                     source_file=source_file,
-                    answers=json.dumps([r]),
+                    answers=json.dumps(ans),
                     category=category,
                     subject=subject,
                     source='ai_generated',
