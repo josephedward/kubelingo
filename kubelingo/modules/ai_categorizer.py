@@ -90,7 +90,19 @@ Do not include any other text or explanation.
                 else: # Fallback for unknown object types
                     response_str = str(response)
 
-            data = json.loads(response_str)
+            # Clean up the response string, removing markdown fences if present
+            cleaned_response = response_str.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            elif cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+
+            cleaned_response = cleaned_response.strip()
+
+            data = json.loads(cleaned_response)
             
             category = data.get("exercise_category")
             subject_matter = data.get("subject_matter")
