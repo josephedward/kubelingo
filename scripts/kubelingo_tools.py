@@ -28,7 +28,7 @@ from kubelingo.utils.path_utils import get_live_db_path
 # Note: This relies on the sys.path modification above to find the 'scripts' module
 try:
     from scripts.question_manager import (
-        handle_ai_questions, handle_from_pdf, handle_ai_quiz, 
+        handle_ai_questions, handle_from_pdf,
         handle_resource_reference, handle_kubectl_operations,
         handle_manifests, handle_service_account,
         handle_remove_question,
@@ -71,7 +71,6 @@ def _generate_questions():
         choices=[
             "From PDF", 
             "From AI (subject-based)",
-            "From AI (quiz-style)",
             "Kubernetes Resource Reference",
             "Kubernetes Operations",
             "Service Account Questions",
@@ -104,11 +103,6 @@ def _generate_questions():
             subject=subject, category=category, num_questions=int(num_q), 
             output_file=output_file, example_source_file=example_file
         ))
-
-    elif choice == "From AI (quiz-style)":
-        num = questionary.text("Number of questions to generate?", default="5").ask()
-        output = questionary.text("Output JSON file path:", default="questions/generated_json/ai_quiz.json").ask()
-        handle_ai_quiz(MockArgs(num=int(num), output=output, mock=False))
 
     elif choice == "Kubernetes Resource Reference":
         handle_resource_reference(MockArgs())
@@ -210,11 +204,26 @@ def main():
         "Remove Questions": _remove_questions,
         "Triaged Questions": _manage_triaged_questions,
     }
+
+    menu_choices = [
+        questionary.Choice(
+            title="Generate Questions (generator)",
+            value="Generate Questions"
+        ),
+        questionary.Choice(
+            title="Add Questions (using AI schema inference, rewriting and reformatting the given questions as needed)",
+            value="Add Questions"
+        ),
+        "Remove Questions",
+        "Triaged Questions",
+        questionary.Separator(),
+        "Exit",
+    ]
     
     while True:
         choice = questionary.select(
             "--- Manage Questions ---",
-            choices=list(tasks.keys()) + [questionary.Separator(), "Exit"],
+            choices=menu_choices,
             use_indicator=True
         ).ask()
 
