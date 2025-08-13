@@ -120,7 +120,7 @@ def _add_questions():
     ).ask()
     if not search_dir: return
 
-    _run_script("question_manager.py", "import-ai", output_db, "--search-dir", search_dir)
+    do_import_ai(MockArgs(output_db=output_db, search_dir=[search_dir]))
 
 def _remove_questions():
     """Handles 'Remove Questions'."""

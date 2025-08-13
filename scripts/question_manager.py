@@ -73,8 +73,6 @@ try:
 
     # Kubelingo imports
     import kubelingo.database as db_mod
-    # Kubelingo imports
-    import kubelingo.database as db_mod
     from kubelingo.database import (
         get_db_connection, add_question, init_db, _row_to_question_dict, get_all_questions,
         get_questions_by_source_file
@@ -106,12 +104,76 @@ except ImportError as e:
 
 # --- Handlers from original question_manager.py ---
 
+class MockArgs:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+def interactive_generator_menu():
+    """Interactive menu for question generator commands."""
+    while True:
+        choice = questionary.select(
+            "Select a generator command:",
+            choices=[
+                "From PDF", "AI Quiz (OpenAI)", "Resource Reference Quiz",
+                "Kubectl Operations Quiz", "AI Questions (Advanced)",
+                "Validation Steps for JSON", "Service Account Questions", "Manifests from JSON",
+                "Back"
+            ],
+        ).ask()
+
+        if choice == "Back" or choice is None:
+            break
+        
+        # Dispatch to handlers
+        if choice == "From PDF":
+            pdf_path = questionary.path("Path to PDF file:").ask()
+            if not pdf_path: continue
+            output_file = questionary.text("Path for output YAML:", default="generated_from_pdf.yaml").ask()
+            if not output_file: continue
+            num_q = questionary.text("Number of questions per chunk:", default="5").ask()
+            if not num_q: continue
+            handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
+        elif choice == "AI Quiz (OpenAI)":
+            num = questionary.text("Number of questions to generate:", default="5").ask()
+            if not num: continue
+            output_file = questionary.text("Output JSON file path:", default="ai_generated_quiz.json").ask()
+            if not output_file: continue
+            mock = questionary.confirm("Use mock data for testing?", default=False).ask()
+            handle_ai_quiz(MockArgs(num=int(num), mock=mock, output=output_file))
+        elif choice == "Resource Reference Quiz":
+            handle_resource_reference(MockArgs())
+            print("\nDone.")
+        elif choice == "Kubectl Operations Quiz":
+            handle_kubectl_operations(MockArgs())
+            print("\nDone.")
+        elif choice == "AI Questions (Advanced)":
+            subject = questionary.text("Subject for the new questions:").ask()
+            if not subject: continue
+            category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
+            num_questions = int(questionary.text("Number of questions to generate:", default="3").ask())
+            example_source_file = questionary.text("Example source file (from DB, optional):").ask()
+            output_file = questionary.text("Output YAML file:", default="ai_generated_questions.yaml").ask()
+            if not output_file: continue
+            handle_ai_questions(MockArgs(
+                subject=subject, category=category, num_questions=num_questions, 
+                example_source_file=example_source_file, output_file=output_file
+            ))
+        elif choice == "Validation Steps for JSON":
+            in_path = questionary.path("JSON file or directory to process:").ask()
+            if not in_path: continue
+            overwrite = questionary.confirm("Overwrite original files?", default=False).ask()
+            handle_validation_steps(MockArgs(in_path=Path(in_path), overwrite=overwrite))
+        elif choice == "Service Account Questions":
+            to_db = questionary.confirm("Add generated questions to the database?", default=False).ask()
+            num = int(questionary.text("Number of questions to output (0 for all):", default="0").ask())
+            output = questionary.text("Output JSON file (optional):").ask()
+            handle_service_account(MockArgs(to_db=to_db, num=num, output=output))
+        elif choice == "Manifests from JSON":
+            handle_manifests(MockArgs())
+            print("\nDone.")
+
 def interactive_question_manager_menu():
     """Interactive menu for question manager script."""
-    class MockArgs:
-        def __init__(self, **kwargs):
-            self.__dict__.update(kwargs)
-
     while True:
         choice = questionary.select(
             "--- Manage Questions ---",
@@ -129,13 +191,7 @@ def interactive_question_manager_menu():
             print("Exiting question manager.")
             break
         elif choice == "Generate Questions":
-            generator_script_path = project_root / 'scripts' / 'generator.py'
-            print(f"This will run the question generator script at: {generator_script_path}")
-            print("You will need to provide arguments to it. For help, run: python {generator_script_path} --help")
-            command_str = questionary.text("Enter arguments for generator.py (e.g., 'ai-questions --subject \"Pods\" --output-file new.yaml'):").ask()
-            if command_str:
-                command = [sys.executable, str(generator_script_path)] + command_str.split()
-                subprocess.run(command)
+            interactive_generator_menu()
         elif choice == "Add Questions":
             print("This will import questions from YAML files using AI for categorization.")
             db_path = questionary.text("Enter path for the new/updated database:", default=get_live_db_path()).ask()
