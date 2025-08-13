@@ -10,11 +10,9 @@ from kubelingo.database import add_question, get_db_connection
 from kubelingo.integrations.llm import GeminiClient, OpenAIClient
 from kubelingo.modules.ai_categorizer import AICategorizer
 from kubelingo.utils.config import (
-    get_gemini_api_key,
-    get_openai_api_key,
+    get_api_key,
     save_ai_provider,
-    save_gemini_api_key,
-    save_openai_api_key,
+    save_api_key,
 )
 from kubelingo.utils.path_utils import find_and_sort_files_by_mtime, get_project_root
 from kubelingo.utils.ui import Fore, Style
@@ -25,7 +23,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def _check_api_keys():
     """Checks for API keys and prompts if none are configured."""
     # Check if at least one key is already set
-    if get_gemini_api_key() or get_openai_api_key():
+    if get_api_key('gemini') or get_api_key('openai'):
         return
 
     print(f"\n{Fore.YELLOW}--- Welcome to Kubelingo ---{Style.RESET_ALL}")
@@ -38,7 +36,7 @@ def _check_api_keys():
         gemini_key = getpass.getpass("Enter your Gemini API key (or press Enter to skip): ").strip()
         if gemini_key:
             if GeminiClient.test_key(gemini_key):
-                save_gemini_api_key(gemini_key)
+                save_api_key('gemini', gemini_key)
                 print(f"{Fore.GREEN}✓ Gemini API key is valid and has been saved.{Style.RESET_ALL}")
                 save_ai_provider('gemini')  # Set as default provider
                 return  # Exit after successful configuration
@@ -49,7 +47,7 @@ def _check_api_keys():
         openai_key = getpass.getpass("Enter your OpenAI API key (or press Enter to skip): ").strip()
         if openai_key:
             if OpenAIClient.test_key(openai_key):
-                save_openai_api_key(openai_key)
+                save_api_key('openai', openai_key)
                 print(f"{Fore.GREEN}✓ OpenAI API key is valid and has been saved.{Style.RESET_ALL}")
                 save_ai_provider('openai')  # Set as default provider
             else:
