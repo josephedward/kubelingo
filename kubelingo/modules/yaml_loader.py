@@ -8,12 +8,60 @@ except ImportError:
     yaml = None
 from typing import List
 from kubelingo.modules.base.loader import BaseLoader
-from kubelingo.question import Question, ValidationStep, QuestionCategory
+from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
 from kubelingo.utils.config import QUESTION_DIRS
+from typing import Dict, Optional
 
 
 class YAMLLoader(BaseLoader):
     """Discovers and parses YAML question modules."""
+
+    def _infer_subject_matter(self, item: Dict) -> Optional[QuestionSubject]:
+        """Infers the QuestionSubject from the question's category and prompt."""
+        category = (item.get('category') or (item.get('metadata') or {}).get('category') or "").lower()
+        prompt = (item.get('prompt') or item.get('question') or "").lower()
+
+        # Specific keywords in prompt take precedence
+        if 'readinessprobe' in prompt or 'readiness probe' in prompt or 'livenessprobe' in prompt or 'liveness probe' in prompt:
+            return QuestionSubject.PROBES_HEALTH
+        if 'resourcequota' in prompt or 'limitrange' in prompt or ('requests' in prompt and 'limits' in prompt):
+            return QuestionSubject.RESOURCE_MANAGEMENT
+        if 'serviceaccount' in prompt or 'service account' in prompt:
+            return QuestionSubject.SERVICE_ACCOUNTS
+        if 'job' in prompt or 'cronjob' in prompt:
+            return QuestionSubject.JOBS_CRONJOBS
+        if 'persistentvolume' in prompt or 'pvc' in prompt or 'storageclass' in prompt:
+            return QuestionSubject.PERSISTENCE
+        if 'service ' in prompt and 'serviceaccount' not in prompt:
+            return QuestionSubject.SERVICES
+        if 'ingress' in prompt:
+            return QuestionSubject.INGRESS_ROUTING
+        if 'label' in prompt or 'annotation' in prompt or 'selector' in prompt:
+            return QuestionSubject.LABELS_SELECTORS
+        if 'imperative' in prompt or 'declarative' in prompt or 'kubectl create' in prompt or 'kubectl apply' in prompt:
+            return QuestionSubject.IMPERATIVE_DECLARATIVE
+
+        # Category-based mapping
+        if 'helm' in category:
+            return QuestionSubject.HELM
+        if 'configmap' in category or 'configmap' in prompt:
+            return QuestionSubject.APP_CONFIGURATION
+        if 'secret' in category or 'secret' in prompt:
+            return QuestionSubject.SECURITY_BASICS
+        if 'namespace' in category:
+            return QuestionSubject.NAMESPACES_CONTEXTS
+        if 'shell setup' in category or 'vim' in category or 'alias' in category:
+            return QuestionSubject.LINUX_SYNTAX
+        if 'resource reference' in category:
+            return QuestionSubject.API_DISCOVERY_DOCS
+        if 'deployment' in category or 'pod' in category or 'workload' in category or 'yaml authoring' in category:
+            return QuestionSubject.CORE_WORKLOADS
+
+        # Default for common operations
+        if 'kubectl' in category or 'command' in category:
+            return QuestionSubject.IMPERATIVE_DECLARATIVE
+
+        return None
 
     def discover(self) -> List[str]:
         """Discovers YAML files in all configured question directories, including 'yaml'."""
