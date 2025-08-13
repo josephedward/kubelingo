@@ -1,5 +1,6 @@
 import getpass
 import json
+import logging
 import os
 import random
 import re
@@ -25,6 +26,7 @@ from kubelingo.integrations.llm import (
     OpenAIClient,
     get_llm_client,
 )
+from kubelingo.modules.base.session import SessionManager
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.question import Question, QuestionCategory, QuestionSubject
 from kubelingo.utils.config import (
@@ -67,6 +69,7 @@ class KubernetesStudyMode:
         self.session_active = False
         self.vim_editor = VimYamlEditor()
         self.db_conn = get_db_connection()
+        self.session_manager = SessionManager(logging.getLogger(__name__))
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
@@ -88,6 +91,43 @@ class KubernetesStudyMode:
 
         if category_choice and category_choice != "back":
             self._run_drill_menu(category_choice)
+
+    def _run_study_subject_menu(self, category: QuestionCategory):
+        """Shows a sub-menu of subjects for a given category to generate questions for study."""
+        if not self.question_generator:
+            print(
+                f"\n{Fore.YELLOW}AI features are not available. Please configure an AI provider in Settings.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
+        subject_choices = [
+            questionary.Choice(subject.value, value=subject.value)
+            for subject in QuestionSubject
+        ]
+        subject_choices.append(Separator())
+        subject_choices.append(questionary.Choice("Back", value="back"))
+
+        subject_choice = questionary.select(
+            f"Select a subject to study for '{category.value}':",
+            choices=subject_choices,
+        ).ask()
+
+        if subject_choice and subject_choice != "back":
+            quiz_type_map = {
+                QuestionCategory.BASIC_TERMINOLOGY: "basic",
+                QuestionCategory.COMMAND_SYNTAX: "command",
+                QuestionCategory.YAML_MANIFEST: "manifest",
+            }
+            quiz_type = quiz_type_map.get(category)
+
+            if quiz_type:
+                self._run_quiz_loop(quiz_type, subject_choice)
+            else:
+                print(
+                    f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
+                )
+                questionary.confirm("Press Enter to continue...").ask()
 
     def _run_quiz(self, questions: List[Question]):
         """
