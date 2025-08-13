@@ -202,6 +202,12 @@ class KubernetesStudyMode:
 
     def _run_socratic_mode_entry(self):
         """Gets user input before starting socratic mode."""
+        if not self.client:
+            print(
+                f"\n{Fore.YELLOW}AI client not configured. Please set up your AI provider in 'Settings > AI'.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
         # Filter out topics not suitable for the Kubernetes Socratic tutor.
         socratic_topics = [
             topic for topic in KUBERNETES_TOPICS if "linux" not in topic.lower()
@@ -475,13 +481,6 @@ class KubernetesStudyMode:
 
     def _run_socratic_mode(self, topic: str):
         """Runs the conversational Socratic tutoring mode."""
-        if not self.client:
-            print(
-                f"\n{Fore.YELLOW}AI client not configured. Please set up your AI provider in 'Settings > AI'.{Style.RESET_ALL}"
-            )
-            questionary.confirm("Press Enter to continue...").ask()
-            return
-
         initial_response = self._start_socratic_session(topic)
         if not initial_response:
             print(
