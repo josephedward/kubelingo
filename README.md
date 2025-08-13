@@ -212,6 +212,16 @@ A high-level overview of the monorepo structure:
 └── docs/                 # Project documentation
 ```
 
+## Rust Integration
+
+This project uses Rust in two ways to enhance performance and functionality:
+
+1.  **Native Python Extension (PyO3)**: The `src/lib.rs` file compiles into a native Python module (`kubelingo._native`) using [PyO3](https://pyo3.rs/). This allows high-performance Rust functions to be called directly from Python. For example, `validate_yaml_structure` provides fast YAML parsing and validation, which is used to check Kubernetes manifests. This integration is designed to be optional; if the Rust extension isn't compiled, the application falls back to a pure Python implementation.
+
+2.  **Standalone CLI Binary**: The `src/main.rs` and `src/cli.rs` files build a completely separate `kubelingo` command-line executable. The Python application can delegate tasks to this binary, such as spawning a PTY-based shell for a more robust and responsive user experience. The `kubelingo/bridge.py` module handles the detection of and communication with this Rust binary.
+
+This hybrid approach allows the project to leverage Rust's performance for critical tasks while maintaining the flexibility and extensive ecosystem of Python for the main application logic.
+
 ## Self-Healing Agent
 
 Kubelingo includes a lightweight self-healing agent that automates error detection and repair
