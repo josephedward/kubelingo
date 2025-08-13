@@ -12,6 +12,8 @@ import logging
 import uuid
 import subprocess
 import json
+import sys
+import subprocess
 import re
 import time
 import tempfile
@@ -268,153 +270,6 @@ def do_create_quizzes(args):
     logging.info("Quiz creation process finished.")
 
 
-# --- create_sqlite_db_from_yaml ---
-class QuestionSkipped(Exception):
-    def __init__(self, message: str, category: Optional[str] = None):
-        self.message = message
-        self.category = category
-        super().__init__(self.message)
-
-def _normalize_and_prepare_question_for_db(q_data: dict, category_to_source_file: dict, allowed_args: set) -> dict:
-    q_dict = q_data.copy()
-    if "metadata" in q_dict and isinstance(q_dict["metadata"], dict):
-        metadata = q_dict.pop("metadata")
-        for k, v in metadata.items():
-            if k not in q_dict:
-                q_dict[k] = v
-    if "answer" in q_dict:
-        q_dict["correct_yaml"] = q_dict.pop("answer")
-    if "starting_yaml" in q_dict:
-        q_dict["initial_files"] = {"manifest.yaml": q_dict.pop("starting_yaml")}
-    if "question" in q_dict:
-        q_dict["prompt"] = q_dict.pop("question")
-    q_type = q_dict.get("type")
-    if q_type in ("yaml_edit", "yaml_author"):
-        if "answer" in q_dict and "correct_yaml" not in q_dict:
-            q_dict["correct_yaml"] = q_dict.pop("answer")
-        if "starting_yaml" in q_dict and "initial_files" not in q_dict:
-            q_dict["initial_files"] = {"f.yaml": q_dict.pop("starting_yaml")}
-    if "type" in q_dict:
-        q_dict["question_type"] = q_dict.pop("type")
-    if "subject" in q_dict:
-        q_dict["subject_matter"] = q_dict.pop("subject")
-    q_type = q_dict.get("question_type", "command")
-    if q_type in ("yaml_edit", "yaml_author", "live_k8s_edit", "manifest"):
-        q_dict["schema_category"] = "manifest"
-    elif q_type in ("command", "kubectl"):
-        q_dict["schema_category"] = "command"
-    else:
-        q_dict["schema_category"] = "basic"
-    if not q_dict.get("category"):
-        q_type = q_dict.get("question_type")
-        if q_type in ("yaml_edit", "yaml_author"):
-            q_dict["category"] = "YAML Authoring"
-        elif q_dict.get("subject_matter"):
-            q_dict["category"] = q_dict["subject_matter"]
-        elif q_dict.get("source") == "AI" and q_dict.get("subject_matter"):
-            subject = q_dict.get("subject_matter")
-            q_dict["category"] = subject.capitalize()
-    category = q_dict.get("category")
-    source_file_from_category = category_to_source_file.get(category)
-    if source_file_from_category:
-        q_dict["source_file"] = source_file_from_category
-    elif not q_dict.get("source_file"):
-        if category:
-            raise QuestionSkipped(f"Unmatched category: {category}", category=category)
-        else:
-            raise QuestionSkipped("Missing category and could not infer one.")
-    q_dict.pop("solution_file", None)
-    q_dict.pop("subject", None)
-    q_dict.pop("type", None)
-    return {k: v for k, v in q_dict.items() if k in allowed_args}
-
-def _populate_db_from_yaml(yaml_files: list[Path], db_path: Optional[str] = None):
-    if not yaml_files:
-        print("No YAML files found to process.")
-        return
-    conn = get_db_connection(db_path=db_path)
-    allowed_args = {
-        "id", "prompt", "source_file", "response", "category", "source",
-        "validation_steps", "validator", "review", "question_type",
-        "schema_category", "answers", "correct_yaml", "difficulty",
-        "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata",
-    }
-    category_to_source_file = ENABLED_QUIZZES
-    unmatched_categories = set()
-    skipped_no_category = 0
-    question_count = 0
-    try:
-        for file_path in yaml_files:
-            print(f"  - Processing '{file_path.name}'...")
-            with open(file_path, "r", encoding="utf-8") as f:
-                try:
-                    questions_data = yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    print(f"Error parsing YAML file {file_path}: {e}", file=sys.stderr)
-                    continue
-                if not questions_data: continue
-                questions_list = questions_data
-                if isinstance(questions_data, dict):
-                    questions_list = questions_data.get("questions") or questions_data.get("entries")
-                if not isinstance(questions_list, list): continue
-                for q_data in questions_list:
-                    try:
-                        q_dict_for_db = _normalize_and_prepare_question_for_db(
-                            q_data, category_to_source_file, allowed_args
-                        )
-                        add_question(conn=conn, **q_dict_for_db)
-                        question_count += 1
-                    except QuestionSkipped as e:
-                        if e.category:
-                            unmatched_categories.add(e.category)
-                        else:
-                            skipped_no_category += 1
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        print(f"Error adding questions to database: {e}", file=sys.stderr)
-        sys.exit(1)
-    finally:
-        conn.close()
-    if unmatched_categories:
-        print("\nWarning: The following categories from the YAML file did not match any quiz. Questions in these categories were skipped:")
-        for cat in sorted(list(unmatched_categories)):
-            print(f"  - {cat}")
-    if skipped_no_category > 0:
-        print(f"\nWarning: Skipped {skipped_no_category} questions because they were missing a 'category' field.")
-    print(f"\nSuccessfully populated database with {question_count} questions.")
-
-def do_create_db(args):
-    """Populate the SQLite database from YAML backup files."""
-    if args.yaml_files:
-        yaml_files = path_utils.find_yaml_files_from_paths(args.yaml_files)
-    else:
-        print("No input paths provided. Locating most recent YAML backup...")
-        all_backups = path_utils.find_and_sort_files_by_mtime(
-            YAML_BACKUP_DIRS, extensions=[".yaml", ".yml"]
-        )
-        if not all_backups:
-            print(f"{Fore.RED}Error: No YAML backup files found in configured backup directories.{Style.RESET_ALL}")
-            print(f"Searched in: {YAML_BACKUP_DIRS}")
-            sys.exit(1)
-        latest_backup = all_backups[0]
-        print(f"Using most recent backup: {Fore.GREEN}{latest_backup}{Style.RESET_ALL}")
-        yaml_files = [latest_backup]
-    if not yaml_files:
-        print("No YAML files found.")
-        sys.exit(0)
-    unique_files = sorted(list(set(yaml_files)))
-    print(f"Found {len(unique_files)} YAML file(s) to process:")
-    if len(unique_files) > 20:
-        print("Showing first 10 files:")
-        for f in unique_files[:10]: print(f"  - {f.name}")
-        print(f"  ...and {len(unique_files) - 10} more.")
-    else:
-        for f in unique_files: print(f"  - {f.name}")
-    db_path = args.db_path or get_live_db_path()
-    init_db(clear=args.clear, db_path=db_path)
-    print(f"\nPopulating database at: {db_path}")
-    _populate_db_from_yaml(unique_files, db_path=db_path)
 
 
 # --- deduplicate_yaml ---
@@ -783,89 +638,6 @@ def do_init(args):
     logging.info(f"Database initialization complete. Loaded {question_count} questions.")
 
 
-# --- restore_yaml_to_db ---
-def _restore_yaml_to_db_func(yaml_files: list[Path], clear_db: bool, db_path: Optional[str] = None):
-    """Restores questions from a list of YAML files to the SQLite database."""
-    console = Console()
-    if clear_db:
-        console.print("[bold yellow]Clearing existing database...[/bold yellow]")
-        init_db(clear=True, db_path=db_path)
-    else:
-        init_db(clear=False, db_path=db_path)
-    total_questions, errors = 0, 0
-    conn = get_db_connection(db_path=db_path)
-    try:
-        for path in track(yaml_files, description="Processing YAML files..."):
-            console.print(f"  - Processing '{path.name}'...")
-            try:
-                with open(path, "r") as f:
-                    data = yaml.safe_load(f)
-                if data is None: continue
-                questions_list = []
-                if isinstance(data, list): questions_list = data
-                elif isinstance(data, dict):
-                    if "questions" in data: questions_list = data.get("questions", [])
-                    elif "id" in data: questions_list = [data]
-                if not questions_list:
-                    console.print(f"    [yellow]Skipping file with no questions: {path.name}[/yellow]")
-                    continue
-                for q_data in questions_list:
-                    if not isinstance(q_data, dict): continue
-                    try:
-                        if "metadata" in q_data and isinstance(q_data.get("metadata"), dict):
-                            for key, value in q_data["metadata"].items():
-                                if key not in q_data: q_data[key] = value
-                        if "question" in q_data and "prompt" not in q_data: q_data["prompt"] = q_data.pop("question")
-                        if "answer" in q_data and "response" not in q_data: q_data["response"] = q_data.pop("answer")
-                        if "citation" in q_data and "source" not in q_data: q_data["source"] = q_data.pop("citation")
-                        if not all(k in q_data for k in ["id", "prompt"]):
-                            console.print(f"[red]Error in {path.name}: Skipping question missing 'id' or 'prompt'. ID: {q_data.get('id', 'N/A')}[/red]")
-                            errors += 1
-                            continue
-                        q_data["source_file"] = str(path)
-                        if "type" in q_data: q_data["question_type"] = q_data.pop("type")
-                        if "subject" in q_data: q_data["subject_matter"] = q_data.pop("subject")
-                        valid_keys = {
-                            "id", "prompt", "response", "category", "source", "validation_steps",
-                            "validator", "source_file", "review", "explanation", "difficulty",
-                            "pre_shell_cmds", "initial_files", "question_type", "answers",
-                            "correct_yaml", "schema_category", "metadata", "subject_matter",
-                        }
-                        kwargs_for_add = {key: q_data[key] for key in valid_keys if key in q_data}
-                        add_question(conn=conn, **kwargs_for_add)
-                        total_questions += 1
-                    except Exception as e:
-                        console.print(f"[red]Error adding question from {path.name} ({q_data.get('id', 'N/A')}): {e}[/red]")
-                        errors += 1
-            except yaml.YAMLError as e:
-                console.print(f"[red]Error parsing YAML file {path.name}: {e}[/red]")
-                errors += 1
-            except Exception as e:
-                console.print(f"[red]An unexpected error occurred with file {path.name}: {e}[/red]")
-                errors += 1
-    finally:
-        conn.close()
-    console.print(f"\n[bold green]Restore complete.[/bold green]")
-    console.print(f"  - Total questions added: {total_questions}")
-    if errors > 0:
-        console.print(f"  - Errors encountered: {errors}")
-
-def do_restore(args):
-    """Restore questions from YAML files into the SQLite database."""
-    console = Console()
-    if args.paths:
-        yaml_files = find_yaml_files_from_paths(args.paths)
-    else:
-        console.print("No input paths provided. Scanning default question directories...")
-        default_dirs = get_all_question_dirs()
-        yaml_files = find_yaml_files_from_paths(default_dirs)
-    if not yaml_files:
-        console.print("[bold red]No YAML files found to process.[/bold red]")
-        sys.exit(1)
-    console.print(f"Found {len(yaml_files)} YAML file(s) to process.")
-    _restore_yaml_to_db_func(
-        yaml_files=sorted(list(yaml_files)), clear_db=args.clear, db_path=args.db_path
-    )
 
 
 # --- show_previous_yaml_backups & show_yaml_backups ---
@@ -898,32 +670,6 @@ def do_list_backups(args):
             print(f"- {mod_time_str} | {f.name} ({f.parent})")
 
 
-# --- write_db_from_yaml & restore_db_from_yaml ---
-def do_write(args):
-    """Write DB from YAML backup, with an option to backup existing DB."""
-    if not os.path.exists(args.yaml_file):
-        print('File not found:', args.yaml_file, file=sys.stderr)
-        sys.exit(1)
-    if args.backup:
-        backup_path = DATABASE_FILE + '.pre_restore.bak'
-        os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-        shutil.copy(DATABASE_FILE, backup_path)
-        print(f'Backed up current database to {backup_path}')
-    if args.overwrite:
-        conn = get_db_connection()
-        conn.execute('DELETE FROM questions')
-        conn.commit()
-        conn.close()
-    with open(args.yaml_file) as f:
-        data = yaml.safe_load(f) or []
-    conn = get_db_connection()
-    for q in data:
-        try:
-            add_question(conn=conn, **q)
-        except Exception as e:
-            print('Error importing question', q.get('id'), e, file=sys.stderr)
-    conn.close()
-    print(f'Loaded {len(data)} questions into the database.')
 
 
 # --- yaml_backup_stats ---
@@ -1544,7 +1290,21 @@ def do_organize_generated(args):
             if args.dry_run:
                 print(f"[DRY RUN] Would import {len(unique_questions)} questions into the database.")
             else:
-                _restore_yaml_to_db_func([output_file], clear_db=False, db_path=db_path)
+                # Call sqlite_manager to import the consolidated file
+                sqlite_manager_path = project_root / 'scripts' / 'sqlite_manager.py'
+                cmd = [
+                    sys.executable,
+                    str(sqlite_manager_path),
+                    'create-from-yaml',
+                    '--db-path', db_path,
+                    '--yaml-files', str(output_file)
+                ]
+                # create-from-yaml will append to the DB if --clear is not used.
+                try:
+                    subprocess.run(cmd, check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error calling sqlite_manager.py: {e}", file=sys.stderr)
+                    sys.exit(1)
 
         finally:
             if conn: conn.close()
@@ -1584,13 +1344,6 @@ def main():
     p_create_quizzes = subparsers.add_parser('create-quizzes', help="Create quizzes from consolidated YAML backup.")
     p_create_quizzes.set_defaults(func=do_create_quizzes)
     
-    # create-db
-    p_create_db = subparsers.add_parser('create-db', help="Populate the SQLite database from YAML backup files.")
-    p_create_db.add_argument("--yaml-files", nargs="*", type=str, help="Path(s) to input YAML file(s) or directories.")
-    p_create_db.add_argument("--db-path", type=str, default=None, help="Path to the SQLite database file.")
-    p_create_db.add_argument("--clear", action="store_true", help="Clear the database before populating.")
-    p_create_db.set_defaults(func=do_create_db)
-    
     # deduplicate
     p_deduplicate = subparsers.add_parser('deduplicate', help="Deduplicate YAML questions in a directory.")
     p_deduplicate.add_argument("directory", type=str, help="Directory containing YAML question files.")
@@ -1623,25 +1376,11 @@ def main():
     p_init = subparsers.add_parser('init', help="Initializes the database from consolidated YAML backups.")
     p_init.set_defaults(func=do_init)
     
-    # restore
-    p_restore = subparsers.add_parser('restore', help="Restore questions from YAML into the database.")
-    p_restore.add_argument("paths", nargs='*', help="Paths to YAML files or directories. Scans default dirs if not provided.")
-    p_restore.add_argument('--clear', action='store_true', help="Clear the existing database before restoring.")
-    p_restore.add_argument('--db-path', type=str, default=None, help="Path to the SQLite database file.")
-    p_restore.set_defaults(func=do_restore)
-
     # list-backups
     p_list_backups = subparsers.add_parser('list-backups', help='Finds and displays all YAML backup files.')
     p_list_backups.add_argument("--path-only", action="store_true", help="Only prints the paths of the files.")
     p_list_backups.set_defaults(func=do_list_backups)
     
-    # write
-    p_write = subparsers.add_parser('write', help="Write DB from YAML backup.")
-    p_write.add_argument('yaml_file', help='YAML file to load.')
-    p_write.add_argument('--overwrite', action='store_true', help='Overwrite existing questions.')
-    p_write.add_argument('--backup', action='store_true', help='Backup current DB before writing.')
-    p_write.set_defaults(func=do_write)
-
     # backup-stats
     p_backup_stats = subparsers.add_parser('backup-stats', help="Show stats for the latest YAML backup file.")
     p_backup_stats.add_argument('paths', nargs='*', help='Path(s) to YAML file(s) or directories.')
