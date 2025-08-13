@@ -234,7 +234,9 @@ def consolidate_manifests():
     """
     Consolidate all manifest-based YAML quizzes into a single file.
     """
-    archive_dir = project_root / 'question-data' / 'archive' / 'manifests'
+    # NOTE: This function seems to refer to an older directory structure.
+    # It might need further review based on where manifest archives are kept.
+    archive_dir = project_root / 'yaml' / 'questions' / 'archive' / 'manifests'
     if not archive_dir.exists():
         sys.stderr.write(f"Archive manifests dir not found: {archive_dir}\n")
         sys.exit(1)
@@ -255,7 +257,7 @@ def consolidate_manifests():
     if not all_questions:
         print("No manifest quizzes found to consolidate.")
         return
-    dest_dir = project_root / 'question-data' / 'yaml'
+    dest_dir = project_root / 'yaml' / 'questions'
     dest_dir.mkdir(parents=True, exist_ok=True)
     out_file = dest_dir / 'manifests_quiz.yaml'
     try:
@@ -357,7 +359,7 @@ def merge_solutions():
     """
     Merge individual solution scripts into a single YAML file per category.
     """
-    sol_root = project_root / 'question-data' / 'yaml' / 'solutions'
+    sol_root = project_root / 'yaml' / 'questions' / 'solutions'
     if not sol_root.is_dir():
         sys.stderr.write(f"Solutions directory not found: {sol_root}\n")
         sys.exit(1)
@@ -502,7 +504,7 @@ p_merge_solutions.set_defaults(func=merge_solutions)
 
 p_organize = subparsers.add_parser("organize-ai-questions", help="Organize individual AI-generated questions into subject-based files.")
 p_organize.add_argument("--source-dir", default="yaml", help="Directory containing the individual question files.")
-p_organize.add_argument("--dest-dir", default="question-data/yaml", help="Directory to save the consolidated subject-based files.")
+p_organize.add_argument("--dest-dir", default="yaml/questions", help="Directory to save the consolidated subject-based files.")
 p_organize.add_argument("--delete-source", action="store_true", help="Delete the source files after organizing them.")
 p_organize.set_defaults(func=lambda args: organize_ai_questions(args.source_dir, args.dest_dir, args.delete_source))
 
