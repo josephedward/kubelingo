@@ -490,7 +490,7 @@ def handle_deduplicate_files(args):
 
     files_to_remove = set()
 
-    for i, group in enumerate(similar_question_groups):
+    for i, group in enumerate(duplicate_question_groups):
         # Sort by file path to have a deterministic file to keep.
         group.sort(key=lambda x: str(x['file_path']))
 
@@ -2330,16 +2330,10 @@ def main():
     # Sub-parser for 'deduplicate-files'
     parser_deduplicate_files = subparsers.add_parser(
         'deduplicate-files',
-        help='Find and report semantically similar questions in YAML files.',
-        description="Finds files with similar question prompts and suggests `git rm` commands for the duplicates."
+        help='Find and report duplicate questions by answer content in YAML files.',
+        description="Finds files with identical question answers and suggests `git rm` commands for the duplicates."
     )
     parser_deduplicate_files.add_argument('files', nargs='+', help='File paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").')
-    parser_deduplicate_files.add_argument(
-        '--threshold',
-        type=float,
-        default=0.8,
-        help='Similarity threshold for prompts (0.0 to 1.0). Default: 0.8'
-    )
     parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Sub-parser for 'find-duplicates' (from scripts/find_duplicate_questions.py)
