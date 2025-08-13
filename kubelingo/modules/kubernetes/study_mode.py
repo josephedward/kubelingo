@@ -179,25 +179,27 @@ class KubernetesStudyMode:
 
     def _run_drill_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given question category."""
-        subjects = self._get_subjects_with_counts_by_category(category)
-        if not subjects:
-            print(f"{Fore.YELLOW}No subjects found for category '{category.value}'.{Style.RESET_ALL}")
-            return
+        subjects_with_counts = self._get_subjects_with_counts_by_category(category)
 
         choices = [
-            questionary.Choice(f"{subject} ({count} questions)", value=subject)
-            for subject, count in subjects.items()
+            questionary.Choice(
+                f"{subject.value} ({subjects_with_counts.get(subject.value, 0)} questions)",
+                value=subject.value,
+            )
+            for subject in QuestionSubject
         ]
         choices.append(Separator())
         choices.append(questionary.Choice("Back", value="back"))
 
         subject_choice = questionary.select(
             f"Select a subject for '{category.value}':",
-            choices=choices
+            choices=choices,
         ).ask()
 
         if subject_choice and subject_choice != "back":
-            questions = self._get_questions_by_category_and_subject(category, subject_choice)
+            questions = self._get_questions_by_category_and_subject(
+                category, subject_choice
+            )
             self._run_quiz(questions)
 
     def _get_subjects_with_counts_by_category(self, category: QuestionCategory) -> Dict[str, int]:
@@ -419,22 +421,22 @@ class KubernetesStudyMode:
         finally:
             print("\nSocratic session ended. Returning to menu.")
 
-    def _run_basic_quiz(self, topic: str, user_level: str):
+    def _run_basic_quiz(self, topic: str):
         """Runs a quiz focused on basic terminology."""
         print(f"\nStarting a 'Basic term/definition' quiz on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("basic", topic, user_level)
+        self._run_quiz_loop("basic", topic)
 
-    def _run_command_quiz(self, topic: str, user_level: str):
+    def _run_command_quiz(self, topic: str):
         """Runs a quiz focused on kubectl commands."""
         print(f"\nStarting a 'Command-line Challenge' on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("command", topic, user_level)
+        self._run_quiz_loop("command", topic)
 
-    def _run_manifest_quiz(self, topic: str, user_level: str):
+    def _run_manifest_quiz(self, topic: str):
         """Runs a quiz focused on authoring Kubernetes manifests."""
         print(f"\nStarting a 'Manifest Authoring' exercise on {topic}. Type 'exit' to quit.")
-        self._run_quiz_loop("manifest", topic, user_level)
+        self._run_quiz_loop("manifest", topic)
 
-    def _run_quiz_loop(self, quiz_type: str, topic: str, user_level: str):
+    def _run_quiz_loop(self, quiz_type: str, topic: str):
         """Generic loop for generating and asking questions."""
         category_map = {
             "basic": "Basic",
@@ -450,7 +452,6 @@ class KubernetesStudyMode:
                     "subject": topic,
                     "type": quiz_type,
                     "category": category,
-                    "user_level": user_level,
                 }
                 if quiz_type == "basic":
                     base_question['exclude_terms'] = list(asked_items)
