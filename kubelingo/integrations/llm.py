@@ -28,6 +28,11 @@ class LLMClient(ABC):
     ) -> Optional[str]:
         pass
 
+    @abstractmethod
+    def test_connection(self) -> bool:
+        """Tests the connection to the LLM provider to validate the API key."""
+        pass
+
 
 class OpenAIClient(LLMClient):
     """LLM client for OpenAI models."""
@@ -70,6 +75,19 @@ class OpenAIClient(LLMClient):
         except Exception as e:
             logging.error(f"OpenAI API request failed: {e}", exc_info=True)
             raise
+
+    def test_connection(self) -> bool:
+        """Tests the connection to the OpenAI API by making a minimal request."""
+        try:
+            # Listing models is a lightweight way to check auth
+            self.client.models.list()
+            return True
+        except openai.AuthenticationError:
+            logging.warning("OpenAI API key is invalid.")
+            return False
+        except Exception as e:
+            logging.error(f"Failed to connect to OpenAI: {e}")
+            return False
 
 
 class GeminiClient(LLMClient):
@@ -125,6 +143,17 @@ class GeminiClient(LLMClient):
         except Exception as e:
             logging.error(f"Gemini API request failed: {e}", exc_info=True)
             raise  # Re-raise for the caller to handle
+
+    def test_connection(self) -> bool:
+        """Tests the connection to the Gemini API by listing available models."""
+        try:
+            # Listing models is a lightweight way to check auth
+            genai.list_models()
+            return True
+        except Exception as e:
+            # The google-generativeai library can raise a generic Exception for auth errors
+            logging.warning(f"Gemini API key appears to be invalid. Error: {e}")
+            return False
 
 
 def get_llm_client() -> LLMClient:
