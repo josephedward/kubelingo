@@ -86,9 +86,8 @@ class Question:
     # Question modality
     type_: str = 'command'
     # The schema category this question belongs to.
-    category_id: Optional["QuestionCategory"] = None
+    category: Optional[str] = None
     # Subject matter area for the question.
-    subject_id: Optional["QuestionSubject"] = None
     subject: Optional[str] = None
 
     # --- Modality-specific fields ---

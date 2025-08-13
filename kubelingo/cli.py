@@ -294,47 +294,24 @@ def _run_script(script_path: str):
         print(f"{Fore.RED}An error occurred while running the script: {e}{Style.RESET_ALL}")
 
 
-def _rebuild_db_from_yaml():
-    """
-    Clears the database and rebuilds it from the single source YAML file.
-    """
-    from kubelingo.database import get_db_connection, index_all_yaml_questions
+def _run_bootstrap_script():
+    """Runs the database bootstrapping script."""
+    script_path = repo_root / "scripts" / "bootstrap_database.py"
+    if not script_path.exists():
+        print(f"{Fore.RED}Error: Bootstrap script not found at {script_path}{Style.RESET_ALL}")
+        print("Please ensure 'scripts/bootstrap_database.py' exists.")
+        return
 
-    print("Attempting to rebuild database from the single source YAML file...")
-    conn = get_db_connection()
+    print(f"\n{Fore.CYAN}--- Running Database Bootstrap Script ---{Style.RESET_ALL}")
     try:
-        print("Clearing existing questions and index from the database...")
-        conn.execute("DELETE FROM questions")
-        conn.execute("DELETE FROM indexed_files")
-        conn.commit()
-        print("Database cleared.")
-
-        # Re-index from the single source file. This function handles all logic.
-        # Pass verbose=True to show progress.
-        index_all_yaml_questions(conn=conn, verbose=True)
-
-        count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
-        if count > 0:
-            print(f"\n{Fore.GREEN}Database rebuild complete. Found {count} questions.{Style.RESET_ALL}")
-            return True
-        else:
-            print(f"{Fore.YELLOW}No questions were loaded from the source YAML file.{Style.RESET_ALL}")
-            return False
-
-    except Exception as e:
-        print(f"{Fore.RED}An error occurred during database rebuild: {e}{Style.RESET_ALL}")
-        return False
-    finally:
-        conn.close()
-
-
-def restore_db():
-    """
-    Restores the database by clearing it and rebuilding from the source YAML file.
-    This is an alias for the 'rebuild-db' command.
-    """
-    print(f"{Fore.YELLOW}This will clear the database and rebuild it from the source YAML.{Style.RESET_ALL}")
-    _rebuild_db_from_yaml()
+        # We can ask for the source YAML file interactively here, or just use the default.
+        # For now, let's just run it with its defaults.
+        subprocess.run([sys.executable, str(script_path)], check=True)
+        print(f"{Fore.GREEN}--- Bootstrap script finished ---{Style.RESET_ALL}")
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"{Fore.RED}Error running bootstrap script: {e}{Style.RESET_ALL}")
+    except (KeyboardInterrupt):
+        print(f"\n{Fore.YELLOW}Bootstrap script cancelled by user.{Style.RESET_ALL}")
 
 
 # handle_load_yaml is obsolete and removed. Database is managed by bootstrap_database.py

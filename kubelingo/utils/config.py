@@ -62,13 +62,25 @@ SQLITE_BACKUP_DIRS = [
 
 
 # --- Database ---
-# Writable database for user data (history, AI questions) stored in the project's .kubelingo directory.
-DATABASE_FILE = os.path.join(APP_DIR, 'kubelingo.db')
+def get_latest_db_path() -> Optional[str]:
+    """Finds the most recent 'kubelingo_metadata_*.db' file in the project root."""
+    project_root_path = Path(PROJECT_ROOT)
+    db_files = list(project_root_path.glob("kubelingo_metadata_*.db"))
+    if not db_files:
+        # Fallback to the default app dir if no bootstrapped DB is found
+        return os.path.join(APP_DIR, 'kubelingo.db')
+    # Sort by modification time descending to get the latest
+    latest_db = max(db_files, key=lambda p: p.stat().st_mtime)
+    return str(latest_db)
+
+# The canonical path to the database file is now determined dynamically.
+DATABASE_FILE = get_latest_db_path()
 
 
 def get_live_db_path() -> str:
     """Helper function to return the canonical path to the live user database."""
-    return DATABASE_FILE
+    # Always re-evaluate to find the latest DB, in case a new one was just created.
+    return get_latest_db_path()
 
 
 # Read-only master backup of original questions. Used to seed the user's DB on first run.
