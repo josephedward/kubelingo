@@ -58,6 +58,43 @@ def sha256_checksum(file_path: Path, block_size=65536) -> str:
     return sha256.hexdigest()
 
 
+# --- New Functionality: List Questions from Database ---
+
+def list_questions():
+    """
+    Lists all questions stored in the database, including their metadata.
+    """
+    if not get_db_connection or not sqlite3:
+        print("Error: Database functionality is not available.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, prompt, category, subject, source_file, created_at, updated_at
+            FROM questions
+            ORDER BY created_at DESC
+        """)
+        questions = cursor.fetchall()
+
+        if not questions:
+            print("No questions found in the database.")
+            return
+
+        print(f"{'ID':<36} {'Category':<10} {'Subject':<20} {'Source File':<40} {'Created At':<20} {'Updated At':<20}")
+        print("-" * 140)
+        for q in questions:
+            print(f"{q['id']:<36} {q['category']:<10} {q['subject']:<20} {q['source_file']:<40} {q['created_at']:<20} {q['updated_at']:<20}")
+
+    except sqlite3.Error as e:
+        print(f"Error querying the database: {e}", file=sys.stderr)
+    finally:
+        if conn:
+            conn.close()
+
+
 # --- From consolidate_backups.py ---
 
 def consolidate_backups():
@@ -142,352 +179,6 @@ def consolidate_backups():
             print(f"Error processing {file_path}: {e}")
 
 
-# --- From consolidate_dbs.py ---
-
-def consolidate_dbs():
-    """
-    Move and rename all database files into a single directory (APP_DIR),
-    using each file's creation timestamp for a unified filename, and
-    deduplicate identical files by content hash.
-    """
-    dest_dir = Path(APP_DIR)
-    try:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-    except Exception as e:
-        print(f"Error creating directory {dest_dir}: {e}", file=sys.stderr)
-        sys.exit(1)
-
-    sources = []
-    sources.extend([
-        Path(APP_DIR) / 'kubelingo.db',
-        project_root / 'backup_questions.db',
-        project_root / 'categorized.db',
-    ])
-    sqlite_dir = project_root / 'backups' / 'sqlite'
-    if sqlite_dir.is_dir():
-        sources.extend(sqlite_dir.glob('*.sqlite3'))
-
-    sources = [p for p in sources if p.is_file()]
-    if not sources:
-        print("No database files found to consolidate.")
-        return
-
-    by_hash = {}
-    for p in sources:
-        h = sha256_checksum(p)
-        st = p.stat()
-        ctime = getattr(st, 'st_birthtime', None) or st.st_mtime
-        if h not in by_hash or ctime > by_hash[h][0]:
-            by_hash[h] = (ctime, p)
-
-    for ctime, p in sorted(by_hash.values(), reverse=True):
-        ts_obj = datetime.fromtimestamp(ctime)
-        # Add microseconds for uniqueness
-        ts_str = ts_obj.strftime('%Y%m%d_%H%M%S_%f')
-        new_name = f"kubelingo_db_{ts_str}.db"
-        dst = dest_dir / new_name
-
-        # Handle rare filename collisions
-        counter = 1
-        while dst.exists():
-            new_name = f"kubelingo_db_{ts_str}_{counter}.db"
-            dst = dest_dir / new_name
-            counter += 1
-
-        try:
-            p.rename(dst)
-            print(f"Moved {p} -> {dst}")
-        except Exception as e:
-            print(f"Failed to move {p} -> {dst}: {e}", file=sys.stderr)
-
-    yaml_dirs = get_all_question_dirs()
-    yaml_files = find_yaml_files(yaml_dirs)
-    removed = 0
-    if yaml_files:
-        for yf in yaml_files:
-            try:
-                docs = list(yaml.load_all(yf.read_text(encoding='utf-8'), Loader=yaml.UnsafeLoader))
-            except Exception:
-                continue
-            if docs and isinstance(docs[-1], dict) and list(docs[-1].keys()) == ['entries'] and docs[-1].get('entries') == []:
-                try:
-                    yf.unlink()
-                    print(f"Deleted empty YAML: {yf}")
-                    removed += 1
-                except Exception as e:
-                    print(f"Failed to delete {yf}: {e}", file=sys.stderr)
-        if removed:
-            print(f"Removed {removed} empty YAML file(s).")
-
-    pattern = "kubelingo_db_*.db"
-    all_backups = list(dest_dir.glob(pattern))
-    if len(all_backups) > 10:
-        sorted_backups = sorted(all_backups, key=lambda p: p.stat().st_mtime, reverse=True)
-        to_remove = sorted_backups[10:]
-        for old in to_remove:
-            try:
-                old.unlink()
-                print(f"Removed old backup: {old}")
-            except Exception as e:
-                print(f"Failed to remove {old}: {e}", file=sys.stderr)
-
-
-# --- From consolidate_manifests.py ---
-
-def consolidate_manifests():
-    """
-    Consolidate all manifest-based YAML quizzes into a single file.
-    """
-    # NOTE: This function seems to refer to an older directory structure.
-    # It might need further review based on where manifest archives are kept.
-    archive_dir = project_root / 'yaml' / 'questions' / 'archive' / 'manifests'
-    if not archive_dir.exists():
-        sys.stderr.write(f"Archive manifests dir not found: {archive_dir}\n")
-        sys.exit(1)
-    all_questions = []
-    for manifest_file in sorted(archive_dir.glob('*.yaml')):
-        try:
-            docs = list(yaml.load_all(manifest_file.read_text(encoding='utf-8'), Loader=yaml.UnsafeLoader))
-        except Exception as e:
-            sys.stderr.write(f"Failed to parse {manifest_file}: {e}\n")
-            continue
-        for doc in docs:
-            if isinstance(doc, list):
-                all_questions.extend(doc)
-            elif isinstance(doc, dict) and 'questions' in doc:
-                all_questions.extend(doc['questions'])
-            elif isinstance(doc, dict) and 'id' in doc:
-                all_questions.append(doc)
-    if not all_questions:
-        print("No manifest quizzes found to consolidate.")
-        return
-    dest_dir = project_root / 'yaml' / 'questions'
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    out_file = dest_dir / 'manifests_quiz.yaml'
-    try:
-        with open(out_file, 'w', encoding='utf-8') as f:
-            yaml.safe_dump(all_questions, f, sort_keys=False)
-        print(f"Consolidated {len(all_questions)} manifest questions into {out_file.relative_to(project_root)}")
-    except Exception as e:
-        sys.stderr.write(f"Failed to write {out_file}: {e}\n")
-
-
-# --- From merge_quizzes.py ---
-
-def merge_quizzes(source: str, destination: str, delete_source: bool):
-    """Merge questions from a source YAML file into a destination YAML file."""
-    if not os.path.exists(source):
-        print(f"Error: Source file not found at '{source}'")
-        sys.exit(1)
-        
-    dest_dir = os.path.dirname(destination)
-    if dest_dir:
-        os.makedirs(dest_dir, exist_ok=True)
-
-    try:
-        with open(source, 'r', encoding='utf-8') as f:
-            source_questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
-
-        if os.path.exists(destination):
-            with open(destination, 'r', encoding='utf-8') as f:
-                dest_questions = yaml.load(f, Loader=yaml.UnsafeLoader) or []
-        else:
-            print(f"Warning: Destination file '{destination}' not found. It will be created.")
-            dest_questions = []
-
-        if not isinstance(source_questions, list) or not isinstance(dest_questions, list):
-            print("Error: Both source and destination files must contain a YAML list of questions.")
-            sys.exit(1)
-
-        print(f"Found {len(source_questions)} questions in source file.")
-        print(f"Found {len(dest_questions)} questions in destination file.")
-
-        seen_ids = {q.get('id') for q in dest_questions if q.get('id')}
-        
-        new_questions_added = 0
-        for q in source_questions:
-            q_id = q.get('id')
-            if q_id and q_id not in seen_ids:
-                dest_questions.append(q)
-                seen_ids.add(q_id)
-                new_questions_added += 1
-            elif not q_id:
-                dest_questions.append(q)
-                new_questions_added += 1
-
-        if new_questions_added > 0:
-            print(f"Adding {new_questions_added} new unique questions to destination file.")
-            with open(destination, 'w', encoding='utf-8') as f:
-                yaml.safe_dump(dest_questions, f, default_flow_style=False, sort_keys=False, indent=2)
-            print(f"Successfully merged questions into '{destination}'.")
-        else:
-            print("No new unique questions to merge.")
-
-        if delete_source and new_questions_added > 0:
-            os.remove(source)
-            print(f"Successfully deleted source file '{source}'.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        sys.exit(1)
-
-
-# --- From merge_solutions.py ---
-
-def _consolidate_category(category_dir: Path):
-    entries = {}
-    for file_path in sorted(category_dir.iterdir()):
-        if not file_path.is_file():
-            continue
-        if file_path.suffix.lower() not in ('.sh', '.yaml', '.yml'):
-            continue
-        key = file_path.stem
-        try:
-            entries[key] = file_path.read_text(encoding='utf-8')
-        except Exception as e:
-            sys.stderr.write(f"Failed to read {file_path}: {e}\n")
-    if not entries:
-        return
-    out_file = category_dir / f"{category_dir.name}_solutions.yaml"
-    try:
-        with open(out_file, 'w', encoding='utf-8') as wf:
-            for key, content in entries.items():
-                wf.write(f"{key}: |-\n")
-                wf.write(indent(content.rstrip('\n'), '  '))
-                wf.write("\n\n")
-        print(f"Consolidated {len(entries)} files into {out_file.relative_to(Path.cwd())}")
-    except Exception as e:
-        sys.stderr.write(f"Failed to write {out_file}: {e}\n")
-
-def merge_solutions():
-    """
-    Merge individual solution scripts into a single YAML file per category.
-    """
-    sol_root = project_root / 'yaml' / 'questions' / 'solutions'
-    if not sol_root.is_dir():
-        sys.stderr.write(f"Solutions directory not found: {sol_root}\n")
-        sys.exit(1)
-    for category_dir in sorted(sol_root.iterdir()):
-        if category_dir.is_dir():
-            _consolidate_category(category_dir)
-
-
-def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_source: bool):
-    """
-    Organizes individual YAML question files from a flat source directory into a
-    structured destination directory based on category and subject.
-    It moves files, assuming one question per file.
-    Example: .../yaml/some_id.yaml -> .../yaml/basic/core_workloads/some_id.yaml
-    """
-    source_dir = Path(source_dir_path)
-    dest_dir = Path(dest_dir_path)
-
-    if not source_dir.is_dir():
-        print(f"Error: Source directory not found: {source_dir}", file=sys.stderr)
-        sys.exit(1)
-
-    dest_dir.mkdir(parents=True, exist_ok=True)
-
-    conn = None
-    if get_db_connection and sqlite3:
-        try:
-            conn = get_db_connection()
-            print("Database connection established to update question metadata.")
-        except Exception as e:
-            print(f"Warning: Could not connect to database. File metadata in DB will not be updated. Error: {e}", file=sys.stderr)
-
-    categorizer = AICategorizer() if 'AICategorizer' in globals() and AICategorizer else None
-    if categorizer:
-        print("AI categorizer loaded. Will attempt to categorize questions without a subject.")
-
-    yaml_files = [p for p in source_dir.glob("*.yaml") if p.is_file()]
-    if not yaml_files:
-        print(f"No YAML files found at the top-level of {source_dir} to organize.")
-        return
-
-    print(f"Found {len(yaml_files)} YAML files to organize.")
-
-    moved_count = 0
-    for file_path in yaml_files:
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                question = yaml.safe_load(f)
-                if isinstance(question, list):
-                    if len(question) == 1:
-                        question = question[0]
-                    else:
-                        print(f"Warning: Skipping {file_path.name}, as it contains multiple questions.")
-                        continue
-
-            if not isinstance(question, dict):
-                print(f"Warning: Skipping {file_path.name}, as its content is not a single question dict.")
-                continue
-
-            q_type = question.get('type', 'socratic').lower()
-            category = 'basic' if q_type == 'socratic' else q_type
-
-            subject = question.get("subject")
-            if not subject and categorizer:
-                try:
-                    ai_cats = categorizer.categorize_question(question)
-                    if ai_cats and ai_cats.get("subject_matter"):
-                        subject = ai_cats["subject_matter"]
-                        print(f"  Categorized question {question.get('id', file_path.stem)} as '{subject}'")
-                except Exception as e:
-                    print(f"AI categorization failed for {file_path.name}: {e}", file=sys.stderr)
-            subject = subject or "general"
-
-            subject_slug = ''.join(c for c in subject.lower().replace(" ", "_") if c.isalnum() or c == '_')
-
-            final_dest_dir = Path(dest_dir_path) / category / subject_slug
-            final_dest_dir.mkdir(parents=True, exist_ok=True)
-            new_path = final_dest_dir / file_path.name
-
-            if new_path.exists():
-                print(f"Warning: Destination file {new_path.relative_to(project_root)} exists, skipping.")
-                continue
-
-            shutil.move(file_path, new_path)
-            print(f"Moved {file_path.relative_to(project_root)} to {new_path.relative_to(project_root)}")
-            moved_count += 1
-
-            if conn:
-                q_id = question.get('id')
-                if not q_id:
-                    print(f"  Warning: Question in {new_path.name} has no ID. Cannot update database record.")
-                    continue
-
-                try:
-                    relative_path = str(new_path.relative_to(project_root))
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "UPDATE questions SET source = ?, type = ?, subject = ? WHERE id = ?",
-                        (relative_path, q_type, subject, q_id)
-                    )
-                    if cursor.rowcount > 0:
-                        print(f"  Queued DB update for question ID {q_id}.")
-                    else:
-                        print(f"  Warning: Question ID {q_id} not found in database for update.")
-                except sqlite3.Error as e:
-                    print(f"  Error queueing DB update for question ID {q_id}: {e}", file=sys.stderr)
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}", file=sys.stderr)
-
-    print(f"\nSuccessfully moved {moved_count} question files.")
-
-    if conn:
-        try:
-            conn.commit()
-            print("Committed database changes.")
-        except sqlite3.Error as e:
-            print(f"Error committing database changes: {e}", file=sys.stderr)
-        finally:
-            conn.close()
-
-    if delete_source:
-        print("Note: Source files are moved, not copied. The --delete-source flag is implicit.")
-
-
 # --- Main CLI ---
 
 parser = argparse.ArgumentParser(
@@ -499,34 +190,13 @@ subparsers = parser.add_subparsers(dest="command", required=True, help="Availabl
 p_backups = subparsers.add_parser("backups", help="Consolidate all data files (*.db, *.sqlite3, *.yaml) into a single archive directory.")
 p_backups.set_defaults(func=consolidate_backups)
 
-p_dbs = subparsers.add_parser("dbs", help="Consolidate and manage database files in the application directory.")
-p_dbs.set_defaults(func=consolidate_dbs)
-
-p_manifests = subparsers.add_parser("manifests", help="Consolidate all manifest-based YAML quizzes into a single file.")
-p_manifests.set_defaults(func=consolidate_manifests)
-
-p_merge_quizzes = subparsers.add_parser("merge-quizzes", help="Merge questions from one YAML file to another.")
-p_merge_quizzes.add_argument("--source", required=True, help="Path to the source YAML file to merge from.")
-p_merge_quizzes.add_argument("--destination", required=True, help="Path to the destination YAML file to merge into.")
-p_merge_quizzes.add_argument("--delete-source", action="store_true", help="Delete the source file after a successful merge.")
-p_merge_quizzes.set_defaults(func=lambda args: merge_quizzes(args.source, args.destination, args.delete_source))
-
-p_merge_solutions = subparsers.add_parser("merge-solutions", help="Merge individual solution files into a single YAML per category.")
-p_merge_solutions.set_defaults(func=merge_solutions)
-
-p_organize = subparsers.add_parser("organize-ai-questions", help="Organize flat question files into a category/subject directory structure.")
-p_organize.add_argument("--source-dir", default="yaml", help="Source directory with flat YAML files to organize.")
-p_organize.add_argument("--dest-dir", default="yaml", help="Destination directory to create category/subject structure in.")
-p_organize.add_argument("--delete-source", action="store_true", help="This flag is noted but the script now moves files, making it implicit.")
-p_organize.set_defaults(func=lambda args: organize_ai_questions(args.source_dir, args.dest_dir, args.delete_source))
+p_list_questions = subparsers.add_parser("list-questions", help="List all questions stored in the database, including metadata.")
+p_list_questions.set_defaults(func=list_questions)
 
 def main():
     args = parser.parse_args()
     if hasattr(args, 'func'):
-        if args.command in ('merge-quizzes', 'organize-ai-questions'):
-            args.func(args)
-        else:
-            args.func()
+        args.func()
 
 if __name__ == '__main__':
     main()
