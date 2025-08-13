@@ -858,7 +858,7 @@ def run_interactive_main_menu():
                 _run_drill_mode(study_session, action)
             elif menu == "data":
                 if action == "bootstrap":
-                    _run_bootstrap_script()
+                    _rebuild_db_from_yaml()
             elif menu == "settings":
                 if action == "ai":
                     manage_config_interactive()
@@ -1185,7 +1185,7 @@ def main():
                 _run_question_management()
                 return
             elif cmd_name == 'bootstrap-db':
-                _run_bootstrap_script()
+                _rebuild_db_from_yaml()
                 return
         # Handle on-demand static ServiceAccount questions generation and exit
         if args.generate_sa_questions:
