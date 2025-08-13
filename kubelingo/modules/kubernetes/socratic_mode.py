@@ -126,11 +126,19 @@ class SocraticMode:
         """Shows a sub-menu of subjects for a given category for study."""
         counts = get_question_counts_by_subject(category.value, self.db_conn)
         subject_choices = [
-            questionary.Choice(
-                f"{subject.value} ({counts.get(subject.value, 0)})", value=subject
-            )
+            questionary.Choice(f"{subject.value} ({count})", value=subject)
             for subject in QuestionSubject
+            if (count := counts.get(subject.value, 0)) > 0
         ]
+        subject_choices.sort(key=lambda c: c.title)
+
+        if not subject_choices:
+            print(
+                f"\n{Fore.YELLOW}No questions found for '{category.value}'.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
         subject_choices.append(Separator())
         subject_choices.append(questionary.Choice("Back", value="back"))
 
