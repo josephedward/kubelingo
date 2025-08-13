@@ -121,6 +121,7 @@ class YAMLLoader(BaseLoader):
 
                 questions.append(Question(
                     id=qid,
+                    source_file=path,
                     type=item.get('type') or 'command',
                     schema_category=item.get('schema_category'),
                     subject_matter=item.get('subject_matter'),
@@ -177,6 +178,7 @@ class YAMLLoader(BaseLoader):
 
                 questions.append(Question(
                     id=qid,
+                    source_file=path,
                     type=item.get('type') or 'command',
                     schema_category=item.get('schema_category'),
                     subject_matter=item.get('subject_matter'),

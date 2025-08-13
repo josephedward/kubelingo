@@ -1918,89 +1918,60 @@ def do_migrate_bak(args):
 
 def _create_db_schema_for_verify(conn: sqlite3.Connection):
     """Creates the questions table in the SQLite database for verification."""
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS questions (
-        id TEXT PRIMARY KEY,
-        prompt TEXT,
-        source_file TEXT,
-        response TEXT,
-        category TEXT,
-        source TEXT,
-        validation_steps TEXT,
-        validator TEXT,
-        review BOOLEAN,
-        question_type TEXT,
-        type TEXT,
-        subject_matter TEXT,
-        metadata TEXT,
-        categories TEXT,
-        pre_shell_cmds TEXT,
-        initial_files TEXT,
-        explanation TEXT
-    )
-    """)
-    conn.commit()
+    # Use the canonical schema from the main database module
+    db_mod.init_db(conn=conn)
 
 def _import_yaml_to_db_for_verify(yaml_path: str, conn: sqlite3.Connection):
     """
-    Reads questions from a YAML file and imports them into the DB.
+    Reads questions from a YAML file and imports their metadata into the DB.
     """
+    loader = YAMLLoader()
+    source_file = os.path.basename(yaml_path)
+    
     try:
-        with open(yaml_path, 'r') as f:
-            data = yaml.safe_load(f)
+        questions = loader.load_file(yaml_path)
     except FileNotFoundError:
         print(f"Error: YAML file not found at {yaml_path}", file=sys.stderr)
         return 0
-    except yaml.YAMLError as e:
-        print(f"Error parsing YAML file: {e}", file=sys.stderr)
+    except Exception as e:
+        print(f"Error parsing YAML file {yaml_path}: {e}", file=sys.stderr)
         return 0
 
-    questions = data.get('questions', [])
     if not questions:
-        print(f"Info: No questions found in {os.path.basename(yaml_path)}.")
+        print(f"Info: No questions found in {source_file}.")
         return 0
 
-    source_file = os.path.basename(yaml_path)
-    cursor = conn.cursor()
-    
     inserted_count = 0
-    questions_to_process = [q for q in questions if q.get('id')]
-    num_skipped_no_id = len(questions) - len(questions_to_process)
+    for q in questions:
+        # Calculate content hash from a stable representation of the question data.
+        stable_repr = json.dumps(asdict(q), sort_keys=True, default=str)
+        content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
-    if num_skipped_no_id > 0:
-        print(f"Info: In {source_file}, skipping {num_skipped_no_id} questions that have no ID.")
-
-    for q in questions_to_process:
-        params = {
-            'id': q.get('id'),
-            'prompt': q.get('prompt', ''),
+        # The add_question function from db_mod handles inserting only metadata.
+        # It's safer to build the dict explicitly to avoid passing unwanted kwargs.
+        db_dict = {
+            'id': q.id,
             'source_file': source_file,
-            'response': q.get('response'),
-            'category': q.get('category'), # Legacy field
-            'source': q.get('source'),
-            'validation_steps': json.dumps(q.get('validation_steps', [])),
-            'validator': json.dumps(q.get('validator', {})),
-            'review': q.get('review', False),
-            'question_type': q.get('type') or q.get('question_type', 'command'),
-            'type': q.get('type'), # Legacy field
-            'subject_matter': q.get('subject_matter'),
-            'metadata': json.dumps(q.get('metadata', {})),
-            'categories': json.dumps(q.get('categories', [])),
-            'pre_shell_cmds': json.dumps(q.get('pre_shell_cmds', [])),
-            'initial_files': json.dumps(q.get('initial_files', {})),
-            'explanation': q.get('explanation')
+            'category_id': q.schema_category.value if q.schema_category else None,
+            'subject_id': q.subject_matter.value if q.subject_matter else None,
+            'review': q.review,
+            'triage': q.triage,
+            'content_hash': content_hash
         }
-        
-        columns = ', '.join(params.keys())
-        placeholders = ', '.join(':' + key for key in params.keys())
-        sql = f"INSERT OR IGNORE INTO questions ({columns}) VALUES ({placeholders})"
-        cursor.execute(sql, params)
-        if cursor.rowcount > 0:
-            inserted_count += 1
-
+        try:
+            # Use a raw cursor to do INSERT OR IGNORE, as add_question does REPLACE
+            cursor = conn.cursor()
+            columns = ', '.join(db_dict.keys())
+            placeholders = ', '.join('?' * len(db_dict))
+            sql = f"INSERT OR IGNORE INTO questions ({columns}) VALUES ({placeholders})"
+            cursor.execute(sql, tuple(db_dict.values()))
+            if cursor.rowcount > 0:
+                inserted_count += 1
+        except Exception as e:
+            print(f"Error adding question {q.id} to DB: {e}", file=sys.stderr)
+    
     conn.commit()
-    skipped_duplicates = len(questions_to_process) - inserted_count
+    skipped_duplicates = len(questions) - inserted_count
     print(f"Imported from {source_file}: Inserted {inserted_count} new questions, skipped {skipped_duplicates} duplicates.")
     return inserted_count
 
