@@ -502,6 +502,69 @@ def _run_drill_mode(study_session, category: QuestionCategory):
     print(f"\n{Fore.CYAN}Drill session finished. Returning to main menu.{Style.RESET_ALL}")
 
 
+def _run_yaml_quiz_interactive(study_session):
+    """Interactive prompt for selecting and running a quiz from a YAML file."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+
+    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.utils.ui import humanize_module
+    import argparse
+
+    loader = YAMLLoader()
+    try:
+        files = loader.discover()
+        if not files:
+            print(f"{Fore.YELLOW}No YAML quiz files found.{Style.RESET_ALL}")
+            return
+
+        choices = []
+        for path in files:
+            base = os.path.splitext(os.path.basename(path))[0]
+            name = humanize_module(base)
+            choices.append(questionary.Choice(title=f"{name} ({os.path.basename(path)})", value=path))
+
+        choices.append(questionary.Separator())
+        choices.append(questionary.Choice(title="Cancel", value="cancel"))
+
+        selected_file = questionary.select(
+            "Select a YAML quiz to run:",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+
+        if not selected_file or selected_file == "cancel":
+            print(f"{Fore.YELLOW}No quiz selected.{Style.RESET_ALL}")
+            return
+
+        num_str = questionary.text(
+            "Enter number of questions (or press Enter for all):",
+            default=""
+        ).ask()
+        num_questions = 0
+        if num_str and num_str.isdigit() and int(num_str) > 0:
+            num_questions = int(num_str)
+
+        # Mock args for run_exercises
+        mock_args = argparse.Namespace(
+            file=selected_file,
+            num=num_questions,
+            category=None,
+            review_only=False,
+            randomize=True # good default for YAML quizzes
+        )
+        
+        # SocraticMode (the study_session object) inherits from KubernetesSession.
+        # Its run_exercises method is designed to handle this kind of quiz.
+        study_session.run_exercises(mock_args)
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{Fore.YELLOW}YAML quiz selection cancelled.{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred while running the YAML quiz: {e}{Style.RESET_ALL}")
+
+
 def _list_indexed_files():
     """Lists all question files currently indexed in the database."""
     from kubelingo.database import get_indexed_files

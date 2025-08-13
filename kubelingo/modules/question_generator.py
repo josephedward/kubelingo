@@ -66,6 +66,7 @@ class AIQuestionGenerator:
                 "type": question.type,
                 "source": "ai_generated",
                 "validator": question.validator,
+                "explanation": getattr(question, 'explanation', None),
             }
             existing_questions.append(q_dict)
 
@@ -103,8 +104,8 @@ class AIQuestionGenerator:
                     prompt_lines.append(f"- Prompt: {ex.prompt}")
                     prompt_lines.append(f"  Response: {ex.response}")
             response_description = "the full, correct YAML manifest"
-        elif category == "Basic":
-            q_type = "basic"
+        elif category == "Basic" or category == "socratic":
+            q_type = "socratic"
             prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
             prompt_lines.append("Here are some examples of the format:")
             prompt_lines.append("- Prompt: What Kubernetes object provides a way to expose an application running on a set of Pods as a network service?")
@@ -131,7 +132,7 @@ class AIQuestionGenerator:
 
 
         prompt_lines.append(f"Create exactly {num_questions} new, distinct quiz questions about '{subject}'.")
-        prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt' and 'response' keys. The 'response' should contain {response_description}.")
+        prompt_lines.append(f"Return ONLY a JSON array of objects with 'prompt', 'response', and 'explanation' keys. The 'response' should contain {response_description}. The 'explanation' should be a brief clarification of the answer.")
         ai_prompt = "\n".join(prompt_lines)
         logger.debug("AI few-shot prompt: %s", ai_prompt)
 
@@ -181,6 +182,7 @@ class AIQuestionGenerator:
             # Support common key names for question/answer
             p = obj.get("prompt") or obj.get("question") or obj.get("q")
             r = obj.get("response") or obj.get("answer") or obj.get("a")
+            explanation = obj.get("explanation")
             if not p or not r:
                 continue
 
@@ -205,6 +207,7 @@ class AIQuestionGenerator:
                 subject=subject,
                 source='ai_generated',
                 source_file=source_file,
+                explanation=explanation,
             )
 
             # Persist the generated question to the database
@@ -218,6 +221,7 @@ class AIQuestionGenerator:
                     subject=subject,
                     source='ai_generated',
                     validator=validator_dict,
+                    explanation=explanation,
                 )
                 # Also save to YAML file upon successful DB insertion
                 self._save_question_to_yaml(question)
