@@ -675,7 +675,7 @@ def manage_questions_interactive():
 
 
 def manage_config_interactive():
-    """Interactive prompt for managing configuration."""
+    """Interactive prompt for managing AI provider configuration."""
     if questionary is None:
         print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
         return
@@ -700,16 +700,12 @@ def manage_config_interactive():
             ])
 
         menu_choices.extend([
-            questionary.Separator("--- Kubernetes Clusters ---"),
-            {"name": "List configured clusters", "value": "list_clusters"},
-            {"name": "Add a new cluster connection", "value": "add_cluster"},
-            {"name": "Remove a cluster connection", "value": "remove_cluster"},
             questionary.Separator(),
             {"name": "Cancel", "value": "cancel"}
         ])
 
         action = questionary.select(
-            "What would you like to do?",
+            "Select an AI provider configuration action:",
             choices=menu_choices,
             use_indicator=True
         ).ask()
@@ -726,18 +722,50 @@ def manage_config_interactive():
         elif action.startswith('set_'):
             p = action.split('_')[1]
             handle_config_command(['config', 'set', p])
-        elif action == 'list_clusters':
-            handle_config_command(['config', 'list', 'cluster'])
-        elif action == 'add_cluster':
-            handle_config_command(['config', 'add', 'cluster'])
-        elif action == 'remove_cluster':
-            handle_config_command(['config', 'remove', 'cluster'])
 
         # Add a newline for better spacing after the operation
         print()
 
     except (KeyboardInterrupt, EOFError):
         # A newline is needed to prevent the next prompt from appearing on the same line.
+        print()
+        return
+
+
+def manage_cluster_config_interactive():
+    """Interactive prompt for managing Kubernetes cluster configurations."""
+    if questionary is None:
+        print(f"{Fore.RED}`questionary` package not installed. Cannot show interactive menu.{Style.RESET_ALL}")
+        return
+    try:
+        menu_choices = [
+            questionary.Separator("--- Kubernetes Clusters ---"),
+            {"name": "List configured clusters", "value": "list_clusters"},
+            {"name": "Add a new cluster connection", "value": "add_cluster"},
+            {"name": "Remove a cluster connection", "value": "remove_cluster"},
+            questionary.Separator(),
+            {"name": "Cancel", "value": "cancel"}
+        ]
+
+        action = questionary.select(
+            "Select a cluster configuration action:",
+            choices=menu_choices,
+            use_indicator=True
+        ).ask()
+
+        if action is None or action == "cancel":
+            return
+
+        if action == 'list_clusters':
+            handle_config_command(['config', 'list', 'cluster'])
+        elif action == 'add_cluster':
+            handle_config_command(['config', 'add', 'cluster'])
+        elif action == 'remove_cluster':
+            handle_config_command(['config', 'remove', 'cluster'])
+
+        print()
+
+    except (KeyboardInterrupt, EOFError):
         print()
         return
 
@@ -922,7 +950,7 @@ def run_interactive_main_menu():
                 if action == "api":
                     manage_config_interactive()
                 elif action == "cluster":
-                    study_session._cluster_config_menu()
+                    manage_cluster_config_interactive()
                 elif action == "tools":
                     _run_tools_script()
                 elif action == "triage":
