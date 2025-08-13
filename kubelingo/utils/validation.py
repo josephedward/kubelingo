@@ -34,17 +34,30 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
     duplicates = []
 
     for file_path, content in yaml_data.items():
-        if not content or "answers" not in content:
+        if not content:
             continue
-        answers = content["answers"]
+
+        # Extract all "answers" fields from the YAML content
+        answers = []
+        if isinstance(content, dict) and "answers" in content:
+            answers = content["answers"]
+        elif isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and "answers" in item:
+                    answers.extend(item["answers"])
+
+        # Ensure answers is a list
         if not isinstance(answers, list):
             continue
+
+        # Map each answer to the file path
         for answer in answers:
             if answer in answer_map:
                 answer_map[answer].append(file_path)
             else:
                 answer_map[answer] = [file_path]
 
+    # Identify duplicates
     for paths in answer_map.values():
         if len(paths) > 1:
             duplicates.append(paths)
