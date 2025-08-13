@@ -2699,7 +2699,7 @@ def handle_resource_reference(args):
         fm.append("")
 
     # Use relative path to respect CWD for testing
-    output_dir = Path('question-data/yaml/manifests')
+    output_dir = Path('yaml/questions')
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / 'resource_reference.yaml'
     with open(output_path, 'w') as f:
@@ -2774,7 +2774,7 @@ def handle_kubectl_operations(args):
         out.append("")
 
     # Use relative path to respect CWD for testing
-    output_dir = Path('question-data/yaml')
+    output_dir = Path('yaml/questions')
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / 'kubectl_operations.yaml'
     with open(output_path, 'w') as f:

@@ -254,12 +254,19 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
                 content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
-                # Instead of direct insert, use add_question to handle metadata.
+                # Instead of direct insert, use add_question to handle metadata and core content.
                 db_dict = {
                     'id': q_obj.id,
+                    'prompt': q_obj.prompt,
                     'source_file': q_obj.source_file,
                     'category_id': q_obj.schema_category.value if q_obj.schema_category else None,
                     'subject_id': q_obj.subject_matter.value if q_obj.subject_matter else None,
+                    'question_type': q_obj.type,
+                    'answers': json.dumps(q_obj.answers) if q_obj.answers else None,
+                    'correct_yaml': q_obj.correct_yaml,
+                    'validation_steps': json.dumps([asdict(vs) for vs in q_obj.validation_steps]) if q_obj.validation_steps else None,
+                    'explanation': q_obj.explanation,
+                    'source': q_obj.source,
                     'review': getattr(q_obj, 'review', False),
                     'triage': getattr(q_obj, 'triage', False),
                     'content_hash': content_hash,
@@ -318,9 +325,16 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id TEXT PRIMARY KEY,
+            prompt TEXT,
             source_file TEXT NOT NULL,
             category_id TEXT,
             subject_id TEXT,
+            question_type TEXT,
+            answers TEXT,
+            correct_yaml TEXT,
+            validation_steps TEXT,
+            explanation TEXT,
+            source TEXT,
             review BOOLEAN NOT NULL DEFAULT 0,
             triage BOOLEAN NOT NULL DEFAULT 0,
             content_hash TEXT,
