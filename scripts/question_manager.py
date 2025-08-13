@@ -88,6 +88,9 @@ def handle_deduplicate_files(args):
                         qs_in_doc = data.get('questions', [])
                     elif isinstance(data, list):
                         qs_in_doc = data
+                    elif isinstance(data, dict) and ('id' in data or 'prompt' in data):
+                        # Handle case where the file itself is a single question dictionary
+                        qs_in_doc = [data]
 
                     for q in qs_in_doc:
                         if isinstance(q, dict):
