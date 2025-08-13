@@ -50,6 +50,20 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Cause**: Instead of directly entering a question generation flow, the Socratic study mode prompts the user to select a category and subject, then searches for existing questions. This is the behavior of "Drill" mode, which is intended for practicing with existing questions. Socratic mode should be a purely generative conversational experience, starting by asking the user what topic they want to discuss, and not rely on pre-existing questions.
 - **Bug**: Socratic study mode fails silently with a generic "Sorry, I couldn't start the session" message.
 - **Cause**: When an AI provider is not configured (e.g., missing API key), the Socratic study mode, which depends on an LLM client, fails. Instead of guiding the user to the settings page, it displays a vague error and returns to the menu, creating a poor user experience. The underlying error is caught by a broad `except Exception` block, hiding the root cause.
+- **Bug**: Socratic mode incorrectly attempts to find existing questions like a "drill" session, instead of proceeding directly to question generation.
+- **Log**:
+  ```
+  Drill session finished. Returning to main menu.
+  ? Kubelingo Main Menu Study Mode (Socratic Tutor)
+  ? --- Exercise Type --- Basic Terminology
+  ? Select a subject to study for 'Basic Terminology': Linux Syntax
+  ? No questions found for 'Linux Syntax' in 'Basic Terminology'.
+  Would you like to generate some now using AI? Yes
+  ? Failed to generate a question. Try again? Yes
+  ? Failed to generate a question. Try again? (Y/n)
+  Cancelled by user
+  ```
+- **Cause**: The "Study Mode (Socratic Tutor)" menu option incorrectly calls logic that is designed for drilling existing questions (`_run_study_subject_menu`), which first searches the database. Instead, it should immediately enter a question generation flow, asking the user for a topic to study.
 - **Bug**: `TypeError: the JSON object must be str, bytes or bytearray, not method` during AI question generation.
 - **Cause**: The `question_generator` expects the LLM client's `chat_completion` method to return a raw string. However, the client can return a response object. The code did not convert this object to a string before attempting to parse it as JSON, leading to a `TypeError`.
 
