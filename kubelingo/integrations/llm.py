@@ -37,6 +37,18 @@ class LLMClient(ABC):
 class OpenAIClient(LLMClient):
     """LLM client for OpenAI models."""
 
+    @staticmethod
+    def test_key(key: str) -> bool:
+        """Tests an OpenAI API key without creating a client instance."""
+        if not openai or not key:
+            return False
+        try:
+            client = openai.OpenAI(api_key=key)
+            client.models.list()
+            return True
+        except Exception:
+            return False
+
     def __init__(self):
         if openai is None:
             raise ImportError(
@@ -92,6 +104,25 @@ class OpenAIClient(LLMClient):
 
 class GeminiClient(LLMClient):
     """LLM client for Google Gemini models."""
+
+    @staticmethod
+    def test_key(key: str) -> bool:
+        """Tests a Gemini API key without creating a client instance."""
+        if not genai or not key:
+            return False
+        # Store current key to restore it later, preventing side effects
+        current_key = getattr(genai.conf, "api_key", None)
+        try:
+            genai.configure(api_key=key)
+            # Listing models is a lightweight way to check auth
+            for _ in genai.list_models():
+                break  # Just need to know the iterator doesn't fail
+            return True
+        except Exception:
+            return False
+        finally:
+            # Restore previous config to avoid side effects
+            genai.configure(api_key=current_key)
 
     def __init__(self):
         if genai is None:

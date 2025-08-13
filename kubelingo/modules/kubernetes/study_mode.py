@@ -20,7 +20,12 @@ from kubelingo.database import (
     get_flagged_questions,
     index_yaml_files,
 )
-from kubelingo.integrations.llm import LLMClient, get_llm_client
+from kubelingo.integrations.llm import (
+    GeminiClient,
+    LLMClient,
+    OpenAIClient,
+    get_llm_client,
+)
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.config import (
@@ -65,90 +70,10 @@ class KubernetesStudyMode:
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
-        self._keys_checked = False
 
-    def _test_gemini_key(self, key: str) -> bool:
-        if not genai or not key:
-            return False
-        current_key = getattr(genai.conf, "api_key", None)
-        try:
-            genai.configure(api_key=key)
-            for _ in genai.list_models():
-                break  # Just need to know the iterator doesn't fail
-            return True
-        except Exception:
-            return False
-        finally:
-            # Restore previous config
-            genai.configure(api_key=current_key)
-
-    def _test_openai_key(self, key: str) -> bool:
-        if not openai or not key:
-            return False
-        try:
-            client = openai.OpenAI(api_key=key)
-            client.models.list()
-            return True
-        except Exception:
-            return False
-
-    def _check_api_keys_on_startup(self):
-        """Checks for API keys on startup and prompts if none are configured."""
-        from kubelingo.utils.config import get_gemini_api_key, get_openai_api_key
-
-        # Check if at least one key is already set
-        if get_gemini_api_key() or get_openai_api_key():
-            return
-
-        print(f"\n{Fore.YELLOW}--- Welcome to Kubelingo ---{Style.RESET_ALL}")
-        print("AI-powered features like Socratic study mode require an API key.")
-        print("You can get a key from Google AI Studio (for Gemini) or OpenAI.")
-        print("")
-
-        configured_a_key = False
-        if questionary.confirm("Would you like to set up an API key now?", default=True).ask():
-            # Prompt for Gemini
-            gemini_key = getpass.getpass("Enter your Gemini API key (or press Enter to skip): ").strip()
-            if gemini_key:
-                if self._test_gemini_key(gemini_key):
-                    save_gemini_api_key(gemini_key)
-                    print(f"{Fore.GREEN}✓ Gemini API key is valid and has been saved.{Style.RESET_ALL}")
-                    save_ai_provider('gemini')  # Set as default provider
-                    configured_a_key = True
-                else:
-                    print(f"{Fore.RED}✗ The Gemini API key provided is not valid.{Style.RESET_ALL}")
-
-            # Prompt for OpenAI if no key was configured yet
-            if not configured_a_key:
-                openai_key = getpass.getpass("Enter your OpenAI API key (or press Enter to skip): ").strip()
-                if openai_key:
-                    if self._test_openai_key(openai_key):
-                        save_openai_api_key(openai_key)
-                        print(f"{Fore.GREEN}✓ OpenAI API key is valid and has been saved.{Style.RESET_ALL}")
-                        save_ai_provider('openai')  # Set as default provider
-                        configured_a_key = True
-                    else:
-                        print(f"{Fore.RED}✗ The OpenAI API key provided is not valid.{Style.RESET_ALL}")
-
-        if configured_a_key:
-            try:
-                self.client = get_llm_client()
-                self.ai_provider = get_ai_provider()
-            except (ValueError, ImportError) as e:
-                self.client = None
-                print(f"{Fore.RED}Failed to initialize LLM client: {e}{Style.RESET_ALL}")
-        else:
-            print(f"\n{Fore.YELLOW}No API key was configured. Some AI features may be disabled.{Style.RESET_ALL}")
-            print(f"You can set one up later in the {Fore.CYAN}Settings -> Set/Update API key{Style.RESET_ALL} menu.")
-
-        print("-" * 30 + "\n")
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
-        if not getattr(self, "_keys_checked", False):
-            self._check_api_keys_on_startup()
-            self._keys_checked = True
-
         while True:
             try:
                 choices = []
@@ -533,7 +458,11 @@ class KubernetesStudyMode:
                         return
 
                 if value:
-                    test_func = self._test_openai_key if provider == "openai" else self._test_gemini_key
+                    test_func = (
+                        OpenAIClient.test_key
+                        if provider == "openai"
+                        else GeminiClient.test_key
+                    )
                     if test_func(value):
                         print(f"{Fore.GREEN}✓ API key is valid.{Style.RESET_ALL}")
                         save_func = (
