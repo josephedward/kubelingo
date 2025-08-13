@@ -1095,7 +1095,18 @@ def main():
         _setup_ai_provider_interactive(force_setup=False)
 
     # Centralized startup: DB bootstrapping. Must run after interactive setup.
-    initialize_app()
+    try:
+        initialize_app()
+    except Exception:
+        # In interactive mode, we want to show the UI even if the DB is locked.
+        # We allow execution to continue. The UI code must be robust enough
+        # to handle the DB being unavailable.
+        if is_interactive:
+            pass  # The UI will show a more specific warning.
+        else:
+            # In non-interactive mode, it's better to fail fast.
+            print(f"{Fore.RED}Error: Database initialization failed.{Style.RESET_ALL}", file=sys.stderr)
+            raise
 
     # --- Interactive Mode: AI Provider and API Key Setup ---
     # The initial provider setup is now handled by initialize_app().
