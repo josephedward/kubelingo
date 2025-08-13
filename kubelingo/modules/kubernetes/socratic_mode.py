@@ -99,7 +99,6 @@ class SocraticMode:
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
-        self._index_all_yaml_files()
 
 
     def run_drill_menu(self):
