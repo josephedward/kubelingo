@@ -29,6 +29,7 @@ import hashlib
 try:
     project_root = Path(__file__).resolve().parent.parent
     DATA_DIR = project_root / 'question-data'
+    YAML_QUIZ_DIR = project_root / 'yaml' / 'questions'
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
