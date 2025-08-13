@@ -34,7 +34,7 @@ from kubelingo.utils.config import (
     get_cluster_configs,
     save_cluster_configs,
 )
-from kubelingo.utils.path_utils import get_project_root
+from kubelingo.utils.path_utils import get_all_yaml_files, get_project_root
 from kubelingo.modules.ai_evaluator import AIEvaluator
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.utils.ui import Fore, Style
@@ -73,6 +73,7 @@ class KubernetesStudyMode:
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
+        self._index_all_yaml_files()
 
 
     def run_study_mode(self):
@@ -96,17 +97,9 @@ class KubernetesStudyMode:
                 self._run_study_subject_menu(category_choice)
 
     def _run_study_subject_menu(self, category: QuestionCategory):
-        """Shows a sub-menu of subjects for a given category to generate questions for study."""
-        if not self.question_generator:
-            print(
-                f"\n{Fore.YELLOW}AI features are not available. Please configure an AI provider in Settings.{Style.RESET_ALL}"
-            )
-            questionary.confirm("Press Enter to continue...").ask()
-            return
-
+        """Shows a sub-menu of subjects for a given category for study."""
         subject_choices = [
-            questionary.Choice(subject.value, value=subject.value)
-            for subject in QuestionSubject
+            questionary.Choice(subject.value, value=subject) for subject in QuestionSubject
         ]
         subject_choices.append(Separator())
         subject_choices.append(questionary.Choice("Back", value="back"))
@@ -117,20 +110,7 @@ class KubernetesStudyMode:
         ).ask()
 
         if subject_choice and subject_choice != "back":
-            quiz_type_map = {
-                QuestionCategory.BASIC_TERMINOLOGY: "basic",
-                QuestionCategory.COMMAND_SYNTAX: "command",
-                QuestionCategory.YAML_MANIFEST: "manifest",
-            }
-            quiz_type = quiz_type_map.get(category)
-
-            if quiz_type:
-                self._run_quiz_loop(quiz_type, subject_choice, category)
-            else:
-                print(
-                    f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
-                )
-                questionary.confirm("Press Enter to continue...").ask()
+            self.run_drill_quiz(category, subject_choice)
 
     def _run_quiz(self, questions: List[Question]):
         """
@@ -297,6 +277,15 @@ class KubernetesStudyMode:
                 f"{Fore.RED}Error fetching questions from database: {e}{Style.RESET_ALL}"
             )
             return []
+
+    def _index_all_yaml_files(self):
+        """Finds and indexes all YAML question files into the database."""
+        try:
+            yaml_files = get_all_yaml_files()
+            if yaml_files:
+                index_yaml_files(yaml_files, self.db_conn, verbose=False)
+        except Exception as e:
+            print(f"{Fore.RED}Error during YAML file indexing: {e}{Style.RESET_ALL}")
 
     def _slugify_prompt(self, prompt: str) -> str:
         """Creates a filesystem-friendly slug from a question prompt."""
