@@ -78,7 +78,6 @@ try:
     )
     from kubelingo.question import Question, ValidationStep
     from kubelingo.modules.question_generator import AIQuestionGenerator
-    from kubelingo.modules.db_loader import DBLoader
     from kubelingo.modules.yaml_loader import YAMLLoader
     from kubelingo.modules.ai_categorizer import AICategorizer
     from kubelingo.utils import path_utils
@@ -770,20 +769,24 @@ def handle_ai_questions(args):
     if 'OPENAI_API_KEY' not in os.environ:
         print("Error: OPENAI_API_KEY environment variable not set.")
         sys.exit(1)
-    if not all([AIQuestionGenerator, DBLoader, yaml]):
+    if not all([AIQuestionGenerator, YAMLLoader, yaml]):
         print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
         sys.exit(1)
 
     base_questions = []
     if args.example_source_file:
-        print(f"Loading example questions from source file '{args.example_source_file}' in the database...")
-        loader = DBLoader()
-        base_questions = loader.load_file(args.example_source_file)
+        print(f"Loading example questions from YAML source file '{args.example_source_file}'...")
+        loader = YAMLLoader()
+        try:
+            base_questions = loader.load_file(args.example_source_file)
+        except Exception as e:
+            print(f"Warning: Could not load example questions from '{args.example_source_file}': {e}", file=sys.stderr)
+            base_questions = []
 
         if not base_questions:
-            print(f"Warning: No example questions found in the database for source file '{args.example_source_file}'.")
+            print(f"Warning: No example questions found in source file '{args.example_source_file}'.")
         else:
-            print(f"Using {len(base_questions)} questions from the database as examples.")
+            print(f"Using {len(base_questions)} questions from the source file as examples.")
 
     generator = AIQuestionGenerator()
 
@@ -3162,7 +3165,7 @@ def main():
         p_ai_q.add_argument("--subject", required=True, help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
         p_ai_q.add_argument("--category", choices=['Basic', 'Command', 'Manifest'], default='Command', help="Category of questions to generate.")
         p_ai_q.add_argument("--num-questions", type=int, default=3, help="Number of questions to generate.")
-        p_ai_q.add_argument("--example-source-file", help="Filename of a quiz module to use as a source of example questions from the database.")
+        p_ai_q.add_argument("--example-source-file", help="Path to a YAML file to use as a source of example questions.")
         p_ai_q.add_argument("--output-file", required=True, help="Path to the output YAML file.")
         p_ai_q.set_defaults(func=handle_ai_questions)
 

@@ -99,7 +99,7 @@ def _generate_questions():
         num_q = questionary.text("Number of questions to generate?", default="3").ask()
         output_file = questionary.text("Path to the output YAML file:", default=f"questions/generated_yaml/{subject.lower().replace(' ', '_')}.yaml").ask()
         if not output_file: return
-        example_file = questionary.text("(Optional) Source file in DB for example questions:").ask()
+        example_file = questionary.text("(Optional) Path to YAML source file for example questions:").ask()
         handle_ai_questions(MockArgs(
             subject=subject, category=category, num_questions=int(num_q), 
             output_file=output_file, example_source_file=example_file
