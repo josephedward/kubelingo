@@ -1,5 +1,4 @@
 import os
-import json
 import sqlite3
 import tempfile
 import pytest
@@ -45,29 +44,29 @@ def mock_yaml_file():
     yield temp_yaml_path
     os.remove(temp_yaml_path)
 
-# Mock llm-gemini subprocess call
+# Mock AICategorizer
 @pytest.fixture
-def mock_subprocess_run():
-    with patch("subprocess.run") as mock_run:
-        def mock_run_side_effect(*args, **kwargs):
-            if "Categorize:" in args[0]:
-                prompt = args[0][-1]
-                if "Kubernetes Pod" in prompt:
-                    return MagicMock(stdout=json.dumps({
-                        "exercise_category": "basic",
-                        "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
-                    }))
-                elif "logs of a pod" in prompt:
-                    return MagicMock(stdout=json.dumps({
-                        "exercise_category": "command",
-                        "subject_matter": "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"
-                    }))
-            raise ValueError("Unexpected subprocess call")
-        mock_run.side_effect = mock_run_side_effect
-        yield mock_run
+def mock_ai_categorizer():
+    with patch("scripts.initialize_from_yaml.AICategorizer.categorize_question") as mock_categorize:
+        def mock_categorize_side_effect(self, question):
+            prompt = question['prompt']
+            if "Kubernetes Pod" in prompt:
+                return {
+                    "exercise_category": "basic",
+                    "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)"
+                }
+            elif "logs of a pod" in prompt:
+                return {
+                    "exercise_category": "command",
+                    "subject_matter": "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)"
+                }
+            raise ValueError("Unexpected question to categorize")
+        mock_categorize.side_effect = mock_categorize_side_effect
+        yield mock_categorize
+
 
 # Test function
-def test_initialize_from_yaml(mock_db, mock_yaml_file, mock_subprocess_run):
+def test_initialize_from_yaml(mock_db, mock_yaml_file, mock_ai_categorizer):
     # Mock the get_db_connection function to return the mock database
     with patch("scripts.initialize_from_yaml.get_db_connection", return_value=mock_db):
         # Mock the get_project_root function to return the directory containing the mock YAML file
