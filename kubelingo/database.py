@@ -301,7 +301,9 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
             cursor.execute("DELETE FROM questions WHERE source_file = ?", (rel_path,))
 
             with file_path.open('r', encoding='utf-8') as f:
-                data_docs = yaml.safe_load_all(f)
+                # Use FullLoader to handle legacy YAML files with Python object tags.
+                # This is less secure than safe_load, but necessary for compatibility.
+                data_docs = yaml.load_all(f, Loader=yaml.FullLoader)
                 questions_to_add = []
                 for data in data_docs:
                     if not data: continue
