@@ -5,6 +5,7 @@ Kubelingo: An interactive menu for managing questions.
 
 import sys
 from pathlib import Path
+import subprocess
 
 try:
     import questionary
