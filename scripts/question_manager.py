@@ -85,18 +85,42 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return ""
 
 
+def _get_answer_from_question(q: dict) -> Optional[str]:
+    """Extracts a canonical answer string from a question dictionary."""
+    if not isinstance(q, dict):
+        return None
+
+    # Check common fields for answers. The order determines priority.
+    answer_fields = ['response', 'correct_yaml', 'answer']
+    for field in answer_fields:
+        if field in q and q[field]:
+            # For list responses, serialize to a string to make it hashable
+            if isinstance(q[field], list):
+                return json.dumps(q[field], sort_keys=True)
+            return str(q[field])
+
+    # Check nested fields
+    if 'metadata' in q and isinstance(q.get('metadata'), dict) and 'answer' in q['metadata'] and q['metadata']['answer']:
+        return str(q['metadata']['answer'])
+
+    if 'answers' in q and q['answers']:  # For multiple choice, etc.
+        return str(q['answers'])
+
+    return None
+
+
 def find_duplicate_question_groups_by_answer(file_paths: List[Path]) -> List[List[Dict[str, Any]]]:
     """
     Finds groups of questions with identical answers from a list of YAML file paths.
     """
-    answers_map = defaultdict(list)
+    answer_map = defaultdict(list)
     for file_path in file_paths:
         if not file_path.is_file():
             continue
         try:
             with file_path.open('r', encoding='utf-8') as f:
-                # Support multi-document YAML files. Use FullLoader to handle python-specific tags.
-                data_docs = yaml.load_all(f, Loader=yaml.FullLoader)
+                # Support multi-document YAML files
+                data_docs = yaml.safe_load_all(f)
                 for data in data_docs:
                     if not data:
                         continue
@@ -107,24 +131,16 @@ def find_duplicate_question_groups_by_answer(file_paths: List[Path]) -> List[Lis
                         qs_in_doc = data
 
                     for q in qs_in_doc:
-                        if isinstance(q, dict):
-                            # Prioritize 'response' field, but also check for 'answer' as a fallback.
-                            answer = q.get('response') or q.get('answer')
-                            if isinstance(answer, list):
-                                answer = " ".join(map(str, answer))
+                        answer = _get_answer_from_question(q)
+                        if answer:
+                            # Add file path, prompt for context, and original data
+                            answer_map[answer].append({'file_path': file_path, 'prompt': q.get('prompt', ''), 'question_data': q})
 
-                            if answer and isinstance(answer, str):
-                                answers_map[answer.strip()].append({
-                                    'file_path': file_path,
-                                    'prompt': q.get('prompt', ''), # Keep prompt for context in reporting
-                                    'answer': answer.strip(),
-                                    'question_data': q
-                                })
         except Exception as e:
             print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
 
-    # Filter for answers that have more than one question associated with them.
-    duplicate_groups = [group for group in answers_map.values() if len(group) > 1]
+    # Filter for groups with more than one question (i.e., duplicates)
+    duplicate_groups = [group for group in answer_map.values() if len(group) > 1]
     return duplicate_groups
 
 
@@ -463,8 +479,8 @@ def handle_deduplicate_files(args):
 
         file_to_keep_info = group[0]
         print(f"\n# --- Group {i+1} ---")
-        answer_to_show = str(file_to_keep_info.get('answer', '')).strip()
-        print(f"# Answer: \"{answer_to_show}\"")
+        answer_to_show = str(_get_answer_from_question(file_to_keep_info['question_data']) or '').strip()
+        print(f"# Common Answer: \"{answer_to_show}\"")
         print(f"# Keeping file: '{file_to_keep_info['file_path']}'")
         print(f"#   Prompt: \"{file_to_keep_info.get('prompt')}\"")
 
