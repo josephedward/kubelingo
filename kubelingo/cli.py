@@ -179,11 +179,9 @@ def handle_config_command(cmd):
 
     if target == 'provider':
         if action == 'set':
-            print("To select your AI provider, please set the 'KUBELINGO_AI_PROVIDER' environment variable.")
-            print("Supported values are 'openai' and 'gemini'.")
-            print("For example: export KUBELINGO_AI_PROVIDER=openai")
+            _setup_ai_provider_interactive(force_setup=True)
         else:
-            print(f"Unknown action '{action}' for provider. Only 'set' is supported to show instructions.")
+            print(f"Unknown action '{action}' for provider. Use 'set'.")
     elif target in SUPPORTED_AI_PROVIDERS:
         provider = target
         if action == 'view':
