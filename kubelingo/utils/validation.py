@@ -8,18 +8,6 @@ from typing import Dict, Any, List, Optional
 import os
 from pathlib import Path
 
-# Attempt to import high-performance extensions from the Rust library
-try:
-    from kubelingo._native import commands_equivalent as rust_commands_equivalent
-    from kubelingo._native import validate_yaml_structure as rust_validate_yaml_structure
-except ImportError:
-    rust_commands_equivalent = None
-    rust_validate_yaml_structure = None
-
-# Allow disabling Rust-based validation via environment variable
-RUST_VALIDATOR_ENABLED = os.getenv("KUBELINGO_DISABLE_RUST", "").lower() not in ("1", "true", "yes")
-
-
 def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
     """
     Identifies duplicate YAML files based on the "answers" field.
@@ -68,17 +56,8 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
 
 def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
     """
-    Validates a Kubernetes YAML manifest, using a high-performance Rust
-    validator if available, otherwise falling back to a Python implementation.
+    Validates a Kubernetes YAML manifest.
     """
-    if RUST_VALIDATOR_ENABLED and rust_validate_yaml_structure:
-        try:
-            is_valid, message = rust_validate_yaml_structure(yaml_content)
-            return {"valid": is_valid, "reason": message}
-        except Exception:
-            # Fall through to Python validator on Rust error
-            pass
-
     if not yaml:
         return {"valid": False, "reason": "PyYAML is not installed."}
 
@@ -176,16 +155,7 @@ def validate_prompt_completeness(command: str, prompt: str) -> Dict[str, Any]:
 
 def commands_equivalent(user_cmd: str, expected_cmd: str) -> bool:
     """
-    Compares two shell commands for functional equivalence, using a
-    high-performance Rust implementation if available.
+    Compares two shell commands for functional equivalence.
     """
-    if RUST_VALIDATOR_ENABLED and rust_commands_equivalent:
-        try:
-            return rust_commands_equivalent(user_cmd, expected_cmd)
-        except Exception:
-            # Fall through to Python validator on Rust error
-            pass
-
-    # Fallback Python implementation
     normalize = lambda cmd: ' '.join(shlex.split(cmd.strip().lower()))
     return normalize(user_cmd) == normalize(expected_cmd)

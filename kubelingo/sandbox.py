@@ -90,16 +90,6 @@ def spawn_pty_shell():
     """Spawn an embedded PTY shell sandbox (bash) on the host."""
     # Set sandbox active flag to prevent re-entrant execution of the CLI.
     os.environ['KUBELINGO_SANDBOX_ACTIVE'] = '1'
-    try:
-        from kubelingo.bridge import rust_bridge
-    except ImportError:
-        rust_bridge = None
-    # Use Rust PTY shell if available
-    if rust_bridge and rust_bridge.is_available():
-        if rust_bridge.run_pty_shell():
-            return
-        else:
-            print(f"{Fore.YELLOW}Rust PTY shell failed, falling back to Python implementation.{Style.RESET_ALL}")
     if not sys.stdout.isatty():
         print(f"{Fore.RED}No TTY available for PTY shell. Aborting.{Style.RESET_ALL}")
         return
