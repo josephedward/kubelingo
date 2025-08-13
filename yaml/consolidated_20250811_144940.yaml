@@ -10,16 +10,17 @@ questions:
   prompt: hello
   response: null
   review: false
-  schema_category: basic
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   source: null
   source_file: f.yaml
-  subject: null
   type: basic
   validation_steps: null
-  validator: null
 - id: add-cmds-q1
   prompt: Create an alias 'k' for 'kubectl'
   type: command
+  schema_category: Command Syntax
+  subject_matter: Linux Syntax
   metadata:
     id: add-cmds-q1
     category: Additional Commands
@@ -29,6 +30,8 @@ questions:
 - id: add-cmds-q2
   prompt: Enable kubectl autocompletion for bash
   type: command
+  schema_category: Command Syntax
+  subject_matter: Linux Syntax
   metadata:
     id: add-cmds-q2
     category: Additional Commands
@@ -38,6 +41,8 @@ questions:
 - id: add-cmds-q3
   prompt: Add kubectl autocompletion to ~/.bashrc
   type: command
+  schema_category: Command Syntax
+  subject_matter: Linux Syntax
   metadata:
     id: add-cmds-q3
     category: Additional Commands
@@ -47,6 +52,8 @@ questions:
 - id: add-cmds-q4
   prompt: Set the KUBECONFIG environment variable to /home/user/config
   type: command
+  schema_category: Command Syntax
+  subject_matter: Linux Syntax
   metadata:
     id: add-cmds-q4
     category: Additional Commands
@@ -56,6 +63,8 @@ questions:
 - id: add-cmds-q5
   prompt: Check the kubectl client and server versions
   type: command
+  schema_category: Command Syntax
+  subject_matter: API discovery & docs
   metadata:
     id: add-cmds-q5
     category: Additional Commands
@@ -65,6 +74,8 @@ questions:
 - id: add-cmds-q6
   prompt: Create a namespace named dev
   type: command
+  schema_category: Command Syntax
+  subject_matter: Namespaces & contexts
   metadata:
     id: add-cmds-q6
     category: Additional Commands
@@ -74,6 +85,8 @@ questions:
 - id: add-cmds-q7
   prompt: List all namespaces
   type: command
+  schema_category: Command Syntax
+  subject_matter: Namespaces & contexts
   metadata:
     id: add-cmds-q7
     category: Additional Commands
@@ -83,6 +96,8 @@ questions:
 - id: add-cmds-q8
   prompt: Describe namespace dev
   type: command
+  schema_category: Command Syntax
+  subject_matter: Namespaces & contexts
   metadata:
     id: add-cmds-q8
     category: Additional Commands
@@ -92,6 +107,8 @@ questions:
 - id: add-cmds-q9
   prompt: Delete namespace dev
   type: command
+  schema_category: Command Syntax
+  subject_matter: Namespaces & contexts
   metadata:
     id: add-cmds-q9
     category: Additional Commands
@@ -101,6 +118,8 @@ questions:
 - id: add-cmds-q10
   prompt: Create a deployment named frontend using image nginx:1.14
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q10
     category: Additional Commands
@@ -110,6 +129,8 @@ questions:
 - id: add-cmds-q11
   prompt: List all deployments
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q11
     category: Additional Commands
@@ -119,6 +140,8 @@ questions:
 - id: add-cmds-q12
   prompt: Describe deployment frontend
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q12
     category: Additional Commands
@@ -129,6 +152,8 @@ questions:
 - id: add-cmds-q13
   prompt: Scale deployment frontend to 3 replicas
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q13
     category: Additional Commands
@@ -138,6 +163,8 @@ questions:
 - id: add-cmds-q14
   prompt: Roll back the deployment frontend to the previous version
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q14
     category: Additional Commands
@@ -147,6 +174,8 @@ questions:
 - id: add-cmds-q15
   prompt: Restart the deployment frontend
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q15
     category: Additional Commands
@@ -156,6 +185,8 @@ questions:
 - id: add-cmds-q16
   prompt: Delete deployment frontend
   type: command
+  schema_category: Command Syntax
+  subject_matter: Core workloads
   metadata:
     id: add-cmds-q16
     category: Additional Commands
@@ -165,6 +196,8 @@ questions:
 - id: add-cmds-q17
   prompt: Run a pod named busybox with image busybox that runs indefinitely
   type: command
+  schema_category: Command Syntax
+  subject_matter: Pod design patterns
   metadata:
     id: add-cmds-q17
     category: Additional Commands
@@ -176,6 +209,8 @@ questions:
 - id: add-cmds-q18
   prompt: List all pods
   type: command
+  schema_category: Command Syntax
+  subject_matter: Pod design patterns
   metadata:
     id: add-cmds-q18
     category: Additional Commands
@@ -185,6 +220,8 @@ questions:
 - id: add-cmds-q19
   prompt: Describe pod busybox
   type: command
+  schema_category: Command Syntax
+  subject_matter: Pod design patterns
   metadata:
     id: add-cmds-q19
     category: Additional Commands
@@ -194,6 +231,8 @@ questions:
 - id: add-cmds-q20
   prompt: Delete pod busybox
   type: command
+  schema_category: Command Syntax
+  subject_matter: Pod design patterns
   metadata:
     id: add-cmds-q20
     category: Additional Commands
@@ -203,6 +242,8 @@ questions:
 - id: add-cmds-q21
   prompt: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc
   type: command
+  schema_category: Command Syntax
+  subject_matter: Services
   metadata:
     id: add-cmds-q21
     category: Additional Commands
@@ -212,6 +253,8 @@ questions:
 - id: add-cmds-q22
   prompt: List all services
   type: command
+  schema_category: Command Syntax
+  subject_matter: Services
   metadata:
     id: add-cmds-q22
     category: Additional Commands
@@ -221,6 +264,8 @@ questions:
 - id: add-cmds-q23
   prompt: Describe service frontend-svc
   type: command
+  schema_category: Command Syntax
+  subject_matter: Services
   metadata:
     id: add-cmds-q23
     category: Additional Commands
@@ -230,6 +275,8 @@ questions:
 - id: add-cmds-q24
   prompt: Delete service frontend-svc
   type: command
+  schema_category: Command Syntax
+  subject_matter: Services
   metadata:
     id: add-cmds-q24
     category: Additional Commands
@@ -239,6 +286,8 @@ questions:
 - id: add-cmds-q25
   prompt: Create a ConfigMap named app-config from file config.yaml
   type: command
+  schema_category: Command Syntax
+  subject_matter: App configuration
   metadata:
     id: add-cmds-q25
     category: Additional Commands
@@ -249,6 +298,8 @@ questions:
 - id: add-cmds-q26
   prompt: List all ConfigMaps
   type: command
+  schema_category: Command Syntax
+  subject_matter: App configuration
   metadata:
     id: add-cmds-q26
     category: Additional Commands
@@ -258,6 +309,8 @@ questions:
 - id: add-cmds-q27
   prompt: Describe configmap app-config
   type: command
+  schema_category: Command Syntax
+  subject_matter: App configuration
   metadata:
     id: add-cmds-q27
     category: Additional Commands
@@ -268,6 +321,8 @@ questions:
 - id: add-cmds-q28
   prompt: Delete configmap app-config
   type: command
+  schema_category: Command Syntax
+  subject_matter: App configuration
   metadata:
     id: add-cmds-q28
     category: Additional Commands
@@ -277,6 +332,8 @@ questions:
 - id: add-cmds-q29
   prompt: Create a generic secret named db-secret with literal username and password
   type: command
+  schema_category: Command Syntax
+  subject_matter: Security basics
   metadata:
     id: add-cmds-q29
     category: Additional Commands
@@ -288,6 +345,8 @@ questions:
 - id: add-cmds-q30
   prompt: List all secrets
   type: command
+  schema_category: Command Syntax
+  subject_matter: Security basics
   metadata:
     id: add-cmds-q30
     category: Additional Commands
@@ -297,6 +356,8 @@ questions:
 - id: add-cmds-q31
   prompt: Describe secret db-secret
   type: command
+  schema_category: Command Syntax
+  subject_matter: Security basics
   metadata:
     id: add-cmds-q31
     category: Additional Commands
@@ -306,6 +367,8 @@ questions:
 - id: add-cmds-q32
   prompt: Delete secret db-secret
   type: command
+  schema_category: Command Syntax
+  subject_matter: Security basics
   metadata:
     id: add-cmds-q32
     category: Additional Commands
@@ -315,6 +378,8 @@ questions:
 - id: add-cmds-q33
   prompt: Create a ServiceAccount named default-sa
   type: command
+  schema_category: Command Syntax
+  subject_matter: ServiceAccounts in apps
   metadata:
     id: add-cmds-q33
     category: Additional Commands
@@ -324,6 +389,8 @@ questions:
 - id: add-cmds-q34
   prompt: List all ServiceAccounts
   type: command
+  schema_category: Command Syntax
+  subject_matter: ServiceAccounts in apps
   metadata:
     id: add-cmds-q34
     category: Additional Commands
@@ -333,6 +400,8 @@ questions:
 - id: add-cmds-q35
   prompt: Describe serviceaccount default-sa
   type: command
+  schema_category: Command Syntax
+  subject_matter: ServiceAccounts in apps
   metadata:
     id: add-cmds-q35
     category: Additional Commands
@@ -342,6 +411,8 @@ questions:
 - id: add-cmds-q36
   prompt: Delete serviceaccount default-sa
   type: command
+  schema_category: Command Syntax
+  subject_matter: ServiceAccounts in apps
   metadata:
     id: add-cmds-q36
     category: Additional Commands
@@ -351,6 +422,8 @@ questions:
 - id: add-cmds-q37
   prompt: Label pod busybox with env=prod
   type: command
+  schema_category: Command Syntax
+  subject_matter: Metadata Labels, annotations & selectors
   metadata:
     id: add-cmds-q37
     category: Additional Commands
@@ -360,6 +433,8 @@ questions:
 - id: add-cmds-q38
   prompt: Remove the label env from pod busybox
   type: command
+  schema_category: Command Syntax
+  subject_matter: Metadata Labels, annotations & selectors
   metadata:
     id: add-cmds-q38
     category: Additional Commands
@@ -369,6 +444,8 @@ questions:
 - id: add-cmds-q39
   prompt: Annotate deployment frontend with description=test
   type: command
+  schema_category: Command Syntax
+  subject_matter: Metadata Labels, annotations & selectors
   metadata:
     id: add-cmds-q39
     category: Additional Commands
@@ -378,6 +455,8 @@ questions:
 - id: add-cmds-q40
   prompt: Remove the annotation description from deployment frontend
   type: command
+  schema_category: Command Syntax
+  subject_matter: Metadata Labels, annotations & selectors
   metadata:
     id: add-cmds-q40
     category: Additional Commands
@@ -387,6 +466,8 @@ questions:
 - id: add-cmds-q41
   prompt: Apply the configuration in deployment.yaml
   type: command
+  schema_category: Command Syntax
+  subject_matter: Imperative vs declarative
   metadata:
     id: add-cmds-q41
     category: Additional Commands
@@ -396,6 +477,8 @@ questions:
 - id: add-cmds-q42
   prompt: Use kubectl to edit deployment frontend
   type: command
+  schema_category: Command Syntax
+  subject_matter: Imperative vs declarative
   metadata:
     id: add-cmds-q42
     category: Additional Commands
