@@ -6,7 +6,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: binding::namespaced
@@ -14,7 +14,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: binding::kind
@@ -22,7 +22,7 @@
   type: command
   metadata:
     response: "Binding"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: componentstatus::shortnames
@@ -30,7 +30,7 @@
   type: command
   metadata:
     response: "cs"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: componentstatus::apiversion
@@ -38,7 +38,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: componentstatus::namespaced
@@ -46,7 +46,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: componentstatus::kind
@@ -54,7 +54,7 @@
   type: command
   metadata:
     response: "ComponentStatus"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: configmap::shortnames
@@ -62,7 +62,7 @@
   type: command
   metadata:
     response: "cm"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: configmap::apiversion
@@ -70,7 +70,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: configmap::namespaced
@@ -78,7 +78,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: configmap::kind
@@ -86,7 +86,7 @@
   type: command
   metadata:
     response: "ConfigMap"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpoints::shortnames
@@ -94,7 +94,7 @@
   type: command
   metadata:
     response: "ep"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpoints::apiversion
@@ -102,7 +102,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpoints::namespaced
@@ -110,7 +110,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpoints::kind
@@ -118,7 +118,7 @@
   type: command
   metadata:
     response: "Endpoints"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: event::shortnames
@@ -126,7 +126,7 @@
   type: command
   metadata:
     response: "ev"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: event::apiversion
@@ -134,7 +134,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: event::namespaced
@@ -142,7 +142,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: event::kind
@@ -150,7 +150,7 @@
   type: command
   metadata:
     response: "Event"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: limitrange::shortnames
@@ -158,7 +158,7 @@
   type: command
   metadata:
     response: "limits"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: limitrange::apiversion
@@ -166,7 +166,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: limitrange::namespaced
@@ -174,7 +174,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: limitrange::kind
@@ -182,7 +182,7 @@
   type: command
   metadata:
     response: "LimitRange"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: namespace::shortnames
@@ -190,7 +190,7 @@
   type: command
   metadata:
     response: "ns"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: namespace::apiversion
@@ -198,7 +198,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: namespace::namespaced
@@ -206,7 +206,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: namespace::kind
@@ -214,7 +214,7 @@
   type: command
   metadata:
     response: "Namespace"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: node::shortnames
@@ -222,7 +222,7 @@
   type: command
   metadata:
     response: "no"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: node::apiversion
@@ -230,7 +230,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: node::namespaced
@@ -238,7 +238,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: node::kind
@@ -246,7 +246,7 @@
   type: command
   metadata:
     response: "Node"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolumeclaim::shortnames
@@ -254,7 +254,7 @@
   type: command
   metadata:
     response: "pvc"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolumeclaim::apiversion
@@ -262,7 +262,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolumeclaim::namespaced
@@ -270,7 +270,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolumeclaim::kind
@@ -278,7 +278,7 @@
   type: command
   metadata:
     response: "PersistentVolumeClaim"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolume::shortnames
@@ -286,7 +286,7 @@
   type: command
   metadata:
     response: "pv"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolume::apiversion
@@ -294,7 +294,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolume::namespaced
@@ -302,7 +302,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: persistentvolume::kind
@@ -310,7 +310,7 @@
   type: command
   metadata:
     response: "PersistentVolume"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: pod::shortnames
@@ -318,7 +318,7 @@
   type: command
   metadata:
     response: "po"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: pod::apiversion
@@ -326,7 +326,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: pod::namespaced
@@ -334,7 +334,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: pod::kind
@@ -342,7 +342,7 @@
   type: command
   metadata:
     response: "Pod"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podtemplate::apiversion
@@ -350,7 +350,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podtemplate::namespaced
@@ -358,7 +358,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podtemplate::kind
@@ -366,7 +366,7 @@
   type: command
   metadata:
     response: "PodTemplate"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicationcontroller::shortnames
@@ -374,7 +374,7 @@
   type: command
   metadata:
     response: "rc"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicationcontroller::apiversion
@@ -382,7 +382,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicationcontroller::namespaced
@@ -390,7 +390,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicationcontroller::kind
@@ -398,7 +398,7 @@
   type: command
   metadata:
     response: "ReplicationController"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: resourcequota::shortnames
@@ -406,7 +406,7 @@
   type: command
   metadata:
     response: "quota"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: resourcequota::apiversion
@@ -414,7 +414,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: resourcequota::namespaced
@@ -422,7 +422,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: resourcequota::kind
@@ -430,7 +430,7 @@
   type: command
   metadata:
     response: "ResourceQuota"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: secret::apiversion
@@ -438,7 +438,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: secret::namespaced
@@ -446,7 +446,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: secret::kind
@@ -454,7 +454,7 @@
   type: command
   metadata:
     response: "Secret"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: serviceaccount::shortnames
@@ -462,7 +462,7 @@
   type: command
   metadata:
     response: "sa"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: serviceaccount::apiversion
@@ -470,7 +470,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: serviceaccount::namespaced
@@ -478,7 +478,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: serviceaccount::kind
@@ -486,7 +486,7 @@
   type: command
   metadata:
     response: "ServiceAccount"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: service::shortnames
@@ -494,7 +494,7 @@
   type: command
   metadata:
     response: "svc"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: service::apiversion
@@ -502,7 +502,7 @@
   type: command
   metadata:
     response: "v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: service::namespaced
@@ -510,7 +510,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: service::kind
@@ -518,7 +518,7 @@
   type: command
   metadata:
     response: "Service"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: mutatingwebhookconfiguration::apiversion
@@ -526,7 +526,7 @@
   type: command
   metadata:
     response: "admissionregistration.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: mutatingwebhookconfiguration::namespaced
@@ -534,7 +534,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: mutatingwebhookconfiguration::kind
@@ -542,7 +542,7 @@
   type: command
   metadata:
     response: "MutatingWebhookConfiguration"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: validatingwebhookconfiguration::apiversion
@@ -550,7 +550,7 @@
   type: command
   metadata:
     response: "admissionregistration.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: validatingwebhookconfiguration::namespaced
@@ -558,7 +558,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: validatingwebhookconfiguration::kind
@@ -566,7 +566,7 @@
   type: command
   metadata:
     response: "ValidatingWebhookConfiguration"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: customresourcedefinition::shortnames
@@ -574,7 +574,7 @@
   type: command
   metadata:
     response: "crd,crds"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: customresourcedefinition::apiversion
@@ -582,7 +582,7 @@
   type: command
   metadata:
     response: "apiextensions.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: customresourcedefinition::namespaced
@@ -590,7 +590,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: customresourcedefinition::kind
@@ -598,7 +598,7 @@
   type: command
   metadata:
     response: "CustomResourceDefinition"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: apiservice::apiversion
@@ -606,7 +606,7 @@
   type: command
   metadata:
     response: "apiregistration.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: apiservice::namespaced
@@ -614,7 +614,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: apiservice::kind
@@ -622,7 +622,7 @@
   type: command
   metadata:
     response: "APIService"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: controllerrevision::apiversion
@@ -630,7 +630,7 @@
   type: command
   metadata:
     response: "apps/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: controllerrevision::namespaced
@@ -638,7 +638,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: controllerrevision::kind
@@ -646,7 +646,7 @@
   type: command
   metadata:
     response: "ControllerRevision"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: daemonset::shortnames
@@ -654,7 +654,7 @@
   type: command
   metadata:
     response: "ds"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: daemonset::apiversion
@@ -662,7 +662,7 @@
   type: command
   metadata:
     response: "apps/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: daemonset::namespaced
@@ -670,7 +670,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: daemonset::kind
@@ -678,7 +678,7 @@
   type: command
   metadata:
     response: "DaemonSet"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: deployment::shortnames
@@ -686,7 +686,7 @@
   type: command
   metadata:
     response: "deploy"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: deployment::apiversion
@@ -694,7 +694,7 @@
   type: command
   metadata:
     response: "apps/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: deployment::namespaced
@@ -702,7 +702,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: deployment::kind
@@ -710,7 +710,7 @@
   type: command
   metadata:
     response: "Deployment"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicaset::shortnames
@@ -718,7 +718,7 @@
   type: command
   metadata:
     response: "rs"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicaset::apiversion
@@ -726,7 +726,7 @@
   type: command
   metadata:
     response: "apps/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicaset::namespaced
@@ -734,7 +734,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: replicaset::kind
@@ -742,7 +742,7 @@
   type: command
   metadata:
     response: "ReplicaSet"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: statefulset::shortnames
@@ -750,7 +750,7 @@
   type: command
   metadata:
     response: "sts"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: statefulset::apiversion
@@ -758,7 +758,7 @@
   type: command
   metadata:
     response: "apps/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: statefulset::namespaced
@@ -766,7 +766,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: statefulset::kind
@@ -774,7 +774,7 @@
   type: command
   metadata:
     response: "StatefulSet"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: tokenreview::apiversion
@@ -782,7 +782,7 @@
   type: command
   metadata:
     response: "authentication.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: tokenreview::namespaced
@@ -790,7 +790,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: tokenreview::kind
@@ -798,7 +798,7 @@
   type: command
   metadata:
     response: "TokenReview"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: localsubjectaccessreview::apiversion
@@ -806,7 +806,7 @@
   type: command
   metadata:
     response: "authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: localsubjectaccessreview::namespaced
@@ -814,7 +814,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: localsubjectaccessreview::kind
@@ -822,7 +822,7 @@
   type: command
   metadata:
     response: "LocalSubjectAccessReview"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectaccessreview::apiversion
@@ -830,7 +830,7 @@
   type: command
   metadata:
     response: "authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectaccessreview::namespaced
@@ -838,7 +838,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectaccessreview::kind
@@ -846,7 +846,7 @@
   type: command
   metadata:
     response: "SelfSubjectAccessReview"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectrulesreview::apiversion
@@ -854,7 +854,7 @@
   type: command
   metadata:
     response: "authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectrulesreview::namespaced
@@ -862,7 +862,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: selfsubjectrulesreview::kind
@@ -870,7 +870,7 @@
   type: command
   metadata:
     response: "SelfSubjectRulesReview"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: subjectaccessreview::apiversion
@@ -878,7 +878,7 @@
   type: command
   metadata:
     response: "authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: subjectaccessreview::namespaced
@@ -886,7 +886,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: subjectaccessreview::kind
@@ -894,7 +894,7 @@
   type: command
   metadata:
     response: "SubjectAccessReview"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: horizontalpodautoscaler::shortnames
@@ -902,7 +902,7 @@
   type: command
   metadata:
     response: "hpa"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: horizontalpodautoscaler::apiversion
@@ -910,7 +910,7 @@
   type: command
   metadata:
     response: "autoscaling/v2"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: horizontalpodautoscaler::namespaced
@@ -918,7 +918,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: horizontalpodautoscaler::kind
@@ -926,7 +926,7 @@
   type: command
   metadata:
     response: "HorizontalPodAutoscaler"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: cronjob::shortnames
@@ -934,7 +934,7 @@
   type: command
   metadata:
     response: "cj"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: cronjob::apiversion
@@ -942,7 +942,7 @@
   type: command
   metadata:
     response: "batch/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: cronjob::namespaced
@@ -950,7 +950,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: cronjob::kind
@@ -958,7 +958,7 @@
   type: command
   metadata:
     response: "CronJob"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: job::apiversion
@@ -966,7 +966,7 @@
   type: command
   metadata:
     response: "batch/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: job::namespaced
@@ -974,7 +974,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: job::kind
@@ -982,7 +982,7 @@
   type: command
   metadata:
     response: "Job"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: certificatesigningrequest::shortnames
@@ -990,7 +990,7 @@
   type: command
   metadata:
     response: "csr"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: certificatesigningrequest::apiversion
@@ -998,7 +998,7 @@
   type: command
   metadata:
     response: "certificates.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: certificatesigningrequest::namespaced
@@ -1006,7 +1006,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: certificatesigningrequest::kind
@@ -1014,7 +1014,7 @@
   type: command
   metadata:
     response: "CertificateSigningRequest"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: lease::apiversion
@@ -1022,7 +1022,7 @@
   type: command
   metadata:
     response: "coordination.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: lease::namespaced
@@ -1030,7 +1030,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: lease::kind
@@ -1038,7 +1038,7 @@
   type: command
   metadata:
     response: "Lease"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpointslice::apiversion
@@ -1046,7 +1046,7 @@
   type: command
   metadata:
     response: "discovery.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpointslice::namespaced
@@ -1054,7 +1054,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: endpointslice::kind
@@ -1062,7 +1062,7 @@
   type: command
   metadata:
     response: "EndpointSlice"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: flowschema::apiversion
@@ -1070,7 +1070,7 @@
   type: command
   metadata:
     response: "flowcontrol.apiserver.k8s.io/v1beta2"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: flowschema::namespaced
@@ -1078,7 +1078,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: flowschema::kind
@@ -1086,7 +1086,7 @@
   type: command
   metadata:
     response: "FlowSchema"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: prioritylevelconfiguration::apiversion
@@ -1094,7 +1094,7 @@
   type: command
   metadata:
     response: "flowcontrol.apiserver.k8s.io/v1beta2"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: prioritylevelconfiguration::namespaced
@@ -1102,7 +1102,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: prioritylevelconfiguration::kind
@@ -1110,7 +1110,7 @@
   type: command
   metadata:
     response: "PriorityLevelConfiguration"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingressclass::apiversion
@@ -1118,7 +1118,7 @@
   type: command
   metadata:
     response: "networking.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingressclass::namespaced
@@ -1126,7 +1126,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingressclass::kind
@@ -1134,7 +1134,7 @@
   type: command
   metadata:
     response: "IngressClass"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingress::shortnames
@@ -1142,7 +1142,7 @@
   type: command
   metadata:
     response: "ing"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingress::apiversion
@@ -1150,7 +1150,7 @@
   type: command
   metadata:
     response: "networking.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingress::namespaced
@@ -1158,7 +1158,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: ingress::kind
@@ -1166,7 +1166,7 @@
   type: command
   metadata:
     response: "Ingress"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: networkpolicy::shortnames
@@ -1174,7 +1174,7 @@
   type: command
   metadata:
     response: "netpol"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: networkpolicy::apiversion
@@ -1182,7 +1182,7 @@
   type: command
   metadata:
     response: "networking.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: networkpolicy::namespaced
@@ -1190,7 +1190,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: networkpolicy::kind
@@ -1198,7 +1198,7 @@
   type: command
   metadata:
     response: "NetworkPolicy"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: runtimeclass::apiversion
@@ -1206,7 +1206,7 @@
   type: command
   metadata:
     response: "node.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: runtimeclass::namespaced
@@ -1214,7 +1214,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: runtimeclass::kind
@@ -1222,7 +1222,7 @@
   type: command
   metadata:
     response: "RuntimeClass"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: poddisruptionbudget::shortnames
@@ -1230,7 +1230,7 @@
   type: command
   metadata:
     response: "pdb"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: poddisruptionbudget::apiversion
@@ -1238,7 +1238,7 @@
   type: command
   metadata:
     response: "policy/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: poddisruptionbudget::namespaced
@@ -1246,7 +1246,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: poddisruptionbudget::kind
@@ -1254,7 +1254,7 @@
   type: command
   metadata:
     response: "PodDisruptionBudget"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podsecuritypolicy::shortnames
@@ -1262,7 +1262,7 @@
   type: command
   metadata:
     response: "psp"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podsecuritypolicy::apiversion
@@ -1270,7 +1270,7 @@
   type: command
   metadata:
     response: "policy/v1beta1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podsecuritypolicy::namespaced
@@ -1278,7 +1278,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: podsecuritypolicy::kind
@@ -1286,7 +1286,7 @@
   type: command
   metadata:
     response: "PodSecurityPolicy"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrolebinding::apiversion
@@ -1294,7 +1294,7 @@
   type: command
   metadata:
     response: "rbac.authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrolebinding::namespaced
@@ -1302,7 +1302,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrolebinding::kind
@@ -1310,7 +1310,7 @@
   type: command
   metadata:
     response: "ClusterRoleBinding"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrole::apiversion
@@ -1318,7 +1318,7 @@
   type: command
   metadata:
     response: "rbac.authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrole::namespaced
@@ -1326,7 +1326,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: clusterrole::kind
@@ -1334,7 +1334,7 @@
   type: command
   metadata:
     response: "ClusterRole"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: rolebinding::apiversion
@@ -1342,7 +1342,7 @@
   type: command
   metadata:
     response: "rbac.authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: rolebinding::namespaced
@@ -1350,7 +1350,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: rolebinding::kind
@@ -1358,7 +1358,7 @@
   type: command
   metadata:
     response: "RoleBinding"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: role::apiversion
@@ -1366,7 +1366,7 @@
   type: command
   metadata:
     response: "rbac.authorization.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: role::namespaced
@@ -1374,7 +1374,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: role::kind
@@ -1382,7 +1382,7 @@
   type: command
   metadata:
     response: "Role"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: priorityclass::shortnames
@@ -1390,7 +1390,7 @@
   type: command
   metadata:
     response: "pc"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: priorityclass::apiversion
@@ -1398,7 +1398,7 @@
   type: command
   metadata:
     response: "scheduling.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: priorityclass::namespaced
@@ -1406,7 +1406,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: priorityclass::kind
@@ -1414,7 +1414,7 @@
   type: command
   metadata:
     response: "PriorityClass"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csidriver::apiversion
@@ -1422,7 +1422,7 @@
   type: command
   metadata:
     response: "storage.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csidriver::namespaced
@@ -1430,7 +1430,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csidriver::kind
@@ -1438,7 +1438,7 @@
   type: command
   metadata:
     response: "CSIDriver"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csinode::apiversion
@@ -1446,7 +1446,7 @@
   type: command
   metadata:
     response: "storage.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csinode::namespaced
@@ -1454,7 +1454,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csinode::kind
@@ -1462,7 +1462,7 @@
   type: command
   metadata:
     response: "CSINode"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csistoragecapacity::apiversion
@@ -1470,7 +1470,7 @@
   type: command
   metadata:
     response: "storage.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csistoragecapacity::namespaced
@@ -1478,7 +1478,7 @@
   type: command
   metadata:
     response: "true"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: csistoragecapacity::kind
@@ -1486,7 +1486,7 @@
   type: command
   metadata:
     response: "CSIStorageCapacity"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: storageclass::shortnames
@@ -1494,7 +1494,7 @@
   type: command
   metadata:
     response: "sc"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: storageclass::apiversion
@@ -1502,7 +1502,7 @@
   type: command
   metadata:
     response: "storage.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: storageclass::namespaced
@@ -1510,7 +1510,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: storageclass::kind
@@ -1518,7 +1518,7 @@
   type: command
   metadata:
     response: "StorageClass"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: volumeattachment::apiversion
@@ -1526,7 +1526,7 @@
   type: command
   metadata:
     response: "storage.k8s.io/v1"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: volumeattachment::namespaced
@@ -1534,7 +1534,7 @@
   type: command
   metadata:
     response: "false"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"
 
 - id: volumeattachment::kind
@@ -1542,5 +1542,5 @@
   type: command
   metadata:
     response: "VolumeAttachment"
-    category: "Resource Reference"
+    category: "api-discovery-docs"
     citation: "https://kubernetes.io/docs/reference/generated/kubernetes-api/"

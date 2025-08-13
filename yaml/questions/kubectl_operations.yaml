@@ -9,7 +9,7 @@
     validator:
       type: ai
       expected: "alpha"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::annotate
@@ -20,7 +20,7 @@
     validator:
       type: ai
       expected: "annotate"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::api-resources
@@ -31,7 +31,7 @@
     validator:
       type: ai
       expected: "api-resources"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::api-versions
@@ -42,7 +42,7 @@
     validator:
       type: ai
       expected: "api-versions"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::apply
@@ -53,7 +53,7 @@
     validator:
       type: ai
       expected: "apply"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::attach
@@ -64,7 +64,7 @@
     validator:
       type: ai
       expected: "attach"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::auth
@@ -75,7 +75,7 @@
     validator:
       type: ai
       expected: "auth"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::autoscale
@@ -86,7 +86,7 @@
     validator:
       type: ai
       expected: "autoscale"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::certificate
@@ -97,7 +97,7 @@
     validator:
       type: ai
       expected: "certificate"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::cluster-info
@@ -108,7 +108,7 @@
     validator:
       type: ai
       expected: "cluster-info"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::completion
@@ -119,7 +119,7 @@
     validator:
       type: ai
       expected: "completion"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::config
@@ -130,7 +130,7 @@
     validator:
       type: ai
       expected: "config"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::convert
@@ -141,7 +141,7 @@
     validator:
       type: ai
       expected: "convert"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::cordon
@@ -152,7 +152,7 @@
     validator:
       type: ai
       expected: "cordon"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::cp
@@ -163,7 +163,7 @@
     validator:
       type: ai
       expected: "cp"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::create
@@ -174,7 +174,7 @@
     validator:
       type: ai
       expected: "create"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::delete
@@ -185,7 +185,7 @@
     validator:
       type: ai
       expected: "delete"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::describe
@@ -196,7 +196,7 @@
     validator:
       type: ai
       expected: "describe"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::diff
@@ -207,7 +207,7 @@
     validator:
       type: ai
       expected: "diff"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::drain
@@ -218,7 +218,7 @@
     validator:
       type: ai
       expected: "drain"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::edit
@@ -229,7 +229,7 @@
     validator:
       type: ai
       expected: "edit"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::events
@@ -240,7 +240,7 @@
     validator:
       type: ai
       expected: "events"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::exec
@@ -251,7 +251,7 @@
     validator:
       type: ai
       expected: "exec"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::explain
@@ -262,7 +262,7 @@
     validator:
       type: ai
       expected: "explain"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::expose
@@ -273,7 +273,7 @@
     validator:
       type: ai
       expected: "expose"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::get
@@ -284,7 +284,7 @@
     validator:
       type: ai
       expected: "get"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::kustomize
@@ -295,7 +295,7 @@
     validator:
       type: ai
       expected: "kustomize"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::label
@@ -306,7 +306,7 @@
     validator:
       type: ai
       expected: "label"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::logs
@@ -317,7 +317,7 @@
     validator:
       type: ai
       expected: "logs"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::options
@@ -328,7 +328,7 @@
     validator:
       type: ai
       expected: "options"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::patch
@@ -339,7 +339,7 @@
     validator:
       type: ai
       expected: "patch"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::plugin
@@ -350,7 +350,7 @@
     validator:
       type: ai
       expected: "plugin"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::port-forward
@@ -361,7 +361,7 @@
     validator:
       type: ai
       expected: "port-forward"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::proxy
@@ -372,7 +372,7 @@
     validator:
       type: ai
       expected: "proxy"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::replace
@@ -383,7 +383,7 @@
     validator:
       type: ai
       expected: "replace"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::rollout
@@ -394,7 +394,7 @@
     validator:
       type: ai
       expected: "rollout"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::run
@@ -405,7 +405,7 @@
     validator:
       type: ai
       expected: "run"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::scale
@@ -416,7 +416,7 @@
     validator:
       type: ai
       expected: "scale"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::set
@@ -427,7 +427,7 @@
     validator:
       type: ai
       expected: "set"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::taint
@@ -438,7 +438,7 @@
     validator:
       type: ai
       expected: "taint"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::top
@@ -449,7 +449,7 @@
     validator:
       type: ai
       expected: "top"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::uncordon
@@ -460,7 +460,7 @@
     validator:
       type: ai
       expected: "uncordon"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::version
@@ -471,7 +471,7 @@
     validator:
       type: ai
       expected: "version"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
 
 - id: kubectl::wait
@@ -482,5 +482,5 @@
     validator:
       type: ai
       expected: "wait"
-    category: "Kubectl Operations"
+    category: "linux-syntax"
     citation: "https://kubernetes.io/docs/reference/kubectl/#operations"
