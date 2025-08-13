@@ -131,18 +131,19 @@ def _generate_questions():
         ).ask()
         if not subject: return
 
-        # Sanitize subject to prevent issues with special characters like '&'
-        subject = subject.replace(' & ', ' and ').replace('&', 'and')
-
         category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
         num_q = questionary.text("Number of questions to generate?", default="3").ask()
-        sanitized_subject = subject.lower().replace(' ', '_')
-        output_file = questionary.text("Path to the output YAML file:", default=f"yaml/generated/{sanitized_subject}.yaml").ask()
+        
+        # Sanitize subject to prevent issues with special characters like '&'
+        ai_safe_subject = subject.replace(' & ', ' and ').replace('&', 'and')
+        filename_safe_subject = ai_safe_subject.lower().replace(' ', '_')
+        
+        output_file = questionary.text("Path to the output YAML file:", default=f"yaml/generated/{filename_safe_subject}.yaml").ask()
         if not output_file: return
         example_file = questionary.text("(Optional) Path to YAML source file for example questions:").ask()
-        
+
         handle_ai_questions(MockArgs(
-            subject=subject, category=category, num_questions=int(num_q), 
+            subject=ai_safe_subject, category=category, num_questions=int(num_q), 
             output_file=output_file, example_source_file=example_file
         ))
 
