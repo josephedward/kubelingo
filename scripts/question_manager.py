@@ -774,7 +774,12 @@ def handle_ai_questions(args):
 
     # The generator expects specific types like 'socratic', 'command', etc.
     # UI uses friendlier names like 'Basic'.
-    internal_category = 'socratic' if args.category == 'Basic' else args.category
+    category_map = {
+        'Basic': 'socratic',
+        'Command': 'command',
+        'Manifest': 'yaml_author', # Default to authoring for generation
+    }
+    internal_category = category_map.get(args.category, args.category.lower())
 
     subject_for_ai = args.subject
     if not base_questions:

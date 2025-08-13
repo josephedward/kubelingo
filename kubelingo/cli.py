@@ -906,7 +906,7 @@ def run_interactive_main_menu():
                 Separator("--- Drill ---"),
                 questionary.Choice(
                     "Quiz from YAML file",
-                    value=("drill", "yaml_file"),
+                    value=("drill", "yaml"),
                 ),
                 questionary.Choice(
                     f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED.value, 0)})",
@@ -953,7 +953,7 @@ def run_interactive_main_menu():
                 elif action == "review":
                     study_session.review_past_questions()
             elif menu == "drill":
-                if action == "yaml_file":
+                if action == "yaml":
                     _run_yaml_quiz_interactive(study_session)
                 else:
                     # This should launch a drill-down quiz for the selected category.
