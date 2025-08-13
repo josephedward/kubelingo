@@ -13,7 +13,6 @@ from kubelingo.question import Question
 from kubelingo.utils.config import YAML_QUIZ_DIR
 from kubelingo.utils.ui import Fore, Style
 from kubelingo.utils.validation import (
-    validate_kubectl_syntax,
     validate_prompt_completeness,
     validate_yaml_structure,
 )
@@ -186,8 +185,6 @@ class AIQuestionGenerator:
                 continue
 
             if q_type == "command":
-                if not validate_kubectl_syntax(r).get("valid"):
-                    continue
                 if not validate_prompt_completeness(r, p).get("valid"):
                     continue
             elif q_type == "yaml_author":
@@ -244,4 +241,3 @@ class AIQuestionGenerator:
             return self.evaluator.generate_question(base_question)
         except Exception:
             return {}
-    
