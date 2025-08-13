@@ -299,8 +299,7 @@ def _rebuild_db_from_yaml():
     """
     Clears the database and rebuilds it from all discoverable YAML source files.
     """
-    from kubelingo.database import get_db_connection, add_question
-    from kubelingo.modules.yaml_loader import YAMLLoader
+    from kubelingo.database import get_db_connection, index_yaml_files
 
     print("Attempting to rebuild database from source YAML files...")
     conn = get_db_connection()
@@ -320,26 +319,18 @@ def _rebuild_db_from_yaml():
             print(f"{Fore.RED}No YAML source files found in {search_dirs}. Cannot rebuild database.{Style.RESET_ALL}")
             return False
 
-        total_loaded = 0
-        loader = YAMLLoader()
-        for yaml_file in yaml_files:
-            try:
-                questions = loader.load_file(str(yaml_file))
-                if not questions:
-                    continue
-                for q in questions:
-                    q_dict = asdict(q)
-                    # The 'type' key from YAML is not a DB column.
-                    q_dict.pop('type', None)
-                    add_question(conn=conn, **q_dict)
-                total_loaded += len(questions)
-                print(f"  - Loaded {len(questions)} questions from {os.path.basename(yaml_file)}")
-            except Exception as e:
-                print(f"{Fore.RED}Failed to load {yaml_file}: {e}{Style.RESET_ALL}")
+        # Delegate to the centralized indexing function, which now handles AI categorization
+        index_yaml_files(yaml_files, conn, verbose=True)
+
+        # Check if questions were actually loaded
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM questions")
+        total_loaded = cursor.fetchone()[0]
 
         conn.commit()
         if total_loaded > 0:
-            print(f"\n{Fore.GREEN}Successfully loaded {total_loaded} questions into the database.{Style.RESET_ALL}")
+            # The success message is already printed by index_yaml_files,
+            # but we return True for the caller.
             return True
         else:
             print(f"{Fore.YELLOW}No questions were loaded from any YAML files.{Style.RESET_ALL}")

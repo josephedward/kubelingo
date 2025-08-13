@@ -261,15 +261,26 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
     try:
         import yaml
         from tqdm import tqdm
+        from kubelingo.modules.ai_categorizer import AICategorizer
     except ImportError:
         if verbose:
-            print("Required packages (PyYAML, tqdm) not found. Please install them.", file=sys.stderr)
+            print("Required packages (PyYAML, tqdm, etc.) not found. Please install them.", file=sys.stderr)
         return
 
     cursor = conn.cursor()
     project_root = get_project_root()
     indexed_count = 0
     skipped_count = 0
+
+    try:
+        categorizer = AICategorizer()
+        ai_categorizer_available = True
+    except (ImportError, ValueError):
+        categorizer = None
+        ai_categorizer_available = False
+        if verbose:
+            print("AI categorizer not available. Missing API key or packages. Categories will be based on YAML content only.", file=sys.stderr)
+
 
     file_iterator = tqdm(files, desc="Indexing YAML files") if verbose else files
 
@@ -311,13 +322,26 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
                 content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
+                # Get category and subject from the question object first.
+                category_id = q_obj.schema_category.value if q_obj.schema_category else None
+                subject_id = q_obj.subject_matter.value if q_obj.subject_matter else None
+
+                # If missing, try to categorize with AI.
+                if ai_categorizer_available and (not category_id or not subject_id):
+                    if verbose:
+                        tqdm.write(f"Categorizing question {q_obj.id}...")
+                    ai_categories = categorizer.categorize_question(q_dict)
+                    if ai_categories:
+                        category_id = ai_categories.get('exercise_category', category_id)
+                        subject_id = ai_categories.get('subject_matter', subject_id)
+
                 # Instead of direct insert, use add_question to handle metadata and core content.
                 db_dict = {
                     'id': q_obj.id,
                     'prompt': q_obj.prompt,
                     'source_file': q_obj.source_file,
-                    'category_id': q_obj.schema_category.value if q_obj.schema_category else None,
-                    'subject_id': q_obj.subject_matter.value if q_obj.subject_matter else None,
+                    'category_id': category_id,
+                    'subject_id': subject_id,
                     'question_type': q_obj.type,
                     'answers': json.dumps(q_obj.answers) if q_obj.answers else None,
                     'correct_yaml': q_obj.correct_yaml,
@@ -339,7 +363,7 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
 
         except (yaml.YAMLError, IOError, Exception) as e:
             if verbose:
-                tqdm.write(f"Error processing {file_path}: {e}", file=sys.stderr)
+                tqdm.write(f"Error processing {file_path}: {e}")
 
     conn.commit()
     if verbose:
