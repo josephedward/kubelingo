@@ -117,7 +117,7 @@ def do_migrate_from_yaml(args):
             
             # Load raw data to get attributes not on the Question dataclass, like 'review'
             with open(file_path, 'r', encoding='utf-8') as f:
-                raw_questions_data = yaml.safe_load(f)
+                raw_questions_data = yaml.load(f, Loader=yaml.FullLoader)
             raw_q_map = {
                 item.get('id'): item for item in raw_questions_data if isinstance(item, dict)
             }
@@ -314,7 +314,7 @@ def import_questions_for_master(files: list[Path], conn: sqlite3.Connection):
     for file_path in files:
         print(f"  - Processing '{file_path.name}'...")
         with open(file_path, 'r', encoding='utf-8') as f:
-            questions_data = yaml.safe_load(f)
+            questions_data = yaml.load(f, Loader=yaml.FullLoader)
             if not questions_data:
                 continue
 
@@ -761,7 +761,7 @@ def _populate_db_from_yaml(yaml_files, db_path=None):
         for file_path in yaml_files:
             print(f"  - Processing '{file_path.name}'...")
             with file_path.open("r", encoding="utf-8") as f:
-                questions_data = yaml.safe_load(f)
+                questions_data = yaml.load(f, Loader=yaml.FullLoader)
             if not questions_data: continue
             questions_list = questions_data.get("questions") or questions_data.get("entries") if isinstance(questions_data, dict) else questions_data
             if not isinstance(questions_list, list): continue
