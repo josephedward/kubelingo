@@ -682,6 +682,63 @@ def _setup_ai_provider_interactive(force_setup=False):
             print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
 
 
+def _run_socratic_mode(study_session: KubernetesStudyMode):
+    """Runs an interactive Socratic study session."""
+    if not study_session.client:
+        print(f"\n{Fore.RED}Socratic mode requires a configured AI provider.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Please go to Settings -> AI to set up your API key.{Style.RESET_ALL}\n")
+        return
+
+    try:
+        subject = questionary.text(
+            "What Kubernetes topic would you like to study?",
+            validate=lambda text: len(text.strip()) > 0 or "Please enter a topic.",
+            instruction="(e.g., 'Deployments', 'Services', 'RBAC')"
+        ).ask()
+
+        if not subject:
+            # User cancelled prompt.
+            return
+
+        print(f"\n{Fore.CYAN}Starting Socratic session on '{subject}'. Type 'exit' or 'quit' to end.{Style.RESET_ALL}\n")
+
+        messages = [
+            {"role": "system", "content": "You are Kubelingo, an expert Socratic tutor for Kubernetes. Your goal is to help the user understand a topic by asking them a series of probing questions, rather than just providing answers. Guide the user toward discovering the concepts themselves. Keep your questions concise."},
+            {"role": "user", "content": f"I want to learn about {subject}."}
+        ]
+
+        while True:
+            try:
+                # Assuming chat_completion returns a string of the content.
+                # The LLMClient abstract class doesn't specify a return type,
+                # but this is a reasonable assumption for a chat-like interaction.
+                ai_response = study_session.client.chat_completion(messages)
+
+                if not ai_response:
+                    print(f"{Fore.RED}Sorry, I received an empty response from the AI. Please try again.{Style.RESET_ALL}")
+                    continue
+
+                messages.append({"role": "assistant", "content": ai_response})
+
+                user_response = questionary.text(
+                    message=f"{Fore.GREEN}KubeLingo:{Style.RESET_ALL} {ai_response.strip()}",
+                    multiline=True
+                ).ask()
+
+                if user_response is None or user_response.lower().strip() in ('exit', 'quit'):
+                    print(f"\n{Fore.CYAN}Socratic session ended. Returning to main menu.{Style.RESET_ALL}")
+                    break
+
+                messages.append({"role": "user", "content": user_response})
+
+            except Exception as e:
+                print(f"{Fore.RED}\nAn error occurred during the session: {e}{Style.RESET_ALL}")
+                break
+
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n\n{Fore.CYAN}Socratic session ended. Returning to main menu.{Style.RESET_ALL}")
+
+
 def run_interactive_main_menu():
     """Displays the main interactive menu for the application."""
     if not (questionary and Separator):
@@ -768,8 +825,7 @@ def run_interactive_main_menu():
 
             if menu == "learn":
                 if action == "study":
-                    # This would ideally lead to submenus for type and subject.
-                    study_session.run_study_mode()
+                    _run_socratic_mode(study_session)
                 elif action == "review":
                     study_session.review_past_questions()
             elif menu == "drill":
