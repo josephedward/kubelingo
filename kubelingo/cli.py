@@ -42,7 +42,7 @@ from kubelingo.question import QuestionCategory
 # Base session loader
 from kubelingo.modules.base.loader import discover_modules, load_session
 from kubelingo.modules.base.session import SessionManager
-from kubelingo.modules.kubernetes.study_mode import KubernetesStudyMode
+from kubelingo.modules.kubernetes.socratic_mode import SocraticMode
 # Unified question-data loaders (question-data/yaml)
 from kubelingo.modules.question_generator import AIQuestionGenerator
 from kubelingo.integrations.llm import get_llm_client
@@ -686,7 +686,7 @@ def _setup_ai_provider_interactive(force_setup=False):
             print(f"\n{Fore.YELLOW}API key entry cancelled.{Style.RESET_ALL}\n")
 
 
-def _run_socratic_mode(study_session: KubernetesStudyMode):
+def _run_socratic_mode(study_session: SocraticMode):
     """Runs an interactive Socratic study session."""
     try:
         # Delegate to the study session manager to handle the Socratic mode flow.
@@ -701,7 +701,7 @@ def run_interactive_main_menu():
         print(f"{Fore.RED}Error: 'questionary' library not found. Please install it with 'pip install questionary'.{Style.RESET_ALL}")
         return
 
-    study_session = KubernetesStudyMode()
+    study_session = SocraticMode()
 
     while True:
         try:

@@ -80,7 +80,7 @@ SOCRATIC_TUTOR_TOPICS = [
 ]
 
 
-class KubernetesStudyMode:
+class SocraticMode:
     def __init__(self):
         self.ai_provider = get_ai_provider()
         try:
