@@ -52,19 +52,6 @@ def get_db_connection(db_path: Optional[str] = None):
     return conn
 
 
-def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
-    """Converts a sqlite3.Row object to a dictionary, deserializing JSON fields."""
-    q_dict = dict(row)
-    for key, value in q_dict.items():
-        if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
-            try:
-                q_dict[key] = json.loads(value)
-            except json.JSONDecodeError:
-                # Not a JSON string, leave as is
-                pass
-    return q_dict
-
-
 def run_sql_file(conn: sqlite3.Connection, sql_file_path: str):
     """
     Executes the SQL commands in the provided file against the SQLite database.
