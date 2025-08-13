@@ -48,7 +48,7 @@ The main menu will be structured as follows:
 ### 3.2. Drill Down Menu
 Selecting a "Drill" category will lead to a sub-menu of subject matter categories:
 ```
-   ○ Linux Syntax(Commands from Vim, Kubectl, Docker ,Helm )
+   ○ Linux Syntax (Commands from Bash, Vim, Kubectl, Docker, Helm)
    ○ Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)
    ○ Pod design patterns (initContainers, sidecars, lifecycle hooks)
    ○ Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)
@@ -57,13 +57,13 @@ Selecting a "Drill" category will lead to a sub-menu of subject matter categorie
    ○ Resource management (requests/limits, QoS classes, HPA basics)
    ○ Jobs & CronJobs (completions, parallelism, backoff, schedules)
    ○ Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)
-   ○ Ingress/Egress & HTTP routing (basic rules, paths, service backends)
+   ○ Ingress & HTTP routing (basic rules, paths, service backends)
    ○ Networking utilities (DNS in-cluster, port-forward, exec, curl)
    ○ Persistence (PVCs, using existing StorageClasses, common volume types)
    ○ Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)
-   ○ Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)
+   ○ Labels, annotations & selectors (label ops, field selectors, jsonpath)
    ○ Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)
-   ○ Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
+   ○ Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
    ○ Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)
    ○ ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)
    ○ Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
@@ -104,7 +104,7 @@ The application will follow a "YAML as source of truth" model.
 ## 5. Question Schema
 
 ### 5.1. Question Types
-1.  **Open-Ended**: Requires AI fuzzy matching for evaluation. These are generated during "Study Mode". The CLI must handle multiline input gracefully without special character artifacts. Graded on `Enter`.
+1.  **Open-Ended**: Requires AI fuzzy matching for evaluation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
 2.  **Basic Terminology**: Single-word/command answers. Can be evaluated without AI, but are generated *with* AI. Graded on `Enter`.
 3.  **Command Syntax**: Evaluated by executing the command (e.g., with `kubectl --dry-run=client`). Requires AI to validate alternative correct answers (e.g., aliases, different flags). Graded on `Enter`.
 4.  **YAML Manifest**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
@@ -121,13 +121,13 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - Resource management (requests/limits, QoS classes, HPA basics)
 - Jobs & CronJobs (completions, parallelism, backoff, schedules)
 - Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)
-- Ingress/Egress & HTTP routing (basic rules, paths, service backends)
+- Ingress & HTTP routing (basic rules, paths, service backends)
 - Networking utilities (DNS in-cluster, port-forward, exec, curl)
 - Persistence (PVCs, using existing StorageClasses, common volume types)
 - Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)
-- Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)
+- Labels, annotations & selectors (label ops, field selectors, jsonpath)
 - Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)
-- Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
+- Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
 - Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)
 - ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)
 - Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
@@ -137,7 +137,7 @@ Categories are subordinate to Question Types. Simplified short names should be u
 
 ## 6. Core Application Rules & Logic
 - **Adding Questions**: Must be easy via a well-defined schema or through AI parsing.
-- **AI Feedback**: AI-driven feedback or explanation should be provided for every answer.
+- **AI Feedback**: AI-driven feedback or explanation should be provided for every answer, explaining the correct response or the subject matter for simpler questions.
 - **Study Mode**: Questions generated in Study Mode must adhere to the schema and be saved to a YAML file, with metadata updated in the database.
 - **Review System**: Questions answered incorrectly are automatically flagged for review. Answering correctly removes the flag. This is not user-configurable.
 - **Triage System**: Users can flag problematic questions for maintainer review via the "Triage" option.
@@ -145,3 +145,5 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - **Execution Environment**: No live cluster integration is required initially. Command and manifest evaluation will use dry-run capabilities.
 - **Database Integrity**: The database is for metadata only and should never be cleared automatically.
 - **Enrichment**: AI-based content enrichment should only occur during question generation or triage, not on application startup.
+- **AI Provider Management**: The user can change providers and manage API keys via the "AI Provider" setting. The application will indicate the active provider and recognize keys set in the environment.
+- **Offline Mode**: Only "Basic Terminology" questions are available offline, as they can be evaluated without AI.
