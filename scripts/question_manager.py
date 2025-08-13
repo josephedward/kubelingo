@@ -56,7 +56,6 @@ from kubelingo.database import (
 )
 from kubelingo.question import Question, ValidationStep, QuestionCategory, QuestionSubject
 # from kubelingo.modules.ai_categorizer import AICategorizer # NOTE: This is now handled locally
-from kubelingo.modules.question_generator import AIQuestionGenerator
 import kubelingo.utils.config as cfg
 import kubelingo.database as db_mod
 from kubelingo.utils.path_utils import get_all_yaml_files_in_repo, get_live_db_path, load_yaml_files
