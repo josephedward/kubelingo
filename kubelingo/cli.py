@@ -249,6 +249,31 @@ def handle_config_command(cmd):
     else:
         print(f"Unknown config target '{target}'. Supported: provider, openai, gemini, cluster.")
 
+
+def test_ai_connection():
+    """Tests the connection to the configured AI provider."""
+    from kubelingo.integrations.llm import get_llm_client
+    from kubelingo.utils.config import get_ai_provider
+
+    provider = get_ai_provider()
+    if not provider:
+        print(f"{Fore.RED}No AI provider configured. Use 'kubelingo config' to set one up.{Style.RESET_ALL}")
+        return
+
+    print(f"Testing connection to {provider.capitalize()}...")
+    try:
+        client = get_llm_client()
+        if client.test_connection():
+            print(f"{Fore.GREEN}✓ Connection to {provider.capitalize()} successful.{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}✗ Connection to {provider.capitalize()} failed. Please check your API key and network connection.{Style.RESET_ALL}")
+    except (ValueError, ImportError) as e:
+        # Catches no API key, or llm not installed
+        print(f"{Fore.RED}✗ Failed to initialize AI client: {e}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}✗ An unexpected error occurred during connection test: {e}{Style.RESET_ALL}")
+
+
 def _run_script(script_path: str):
     """Helper to run a script from the project root."""
     full_path = repo_root / script_path
@@ -1128,7 +1153,7 @@ def main():
 
     # Module-based exercises. Handled as a list to support subcommands like 'sandbox pty'.
     parser.add_argument('command', nargs='*',
-                        help="Command to run (e.g. 'study', 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'load-yaml', 'monitor', 'self-heal', 'heal')")
+                        help="Command to run (e.g. 'study', 'kubernetes', 'migrate-yaml', 'sandbox pty', 'config', 'questions', 'db', 'enrich-sources', 'load-yaml', 'monitor', 'self-heal', 'heal', 'test-ai')")
     parser.add_argument('--list-yaml', action='store_true',
                         help='List available YAML quiz files and exit')
     parser.add_argument('-u', '--custom-file', type=str, dest='custom_file',
@@ -1232,6 +1257,9 @@ def main():
                 return
             elif cmd_name == 'config':
                 handle_config_command(args.command)
+                return
+            elif cmd_name == 'test-ai':
+                test_ai_connection()
                 return
             elif cmd_name == 'monitor':
                 from kubelingo.agent.monitor import HealthMonitor
