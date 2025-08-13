@@ -184,60 +184,34 @@ def handle_config_command(cmd):
             print("For example: export KUBELINGO_AI_PROVIDER=openai")
         else:
             print(f"Unknown action '{action}' for provider. Only 'set' is supported to show instructions.")
-    elif target == 'openai':
+    elif target in ('openai', 'gemini'):
+        provider = target
         if action == 'view':
-            key = get_openai_api_key()
+            key = get_api_key(provider)
             if key:
-                print(f'OpenAI API key: {key}')
+                print(f'{provider.capitalize()} API key: {key}')
             else:
-                print('OpenAI API key is not set.')
+                print(f'{provider.capitalize()} API key is not set.')
         elif action == 'set':
             value = None
             if len(cmd) >= 4:
                 value = cmd[3]
             else:
                 try:
-                    value = getpass.getpass('Enter OpenAI API key: ').strip()
+                    value = getpass.getpass(f'Enter {provider.capitalize()} API key: ').strip()
                 except (EOFError, KeyboardInterrupt):
                     print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
                     return
 
             if value:
-                if save_openai_api_key(value):
-                    print('OpenAI API key saved.')
+                if save_api_key(provider, value):
+                    print(f'{provider.capitalize()} API key saved.')
                 else:
-                    print('Failed to save OpenAI API key.')
+                    print(f'Failed to save {provider.capitalize()} API key.')
             else:
                 print("No API key provided. No changes made.")
         else:
-            print(f"Unknown action '{action}' for openai. Use 'view' or 'set'.")
-    elif target == 'gemini':
-        if action == 'view':
-            key = get_gemini_api_key()
-            if key:
-                print(f'Gemini API key: {key}')
-            else:
-                print('Gemini API key is not set.')
-        elif action == 'set':
-            value = None
-            if len(cmd) >= 4:
-                value = cmd[3]
-            else:
-                try:
-                    value = getpass.getpass('Enter Gemini API key: ').strip()
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n{Fore.YELLOW}API key setting cancelled.{Style.RESET_ALL}")
-                    return
-
-            if value:
-                if save_gemini_api_key(value):
-                    print('Gemini API key saved.')
-                else:
-                    print('Failed to save Gemini API key.')
-            else:
-                print("No API key provided. No changes made.")
-        else:
-            print(f"Unknown action '{action}' for gemini. Use 'view' or 'set'.")
+            print(f"Unknown action '{action}' for {provider}. Use 'view' or 'set'.")
     elif target == 'cluster':
         configs = get_cluster_configs()
         if action == 'list':
@@ -894,8 +868,7 @@ def main():
     if is_interactive:
         if questionary:
             from kubelingo.utils.config import (
-                get_ai_provider, save_ai_provider, get_active_api_key,
-                save_openai_api_key, save_gemini_api_key
+                get_ai_provider, save_ai_provider, get_api_key, save_api_key
             )
             from kubelingo.integrations.llm import OpenAIClient, GeminiClient
             import getpass
@@ -904,7 +877,7 @@ def main():
             if not provider:
                 print(f"{Style.BRIGHT}Welcome to Kubelingo! Let's set up your AI provider.{Style.RESET_ALL}")
                 provider = questionary.select(
-                    "--- AI Provider ---\nPlease select an AI provider to use for feedback and study mode:",
+                    "--- AI Provider ---\nPlease select an AI provider for feedback and study features:",
                     choices=[
                         {"name": "OpenAI (recommended for best results)", "value": "openai"},
                         {"name": "Gemini", "value": "gemini"},
@@ -918,15 +891,14 @@ def main():
                     print(f"{Fore.YELLOW}No provider selected. AI-powered features will be disabled.{Style.RESET_ALL}")
 
             provider = get_ai_provider()  # Get again in case it was just set
-            if provider and not get_active_api_key():
+            if provider and not get_api_key(provider):
                 print(f"\nAn API key for {provider.capitalize()} is required.")
                 try:
                     key_value = getpass.getpass(f"Enter your {provider.capitalize()} API key: ").strip()
                     if key_value:
                         test_func = OpenAIClient.test_key if provider == 'openai' else GeminiClient.test_key
-                        save_func = save_openai_api_key if provider == 'openai' else save_gemini_api_key
                         if test_func(key_value):
-                            if save_func(key_value):
+                            if save_api_key(provider, key_value):
                                 print(f"{Fore.GREEN}✓ API key is valid and has been saved.{Style.RESET_ALL}\n")
                             else:
                                 print(f"{Fore.RED}✗ API key is valid, but failed to save it.{Style.RESET_ALL}\n")

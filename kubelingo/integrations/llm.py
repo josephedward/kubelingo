@@ -51,9 +51,9 @@ class OpenAIClient(LLMClient):
                 "The 'llm' and 'llm-openai' packages are required. "
                 "Please install with 'pip install llm llm-openai'."
             )
-        from kubelingo.utils.config import get_openai_api_key
+        from kubelingo.utils.config import get_api_key
 
-        api_key = get_openai_api_key()
+        api_key = get_api_key("openai")
         if not api_key:
             raise ValueError(
                 "OpenAI API key is not set. Use 'kubelingo config' to set it."
@@ -124,9 +124,9 @@ class GeminiClient(LLMClient):
                 "The 'llm' and 'llm-gemini' packages are required. "
                 "Please install with 'pip install llm llm-gemini'."
             )
-        from kubelingo.utils.config import get_gemini_api_key
+        from kubelingo.utils.config import get_api_key
 
-        api_key = get_gemini_api_key()
+        api_key = get_api_key("gemini")
         if not api_key:
             raise ValueError(
                 "Gemini API key is not set. Use 'kubelingo config' to set it."

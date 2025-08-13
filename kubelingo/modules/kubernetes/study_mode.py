@@ -31,12 +31,7 @@ from kubelingo.question import Question, QuestionSubject
 from kubelingo.utils.config import (
     get_ai_provider,
     get_cluster_configs,
-    get_gemini_api_key,
-    get_openai_api_key,
-    save_ai_provider,
     save_cluster_configs,
-    save_gemini_api_key,
-    save_openai_api_key,
 )
 from kubelingo.utils.path_utils import get_project_root
 from kubelingo.utils.ui import Fore, Style
@@ -117,7 +112,6 @@ class KubernetesStudyMode:
 
                 choices.extend([
                     Separator("--- Settings ---"),
-                    questionary.Choice("API Keys", value=("settings", "api")),
                     questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
                     questionary.Choice("Tool Scripts", value=("settings", "tools")),
                     questionary.Choice("Triaged Questions", value=("settings", "triage")),
@@ -144,9 +138,7 @@ class KubernetesStudyMode:
                 elif menu == "drill":
                     self._run_drill_menu(action, DRILL_MAPPING[action])
                 elif menu == "settings":
-                    if action == "api":
-                        self.settings_menu()
-                    elif action == "tools":
+                    if action == "tools":
                         self.run_tools_menu()
                     else:
                         print(f"'{action}' is not yet implemented.")
@@ -362,14 +354,6 @@ class KubernetesStudyMode:
                 f"{Fore.RED}\nCould not retrieve or run flagged questions: {e}{Style.RESET_ALL}"
             )
 
-    def _api_keys_menu(self):
-        """Interactive prompt for managing API keys."""
-        try:
-            from kubelingo.cli import _setup_ai_provider_interactive
-            _setup_ai_provider_interactive()
-        except (KeyboardInterrupt, EOFError):
-            print()
-            return
 
     def _cluster_config_menu(self):
         """Interactive prompt for managing cluster configurations."""

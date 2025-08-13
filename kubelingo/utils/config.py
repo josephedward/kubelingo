@@ -110,12 +110,7 @@ SUBJECT_MATTER = [
 ]
 
 
-# --- API Keys ---
-# For OpenAI
-API_KEY_FILE = os.path.join(APP_DIR, 'api_key_openai')
-# For Gemini
-GEMINI_API_KEY_FILE = os.path.join(APP_DIR, 'api_key_gemini')
-# For AI Provider choice
+# --- API Keys & Provider ---
 AI_PROVIDER_FILE = os.path.join(APP_DIR, 'ai_provider')
 
 
@@ -123,60 +118,41 @@ AI_PROVIDER_FILE = os.path.join(APP_DIR, 'ai_provider')
 CLUSTER_CONFIG_FILE = os.path.join(APP_DIR, 'clusters.json')
 
 
-def save_openai_api_key(key: str) -> bool:
-    """Saves the OpenAI API key to the config file."""
+def _get_api_key_file_path(provider: str) -> str:
+    """Returns the path to the API key file for a given provider."""
+    return os.path.join(APP_DIR, f'api_key_{provider.lower()}')
+
+
+def save_api_key(provider: str, key: str) -> bool:
+    """Saves an API key for a given provider to its config file."""
+    key_file = _get_api_key_file_path(provider)
     try:
         os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
-        with open(API_KEY_FILE, 'w', encoding='utf-8') as f:
+        with open(key_file, 'w', encoding='utf-8') as f:
             f.write(key.strip())
-        os.chmod(API_KEY_FILE, 0o600)
+        os.chmod(key_file, 0o600)
         return True
     except Exception:
         return False
 
 
-def get_openai_api_key() -> Optional[str]:
+def get_api_key(provider: str) -> Optional[str]:
     """
-    Retrieves the OpenAI API key, checking the config file first, then the
-    OPENAI_API_KEY environment variable.
+    Retrieves the API key for a given provider, checking the config file first,
+    then the corresponding environment variable (e.g., OPENAI_API_KEY).
     """
-    if os.path.exists(API_KEY_FILE):
+    key_file = _get_api_key_file_path(provider)
+    if os.path.exists(key_file):
         try:
-            with open(API_KEY_FILE, 'r', encoding='utf-8') as f:
+            with open(key_file, 'r', encoding='utf-8') as f:
                 key = f.read().strip()
                 if key:
                     return key
         except Exception:
             pass
-    return os.getenv("OPENAI_API_KEY")
-
-
-def save_gemini_api_key(key: str) -> bool:
-    """Saves the Google Gemini API key to the config file."""
-    try:
-        os.makedirs(APP_DIR, mode=0o700, exist_ok=True)
-        with open(GEMINI_API_KEY_FILE, 'w', encoding='utf-8') as f:
-            f.write(key.strip())
-        os.chmod(GEMINI_API_KEY_FILE, 0o600)
-        return True
-    except Exception:
-        return False
-
-
-def get_gemini_api_key() -> Optional[str]:
-    """
-    Retrieves the Google Gemini API key, checking the config file first, then the
-    GEMINI_API_KEY environment variable.
-    """
-    if os.path.exists(GEMINI_API_KEY_FILE):
-        try:
-            with open(GEMINI_API_KEY_FILE, 'r', encoding='utf-8') as f:
-                key = f.read().strip()
-                if key:
-                    return key
-        except Exception:
-            pass
-    return os.getenv("GEMINI_API_KEY")
+    # Fallback to environment variable, e.g., OPENAI_API_KEY, GEMINI_API_KEY
+    env_var_name = f"{provider.upper()}_API_KEY"
+    return os.getenv(env_var_name)
 
 
 def save_ai_provider(provider: str) -> bool:
@@ -191,8 +167,8 @@ def save_ai_provider(provider: str) -> bool:
         return False
 
 
-def get_ai_provider() -> str:
-    """Retrieves the selected AI provider, defaulting to 'gemini'."""
+def get_ai_provider() -> Optional[str]:
+    """Retrieves the selected AI provider."""
     if os.path.exists(AI_PROVIDER_FILE):
         try:
             with open(AI_PROVIDER_FILE, 'r', encoding='utf-8') as f:
@@ -201,16 +177,15 @@ def get_ai_provider() -> str:
                     return provider
         except Exception:
             pass
-    return 'gemini'
+    # No default, return None if not set
+    return None
 
 
 def get_active_api_key() -> Optional[str]:
     """Retrieves the API key for the currently configured AI provider."""
     provider = get_ai_provider()
-    if provider == 'gemini':
-        return get_gemini_api_key()
-    elif provider == 'openai':
-        return get_openai_api_key()
+    if provider:
+        return get_api_key(provider)
     return None
 
 
