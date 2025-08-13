@@ -25,6 +25,8 @@ The application's startup sequence has several critical design flaws and bugs th
 - **Cause**: This is a direct result of the incorrect execution order. The `AICategorizer` is instantiated before the user has a chance to select an AI provider.
 - **Bug**: `Database error during bootstrap: no such column: category_id`.
 - **Cause**: The database schema is out of sync with the application's code, which now expects a `category_id` column that doesn't exist. This indicates the database migration/setup logic is broken or missing.
+- **Bug**: `ValueError: Invalid 'default' value passed. The value ('gemini') does not exist in the set of choices.` when selecting an AI provider.
+- **Cause**: In the main menu's settings, if the user tries to change the AI provider, the application crashes if the currently configured provider (e.g., 'gemini') is not available in the list of choices. This can happen if dependencies for a provider are not installed, making it an invalid selection. The UI attempts to use the invalid provider as the default selection, causing a `ValueError`.
 
 ## Proposed High-Level Fixes
 1.  **Refactor Startup Sequence**: Move the API key and provider check to be the very first action in `initialize_app`. The database bootstrap logic should be removed from the startup path entirely.
