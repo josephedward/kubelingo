@@ -28,6 +28,7 @@ import hashlib
 # Add project root to path to allow imports from kubelingo
 try:
     project_root = Path(__file__).resolve().parent.parent
+    DATA_DIR = project_root / 'question-data'
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
@@ -55,7 +56,7 @@ try:
         find_yaml_files, find_sqlite_files, get_all_sqlite_files_in_repo
     )
     from kubelingo.utils.config import (
-        YAML_BACKUP_DIRS, DATABASE_FILE, QUESTION_DIRS, DATA_DIR, MASTER_DATABASE_FILE,
+        YAML_BACKUP_DIRS, DATABASE_FILE, QUESTION_DIRS, MASTER_DATABASE_FILE,
         SECONDARY_MASTER_DATABASE_FILE, SQLITE_BACKUP_DIRS
     )
     from kubelingo.utils.ui import Fore, Style

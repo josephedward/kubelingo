@@ -46,6 +46,13 @@ The application's startup sequence has several critical design flaws and bugs th
   ImportError: cannot import name 'SUBJECT_MATTER' from 'kubelingo.utils.config' (/Users/user/Documents/GitHub/kubelingo/kubelingo/utils/config.py)
   ```
 - **Cause**: The `SUBJECT_MATTER` constant, which defines Kubernetes topics, was removed from `kubelingo.utils.config` but `kubelingo.database.py` still attempts to import it from there. This constant is now sourced from the `QuestionSubject` enum in `kubelingo.question`.
+- **Bug**: `ImportError: cannot import name 'DATA_DIR' from 'kubelingo.utils.config'`.
+  ```
+  Output from python3 scripts/kubelingo_tools.py
+  Error: A required module is not available: cannot import name 'DATA_DIR' from 'kubelingo.utils.config' (/Users/user/Documents/GitHub/kubelingo/kubelingo/utils/config.py). Please ensure all dependencies are installed and you run this from the project root.
+  ```
+- **Cause**: The `DATA_DIR` constant was removed from `kubelingo.utils.config`, but `scripts/question_manager.py` (imported by `scripts/kubelingo_tools.py`) still attempted to import it.
+- **Resolution**: The import was removed and `DATA_DIR` was defined locally within `scripts/question_manager.py` relative to the project root.
 - **Bug**: Socratic socratic mode incorrectly uses the "Drill" mode logic.
 - **Cause**: Instead of directly entering a question generation flow, the Socratic socratic mode prompts the user to select a category and subject, then searches for existing questions. This is the behavior of "Drill" mode, which is intended for practicing with existing questions. Socratic mode should be a purely generative conversational experience, starting by asking the user what topic they want to discuss, and not rely on pre-existing questions.
 - **Bug**: Socratic socratic mode fails silently with a generic "Sorry, I couldn't start the session" message.
