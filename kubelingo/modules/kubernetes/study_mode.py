@@ -156,39 +156,14 @@ class KubernetesStudyMode:
         print("\nQuiz ended. Returning to menu.")
 
     def _run_socratic_mode_entry(self):
-        """Gets user input for study type and topic, then starts the session."""
-        session_choices = [
-            questionary.Choice("Socratic Tutor (conversational learning)", value="socratic"),
-            Separator("--- Quizzes ---"),
-            questionary.Choice(QuestionCategory.OPEN_ENDED.value, value=QuestionCategory.OPEN_ENDED),
-            questionary.Choice(QuestionCategory.BASIC_TERMINOLOGY.value, value=QuestionCategory.BASIC_TERMINOLOGY),
-            questionary.Choice(QuestionCategory.COMMAND_SYNTAX.value, value=QuestionCategory.COMMAND_SYNTAX),
-            questionary.Choice(QuestionCategory.YAML_MANIFEST.value, value=QuestionCategory.YAML_MANIFEST),
-        ]
-
-        session_type = questionary.select(
-            "What type of study session would you like to start?",
-            choices=session_choices,
-            use_indicator=True
-        ).ask()
-
-        if not session_type:
-            return
-
+        """Gets user input before starting socratic mode."""
         topic = questionary.select(
             "Which Kubernetes topic would you like to study?",
             choices=KUBERNETES_TOPICS,
             use_indicator=True,
         ).ask()
-
-        if not topic:
-            return
-
-        if session_type == "socratic":
-            self._run_socratic_mode(topic, "intermediate")
-        elif isinstance(session_type, QuestionCategory):
-            questions = self._get_questions_by_category_and_subject(session_type, topic)
-            self._run_quiz(questions)
+        if topic:
+            self._run_socratic_mode(topic)
 
     def _get_question_count_by_category(self, category: QuestionCategory) -> int:
         """Fetches question count for a given category."""
