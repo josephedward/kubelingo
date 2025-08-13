@@ -69,7 +69,7 @@ Do not include any other text or explanation.
             ]
             response_str = self.client.chat_completion(
                 messages=messages,
-                is_json=True,
+                json_mode=True,
                 temperature=0.0
             )
 
