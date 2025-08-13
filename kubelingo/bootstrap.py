@@ -65,10 +65,9 @@ def _check_api_keys():
 def initialize_app():
     """
     Performs all necessary startup tasks for the application, including
-    API key checks and database bootstrapping.
+    API key checks.
     """
     _check_api_keys()
-    bootstrap_on_startup()
 
 
 def bootstrap_on_startup():
