@@ -1071,7 +1071,7 @@ def main():
                 handle_load_yaml(args.command[1:])
                 return
             elif cmd_name == 'questions':
-                manage_questions_interactive()
+                _run_question_management()
                 return
             elif cmd_name in ('migrate-yaml', 'import-json', 'import-yaml'):
                 # Merge questions from the master backup into the live database
