@@ -15,6 +15,7 @@ import re
 import subprocess
 import tempfile
 import shutil
+import hashlib
 import logging
 from collections import defaultdict, Counter
 from datetime import datetime
@@ -83,6 +84,27 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return ""
 
 
+def sha256_checksum(file_path: Path, block_size=65536) -> str:
+    """Calculates the SHA256 checksum of a file."""
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for block in iter(lambda: f.read(block_size), b""):
+            sha256.update(block)
+    return sha256.hexdigest()
+
+
+def find_file_duplicates(file_paths: List[Path]) -> Dict[str, List[Path]]:
+    """Finds duplicate files from a list of Paths based on their content."""
+    checksums = defaultdict(list)
+    for file_path in file_paths:
+        if file_path.is_file():
+            try:
+                checksum = sha256_checksum(file_path)
+                checksums[checksum].append(file_path)
+            except IOError as e:
+                print(f"Warning: Could not read file {file_path}: {e}", file=sys.stderr)
+
+    return {k: v for k, v in checksums.items() if len(v) > 1}
 
 
 def get_existing_prompts(conn) -> Set[str]:
@@ -395,6 +417,33 @@ def handle_deduplicate(args):
     finally:
         if conn:
             conn.close()
+
+
+def handle_deduplicate_files(args):
+    """Handler for finding and reporting duplicate files by content."""
+    file_paths = [Path(f) for f in args.files]
+    duplicates = find_file_duplicates(file_paths)
+
+    if not duplicates:
+        print("No duplicate files found.", file=sys.stderr)
+        return
+
+    print("# Found duplicate files. Run the following commands to remove them:")
+    print("# This will remove the files from your git tracking and the filesystem.")
+
+    total_removed = 0
+    for checksum, paths in duplicates.items():
+        # Sort by path to have a deterministic file to keep.
+        paths.sort()
+        # Keep the first file, mark the rest for deletion.
+        paths_to_delete = paths[1:]
+
+        print(f"\n# Duplicates with checksum {checksum} (keeping '{paths[0]}')")
+        for p in paths_to_delete:
+            print(f"git rm '{p}'")
+            total_removed += 1
+
+    print(f"\n# Total files to be removed: {total_removed}", file=sys.stderr)
 
 
 # --- from: scripts/find_duplicate_questions.py ---
@@ -2201,6 +2250,11 @@ def main():
     parser_deduplicate.add_argument("--db-path", default=None, help="Path to the SQLite database file. Defaults to the live application database.")
     parser_deduplicate.add_argument("--delete", action="store_true", help="Delete duplicate questions, keeping only the newest occurrence of each.")
     parser_deduplicate.set_defaults(func=handle_deduplicate)
+
+    # Sub-parser for 'deduplicate-files'
+    parser_deduplicate_files = subparsers.add_parser('deduplicate-files', help='Find and report duplicate files by content.', description="Finds duplicate files from a list of paths based on content checksum and prints 'git rm' commands for duplicates.")
+    parser_deduplicate_files.add_argument('files', nargs='+', help='File paths to check for duplicates.')
+    parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Sub-parser for 'find-duplicates' (from scripts/find_duplicate_questions.py)
     parser_find_duplicates = subparsers.add_parser('find-duplicates', help='Find and optionally delete duplicate questions (keeps first).', description="Finds and optionally deletes duplicate questions based on prompt text, keeping the first occurrence.")
