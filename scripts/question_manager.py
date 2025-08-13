@@ -2118,7 +2118,7 @@ def _import_yaml_to_db_for_verify(yaml_path: str, conn: sqlite3.Connection):
     return inserted_count
 
 def do_verify(args):
-    """Verify YAML question import to SQLite and loading via DBLoader."""
+    """Verify YAML question import to SQLite and loading from the database."""
     yaml_files = find_yaml_files_from_paths(args.paths)
 
     if not yaml_files:
@@ -2126,14 +2126,14 @@ def do_verify(args):
         sys.exit(1)
 
     print(f"Found {len(yaml_files)} YAML file(s) to process.")
-    
+
     tmp_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     db_path = tmp_db_file.name
     tmp_db_file.close()
 
     try:
         print(f"Using temporary database: {db_path}")
-        
+
         conn = sqlite3.connect(db_path)
         _create_db_schema_for_verify(conn)
 
@@ -2142,9 +2142,10 @@ def do_verify(args):
 
         for yaml_file in yaml_files:
             num_imported = _import_yaml_to_db_for_verify(str(yaml_file), conn)
-            total_imported += num_imported
-            imported_files_map[os.path.basename(str(yaml_file))] = num_imported
-        
+            if num_imported > 0:
+                total_imported += num_imported
+                imported_files_map[os.path.basename(str(yaml_file))] = num_imported
+
         conn.close()
 
         if total_imported == 0:
@@ -2152,38 +2153,42 @@ def do_verify(args):
             return
 
         print(f"\nTotal questions imported: {total_imported}")
-        print("\nVerifying import using DBLoader...")
-        loader = DBLoader(db_path=db_path)
-        
-        source_files_in_db = loader.discover()
-        
-        imported_basenames = set(imported_files_map.keys())
-        discovered_basenames = set(source_files_in_db)
+        print("\nVerifying import by querying the database...")
 
-        if not imported_basenames.issubset(discovered_basenames):
-            missing = sorted(list(imported_basenames - discovered_basenames))
-            print(f"ERROR: DBLoader did not discover the following source file(s): {', '.join(missing)}", file=sys.stderr)
-            print(f"Discovered files in DB: {sorted(list(discovered_basenames))}", file=sys.stderr)
+        verify_conn = sqlite3.connect(db_path)
+        verify_cursor = verify_conn.cursor()
+
+        verify_cursor.execute("SELECT DISTINCT source_file FROM questions")
+        source_files_in_db = {row[0] for row in verify_cursor.fetchall()}
+
+        imported_basenames = set(imported_files_map.keys())
+
+        if not imported_basenames.issubset(source_files_in_db):
+            missing = sorted(list(imported_basenames - source_files_in_db))
+            print(f"ERROR: DB query did not discover the following source file(s): {', '.join(missing)}", file=sys.stderr)
+            print(f"Discovered files in DB: {sorted(list(source_files_in_db))}", file=sys.stderr)
             sys.exit(1)
-            
+
         print(f"Successfully discovered all {len(imported_files_map)} source file(s).")
         print("\nVerifying question counts...")
 
         total_loaded = 0
         mismatched_files = []
         for basename, num_imported in sorted(imported_files_map.items()):
-            loaded_questions = loader.load_file(basename)
-            num_loaded = len(loaded_questions)
+            verify_cursor.execute("SELECT COUNT(*) FROM questions WHERE source_file = ?", (basename,))
+            num_loaded = verify_cursor.fetchone()[0]
             total_loaded += num_loaded
-            
+
             if num_loaded == num_imported:
-                print(f"  ✅ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+                print(f"  ✅ '{basename}': Imported {num_imported}, DB query loaded {num_loaded}.")
             else:
-                print(f"  ❌ '{basename}': Imported {num_imported}, DBLoader loaded {num_loaded}.")
+                print(f"  ❌ '{basename}': Imported {num_imported}, DB query loaded {num_loaded}.")
                 mismatched_files.append(basename)
-        
+
+        verify_conn.close()
+
         print("-" * 20)
-        print(f"Total Imported: {total_imported}, Total Loaded: {total_loaded}")
+        print(f"Total Imported: {total_imported}, Total Loaded by query: {total_loaded}")
 
         if not mismatched_files and total_imported == total_loaded:
             print("\nSUCCESS: The number of loaded questions matches the number of imported questions for all files.")
@@ -2785,75 +2790,6 @@ def handle_kubectl_operations(args):
     print(f"Generated {output_path} with {len(ops)} questions.")
 
 
-# --- from scripts/generate_ai_questions.py ---
-
-def handle_ai_questions(args):
-    """Handles 'ai-questions' subcommand."""
-    if 'OPENAI_API_KEY' not in os.environ:
-        print("Error: OPENAI_API_KEY environment variable not set.")
-        sys.exit(1)
-    if not all([AIQuestionGenerator, DBLoader, yaml]):
-        print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
-        sys.exit(1)
-
-    base_questions = []
-    if args.example_source_file:
-        print(f"Loading example questions from source file '{args.example_source_file}' in the database...")
-        loader = DBLoader()
-        base_questions = loader.load_file(args.example_source_file)
-
-        if not base_questions:
-            print(f"Warning: No example questions found in the database for source file '{args.example_source_file}'.")
-        else:
-            print(f"Using {len(base_questions)} questions from the database as examples.")
-
-    generator = AIQuestionGenerator()
-
-    subject_for_ai = args.subject
-    if not base_questions:
-        print("No base questions provided as examples. Using a more detailed prompt for the AI.")
-        if args.category == 'Basic':
-            subject_for_ai = f"Generate {args.num_questions} questions for a 'Basic term/definition recall' quiz about the Kubernetes topic: '{args.subject}'. The questions should test fundamental concepts and definitions, suitable for a beginner."
-        elif args.category == 'Command':
-            subject_for_ai = f"Generate {args.num_questions} questions for a 'Command-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should result in a single kubectl command as an answer."
-        elif args.category == 'Manifest':
-            subject_for_ai = f"Generate {args.num_questions} questions for a 'Manifest-based' quiz about the Kubernetes topic: '{args.subject}'. The questions should require creating or editing a Kubernetes YAML manifest."
-
-    print(f"Generating {args.num_questions} questions about '{args.subject}'...")
-    new_questions = generator.generate_questions(
-        subject=subject_for_ai,
-        num_questions=args.num_questions,
-        base_questions=base_questions,
-        category=args.category,
-        exclude_terms=[]
-    )
-
-    if not new_questions:
-        print("AI failed to generate any questions.")
-        return
-
-    print(f"Successfully generated {len(new_questions)} questions.")
-
-    question_dicts = [asdict(q) for q in new_questions]
-
-    for q_dict in question_dicts:
-        if 'review' in q_dict:
-            del q_dict['review']
-
-    output_dir = os.path.dirname(args.output_file)
-    if output_dir:
-        os.makedirs(output_dir, exist_ok=True)
-
-    if os.path.exists(args.output_file):
-        overwrite = input(f"File '{args.output_file}' already exists. Overwrite? (y/N): ").lower()
-        if overwrite != 'y':
-            print("Operation cancelled.")
-            return
-
-    with open(args.output_file, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(question_dicts, f, default_flow_style=False, sort_keys=False, indent=2)
-
-    print(f"\nSuccessfully saved {len(new_questions)} questions to '{args.output_file}'.")
 
 
 # --- from scripts/generate_validation_steps.py ---
