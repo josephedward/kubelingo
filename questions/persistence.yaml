@@ -1,0 +1,13 @@
+questions:
+  - question: "Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage with the 'ReadWriteOnce' access mode."
+    solution: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: my-pvc
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

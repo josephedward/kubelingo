@@ -1,0 +1,13 @@
+questions:
+  - question: "Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: ssd-pod
+      spec:
+        containers:
+        - name: main
+          image: nginx
+        nodeSelector:
+          disktype: ssd

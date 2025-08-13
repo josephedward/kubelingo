@@ -1,0 +1,7 @@
+questions:
+  - question: "Add a label 'env=prod' to the pod named 'my-pod'."
+    solution: |
+      kubectl label pod my-pod env=prod
+  - question: "Get all pods with the label 'env=prod'."
+    solution: |
+      kubectl get pods -l env=prod

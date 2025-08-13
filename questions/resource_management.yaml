@@ -1,0 +1,4 @@
+questions:
+  - question: "Create a pod named 'resource-pod' with image 'nginx'. Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m' and memory limits to '512Mi'."
+    solution: |
+      kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi --dry-run=client -o yaml

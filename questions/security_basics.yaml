@@ -1,0 +1,15 @@
+questions:
+  - question: "Create a pod manifest that runs a container with user ID 1000 and has a read-only root filesystem."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: secure-pod
+      spec:
+        containers:
+        - name: main
+          image: busybox
+          command: ["sleep", "3600"]
+          securityContext:
+            runAsUser: 1000
+            readOnlyRootFilesystem: true

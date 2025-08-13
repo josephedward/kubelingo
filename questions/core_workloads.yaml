@@ -1,0 +1,7 @@
+questions:
+  - question: "Create a deployment named 'webapp' with image 'nginx:1.21' and 3 replicas."
+    solution: |
+      kubectl create deployment webapp --image=nginx:1.21 --replicas=3
+  - question: "Scale the 'webapp' deployment to 5 replicas."
+    solution: |
+      kubectl scale deployment webapp --replicas=5

@@ -1,0 +1,4 @@
+questions:
+  - question: "Create an Ingress resource named 'app-ingress'. It should route traffic for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on port 80."
+    solution: |
+      kubectl create ingress app-ingress --rule="app.example.com/*=webapp-svc:80"

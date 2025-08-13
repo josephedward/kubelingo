@@ -1,0 +1,4 @@
+questions:
+  - question: "Create a pod named 'env-pod' with image 'busybox' that runs the command 'echo $(GREETING) $(NAME)!' and has two environment variables: GREETING=Hello and NAME=World."
+    solution: |
+      kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello" --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'

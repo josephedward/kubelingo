@@ -1,0 +1,3 @@
+questions:
+  - question: "In Vim, how do you save the file and quit?"
+    solution: ":wq"

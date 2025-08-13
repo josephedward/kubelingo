@@ -1,0 +1,7 @@
+questions:
+  - question: "Display documentation for the 'Pod' resource, including its fields."
+    solution: |
+      kubectl explain pod
+  - question: "List all available API resources in the cluster."
+    solution: |
+      kubectl api-resources

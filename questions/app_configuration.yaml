@@ -1,0 +1,4 @@
+questions:
+  - question: "Create a ConfigMap named 'app-config' with two data items: 'app.color=blue' and 'app.environment=dev'."
+    solution: |
+      kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev

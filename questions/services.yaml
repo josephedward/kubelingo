@@ -1,0 +1,4 @@
+questions:
+  - question: "You have a deployment named 'webapp' with label 'app=webapp'. Create a ClusterIP service named 'webapp-svc' to expose the deployment on port 80."
+    solution: |
+      kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80

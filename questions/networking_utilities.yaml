@@ -1,0 +1,4 @@
+questions:
+  - question: "Forward local port 8080 to port 80 on a pod named 'webapp-pod-123'."
+    solution: |
+      kubectl port-forward pod/webapp-pod-123 8080:80

@@ -1,0 +1,15 @@
+questions:
+  - question: "Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness probe. The probe should perform an HTTP GET request on port 80 at the path '/'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: probe-pod
+      spec:
+        containers:
+        - name: nginx
+          image: nginx
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80

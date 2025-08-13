@@ -56,16 +56,47 @@ def get_llm_feedback(question, user_answer, correct_solution):
     except Exception as e:
         return f"Error getting feedback from LLM: {e}"
 
+def list_and_select_topic():
+    """Lists available topics and prompts the user to select one."""
+    available_topics = sorted([f.replace('.yaml', '') for f in os.listdir('questions') if f.endswith('.yaml')])
+    if not available_topics:
+        print("No question topics found in the 'questions' directory.")
+        return None
+
+    print("\nPlease select a topic to study:")
+    for i, topic_name in enumerate(available_topics):
+        print(f"  {i+1}. {topic_name.replace('_', ' ').title()}")
+
+    while True:
+        try:
+            choice = input(f"\nEnter a number (1-{len(available_topics)}): ")
+            choice_index = int(choice) - 1
+            if 0 <= choice_index < len(available_topics):
+                return available_topics[choice_index]
+            else:
+                print("Invalid number. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+        except (KeyboardInterrupt, EOFError):
+            print("\n\nStudy session ended. Goodbye!")
+            return None
+
 def main():
     """Main function to run the study app."""
     if not os.path.exists('questions'):
         os.makedirs('questions')
 
     parser = argparse.ArgumentParser(description="A CLI tool to help study for the CKAD exam.")
-    parser.add_argument("topic", help="The topic to study (e.g., core_concepts).")
+    parser.add_argument("topic", nargs='?', default=None, help="The topic to study. If not provided, a menu will be shown.")
     args = parser.parse_args()
 
-    data = load_questions(args.topic)
+    topic = args.topic
+    if not topic:
+        topic = list_and_select_topic()
+        if not topic:
+            return
+
+    data = load_questions(topic)
     if not data or 'questions' not in data:
         print("No questions found in the specified topic file.")
         return
@@ -76,7 +107,7 @@ def main():
     try:
         for i, q in enumerate(questions):
             clear_screen()
-            print(f"Question {i+1}/{len(questions)} (Topic: {args.topic})")
+            print(f"Question {i+1}/{len(questions)} (Topic: {topic})")
             print("-" * 40)
             print(q['question'])
             print("-" * 40)

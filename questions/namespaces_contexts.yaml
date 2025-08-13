@@ -1,0 +1,7 @@
+questions:
+- question: "Create a new namespace called 'development'."
+  solution: |
+    kubectl create namespace development
+- question: "Switch your current context to use the 'development' namespace."
+  solution: |
+    kubectl config set-context --current --namespace=development

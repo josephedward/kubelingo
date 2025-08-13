@@ -1,0 +1,15 @@
+questions:
+  - question: "Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer. The initContainer should use the 'busybox' image and run the command 'sleep 2'. The main container should use the 'nginx' image."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod-with-init
+      spec:
+        initContainers:
+        - name: init-work
+          image: busybox
+          command: ['sh', '-c', 'sleep 2']
+        containers:
+        - name: main-app
+          image: nginx
