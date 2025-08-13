@@ -202,7 +202,7 @@ def consolidate_dbs():
     if yaml_files:
         for yf in yaml_files:
             try:
-                docs = list(yaml.safe_load_all(yf.read_text(encoding='utf-8')))
+                docs = list(yaml.load_all(yf.read_text(encoding='utf-8'), Loader=yaml.FullLoader))
             except Exception:
                 continue
             if docs and isinstance(docs[-1], dict) and list(docs[-1].keys()) == ['entries'] and docs[-1].get('entries') == []:
@@ -241,7 +241,7 @@ def consolidate_manifests():
     all_questions = []
     for manifest_file in sorted(archive_dir.glob('*.yaml')):
         try:
-            docs = list(yaml.safe_load_all(manifest_file.read_text(encoding='utf-8')))
+            docs = list(yaml.load_all(manifest_file.read_text(encoding='utf-8'), Loader=yaml.FullLoader))
         except Exception as e:
             sys.stderr.write(f"Failed to parse {manifest_file}: {e}\n")
             continue
@@ -280,11 +280,11 @@ def merge_quizzes(source: str, destination: str, delete_source: bool):
 
     try:
         with open(source, 'r', encoding='utf-8') as f:
-            source_questions = yaml.safe_load(f) or []
+            source_questions = yaml.load(f, Loader=yaml.FullLoader) or []
 
         if os.path.exists(destination):
             with open(destination, 'r', encoding='utf-8') as f:
-                dest_questions = yaml.safe_load(f) or []
+                dest_questions = yaml.load(f, Loader=yaml.FullLoader) or []
         else:
             print(f"Warning: Destination file '{destination}' not found. It will be created.")
             dest_questions = []
@@ -396,7 +396,7 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
     for file_path in yaml_files:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                questions = yaml.safe_load(f) or []
+                questions = yaml.load(f, Loader=yaml.FullLoader) or []
                 if not isinstance(questions, list):
                     if isinstance(questions, dict):
                         questions = [questions]
@@ -438,7 +438,7 @@ def organize_ai_questions(source_dir_path: str, dest_dir_path: str, delete_sourc
         if dest_filepath.exists():
             with open(dest_filepath, 'r', encoding='utf-8') as f_read:
                 try:
-                    docs = list(yaml.safe_load_all(f_read))
+                    docs = list(yaml.load_all(f_read, Loader=yaml.FullLoader))
                     for doc in docs:
                         if isinstance(doc, list):
                             existing_questions.extend(doc)
