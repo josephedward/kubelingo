@@ -731,7 +731,6 @@ def handle_ai_questions(args):
                         validation_steps=validation_steps,
                         explanation=q_dict.get('explanation'),
                         categories=categories,
-                        difficulty=q_dict.get('difficulty'),
                         metadata=q_dict.get('metadata', {})
                     ))
                 except (TypeError, KeyError) as e:

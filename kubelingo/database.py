@@ -9,7 +9,7 @@ from datetime import datetime
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from kubelingo.question import Question
+from kubelingo.question import Question, QuestionCategory
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
 from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
 
@@ -127,6 +127,29 @@ def get_flagged_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dic
     finally:
         if manage_connection and conn:
             conn.close()
+
+
+def get_question_counts_by_category(conn: Optional[sqlite3.Connection] = None) -> Dict[str, int]:
+    """Fetches question counts for each category from the live database."""
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
+    # Initialize counts for all categories to 0
+    counts = {cat.value: 0 for cat in QuestionCategory}
+    try:
+        # This query will get the count of questions for each category_id.
+        cursor = conn.cursor()
+        cursor.execute("SELECT category_id, COUNT(*) FROM questions GROUP BY category_id")
+        rows = cursor.fetchall()
+        for row in rows:
+            category, count = row
+            if category and category in counts:
+                counts[category] = count
+    finally:
+        if manage_connection and conn:
+            conn.close()
+    return counts
 
 
 def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
@@ -303,8 +326,8 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
         )
     """)
 
-    for _cat in ('basic', 'command', 'manifest'):
-        cursor.execute("INSERT OR IGNORE INTO question_categories (id) VALUES (?);", (_cat,))
+    for category in QuestionCategory:
+        cursor.execute("INSERT OR IGNORE INTO question_categories (id) VALUES (?);", (category.value,))
     for _subj in SUBJECT_MATTER:
         cursor.execute("INSERT OR IGNORE INTO question_subjects (id) VALUES (?);", (_subj,))
 

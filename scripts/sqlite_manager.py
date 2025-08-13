@@ -707,7 +707,7 @@ def _normalize_and_prepare_question_for_db(q_data, category_to_source_file, allo
 def _populate_db_from_yaml(yaml_files, db_path=None):
     if not yaml_files: print("No YAML files found to process."); return
     conn = get_db_connection(db_path=db_path)
-    allowed_args = {"id", "prompt", "source_file", "response", "subject", "source", "raw", "validation_steps", "validator", "review", "question_type", "category", "answers", "correct_yaml", "difficulty", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
+    allowed_args = {"id", "prompt", "source_file", "response", "subject", "source", "raw", "validation_steps", "validator", "review", "question_type", "category", "answers", "correct_yaml", "explanation", "initial_files", "pre_shell_cmds", "subject_matter", "metadata"}
     unmatched_categories, skipped_no_category, question_count = set(), 0, 0
     try:
         for file_path in yaml_files:
