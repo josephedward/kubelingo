@@ -105,7 +105,7 @@ class AIQuestionGenerator:
                     prompt_lines.append(f"  Response: {ex.response}")
             response_description = "the full, correct YAML manifest"
         elif category == "Basic" or category == "socratic":
-            q_type = "socratic"
+            q_type = "basic_terminology" if category == "Basic" else "socratic"
             prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
             prompt_lines.append("Here are some examples of the format:")
             prompt_lines.append("- Prompt: What Kubernetes object provides a way to expose an application running on a set of Pods as a network service?")
