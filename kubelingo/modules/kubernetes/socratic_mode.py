@@ -345,34 +345,10 @@ class SocraticMode:
         if questions:
             self.run_exercises(questions)
         else:
-            if not self.question_generator:
-                print(
-                    f"\n{Fore.YELLOW}No questions found for this topic and AI features are not available.{Style.RESET_ALL}"
-                )
-                questionary.confirm("Press Enter to continue...").ask()
-                return
-
-            if not questionary.confirm(
-                f"No questions found for '{subject.value}' in '{category.value}'.\n"
-                "Would you like to generate some now using AI?",
-                default=True,
-            ).ask():
-                return
-
-            quiz_type_map = {
-                QuestionCategory.BASIC_TERMINOLOGY: "basic",
-                QuestionCategory.COMMAND_SYNTAX: "command",
-                QuestionCategory.YAML_MANIFEST: "manifest",
-            }
-            quiz_type = quiz_type_map.get(category)
-
-            if quiz_type:
-                self._run_quiz_loop(quiz_type, subject.value, category)
-            else:
-                print(
-                    f"{Fore.YELLOW}Question generation is not supported for '{category.value}'.{Style.RESET_ALL}"
-                )
-                questionary.confirm("Press Enter to continue...").ask()
+            print(
+                f"\n{Fore.YELLOW}No questions found for '{subject.value}' in '{category.value}'.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
 
     def _get_questions_by_category_and_subject(
         self, category: QuestionCategory, subject: Optional[str]
