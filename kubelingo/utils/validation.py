@@ -66,6 +66,79 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
     return duplicates
 
 
+def validate_yaml_structure(yaml_content: str) -> Dict[str, Any]:
+    """
+    Validates a Kubernetes YAML manifest, using a high-performance Rust
+    validator if available, otherwise falling back to a Python implementation.
+    """
+    if RUST_VALIDATOR_ENABLED and rust_validate_yaml_structure:
+        try:
+            is_valid, message = rust_validate_yaml_structure(yaml_content)
+            return {"valid": is_valid, "reason": message}
+        except Exception:
+            # Fall through to Python validator on Rust error
+            pass
+
+    if not yaml:
+        return {"valid": False, "reason": "PyYAML is not installed."}
+
+    try:
+        data = yaml.safe_load(yaml_content)
+        if not isinstance(data, dict):
+            return {"valid": False, "reason": "YAML is not a dictionary."}
+        
+        # Basic Kubernetes structure check
+        if not all(k in data for k in ["apiVersion", "kind", "metadata"]):
+            return {"valid": False, "reason": "Missing one or more required keys: apiVersion, kind, metadata."}
+            
+        return {"valid": True, "reason": "YAML is syntactically valid and has basic Kubernetes keys."}
+    except yaml.YAMLError as e:
+        return {"valid": False, "reason": f"YAML syntax error: {e}"}
+
+
+def validate_prompt_completeness(command: str, prompt: str) -> Dict[str, Any]:
+    """
+    Validates that a generated kubectl command's key arguments are present
+    in the prompt to prevent the AI from inventing details.
+
+    Args:
+        command: The kubectl command string.
+        prompt: The question prompt string.
+
+    Returns:
+        A dictionary with a "valid" boolean and a "reason" string.
+    """
+    try:
+        # A list of common kubectl parts to ignore in the check.
+        ignore_tokens = {
+            'kubectl', 'get', 'describe', 'create', 'delete', 'apply', 'edit', 'run',
+            '-n', '--namespace', '-o', '--output', 'yaml', 'json',
+            '--dry-run=client', '--dry-run', 'client'
+        }
+
+        # Use shlex to handle quoted arguments correctly.
+        tokens = set(shlex.split(command.lower()))
+        prompt_lower = prompt.lower()
+        
+        # Get the tokens that should be present in the prompt.
+        check_tokens = tokens - ignore_tokens
+
+        missing_tokens = []
+        for token in check_tokens:
+            # Simple substring check.
+            if token not in prompt_lower:
+                missing_tokens.append(token)
+        
+        if missing_tokens:
+            reason = f"The prompt may be incomplete. The following arguments from the command are missing in the prompt: {', '.join(missing_tokens)}."
+            return {"valid": False, "reason": reason}
+        
+        return {"valid": True, "reason": "All key command arguments appear to be in the prompt."}
+    except Exception as e:
+        # In case of parsing errors, fail open to not block generation.
+        return {"valid": True, "reason": f"Validator failed with an error: {e}"}
+
+
 def validate_prompt_completeness(response: str, prompt: str) -> Dict[str, Any]:
     """
     Validates that a response is complete and relevant to the given prompt.
