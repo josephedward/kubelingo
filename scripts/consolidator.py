@@ -14,8 +14,9 @@ from textwrap import indent
 
 try:
     import yaml
+    from InquirerPy import inquirer
 except ImportError:
-    print("Error: PyYAML is required. Please install it using: pip install pyyaml", file=sys.stderr)
+    print("Error: Required packages are missing. Please install them using: pip install PyYAML InquirerPy", file=sys.stderr)
     sys.exit(1)
 
 # Add project root to path to allow importing kubelingo modules if needed
@@ -26,13 +27,11 @@ if str(project_root) not in sys.path:
 try:
     from kubelingo.utils.config import APP_DIR
     from kubelingo.utils.path_utils import get_all_question_dirs, find_yaml_files
-    from kubelingo.modules.ai_categorizer import AICategorizer
     from kubelingo.database import get_db_connection
     import sqlite3
 except ImportError:
     print("Could not import kubelingo modules. Using fallbacks. AI categorization and DB updates will be disabled.", file=sys.stderr)
-    APP_DIR = project_root / '.kubelingo' # fallback
-    AICategorizer = None
+    APP_DIR = project_root / '.kubelingo'  # fallback
     get_db_connection = None
     sqlite3 = None
     def get_all_question_dirs():
@@ -58,10 +57,10 @@ def sha256_checksum(file_path: Path, block_size=65536) -> str:
     return sha256.hexdigest()
 
 
-# --- New Functionality: List Questions from Database ---
+# --- New Functionality: Interactive Selector ---
 
-def list_questions(args):
-    """Lists questions from the database with optional filters."""
+def interactive_selector():
+    """Displays an interactive selector for Kubernetes exercises."""
     if not get_db_connection or not sqlite3:
         print("Error: Database functionality is not available.", file=sys.stderr)
         sys.exit(1)
@@ -72,44 +71,51 @@ def list_questions(args):
         conn.row_factory = sqlite3.Row  # Ensure we can access columns by name
         cursor = conn.cursor()
 
-        query = "SELECT id, category, subject, source_file FROM questions"
-        conditions = []
-        params = []
-
-        if args.category:
-            conditions.append("category = ?")
-            params.append(args.category)
-        if args.subject:
-            conditions.append("subject LIKE ?")
-            params.append(f"%{args.subject}%")
-        if args.source_file:
-            conditions.append("source_file LIKE ?")
-            params.append(f"%{args.source_file}%")
-
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-
-        query += " ORDER BY category, subject, source_file"
-
-        cursor.execute(query, params)
+        # Query for counts by category and subject
+        cursor.execute("""
+            SELECT category, subject, COUNT(*) as count
+            FROM questions
+            GROUP BY category, subject
+        """)
         rows = cursor.fetchall()
 
-        if not rows:
-            print("No questions found matching the specified criteria.")
-            return
-
-        print(f"\nFound {len(rows)} questions matching criteria.\n")
-        print(f"{'ID':<38} {'CATEGORY':<15} {'SUBJECT':<35} {'SOURCE'}")
-        print("-" * 150)
-
+        # Organize data into a nested structure
+        data = defaultdict(lambda: defaultdict(int))
         for row in rows:
-            subject_str = row["subject"] or "N/A"
-            if len(subject_str) > 32:
-                subject_str = subject_str[:29] + "..."
+            category = row["category"] or "Uncategorized"
+            subject = row["subject"] or "Uncategorized"
+            data[category][subject] = row["count"]
 
-            category_str = row["category"] or "N/A"
-            source_str = row["source_file"] or "N/A"
-            print(f"{row['id']:<38} {category_str:<15} {subject_str:<35} {source_str}")
+        # Build choices for the selector
+        choices = []
+        choices.append("--- Review ---")
+        choices.append(f"○ Review Flagged Questions ({data.get('Review', {}).get('Flagged', 0)})")
+        choices.append("○ Study Mode (Socratic Tutor)")
+        choices.append("--- Basic Exercises ---")
+        for subject, count in data.get("basic", {}).items():
+            choices.append(f"○ {subject} ({count} questions)")
+        choices.append("--- Command-Based Exercises ---")
+        for subject, count in data.get("command", {}).items():
+            choices.append(f"○ {subject} ({count} questions)")
+        choices.append("--- Manifest-Based Exercises ---")
+        for subject, count in data.get("manifest", {}).items():
+            choices.append(f"○ {subject} ({count} questions)")
+        choices.append("--- Settings ---")
+        choices.append("○ API Keys")
+        choices.append("○ Cluster Configuration")
+        choices.append("○ Troubleshooting")
+        choices.append("○ Help Documentation")
+        choices.append("○ Exit App")
+
+        # Display the selector
+        selected = inquirer.select(
+            message="Choose a Kubernetes exercise:",
+            choices=choices,
+            pointer="»",
+            default=None,
+        ).execute()
+
+        print(f"You selected: {selected}")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}", file=sys.stderr)
@@ -214,20 +220,13 @@ subparsers = parser.add_subparsers(dest="command", required=True, help="Availabl
 p_backups = subparsers.add_parser("backups", help="Consolidate all data files (*.db, *.sqlite3, *.yaml) into a single archive directory.")
 p_backups.set_defaults(func=consolidate_backups)
 
-p_list_questions = subparsers.add_parser("list-questions", help="List questions from the database with metadata.")
-p_list_questions.add_argument("--category", help="Filter by question category (e.g., basic, command).")
-p_list_questions.add_argument("--subject", help="Filter by subject (supports partial matching).")
-p_list_questions.add_argument("--source-file", help="Filter by source file path (supports partial matching).")
-p_list_questions.set_defaults(func=list_questions)
+p_selector = subparsers.add_parser("selector", help="Interactive selector for Kubernetes exercises.")
+p_selector.set_defaults(func=interactive_selector)
 
 def main():
     args = parser.parse_args()
     if hasattr(args, 'func'):
-        # Pass args to functions that need them
-        if args.command in ['list-questions']:
-            args.func(args)
-        else:
-            args.func()
+        args.func()
 
 if __name__ == '__main__':
     main()
