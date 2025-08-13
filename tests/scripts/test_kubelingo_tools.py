@@ -52,68 +52,47 @@ def run_tools_main(*args):
 # --- Tests for individual task functions ---
 
 def test_task_functions_call_run_script(mock_run_script):
-    """Test that various task functions call _run_script with correct arguments."""
-    kubelingo_tools.task_index_yaml()
-    mock_run_script.assert_called_with("index_yaml_files.py")
+    """Test that individual task functions call _run_script correctly."""
+    kubelingo_tools.task_run_bug_ticket()
+    mock_run_script.assert_called_with("bug_ticket.py")
 
-    kubelingo_tools.task_create_sqlite_backup()
-    mock_run_script.assert_called_with("consolidate_dbs.py")
+    kubelingo_tools.task_run_generator()
+    mock_run_script.assert_called_with("generator.py")
 
-    kubelingo_tools.task_deduplicate_questions()
-    mock_run_script.assert_called_with("question_manager.py", "deduplicate")
+    kubelingo_tools.task_run_question_manager()
+    mock_run_script.assert_called_with("question_manager.py")
 
+    kubelingo_tools.task_run_sqlite_manager()
+    mock_run_script.assert_called_with("sqlite_manager.py")
 
-def test_task_full_migrate_and_cleanup(mock_run_script, mock_subprocess_run):
-    """Test the full migration pipeline function."""
-    # Mock filesystem and utility functions to isolate the logic
-    with patch('kubelingo_tools.Path.exists', return_value=False), \
-         patch('kubelingo_tools.shutil.copy2'), \
-         patch('pathlib.Path.mkdir'), \
-         patch('kubelingo_tools.repo_root', Path('/fake/repo')):
-        kubelingo_tools.task_full_migrate_and_cleanup()
-
-    expected_script_calls = [
-        call('generator.py', 'manifests'),
-        call('consolidate_manifests.py'),
-        call('merge_solutions.py')
-    ]
-    mock_run_script.assert_has_calls(expected_script_calls)
-
-    expected_subprocess_calls = [
-        call(['kubelingo', 'migrate-yaml'], check=False),
-        call(['kubelingo', 'import-json'], check=False)
-    ]
-    mock_subprocess_run.assert_has_calls(expected_subprocess_calls)
+    kubelingo_tools.task_run_yaml_manager()
+    mock_run_script.assert_called_with("yaml_manager.py")
 
 
 # --- Tests for Interactive Menu ---
 
-def test_run_interactive_menu_select_task(mock_questionary):
-    """Test that selecting a task from the menu calls the correct function."""
-    # Simulate user selecting "Deduplicate Questions" then "Cancel"
-    mock_questionary.select.return_value.ask.side_effect = ["Deduplicate Questions", "Cancel"]
+@patch('kubelingo_tools.task_tool_scripts')
+def test_main_no_args_runs_menu(mock_task_tool_scripts):
+    """Test that running the script with no arguments launches the tool scripts menu."""
+    kubelingo_tools.main([])
+    mock_task_tool_scripts.assert_called_once()
 
-    with patch('kubelingo_tools.task_deduplicate_questions') as mock_task:
-        kubelingo_tools.run_interactive_menu()
+def test_task_tool_scripts_select_and_run(mock_questionary, mock_run_script):
+    """Test that selecting a script from the menu runs it."""
+    # Simulate user selecting "generator.py"
+    mock_questionary.select.return_value.ask.return_value = "generator.py"
+    kubelingo_tools.task_tool_scripts()
+    # The task function should call _run_script
+    mock_run_script.assert_called_with("generator.py")
 
-    mock_task.assert_called_once()
-
-
-def test_run_interactive_menu_cancel_immediately(mock_questionary):
-    """Test that the menu exits gracefully when user selects Cancel."""
-    mock_questionary.select.return_value.ask.return_value = "Cancel"
-    # The function should exit the loop and finish without calling any task
-    kubelingo_tools.run_interactive_menu()
+def test_task_tool_scripts_back(mock_questionary, mock_run_script):
+    """Test that selecting 'Back' from the menu does nothing."""
+    mock_questionary.select.return_value.ask.return_value = "Back"
+    kubelingo_tools.task_tool_scripts()
+    mock_run_script.assert_not_called()
 
 
 # --- Tests for main() and argument parsing ---
-
-@patch('kubelingo_tools.run_interactive_menu')
-def test_main_no_args_runs_menu(mock_run_interactive_menu):
-    """Test that running the script with no arguments launches the interactive menu."""
-    kubelingo_tools.main([])
-    mock_run_interactive_menu.assert_called_once()
-
 
 @patch('kubelingo_tools.run_quiz')
 def test_main_quiz_command(mock_run_quiz):
@@ -145,13 +124,6 @@ def test_main_ckad_export_command(mock_ckad_export):
     """Test the 'ckad export' subcommand."""
     run_tools_main('ckad', 'export', '--csv', 'file.csv')
     mock_ckad_export.assert_called_once()
-
-
-@patch('kubelingo_tools.task_full_migrate_and_cleanup')
-def test_main_full_migrate_command(mock_task_full_migrate):
-    """Test the 'full-migrate' subcommand."""
-    run_tools_main('full-migrate')
-    mock_task_full_migrate.assert_called_once()
 
 
 @patch('kubelingo_tools.run_dynamic_script')
