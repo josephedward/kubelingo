@@ -121,14 +121,33 @@ def handle_list_triaged(args):
         sys.exit(1)
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, source_file FROM questions WHERE triage = 1")
-        rows = cursor.fetchall()
-        if not rows:
+        cursor.execute("SELECT id FROM questions WHERE triage = 1")
+        triaged_ids = {row[0] for row in cursor.fetchall()}
+
+        if not triaged_ids:
             print("No triaged questions found.")
+            return
+
+        loader = YAMLLoader()
+        # Discover all YAML files from configured directories
+        all_yaml_files = loader.discover()
+
+        found_questions = []
+        for file_path in all_yaml_files:
+            try:
+                questions_in_file = loader.load_file(file_path)
+                for q in questions_in_file:
+                    if q.id in triaged_ids:
+                        found_questions.append(q)
+            except Exception as e:
+                print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+
+        if not found_questions:
+            print("No triaged questions found in YAML files (database may be out of sync).")
         else:
-            print(f"Found {len(rows)} triaged questions:")
-            for row in rows:
-                print(f"  - ID: {row[0]} (from: {row[1]})")
+            print(f"Found {len(found_questions)} triaged questions:")
+            for q in sorted(found_questions, key=lambda x: x.id):
+                print(f"  - ID: {q.id}\n    Prompt: {q.prompt[:100]}...")
     except Exception as e:
         print(f"Error listing triaged questions: {e}", file=sys.stderr)
         if "no such column: triage" in str(e):
@@ -168,16 +187,30 @@ def handle_remove_question(args):
     if not conn:
         print("Could not connect to database.", file=sys.stderr)
         sys.exit(1)
-    
+
     try:
+        # First, check if the question exists in the database
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM questions WHERE id = ?", (args.question_id,))
+        cursor.execute("SELECT source_file FROM questions WHERE id = ?", (args.question_id,))
         row = cursor.fetchone()
         if not row:
-            print(f"Error: Question with ID '{args.question_id}' not found.")
+            print(f"Error: Question with ID '{args.question_id}' not found in the database.")
             return
 
-        confirm = questionary.confirm(f"Are you sure you want to delete question metadata for ID '{args.question_id}'? The question will remain in its source YAML file.").ask()
+        source_file = row[0]
+        prompt = "Could not load prompt from YAML."
+        try:
+            loader = YAMLLoader()
+            full_path = get_project_root() / source_file
+            questions_in_file = loader.load_file(str(full_path))
+            for q in questions_in_file:
+                if q.id == args.question_id:
+                    prompt = q.prompt
+                    break
+        except Exception:
+            pass  # Prompt remains as the error message
+
+        confirm = questionary.confirm(f"Are you sure you want to delete question '{args.question_id}' ({prompt[:50]}...)?").ask()
         if not confirm:
             print("Deletion cancelled.")
             return
@@ -197,25 +230,23 @@ def handle_remove_question(args):
 # --- Functions from original generator.py ---
 
 def _get_existing_prompts_for_pdf_gen() -> List[str]:
-    """Fetches all existing question prompts from all YAML files."""
-    print("Scanning all YAML files for existing question prompts...")
+    """Fetches all existing question prompts from YAML files."""
+    prompts = []
     loader = YAMLLoader()
-    try:
-        yaml_files = get_all_yaml_files_in_repo()
-        all_questions = []
-        for file_path in yaml_files:
-            try:
-                all_questions.extend(loader.load_file(str(file_path)))
-            except Exception:
-                # Ignore files that fail to parse
-                continue
-        
-        prompts = [q.prompt for q in all_questions if q.prompt]
-        print(f"Found {len(prompts)} existing questions in {len(yaml_files)} YAML files.")
-        return prompts
-    except Exception as e:
-        print(f"Error scanning YAML files: {e}", file=sys.stderr)
-        sys.exit(1)
+    all_yaml_files = loader.discover()
+    print("Loading existing prompts from YAML files...")
+
+    for file_path in track(all_yaml_files, description="Scanning YAMLs..."):
+        try:
+            questions_in_file = loader.load_file(file_path)
+            for q in questions_in_file:
+                if q.prompt:
+                    prompts.append(q.prompt)
+        except Exception as e:
+            print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+
+    print(f"Found {len(prompts)} existing questions in YAML files.")
+    return prompts
 
 
 def _extract_text_from_pdf(pdf_path: str) -> str:
@@ -2070,63 +2101,70 @@ def do_recategorize_ai(args):
         sys.exit(1)
 
     conn = get_db_connection()
-    loader = YAMLLoader()
-    project_root = get_project_root()
     try:
-        all_questions_meta = get_all_questions(conn)
+        # Load all question content from YAML files
+        loader = YAMLLoader()
+        all_yaml_questions = []
+        project_root_path = get_project_root()
+        for file_path in loader.discover():
+            try:
+                # Ensure source_file is a relative path for consistency with DB
+                relative_path = str(Path(file_path).relative_to(project_root_path))
+                questions = loader.load_file(file_path)
+                for q in questions:
+                    q.source_file = relative_path
+                all_yaml_questions.extend(questions)
+            except Exception as e:
+                print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+        
+        all_yaml_questions_map = {q.id: q for q in all_yaml_questions}
 
-        questions_to_categorize_meta = []
+        # Get question metadata from the database
+        db_questions_metadata = get_all_questions(conn)
+
+        questions_to_categorize_ids = set()
         if getattr(args, 'force', False):
             print("Forcing recategorization for all questions.")
-            questions_to_categorize_meta = all_questions_meta
+            questions_to_categorize_ids = {q['id'] for q in db_questions_metadata}
         else:
-            questions_to_categorize_meta = [
-                q for q in all_questions_meta
+            questions_to_categorize_ids = {
+                q['id'] for q in db_questions_metadata
                 if not q.get('category_id') or not q.get('subject_id')
-            ]
+            }
 
-        if not questions_to_categorize_meta:
+        if not questions_to_categorize_ids:
             print(f"{Fore.GREEN}All questions are already categorized. Use --force to re-run on all.{Style.RESET_ALL}")
             return
 
-        print(f"Found {len(questions_to_categorize_meta)} questions to categorize.")
+        print(f"Found {len(questions_to_categorize_ids)} questions to categorize.")
 
-        questions_by_file = {}
-        for q_meta in questions_to_categorize_meta:
-            source_file = q_meta.get('source_file')
-            if source_file not in questions_by_file:
-                questions_by_file[source_file] = []
-            questions_by_file[source_file].append(q_meta['id'])
-        
         updated_count = 0
-        with tqdm(total=len(questions_to_categorize_meta), desc="Categorizing Questions") as pbar:
-            for source_file, q_ids in questions_by_file.items():
-                try:
-                    full_path = project_root / source_file
-                    questions_in_file = {q.id: asdict(q) for q in loader.load_file(str(full_path))}
-                except Exception as e:
-                    tqdm.write(f"Warning: could not load {source_file}: {e}")
-                    pbar.update(len(q_ids))
+        with tqdm(total=len(questions_to_categorize_ids), desc="Categorizing Questions") as pbar:
+            for q_id in questions_to_categorize_ids:
+                if q_id not in all_yaml_questions_map:
+                    pbar.update(1)
                     continue
 
-                for q_id in q_ids:
-                    if q_id not in questions_in_file:
-                        pbar.update(1)
-                        continue
-                    
-                    q_content_dict = questions_in_file[q_id]
-                    ai_categories = categorizer.categorize_question(q_content_dict)
+                question_obj = all_yaml_questions_map[q_id]
+                q_dict = asdict(question_obj)
+                
+                ai_categories = categorizer.categorize_question(q_dict)
+                if ai_categories:
+                    stable_repr = json.dumps(q_dict, sort_keys=True, default=str)
+                    content_hash = hashlib.sha256(stable_repr.encode('utf-8')).hexdigest()
 
-                    if ai_categories:
-                        update_dict = {
-                            'id': q_id,
-                            'source_file': source_file,
-                            'category_id': ai_categories.get('exercise_category'),
-                            'subject_id': ai_categories.get('subject_matter'),
-                        }
-                        add_question(conn, **update_dict)
-                        updated_count += 1
-                    pbar.update(1)
+                    db_metadata_update = {
+                        'id': q_id,
+                        'source_file': question_obj.source_file,
+                        'category_id': ai_categories.get('exercise_category'),
+                        'subject_id': ai_categories.get('subject_matter'),
+                        'content_hash': content_hash,
+                    }
+
+                    # add_question will do an INSERT OR REPLACE, so this updates the question
+                    add_question(conn, **db_metadata_update)
+                    updated_count += 1
+                pbar.update(1)
 
         conn.commit()
         print(f"\n{Fore.GREEN}Successfully categorized {updated_count} questions.{Style.RESET_ALL}")
