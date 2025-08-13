@@ -54,12 +54,27 @@ class Question:
     """
     Canonical question object for all exercises.
 
-    This schema supports three core question modalities, identified by the `type` field:
-      1. socratic        - Open-ended conceptual/resource questions (AI-driven Socratic tutor).
-      2. command         - Single-line command quizzes (kubectl, helm, vim) with syntax + AI validation.
-      3. yaml_author     - Create manifests from scratch in Vim.
-      4. yaml_edit       - Edit templates in Vim to meet requirements.
-      5. live_k8s_edit   - Apply manifests to a cluster with post-apply checks.
+    This schema supports several core question modalities, identified by the `type` field.
+    The `type` dictates which fields are required for the question to be solvable.
+
+    Supported types:
+    - 'socratic': Open-ended conceptual questions for AI-driven tutoring.
+        - Required: `prompt`.
+    - 'command': Single-line command quizzes (e.g., kubectl, helm, vim).
+        - Required: `prompt`.
+        - Solvable with: `answers` (list of valid commands) OR `validation_steps`.
+    - 'basic_terminology': Questions about definitions and concepts.
+        - Required: `prompt`.
+        - Solvable with: `answers` (list of correct terms/phrases).
+    - 'yaml_author': Create a YAML manifest from scratch.
+        - Required: `prompt`.
+        - Solvable with: `correct_yaml`.
+    - 'yaml_edit': Edit a template YAML to meet requirements.
+        - Required: `prompt`, `initial_files`.
+        - Solvable with: `correct_yaml`.
+    - 'live_k8s_edit': Apply/edit manifests on a live cluster and run checks.
+        - Required: `prompt`.
+        - Solvable with: `validation_steps`.
     """
     # Core identity
     id: str

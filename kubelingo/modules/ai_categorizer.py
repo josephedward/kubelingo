@@ -22,27 +22,29 @@ class AICategorizer:
 
     def get_system_prompt(self) -> str:
         """Returns the system prompt for the classification task."""
-        category_desc = "\n".join([f"- '{c.value}'" for c in QuestionCategory])
+        category_desc = (
+            f"- '{QuestionCategory.OPEN_ENDED.value}': Conceptual questions requiring a textual explanation, evaluated by AI.\n"
+            f"- '{QuestionCategory.BASIC_TERMINOLOGY.value}': Questions about definitions, concepts, and names, typically validated with string matching.\n"
+            f"- '{QuestionCategory.COMMAND_SYNTAX.value}': Questions that are answered with a single command-line execution, validated by execution or AI.\n"
+            f"- '{QuestionCategory.YAML_MANIFEST.value}': Questions that involve creating or editing a YAML file, validated by comparing to a correct manifest."
+        )
         subject_desc = "\n".join([f"- '{s.value}'" for s in QuestionSubject])
 
         return f"""
 You are an expert Kubernetes administrator and educator. Your task is to categorize Kubernetes-related questions into a two-level schema.
 You will be given a question prompt and must return a JSON object with two keys: "exercise_category" and "subject_matter".
 
-1.  **exercise_category**: Choose ONE of the following high-level exercise types: 'basic', 'command', or 'manifest'.
-    - 'basic': Conceptual or open-ended questions.
-    - 'command': Questions involving CLI commands (e.g., kubectl, helm, vim).
-    - 'manifest': Questions about writing or editing YAML/JSON configuration files.
+1.  **exercise_category**: Choose ONE of the following high-level exercise types. Use the exact string value provided.
+{category_desc}
 
 2.  **subject_matter**: Choose the ONE most relevant subject matter from this list:
 {subject_desc}
 
 Analyze the question's content to make the best choice. For example:
-- A question about 'kubectl create deployment' should be categorized as {{ "exercise_category": "command", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A question asking to write a YAML file for a Pod is {{ "exercise_category": "manifest", "subject_matter": "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)" }}.
-- A conceptual question about the purpose of a Service is {{ "exercise_category": "basic", "subject_matter": "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)" }}.
-- A question about using Vim to find and replace text is {{ "exercise_category": "command", "subject_matter": "Vim editor usage" }}.
-- A question about kubectl command aliases should be {{ "exercise_category": "command", "subject_matter": "Kubectl CLI usage and commands" }}.
+- A question about 'kubectl create deployment' should be categorized as {{ "exercise_category": "{QuestionCategory.COMMAND_SYNTAX.value}", "subject_matter": "{QuestionSubject.CORE_WORKLOADS.value}" }}.
+- A question asking to write a YAML file for a Pod is {{ "exercise_category": "{QuestionCategory.YAML_MANIFEST.value}", "subject_matter": "{QuestionSubject.CORE_WORKLOADS.value}" }}.
+- A conceptual question about the purpose of a Service is {{ "exercise_category": "{QuestionCategory.BASIC_TERMINOLOGY.value}", "subject_matter": "{QuestionSubject.SERVICES.value}" }}.
+- A question about using Vim to find and replace text is {{ "exercise_category": "{QuestionCategory.COMMAND_SYNTAX.value}", "subject_matter": "{QuestionSubject.LINUX_SYNTAX.value}" }}.
 
 Return ONLY a valid JSON object in the format:
 {{
@@ -81,18 +83,11 @@ Do not include any other text or explanation.
             category = data.get("exercise_category")
             subject_matter = data.get("subject_matter")
 
-            exercise_category_map = {
-                "basic": "basic",
-                "command": "command",
-                "manifest": "manifest",
-                "Basic/Open-Ended": "basic",
-                "Command-Based/Syntax": "command",
-                "Manifests": "manifest",
-            }
+            valid_categories = [c.value for c in QuestionCategory]
             valid_subjects = [s.value for s in QuestionSubject]
 
-            if category in exercise_category_map and subject_matter in valid_subjects:
-                return {"exercise_category": exercise_category_map[category], "subject_matter": subject_matter}
+            if category in valid_categories and subject_matter in valid_subjects:
+                return {"exercise_category": category, "subject_matter": subject_matter}
             else:
                 logging.warning(f"{Fore.YELLOW}\nWarning: AI returned invalid or unexpected data: {data}. Skipping.{Style.RESET_ALL}")
                 return None
