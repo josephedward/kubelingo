@@ -445,10 +445,31 @@ class SocraticMode:
                 return None
 
             with open(file_path, "r", encoding="utf-8") as f:
-                q_dict = yaml.safe_load(f)
-                return Question(**q_dict)
+                # Use safe_load_all to handle files that may contain lists or multiple documents.
+                # We are interested in the first valid question data.
+                documents = list(yaml.safe_load_all(f))
+
+            if not documents or not documents[0]:
+                return None  # File is empty or contains only null documents
+
+            q_data = documents[0]
+            q_dict = None
+
+            if isinstance(q_data, list):
+                if q_data:
+                    q_dict = q_data[0]  # Take first item if it's a list of questions
+            elif isinstance(q_data, dict):
+                q_dict = q_data
+
+            if not q_dict or not isinstance(q_dict, dict):
+                # This will handle cases where the YAML is just a string (e.g., "COMMAND")
+                raise TypeError("YAML content is not a dictionary.")
+
+            return Question(**q_dict)
         except (yaml.YAMLError, TypeError) as e:
-            print(f"{Fore.YELLOW}Warning: Could not load/parse question from {file_path}: {e}{Style.RESET_ALL}")
+            print(
+                f"{Fore.YELLOW}Warning: Could not load or parse {os.path.basename(file_path)}: {e}{Style.RESET_ALL}"
+            )
             return None
 
     def review_past_questions(self):
