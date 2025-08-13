@@ -65,7 +65,7 @@ class YAMLLoader(BaseLoader):
 
                         # Map legacy keys
                         if 'question_type' in entry:
-                            entry['type'] = entry.pop('question_type')
+                            entry['type_'] = entry.pop('question_type')
                         if 'starting_yaml' in entry:
                             entry['initial_yaml'] = entry.pop('starting_yaml')
 
@@ -96,112 +96,35 @@ class YAMLLoader(BaseLoader):
             for idx, item in enumerate(raw):
                 # Use explicit id if provided, else default to module::index
                 qid = item.get('id') or f"{module}::{idx}"
-                # Determine validation steps: explicit validations, then legacy 'answer'/'response', then 'answers' list
-                steps_data = item.get('validation_steps', []) or item.get('validations', [])
-                validation_steps = [
-                    ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
-                    for v in steps_data
-                ]
-                # Legacy fallback: use 'answer' or 'response'
-                if not validation_steps:
-                    cmd = item.get('answer') or item.get('response')
-                    if cmd:
-                        validation_steps.append(ValidationStep(cmd=cmd, matcher={}))
-                # Fallback: use 'answers' list entries as individual validation steps
-                if not validation_steps and 'answers' in item and isinstance(item.get('answers'), list):
-                    for ans in item.get('answers'):
-                        if isinstance(ans, str) and ans:
-                            validation_steps.append(ValidationStep(cmd=ans, matcher={}))
 
-                initial_files = item.get('initial_files', {})
-                if not initial_files and 'initial_yaml' in item:
-                    initial_files['exercise.yaml'] = item['initial_yaml']
+                # Tolerate unknown fields by only passing known fields to Question constructor
+                known_fields = set(Question.__dataclass_fields__.keys())
+                question_data = {k: v for k, v in item.items() if k in known_fields}
 
-                answers_list = [step.cmd for step in validation_steps if step.cmd]
+                # Legacy field mapping
+                if 'type' in question_data:
+                    question_data['type_'] = question_data.pop('type')
 
-                questions.append(Question(
-                    id=qid,
-                    source_file=path,
-                    type=item.get('type') or 'command',
-                    schema_category=item.get('schema_category'),
-                    subject_matter=item.get('subject_matter'),
-                    # Include any provided correct YAML for edit questions
-                    correct_yaml=item.get('correct_yaml'),
-                    prompt=item.get('prompt', ''),
-                    answers=answers_list,
-                    pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
-                    initial_files=initial_files,
-                    validation_steps=validation_steps,
-                    explanation=item.get('explanation'),
-                    categories=item.get('categories', []),
-                    difficulty=item.get('difficulty'),
-                    review=item.get('review', False),
-                    metadata={
-                        k: v for k, v in item.items()
-                        if k not in (
-                            'id', 'type', 'schema_category', 'subject_matter', 'correct_yaml',
-                            'prompt', 'runner', 'initial_cmds', 'initial_yaml',
-                            'validations', 'explanation', 'categories', 'difficulty',
-                            'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'answer', 'response', 'review', 'solution_file'
-                        )
-                    }
-                ))
+                # Create question object, it will handle internal normalization
+                questions.append(Question(id=qid, source_file=path, **question_data))
+
             return questions
+
         # Fallback to standard 'questions' key in dict
-        # Fallback to standard 'questions' key in dict: support explicit 'id'
         if isinstance(raw, dict) and 'questions' in raw:
             for idx, item in enumerate(raw.get('questions', [])):
-                if isinstance(item, dict):
-                    # Support legacy 'question' as 'prompt'
-                    if 'question' in item:
-                        item['prompt'] = item.pop('question')
-                    # Flatten nested metadata blocks
-                    if 'metadata' in item and isinstance(item['metadata'], dict):
-                        nested = item.pop('metadata')
-                        for k, v in nested.items():
-                            if k not in item:
-                                item[k] = v
                 # Use explicit id if provided, else default to module::index
                 qid = item.get('id') or f"{module}::{idx}"
-                # Populate new schema, falling back to legacy fields
-                steps_data = item.get('validation_steps') or item.get('validations', [])
-                validation_steps = [
-                    ValidationStep(cmd=v.get('cmd', ''), matcher=v.get('matcher', {}))
-                    for v in steps_data
-                ]
-                initial_files = item.get('initial_files', {})
-                if not initial_files and 'initial_yaml' in item:
-                    initial_files['exercise.yaml'] = item['initial_yaml']
 
-                answers_list = [step.cmd for step in validation_steps if step.cmd]
+                # Tolerate unknown fields
+                known_fields = set(Question.__dataclass_fields__.keys())
+                question_data = {k: v for k, v in item.items() if k in known_fields}
 
-                questions.append(Question(
-                    id=qid,
-                    source_file=path,
-                    type=item.get('type') or 'command',
-                    schema_category=item.get('schema_category'),
-                    subject_matter=item.get('subject_matter'),
-                    # Include any provided correct YAML
-                    correct_yaml=item.get('correct_yaml'),
-                    prompt=(item.get('prompt') or item.get('question', '')),
-                    answers=answers_list,
-                    pre_shell_cmds=item.get('pre_shell_cmds') or item.get('initial_cmds', []),
-                    initial_files=initial_files,
-                    validation_steps=validation_steps,
-                    explanation=item.get('explanation'),
-                    categories=item.get('categories', []),
-                    difficulty=item.get('difficulty'),
-                    review=item.get('review', False),
-                    metadata={
-                        k: v for k, v in item.items()
-                        if k not in (
-                            'id', 'type', 'schema_category', 'subject_matter', 'correct_yaml',
-                            'prompt', 'question', 'runner', 'initial_cmds', 'initial_yaml',
-                            'validations', 'explanation', 'categories', 'difficulty',
-                            'pre_shell_cmds', 'initial_files', 'validation_steps',
-                            'review', 'solution_file'
-                        )
-                    }
-                ))
+                if 'type' in question_data:
+                    question_data['type_'] = question_data.pop('type')
+                if 'question' in question_data and 'prompt' not in question_data:
+                    question_data['prompt'] = question_data.pop('question')
+
+                questions.append(Question(id=qid, source_file=path, **question_data))
+
         return questions
