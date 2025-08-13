@@ -104,8 +104,8 @@ class AIQuestionGenerator:
                     prompt_lines.append(f"- Prompt: {ex.prompt}")
                     prompt_lines.append(f"  Response: {ex.response}")
             response_description = "the full, correct YAML manifest"
-        elif category == "Basic" or category == "socratic":
-            q_type = "basic_terminology" if category == "Basic" else "socratic"
+        elif category == "Basic":
+            q_type = "basic_terminology"
             prompt_lines.append("Your task is to create 'definition-to-term' questions about Kubernetes. Provide a definition and ask the user for the specific Kubernetes term.")
             prompt_lines.append("Here are some examples of the format:")
             prompt_lines.append("- Prompt: What Kubernetes object provides a way to expose an application running on a set of Pods as a network service?")
@@ -121,6 +121,14 @@ class AIQuestionGenerator:
                 exclusion_list = ", ".join(f'"{term}"' for term in exclude_terms)
                 prompt_lines.append(f"- **CRITICAL**: Do NOT use any of the following terms: {exclusion_list}.")
             response_description = "the correct, single-word or hyphenated-word Kubernetes term"
+        elif category == "socratic":
+            q_type = "socratic"
+            prompt_lines.append("Your task is to create open-ended, 'socratic' style questions about Kubernetes. These questions should encourage deeper understanding and discussion rather than a single correct answer. The answer should be a sample good answer.")
+            if base_questions:
+                prompt_lines.append("Here are example questions to avoid duplicating:")
+                for ex in base_questions:
+                    prompt_lines.append(f"- Prompt: {ex.prompt}")
+            response_description = "a thoughtful, open-ended question prompt"
         else:  # Command
             q_type = "command"
             response_description = "the kubectl command"
