@@ -80,6 +80,7 @@ try:
     from kubelingo.modules.question_generator import AIQuestionGenerator
     from kubelingo.modules.yaml_loader import YAMLLoader
     from kubelingo.modules.ai_categorizer import AICategorizer
+    from kubelingo.integrations.llm import get_llm_client
     from kubelingo.utils import path_utils
     from kubelingo.utils.path_utils import (
         get_project_root, get_live_db_path, find_yaml_files_from_paths,
@@ -766,11 +767,15 @@ def handle_kubectl_operations(args):
 
 def handle_ai_questions(args):
     """Handles 'ai-questions' subcommand."""
-    if 'OPENAI_API_KEY' not in os.environ:
-        print("Error: OPENAI_API_KEY environment variable not set.")
-        sys.exit(1)
-    if not all([AIQuestionGenerator, YAMLLoader, yaml]):
+    if not all([AIQuestionGenerator, YAMLLoader, yaml, get_llm_client]):
         print("Missing kubelingo modules or PyYAML. Cannot generate AI questions.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        llm_client = get_llm_client()
+    except (ValueError, ImportError) as e:
+        print(f"Failed to initialize LLM client: {e}", file=sys.stderr)
+        print("Please ensure your AI provider and API key are configured correctly.", file=sys.stderr)
         sys.exit(1)
 
     base_questions = []
@@ -788,7 +793,7 @@ def handle_ai_questions(args):
         else:
             print(f"Using {len(base_questions)} questions from the source file as examples.")
 
-    generator = AIQuestionGenerator()
+    generator = AIQuestionGenerator(llm_client=llm_client)
 
     subject_for_ai = args.subject
     if not base_questions:
