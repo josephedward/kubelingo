@@ -857,7 +857,7 @@ def run_interactive_main_menu():
                     value=("drill", QuestionCategory.YAML_MANIFEST),
                 ),
                 Separator("--- Settings ---"),
-                questionary.Choice("API Keys", value=("settings", "api")),
+                questionary.Choice("AI Provider", value=("settings", "api")),
                 questionary.Choice("Cluster Configuration", value=("settings", "cluster")),
                 questionary.Choice("Tool Scripts", value=("settings", "tools")),
                 questionary.Choice("Triaged Questions", value=("settings", "triage")),
@@ -993,9 +993,7 @@ def main():
 
     # --- Interactive Mode: AI Provider and API Key Setup ---
     is_interactive = (len(sys.argv) == 1) and sys.stdout.isatty() and sys.stdin.isatty()
-    if is_interactive:
-        # On first run, silently check and prompt only if necessary.
-        _setup_ai_provider_interactive(force_setup=False)
+    # The initial provider setup is now handled by initialize_app().
 
     # Support 'kubelingo sandbox [pty|docker]' as subcommand syntax
     if len(sys.argv) >= 3 and sys.argv[1] == 'sandbox' and sys.argv[2] in ('pty', 'docker'):
@@ -1004,6 +1002,14 @@ def main():
     # Only display banner when running interactively (not help or piped output)
     if sys.stdout.isatty() and sys.stdin.isatty() and '--help' not in sys.argv and '-h' not in sys.argv:
         print_banner()
+
+        provider = get_ai_provider()
+        if provider and not get_active_api_key():
+            key_env_var = f"{provider.upper()}_API_KEY"
+            print(f"\nStudy Mode requires a {provider.capitalize()} API key.")
+            print(f"Set the {key_env_var} environment variable to enable it.")
+            print(f"You can generate an API key in your {provider.capitalize()} account settings under 'API Keys'.")
+
         print()
     parser = argparse.ArgumentParser(
         prog='kubelingo',
