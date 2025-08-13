@@ -109,12 +109,13 @@ def run_interactive_menu():
     """Display an interactive menu for maintenance tasks."""
     try:
         import questionary
+        from questionary import Separator
     except ImportError:
         print("Error: 'questionary' library not found. Please install it with:")
         print("pip install questionary")
         sys.exit(1)
 
-    scripts = [
+    script_choices = [
         "bug_ticket.py",
         "consolidator.py",
         "generator.py",
@@ -126,7 +127,7 @@ def run_interactive_menu():
     while True:
         choice = questionary.select(
             "Select a tool script to run:",
-            choices=scripts + ["Cancel"],
+            choices=script_choices + [Separator(), "Cancel"],
             use_indicator=True
         ).ask()
 
@@ -134,12 +135,9 @@ def run_interactive_menu():
             print("Operation cancelled.")
             break
 
-        # `choice` is now the script name, e.g., "yaml_manager.py"
-        args_str = questionary.text(f"Enter arguments for {choice} (optional):").ask()
-        if args_str is None:  # User cancelled
-            continue
-        args = args_str.split() if args_str else []
-        _run_script(choice, *args)
+        # Each script is expected to handle its own arguments or interactive menu.
+        _run_script(choice)
+        print("\n--- Script finished. Returning to tools menu. ---\n")
 
 def run_quiz(args):
     """Run the interactive CLI quiz."""
