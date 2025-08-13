@@ -87,7 +87,7 @@ try:
         find_yaml_files
     )
     from kubelingo.utils.config import (
-        YAML_BACKUP_DIRS, DATABASE_FILE, ENABLED_QUIZZES, QUESTION_DIRS
+        YAML_BACKUP_DIRS, DATABASE_FILE, QUESTION_DIRS
     )
     from kubelingo.utils.ui import Fore, Style
 
