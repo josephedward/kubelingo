@@ -99,7 +99,6 @@ class SocraticMode:
         # Per user request, save generated questions to the top-level 'yaml' directory.
         self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
-        self._index_all_yaml_files()
 
 
     def run_drill_menu(self):
@@ -408,15 +407,27 @@ class SocraticMode:
             print(f"{Fore.RED}Error fetching question counts: {e}{Style.RESET_ALL}")
         return counts
 
-    def _index_all_yaml_files(self):
-        """Finds and indexes all YAML question files into the database."""
+    def run_ai_categorization(self):
+        """Finds and indexes all YAML question files, running AI categorization."""
+        if not self.client:
+            print(f"{Fore.YELLOW}AI client not configured. Please set up your AI provider in 'Settings > AI'.{Style.RESET_ALL}")
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
+        print("Categorizing all YAML question files using AI. This may take a while...")
         try:
-            print("Checking for new or updated questions...")
             yaml_files = get_all_yaml_files()
             if yaml_files:
+                # The traceback shows that index_yaml_files does the categorization.
+                # We'll call it with verbose=True to give user feedback.
                 index_yaml_files(yaml_files, self.db_conn, verbose=True)
+                print(f"\n{Fore.GREEN}Categorization complete for {len(yaml_files)} files.{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.YELLOW}No YAML files found to categorize.{Style.RESET_ALL}")
         except Exception as e:
-            print(f"{Fore.RED}Error during YAML file indexing: {e}{Style.RESET_ALL}")
+            print(f"{Fore.RED}An error occurred during AI categorization: {e}{Style.RESET_ALL}")
+
+        questionary.confirm("Press Enter to continue...").ask()
 
     def _slugify_prompt(self, prompt: str) -> str:
         """Creates a filesystem-friendly slug from a question prompt."""
