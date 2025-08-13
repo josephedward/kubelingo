@@ -38,6 +38,8 @@ class QuestionSubject(str, Enum):
     SCHEDULING = "Scheduling hints"
     NAMESPACES_CONTEXTS = "Namespaces & contexts"
     API_DISCOVERY_DOCS = "API discovery & docs"
+    HELM_BASICS = "Helm Basics"
+    VIM_BASICS = "Vim Basics"
 
 
 @dataclass
