@@ -47,6 +47,22 @@ def test_generate_question_for_all_types_and_subjects(
     Tests that AIQuestionGenerator can generate a question for every combination
     of QuestionCategory and QuestionSubject.
     """
+    if category_enum == QuestionCategory.YAML_MANIFEST:
+        # For YAML tests, provide a mock response that contains valid YAML.
+        mock_response = json.dumps([
+            {
+                "prompt": "Test YAML prompt",
+                "answers": [
+                    "apiVersion: v1\n"
+                    "kind: Pod\n"
+                    "metadata:\n"
+                    "  name: test-pod"
+                ],
+                "explanation": "Test YAML explanation"
+            }
+        ])
+        mock_llm_client.chat_completion.return_value = mock_response
+
     generator = AIQuestionGenerator(llm_client=mock_llm_client)
 
     category_str = CATEGORY_MAP[category_enum]
