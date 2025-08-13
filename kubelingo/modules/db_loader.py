@@ -13,11 +13,12 @@ Rationale for using SQLite over YAML files:
 """
 import sqlite3
 import json
+import os
 from typing import List, Dict, Any, Optional
+
+from kubelingo.database import get_db_connection
 from kubelingo.modules.base.loader import BaseLoader
 from kubelingo.question import Question, ValidationStep
-from kubelingo.database import get_db_connection
-import os
 
 
 def _row_to_question_dict(row: sqlite3.Row) -> Dict[str, Any]:
