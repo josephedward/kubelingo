@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from kubelingo.modules.kubernetes.session import NewSession
 
 @patch('kubelingo.modules.base.session.YAMLLoader')
-@patch('kubelingo.modules.base.session.get_all_flagged_questions', return_value=[])
+@patch('kubelingo.modules.base.session.SessionManager.get_all_flagged_questions', return_value=[])
 def test_build_interactive_menu_shows_question_counts(mock_get_flagged, mock_yaml_loader):
     """Verify that the interactive menu displays question counts for configured quizzes."""
     # Mock YAMLLoader to return 10 questions for each configured quiz path

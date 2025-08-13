@@ -238,7 +238,7 @@ def get_unique_source_files(conn: sqlite3.Connection = None) -> List[str]:
             conn.close()
 
 
-def index_all_yaml_questions(verbose: bool = True):
+def index_all_yaml_questions(verbose: bool = True, conn: Optional[sqlite3.Connection] = None):
     """Discovers and indexes all YAML question files from the repository."""
     if verbose:
         print("Discovering all YAML files in repository to index...")
@@ -249,11 +249,15 @@ def index_all_yaml_questions(verbose: bool = True):
             print("No YAML files found to index.")
         return
 
-    conn = get_db_connection()
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
     try:
         index_yaml_files(all_yaml_files, conn, verbose=verbose)
     finally:
-        conn.close()
+        if manage_connection and conn:
+            conn.close()
 
 
 def _get_file_hash(file_path: Path) -> str:
