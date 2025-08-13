@@ -131,6 +131,17 @@ class Question:
             except ValueError:
                 # If it's not a valid category, we'll let it be derived from type.
                 self.category_id = None
+        
+        # Handle legacy 'category' field if category_id is not yet set
+        if self.category and not self.category_id:
+            try:
+                # Find enum member by value (case-insensitive for robustness)
+                for member in QuestionCategory:
+                    if member.value.lower() == self.category.lower():
+                        self.category_id = member
+                        break
+            except ValueError:
+                pass  # Ignore if not a valid category string
 
         # Ensure subject_id is an enum member if provided as a string
         if isinstance(self.subject_id, str):

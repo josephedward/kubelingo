@@ -77,8 +77,10 @@ class YAMLLoader(BaseLoader):
             for root, _, files in os.walk(directory):
                 for fname in files:
                     if fname.endswith(('.yaml', '.yml')):
-                        paths.append(os.path.join(root, fname))
-                        
+                        # Resolve to absolute path to prevent duplicates from relative/absolute paths
+                        full_path = os.path.abspath(os.path.join(root, fname))
+                        paths.append(full_path)
+
         return sorted(list(set(paths)))
 
     def load_file(self, path: str) -> List[Question]:
