@@ -169,18 +169,17 @@ def get_question_counts_by_subject(category_id: str, conn: Optional[sqlite3.Conn
     if manage_connection:
         conn = get_db_connection()
 
-    counts = {subj.value: 0 for subj in QuestionSubject}
+    counts = {}
     try:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT subject_id, COUNT(*) FROM questions WHERE category_id = ? GROUP BY subject_id",
+            "SELECT subject_id, COUNT(*) FROM questions WHERE category_id = ? AND subject_id IS NOT NULL GROUP BY subject_id",
             (category_id,)
         )
         rows = cursor.fetchall()
         for row in rows:
             subject, count = row
-            if subject and subject in counts:
-                counts[subject] = count
+            counts[subject] = count
     finally:
         if manage_connection and conn:
             conn.close()

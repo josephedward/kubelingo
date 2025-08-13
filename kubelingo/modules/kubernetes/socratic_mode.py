@@ -102,7 +102,7 @@ class SocraticMode:
         self._index_all_yaml_files()
 
 
-    def run_study_mode(self):
+    def run_drill_menu(self):
         """Shows a menu of exercise types, then subjects for drilling."""
         choices = [
             questionary.Choice(cat.value, value=cat) for cat in QuestionCategory
@@ -120,9 +120,9 @@ class SocraticMode:
             if category_choice == QuestionCategory.OPEN_ENDED:
                 self._run_socratic_mode_entry()
             else:
-                self._run_study_subject_menu(category_choice)
+                self._run_subject_drill_menu(category_choice)
 
-    def _run_study_subject_menu(self, category: QuestionCategory):
+    def _run_subject_drill_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given category for study."""
         counts = get_question_counts_by_subject(category.value, self.db_conn)
         subject_choices = [
