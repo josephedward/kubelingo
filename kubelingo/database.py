@@ -21,7 +21,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from kubelingo.question import Question, QuestionCategory, QuestionSubject, ValidationStep
-from kubelingo.utils.config import DATABASE_FILE, SINGLE_SOURCE_YAML_FILE
+from kubelingo.utils.config import APP_DIR, DATABASE_FILE, SINGLE_SOURCE_YAML_FILE
 from kubelingo.utils.path_utils import get_project_root
 
 
@@ -385,6 +385,63 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
     conn.commit()
     if verbose:
         print(f"\nIndexing complete. Indexed: {indexed_count}, Skipped (unchanged): {skipped_count}")
+
+
+def build_from_yaml(yaml_file_path: str, verbose: bool = True):
+    """
+    Builds the database from a single YAML file, replacing the existing live DB.
+    """
+    yaml_path = Path(yaml_file_path)
+    if not yaml_path.is_file():
+        if verbose:
+            print(f"Error: Source YAML file not found at '{yaml_file_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Create temp DB in .kubelingo to ensure it's on the same filesystem for atomic move.
+    os.makedirs(APP_DIR, exist_ok=True)
+    temp_db_path = os.path.join(APP_DIR, f"kubelingo_build_{timestamp}.db")
+
+    if verbose:
+        print(f"Building new database from '{yaml_path.name}'...")
+        print(f"Temporary database will be created at: {temp_db_path}")
+
+    conn = None
+    try:
+        # 1. Initialize a new database with the correct schema
+        conn = get_db_connection(db_path=temp_db_path)
+        init_db(conn=conn, clear=True)
+
+        # 2. Index questions from the specified YAML file
+        if verbose:
+            print("Indexing questions...")
+        index_yaml_files([yaml_path], conn=conn, verbose=verbose)
+
+    except Exception as e:
+        if verbose:
+            print(f"\nAn error occurred during database build: {e}", file=sys.stderr)
+        # Clean up temp file on failure
+        if os.path.exists(temp_db_path):
+            os.remove(temp_db_path)
+        sys.exit(1)
+    finally:
+        if conn:
+            conn.close()
+
+    # 3. Safely replace the live database
+    try:
+        if verbose:
+            print(f"\nReplacing live database at '{DATABASE_FILE}'...")
+        # shutil.move is atomic on most POSIX systems if src/dst are on the same filesystem
+        shutil.move(temp_db_path, DATABASE_FILE)
+        if verbose:
+            print("Database build successful.")
+            print(f"Live database is now located at: {DATABASE_FILE}")
+    except Exception as e:
+        if verbose:
+            print(f"\nError replacing live database: {e}", file=sys.stderr)
+            print(f"The new database is available at '{temp_db_path}'")
+        sys.exit(1)
 
 
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):

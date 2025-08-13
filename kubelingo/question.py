@@ -2,7 +2,7 @@
 Question schema for unified live exercise mode.
 """
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, KW_ONLY
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -54,6 +54,7 @@ class ValidationStep:
 
 @dataclass
 class Question:
+    _: KW_ONLY
     """
     Canonical question object for all exercises.
 

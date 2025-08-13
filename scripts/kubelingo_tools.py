@@ -301,8 +301,31 @@ def _show_question_management_menu():
 
 
 def main():
-    """Displays the question management menu."""
-    _show_question_management_menu()
+    """Main entry point for the Kubelingo Tools script."""
+    parser = argparse.ArgumentParser(
+        description="Kubelingo: Tools for managing questions and application data.",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        "--build-db",
+        metavar="YAML_FILE",
+        type=str,
+        help="Build the application database from a specified YAML source file."
+    )
+    parser.add_argument(
+        "-q", "--quiet",
+        action="store_true",
+        help="Suppress verbose output during database build."
+    )
+
+    args = parser.parse_args()
+
+    if args.build_db:
+        # Import moved here to avoid overhead when just showing the menu.
+        from kubelingo.database import build_from_yaml
+        build_from_yaml(args.build_db, verbose=not args.quiet)
+    else:
+        _show_question_management_menu()
 
 
 if __name__ == '__main__':
