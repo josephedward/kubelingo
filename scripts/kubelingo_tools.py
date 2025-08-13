@@ -31,7 +31,6 @@ try:
         handle_ai_questions, handle_from_pdf, handle_ai_quiz, 
         handle_resource_reference, handle_kubectl_operations,
         handle_manifests, handle_service_account,
-        do_import_ai,
         handle_remove_question,
         handle_set_triage_status
     )
@@ -45,6 +44,25 @@ class MockArgs:
     """Helper to create mock argparse.Namespace objects for function calls."""
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+def _run_script(script_name: str, *args):
+    """Helper to run a script from the scripts directory."""
+    script_path = scripts_dir / script_name
+    if not script_path.exists():
+        print(f"Error: Script '{script_name}' not found at '{script_path}'", file=sys.stderr)
+        return False
+
+    command = [sys.executable, str(script_path)] + [str(a) for a in args]
+    print(f"Running: {' '.join(command)}")
+    try:
+        subprocess.run(command, check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error running script {script_name}: {e}", file=sys.stderr)
+        return False
+    except KeyboardInterrupt:
+        print("\nScript execution cancelled.", file=sys.stderr)
+        return False
 
 def _generate_questions():
     """Handles the 'Generate Questions' option with an interactive menu."""
@@ -120,7 +138,7 @@ def _add_questions():
     ).ask()
     if not search_dir: return
 
-    do_import_ai(MockArgs(output_db=output_db, search_dir=[search_dir]))
+    _run_script("question_manager.py", "import-ai", output_db, "--search-dir", search_dir)
 
 def _remove_questions():
     """Handles 'Remove Questions'."""
