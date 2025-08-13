@@ -25,7 +25,6 @@ dependencies = [
     "PyYAML>=6.0",
     "questionary>=1.10.0",
     "python-dotenv>=0.21.0",
-    "openai>=1.0.0",
 ]
 
 [project.urls]
