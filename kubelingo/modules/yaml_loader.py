@@ -8,7 +8,7 @@ except ImportError:
     yaml = None
 from typing import List
 from kubelingo.modules.base.loader import BaseLoader
-from kubelingo.question import Question, ValidationStep
+from kubelingo.question import Question, ValidationStep, QuestionSubject
 from kubelingo.utils.config import QUESTION_DIRS
 from typing import Dict, Optional
 
