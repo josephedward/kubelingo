@@ -18,6 +18,7 @@ from questionary import Separator
 from kubelingo.database import (
     get_db_connection,
     get_flagged_questions,
+    get_question_counts_by_subject,
     index_yaml_files,
 )
 from kubelingo.integrations.llm import (
@@ -123,8 +124,12 @@ class KubernetesStudyMode:
 
     def _run_study_subject_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given category for study."""
+        counts = get_question_counts_by_subject(category.value, self.db_conn)
         subject_choices = [
-            questionary.Choice(subject.value, value=subject) for subject in QuestionSubject
+            questionary.Choice(
+                f"{subject.value} ({counts.get(subject.value, 0)})", value=subject
+            )
+            for subject in QuestionSubject
         ]
         subject_choices.append(Separator())
         subject_choices.append(questionary.Choice("Back", value="back"))

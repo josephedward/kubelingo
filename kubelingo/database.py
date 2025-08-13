@@ -163,6 +163,30 @@ def get_question_counts_by_category(conn: Optional[sqlite3.Connection] = None) -
     return counts
 
 
+def get_question_counts_by_subject(category_id: str, conn: Optional[sqlite3.Connection] = None) -> Dict[str, int]:
+    """Fetches question counts for each subject within a specific category."""
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
+    counts = {subj.value: 0 for subj in QuestionSubject}
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT subject_id, COUNT(*) FROM questions WHERE category_id = ? GROUP BY subject_id",
+            (category_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            subject, count = row
+            if subject and subject in counts:
+                counts[subject] = count
+    finally:
+        if manage_connection and conn:
+            conn.close()
+    return counts
+
+
 def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
     """Fetches all questions from the database and returns them as a list of dicts."""
     manage_connection = conn is None
