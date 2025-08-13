@@ -31,7 +31,7 @@ def get_llm_feedback(question, user_answer, correct_solution):
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-1.0-pro')
         prompt = f"""
         You are a Kubernetes expert helping a student study for the CKAD exam.
         The student was asked the following question:
@@ -132,34 +132,57 @@ def main():
 
             if user_commands is None:
                 print("\nSolution:\n")
-                print(q['solution'])
+                # Handle both 'solution' and 'solutions' keys for display
+                if 'solutions' in q:
+                    print(q['solutions'][0]) # Show the first solution
+                elif 'solution' in q:
+                    print(q['solution'])
             else:
                 user_answer = "\n".join(user_commands)
-                solution_text = q['solution'].strip()
 
-                # --- Normalization for fuzzy matching ---
-                # 1. Normalize user answer by consolidating whitespace and handling 'k' alias.
-                user_answer_processed = ' '.join(user_answer.split())
-                words = user_answer_processed.split(' ')
-                if words and words[0] == 'k':
-                    words[0] = 'kubectl'
-                normalized_user_answer = ' '.join(words)
+                # Check for multiple correct solutions first (exact match)
+                if 'solutions' in q:
+                    solution_list = [str(s).strip() for s in q['solutions']]
+                    # Normalize user input slightly for comparison
+                    user_answer_processed = ' '.join(user_answer.split()).strip()
+                    if user_answer_processed in solution_list:
+                        print("\nCorrect! Well done.")
+                    else:
+                        # Use the first solution as the reference for feedback
+                        solution_text = solution_list[0]
+                        print("\nNot quite. Here's one possible solution:\n")
+                        print(solution_text)
+                        print("\n--- AI Feedback ---")
+                        feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                        print(feedback)
 
-                # 2. Normalize solution by removing comments and consolidating whitespace.
-                solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
-                normalized_solution = ' '.join("\n".join(solution_lines).split())
+                # Fallback to fuzzy matching for single solutions (kubectl commands)
+                elif 'solution' in q:
+                    solution_text = q['solution'].strip()
 
-                # Use fuzzy matching to allow for small typos but not significant omissions.
-                similarity = fuzz.ratio(normalized_user_answer, normalized_solution)
+                    # --- Normalization for fuzzy matching ---
+                    # 1. Normalize user answer by consolidating whitespace and handling 'k' alias.
+                    user_answer_processed = ' '.join(user_answer.split())
+                    words = user_answer_processed.split(' ')
+                    if words and words[0] == 'k':
+                        words[0] = 'kubectl'
+                    normalized_user_answer = ' '.join(words)
 
-                if similarity > 95:
-                    print("\nCorrect! Well done.")
-                else:
-                    print("\nNot quite. Here's the expected solution:\n")
-                    print(solution_text)
-                    print("\n--- AI Feedback ---")
-                    feedback = get_llm_feedback(q['question'], user_answer, solution_text)
-                    print(feedback)
+                    # 2. Normalize solution by removing comments and consolidating whitespace.
+                    solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
+                    normalized_solution = ' '.join("\n".join(solution_lines).split())
+
+                    # Use fuzzy matching to allow for small typos but not significant omissions.
+                    similarity = fuzz.ratio(normalized_user_answer, normalized_solution)
+
+                    if similarity > 95:
+                        print("\nCorrect! Well done.")
+                    else:
+                        print("\nNot quite. Here's the expected solution:\n")
+                        print(solution_text)
+                        print("\n--- AI Feedback ---")
+                        feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                        print(feedback)
 
             print("-" * 40)
             if i < len(questions) - 1:
