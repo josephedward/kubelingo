@@ -86,7 +86,7 @@ SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backu
 # Predefined subject-matter categories for questions (subcategory within exercise types).
 # Each question's 'category' field must match one of these values for consistent classification.
 SUBJECT_MATTER = [
-    "Linux Syntax(Commands from Bash, Vim, Kubectl, Docker, Helm)",
+    "Linux Syntax(Commands from Vim, Kubectl, Docker, Helm)",
     "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
     "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
     "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",

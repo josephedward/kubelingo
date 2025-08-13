@@ -86,7 +86,6 @@ class Question:
     # --- Common metadata ---
     explanation: Optional[str] = None
     categories: List[str] = field(default_factory=list)
-    difficulty: Optional[str] = None
     source: Optional[str] = None
     review: bool = False  # Automatically managed based on answer correctness
     triage: bool = False  # Manually flagged by user for being problematic

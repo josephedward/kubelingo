@@ -67,6 +67,25 @@ class KubernetesStudyMode:
         os.makedirs(self.questions_dir, exist_ok=True)
 
 
+    def run_study_mode(self):
+        """Shows a menu of exercise types, then subjects for drilling."""
+        choices = [
+            questionary.Choice(cat.value, value=cat) for cat in QuestionCategory
+        ]
+        choices.append(Separator())
+        choices.append(questionary.Choice("Back", value="back"))
+
+        category_choice = questionary.select(
+            "--- Exercise Type ---",
+            choices=choices,
+            use_indicator=True
+        ).ask()
+
+        if category_choice and category_choice != "back":
+            if category_choice == QuestionCategory.OPEN_ENDED:
+                self._run_socratic_mode_entry()
+            else:
+                self._run_drill_menu(category_choice)
 
     def _run_quiz(self, questions: List[Question]):
         """
@@ -404,9 +423,9 @@ class KubernetesStudyMode:
                 except (KeyboardInterrupt, EOFError):
                     print(f"\n{Fore.YELLOW}Cluster removal cancelled.{Style.RESET_ALL}")
 
-    def _run_socratic_mode(self, topic: str, user_level: str):
+    def _run_socratic_mode(self, topic: str):
         """Runs the conversational Socratic tutoring mode."""
-        initial_response = self._start_socratic_session(topic, user_level)
+        initial_response = self._start_socratic_session(topic)
         if not initial_response:
             print("Sorry, I couldn't start the session. Please try again.")
             return
@@ -576,10 +595,10 @@ class KubernetesStudyMode:
         return False
 
     def _start_socratic_session(
-        self, topic: str, user_level: str = "intermediate"
+        self, topic: str
     ) -> Optional[str]:
         """Initialize a new study session using Gemini."""
-        system_prompt = self._build_kubernetes_study_prompt(topic, user_level)
+        system_prompt = self._build_kubernetes_study_prompt(topic)
         user_prompt = (
             f"I want to learn about {topic} in Kubernetes. Can you guide me through it?"
         )
@@ -634,11 +653,11 @@ class KubernetesStudyMode:
 
         return assistant_response
 
-    def _build_kubernetes_study_prompt(self, topic: str, level: str) -> str:
+    def _build_kubernetes_study_prompt(self, topic: str) -> str:
         """Builds a structured, detailed system prompt optimized for Gemini models."""
         return f"""
 # **Persona**
-You are KubeTutor, an expert on Kubernetes and a friendly, patient Socratic guide. Your goal is to help users achieve a deep, practical understanding of Kubernetes concepts. You are tutoring a user whose skill level is `{level}`.
+You are KubeTutor, an expert on Kubernetes and a friendly, patient Socratic guide. Your goal is to help users achieve a deep, practical understanding of Kubernetes concepts.
 
 # **Topic**
 The user wants to learn about: **{topic}**.

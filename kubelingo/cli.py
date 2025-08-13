@@ -856,8 +856,8 @@ def run_interactive_main_menu():
             choices = [
                 Separator("--- Learn ---"),
                 questionary.Choice(
-                    "Study Mode (Socratic Tutor)",
-                    value=("learn", "socratic"),
+                    "Study Mode",
+                    value=("learn", "study"),
                     disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 questionary.Choice(
@@ -866,26 +866,6 @@ def run_interactive_main_menu():
                     disabled=(api_key_required_msg if not has_api_key
                               else "No questions to review" if missed_count == 0 or missed_count == 'N/A'
                               else ""),
-                ),
-                Separator("--- Drill ---"),
-                questionary.Choice(
-                    f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED, 'N/A')})",
-                    value=("drill", QuestionCategory.OPEN_ENDED),
-                    disabled=api_key_required_msg if not has_api_key else "",
-                ),
-                questionary.Choice(
-                    f"Basic Terminology ({question_counts.get(QuestionCategory.BASIC_TERMINOLOGY, 'N/A')})",
-                    value=("drill", QuestionCategory.BASIC_TERMINOLOGY),
-                ),
-                questionary.Choice(
-                    f"Command Syntax ({question_counts.get(QuestionCategory.COMMAND_SYNTAX, 'N/A')})",
-                    value=("drill", QuestionCategory.COMMAND_SYNTAX),
-                    disabled=api_key_required_msg if not has_api_key else "",
-                ),
-                questionary.Choice(
-                    f"YAML Manifest ({question_counts.get(QuestionCategory.YAML_MANIFEST, 'N/A')})",
-                    value=("drill", QuestionCategory.YAML_MANIFEST),
-                    disabled=api_key_required_msg if not has_api_key else "",
                 ),
                 Separator("--- Settings ---"),
                 questionary.Choice("AI Provider", value=("settings", "api")),
@@ -911,12 +891,10 @@ def run_interactive_main_menu():
             menu, action = choice
 
             if menu == "learn":
-                if action == "socratic":
-                    study_session._run_socratic_mode_entry()
+                if action == "study":
+                    study_session.run_study_mode()
                 elif action == "review":
                     study_session.review_past_questions()
-            elif menu == "drill":
-                study_session._run_drill_menu(action)
             elif menu == "settings":
                 if action == "api":
                     manage_config_interactive()
