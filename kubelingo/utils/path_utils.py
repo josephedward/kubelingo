@@ -7,7 +7,7 @@ in directory structure.
 """
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 from kubelingo.utils.config import (
     DATABASE_FILE,
@@ -15,6 +15,7 @@ from kubelingo.utils.config import (
     SQLITE_BACKUP_DIRS,
     YAML_BACKUP_DIRS,
 )
+import yaml
 
 
 def get_project_root() -> Path:
@@ -154,3 +155,23 @@ def find_yaml_files_from_paths(paths: List[str]) -> List[Path]:
                 file=sys.stderr,
             )
     return sorted(list(yaml_files))
+
+
+def load_yaml_files(file_paths: List[str]) -> Dict[str, Any]:
+    """
+    Loads YAML content from a list of file paths.
+
+    Args:
+        file_paths: List of file paths to YAML files.
+
+    Returns:
+        A dictionary where keys are file paths and values are the parsed YAML content.
+    """
+    yaml_data = {}
+    for file_path in file_paths:
+        try:
+            with open(file_path, 'r') as f:
+                yaml_data[file_path] = yaml.safe_load(f)
+        except Exception as e:
+            print(f"Error loading YAML file {file_path}: {e}", file=sys.stderr)
+    return yaml_data
