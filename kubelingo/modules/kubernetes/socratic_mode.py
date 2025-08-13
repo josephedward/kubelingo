@@ -150,6 +150,92 @@ class SocraticMode:
         if subject_choice and subject_choice != "back":
             self.run_drill_quiz(category, subject_choice)
 
+    def _run_ai_question_generation_menu(self):
+        """Runs a command-line interface to generate questions using AI."""
+        if not self.question_generator:
+            print(
+                f"\n{Fore.YELLOW}AI Question Generator not available. Please check your AI provider configuration.{Style.RESET_ALL}"
+            )
+            questionary.confirm("Press Enter to continue...").ask()
+            return
+
+        category_choice = questionary.select(
+            "Select a category for the new questions:",
+            choices=[cat.value for cat in QuestionCategory if cat != QuestionCategory.OPEN_ENDED],
+        ).ask()
+        if not category_choice:
+            return
+
+        subject_choice = questionary.select(
+            "Select a subject for the new questions:",
+            choices=KUBERNETES_TOPICS,
+        ).ask()
+        if not subject_choice:
+            return
+
+        num_questions_str = questionary.text(
+            "How many questions to generate?",
+            default="3",
+            validate=lambda text: text.isdigit() and int(text) > 0,
+        ).ask()
+        if not num_questions_str:
+            return
+        num_questions = int(num_questions_str)
+
+        print(f"\nGenerating {num_questions} questions for '{subject_choice}' in '{category_choice}'...")
+
+        try:
+            context_questions = self._get_random_questions_for_context()
+            # The generator returns Question objects, which we'll save as YAML
+            generated_questions = self.question_generator.generate_questions(
+                subject=subject_choice,
+                num_questions=num_questions,
+                category=category_choice,
+                base_questions=context_questions,
+            )
+
+            if not generated_questions:
+                print(f"{Fore.YELLOW}AI did not return any questions.{Style.RESET_ALL}")
+                questionary.confirm("Press Enter to continue...").ask()
+                return
+
+            saved_count = 0
+            for question in generated_questions:
+                try:
+                    # This logic is adapted from _run_quiz_loop to save and index consistently
+                    category_dir_name = self._slugify_prompt(category_choice)
+                    subject_dir_name = self._slugify_prompt(subject_choice)
+                    target_dir = (
+                        self.questions_dir / category_dir_name / subject_dir_name
+                    )
+                    os.makedirs(target_dir, exist_ok=True)
+
+                    slug = self._slugify_prompt(question.prompt)
+                    filename = f"{slug}.yaml"
+                    question_path = target_dir / filename
+                    if question_path.exists():
+                        short_id = str(uuid.uuid4())[:8]
+                        filename = f"{slug}-{short_id}.yaml"
+                        question_path = target_dir / filename
+
+                    with question_path.open("w", encoding="utf-8") as f:
+                        yaml.dump(asdict(question), f, sort_keys=False, indent=2)
+
+                    self._index_new_question(question_path)
+                    saved_count += 1
+
+                except Exception as e:
+                    print(
+                        f"\n{Fore.RED}Could not save and index question '{question.prompt[:50]}...': {e}{Style.RESET_ALL}"
+                    )
+
+            print(f"\n{Fore.GREEN}Successfully saved and indexed {saved_count} of {len(generated_questions)} new questions.{Style.RESET_ALL}")
+
+        except Exception as e:
+            print(f"\n{Fore.RED}An error occurred during AI question generation: {e}{Style.RESET_ALL}")
+
+        questionary.confirm("Press Enter to continue...").ask()
+
     def _run_quiz(self, questions: List[Question]):
         """
         Runs an interactive quiz session with a given list of questions.
