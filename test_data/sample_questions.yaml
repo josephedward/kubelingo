@@ -7,14 +7,6 @@
   validator: {}
   review: false
 
-- id: "q2"
-  type: "command"
-  prompt: "What does `kubectl get pods` do?"
-  response: "It lists all the Pods in the current namespace."
-  source: "Core Concepts"
-  validation: []
-  validator: {}
-  review: false
 
 - id: "q3"
   type: "manifest"
