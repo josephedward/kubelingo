@@ -1,0 +1,27 @@
+id: 486a56dd-c764-4ed9-a476-1c8d2dc350e0
+prompt: Which command is used to get a brief description of the fields of a Kubernetes
+  resource, including their type, description, and required status?
+type: basic
+schema_category: !!python/object/apply:builtins.getattr
+- !!python/name:kubelingo.question.QuestionCategory ''
+- COMMAND
+subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
+answers:
+- kubectl explain
+correct_yaml: null
+initial_files: {}
+pre_shell_cmds: []
+validation_steps: []
+explanation: The `kubectl explain` command provides details about the fields of a
+  Kubernetes resource. For example, `kubectl explain pods` describes the fields of
+  a Pod object.
+categories: []
+difficulty: intermediate
+source: null
+review: false
+metadata: {}
+validator: null
+source_file: /Users/user/Documents/GitHub/kubelingo/questions/generated_yaml/486a56dd-c764-4ed9-a476-1c8d2dc350e0.yaml
+category: null
+response: null
+validation: []
