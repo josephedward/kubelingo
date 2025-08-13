@@ -22,7 +22,7 @@ RUST_VALIDATOR_ENABLED = os.getenv("KUBELINGO_DISABLE_RUST", "").lower() not in 
 
 def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
     """
-    Identifies duplicate YAML files based on the "answer" field.
+    Identifies duplicate YAML files based on the "answers" field.
 
     Args:
         yaml_data: A dictionary where keys are file paths and values are parsed YAML content.
@@ -34,13 +34,16 @@ def find_duplicate_answers(yaml_data: Dict[str, Any]) -> List[List[str]]:
     duplicates = []
 
     for file_path, content in yaml_data.items():
-        if not content or "answer" not in content:
+        if not content or "answers" not in content:
             continue
-        answer = content["answer"]
-        if answer in answer_map:
-            answer_map[answer].append(file_path)
-        else:
-            answer_map[answer] = [file_path]
+        answers = content["answers"]
+        if not isinstance(answers, list):
+            continue
+        for answer in answers:
+            if answer in answer_map:
+                answer_map[answer].append(file_path)
+            else:
+                answer_map[answer] = [file_path]
 
     for paths in answer_map.values():
         if len(paths) > 1:
