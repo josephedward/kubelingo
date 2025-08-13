@@ -202,9 +202,13 @@ class KubernetesStudyMode:
 
     def _run_socratic_mode_entry(self):
         """Gets user input before starting socratic mode."""
+        # Filter out topics not suitable for the Kubernetes Socratic tutor.
+        socratic_topics = [
+            topic for topic in KUBERNETES_TOPICS if "linux" not in topic.lower()
+        ]
         topic = questionary.select(
             "Which Kubernetes topic would you like to study?",
-            choices=KUBERNETES_TOPICS,
+            choices=socratic_topics,
             use_indicator=True,
         ).ask()
         if topic:
