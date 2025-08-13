@@ -155,10 +155,17 @@ class YAMLLoader(BaseLoader):
                 if 'type' in question_data:
                     question_data['type_'] = question_data.pop('type')
 
-                # Infer subject matter
-                subject_mat = self._infer_subject_matter(item)
-                if subject_mat:
-                    question_data['subject_id'] = subject_mat
+                # Map legacy YAML keys to new dataclass field names before inference.
+                if 'schema_category' in item:
+                    question_data['category_id'] = item['schema_category']
+                if 'subject_matter' in item:
+                    question_data['subject_id'] = item['subject_matter']
+
+                # Infer subject matter only if not explicitly provided.
+                if 'subject_id' not in question_data:
+                    subject_mat = self._infer_subject_matter(item)
+                    if subject_mat:
+                        question_data['subject_id'] = subject_mat
 
                 # Create question object, it will handle internal normalization
                 questions.append(Question(id=qid, source_file=path, **question_data))
@@ -180,10 +187,17 @@ class YAMLLoader(BaseLoader):
                 if 'question' in question_data and 'prompt' not in question_data:
                     question_data['prompt'] = question_data.pop('question')
 
-                # Infer subject matter
-                subject_mat = self._infer_subject_matter(item)
-                if subject_mat:
-                    question_data['subject_id'] = subject_mat
+                # Map legacy YAML keys to new dataclass field names before inference.
+                if 'schema_category' in item:
+                    question_data['category_id'] = item['schema_category']
+                if 'subject_matter' in item:
+                    question_data['subject_id'] = item['subject_matter']
+
+                # Infer subject matter only if not explicitly provided.
+                if 'subject_id' not in question_data:
+                    subject_mat = self._infer_subject_matter(item)
+                    if subject_mat:
+                        question_data['subject_id'] = subject_mat
 
                 questions.append(Question(id=qid, source_file=path, **question_data))
 
