@@ -297,12 +297,11 @@ def _run_script(script_path: str):
 
 def _rebuild_db_from_yaml():
     """
-    Clears the database and rebuilds it from all discoverable YAML source files by
-    delegating to the more robust `index_yaml_files` function.
+    Clears the database and rebuilds it from the single source YAML file.
     """
-    from kubelingo.database import get_db_connection, index_yaml_files
+    from kubelingo.database import get_db_connection, index_all_yaml_questions
 
-    print("Attempting to rebuild database from source YAML files...")
+    print("Attempting to rebuild database from the single source YAML file...")
     conn = get_db_connection()
     try:
         print("Clearing existing questions and index from the database...")
@@ -311,25 +310,16 @@ def _rebuild_db_from_yaml():
         conn.commit()
         print("Database cleared.")
 
-        print("Discovering and indexing questions from YAML files...")
-        # Search in the configured questions directory.
-        search_dirs = [str(QUESTIONS_DIR)]
-        yaml_files = find_yaml_files(search_dirs)
-
-        if not yaml_files:
-            print(f"{Fore.RED}No YAML source files found in {search_dirs}. Cannot rebuild database.{Style.RESET_ALL}")
-            return False
-
-        # Delegate to the main indexing function. Since we cleared indexed_files,
-        # it will process all files. `index_yaml_files` also prints progress.
-        index_yaml_files(yaml_files, conn, verbose=True)
+        # Re-index from the single source file. This function handles all logic.
+        # Pass verbose=True to show progress.
+        index_all_yaml_questions(conn=conn, verbose=True)
 
         count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
         if count > 0:
             print(f"\n{Fore.GREEN}Database rebuild complete. Found {count} questions.{Style.RESET_ALL}")
             return True
         else:
-            print(f"{Fore.YELLOW}No questions were loaded from any YAML files.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}No questions were loaded from the source YAML file.{Style.RESET_ALL}")
             return False
 
     except Exception as e:
@@ -341,72 +331,11 @@ def _rebuild_db_from_yaml():
 
 def restore_db():
     """
-    Merges questions from the master backup into the live database.
-    This is an additive process and will not remove any custom or AI-generated questions.
-    Existing questions from the master backup will be updated if they have changed.
+    Restores the database by clearing it and rebuilding from the source YAML file.
+    This is an alias for the 'rebuild-db' command.
     """
-    import sqlite3
-    from kubelingo.database import get_db_connection, add_question
-    from kubelingo.utils.config import MASTER_DATABASE_FILE, SECONDARY_MASTER_DATABASE_FILE
-
-    # Choose a backup database file: prefer master, fallback to secondary
-    backup_file = None
-    if os.path.exists(MASTER_DATABASE_FILE) and os.path.getsize(MASTER_DATABASE_FILE) > 0:
-        backup_file = MASTER_DATABASE_FILE
-    elif os.path.exists(SECONDARY_MASTER_DATABASE_FILE) and os.path.getsize(SECONDARY_MASTER_DATABASE_FILE) > 0:
-        backup_file = SECONDARY_MASTER_DATABASE_FILE
-    if not backup_file:
-        print(f"{Fore.YELLOW}No valid master database backup found. Falling back to rebuilding from YAML sources.{Style.RESET_ALL}")
-        if not _rebuild_db_from_yaml():
-             print(f"{Fore.RED}Database rebuild from YAML failed. Database may be empty.{Style.RESET_ALL}")
-        return
-
-    print(f"Merging questions from backup '{backup_file}'...")
-    try:
-        master_conn = sqlite3.connect(f'file:{backup_file}?mode=ro', uri=True)
-        master_conn.row_factory = sqlite3.Row
-        master_cursor = master_conn.cursor()
-        master_cursor.execute("SELECT * FROM questions")
-        master_questions = master_cursor.fetchall()
-        column_names = [d[0] for d in master_cursor.description]
-        master_conn.close()
-
-        if not master_questions:
-            print(f"{Fore.YELLOW}Master backup contains no questions. Nothing to merge.{Style.RESET_ALL}")
-            return
-
-        live_conn = get_db_connection()
-        updated_count = 0
-        for row in master_questions:
-            q_dict = dict(zip(column_names, row))
-
-            # Construct a dictionary with only the metadata fields that add_question expects.
-            # This makes the merge robust to schema changes between the backup and live DB.
-            meta_dict = {
-                'id': q_dict.get('id'),
-                'source_file': q_dict.get('source_file'),
-                'category_id': q_dict.get('category_id') or q_dict.get('schema_category'),
-                'subject_id': q_dict.get('subject_id'),
-                'question_type': q_dict.get('question_type'),
-                'source': q_dict.get('source'),
-                'review': q_dict.get('review', False),
-                'triage': q_dict.get('triage', False),
-                'content_hash': q_dict.get('content_hash'),
-            }
-            # Filter out entries where the key was not in the source dict.
-            meta_dict = {k: v for k, v in meta_dict.items() if v is not None}
-            if not meta_dict.get('id'):
-                continue # Cannot add a question without an ID.
-
-            # add_question uses INSERT OR REPLACE, which is what we want for a merge.
-            add_question(conn=live_conn, **meta_dict)
-            updated_count += 1
-
-        live_conn.close()
-        print(f"{Fore.GREEN}Successfully merged/updated {updated_count} questions from the master backup.{Style.RESET_ALL}")
-
-    except Exception as e:
-        print(f"{Fore.RED}Failed to merge from database: {e}{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}This will clear the database and rebuild it from the source YAML.{Style.RESET_ALL}")
+    _rebuild_db_from_yaml()
 
 
 def handle_load_yaml(cmd_args):

@@ -21,8 +21,8 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from kubelingo.question import Question, QuestionCategory, QuestionSubject, ValidationStep
-from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE
-from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
+from kubelingo.utils.config import DATABASE_FILE, SINGLE_SOURCE_YAML_FILE
+from kubelingo.utils.path_utils import get_project_root
 
 
 def get_db_connection(db_path: Optional[str] = None):
@@ -238,23 +238,28 @@ def get_unique_source_files(conn: sqlite3.Connection = None) -> List[str]:
             conn.close()
 
 
-def index_all_yaml_questions(verbose: bool = True, conn: Optional[sqlite3.Connection] = None):
-    """Discovers and indexes all YAML question files from the repository."""
-    if verbose:
-        print("Discovering all YAML files in repository to index...")
-    all_yaml_files = get_all_yaml_files_in_repo()
-
-    if not all_yaml_files:
+def index_all_yaml_questions(verbose: bool = True, conn: Optional[sqlite3.Connection] = None, force_ai_categorize: bool = False):
+    """Indexes questions from the single source YAML file into the database."""
+    source_yaml = Path(SINGLE_SOURCE_YAML_FILE)
+    if not source_yaml.exists():
         if verbose:
-            print("No YAML files found to index.")
+            # Provide a more helpful message if the default file is missing.
+            from kubelingo.utils.config import QUESTIONS_DIR
+            default_path = os.path.join(QUESTIONS_DIR, 'consolidated_20250811_144940.yaml')
+            if str(source_yaml.resolve()) == os.path.abspath(default_path):
+                print(f"Default source YAML file not found at '{source_yaml}'.")
+                print("Please create it or set the KUBELINGO_YAML_SOURCE environment variable.")
+            else:
+                print(f"Source YAML file not found at '{source_yaml}'.")
         return
 
+    all_yaml_files = [source_yaml]
     manage_connection = conn is None
     if manage_connection:
         conn = get_db_connection()
 
     try:
-        index_yaml_files(all_yaml_files, conn, verbose=verbose)
+        index_yaml_files(all_yaml_files, conn, verbose=verbose, use_ai_categorizer=force_ai_categorize)
     finally:
         if manage_connection and conn:
             conn.close()
@@ -277,7 +282,7 @@ def _get_file_hash(file_path: Path) -> str:
     return sha256.hexdigest()
 
 
-def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True):
+def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True, use_ai_categorizer: bool = False):
     """
     Indexes questions from a list of YAML files into the database,
     skipping files that have not changed since the last index.
@@ -296,14 +301,17 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
     indexed_count = 0
     skipped_count = 0
 
-    try:
-        categorizer = AICategorizer()
-        ai_categorizer_available = True
-    except (ImportError, ValueError):
-        categorizer = None
-        ai_categorizer_available = False
-        if verbose:
-            print("AI categorizer not available. Missing API key or packages. Categories will be based on YAML content only.", file=sys.stderr)
+    ai_categorizer_available = False
+    categorizer = None
+    if use_ai_categorizer:
+        try:
+            categorizer = AICategorizer()
+            ai_categorizer_available = True
+        except (ImportError, ValueError):
+            categorizer = None
+            ai_categorizer_available = False
+            if verbose:
+                print("AI categorizer is enabled but not available. Missing API key or packages.", file=sys.stderr)
 
 
     file_iterator = tqdm(files, desc="Indexing YAML files") if verbose else files

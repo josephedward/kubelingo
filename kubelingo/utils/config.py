@@ -33,6 +33,13 @@ except Exception:
 # question data repository. The build_question_db.py script will use this as the sole source.
 QUESTIONS_DIR = os.getenv('KUBELINGO_QUESTIONS_DIR') or os.path.join(PROJECT_ROOT, 'yaml')
 
+# The single source of truth for all questions.
+# The user can override this with an environment variable.
+SINGLE_SOURCE_YAML_FILE = os.getenv(
+    'KUBELINGO_YAML_SOURCE',
+    os.path.join(QUESTIONS_DIR, 'consolidated_20250811_144940.yaml')
+)
+
 
 # --- Pathfinding & Discovery Configuration ---
 # These lists define candidate directories for scripts to scan, making the project
@@ -64,9 +71,11 @@ def get_live_db_path() -> str:
 
 
 # Read-only master backup of original questions. Used to seed the user's DB on first run.
-MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo_original.db')
+# DEPRECATED: Database is now built from a single YAML source file.
+MASTER_DATABASE_FILE = None
 # Secondary backup for redundancy (fallback).
-SECONDARY_MASTER_DATABASE_FILE = os.path.join(PROJECT_ROOT, 'question-data-backup', 'kubelingo.db')
+# DEPRECATED: Database is now built from a single YAML source file.
+SECONDARY_MASTER_DATABASE_FILE = None
 
 
 # --- API Keys & Provider ---
