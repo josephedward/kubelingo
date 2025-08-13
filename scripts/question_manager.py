@@ -63,6 +63,26 @@ from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
 
+def handle_build_index(args):
+    """Handler for building/updating the question index from YAML files."""
+    print("Building question index from YAML files...")
+    question_dir = Path(args.directory)
+    if not question_dir.is_dir():
+        print(f"Error: Directory not found at {question_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    yaml_files = list(question_dir.rglob('*.yaml')) + list(question_dir.rglob('*.yml'))
+    
+    if not yaml_files:
+        print(f"No YAML files found in {question_dir}", file=sys.stderr)
+        return
+
+    conn = db_mod.get_db_connection()
+    try:
+        db_mod.index_yaml_files(yaml_files, conn, verbose=not args.quiet)
+        print("Index build complete.")
+    finally:
+        conn.close()
 
 
 # --- Main CLI Router ---
@@ -73,6 +93,26 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Action to perform')
+
+
+    # Sub-parser for 'build-index'
+    parser_build_index = subparsers.add_parser(
+        'build-index',
+        help='Builds or updates the question index from YAML files.',
+        description="Scans YAML files in a directory, hashes them, and updates the SQLite question database."
+    )
+    parser_build_index.add_argument(
+        'directory',
+        default='yaml/questions',
+        nargs='?',
+        help='Path to the directory containing YAML question files. Defaults to "yaml/questions".'
+    )
+    parser_build_index.add_argument(
+        '--quiet',
+        action='store_true',
+        help="Suppress progress output."
+    )
+    parser_build_index.set_defaults(func=handle_build_index)
 
 
     # Other subcommands...

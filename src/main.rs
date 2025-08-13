@@ -2,6 +2,7 @@ mod cli;
 use anyhow::Result;
 use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, Select};
+use rusqlite::{Connection, Result as RusqliteResult};
 use std::env;
 use std::io::{self, Write};
 use crate::cli::{Cli, Commands};
@@ -71,36 +72,21 @@ fn show_main_menu() -> Result<()> {
 }
 
 fn start_study_mode() -> Result<()> {
-    let topics = vec![
-        "Vim",
-        "Helm",
-        "Kubectl",
-        "Kubernetes Resources",
-        "Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)",
-        "Pod design patterns (initContainers, sidecars, lifecycle hooks)",
-        "Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)",
-        "App configuration (ConfigMaps, Secrets, projected & downwardAPI volumes)",
-        "Probes & health (liveness, readiness, startup; graceful shutdown)",
-        "Resource management (requests/limits, QoS classes, HPA basics)",
-        "Jobs & CronJobs (completions, parallelism, backoff, schedules)",
-        "Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)",
-        "Ingress & HTTP routing (basic rules, paths, service backends)",
-        "Networking utilities (DNS in-cluster, port-forward, exec, curl)",
-        "Persistence (PVCs, using existing StorageClasses, common volume types)",
-        "Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)",
-        "Labels, annotations & selectors (label ops, field selectors, jsonpath)",
-        "Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)",
-        "Image & registry use (imagePullPolicy, imagePullSecrets, private registries)",
-        "Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)",
-        "ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)",
-        "Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)",
-        "Namespaces & contexts (scoping resources, default namespace, context switching)",
-        "API discovery & docs (kubectl explain, api-resources, api-versions)",
-        "Vim for YAML editing (modes, navigation, editing commands)",
-        "Helm for Package Management (charts, releases, repositories)",
-        "Advanced Kubectl Usage (jsonpath, patch, custom columns)",
-        "Kubernetes API Resources (exploring objects with explain and api-resources)",
-    ];
+    let topics = match get_study_topics_from_db() {
+        Ok(topics) => topics,
+        Err(e) => {
+            println!("\nError fetching study topics from the database: {}", e);
+            println!("Please ensure the database exists and is accessible.");
+            return Ok(());
+        }
+    };
+
+    if topics.is_empty() {
+        println!("\nNo study topics found in the database.");
+        println!("Please run the indexer first to populate the question database:");
+        println!("  ./scripts/question_manager.py build-index");
+        return Ok(());
+    }
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select a topic to study:")
@@ -112,6 +98,24 @@ fn start_study_mode() -> Result<()> {
     // Add logic to start the selected study mode here
 
     Ok(())
+}
+
+fn get_db_path() -> String {
+    // Assuming the binary is run from the project root
+    "kubelingo.db".to_string()
+}
+
+fn get_study_topics_from_db() -> RusqliteResult<Vec<String>> {
+    let db_path = get_db_path();
+    let conn = Connection::open(db_path)?;
+    let mut stmt = conn.prepare("SELECT DISTINCT subject FROM questions WHERE subject IS NOT NULL AND subject != '' ORDER BY subject")?;
+    let topics_iter = stmt.query_map([], |row| row.get(0))?;
+
+    let mut topics = Vec::new();
+    for topic in topics_iter {
+        topics.push(topic?);
+    }
+    Ok(topics)
 }
 
 fn prompt_for_api_key() -> Result<()> {

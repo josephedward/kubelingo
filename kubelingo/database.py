@@ -4,6 +4,8 @@ import os
 import re
 import shutil
 import sys
+import hashlib
+from datetime import datetime
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -165,6 +167,25 @@ def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[st
     return questions
 
 
+def get_all_subjects(conn: Optional[sqlite3.Connection] = None) -> List[str]:
+    """Fetches all distinct, non-empty subjects from the questions table."""
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        close_conn = True
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT subject FROM questions WHERE subject IS NOT NULL AND subject != '' ORDER BY subject")
+        rows = cursor.fetchall()
+        subjects = [row[0] for row in rows]
+    finally:
+        if close_conn:
+            conn.close()
+
+    return subjects
+
+
 def get_flagged_questions() -> List[Dict[str, Any]]:
     """
     Retrieves questions that are flagged for review.
@@ -202,84 +223,98 @@ def update_review_status(question_id: str, review_status: bool):
         conn.close()
 
 
-def import_questions_from_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True):
-    """Imports questions from a list of YAML files into the database."""
+def _get_file_hash(file_path: Path) -> str:
+    """Computes the SHA256 hash of a file's content."""
+    h = hashlib.sha256()
+    with file_path.open('rb') as f:
+        h.update(f.read())
+    return h.hexdigest()
+
+
+def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True):
+    """
+    Indexes questions from a list of YAML files into the database,
+    skipping files that have not changed since the last index.
+    """
     try:
         import yaml
-    except ImportError:
-        if verbose:
-            print("PyYAML is not installed. Please run 'pip install PyYAML'.", file=sys.stderr)
-        return
-
-    try:
         from tqdm import tqdm
     except ImportError:
-        tqdm = lambda x, **kwargs: x  # Fallback if tqdm is not installed
+        if verbose:
+            print("Required packages (PyYAML, tqdm) not found. Please install them.", file=sys.stderr)
+        return
 
-    added_count = 0
-    skipped_count = 0
     cursor = conn.cursor()
     project_root = get_project_root()
+    indexed_count = 0
+    skipped_count = 0
 
-    file_iterator = tqdm(files, desc="Importing files") if verbose else files
+    file_iterator = tqdm(files, desc="Indexing YAML files") if verbose else files
 
     for file_path in file_iterator:
         try:
+            file_hash = _get_file_hash(file_path)
+            rel_path = str(file_path.relative_to(project_root))
+
+            cursor.execute("SELECT content_hash FROM indexed_files WHERE file_path = ?", (rel_path,))
+            result = cursor.fetchone()
+
+            if result and result[0] == file_hash:
+                skipped_count += 1
+                continue  # Skip file if hash is unchanged
+
+            # File is new or has changed, so re-index it.
+            # First, remove any existing questions from this file.
+            cursor.execute("DELETE FROM questions WHERE source_file = ?", (rel_path,))
+
             with file_path.open('r', encoding='utf-8') as f:
-                content = f.read()
-                # support multi-document YAML files
-                data_docs = yaml.safe_load_all(content)
+                data_docs = yaml.safe_load_all(f)
                 questions_to_add = []
                 for data in data_docs:
-                    if not data:
-                        continue
+                    if not data: continue
                     if isinstance(data, dict) and 'questions' in data:
                         questions_to_add.extend(data['questions'])
                     elif isinstance(data, list):
                         questions_to_add.extend(data)
+                    elif isinstance(data, dict) and ('id' in data or 'prompt' in data):
+                        questions_to_add.append(data)
+
 
             for q_dict in questions_to_add:
-                try:
-                    if 'id' not in q_dict or 'prompt' not in q_dict:
-                        skipped_count += 1
-                        continue
+                if 'id' not in q_dict or 'prompt' not in q_dict: continue
 
-                    if 'source_file' not in q_dict:
-                        q_dict['source_file'] = str(file_path.relative_to(project_root))
+                q_dict['source_file'] = rel_path
+                q_obj = Question(**q_dict)
+                validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
 
-                    q_obj = Question(**q_dict)
-                    validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
+                cursor.execute("""
+                    INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    q_obj.id, q_obj.prompt, q_obj.source_file,
+                    json.dumps(q_obj.response) if q_obj.response is not None else None,
+                    q_obj.category,
+                    q_obj.subject.value if q_obj.subject else None,
+                    'yaml_import', json.dumps(q_dict),
+                    json.dumps(validation_steps_for_db),
+                    json.dumps(q_obj.validator) if q_obj.validator else None,
+                    getattr(q_obj, 'review', False)
+                ))
 
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO questions (id, prompt, source_file, response, category, subject, source, raw, validation_steps, validator, review)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        q_obj.id,
-                        q_obj.prompt,
-                        q_obj.source_file,
-                        json.dumps(q_obj.response) if q_obj.response is not None else None,
-                        q_obj.category,
-                        q_obj.subject.value if q_obj.subject else None,
-                        'yaml_import',
-                        json.dumps(q_dict),
-                        json.dumps(validation_steps_for_db),
-                        json.dumps(q_obj.validator) if q_obj.validator else None,
-                        getattr(q_obj, 'review', False)
-                    ))
-                    added_count += 1
-                except sqlite3.IntegrityError:
-                    skipped_count += 1
-                except Exception as e:
-                    if verbose:
-                        print(f"\nError processing question in {file_path} (ID: {q_dict.get('id')}): {e}", file=sys.stderr)
-                    skipped_count += 1
-        except (yaml.YAMLError, IOError) as e:
+            # Update indexed_files table
+            cursor.execute("""
+                INSERT OR REPLACE INTO indexed_files (file_path, content_hash, last_indexed)
+                VALUES (?, ?, ?)
+            """, (rel_path, file_hash, datetime.now()))
+            indexed_count += 1
+
+        except (yaml.YAMLError, IOError, Exception) as e:
             if verbose:
-                print(f"\nCould not read or parse YAML file {file_path}: {e}", file=sys.stderr)
+                tqdm.write(f"Error processing {file_path}: {e}", file=sys.stderr)
 
     conn.commit()
     if verbose:
-        print(f"\nImport complete. Added: {added_count}, Skipped/Existing: {skipped_count}")
+        print(f"\nIndexing complete. Indexed: {indexed_count}, Skipped (unchanged): {skipped_count}")
 
 
 def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[sqlite3.Connection] = None):
@@ -354,6 +389,14 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS indexed_files (
+            file_path TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            last_indexed TIMESTAMP NOT NULL
+        )
+    """)
+
     for _cat in ('basic', 'command', 'manifest'):
         cursor.execute("INSERT OR IGNORE INTO question_categories (id) VALUES (?);", (_cat,))
     for _subj in SUBJECT_MATTER:
@@ -368,7 +411,7 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
             from kubelingo.utils.path_utils import get_all_yaml_files_in_repo
             files = get_all_yaml_files_in_repo()
             if files:
-                import_questions_from_yaml_files(files, conn, verbose=False)
+                index_yaml_files(files, conn, verbose=False)
         except (ImportError, Exception):
             # Silently fail if dependencies are missing or an error occurs.
             # The user can run the build-db script manually.
