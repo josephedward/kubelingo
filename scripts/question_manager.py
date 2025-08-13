@@ -63,49 +63,79 @@ from kubelingo.utils.validation import find_duplicate_answers
 from kubelingo.utils.ui import Fore, Style
 
 
-def find_duplicate_yaml_files(directory: str) -> List[str]:
-    """
-    Finds duplicate YAML files in the specified directory based on the "answer" field.
-
-    Args:
-        directory: Path to the directory containing YAML files.
-
-    Returns:
-        A list of file paths to remove.
-    """
-    # Find all YAML files in the directory
-    yaml_files = [str(p) for p in Path(directory).glob("*.yaml")]
-
-    # Load YAML content
-    yaml_data = load_yaml_files(yaml_files)
-
-    # Find duplicates
-    duplicates = find_duplicate_answers(yaml_data)
-    files_to_remove = []
-
-    # Collect duplicates for removal, keeping one file per set
-    for duplicate_set in duplicates:
-        # Keep the first file, mark the rest for removal
-        files_to_remove.extend(duplicate_set[1:])
-
-    return files_to_remove
-
-
 def handle_deduplicate_files(args):
-    """Handler for finding and suggesting removal of duplicate YAML files."""
-    files_to_remove = find_duplicate_yaml_files(args.directory)
+    """
+    Handler for finding and suggesting removal of duplicate YAML files based on answer content.
+    """
+    answers_map = defaultdict(list)
+    file_paths = [Path(f) for f in args.files]
 
-    if not files_to_remove:
-        print("No duplicate files found.", file=sys.stderr)
+    for file_path in file_paths:
+        if not file_path.is_file():
+            continue
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                # Use UnsafeLoader to handle python-specific tags, which are present in the YAML files.
+                # WARNING: This is a security risk if the files are not from a trusted source.
+                data_docs = yaml.load_all(f, Loader=yaml.UnsafeLoader)
+                for data in data_docs:
+                    if not data:
+                        continue
+
+                    qs_in_doc = []
+                    if isinstance(data, dict) and 'questions' in data:
+                        qs_in_doc = data.get('questions', [])
+                    elif isinstance(data, list):
+                        qs_in_doc = data
+
+                    for q in qs_in_doc:
+                        if isinstance(q, dict):
+                            # Check for 'answers', 'response', or 'answer' fields.
+                            answer_val = q.get('answers') or q.get('response') or q.get('answer')
+                            
+                            answer_str = ""
+                            if isinstance(answer_val, list):
+                                answer_str = " ".join(map(str, answer_val)).strip()
+                            elif isinstance(answer_val, str):
+                                answer_str = answer_val.strip()
+
+                            if answer_str:
+                                answers_map[answer_str].append(str(file_path))
+        except Exception as e:
+            print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+
+    files_to_remove = set()
+    duplicate_groups = {k: v for k, v in answers_map.items() if len(v) > 1}
+
+    if not duplicate_groups:
+        print("No duplicate questions found based on answer content.", file=sys.stderr)
         return
 
-    print("# Found duplicate YAML files. To remove them, run the following commands:")
-    # Use a set to handle any potential duplicates in the list, then sort for deterministic output
-    unique_files_to_remove = sorted(list(set(files_to_remove)))
-    for file_path in unique_files_to_remove:
-        print(f"git rm '{file_path}'")
+    print(f"# Found {len(duplicate_groups)} groups of questions with duplicate answers.")
+    print("# This tool suggests which files to remove based on exact answer matches.")
+    print("# It keeps the first file in each group (sorted alphabetically) and suggests removing the others.")
+    print("# Please review carefully before running the generated commands.")
 
-    print(f"\n# Total files to be removed: {len(unique_files_to_remove)}", file=sys.stderr)
+    for answer, paths in duplicate_groups.items():
+        # Sort for deterministic behavior
+        paths.sort()
+        file_to_keep = paths[0]
+        print(f"\n# Answer: \"{answer}\"")
+        print(f"#   Keeping: {file_to_keep}")
+        
+        for path_to_remove in paths[1:]:
+            files_to_remove.add(path_to_remove)
+            print(f"#   Removing: {path_to_remove}")
+
+    if not files_to_remove:
+        print("\n# No files to suggest for removal.")
+        return
+
+    print("\n\n# --- Suggested git rm commands ---")
+    for p in sorted(list(files_to_remove)):
+        print(f"git rm '{p}'")
+
+    print(f"\n# Total files to be removed: {len(files_to_remove)}", file=sys.stderr)
 
 
 # --- Main CLI Router ---
@@ -121,11 +151,12 @@ def main():
     parser_deduplicate_files = subparsers.add_parser(
         'deduplicate-files',
         help='Find duplicate YAML files by answer and suggest removal commands.',
-        description="Scans a directory for YAML files with duplicate answers and prints 'git rm' commands for them."
+        description="Scans a list of YAML files for duplicate answers and prints 'git rm' commands for them."
     )
     parser_deduplicate_files.add_argument(
-        'directory',
-        help='Path to the directory containing YAML files to scan for duplicates.'
+        'files',
+        nargs='+',
+        help='List of file paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").'
     )
     parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
