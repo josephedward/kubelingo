@@ -17,6 +17,7 @@ import tempfile
 import shutil
 import hashlib
 import logging
+import difflib
 from collections import defaultdict, Counter
 from datetime import datetime
 from pathlib import Path
@@ -84,27 +85,68 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         return ""
 
 
-def sha256_checksum(file_path: Path, block_size=65536) -> str:
-    """Calculates the SHA256 checksum of a file."""
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for block in iter(lambda: f.read(block_size), b""):
-            sha256.update(block)
-    return sha256.hexdigest()
-
-
-def find_file_duplicates(file_paths: List[Path]) -> Dict[str, List[Path]]:
-    """Finds duplicate files from a list of Paths based on their content."""
-    checksums = defaultdict(list)
+def find_similar_question_groups(file_paths: List[Path], similarity_threshold: float = 0.8) -> List[List[Dict[str, Any]]]:
+    """
+    Finds groups of similar questions from a list of YAML file paths based on prompt similarity.
+    """
+    questions_info = []
     for file_path in file_paths:
-        if file_path.is_file():
-            try:
-                checksum = sha256_checksum(file_path)
-                checksums[checksum].append(file_path)
-            except IOError as e:
-                print(f"Warning: Could not read file {file_path}: {e}", file=sys.stderr)
+        if not file_path.is_file():
+            continue
+        try:
+            with file_path.open('r', encoding='utf-8') as f:
+                # Support multi-document YAML files
+                data_docs = yaml.safe_load_all(f)
+                for data in data_docs:
+                    if not data:
+                        continue
+                    qs_in_doc = []
+                    if isinstance(data, dict) and 'questions' in data:
+                        qs_in_doc = data.get('questions', [])
+                    elif isinstance(data, list):
+                        qs_in_doc = data
 
-    return {k: v for k, v in checksums.items() if len(v) > 1}
+                    for q in qs_in_doc:
+                        if isinstance(q, dict) and 'prompt' in q:
+                            questions_info.append({'file_path': file_path, 'prompt': q['prompt'], 'question_data': q})
+        except Exception as e:
+            print(f"Warning: Could not process file {file_path}: {e}", file=sys.stderr)
+
+    if not questions_info:
+        return []
+
+    # Build adjacency list for graph of similar questions
+    adj = defaultdict(list)
+    for i in range(len(questions_info)):
+        for j in range(i + 1, len(questions_info)):
+            prompt1 = questions_info[i]['prompt']
+            prompt2 = questions_info[j]['prompt']
+            similarity = difflib.SequenceMatcher(None, prompt1, prompt2).ratio()
+            if similarity >= similarity_threshold:
+                adj[i].append(j)
+                adj[j].append(i)
+
+    # Find connected components (clusters) using BFS
+    clusters = []
+    visited = [False] * len(questions_info)
+    for i in range(len(questions_info)):
+        if not visited[i]:
+            component = []
+            queue = [i]
+            visited[i] = True
+            head = 0
+            while head < len(queue):
+                u = queue[head]
+                head += 1
+                component.append(questions_info[u])
+                for v in adj[u]:
+                    if not visited[v]:
+                        visited[v] = True
+                        queue.append(v)
+            if len(component) > 1:
+                clusters.append(component)
+
+    return clusters
 
 
 def get_existing_prompts(conn) -> Set[str]:
@@ -420,30 +462,49 @@ def handle_deduplicate(args):
 
 
 def handle_deduplicate_files(args):
-    """Handler for finding and reporting duplicate files by content."""
+    """Handler for finding and reporting semantically duplicate files by content."""
     file_paths = [Path(f) for f in args.files]
-    duplicates = find_file_duplicates(file_paths)
+    similarity_threshold = args.threshold
 
-    if not duplicates:
-        print("No duplicate files found.", file=sys.stderr)
+    similar_question_groups = find_similar_question_groups(file_paths, similarity_threshold)
+
+    if not similar_question_groups:
+        print(f"No similar questions found with a threshold of {similarity_threshold}.", file=sys.stderr)
         return
 
-    print("# Found duplicate files. Run the following commands to remove them:")
-    print("# This will remove the files from your git tracking and the filesystem.")
+    print(f"# Found {len(similar_question_groups)} groups of similar questions (similarity > {similarity_threshold*100:.0f}%).")
+    print("# This tool suggests which files to remove based on prompt similarity.")
+    print("# It keeps the first file in each group (sorted by path) and suggests removing the others.")
+    print("# Please review carefully before running the generated commands.")
 
-    total_removed = 0
-    for checksum, paths in duplicates.items():
-        # Sort by path to have a deterministic file to keep.
-        paths.sort()
-        # Keep the first file, mark the rest for deletion.
-        paths_to_delete = paths[1:]
+    files_to_remove = set()
 
-        print(f"\n# Duplicates with checksum {checksum} (keeping '{paths[0]}')")
-        for p in paths_to_delete:
-            print(f"git rm '{p}'")
-            total_removed += 1
+    for i, group in enumerate(similar_question_groups):
+        # Sort by file path to have a deterministic file to keep.
+        group.sort(key=lambda x: str(x['file_path']))
 
-    print(f"\n# Total files to be removed: {total_removed}", file=sys.stderr)
+        file_to_keep_info = group[0]
+        print(f"\n# --- Group {i+1} ---")
+        print(f"# Keeping file: '{file_to_keep_info['file_path']}'")
+        print(f"#   Prompt: \"{file_to_keep_info['prompt']}\"")
+
+        for item in group[1:]:
+            file_to_delete = item['file_path']
+            # Only add to removal list if it's not the one we are keeping
+            if file_to_delete != file_to_keep_info['file_path']:
+                files_to_remove.add(file_to_delete)
+                print(f"# Suggest removing file: '{file_to_delete}'")
+                print(f"#   Similar Prompt: \"{item['prompt']}\"")
+
+    if not files_to_remove:
+        print("\n# No files to suggest for removal (similar questions might be in the same file or already processed).")
+        return
+
+    print("\n\n# --- Suggested git rm commands ---")
+    for p in sorted(list(files_to_remove)):
+        print(f"git rm '{p}'")
+
+    print(f"\n# Total files to be removed: {len(files_to_remove)}", file=sys.stderr)
 
 
 # --- from: scripts/find_duplicate_questions.py ---
@@ -2252,8 +2313,18 @@ def main():
     parser_deduplicate.set_defaults(func=handle_deduplicate)
 
     # Sub-parser for 'deduplicate-files'
-    parser_deduplicate_files = subparsers.add_parser('deduplicate-files', help='Find and report duplicate files by content.', description="Finds duplicate files from a list of paths based on content checksum and prints 'git rm' commands for duplicates.")
-    parser_deduplicate_files.add_argument('files', nargs='+', help='File paths to check for duplicates.')
+    parser_deduplicate_files = subparsers.add_parser(
+        'deduplicate-files',
+        help='Find and report semantically similar questions in YAML files.',
+        description="Finds files with similar question prompts and suggests `git rm` commands for the duplicates."
+    )
+    parser_deduplicate_files.add_argument('files', nargs='+', help='File paths or glob patterns to check for duplicates (e.g., "questions/ai_generated/*.yaml").')
+    parser_deduplicate_files.add_argument(
+        '--threshold',
+        type=float,
+        default=0.8,
+        help='Similarity threshold for prompts (0.0 to 1.0). Default: 0.8'
+    )
     parser_deduplicate_files.set_defaults(func=handle_deduplicate_files)
 
     # Sub-parser for 'find-duplicates' (from scripts/find_duplicate_questions.py)
