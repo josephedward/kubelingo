@@ -2,7 +2,7 @@
 
 ## 1. Guiding Principles
 - **Question Organization**: The system must support easy organization of questions.
-- **Difficulty**: Initial focus is on capturing questions, not fine-grained difficulty levels.
+- **Difficulty**: Initial focus is on capturing questions, not fine-grained difficulty levels. Questions are questions, and the goal is to be able to answer all of them.
 - **Architecture**: Maintain a simple and understandable command-line interface (CLI) architecture.
 - **Context**: Leverage documentation in the `/docs` directory to provide context for development.
 
@@ -80,13 +80,13 @@ Selecting a "Drill" category will lead to a sub-menu of subject matter categorie
    ○ Resource management (requests/limits, QoS classes, HPA basics)
    ○ Jobs & CronJobs (completions, parallelism, backoff, schedules)
    ○ Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)
-   ○ Ingress & HTTP routing (basic rules, paths, service backends)
+   ○ Ingress/Egress & HTTP routing (basic rules, paths, service backends)
    ○ Networking utilities (DNS in-cluster, port-forward, exec, curl)
    ○ Persistence (PVCs, using existing StorageClasses, common volume types)
    ○ Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)
-   ○ Labels, annotations & selectors (label ops, field selectors, jsonpath)
+   ○ Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)
    ○ Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)
-   ○ Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
+   ○ Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
    ○ Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)
    ○ ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)
    ○ Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
@@ -120,14 +120,14 @@ The application will follow a "YAML as source of truth" model.
 
 - **Question Content**: All questions are defined in YAML files located in the `/yaml` directory.
 - **Metadata Database**: A SQLite database will be used *only* to store metadata about the questions (e.g., file path, question ID, review status, triage status, user stats). It will not store the question content itself.
-- **Backups**: Regular backups of the `/yaml` directory will be maintained.
+- **Backups**: Regular backups of the `/yaml` directory will be maintained, with consolidated lists of all questions stored in `/yaml/backups`.
 
 ## 5. Question Schema
 The schema will not include a `difficulty` field. Difficulty is subjective and can be inferred later from user performance data, rather than being a static attribute.
 
 ### 5.1. Question Types
-1.  **Open-Ended**: Requires AI fuzzy matching for evaluation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
-2.  **Basic Terminology**: Single-word/command answers. Can be evaluated without AI, but are generated *with* AI. Graded on `Enter`.
+1.  **Open-Ended**: Requires AI to do fuzzy matching on an explanation. These are generated during "Study Mode". The CLI must handle multiline input gracefully, allowing for arrow key navigation without creating special character artifacts. Graded on `Enter`.
+2.  **Basic Terminology**: Single-word/command answers. Can be evaluated without AI but are generated with AI. Can be easily added via AI parsing. Graded on `Enter`.
 3.  **Command Syntax**: Evaluated by executing the command (e.g., with `kubectl --dry-run=client`). Requires AI to validate alternative correct answers (e.g., aliases, different flags). Graded on `Enter`.
 4.  **YAML Manifest**: Requires the user to create or edit a YAML file. The app will launch Vim with the prompt context. Upon quitting Vim, the resulting file will be graded.
 
@@ -143,13 +143,13 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - Resource management (requests/limits, QoS classes, HPA basics)
 - Jobs & CronJobs (completions, parallelism, backoff, schedules)
 - Services (ClusterIP/NodePort/LoadBalancer, selectors, headless)
-- Ingress & HTTP routing (basic rules, paths, service backends)
+- Ingress/Egress & HTTP routing (basic rules, paths, service backends)
 - Networking utilities (DNS in-cluster, port-forward, exec, curl)
 - Persistence (PVCs, using existing StorageClasses, common volume types)
 - Observability & troubleshooting (logs, describe/events, kubectl debug/ephemeral containers)
-- Labels, annotations & selectors (label ops, field selectors, jsonpath)
+- Metadata Labels, annotations & selectors (label ops, field selectors, jsonpath)
 - Imperative vs declarative (—dry-run, create/apply/edit/replace/patch)
-- Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
+- Container Image & registry use (imagePullPolicy, imagePullSecrets, private registries)
 - Security basics (securityContext, runAsUser/fsGroup, capabilities, readOnlyRootFilesystem)
 - ServiceAccounts in apps (mounting SA, minimal RBAC needed for app access)
 - Scheduling hints (nodeSelector, affinity/anti-affinity, tolerations)
@@ -170,3 +170,4 @@ Categories are subordinate to Question Types. Simplified short names should be u
 - **Enrichment**: AI-based content enrichment should only occur during question generation or triage, not on application startup.
 - **AI Provider Management**: The user can change providers and manage API keys via the "AI Provider" setting. The application will indicate the active provider and recognize keys set in the environment.
 - **Offline Mode**: Only "Basic Terminology" questions are available offline, as they can be evaluated without AI.
+- **Duplicate Check**: The application should check for and avoid generating duplicate or overly similar questions.

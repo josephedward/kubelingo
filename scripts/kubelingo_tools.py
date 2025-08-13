@@ -48,8 +48,8 @@ def _generate_questions():
     _run_script("generator.py") 
 
 def _add_questions():
-    """Handles 'Add Questions' - import from YAML with AI categorization."""
-    print("This tool imports questions from YAML files, using AI for schema inference and reformatting.")
+    """Handles 'Add Questions' - import from YAML with AI schema inference, rewriting, and reformatting."""
+    print("This tool imports questions from YAML files, using AI for schema inference, rewriting, and reformatting.")
     db_path = get_live_db_path()
     output_db = questionary.text(
         "Enter the path for the new/updated SQLite database:",
