@@ -2,6 +2,7 @@ import getpass
 import json
 import os
 import random
+import re
 import sqlite3
 import subprocess
 import sys
@@ -13,7 +14,12 @@ import questionary
 import yaml
 from questionary import Separator
 
-from kubelingo.database import add_question, get_db_connection, get_flagged_questions
+from kubelingo.database import (
+    add_question,
+    get_db_connection,
+    get_flagged_questions,
+    index_yaml_files,
+)
 from kubelingo.integrations.llm import LLMClient, get_llm_client
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
 from kubelingo.question import Question, QuestionSubject
@@ -42,7 +48,8 @@ class KubernetesStudyMode:
         self.session_active = False
         self.vim_editor = VimYamlEditor()
         self.db_conn = get_db_connection()
-        self.questions_dir = get_project_root() / "questions" / "generated_yaml"
+        # Per user request, save generated questions to the top-level 'yaml' directory.
+        self.questions_dir = get_project_root() / "yaml"
         os.makedirs(self.questions_dir, exist_ok=True)
 
     def main_menu(self):
@@ -165,26 +172,78 @@ class KubernetesStudyMode:
             )
             return []
 
+    def _slugify_prompt(self, prompt: str) -> str:
+        """Creates a filesystem-friendly slug from a question prompt."""
+        s = prompt.lower().strip()
+        s = re.sub(r"[\s\W-]+", "-", s)  # Replace whitespace/non-word chars with a hyphen
+        return s[:75].strip("-")
+
+    def _index_new_question(self, question_path):
+        """Indexes a newly created YAML question file into the database."""
+        try:
+            # Use verbose=False to prevent printing success message for every file
+            index_yaml_files([question_path], self.db_conn, verbose=False)
+        except Exception as e:
+            print(
+                f"{Fore.RED}Failed to index new question {question_path.name}: {e}{Style.RESET_ALL}"
+            )
+
+    def _get_question_counts_by_type(self) -> Dict[str, int]:
+        """Gets the count of questions for each type from the database."""
+        counts = {"basic": 0, "command": 0, "manifest": 0}
+        query = "SELECT type, COUNT(*) FROM questions WHERE type IN ('basic', 'command', 'yaml_author', 'yaml_edit') GROUP BY type"
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            for row_type, count in rows:
+                if row_type == "basic":
+                    counts["basic"] += count
+                elif row_type == "command":
+                    counts["command"] += count
+                elif row_type in ("yaml_author", "yaml_edit"):
+                    counts["manifest"] += count
+            return counts
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching question counts: {e}{Style.RESET_ALL}")
+            return counts
+
     def start_study_session(self, user_level: str = "intermediate") -> None:
         """Guides the user to select a quiz and starts the session."""
         while True:
             try:
-                quiz_style = questionary.select(
+                counts = self._get_question_counts_by_type()
+                quiz_style_choices = [
+                    questionary.Choice("Open-Ended Socratic Dialogue", value="socratic"),
+                    questionary.Choice(
+                        f"Basic term/definition recall ({counts['basic']} questions)",
+                        value="basic",
+                        disabled=counts["basic"] == 0,
+                    ),
+                    questionary.Choice(
+                        f"Command-line Challenge ({counts['command']} questions)",
+                        value="command",
+                        disabled=counts["command"] == 0,
+                    ),
+                    questionary.Choice(
+                        f"Manifest Authoring Exercise ({counts['manifest']} questions)",
+                        value="manifest",
+                        disabled=counts["manifest"] == 0,
+                    ),
+                    Separator(),
+                    questionary.Choice("Back to Main Menu", value="back"),
+                ]
+
+                quiz_style_val = questionary.select(
                     "What style of quiz would you like?",
-                    choices=[
-                        "Open-Ended Socratic Dialogue",
-                        "Basic term/definition recall",
-                        "Command-line Challenge",
-                        "Manifest Authoring Exercise",
-                        Separator(),
-                        questionary.Choice("Back to Main Menu", value="back"),
-                    ],
+                    choices=quiz_style_choices,
                     use_indicator=True,
                 ).ask()
-                if not quiz_style or quiz_style == "back":
+
+                if not quiz_style_val or quiz_style_val == "back":
                     break
 
-                if quiz_style == "Open-Ended Socratic Dialogue":
+                if quiz_style_val == "socratic":
                     topic = questionary.select(
                         "Which Kubernetes topic would you like to study?",
                         choices=KUBERNETES_TOPICS,
@@ -195,26 +254,38 @@ class KubernetesStudyMode:
                     continue
 
                 quiz_type_map = {
-                    "Basic term/definition recall": ["basic"],
-                    "Command-line Challenge": ["command"],
-                    "Manifest Authoring Exercise": ["yaml_author", "yaml_edit"],
+                    "basic": {
+                        "types": ["basic"],
+                        "name": "Basic term/definition recall",
+                    },
+                    "command": {
+                        "types": ["command"],
+                        "name": "Command-line Challenge",
+                    },
+                    "manifest": {
+                        "types": ["yaml_author", "yaml_edit"],
+                        "name": "Manifest Authoring Exercise",
+                    },
                 }
-                quiz_types = quiz_type_map[quiz_style]
+
+                quiz_info = quiz_type_map[quiz_style_val]
+                quiz_types = quiz_info["types"]
+                quiz_style_name = quiz_info["name"]
 
                 subjects = self._get_subjects_by_type(quiz_types)
                 if not subjects:
                     print(
-                        f"{Fore.YELLOW}No subjects found for '{quiz_style}' quizzes.{Style.RESET_ALL}"
+                        f"{Fore.YELLOW}No subjects found for '{quiz_style_name}' quizzes.{Style.RESET_ALL}"
                     )
                     continue
 
-                choices = subjects + [
+                subject_choices = subjects + [
                     Separator(),
                     questionary.Choice("Back", value="back"),
                 ]
                 selected_subject = questionary.select(
-                    f"Choose a subject for '{quiz_style}':",
-                    choices=choices,
+                    f"Choose a subject for '{quiz_style_name}':",
+                    choices=subject_choices,
                     use_indicator=True,
                 ).ask()
 
@@ -556,13 +627,25 @@ class KubernetesStudyMode:
                     if question.response and not question.answers:
                         question.answers = [question.response]
 
-                # Save the generated question to a file
+                # Save the generated question to a file and index it.
                 try:
-                    question_path = self.questions_dir / f"{question.id}.yaml"
+                    slug = self._slugify_prompt(question.prompt)
+                    filename = f"{slug}.yaml"
+                    question_path = self.questions_dir / filename
+                    # Avoid overwriting by adding a short UUID if a file with the same slug exists.
+                    if question_path.exists():
+                        short_id = str(uuid.uuid4())[:8]
+                        filename = f"{slug}-{short_id}.yaml"
+                        question_path = self.questions_dir / filename
+
                     with question_path.open("w", encoding="utf-8") as f:
                         yaml.dump(asdict(question), f, sort_keys=False, indent=2)
+
+                    # Index the new question into the database so it's immediately available.
+                    self._index_new_question(question_path)
+
                 except Exception as e:
-                    print(f"\nWarning: Could not save generated question: {e}")
+                    print(f"\nWarning: Could not save and index generated question: {e}")
 
                 print(f"\n{question.prompt}")
                 correct = self._ask_and_validate(question)
