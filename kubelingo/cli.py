@@ -781,8 +781,6 @@ def run_interactive_main_menu():
                 questionary.Choice("AI", value=("settings", "ai")),
                 questionary.Choice("Clusters", value=("settings", "cluster")),
                 questionary.Choice("Question Management", value=("settings", "questions")),
-                questionary.Choice("Index Question Files", value=("settings", "index_files")),
-                questionary.Choice("List Indexed Files", value=("settings", "list_indexed")),
                 questionary.Choice("Help", value=("settings", "help")),
                 questionary.Choice("Report Bug", value=("settings", "bug")),
                 Separator(),
@@ -815,11 +813,6 @@ def run_interactive_main_menu():
                     manage_cluster_config_interactive()
                 elif action == "questions":
                     _run_question_management()
-                elif action == "index_files":
-                    from kubelingo.database import index_all_yaml_questions
-                    index_all_yaml_questions()
-                elif action == "list_indexed":
-                    _list_indexed_files()
                 elif action == "help":
                     show_session_type_help()
                 elif action == "bug":
