@@ -1,0 +1,27 @@
+id: 7f6c12cd-a704-4f0a-80b6-7c6f1cf52ad1
+prompt: This command line tool provides detailed descriptions of Kubernetes API resources
+  and their fields, including descriptions and examples. What is this tool called?
+type: basic
+schema_category: !!python/object/apply:builtins.getattr
+- !!python/name:kubelingo.question.QuestionCategory ''
+- COMMAND
+subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
+answers:
+- kubectl explain
+correct_yaml: null
+initial_files: {}
+pre_shell_cmds: []
+validation_steps: []
+explanation: The `kubectl explain` command is used to get documentation about Kubernetes
+  API resources and their fields. It's helpful for understanding the structure and
+  usage of different Kubernetes objects.
+categories: []
+difficulty: intermediate
+source: null
+review: false
+metadata: {}
+validator: null
+source_file: /Users/user/Documents/GitHub/kubelingo/questions/generated_yaml/7f6c12cd-a704-4f0a-80b6-7c6f1cf52ad1.yaml
+category: null
+response: null
+validation: []

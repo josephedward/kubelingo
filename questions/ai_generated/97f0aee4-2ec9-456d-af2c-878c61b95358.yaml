@@ -1,0 +1,28 @@
+id: 97f0aee4-2ec9-456d-af2c-878c61b95358
+prompt: This controller ensures that a specified number of Pod replicas are running
+  at any given time. It is responsible for creating/deleting Pods to maintain the
+  desired replica count. What is the name of this Kubernetes controller?
+type: basic
+schema_category: !!python/object/apply:builtins.getattr
+- !!python/name:kubelingo.question.QuestionCategory ''
+- COMMAND
+subject_matter: Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)
+answers:
+- ReplicaSet
+correct_yaml: null
+initial_files: {}
+pre_shell_cmds: []
+validation_steps: []
+explanation: A ReplicaSet ensures that a specified number of identical Pods are running
+  at any given time. It's a crucial component for managing stateless applications
+  in Kubernetes.
+categories: []
+difficulty: intermediate
+source: null
+review: false
+metadata: {}
+validator: null
+source_file: /Users/user/Documents/GitHub/kubelingo/questions/generated_yaml/97f0aee4-2ec9-456d-af2c-878c61b95358.yaml
+category: null
+response: null
+validation: []

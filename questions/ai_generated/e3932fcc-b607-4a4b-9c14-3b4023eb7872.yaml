@@ -1,0 +1,28 @@
+id: e3932fcc-b607-4a4b-9c14-3b4023eb7872
+prompt: What single word describes the output of `kubectl api-resources` which represents
+  a collection of API objects of a certain kind, like pods, services, or deployments?
+type: basic
+schema_category: !!python/object/apply:builtins.getattr
+- !!python/name:kubelingo.question.QuestionCategory ''
+- COMMAND
+subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
+answers:
+- Resource
+correct_yaml: null
+initial_files: {}
+pre_shell_cmds: []
+validation_steps: []
+explanation: In Kubernetes, a resource represents a collection of API objects of a
+  specific kind.  `kubectl api-resources` lists all available resources in your cluster.
+  You can then use commands like `kubectl get <resource>` to interact with the objects
+  of that resource type.
+categories: []
+difficulty: intermediate
+source: null
+review: false
+metadata: {}
+validator: null
+source_file: /Users/user/Documents/GitHub/kubelingo/questions/generated_yaml/e3932fcc-b607-4a4b-9c14-3b4023eb7872.yaml
+category: null
+response: null
+validation: []
