@@ -2,9 +2,7 @@ id: 064ee35a-6c0c-4c9a-8396-eaa8f00128a0
 prompt: What single word represents a collection of API objects of a specific kind,
   such as pods, services, or deployments?
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
 answers:
 - Resource

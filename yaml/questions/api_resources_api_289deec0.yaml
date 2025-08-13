@@ -2,9 +2,7 @@ id: 289deec0-a292-4804-822d-ea6d2788861e
 prompt: What single word describes a structured way to interact with and manage Kubernetes
   objects, including their lifecycle and relationships?
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
 answers:
 - API

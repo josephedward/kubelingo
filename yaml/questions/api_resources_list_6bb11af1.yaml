@@ -2,9 +2,7 @@ id: 6bb11af1-1b4f-4927-ae85-19b3e54ba969
 prompt: Which command allows you to view the available API resources in a Kubernetes
   cluster, along with their associated verbs (actions) and shortnames?
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
 answers:
 - kubectl api-resources

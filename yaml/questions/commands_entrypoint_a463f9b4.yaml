@@ -3,9 +3,7 @@ prompt: This directive in a Dockerfile sets the default command to be executed w
   a container starts from the image. It can be overridden by `CMD` in the Dockerfile
   or by `kubectl` commands during Pod creation.
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Commands, args, and env (ENTRYPOINT/CMD overrides, env/envFrom)
 answers:
 - ENTRYPOINT

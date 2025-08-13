@@ -3,9 +3,7 @@ prompt: This Kubernetes controller ensures that a specified number of Pod replic
   are running at any given time. It is responsible for creating and deleting Pods
   to maintain the desired replica count. What is the name of this controller?
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Core workloads (Pods, ReplicaSets, Deployments; rollouts/rollbacks)
 answers:
 - ReplicaSet

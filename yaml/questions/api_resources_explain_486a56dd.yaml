@@ -2,9 +2,7 @@ id: 486a56dd-c764-4ed9-a476-1c8d2dc350e0
 prompt: Which command is used to get a brief description of the fields of a Kubernetes
   resource, including their type, description, and required status?
 type: basic
-schema_category: !!python/object/apply:builtins.getattr
-- !!python/name:kubelingo.question.QuestionCategory ''
-- COMMAND
+schema_category: Command Syntax
 subject_matter: Kubernetes API Resources (exploring objects with explain and api-resources)
 answers:
 - kubectl explain
