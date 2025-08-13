@@ -910,6 +910,7 @@ def run_interactive_main_menu():
                               else "No questions to review" if missed_count == 0
                               else ""),
                 ),
+                questionary.Choice("Run Quiz from YAML file", value=("learn", "yaml_quiz")),
                 Separator("--- Drill ---"),
                 questionary.Choice(
                     f"Open Ended Questions ({question_counts.get(QuestionCategory.OPEN_ENDED.value, 0)})",
@@ -954,6 +955,8 @@ def run_interactive_main_menu():
                     _run_socratic_mode(study_session)
                 elif action == "review":
                     study_session.review_past_questions()
+                elif action == "yaml_quiz":
+                    _run_yaml_quiz_interactive(study_session)
             elif menu == "drill":
                 # This should launch a drill-down quiz for the selected category.
                 _run_drill_mode(study_session, action)

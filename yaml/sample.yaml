@@ -1,0 +1,6 @@
+- id: k8s-pod-list-1
+  prompt: "What is the kubectl command to list all pods in all namespaces?"
+  answer: "kubectl get pods --all-namespaces"
+  type: command
+  schema_category: command_syntax
+  subject_matter: resource_management
