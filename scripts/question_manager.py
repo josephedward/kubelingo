@@ -3191,47 +3191,6 @@ def main():
         p_organize.add_argument('--dry-run', action='store_true', help="Show what would be done without making changes.")
         p_organize.set_defaults(func=do_organize_generated)
 
-        # --- Sub-parsers from original generator.py ---
-        p_from_pdf = subparsers.add_parser('from-pdf', help="Generate Kubelingo quiz questions from a PDF.")
-        p_from_pdf.add_argument("--pdf-path", required=True, help="Path to the PDF file.")
-        p_from_pdf.add_argument("--output-file", required=True, help="Path to save the generated YAML file.")
-        p_from_pdf.add_argument("--num-questions-per-chunk", type=int, default=5, help="Number of questions to generate per text chunk.")
-        p_from_pdf.set_defaults(func=handle_from_pdf)
-
-        p_ai_quiz = subparsers.add_parser('ai-quiz', help='Generate and validate Kubernetes quizzes via OpenAI')
-        p_ai_quiz.add_argument('--num', type=int, default=5, help='Number of questions to generate')
-        p_ai_quiz.add_argument('--mock', action='store_true', help='Use mock data for testing validation')
-        p_ai_quiz.add_argument('--output', default=None, help='Output JSON file path')
-        p_ai_quiz.set_defaults(func=handle_ai_quiz)
-
-        p_ref = subparsers.add_parser('resource-reference', help="Generate a YAML quiz for Kubernetes resource references.")
-        p_ref.set_defaults(func=handle_resource_reference)
-
-        p_ops = subparsers.add_parser('kubectl-operations', help="Generate the Kubectl Operations quiz manifest.")
-        p_ops.set_defaults(func=handle_kubectl_operations)
-
-        p_ai_q = subparsers.add_parser('ai-questions', help="Generate AI questions and save them to a YAML file.")
-        p_ai_q.add_argument("--subject", required=True, help="Subject for the new questions (e.g., 'Kubernetes Service Accounts').")
-        p_ai_q.add_argument("--category", choices=['Basic', 'Command', 'Manifest'], default='Command', help="Category of questions to generate.")
-        p_ai_q.add_argument("--num-questions", type=int, default=3, help="Number of questions to generate.")
-        p_ai_q.add_argument("--example-source-file", help="Filename of a quiz module to use as a source of example questions from the database.")
-        p_ai_q.add_argument("--output-file", required=True, help="Path to the output YAML file.")
-        p_ai_q.set_defaults(func=handle_ai_questions)
-
-        p_val = subparsers.add_parser('validation-steps', help="Generate validation_steps for Kubernetes questions")
-        p_val.add_argument('in_path', type=Path, help="JSON file or directory to process")
-        p_val.add_argument('--overwrite', action='store_true', help="Overwrite original files")
-        p_val.set_defaults(func=handle_validation_steps)
-
-        p_sa = subparsers.add_parser('service-account', help="Generate static Kubernetes ServiceAccount questions.")
-        p_sa.add_argument('--to-db', action='store_true', help='Add generated questions to the kubelingo database')
-        p_sa.add_argument('-n', '--num', type=int, default=0, help='Number of questions to output (default: all)')
-        p_sa.add_argument('-o', '--output', type=str, help='Write generated questions to a JSON file')
-        p_sa.set_defaults(func=handle_service_account)
-
-        p_man = subparsers.add_parser('manifests', help="Generates YAML quiz manifests and solution files from question-data JSON.")
-        p_man.set_defaults(func=handle_manifests)
-
         args = parser.parse_args()
         if hasattr(args, 'func'):
             args.func(args)
