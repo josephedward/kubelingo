@@ -27,7 +27,7 @@ from kubelingo.integrations.llm import (
     get_llm_client,
 )
 from kubelingo.modules.kubernetes.vim_yaml_editor import VimYamlEditor
-from kubelingo.question import Question, QuestionSubject
+from kubelingo.question import Question, QuestionCategory, QuestionSubject
 from kubelingo.utils.config import (
     get_ai_provider,
     get_cluster_configs,
@@ -69,22 +69,10 @@ class KubernetesStudyMode:
 
     def main_menu(self):
         """Displays the main menu and handles user selection."""
-        # This mapping helps translate user-friendly menu items to database query values.
-        DRILL_MAPPING = {
-            "Open-Ended": ["socratic"],
-            "Basic Terminology": ["basic"],  # Assuming a 'basic' type exists or will be added
-            "Command Syntax": ["command"],
-            "YAML Manifest": ["yaml_author", "yaml_edit"],
-        }
-
         while True:
             try:
                 # --- Get counts for menu ---
                 missed_count = len(get_flagged_questions())
-                drill_counts = {
-                    name: self._get_question_count_by_types(types)
-                    for name, types in DRILL_MAPPING.items()
-                }
 
                 # --- Build Menu Choices ---
                 choices = [
@@ -101,11 +89,13 @@ class KubernetesStudyMode:
                     ),
                     Separator("--- Drill ---"),
                 ]
-                for name, count in drill_counts.items():
+                # Dynamically build drill choices from QuestionCategory
+                for category in QuestionCategory:
+                    count = self._get_question_count_by_category(category)
                     choices.append(
                         questionary.Choice(
-                            f"{name} ({count})",
-                            value=("drill", name),
+                            f"{category.value.replace('_', ' ').title()} ({count})",
+                            value=("drill", category),
                             disabled=count == 0,
                         )
                     )
@@ -136,7 +126,7 @@ class KubernetesStudyMode:
                     elif action == "review":
                         self.review_past_questions()
                 elif menu == "drill":
-                    self._run_drill_menu(action, DRILL_MAPPING[action])
+                    self._run_drill_menu(action)
                 elif menu == "settings":
                     if action == "tools":
                         self.run_tools_menu()
@@ -232,6 +222,18 @@ class KubernetesStudyMode:
         ).ask()
         if topic:
             self._run_socratic_mode(topic, level)
+
+    def _get_question_count_by_category(self, category: QuestionCategory) -> int:
+        """Fetches question count for a given category."""
+        query = "SELECT COUNT(*) FROM questions WHERE schema_category = ?"
+        try:
+            cursor = self.db_conn.cursor()
+            cursor.execute(query, (category.value,))
+            count = cursor.fetchone()[0]
+            return count if count is not None else 0
+        except Exception as e:
+            print(f"{Fore.RED}Error fetching question count from database: {e}{Style.RESET_ALL}")
+            return 0
 
     def _run_drill_menu(self, category: QuestionCategory):
         """Shows a sub-menu of subjects for a given question category."""
