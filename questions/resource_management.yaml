@@ -1,4 +1,21 @@
 questions:
-  - question: "Create a pod named 'resource-pod' with image 'nginx'. Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m' and memory limits to '512Mi'."
+  - question: "Generate the manifest for a pod named 'resource-pod' with image 'nginx'. Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m' and memory limits to '512Mi'."
     solution: |
       kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi --dry-run=client -o yaml
+  - question: "Create a manifest for a Pod named 'resource-pod-manifest' that requests '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi' of memory."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: resource-pod-manifest
+      spec:
+        containers:
+        - name: main
+          image: nginx
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"

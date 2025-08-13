@@ -2,3 +2,13 @@ questions:
   - question: "Create a ConfigMap named 'app-config' with two data items: 'app.color=blue' and 'app.environment=dev'."
     solution: |
       kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
+  - question: "Create a manifest for a Secret named 'db-secret' containing a username 'admin' and password 's3cur3p@ssw0rd'."
+    solution: |
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: db-secret
+      type: Opaque
+      stringData:
+        username: admin
+        password: "s3cur3p@ssw0rd"

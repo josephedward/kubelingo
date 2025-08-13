@@ -2,3 +2,17 @@ questions:
   - question: "You have a deployment named 'webapp' with label 'app=webapp'. Create a ClusterIP service named 'webapp-svc' to expose the deployment on port 80."
     solution: |
       kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
+  - question: "Create a manifest for a NodePort service named 'webapp-nodeport'. The service should forward traffic from a port on the node to port 80 on pods with the label 'app=webapp'."
+    solution: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: webapp-nodeport
+      spec:
+        type: NodePort
+        selector:
+          app: webapp
+        ports:
+          - protocol: TCP
+            port: 80
+            targetPort: 80

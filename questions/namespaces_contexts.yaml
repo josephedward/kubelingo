@@ -1,17 +1,22 @@
 questions:
-- question: Create a new namespace called 'development'.
-  solution: 'kubectl create namespace development
-
-    '
-- question: Switch your current context to use the 'development' namespace.
-  solution: 'kubectl config set-context --current --namespace=development
-
-    '
-- question: List all namespaces, and then delete the namespace 'development' if it
-    exists.  Output should only show the deletion confirmation message (if the namespace
-    exists).
-  solution: 'kubectl get namespaces
-
-    kubectl delete namespace development --grace-period=0 --force
-
-    '
+  - question: "Create a new namespace called 'development'."
+    solution: |
+      kubectl create namespace development
+  - question: "Switch your current context to use the 'development' namespace."
+    solution: |
+      kubectl config set-context --current --namespace=development
+  - question: "List all namespaces, and then delete the namespace 'development' if it exists. Output should only show the deletion confirmation message (if the namespace exists)."
+    solution: |
+      kubectl get namespaces
+      kubectl delete namespace development --grace-period=0 --force
+  - question: "Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' that should be created in the 'development' namespace."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod-in-ns
+        namespace: development
+      spec:
+        containers:
+        - name: nginx
+          image: nginx

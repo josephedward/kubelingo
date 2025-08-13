@@ -2,3 +2,16 @@ questions:
   - question: "Create a pod named 'env-pod' with image 'busybox' that runs the command 'echo $(GREETING) $(NAME)!' and has two environment variables: GREETING=Hello and NAME=World."
     solution: |
       kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello" --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
+  - question: "Create a manifest for a Pod named 'args-pod' with image 'busybox'. Override the container's command to be `['/bin/sh', '-c']` and its arguments to be `['echo Hello world']`."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: args-pod
+      spec:
+        containers:
+        - name: busybox-container
+          image: busybox
+          command: ["/bin/sh", "-c"]
+          args: ["echo Hello world"]
+        restartPolicy: Never

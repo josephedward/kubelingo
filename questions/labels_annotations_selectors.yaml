@@ -5,3 +5,16 @@ questions:
   - question: "Get all pods with the label 'env=prod'."
     solution: |
       kubectl get pods -l env=prod
+  - question: "Create a manifest for a pod named 'labeled-pod' with image 'nginx' that has two labels: 'env=prod' and 'app=frontend'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: labeled-pod
+        labels:
+          env: prod
+          app: frontend
+      spec:
+        containers:
+        - name: nginx
+          image: nginx

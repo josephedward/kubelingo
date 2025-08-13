@@ -18,3 +18,13 @@ questions:
     solution: |
       kubectl delete pod nginx
       kubectl delete service nginx-service
+  - question: "Create a manifest for a Pod named 'nginx-pod-manifest' using the 'nginx:alpine' image."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: nginx-pod-manifest
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:alpine
