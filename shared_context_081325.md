@@ -92,6 +92,22 @@ The application's startup sequence has several critical design flaws and bugs th
   AI failed to generate any questions.
   ```
 - **Cause**: The AI question generator can fail if the prompt sent to the LLM is not effective enough, or if the model returns an empty or unexpected response. The system lacks sufficient logging to diagnose these failures. Prompts for some categories are not robust, especially when no example ("few-shot") questions are provided, leading to poor quality responses from the LLM.
+- **Bug**: Confusing question generation menu.
+- **Log**:
+  ```
+  ? --- Question & Data Management --- Generate Questions
+  ? Select a question generator: (Use arrow keys)
+    From PDF
+  » From AI (subject-based)
+    Kubernetes Resource Reference
+    Kubernetes Operations
+    Service Account Questions
+    Manifests from JSON
+    ---------------
+    Back
+  ```
+- **Cause**: The "Generate Questions" menu in the Question Management tools presents too many options, creating a confusing user experience. The primary and most powerful generation method is "From AI (subject-based)". The other options are legacy or less common, and clutter the interface.
+- **Resolution**: To streamline the user experience, the question generator selection menu should be removed. The "Generate Questions" option should directly start the "From AI (subject-based)" workflow.
 
 ## Tests
 - make sure you can generate questions of all 4 types and all 21 subjects (81 examples in all)
