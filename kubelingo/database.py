@@ -125,6 +125,32 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
             conn.close()
 
 
+def get_all_questions(conn: Optional[sqlite3.Connection] = None) -> List[Dict[str, Any]]:
+    """Fetches all questions from the database and returns them as a list of dicts."""
+    manage_connection = conn is None
+    if manage_connection:
+        conn = get_db_connection()
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM questions")
+        questions = [dict(row) for row in cursor.fetchall()]
+
+        # Deserialize JSON fields where appropriate
+        for q in questions:
+            for key, value in q.items():
+                if isinstance(value, str) and (value.strip().startswith('{') or value.strip().startswith('[')):
+                    try:
+                        q[key] = json.loads(value)
+                    except json.JSONDecodeError:
+                        # Not a JSON string, leave as is
+                        pass
+        return questions
+    finally:
+        if manage_connection and conn:
+            conn.close()
+
+
 def _get_file_hash(file_path: Path) -> str:
     """
     Calculates the SHA256 hash of a file's content.
