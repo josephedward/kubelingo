@@ -104,6 +104,23 @@ def add_question(conn: Optional[sqlite3.Connection] = None, **kwargs: Any):
             conn.close()
 
 
+def _get_file_hash(file_path: Path) -> str:
+    """
+    Calculates the SHA256 hash of a file's content.
+
+    Args:
+        file_path: Path to the file.
+
+    Returns:
+        A string representing the SHA256 hash of the file's content.
+    """
+    sha256 = hashlib.sha256()
+    with file_path.open("rb") as f:
+        for block in iter(lambda: f.read(65536), b""):
+            sha256.update(block)
+    return sha256.hexdigest()
+
+
 def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool = True):
     """
     Indexes questions from a list of YAML files into the database,
