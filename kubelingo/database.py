@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from kubelingo.question import Question
 from kubelingo.utils.config import DATABASE_FILE, MASTER_DATABASE_FILE, SUBJECT_MATTER
-from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo, extract_category_and_subject
+from kubelingo.utils.path_utils import get_project_root, get_all_yaml_files_in_repo
 
 
 def get_db_connection(db_path: Optional[str] = None):
@@ -174,9 +174,6 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 skipped_count += 1
                 continue  # Skip file if hash is unchanged
 
-            # Extract category and subject matter from the file path
-            category, subject_matter = extract_category_and_subject(file_path)
-
             # File is new or has changed, so re-index it.
             # First, remove any existing questions from this file.
             cursor.execute("DELETE FROM questions WHERE source_file = ?", (rel_path,))
@@ -197,8 +194,6 @@ def index_yaml_files(files: List[Path], conn: sqlite3.Connection, verbose: bool 
                 if 'id' not in q_dict or 'prompt' not in q_dict: continue
 
                 q_dict['source_file'] = rel_path
-                q_dict['category'] = category
-                q_dict['subject_matter'] = subject_matter
                 q_obj = Question(**q_dict)
                 validation_steps_for_db = [step.__dict__ for step in q_obj.validation_steps]
 
