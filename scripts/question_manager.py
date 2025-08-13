@@ -3021,6 +3021,104 @@ def do_diff_db(args):
 
 
 
+def interactive_question_manager_menu():
+    """Displays an interactive menu for question management tasks."""
+    if not questionary:
+        print("Error: 'questionary' library is required for interactive mode.", file=sys.stderr)
+        return
+
+    while True:
+        try:
+            choice = questionary.select(
+                "--- Question & Data Management ---",
+                choices=[
+                    questionary.Separator("--- Indexing & Database ---"),
+                    "Re-index all questions from source YAML",
+                    "Export all questions from DB to a YAML file",
+                    "Show database/YAML question statistics",
+                    questionary.Separator("--- Maintenance ---"),
+                    "Find and list duplicate questions in YAML files",
+                    "Consolidate all YAML files into a single file",
+                    "List triaged questions",
+                    questionary.Separator("--- Generation ---"),
+                    "Generate new questions using AI",
+                    questionary.Separator(),
+                    "Back to Main Menu",
+                ],
+                use_indicator=True
+            ).ask()
+
+            if choice is None or choice == "Back to Main Menu":
+                break
+
+            elif choice == "Re-index all questions from source YAML":
+                from kubelingo.database import index_all_yaml_questions, get_db_connection
+                print("\nRe-indexing all questions...")
+                conn = get_db_connection()
+                try:
+                    # index_all_yaml_questions is safe to run as it only updates based on file content.
+                    index_all_yaml_questions(conn=conn, verbose=True)
+                finally:
+                    conn.close()
+
+            elif choice == "Export all questions from DB to a YAML file":
+                do_export(MockArgs(output=None))
+
+            elif choice == "Show database/YAML question statistics":
+                do_statistics(MockArgs(path=None))
+
+            elif choice == "Find and list duplicate questions in YAML files":
+                do_deduplicate(MockArgs(
+                    directory=QUESTION_DIRS[0],
+                    output_file=None, # not used in dry run
+                    dry_run=True
+                ))
+
+            elif choice == "Consolidate all YAML files into a single file":
+                output_path = questionary.text(
+                    "Enter path for the consolidated output YAML file:",
+                    default=f"backups/yaml/consolidated_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml"
+                ).ask()
+                if output_path:
+                    do_consolidate(MockArgs(output=output_path))
+
+            elif choice == "List triaged questions":
+                handle_list_triaged(MockArgs())
+
+            elif choice == "Generate new questions using AI":
+                subject = questionary.text("Subject for the new questions (e.g., 'Kubernetes Services'):").ask()
+                if not subject: continue
+                num_q_str = questionary.text("Number of questions to generate:", default="3").ask()
+                try:
+                    num_q = int(num_q_str)
+                except (ValueError, TypeError):
+                    print("Invalid number. Using 3.")
+                    num_q = 3
+
+                category = questionary.select(
+                    "Category of questions to generate:",
+                    choices=['Basic', 'Command', 'Manifest'],
+                    default='Command'
+                ).ask()
+
+                output_file = questionary.text(
+                    "Path to output YAML file:",
+                    default=f"questions/generated_yaml/{subject.replace(' ', '_').lower()}_{datetime.datetime.now().strftime('%Y%m%d')}.yaml"
+                ).ask()
+
+                if all([subject, num_q, category, output_file]):
+                    handle_ai_questions(MockArgs(
+                        subject=subject,
+                        num_questions=num_q,
+                        category=category,
+                        output_file=output_file,
+                        example_source_file=None
+                    ))
+
+        except (KeyboardInterrupt, EOFError):
+            break
+
+
 def main():
     """Display the question management menu."""
     if len(sys.argv) > 1:

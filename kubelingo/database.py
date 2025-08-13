@@ -242,15 +242,14 @@ def index_all_yaml_questions(verbose: bool = True, conn: Optional[sqlite3.Connec
     """Indexes questions from the single source YAML file into the database."""
     source_yaml = Path(SINGLE_SOURCE_YAML_FILE)
     if not source_yaml.exists():
-        if verbose:
-            # Provide a more helpful message if the default file is missing.
-            from kubelingo.utils.config import QUESTIONS_DIR
-            default_path = os.path.join(QUESTIONS_DIR, 'consolidated_20250811_144940.yaml')
-            if str(source_yaml.resolve()) == os.path.abspath(default_path):
-                print(f"Default source YAML file not found at '{source_yaml}'.")
-                print("Please create it or set the KUBELINGO_YAML_SOURCE environment variable.")
-            else:
-                print(f"Source YAML file not found at '{source_yaml}'.")
+        # This is a critical error, so we should always report it.
+        from kubelingo.utils.config import QUESTIONS_DIR
+        default_path = os.path.join(QUESTIONS_DIR, 'consolidated_20250811_144940.yaml')
+        if str(source_yaml.resolve()) == os.path.abspath(default_path):
+            print(f"Error: Default source YAML file not found at '{source_yaml}'.", file=sys.stderr)
+            print("Please create it or set the KUBELINGO_YAML_SOURCE environment variable.", file=sys.stderr)
+        else:
+            print(f"Error: Source YAML file not found at '{source_yaml}'.", file=sys.stderr)
         return
 
     all_yaml_files = [source_yaml]
