@@ -25,7 +25,8 @@ if str(repo_root) not in sys.path:
 from kubelingo.database import get_db_connection
 from kubelingo.utils.path_utils import get_live_db_path
 from kubelingo.question import QuestionSubject
-from kubelingo.utils.config import DATABASE_FILE
+from kubelingo.utils.config import DATABASE_FILE, get_ai_provider
+from kubelingo.integrations.llm import get_llm_client
 
 # Import handlers from the consolidated question_manager script
 # Note: This relies on the sys.path modification above to find the 'scripts' module
@@ -276,9 +277,45 @@ def _drill_yaml_manifest():
     _not_implemented()
 
 
+def _test_ai_connection():
+    """Tests the connection to the configured AI provider."""
+    provider = get_ai_provider()
+    if not provider:
+        questionary.print("AI provider is not configured.", style="bold red")
+        questionary.print("Please use 'llm keys set <provider>' or similar to configure an API key.", style="bold yellow")
+        return
+
+    questionary.print(f"Testing connection to {provider.capitalize()}...", style="bold")
+    try:
+        client = get_llm_client()
+        if client.test_connection():
+            questionary.print("Connection successful!", style="bold green")
+        else:
+            questionary.print("Connection failed. Please check your API key and configuration.", style="bold red")
+    except (ImportError, ValueError) as e:
+        questionary.print(f"Error: {e}", style="bold red")
+    except Exception as e:
+        questionary.print(f"An unexpected error occurred: {e}", style="bold red")
+
+
 def _settings_ai():
     # As per user spec, this would show a detailed menu for managing AI providers and keys.
-    _not_implemented()
+    while True:
+        choice = questionary.select(
+            "--- AI Settings ---",
+            choices=[
+                "Test Connection",
+                questionary.Separator(),
+                "Back",
+            ],
+            use_indicator=True
+        ).ask()
+
+        if not choice or choice == "Back":
+            break
+
+        if choice == "Test Connection":
+            _test_ai_connection()
 
 
 def _settings_clusters():
