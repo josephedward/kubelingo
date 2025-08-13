@@ -1,10 +1,13 @@
 import os
+import sys
 import sqlite3
 import tempfile
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+# Add project root to path to allow script import
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Import the function to test
 from scripts.initialize_from_yaml import initialize_from_yaml
