@@ -60,7 +60,7 @@ class AIQuestionGenerator:
             q_dict = {
                 "id": question.id,
                 "prompt": question.prompt,
-                "response": question.response,
+                "answers": question.answers,
                 "category": category,
                 "subject": subject,
                 "type": question.type,
@@ -197,7 +197,7 @@ class AIQuestionGenerator:
             question = Question(
                 id=qid,
                 prompt=p,
-                response=r,
+                answers=[r],
                 type=q_type,
                 validator=validator_dict,
                 category=category,
@@ -212,7 +212,7 @@ class AIQuestionGenerator:
                     id=qid,
                     prompt=p,
                     source_file=source_file,
-                    response=r,
+                    answers=json.dumps([r]),
                     category=category,
                     subject=subject,
                     source='ai_generated',
