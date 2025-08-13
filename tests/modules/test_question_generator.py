@@ -115,6 +115,25 @@ def test_generate_question_for_each_category_and_subject(
     Tests that the AIQuestionGenerator can generate a question for every combination
     of QuestionCategory and QuestionSubject, ensuring correct type mapping and persistence.
     """
+    if category == QuestionCategory.YAML_MANIFEST:
+        mock_yaml_response = json.dumps([
+            {
+                "prompt": "Create a manifest for a pod named 'test-pod'.",
+                "answers": [
+                    """apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx"""
+                ],
+                "explanation": "This is a basic pod manifest."
+            }
+        ])
+        mock_llm_client.chat_completion.return_value = mock_yaml_response
+
     generator = AIQuestionGenerator(llm_client=mock_llm_client)
     category_str = get_category_string_for_generator(category)
 
