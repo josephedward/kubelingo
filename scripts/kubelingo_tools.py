@@ -65,7 +65,6 @@ try:
         do_restore,
         do_create_from_yaml,
         do_diff_db,
-        _manage_database,
         interactive_question_manager_menu
     )
 except ImportError as e:
