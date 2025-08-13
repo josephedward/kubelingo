@@ -342,14 +342,14 @@ def do_build_master(args):
     """Builds the Kubelingo master question database from consolidated YAML files."""
     print("--- Building Kubelingo Master Question Database ---")
 
-    print(f"\nScanning for YAML files in: '{QUESTIONS_DIR}'")
-    if not os.path.isdir(QUESTIONS_DIR):
-        print(f"\nError: The configured questions directory does not exist: '{QUESTIONS_DIR}'")
+    print(f"\nScanning for YAML files in: '{QUESTION_DIRS}'")
+    if not any(os.path.isdir(d) for d in QUESTION_DIRS):
+        print(f"\nError: None of the configured question directories were found: {QUESTION_DIRS}")
         sys.exit(1)
 
-    all_yaml_files = find_yaml_files([QUESTIONS_DIR])
+    all_yaml_files = find_yaml_files(QUESTION_DIRS)
     if not all_yaml_files:
-        print(f"\nError: No question YAML files found in '{QUESTIONS_DIR}'.")
+        print(f"\nError: No question YAML files found in '{QUESTION_DIRS}'.")
         sys.exit(1)
 
     print(f"Found {len(all_yaml_files)} YAML file(s) to process.")
