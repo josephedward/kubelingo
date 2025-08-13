@@ -142,18 +142,32 @@ def get_api_key(provider: str) -> Optional[str]:
     Retrieves the API key for a given provider, checking the config file first,
     then the corresponding environment variable (e.g., OPENAI_API_KEY).
     """
+    key, _ = get_api_key_with_source(provider)
+    return key
+
+
+def get_api_key_with_source(provider: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Retrieves the API key and its source for a given provider.
+
+    Returns:
+        A tuple containing the key and its source ('file', 'env', or None).
+    """
     key_file = _get_api_key_file_path(provider)
     if os.path.exists(key_file):
         try:
             with open(key_file, 'r', encoding='utf-8') as f:
                 key = f.read().strip()
                 if key:
-                    return key
+                    return key, 'file'
         except Exception:
             pass
-    # Fallback to environment variable, e.g., OPENAI_API_KEY, GEMINI_API_KEY
+    # Fallback to environment variable
     env_var_name = f"{provider.upper()}_API_KEY"
-    return os.getenv(env_var_name)
+    key = os.getenv(env_var_name)
+    if key:
+        return key, 'env'
+    return None, None
 
 
 def save_ai_provider(provider: str) -> bool:

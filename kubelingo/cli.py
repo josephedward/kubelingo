@@ -78,6 +78,7 @@ from kubelingo.utils.config import (
     get_ai_provider,
     get_active_api_key,
     get_api_key,
+    get_api_key_with_source,
     save_api_key,
     YAML_QUIZ_DIR,
     get_cluster_configs,
@@ -186,9 +187,11 @@ def handle_config_command(cmd):
     elif target in SUPPORTED_AI_PROVIDERS:
         provider = target
         if action == 'view':
-            key = get_api_key(provider)
+            key, source = get_api_key_with_source(provider)
             if key:
                 print(f'{provider.capitalize()} API key: {key}')
+                if source:
+                    print(f"Source: {source}")
             else:
                 print(f'{provider.capitalize()} API key is not set.')
         elif action == 'set':
@@ -674,16 +677,24 @@ def manage_config_interactive():
         return
     try:
         provider = get_ai_provider()
+        provider_display = f" (current: {provider.capitalize()})" if provider else " (Not Set)"
 
         menu_choices = [
-            {"name": f"Set active AI Provider (current: {provider or 'Not set'})", "value": "set_provider"},
+            {"name": f"Set active AI Provider{provider_display}", "value": "set_provider"},
             questionary.Separator("--- API Keys ---"),
         ]
+
         for p in SUPPORTED_AI_PROVIDERS:
+            key, source = get_api_key_with_source(p)
+            status = "Not Set"
+            if source:
+                status = f"Set (from {source})"
+
             menu_choices.extend([
-                {"name": f"View {p.capitalize()} API key", "value": f"view_{p}"},
-                {"name": f"Set/Update {p.capitalize()} API key", "value": f"set_{p}"},
+                {"name": f"View {p.capitalize()} API Key ({status})", "value": f"view_{p}"},
+                {"name": f"Set/Update {p.capitalize()} API Key", "value": f"set_{p}"},
             ])
+
         menu_choices.extend([
             questionary.Separator("--- Kubernetes Clusters ---"),
             {"name": "List configured clusters", "value": "list_clusters"},
@@ -893,7 +904,7 @@ def run_interactive_main_menu():
                 study_session._run_drill_menu(action)
             elif menu == "settings":
                 if action == "api":
-                    _setup_ai_provider_interactive(force_setup=True)
+                    manage_config_interactive()
                 elif action == "cluster":
                     study_session._cluster_config_menu()
                 elif action == "tools":
