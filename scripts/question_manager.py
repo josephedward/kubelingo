@@ -76,7 +76,7 @@ try:
     from kubelingo.database import (
         get_db_connection, add_question, init_db, get_all_questions
     )
-    from kubelingo.question import Question, ValidationStep
+    from kubelingo.question import Question, ValidationStep, QuestionSubject
     from kubelingo.modules.question_generator import AIQuestionGenerator
     from kubelingo.modules.yaml_loader import YAMLLoader
     from kubelingo.modules.ai_categorizer import AICategorizer
@@ -111,11 +111,14 @@ def interactive_generator_menu():
     """Interactive menu for question generator commands."""
     while True:
         choice = questionary.select(
-            "Select a generator command:",
+            "Select a question generator:",
             choices=[
-                "From PDF", "AI Quiz (OpenAI)", "Resource Reference Quiz",
-                "Kubectl Operations Quiz", "AI Questions (Advanced)",
-                "Validation Steps for JSON", "Service Account Questions", "Manifests from JSON",
+                "From PDF",
+                "From AI (subject-based)",
+                "Kubernetes Resource Reference",
+                "Kubernetes Operations",
+                "Service Account Questions",
+                "Manifests from JSON",
                 "Back"
             ],
         ).ask()
@@ -132,21 +135,12 @@ def interactive_generator_menu():
             num_q = questionary.text("Number of questions per chunk:", default="5").ask()
             if not num_q: continue
             handle_from_pdf(MockArgs(pdf_path=pdf_path, output_file=output_file, num_questions_per_chunk=int(num_q)))
-        elif choice == "AI Quiz (OpenAI)":
-            num = questionary.text("Number of questions to generate:", default="5").ask()
-            if not num: continue
-            output_file = questionary.text("Output JSON file path:", default="ai_generated_quiz.json").ask()
-            if not output_file: continue
-            mock = questionary.confirm("Use mock data for testing?", default=False).ask()
-            handle_ai_quiz(MockArgs(num=int(num), mock=mock, output=output_file))
-        elif choice == "Resource Reference Quiz":
-            handle_resource_reference(MockArgs())
-            print("\nDone.")
-        elif choice == "Kubectl Operations Quiz":
-            handle_kubectl_operations(MockArgs())
-            print("\nDone.")
-        elif choice == "AI Questions (Advanced)":
-            subject = questionary.text("Subject for the new questions:").ask()
+        elif choice == "From AI (subject-based)":
+            subjects = sorted([s.value for s in QuestionSubject])
+            subject = questionary.select(
+                "Subject for the new questions (e.g., 'Kubernetes Service Accounts'):",
+                choices=subjects
+            ).ask()
             if not subject: continue
             category = questionary.select("Category of questions:", choices=['Basic', 'Command', 'Manifest'], default='Command').ask()
             num_questions = int(questionary.text("Number of questions to generate:", default="3").ask())
@@ -157,11 +151,12 @@ def interactive_generator_menu():
                 subject=subject, category=category, num_questions=num_questions, 
                 example_source_file=example_source_file, output_file=output_file
             ))
-        elif choice == "Validation Steps for JSON":
-            in_path = questionary.path("JSON file or directory to process:").ask()
-            if not in_path: continue
-            overwrite = questionary.confirm("Overwrite original files?", default=False).ask()
-            handle_validation_steps(MockArgs(in_path=Path(in_path), overwrite=overwrite))
+        elif choice == "Kubernetes Resource Reference":
+            handle_resource_reference(MockArgs())
+            print("\nDone.")
+        elif choice == "Kubernetes Operations":
+            handle_kubectl_operations(MockArgs())
+            print("\nDone.")
         elif choice == "Service Account Questions":
             to_db = questionary.confirm("Add generated questions to the database?", default=False).ask()
             num = int(questionary.text("Number of questions to output (0 for all):", default="0").ask())
