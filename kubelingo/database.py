@@ -477,8 +477,14 @@ def init_db(clear: bool = False, db_path: Optional[str] = None, conn: Optional[s
         # Table exists, check columns
         cursor.execute("PRAGMA table_info(questions)")
         columns = [row[1] for row in cursor.fetchall()]
-        if 'category_id' not in columns and 'schema_category' in columns:
-            cursor.execute("ALTER TABLE questions RENAME COLUMN schema_category TO category_id")
+        if 'category_id' not in columns:
+            if 'schema_category' in columns:
+                cursor.execute("ALTER TABLE questions RENAME COLUMN schema_category TO category_id")
+            else:
+                cursor.execute("ALTER TABLE questions ADD COLUMN category_id TEXT")
+
+        if 'subject_id' not in columns:
+            cursor.execute("ALTER TABLE questions ADD COLUMN subject_id TEXT")
 
     cursor.execute("CREATE TABLE IF NOT EXISTS question_categories (id TEXT PRIMARY KEY)")
     cursor.execute("CREATE TABLE IF NOT EXISTS question_subjects (id TEXT PRIMARY KEY)")
