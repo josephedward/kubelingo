@@ -629,14 +629,24 @@ class KubernetesStudyMode:
 
                 # Save the generated question to a file and index it.
                 try:
+                    # Organize generated questions into subdirectories based on category and subject.
+                    # Structure: /yaml/{category}/{subject}/{slug}.yaml
+                    category_dir_name = quiz_type  # 'basic', 'command', 'manifest'
+                    subject_dir_name = self._slugify_prompt(topic)
+
+                    target_dir = (
+                        self.questions_dir / category_dir_name / subject_dir_name
+                    )
+                    os.makedirs(target_dir, exist_ok=True)
+
                     slug = self._slugify_prompt(question.prompt)
                     filename = f"{slug}.yaml"
-                    question_path = self.questions_dir / filename
+                    question_path = target_dir / filename
                     # Avoid overwriting by adding a short UUID if a file with the same slug exists.
                     if question_path.exists():
                         short_id = str(uuid.uuid4())[:8]
                         filename = f"{slug}-{short_id}.yaml"
-                        question_path = self.questions_dir / filename
+                        question_path = target_dir / filename
 
                     with question_path.open("w", encoding="utf-8") as f:
                         yaml.dump(asdict(question), f, sort_keys=False, indent=2)
