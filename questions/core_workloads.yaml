@@ -633,3 +633,155 @@ questions:
     prompt: Print the status phase of pod pod1 in the default namespace using a jsonpath
       query.
     response: kubectl -n default get pod pod1 -o jsonpath="{.status.phase}"
+- id: yaml_quiz::frontend-deployment
+  prompt: Edit 'deployment.yaml' to create a Deployment named 'frontend' with 3 replicas
+    of 'nginx:1.21'. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: #\
+      \ TODO: Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n   \
+      \ matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n\
+      \        app: frontend\n    spec:\n      containers:\n      - name: nginx\n\
+      \        image: # TODO: Set image\n"
+  validation_steps:
+  - cmd: kubectl get deploy frontend -o jsonpath='{.spec.replicas}'
+    matcher:
+      contains: '3'
+  - cmd: kubectl get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
+    matcher:
+      contains: nginx:1.21
+  explanation: Deployment with replica count and proper label selectors. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::frontend-deployment
+    type: live_k8s_edit
+    category: YAML Editing - Deployments
+- id: yaml-edit-q3
+  prompt: Create a Deployment named 'frontend' with 3 replicas. Set the image for
+    the 'nginx' container to nginx:1.21.
+  type: yaml_edit
+  explanation: Deployment with replica count and proper label selectors
+  metadata:
+    id: yaml-edit-q3
+    category: YAML Editing - Deployments
+    type: yaml_edit
+    starting_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: # TODO:\
+      \ Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n    matchLabels:\n\
+      \      app: frontend\n  template:\n    metadata:\n      labels:\n        app:\
+      \ frontend\n    spec:\n      containers:\n      - name: nginx\n        image:\
+      \ # TODO: Set image\n"
+    answer: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: frontend\n\
+      spec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: frontend\n \
+      \ template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n\
+      \      containers:\n      - name: nginx\n        image: nginx:1.21\n"
+- id: yaml_quiz::web-server-pod
+  prompt: Edit 'pod.yaml' to create a Pod named 'web-server' using the 'nginx:1.20'
+    image, exposing port 80. After editing, apply the manifest.
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\nspec:\n\
+      \  containers:\n  - name: # TODO: Add container name\n    image: # TODO: Add\
+      \ image\n    ports:\n    - containerPort: # TODO: Add port\n"
+  validation_steps:
+  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].image}'
+    matcher:
+      contains: nginx:1.20
+  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].ports[0].containerPort}'
+    matcher:
+      contains: '80'
+  explanation: Basic pod with specific name, image, and port configuration. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::web-server-pod
+    type: live_k8s_edit
+    category: YAML Editing - Pods
+- id: yaml_quiz::pod-with-env
+  prompt: 'Edit ''pod.yaml'' to create a Pod named ''app-pod'' with environment variables:
+    DB_HOST=localhost, DB_PORT=5432. After editing, apply the manifest.'
+  type: live_k8s_edit
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
+      \  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables\n"
+  validation_steps:
+  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[0].name}'
+    matcher:
+      contains: DB_HOST
+  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[1].value}'
+    matcher:
+      contains: '5432'
+  explanation: Pod with environment variables defined in container spec. Validation
+    is performed by checking the live resource in the cluster, not by comparing YAML
+    files.
+  metadata:
+    id: yaml_quiz::pod-with-env
+    type: live_k8s_edit
+    category: YAML Editing - Pods
+- id: yaml-edit-q1
+  prompt: Create a Pod named 'web-server' with a container named 'nginx' using the
+    nginx:1.20 image, and expose port 80.
+  type: yaml_edit
+  explanation: Basic pod with specific name, image, and port configuration
+  metadata:
+    id: yaml-edit-q1
+    category: YAML Editing - Pods
+    type: yaml_edit
+    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\n\
+      spec:\n  containers:\n  - name: # TODO: Add container name\n    image: # TODO:\
+      \ Add image\n    ports:\n    - containerPort: # TODO: Add port\n"
+    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\nspec:\n  containers:\n\
+      \  - name: nginx\n    image: nginx:1.20\n    ports:\n    - containerPort: 80\n"
+- id: yaml-edit-q2
+  prompt: 'Create a Pod named ''app-pod'' with container name ''app'' and environment
+    variables: DB_HOST=localhost, DB_PORT=5432'
+  type: yaml_edit
+  explanation: Pod with environment variables defined in container spec
+  metadata:
+    id: yaml-edit-q2
+    category: YAML Editing - Pods
+    type: yaml_edit
+    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n\
+      \  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment\
+      \ variables\n"
+    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
+      \  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value:\
+      \ localhost\n    - name: DB_PORT\n      value: \"5432\"\n"
+- id: manifests::deployments::increase-replicas
+  prompt: Edit the deployment manifest to increase the number of replicas to 3.
+  type: yaml_edit
+  category: YAML Editing Practice
+  initial_files:
+    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
+      spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n\
+      \    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n\
+      \      - name: nginx\n        image: nginx:1.14.2\n"
+  correct_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
+    spec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: nginx\n    template:\n\
+    \      metadata:\n        labels:\n          app: nginx\n    spec:\n      containers:\n\
+    \      - name: nginx\n        image: nginx:1.14.2\n"
+- id: manifests::deployments::change-image
+  prompt: Edit the deployment manifest to change the container image from `nginx:1.14.2`
+    to `nginx:1.16.1`.
+  type: yaml_edit
+  category: YAML Editing Practice
+  initial_files:
+    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
+      spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n\
+      \    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n\
+      \      - name: nginx\n        image: nginx:1.14.2\n"
+  correct_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
+    spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n    template:\n\
+    \      metadata:\n        labels:\n          app: nginx\n    spec:\n      containers:\n\
+    \      - name: nginx\n        image: nginx:1.16.1\n"
+- id: manifests::pods::add-env-var
+  prompt: Edit the pod manifest to add an environment variable `GREETING` with the
+    value `Hello World` to the `nginx` container.
+  type: yaml_edit
+  category: YAML Editing Practice
+  initial_files:
+    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n\
+      \  - name: nginx\n    image: nginx:1.14.2\n"
+  correct_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n\
+    \  - name: nginx\n    image: nginx:1.14.2\n    env:\n    - name: GREETING\n  \
+    \    value: \"Hello World\"\n"

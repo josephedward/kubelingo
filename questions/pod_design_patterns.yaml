@@ -96,3 +96,31 @@ questions:
       response: kubectl delete pod busybox
       links:
       - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
+  - id: manifests::deployments::add-init-container
+    prompt: 'A Deployment needs an init container to prepare a volume. For the `test-init-container`
+      Deployment in namespace `mars`, add an `initContainer` named `init-con`. It should
+      use the `busybox:1.31.0` image and run a command to create a file: `echo ''check
+      this out!'' > /tmp/web-content/index.html`. The init container should mount the
+      existing `web-content` volume at `/tmp/web-content`.'
+    type: yaml_edit
+    category: YAML Editing Practice
+    initial_files:
+      deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test-init-container\n\
+        \  namespace: mars\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n  \
+        \    id: test-init-container\n  template:\n    metadata:\n      labels:\n  \
+        \      id: test-init-container\n    spec:\n      volumes:\n      - name: web-content\n\
+        \        emptyDir: {}\n      containers:\n      - name: nginx\n        image:\
+        \ nginx:1.17.3-alpine\n        volumeMounts:\n        - name: web-content\n\
+        \          mountPath: /usr/share/nginx/html\n        ports:\n        - containerPort:\
+        \ 80\n"
+    correct_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test-init-container\n\
+      \  namespace: mars\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n    \
+      \  id: test-init-container\n  template:\n    metadata:\n      labels:\n      \
+      \  id: test-init-container\n    spec:\n      volumes:\n      - name: web-content\n\
+      \        emptyDir: {}\n      initContainers:\n      - name: init-con\n       \
+      \ image: busybox:1.31.0\n        command: ['sh', '-c', 'echo \"check this out!\"\
+      \ > /tmp/web-content/index.html']\n        volumeMounts:\n        - name: web-content\n\
+      \          mountPath: /tmp/web-content\n      containers:\n      - name: nginx\n\
+      \        image: nginx:1.17.3-alpine\n        volumeMounts:\n        - name: web-content\n\
+      \          mountPath: /usr/share/nginx/html\n        ports:\n        - containerPort:\
+      \ 80\n"

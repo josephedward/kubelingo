@@ -71,3 +71,60 @@ questions:
       type: live_k8s_edit
       category: Configuration & Security
       source: https://killer.sh/ckad
+  - id: yaml-author-q4
+    prompt: Create a Deployment named space-alien-welcome-message-generator using image
+      httpd:alpine with 1 replica and readinessProbe running stat /tmp/ready with initialDelaySeconds=10
+      and periodSeconds=5.
+    type: yaml_author
+    metadata:
+      id: yaml-author-q4
+      category: YAML Authoring
+      type: yaml_author
+      answer: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\n\
+        spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n\
+        \  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n\
+        \    spec:\n      containers:\n      - name: httpd\n        image: httpd:alpine\n\
+        \        readinessProbe:\n          exec:\n            command:\n          \
+        \  - stat\n            - /tmp/ready\n          initialDelaySeconds: 10\n   \
+        \       periodSeconds: 5\n"
+  - id: yaml_quiz::deployment-readiness
+    prompt: Edit 'deployment.yaml' to create a Deployment named 'space-alien-welcome-message-generator'
+      using the 'httpd:alpine' image. It should have 1 replica and a readinessProbe
+      that runs the command 'stat /tmp/ready' with an 'initialDelaySeconds' of 10 and
+      a 'periodSeconds' of 5. After editing, apply the manifest.
+    type: live_k8s_edit
+    initial_files:
+      deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\n\
+        spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n\
+        \  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n\
+        \    spec:\n      containers:\n      - name: httpd\n        image: httpd:alpine\n\
+        \        readinessProbe:\n          # TODO\n"
+    validation_steps:
+    - cmd: kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.exec.command[1]}'
+      matcher:
+        contains: /tmp/ready
+    - cmd: kubectl get deploy space-alien-welcome-message-generator -o jsonpath='{.spec.template.spec.containers[0].readinessProbe.initialDelaySeconds}'
+      matcher:
+        contains: '10'
+    explanation: Deployment with a readiness probe. Validation is performed by checking
+      the live resource in the cluster, not by comparing YAML files.
+    metadata:
+      id: yaml_quiz::deployment-readiness
+      type: live_k8s_edit
+      category: YAML Editing - General
+  - id: manifests::pods::readiness-probe
+    prompt: A Pod needs a readiness probe. Edit the Pod manifest for `pod6` to add a
+      readiness probe that executes `cat /tmp/ready`. The probe should have an `initialDelaySeconds`
+      of 5 and a `periodSeconds` of 10. The Pod's command should be `touch /tmp/ready
+      && sleep 1d`.
+    type: yaml_edit
+    category: YAML Editing Practice
+    initial_files:
+      pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod6\nspec:\n  containers:\n\
+        \  - name: pod6\n    image: busybox:1.31.0\n    command:\n    - \"sh\"\n   \
+        \ - \"-c\"\n    - \"touch /tmp/ready && sleep 1d\"\n"
+    correct_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod6\nspec:\n  containers:\n\
+      \  - name: pod6\n    image: busybox:1.31.0\n    command:\n    - \"sh\"\n    -\
+      \ \"-c\"\n    - \"touch /tmp/ready && sleep 1d\"\n    readinessProbe:\n      exec:\n\
+      \        command:\n        - cat\n        - /tmp/ready\n      initialDelaySeconds:\
+      \ 5\n      periodSeconds: 10\n"
