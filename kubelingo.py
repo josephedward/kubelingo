@@ -10,7 +10,7 @@ import subprocess
 
 USER_DATA_DIR = "user_data"
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
-FLAGGED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "flagged_questions.yaml")
+ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
@@ -35,6 +35,36 @@ def save_question_to_list(list_file, question, topic):
         questions.append(question_to_save)
         with open(list_file, 'w') as f:
             yaml.dump(questions, f)
+
+def create_issue(question_dict, topic):
+    """Prompts user for an issue and saves it to a file."""
+    ensure_user_data_dir()
+    print("\nPlease describe the issue with the question.")
+    issue_desc = input("Description: ")
+    if issue_desc.strip():
+        new_issue = {
+            'topic': topic,
+            'question': question_dict['question'],
+            'issue': issue_desc.strip(),
+            'timestamp': time.asctime()
+        }
+
+        issues = []
+        if os.path.exists(ISSUES_FILE):
+            with open(ISSUES_FILE, 'r') as f:
+                try:
+                    issues = yaml.safe_load(f) or []
+                except yaml.YAMLError:
+                    issues = []
+        
+        issues.append(new_issue)
+
+        with open(ISSUES_FILE, 'w') as f:
+            yaml.dump(issues, f)
+        
+        print("\nIssue reported. Thank you!")
+    else:
+        print("\nIssue reporting cancelled.")
 
 def load_questions_from_list(list_file):
     """Loads questions from a specified list file."""
@@ -317,7 +347,7 @@ def run_topic(topic):
         print("-" * 40)
         print(q['question'])
         print("-" * 40)
-        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'flag', 'generate', 'vim'.")
+        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim'.")
 
         user_commands = []
         special_action = None
@@ -332,7 +362,7 @@ def run_topic(topic):
 
             if cmd_lower == 'done':
                 break
-            elif cmd_lower in ['solution', 'flag', 'generate', 'skip', 'vim']:
+            elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
                 special_action = cmd_lower
                 break
             elif cmd.strip():
@@ -345,9 +375,9 @@ def run_topic(topic):
             print("\nSolution:\n")
             solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
             print(solution_text)
-        elif special_action == 'flag':
-            save_question_to_list(FLAGGED_QUESTIONS_FILE, q, question_topic_context)
-            print("\nQuestion flagged for review.")
+        elif special_action == 'issue':
+            create_issue(q, question_topic_context)
+            input("Press Enter to continue...")
         elif special_action == 'generate':
             new_q = generate_more_questions(question_topic_context, q)
             if new_q:
@@ -406,7 +436,10 @@ def run_topic(topic):
         question_index += 1
         if question_index < len(questions):
             print("-" * 40)
-            input("Press Enter for the next question...")
+            action = input("Press Enter for the next question, or type 'issue' to report a problem: ").strip().lower()
+            if action == 'issue':
+                create_issue(q, question_topic_context)
+                input("Press Enter to continue...")
 
     clear_screen()
     print("Great job! You've completed all questions for this topic.")
