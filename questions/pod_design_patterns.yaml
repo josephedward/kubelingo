@@ -50,3 +50,49 @@ questions:
             volumeMounts:
               - name: logs
                 mountPath: /var/log/app
+  - id: add-cmds-q17
+    prompt: Run a pod named busybox with image busybox that runs indefinitely
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Pod design patterns
+    metadata:
+      id: add-cmds-q17
+      category: Additional Commands
+      response: kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep
+        3600"
+      links:
+      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
+  - id: add-cmds-q18
+    prompt: List all pods
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Pod design patterns
+    metadata:
+      id: add-cmds-q18
+      category: Additional Commands
+      response: kubectl get pods
+      links:
+      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
+  - id: add-cmds-q19
+    prompt: Describe pod busybox
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Pod design patterns
+    metadata:
+      id: add-cmds-q19
+      category: Additional Commands
+      response: kubectl describe pod busybox
+      links:
+      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
+  - id: add-cmds-q20
+    prompt: Delete pod busybox
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Pod design patterns
+    metadata:
+      id: add-cmds-q20
+      category: Additional Commands
+      response: kubectl delete pod busybox
+      links:
+      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std

@@ -25,3 +25,39 @@ questions:
     solution: "kubectl run web-pod --image=nginx --restart=Never --dry-run=client -o yaml"
   - question: "Command to declaratively apply all manifests in ./manifests."
     solution: "kubectl apply -f ./manifests"
+  - id: add-cmds-q41
+    prompt: Apply the configuration in deployment.yaml
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Imperative vs declarative
+    metadata:
+      id: add-cmds-q41
+      category: Additional Commands
+      response: kubectl apply -f deployment.yaml
+      links:
+      - https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20ser%20usadas
+  - id: add-cmds-q42
+    prompt: Use kubectl to edit deployment frontend
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Imperative vs declarative
+    metadata:
+      id: add-cmds-q42
+      category: Additional Commands
+      response: kubectl edit deployment frontend
+      links:
+      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
+      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,0
+  - id: deploy-mgmt-q2
+    prompt: Generate a YAML file for a deployment with nginx image without creating
+      it
+    type: command
+    schema_category: Command Syntax
+    subject_matter: Imperative vs declarative
+    metadata:
+      id: deploy-mgmt-q2
+      category: Deployment Management
+      response: kubectl create deployment nginx --image=nginx --dry-run=client -o yaml
+        > deploy.yaml
+      links:
+      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)

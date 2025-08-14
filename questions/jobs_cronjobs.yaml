@@ -34,3 +34,37 @@ questions:
                 command: ["sh","-c","sleep 10"]
   - question: "Command to generate a CronJob hello that echoes 'hi' every 5 minutes, output YAML."
     solution: "kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh -c 'echo hi' --dry-run=client -o yaml"
+  - id: ckad-sim::q3-job
+    prompt: 'Create a Job manifest at `/opt/course/3/job.yaml`. The Job, named `neb-new-job`
+      in namespace `neptune`, should run the command `sleep 2 && echo done` with image
+      `busybox:1.31.0`. It should have a total of 3 completions, with 2 running in parallel.
+      Pods created by the Job must have the label `id: awesome-job`, and the container
+      should be named `neb-new-job-container`. After creating the manifest, apply it
+      to start the Job.'
+    type: live_k8s_edit
+    pre_shell_cmds:
+    - kubectl create namespace neptune
+    - mkdir -p /opt/course/3
+    validation_steps:
+    - cmd: kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.completions}'
+      matcher: {}
+    - cmd: kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.parallelism}'
+      matcher: {}
+    - cmd: kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.template.metadata.labels.id}'
+      matcher: {}
+    - cmd: kubectl -n neptune get job neb-new-job -o jsonpath='{.spec.template.spec.containers[0].name}'
+      matcher: {}
+    - cmd: test -f /opt/course/3/job.yaml
+      matcher: {}
+    - cmd: kubectl -n neptune get job neb-new-job
+      matcher: {}
+    explanation: A Job manifest can be created using `kubectl create job --dry-run=client
+      -o yaml`. The YAML should then be edited to set `completions`, `parallelism`,
+      container name, and pod labels in the `template` section. The job is then created
+      using `kubectl apply -f <file.yaml>`. The job's status can be monitored with `kubectl
+      get job` and `kubectl describe job`.
+    metadata:
+      id: ckad-sim::q3-job
+      type: live_k8s_edit
+      category: Workload Management
+      source: https://killer.sh/ckad
