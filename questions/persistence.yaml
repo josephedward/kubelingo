@@ -11,7 +11,7 @@ questions:
         resources:
           requests:
             storage: 1Gi
-  - question: "Pod manifest using an emptyDir volume mounted at /cache."
+  - question: "Create a Pod named `cache-user` with a `busybox` container. The pod should have an `emptyDir` volume named `cache` mounted at `/cache`."
     solution: |
       apiVersion: v1
       kind: Pod
@@ -27,17 +27,6 @@ questions:
             volumeMounts:
               - name: cache
                 mountPath: /cache
-  - question: "PVC manifest requesting 1Gi, ReadWriteOnce."
-    solution: |
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: data-pvc
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
   - question: "Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep 3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`."
     solution: |
       apiVersion: v1
