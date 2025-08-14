@@ -330,111 +330,51 @@ questions:
       response: "env:\n  - name: SECRET1_USER\n    valueFrom:\n      secretKeyRef:\n\
         \        name: secret1\n        key: user\n  - name: SECRET1_PASS\n    valueFrom:\n\
         \      secretKeyRef:\n        name: secret1\n        key: pass\n"
-  - id: yaml-author-q2
-    prompt: Create a ConfigMap named trauerweide with data tree=trauerweide.
-    type: yaml_author
-    metadata:
-      id: yaml-author-q2
-      category: YAML Authoring
-      type: yaml_author
-      answer: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: trauerweide\ndata:\n\
-        \  tree: trauerweide\n"
-  - id: yaml-author-q3
-    prompt: Create a Pod named pod1 using image nginx:alpine with env var TREE1 from
-      ConfigMap trauerweide:key=tree and mount all keys of ConfigMap birke under /etc/birke.
-    type: yaml_author
-    metadata:
-      id: yaml-author-q3
-      category: YAML Authoring
-      type: yaml_author
-      answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n\
-        \  - name: nginx\n    image: nginx:alpine\n    env:\n    - name: TREE1\n   \
-        \   valueFrom:\n        configMapKeyRef:\n          name: trauerweide\n    \
-        \      key: tree\n    volumeMounts:\n    - name: birke-volume\n      mountPath:\
-        \ /etc/birke\n  volumes:\n  - name: birke-volume\n    configMap:\n      name:\
-        \ birke\n"
-  - id: yaml_quiz::app-config-cm
-    prompt: Edit 'configmap.yaml' to create a ConfigMap named 'app-config' with the
-      data 'database_url=mysql://localhost:3306/app'. After editing, apply the manifest.
-    type: live_k8s_edit
-    initial_files:
-      configmap.yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add\
-        \ name\ndata:\n  # TODO: Add data fields\n"
-    validation_steps:
-    - cmd: kubectl get configmap app-config -o jsonpath='{.data.database_url}'
-      matcher:
-        contains: mysql://localhost:3306/app
-    explanation: ConfigMap with key-value data for application configuration. Validation
-      is performed by checking the live resource in the cluster, not by comparing YAML
-      files.
-    metadata:
-      id: yaml_quiz::app-config-cm
-      type: live_k8s_edit
-      category: YAML Editing - ConfigMaps
-  - id: yaml-edit-q4
-    prompt: 'Create a ConfigMap named ''app-config'' with data: database_url=mysql://localhost:3306/app'
-    type: yaml_edit
-    explanation: ConfigMap with key-value data for application configuration
-    metadata:
-      id: yaml-edit-q4
-      category: YAML Editing - ConfigMaps
-      type: yaml_edit
-      starting_yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO: Add\
-        \ name\ndata:\n  # TODO: Add data fields\n"
-      answer: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n\
-        \  database_url: mysql://localhost:3306/app\n"
-  - id: yaml_quiz::trauerweide-cm
-    prompt: Edit 'configmap.yaml' to create a ConfigMap named 'trauerweide' with the
-      data 'tree=trauerweide'. After editing, apply the manifest.
-    type: live_k8s_edit
-    initial_files:
-      configmap.yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: # TODO\n\
-        data:\n  # TODO\n"
-    validation_steps:
-    - cmd: kubectl get configmap trauerweide -o jsonpath='{.data.tree}'
-      matcher:
-        contains: trauerweide
-    explanation: Basic ConfigMap creation. Validation is performed by checking the live
-      resource in the cluster, not by comparing YAML files.
-    metadata:
-      id: yaml_quiz::trauerweide-cm
-      type: live_k8s_edit
-      category: YAML Editing - General
-  - id: yaml_quiz::pod-with-cm-ref
-    prompt: Two ConfigMaps, 'trauerweide' and 'birke', have been created. Edit 'pod.yaml'
-      to create a Pod named 'pod1' using the 'nginx:alpine' image. The Pod should have
-      an environment variable 'TREE1' that gets its value from the 'tree' key of the
-      'trauerweide' ConfigMap. It should also mount all keys from the 'birke' ConfigMap
-      into the directory '/etc/birke'. After editing, apply the manifest.
-    type: live_k8s_edit
-    initial_files:
-      pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n\
-        \  - name: nginx\n    image: nginx:alpine\n    env:\n      # TODO\n    volumeMounts:\n\
-        \      # TODO\n  volumes:\n    # TODO\n"
-    pre_shell_cmds:
-    - kubectl create configmap trauerweide --from-literal=tree=trauerweide
-    - kubectl create configmap birke --from-literal=sample-key=sample-value
-    validation_steps:
-    - cmd: kubectl get pod pod1 -o jsonpath='{.spec.containers[0].env[0].valueFrom.configMapKeyRef.name}'
-      matcher:
-        contains: trauerweide
-    - cmd: kubectl get pod pod1 -o jsonpath='{.spec.volumes[0].configMap.name}'
-      matcher:
-        contains: birke
-    explanation: Pod with environment variable and volume from ConfigMaps. Validation
-      is performed by checking the live resource in the cluster, not by comparing YAML
-      files.
-    metadata:
-      id: yaml_quiz::pod-with-cm-ref
-      type: live_k8s_edit
-      category: YAML Editing - General
-  - id: manifests::configmaps::add-data
-    prompt: 'Edit the ConfigMap manifest to add a new key-value pair: `database.host`
-      with value `mysql.example.com`.'
-    type: yaml_edit
-    category: YAML Editing Practice
-    initial_files:
-      configmap.yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n\
-        data:\n  app.name: my-app\n"
-    correct_yaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\ndata:\n\
-      \  app.name: my-app\n  database.host: mysql.example.com\n"
+  - question: Create a ConfigMap named 'trauerweide' with data 'tree=trauerweide'.
+    solution: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: trauerweide
+      data:
+        tree: trauerweide
+  - question: Create a Pod named 'pod1' using image nginx:alpine. It should have an environment variable `TREE1` from ConfigMap `trauerweide` with key `tree`. It should also mount a volume from ConfigMap `birke` to `/etc/birke`.
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod1
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:alpine
+          env:
+          - name: TREE1
+            valueFrom:
+              configMapKeyRef:
+                name: trauerweide
+                key: tree
+          volumeMounts:
+          - name: birke-volume
+            mountPath: /etc/birke
+        volumes:
+        - name: birke-volume
+          configMap:
+            name: birke
+  - question: Create a ConfigMap named 'app-config' with the data 'database_url=mysql://localhost:3306/app'.
+    solution: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: app-config
+      data:
+        database_url: mysql://localhost:3306/app
+  - question: "Create a ConfigMap named `my-config` with data `app.name: my-app` and `database.host: mysql.example.com`."
+    solution: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-config
+      data:
+        app.name: my-app
+        database.host: mysql.example.com

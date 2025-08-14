@@ -85,14 +85,16 @@ questions:
       response: kubectl delete service frontend-svc
       links:
       - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
-  - id: manifests::services::change-port
-    prompt: Edit the Service manifest to change the `targetPort` from 80 to 8080.
-    type: yaml_edit
-    category: YAML Editing Practice
-    initial_files:
-      service.yaml: "apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\n\
-        spec:\n  selector:\n    app: MyApp\n  ports:\n    - protocol: TCP\n      port:\
-        \ 80\n      targetPort: 80\n"
-    correct_yaml: "apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\nspec:\n\
-      \  selector:\n    app: MyApp\n  ports:\n    - protocol: TCP\n      port: 80\n\
-      \      targetPort: 8080\n"
+  - question: "Create a Service `my-service` that selects pods with label `app: MyApp`. The service should expose TCP port 80 and target port 8080 on the pods."
+    solution: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: my-service
+      spec:
+        selector:
+          app: MyApp
+        ports:
+          - protocol: TCP
+            port: 80
+            targetPort: 8080

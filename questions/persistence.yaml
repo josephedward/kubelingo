@@ -38,16 +38,20 @@ questions:
         resources:
           requests:
             storage: 1Gi
-  - id: manifests::pods::add-volume-mount
-    prompt: Edit the pod manifest to mount a volume named `workdir` at path `/app/data`.
-      The volume should be an `emptyDir`.
-    type: yaml_edit
-    category: YAML Editing Practice
-    initial_files:
-      pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod-with-volume\n\
-        spec:\n  containers:\n  - name: my-container\n    image: busybox\n    command:\
-        \ [\"sleep\", \"3600\"]\n"
-    correct_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod-with-volume\n\
-      spec:\n  containers:\n  - name: my-container\n    image: busybox\n    command:\
-      \ [\"sleep\", \"3600\"]\n    volumeMounts:\n    - name: workdir\n      mountPath:\
-      \ /app/data\n  volumes:\n  - name: workdir\n    emptyDir: {}\n"
+  - question: "Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep 3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: my-pod-with-volume
+      spec:
+        containers:
+        - name: my-container
+          image: busybox
+          command: ["sleep", "3600"]
+          volumeMounts:
+          - name: workdir
+            mountPath: /app/data
+        volumes:
+        - name: workdir
+          emptyDir: {}
