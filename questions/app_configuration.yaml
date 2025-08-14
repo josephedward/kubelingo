@@ -1,7 +1,18 @@
 questions:
-  - question: "Create a ConfigMap named 'app-config' with two data items: 'app.color=blue' and 'app.environment=dev'."
-    solution: |
-      kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
+  - question: "Create a ConfigMap named 'app-config' with data items 'app.color=blue' and 'app.environment=dev'."
+    solution: "kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev"
+  - question: "Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'."
+    solution: "kubectl create cm game-config --from-file=/configs/game.properties"
+  - question: "Create a ConfigMap from all files in the '/configs' directory."
+    solution: "kubectl create cm app-settings --from-file=/configs"
+  - question: "Create a ConfigMap from an env file named 'config.env'."
+    solution: "kubectl create cm env-config --from-env-file=config.env"
+  - question: "View the contents of a ConfigMap named 'db-config'."
+    solution: "kubectl describe cm db-config"
+  - question: "List all ConfigMaps."
+    solution: "kubectl get configmaps"
+  - question: "Delete a ConfigMap named 'app-config'."
+    solution: "kubectl delete configmap app-config"
   - question: "Create a manifest for a Secret named 'db-secret' containing a username 'admin' and password 's3cur3p@ssw0rd'."
     solution: |
       apiVersion: v1
@@ -12,333 +23,19 @@ questions:
       stringData:
         username: admin
         password: "s3cur3p@ssw0rd"
-  - question: "Command to generate a ConfigMap app-cm with MODE=prod, output as YAML."
-    solution: "kubectl create configmap app-cm --from-literal=MODE=prod --dry-run=client -o yaml"
-  - question: "Command to generate a generic Secret app-sec with key TOKEN=abc123, output as YAML."
-    solution: "kubectl create secret generic app-sec --from-literal=TOKEN=abc123 --dry-run=client -o yaml"
-  - id: add-cmds-q25
-    prompt: Create a ConfigMap named app-config from file config.yaml
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: add-cmds-q25
-      category: Additional Commands
-      response: kubectl create configmap app-config --from-file=config.yaml
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)
-  - id: add-cmds-q26
-    prompt: List all ConfigMaps
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: add-cmds-q26
-      category: Additional Commands
-      response: kubectl get configmaps
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
-  - id: add-cmds-q27
-    prompt: Describe configmap app-config
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: add-cmds-q27
-      category: Additional Commands
-      response: kubectl describe configmap app-config
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard
-  - id: add-cmds-q28
-    prompt: Delete configmap app-config
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: add-cmds-q28
-      category: Additional Commands
-      response: kubectl delete configmap app-config
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Before%20proceeding%2C%20clean%20up%20some,of%20the%20ConfigMaps%20you%20made
-  - id: cm-ops-q1
-    prompt: 'Create a ConfigMap named ''app-config'' with key-value pairs: APP_COLOR=blue
-      and APP_MODE=prod'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q1
-      category: ConfigMap Operations
-      response: kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod
-      validator:
-        type: ai
-        expected: kubectl create cm app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=apiVersion%3A%20v1%20kind%3A%20Pod%20metadata%3A,c%22%2C%20%22env%22
-  - id: cm-ops-q2
-    prompt: Create a ConfigMap named 'game-config' from a configuration file located
-      at '/configs/game.properties'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q2
-      category: ConfigMap Operations
-      response: kubectl create cm game-config --from-file=/configs/game.properties
-      validator:
-        type: ai
-        expected: kubectl create cm game-config --from-file=/configs/game.properties
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)
-  - id: cm-ops-q3
-    prompt: View the contents of a ConfigMap named 'db-config'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q3
-      category: ConfigMap Operations
-      response: kubectl describe cm db-config
-      validator:
-        type: ai
-        expected: kubectl describe cm db-config
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard
-  - id: cm-ops-q4
-    prompt: Create a ConfigMap from all files in the '/configs' directory
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q4
-      category: ConfigMap Operations
-      response: kubectl create cm app-settings --from-file=/configs
-      validator:
-        type: ai
-        expected: kubectl create cm app-settings --from-file=/configs
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A%20
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=)
-  - id: cm-ops-q6
-    prompt: Extract a ConfigMap to YAML format
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q6
-      category: ConfigMap Operations
-      response: kubectl get cm app-config -o yaml > config.yaml
-      validator:
-        type: ai
-        expected: kubectl get cm app-config -o yaml > config.yaml
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=pods%2Fpod,to%20clipboard
-  - id: cm-ops-q7
-    prompt: Update a value in an existing ConfigMap named 'app-config'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q7
-      category: ConfigMap Operations
-      response: kubectl edit cm app-config
-      validator:
-        type: ai
-        expected: kubectl edit cm app-config
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-  - id: cm-ops-q8
-    prompt: Create a ConfigMap named 'multi-config' with key-value pairs DB_URL=mysql://db,
-      API_KEY=123456, and DEBUG=true from the command line
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q8
-      category: ConfigMap Operations
-      response: kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456
-        --from-literal=DEBUG=true
-      validator:
-        type: ai
-        expected: kubectl create cm multi-config --from-literal=DB_URL=mysql://db --from-literal=API_KEY=123456
-          --from-literal=DEBUG=true
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: cm-ops-q11
-    prompt: Create a configmap named configmap-web-moon-html in namespace moon from
-      the file /opt/course/15/web-moon.html with key index.html.
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q11
-      category: ConfigMap Operations
-      response: kubectl -n moon create configmap configmap-web-moon-html --from-file=index.html=/opt/course/15/web-moon.html
-  - id: cm-ops-q10
-    prompt: Create a ConfigMap from an env file
-    type: command
-    schema_category: Command Syntax
-    subject_matter: App configuration
-    metadata:
-      id: cm-ops-q10
-      category: ConfigMap Operations
-      response: kubectl create cm env-config --from-env-file=config.env
-      validator:
-        type: ai
-        expected: kubectl create cm env-config --from-env-file=config.env
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q1
-    prompt: Create a Secret named 'db-creds' with username=admin and password=password123
-    type: command
-    metadata:
-      id: secret-mgmt-q1
-      category: Secret Management
-      response: kubectl create secret generic db-creds --from-literal=username=admin
-        --from-literal=password=password123
-      validator:
-        type: ai
-        expected: kubectl create secret generic db-creds --from-literal=username=admin
-          --from-literal=password=password123
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q2
-    prompt: Create a Secret named 'tls-cert' from a certificate file
-    type: command
-    metadata:
-      id: secret-mgmt-q2
-      category: Secret Management
-      response: kubectl create secret generic tls-cert --from-file=/path/to/cert.pem
-      validator:
-        type: ai
-        expected: kubectl create secret generic tls-cert --from-file=/path/to/cert.pem
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q3
-    prompt: View the encoded values in a Secret named 'api-secrets'
-    type: command
-    metadata:
-      id: secret-mgmt-q3
-      category: Secret Management
-      response: kubectl get secret api-secrets -o yaml
-      validator:
-        type: ai
-        expected: kubectl get secret api-secrets -o yaml
-      links:
-      - https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
-  - id: secret-mgmt-q4
-    prompt: Encode a string for use in a Secret YAML definition
-    type: command
-    metadata:
-      id: secret-mgmt-q4
-      category: Secret Management
-      response: echo -n 'string' | base64
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q5
-    prompt: Decode a base64 encoded Secret value
-    type: command
-    metadata:
-      id: secret-mgmt-q5
-      category: Secret Management
-      response: echo -n 'encoded string...' | base64 --decode
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q6
-    prompt: Create a TLS Secret type from certificate and key files
-    type: command
-    metadata:
-      id: secret-mgmt-q6
-      category: Secret Management
-      response: kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
-      validator:
-        type: ai
-        expected: kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
-      links:
-      - https://kubernetes.io/docs/concepts/configuration/secret/#:~:text=kubectl%20get%20secret%20secret,which%20is
-  - id: secret-mgmt-q8
-    prompt: Create a Secret from a .env file
-    type: command
-    metadata:
-      id: secret-mgmt-q8
-      category: Secret Management
-      response: kubectl create secret generic my-secrets --from-env-file=.env
-      validator:
-        type: ai
-        expected: kubectl create secret generic my-secrets --from-env-file=.env
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: secret-mgmt-q10
-    prompt: Create a docker-registry type Secret for private registry authentication
-    type: command
-    metadata:
-      id: secret-mgmt-q10
-      category: Secret Management
-      response: kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER
-        --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL
-      validator:
-        type: ai
-        expected: kubectl create secret docker-registry regcred --docker-server=REGISTRY_SERVER
-          --docker-username=USERNAME --docker-password=PASSWORD --docker-email=EMAIL
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#:~:text=Pull%20an%20Image%20from%20a,your
-  - id: secret-mgmt-q11
-    prompt: Create a generic secret named secret1 in namespace moon with two keys user=test
-      and pass=pwd.
-    type: command
-    metadata:
-      id: secret-mgmt-q11
-      category: Secret Management
-      response: kubectl -n moon create secret generic secret1 --from-literal=user=test
-        --from-literal=pass=pwd
-  - id: secret-mgmt-q12
-    prompt: Create a generic secret named secret2 in namespace moon with a key 'key'
-      and value '12345678'.
-    type: command
-    metadata:
-      id: secret-mgmt-q12
-      category: Secret Management
-      response: kubectl -n moon create secret generic secret2 --from-literal=key=12345678
-  - id: secret-mgmt-q13
-    prompt: Mount the secret named secret2 as a volume at /tmp/secret2 in a pod.
-    type: command
-    metadata:
-      id: secret-mgmt-q13
-      category: Secret Management
-      response: "volumes:\n  - name: secret2-volume\n    secret:\n      secretName:\
-        \ secret2\nvolumeMounts:\n  - name: secret2-volume\n    mountPath: /tmp/secret2\n"
-  - id: secret-mgmt-q14
-    prompt: Add environment variables SECRET1_USER and SECRET1_PASS to a pod, populated
-      from the user and pass keys of secret1.
-    type: command
-    metadata:
-      id: secret-mgmt-q14
-      category: Secret Management
-      response: "env:\n  - name: SECRET1_USER\n    valueFrom:\n      secretKeyRef:\n\
-        \        name: secret1\n        key: user\n  - name: SECRET1_PASS\n    valueFrom:\n\
-        \      secretKeyRef:\n        name: secret1\n        key: pass\n"
-  - question: Create a ConfigMap named 'trauerweide' with data 'tree=trauerweide'.
-    solution: |
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: trauerweide
-      data:
-        tree: trauerweide
-  - question: Create a Pod named 'pod1' using image nginx:alpine. It should have an environment variable `TREE1` from ConfigMap `trauerweide` with key `tree`. It should also mount a volume from ConfigMap `birke` to `/etc/birke`.
+  - question: "Create a Secret named 'db-creds' with username 'admin' and password 'password123'."
+    solution: "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123"
+  - question: "Create a generic Secret named 'secret1' in namespace 'moon' with two keys: user=test and pass=pwd."
+    solution: "kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd"
+  - question: "Create a TLS Secret 'my-tls' from a certificate and key file."
+    solution: "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key"
+  - question: "Create a docker-registry Secret 'regcred'."
+    solution: "kubectl create secret docker-registry regcred --docker-server=... --docker-username=... --docker-password=... --docker-email=..."
+  - question: "View the encoded values in a Secret named 'api-secrets' in YAML format."
+    solution: "kubectl get secret api-secrets -o yaml"
+  - question: "Decode a base64 encoded Secret value."
+    solution: "echo -n 'encoded_string' | base64 --decode"
+  - question: "Create a manifest for a Pod 'pod1' that uses an environment variable 'TREE1' from a ConfigMap 'trauerweide' (key 'tree') and mounts a ConfigMap 'birke' to '/etc/birke'."
     solution: |
       apiVersion: v1
       kind: Pod
@@ -361,20 +58,27 @@ questions:
         - name: birke-volume
           configMap:
             name: birke
-  - question: Create a ConfigMap named 'app-config' with the data 'database_url=mysql://localhost:3306/app'.
+  - question: "Create a manifest for a pod that mounts a secret 'secret2' as a volume at /tmp/secret2."
     solution: |
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: app-config
-      data:
-        database_url: mysql://localhost:3306/app
-  - question: "Create a ConfigMap named `my-config` with data `app.name: my-app` and `database.host: mysql.example.com`."
+      # This is a partial manifest. Assuming a pod spec already exists.
+      volumes:
+        - name: secret2-volume
+          secret:
+            secretName: secret2
+      volumeMounts:
+        - name: secret2-volume
+          mountPath: /tmp/secret2
+  - question: "Create a manifest for a pod that adds environment variables 'SECRET1_USER' and 'SECRET1_PASS' from a secret 'secret1'."
     solution: |
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: my-config
-      data:
-        app.name: my-app
-        database.host: mysql.example.com
+      # This is a partial manifest. Assuming a container spec already exists.
+      env:
+        - name: SECRET1_USER
+          valueFrom:
+            secretKeyRef:
+              name: secret1
+              key: user
+        - name: SECRET1_PASS
+          valueFrom:
+            secretKeyRef:
+              name: secret1
+              key: pass

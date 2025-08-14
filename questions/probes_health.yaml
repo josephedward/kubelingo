@@ -43,34 +43,25 @@ questions:
             readinessProbe:
               exec:
                 command: ["sh","-c","test -f /tmp/ready"]
-  - id: ckad-sim::q6-readinessprobe
-    prompt: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`.
-      The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness
-      probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a
-      `periodSeconds` of 10. Create the pod and ensure it becomes ready.
-    type: live_k8s_edit
-    schema_category: YAML Manifest
-    subject_matter: Probes & health
-    validation_steps:
-    - cmd: kubectl get pod pod6 -o jsonpath='{.spec.containers[0].readinessProbe.initialDelaySeconds}'
-      matcher: {}
-    - cmd: kubectl get pod pod6 -o jsonpath='{.spec.containers[0].readinessProbe.periodSeconds}'
-      matcher: {}
-    - cmd: kubectl get pod pod6 -o jsonpath='{.spec.containers[0].command[2]}'
-      matcher: {}
-    - cmd: kubectl wait --for=condition=Ready pod/pod6 --timeout=30s
-      matcher: {}
-    explanation: A pod manifest can be generated using `kubectl run pod6 --image=busybox:1.31.0
-      --command -- sh -c "touch /tmp/ready && sleep 1d" --dry-run=client -o yaml`. Then,
-      edit the YAML to add the `readinessProbe` section to the container spec. The probe
-      should have an `exec` action with the command, and the specified `initialDelaySeconds`
-      and `periodSeconds`. Finally, create the pod with `kubectl apply -f <file.yaml>`.
-      You can monitor its status with `kubectl get pod pod6 -w`.
-    metadata:
-      id: ckad-sim::q6-readinessprobe
-      type: live_k8s_edit
-      category: Configuration & Security
-      source: https://killer.sh/ckad
+  - question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`. The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a `periodSeconds` of 10.
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: pod6
+        namespace: default
+      spec:
+        containers:
+        - name: pod6
+          image: busybox:1.31.0
+          command: ["sh", "-c", "touch /tmp/ready && sleep 1d"]
+          readinessProbe:
+            exec:
+              command:
+              - cat
+              - /tmp/ready
+            initialDelaySeconds: 5
+            periodSeconds: 10
   - question: Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready' with initialDelaySeconds=10 and periodSeconds=5.
     solution: |
       apiVersion: apps/v1
@@ -97,24 +88,3 @@ questions:
                   - /tmp/ready
                 initialDelaySeconds: 10
                 periodSeconds: 5
-  - question: Create a Pod manifest for a pod named `pod6` using busybox:1.31.0. It needs a command that runs `touch /tmp/ready && sleep 1d`. The Pod also needs a readiness probe that executes `cat /tmp/ready` with an initialDelaySeconds of 5 and a periodSeconds of 10.
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: pod6
-      spec:
-        containers:
-        - name: pod6
-          image: busybox:1.31.0
-          command:
-          - "sh"
-          - "-c"
-          - "touch /tmp/ready && sleep 1d"
-          readinessProbe:
-            exec:
-              command:
-              - cat
-              - /tmp/ready
-            initialDelaySeconds: 5
-            periodSeconds: 10

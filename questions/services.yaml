@@ -41,50 +41,14 @@ questions:
         ports:
           - port: 5432
             targetPort: 5432
-  - id: add-cmds-q21
-    prompt: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Services
-    metadata:
-      id: add-cmds-q21
-      category: Additional Commands
-      response: kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
-  - id: add-cmds-q22
-    prompt: List all services
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Services
-    metadata:
-      id: add-cmds-q22
-      category: Additional Commands
-      response: kubectl get services
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
-  - id: add-cmds-q23
-    prompt: Describe service frontend-svc
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Services
-    metadata:
-      id: add-cmds-q23
-      category: Additional Commands
-      response: kubectl describe service frontend-svc
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
-  - id: add-cmds-q24
-    prompt: Delete service frontend-svc
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Services
-    metadata:
-      id: add-cmds-q24
-      category: Additional Commands
-      response: kubectl delete service frontend-svc
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+  - question: "Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc."
+    solution: "kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc"
+  - question: "List all services."
+    solution: "kubectl get services"
+  - question: "Describe service frontend-svc."
+    solution: "kubectl describe service frontend-svc"
+  - question: "Delete service frontend-svc."
+    solution: "kubectl delete service frontend-svc"
   - question: "Create a Service `my-service` that selects pods with label `app: MyApp`. The service should expose TCP port 80 and target port 8080 on the pods."
     solution: |
       apiVersion: v1
