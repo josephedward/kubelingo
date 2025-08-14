@@ -22,47 +22,11 @@ questions:
     solution: "kubectl label ns prod tier=backend --overwrite"
   - question: "Command to list Pod names only using jsonpath."
     solution: "kubectl get pods -o jsonpath='{.items[*].metadata.name}'"
-  - id: add-cmds-q37
-    prompt: Label pod busybox with env=prod
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Metadata Labels, annotations & selectors
-    metadata:
-      id: add-cmds-q37
-      category: Additional Commands
-      response: kubectl label pod busybox env=prod
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
-  - id: add-cmds-q38
-    prompt: Remove the label env from pod busybox
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Metadata Labels, annotations & selectors
-    metadata:
-      id: add-cmds-q38
-      category: Additional Commands
-      response: kubectl label pod busybox env-
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
-  - id: add-cmds-q39
-    prompt: Annotate deployment frontend with description=test
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Metadata Labels, annotations & selectors
-    metadata:
-      id: add-cmds-q39
-      category: Additional Commands
-      response: kubectl annotate deployment frontend description=test
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
-  - id: add-cmds-q40
-    prompt: Remove the annotation description from deployment frontend
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Metadata Labels, annotations & selectors
-    metadata:
-      id: add-cmds-q40
-      category: Additional Commands
-      response: kubectl annotate deployment frontend description-
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng
+  - question: "Label pod busybox with env=prod."
+    solution: "kubectl label pod busybox env=prod"
+  - question: "Remove the label 'env' from pod busybox."
+    solution: "kubectl label pod busybox env-"
+  - question: "Annotate deployment frontend with description=test."
+    solution: "kubectl annotate deployment frontend description=test"
+  - question: "Remove the annotation 'description' from deployment frontend."
+    solution: "kubectl annotate deployment frontend description-"

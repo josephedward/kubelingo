@@ -9,14 +9,5 @@ questions:
     solution: "kubectl api-resources --verbs=list --namespaced"
   - question: "Command to view the fields under Deployment.spec.strategy."
     solution: "kubectl explain deployment.spec.strategy"
-  - id: add-cmds-q5
-    prompt: Check the kubectl client and server versions
-    type: command
-    schema_category: Command Syntax
-    subject_matter: API discovery & docs
-    metadata:
-      id: add-cmds-q5
-      category: Additional Commands
-      response: kubectl version
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server
+  - question: "Check the kubectl client and server versions."
+    solution: "kubectl version"

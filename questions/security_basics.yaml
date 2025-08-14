@@ -43,49 +43,11 @@ questions:
               readOnlyRootFilesystem: true
               capabilities:
                 drop: ["ALL"]
-  - id: add-cmds-q29
-    prompt: Create a generic secret named db-secret with literal username and password
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Security basics
-    metadata:
-      id: add-cmds-q29
-      category: Additional Commands
-      response: kubectl create secret generic db-secret --from-literal=username=admin
-        --from-literal=password=secret
-      links:
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to
-  - id: add-cmds-q30
-    prompt: List all secrets
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Security basics
-    metadata:
-      id: add-cmds-q30
-      category: Additional Commands
-      response: kubectl get secrets
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
-  - id: add-cmds-q31
-    prompt: Describe secret db-secret
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Security basics
-    metadata:
-      id: add-cmds-q31
-      category: Additional Commands
-      response: kubectl describe secret db-secret
-      links:
-      - https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
-  - id: add-cmds-q32
-    prompt: Delete secret db-secret
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Security basics
-    metadata:
-      id: add-cmds-q32
-      category: Additional Commands
-      response: kubectl delete secret db-secret
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng
+  - question: "Create a generic secret named db-secret with a username and password."
+    solution: "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret"
+  - question: "List all secrets."
+    solution: "kubectl get secrets"
+  - question: "Describe secret db-secret."
+    solution: "kubectl describe secret db-secret"
+  - question: "Delete secret db-secret."
+    solution: "kubectl delete secret db-secret"

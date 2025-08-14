@@ -1,534 +1,89 @@
 questions:
   - question: "In Vim, how do you save the file and quit?"
-    solutions:
-      - ":wq"
-      - ":x"
-  - id: add-cmds-q1
-    prompt: Create an alias 'k' for 'kubectl'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Linux Syntax
-    metadata:
-      id: add-cmds-q1
-      category: Additional Commands
-      response: alias k=kubectl
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
-  - id: add-cmds-q2
-    prompt: Enable kubectl autocompletion for bash
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Linux Syntax
-    metadata:
-      id: add-cmds-q2
-      category: Additional Commands
-      response: source <(kubectl completion bash)
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=BASH
-  - id: add-cmds-q3
-    prompt: Add kubectl autocompletion to ~/.bashrc
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Linux Syntax
-    metadata:
-      id: add-cmds-q3
-      category: Additional Commands
-      response: echo "source <(kubectl completion bash)" >> ~/.bashrc
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
-  - id: add-cmds-q4
-    prompt: Set the KUBECONFIG environment variable to /home/user/config
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Linux Syntax
-    metadata:
-      id: add-cmds-q4
-      category: Additional Commands
-      response: export KUBECONFIG=/home/user/config
-      links:
-      - https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
-  - id: shell-setup-q1
-    prompt: Shell aliases are shortcuts for longer commands, saving you from typing
-      long commands repeatedly. A common alias is `k` for `kubectl`, which lets you
-      run commands like `k get pods`. Create the `k` alias now.
-    type: command
-    metadata:
-      id: shell-setup-q1
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: alias k=kubectl
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
-  - id: shell-setup-q8
-    prompt: Enable kubectl autocomplete in your shell
-    type: command
-    metadata:
-      id: shell-setup-q8
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: 'source <(kubectl completion bash)
-
-        complete -F __start_kubectl k
-
-        '
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=BASH
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=alias%20k%3Dkubectl%20complete%20,F%20__start_kubectl%20k
-  - id: shell-setup-q9
-    prompt: List pods using the 'k' alias
-    type: command
-    metadata:
-      id: shell-setup-q9
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get pods
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,List%20all%20pods%20in%20the
-  - id: shell-setup-q10
-    prompt: List replicasets using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q10
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get rs
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,apps%2Fv1%20true%20StatefulSet
-  - id: shell-setup-q11
-    prompt: List daemonsets using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q11
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get ds
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,apps%2Fv1%20true%20ReplicaSet
-  - id: shell-setup-q12
-    prompt: List services using the 'k' alias
-    type: command
-    metadata:
-      id: shell-setup-q12
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get svc
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,all%20pods%20in%20the%20current
-  - id: shell-setup-q13
-    prompt: List ConfigMaps using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q13
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get cm
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
-  - id: shell-setup-q14
-    prompt: List secrets using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q14
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get secret
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Secret
-  - id: shell-setup-q15
-    prompt: List HorizontalPodAutoscalers using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q15
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get hpa
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,batch%2Fv1%20true%20CronJob
-  - id: shell-setup-q16
-    prompt: List Ingresses using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q16
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get ing
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=PriorityLevelConfiguration%20,networking.k8s.io%2Fv1%20true%20NetworkPolicy
-  - id: shell-setup-q17
-    prompt: List NetworkPolicies using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q17
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get netpol
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=PriorityLevelConfiguration%20,node.k8s.io%2Fv1%20false%20RuntimeClass
-  - id: shell-setup-q18
-    prompt: List ServiceAccounts using the short alias
-    type: command
-    metadata:
-      id: shell-setup-q18
-      category: 'Shell Setup: Aliases & Autocomplete'
-      response: k get sa
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
-  - id: vim_quiz_data::0
-    prompt: Enter insert mode at cursor
-    type: command
-    validation_steps:
-    - cmd: i
-      matcher: {}
-    explanation: insert before the cursor
-    metadata:
-      id: vim_quiz_data::0
-      category: Vim Basics
-      answers:
-      - i
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::1
-    prompt: Append text after cursor
-    type: command
-    validation_steps:
-    - cmd: a
-      matcher: {}
-    explanation: insert (append) after the cursor
-    metadata:
-      id: vim_quiz_data::1
-      category: Vim Basics
-      answers:
-      - a
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::2
-    prompt: Open a new line below the current line
-    type: command
-    validation_steps:
-    - cmd: o
-      matcher: {}
-    explanation: append (open) a new line below the current line
-    metadata:
-      id: vim_quiz_data::2
-      category: Vim Basics
-      answers:
-      - o
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::3
-    prompt: Save file and quit
-    type: command
-    validation_steps:
-    - cmd: :wq
-      matcher: {}
-    - cmd: :x
-      matcher: {}
-    - cmd: ZZ
-      matcher: {}
-    explanation: write (save) and quit
-    metadata:
-      id: vim_quiz_data::3
-      category: Vim Basics
-      answers:
-      - :wq
-      - :x
-      - ZZ
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::4
-    prompt: Exit without saving changes
-    type: command
-    validation_steps:
-    - cmd: :q!
-      matcher: {}
-    - cmd: ZQ
-      matcher: {}
-    explanation: quit and throw away unsaved changes
-    metadata:
-      id: vim_quiz_data::4
-      category: Vim Basics
-      answers:
-      - :q!
-      - ZQ
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::5
-    prompt: Save file without exiting
-    type: command
-    validation_steps:
-    - cmd: :w
-      matcher: {}
-    explanation: write (save) the file, but don't exit
-    metadata:
-      id: vim_quiz_data::5
-      category: Vim Basics
-      answers:
-      - :w
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::6
-    prompt: Delete current line
-    type: command
-    validation_steps:
-    - cmd: dd
-      matcher: {}
-    explanation: delete (cut) a line
-    metadata:
-      id: vim_quiz_data::6
-      category: Vim Basics
-      answers:
-      - dd
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::7
-    prompt: Copy current line (yank)
-    type: command
-    validation_steps:
-    - cmd: yy
-      matcher: {}
-    explanation: yank (copy) a line
-    metadata:
-      id: vim_quiz_data::7
-      category: Vim Basics
-      answers:
-      - yy
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::8
-    prompt: Paste after cursor
-    type: command
-    validation_steps:
-    - cmd: p
-      matcher: {}
-    explanation: put (paste) the clipboard after cursor
-    metadata:
-      id: vim_quiz_data::8
-      category: Vim Basics
-      answers:
-      - p
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::9
-    prompt: Undo last change
-    type: command
-    validation_steps:
-    - cmd: u
-      matcher: {}
-    explanation: undo
-    metadata:
-      id: vim_quiz_data::9
-      category: Vim Basics
-      answers:
-      - u
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::10
-    prompt: Search forward for 'pattern'
-    type: command
-    validation_steps:
-    - cmd: /pattern
-      matcher: {}
-    explanation: search for pattern
-    metadata:
-      id: vim_quiz_data::10
-      category: Vim Basics
-      answers:
-      - /pattern
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::11
-    prompt: Find next search occurrence
-    type: command
-    validation_steps:
-    - cmd: n
-      matcher: {}
-    explanation: repeat search in same direction
-    metadata:
-      id: vim_quiz_data::11
-      category: Vim Basics
-      answers:
-      - n
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::12
-    prompt: Go to top of file
-    type: command
-    validation_steps:
-    - cmd: gg
-      matcher: {}
-    explanation: go to the first line of the document
-    metadata:
-      id: vim_quiz_data::12
-      category: Vim Basics
-      answers:
-      - gg
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::13
-    prompt: Go to end of file
-    type: command
-    validation_steps:
-    - cmd: G
-      matcher: {}
-    explanation: go to the last line of the document
-    metadata:
-      id: vim_quiz_data::13
-      category: Vim Basics
-      answers:
-      - G
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::14
-    prompt: Go to line 10
-    type: command
-    validation_steps:
-    - cmd: :10
-      matcher: {}
-    - cmd: 10gg
-      matcher: {}
-    - cmd: 10G
-      matcher: {}
-    explanation: go to line N (e.g. 5gg or 5G)
-    metadata:
-      id: vim_quiz_data::14
-      category: Vim Basics
-      answers:
-      - :10
-      - 10gg
-      - 10G
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::15
-    prompt: Exit insert mode
-    type: command
-    validation_steps:
-    - cmd: <Esc>
-      matcher: {}
-    - cmd: <C-c>
-      matcher: {}
-    explanation: exit insert mode
-    metadata:
-      id: vim_quiz_data::15
-      category: Vim Basics
-      answers:
-      - <Esc>
-      - <C-c>
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::17
-    prompt: Redo the last undone change
-    type: command
-    validation_steps:
-    - cmd: <C-r>
-      matcher: {}
-    explanation: redo
-    metadata:
-      id: vim_quiz_data::17
-      category: Vim Basics
-      answers:
-      - <C-r>
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::18
-    prompt: Enter visual mode
-    type: command
-    validation_steps:
-    - cmd: v
-      matcher: {}
-    explanation: start visual mode, mark lines, then do a command (like y-yank)
-    metadata:
-      id: vim_quiz_data::18
-      category: Vim Basics
-      answers:
-      - v
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::19
-    prompt: Enter visual line mode
-    type: command
-    validation_steps:
-    - cmd: V
-      matcher: {}
-    explanation: start linewise visual mode
-    metadata:
-      id: vim_quiz_data::19
-      category: Vim Basics
-      answers:
-      - V
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::20
-    prompt: Enter visual block mode
-    type: command
-    validation_steps:
-    - cmd: <C-v>
-      matcher: {}
-    explanation: start visual block mode
-    metadata:
-      id: vim_quiz_data::20
-      category: Vim Basics
-      answers:
-      - <C-v>
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::21
-    prompt: Enter replace mode
-    type: command
-    validation_steps:
-    - cmd: R
-      matcher: {}
-    explanation: replace more than one character, until ESC is pressed
-    metadata:
-      id: vim_quiz_data::21
-      category: Vim Basics
-      answers:
-      - R
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::22
-    prompt: Move to the next word
-    type: command
-    validation_steps:
-    - cmd: w
-      matcher: {}
-    explanation: jump forwards to the start of a word
-    metadata:
-      id: vim_quiz_data::22
-      category: Vim Basics
-      answers:
-      - w
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::23
-    prompt: Move to the previous word
-    type: command
-    validation_steps:
-    - cmd: b
-      matcher: {}
-    explanation: jump backwards to the start of a word
-    metadata:
-      id: vim_quiz_data::23
-      category: Vim Basics
-      answers:
-      - b
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::24
-    prompt: Move to the end of the word
-    type: command
-    validation_steps:
-    - cmd: e
-      matcher: {}
-    explanation: jump forwards to the end of a word
-    metadata:
-      id: vim_quiz_data::24
-      category: Vim Basics
-      answers:
-      - e
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::25
-    prompt: Move to the first character of the line
-    type: command
-    validation_steps:
-    - cmd: '0'
-      matcher: {}
-    explanation: jump to the start of the line
-    metadata:
-      id: vim_quiz_data::25
-      category: Vim Basics
-      answers:
-      - '0'
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::26
-    prompt: Move to the end of the line
-    type: command
-    validation_steps:
-    - cmd: $
-      matcher: {}
-    explanation: jump to the end of the line
-    metadata:
-      id: vim_quiz_data::26
-      category: Vim Basics
-      answers:
-      - $
-      source: https://www.vim.org/docs.php
-  - id: vim_quiz_data::27
-    prompt: Jump to matching bracket
-    type: command
-    validation_steps:
-    - cmd: '%'
-      matcher: {}
-    explanation: 'move cursor to matching character (default supported pairs: ''()'',
-      ''{}'', ''[]'')'
-    metadata:
-      id: vim_quiz_data::27
-      category: Vim Basics
-      answers:
-      - '%'
-      source: https://www.vim.org/docs.php
+    solution: ":wq or :x"
+  - question: "Create an alias 'k' for 'kubectl'."
+    solution: "alias k=kubectl"
+  - question: "Enable kubectl autocompletion for bash."
+    solution: "source <(kubectl completion bash)"
+  - question: "Add kubectl autocompletion to ~/.bashrc."
+    solution: "echo \"source <(kubectl completion bash)\" >> ~/.bashrc"
+  - question: "Set the KUBECONFIG environment variable to /home/user/config."
+    solution: "export KUBECONFIG=/home/user/config"
+  - question: "Create the `k` alias for `kubectl`."
+    solution: "alias k=kubectl"
+  - question: "Enable kubectl autocomplete in your shell for the `k` alias."
+    solution: "source <(kubectl completion bash) && complete -F __start_kubectl k"
+  - question: "List pods using the 'k' alias."
+    solution: "k get pods"
+  - question: "List replicasets using the short alias 'rs'."
+    solution: "k get rs"
+  - question: "List daemonsets using the short alias 'ds'."
+    solution: "k get ds"
+  - question: "List services using the 'k' alias and 'svc' shortname."
+    solution: "k get svc"
+  - question: "List ConfigMaps using the short alias 'cm'."
+    solution: "k get cm"
+  - question: "List secrets using the short alias."
+    solution: "k get secret"
+  - question: "List HorizontalPodAutoscalers using the short alias 'hpa'."
+    solution: "k get hpa"
+  - question: "List Ingresses using the short alias 'ing'."
+    solution: "k get ing"
+  - question: "List NetworkPolicies using the short alias 'netpol'."
+    solution: "k get netpol"
+  - question: "List ServiceAccounts using the short alias 'sa'."
+    solution: "k get sa"
+  - question: "In Vim, how do you enter insert mode at the cursor?"
+    solution: "i"
+  - question: "In Vim, how do you append text after the cursor?"
+    solution: "a"
+  - question: "In Vim, how do you open a new line below the current line?"
+    solution: "o"
+  - question: "In Vim, how do you save the file and quit?"
+    solution: ":wq or :x or ZZ"
+  - question: "In Vim, how do you exit without saving changes?"
+    solution: ":q! or ZQ"
+  - question: "In Vim, how do you save a file without exiting?"
+    solution: ":w"
+  - question: "In Vim, how do you delete the current line?"
+    solution: "dd"
+  - question: "In Vim, how do you copy the current line (yank)?"
+    solution: "yy"
+  - question: "In Vim, how do you paste after the cursor?"
+    solution: "p"
+  - question: "In Vim, how do you undo the last change?"
+    solution: "u"
+  - question: "In Vim, how do you search forward for 'pattern'?"
+    solution: "/pattern"
+  - question: "In Vim, how do you find the next search occurrence?"
+    solution: "n"
+  - question: "In Vim, how do you go to the top of the file?"
+    solution: "gg"
+  - question: "In Vim, how do you go to the end of the file?"
+    solution: "G"
+  - question: "In Vim, how do you go to line 10?"
+    solution: ":10 or 10gg or 10G"
+  - question: "In Vim, how do you exit insert mode?"
+    solution: "<Esc> or <C-c>"
+  - question: "In Vim, how do you redo the last undone change?"
+    solution: "<C-r>"
+  - question: "In Vim, how do you enter visual mode?"
+    solution: "v"
+  - question: "In Vim, how do you enter visual line mode?"
+    solution: "V"
+  - question: "In Vim, how do you enter visual block mode?"
+    solution: "<C-v>"
+  - question: "In Vim, how do you enter replace mode?"
+    solution: "R"
+  - question: "In Vim, how do you move to the next word?"
+    solution: "w"
+  - question: "In Vim, how do you move to the previous word?"
+    solution: "b"
+  - question: "In Vim, how do you move to the end of the word?"
+    solution: "e"
+  - question: "In Vim, how do you move to the first character of the line?"
+    solution: "0"
+  - question: "In Vim, how do you move to the end of the line?"
+    solution: "$"
+  - question: "In Vim, how do you jump to a matching bracket?"
+    solution: "%"
