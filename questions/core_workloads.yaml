@@ -90,698 +90,162 @@ questions:
         containers:
         - name: nginx
           image: nginx:alpine
-  - answers: []
-    category: General Operations
-    correct_yaml: null
-    difficulty: null
-    explanation: null
-    id: q1
-    initial_files: {}
-    pre_shell_cmds: []
-    prompt: hello
-    response: null
-    review: false
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    source: null
-    source_file: f.yaml
-    type: basic
-    validation_steps: null
-  - id: add-cmds-q10
-    prompt: Create a deployment named frontend using image nginx:1.14
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q10
-      category: Additional Commands
-      response: kubectl create deployment frontend --image=nginx:1.14
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=,image%3Dbusybox
-  - id: add-cmds-q11
-    prompt: List all deployments
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q11
-      category: Additional Commands
-      response: kubectl get deployments
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
-  - id: add-cmds-q12
-    prompt: Describe deployment frontend
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q12
-      category: Additional Commands
-      response: kubectl describe deployment frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,0
-  - id: add-cmds-q13
-    prompt: Scale deployment frontend to 3 replicas
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q13
-      category: Additional Commands
-      response: kubectl scale deployment frontend --replicas=3
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20scale%20a%20Deployment,by%20using%20the%20following%20command
-  - id: add-cmds-q14
-    prompt: Roll back the deployment frontend to the previous version
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q14
-      category: Additional Commands
-      response: kubectl rollout undo deployment frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=1,rollback%20to%20the%20previous%20revision
-  - id: add-cmds-q15
-    prompt: Restart the deployment frontend
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q15
-      category: Additional Commands
-      response: kubectl rollout restart deployment frontend
-      links:
-      - https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20set%20image%20deployment%2Ffrontend%20www%3Dimage%3Av2,Xem%20tr%E1%BA%A1ng
-  - id: add-cmds-q16
-    prompt: Delete deployment frontend
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: add-cmds-q16
-      category: Additional Commands
-      response: kubectl delete deployment frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=The%20output%20is%20similar%20to,this
-  - id: ckad-sim::q7-move-pod
-    prompt: 'A pod named `webserver-sat-003` in namespace `saturn` needs to be moved
-      to namespace `neptune`. The pod is identifiable by the annotation `description:
-      this is the server for the E-Commerce System my-happy-shop`. Export its YAML,
-      modify it to run in the `neptune` namespace, apply the new manifest, and then
-      delete the original pod from `saturn`.'
-    type: live_k8s_edit
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    pre_shell_cmds:
-    - kubectl create ns saturn
-    - kubectl create ns neptune
-    - "cat <<EOF | kubectl apply -f -\napiVersion: v1\nkind: Pod\nmetadata:\n  name:\
-      \ webserver-sat-003\n  namespace: saturn\n  labels:\n    id: webserver-sat-003\n\
-      \  annotations:\n    description: 'this is the server for the E-Commerce System\
-      \ my-happy-shop'\nspec:\n  containers:\n  - name: webserver-sat\n    image: nginx:1.16.1-alpine\n\
-      EOF\n"
-    validation_steps:
-    - cmd: kubectl -n neptune get pod webserver-sat-003 -o jsonpath='{.metadata.namespace}'
-      matcher: {}
-    - cmd: '! kubectl -n saturn get pod webserver-sat-003'
-      matcher: {}
-    explanation: The process involves exporting the Pod's YAML using `kubectl get pod
-      <pod-name> -n <namespace> -o yaml`. Then, edit the file to change the `namespace`
-      field and remove runtime-injected fields like `status`, `resourceVersion`, `uid`,
-      and `creationTimestamp`. After saving the cleaned YAML, create the Pod in the
-      new namespace with `kubectl apply -f <file.yaml>` and delete the original pod
-      with `kubectl delete pod <pod-name> -n <old-namespace>`.
-    metadata:
-      id: ckad-sim::q7-move-pod
-      type: live_k8s_edit
-      category: Core Concepts
-      source: https://killer.sh/ckad
-  - id: ckad-sim::q2-pods
-    prompt: Create a single Pod named `pod1` of image `httpd:2.4.41-alpine` in Namespace
-      `default`. The container must be named `pod1-container`. Then, write a command
-      that outputs the status of this pod into the file `/opt/course/2/pod1-status-command.sh`.
-    type: live_k8s_edit
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    pre_shell_cmds:
-    - mkdir -p /opt/course/2
-    validation_steps:
-    - cmd: kubectl get pod pod1 -o jsonpath='{.spec.containers[0].name}'
-      matcher: {}
-    - cmd: kubectl get pod pod1 -o jsonpath='{.spec.containers[0].image}'
-      matcher: {}
-    - cmd: sh /opt/course/2/pod1-status-command.sh
-      matcher: {}
-    explanation: A Pod can be created imperatively with `kubectl run` and `--dry-run=client
-      -o yaml` to generate a manifest. The manifest can then be edited to meet specific
-      requirements like the container name. A command to check the pod's status can
-      use `kubectl describe pod <pod_name>` and `grep`, or `kubectl get pod <pod_name>`
-      with a `jsonpath` expression like `{.status.phase}`. This command is then saved
-      to the required file.
-    metadata:
-      id: ckad-sim::q2-pods
-      type: live_k8s_edit
-      category: Core Concepts
-      source: https://killer.sh/ckad
-  - id: deploy-mgmt-q1
-    prompt: Create a deployment named webapp with image nginx:1.17 and 3 replicas
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q1
-      category: Deployment Management
-      response: kubectl create deployment webapp --image=nginx:1.17 --replicas=3
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=kubectl%20create%20deployment%20my,date
-  - id: deploy-mgmt-q3
-    prompt: Scale a deployment named 'frontend' to 5 replicas
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q3
-      category: Deployment Management
-      response: kubectl scale deployment frontend --replicas=5
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20scale%20a%20Deployment,by%20using%20the%20following%20command
-  - id: deploy-mgmt-q4
-    prompt: Update the image of a deployment named 'webapp' to nginx:1.18
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q4
-      category: Deployment Management
-      response: kubectl set image deployment/webapp webapp=nginx:1.18
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,of%20the%20Deployment
-  - id: deploy-mgmt-q5
-    prompt: Check the rollout status of a deployment named 'frontend'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q5
-      category: Deployment Management
-      response: kubectl rollout status deployment/frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20check%20if%20a,returns%20a%20zero%20exit%20code
-  - id: deploy-mgmt-q6
-    prompt: Roll back a deployment named 'webapp' to its previous version
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q6
-      category: Deployment Management
-      response: kubectl rollout undo deployment/webapp
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=1,rollback%20to%20the%20previous%20revision
-  - id: deploy-mgmt-q7
-    prompt: Create a deployment with a record of the change-cause for future reference
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q7
-      category: Deployment Management
-      response: kubectl create deployment nginx --image=nginx --record
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=Labels%3A%20%20%20%20,80%2FTCP
-  - id: deploy-mgmt-q8
-    prompt: View the history of a deployment named 'webapp'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q8
-      category: Deployment Management
-      response: kubectl rollout history deployment/webapp
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,rollout%20started
-  - id: deploy-mgmt-q9
-    prompt: Pause the rollout of a deployment named 'frontend'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q9
-      category: Deployment Management
-      response: kubectl rollout pause deployment/frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,following%20command
-  - id: deploy-mgmt-q10
-    prompt: Resume the rollout of a deployment named 'frontend'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q10
-      category: Deployment Management
-      response: kubectl rollout resume deployment/frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,with%20all%20the%20new%20updates
-  - id: deploy-mgmt-q11
-    prompt: View the details of a specific revision (e.g., 2) of a deployment named
-      'webapp'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q11
-      category: Deployment Management
-      response: kubectl rollout history deployment/webapp --revision=2
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#checking-rollout-history-of-a-deployment
-  - id: deploy-mgmt-q12
-    prompt: Delete a deployment named 'frontend'
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q12
-      category: Deployment Management
-      response: kubectl delete deployment frontend
-      links:
-      - https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#deleting-a-deployment
-  - id: deploy-mgmt-q13
-    prompt: Roll back the deployment api-new-c32 in namespace neptune to the previous
-      revision.
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q13
-      category: Deployment Management
-      response: kubectl -n neptune rollout undo deployment api-new-c32
-  - id: deploy-mgmt-q14
-    prompt: Restart the deployment web-moon in the moon namespace.
-    type: command
-    schema_category: Command Syntax
-    subject_matter: Core workloads
-    metadata:
-      id: deploy-mgmt-q14
-      category: Deployment Management
-      response: kubectl -n moon rollout restart deployment web-moon
-  - id: ckad-sim::q8-rollout-undo
-    prompt: A deployment named `api-new-c32` in namespace `neptune` is failing after
-      a recent update due to an image with a typo (`ngnix` instead of `nginx`). Check
-      the deployment's history and roll back to the previous working revision.
-    type: live_k8s_edit
-    pre_shell_cmds:
-    - kubectl create ns neptune
-    - kubectl -n neptune create deploy api-new-c32 --image=nginx:1.16.1
-    - kubectl -n neptune wait --for=condition=available deploy/api-new-c32 --timeout=60s
-    - kubectl -n neptune set image deploy/api-new-c32 nginx=ngnix:1.16.3
-    validation_steps:
-    - cmd: kubectl -n neptune wait --for=condition=available deploy/api-new-c32 --timeout=30s
-      matcher: {}
-    - cmd: kubectl -n neptune get deploy api-new-c32 -o jsonpath='{.spec.template.spec.containers[0].image}'
-      matcher: {}
-    explanation: Use `kubectl -n neptune rollout history deployment <name>` to see revisions.
-      To find the error, `kubectl -n neptune describe pod <pod-name>` on one of the
-      failing pods will show an `ImagePullBackOff` error. To fix this, use `kubectl
-      -n neptune rollout undo deployment <name>` to revert to the previous, working
-      revision.
-    metadata:
-      id: ckad-sim::q8-rollout-undo
-      type: live_k8s_edit
-      category: Workload Management
-      source: https://killer.sh/ckad
-  - id: ckad-sim::q9-pod-to-deployment
-    prompt: 'A single pod `holy-api` is running in namespace `pluto`. Convert it into
-      a high-availability Deployment named `holy-api` with 3 replicas. The original
-      pod''s definition is available at `/opt/course/9/holy-api-pod.yaml`. The new Deployment
-      must add a `securityContext` to the container, setting `allowPrivilegeEscalation:
-      false` and `privileged: false`. Save the final Deployment manifest to `/opt/course/9/holy-api-deployment.yaml`,
-      create the Deployment, and delete the original pod.'
-    type: live_k8s_edit
-    pre_shell_cmds:
-    - kubectl create ns pluto
-    - mkdir -p /opt/course/9
-    - "cat <<'EOF' > /opt/course/9/holy-api-pod.yaml\napiVersion: v1\nkind: Pod\nmetadata:\n\
-      \  labels:\n    id: holy-api\n  name: holy-api\nspec:\n  containers:\n  - env:\n\
-      \    - name: CACHE_KEY_1\n      value: b&MTCi0=[T66RXm!jO@\n    - name: CACHE_KEY_2\n\
-      \      value: PCAILGej5Ld@Q%{Q1=#\n    - name: CACHE_KEY_3\n      value: 2qz-]2OJlWDSTn_;RFQ\n\
-      \    image: nginx:1.17.3-alpine\n    name: holy-api-container\n    volumeMounts:\n\
-      \    - mountPath: /cache1\n      name: cache-volume1\n    - mountPath: /cache2\n\
-      \      name: cache-volume2\n    - mountPath: /cache3\n      name: cache-volume3\n\
-      \  volumes:\n  - emptyDir: {}\n    name: cache-volume1\n  - emptyDir: {}\n   \
-      \ name: cache-volume2\n  - emptyDir: {}\n    name: cache-volume3\nEOF\n"
-    - kubectl -n pluto apply -f /opt/course/9/holy-api-pod.yaml
-    validation_steps:
-    - cmd: kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.replicas}'
-      matcher: {}
-    - cmd: kubectl -n pluto wait --for=condition=available deploy/holy-api --timeout=60s
-      matcher: {}
-    - cmd: kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation}'
-      matcher: {}
-    - cmd: kubectl -n pluto get deploy holy-api -o jsonpath='{.spec.template.spec.containers[0].securityContext.privileged}'
-      matcher: {}
-    - cmd: test -f /opt/course/9/holy-api-deployment.yaml
-      matcher: {}
-    - cmd: '! kubectl -n pluto get pod holy-api'
-      matcher: {}
-    explanation: 'Start by creating a Deployment manifest based on the pod definition
-      in `/opt/course/9/holy-api-pod.yaml`. Change `kind: Pod` to `kind: Deployment`
-      and `apiVersion: v1` to `apiVersion: apps/v1`. Wrap the pod''s `spec` and `metadata`
-      inside a `template` field. Add `replicas: 3` and a `selector` to the top-level
-      `spec`. Add the required `securityContext`. Finally, apply the new manifest and
-      delete the old pod.'
-    metadata:
-      id: ckad-sim::q9-pod-to-deployment
-      type: live_k8s_edit
-      category: Workload Management
-      source: https://killer.sh/ckad
-  - id: pod-mgmt-q1
-    prompt: Create a pod named nginx using the nginx image and expose port 80
-    type: command
-    metadata:
-      id: pod-mgmt-q1
-      category: Pod Management
-      response: kubectl run nginx --image=nginx --port=80
-      validator:
-        type: ai
-        expected: kubectl run nginx --image=nginx --port=80
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,port%3D5701
-  - id: pod-mgmt-q2
-    prompt: Create a pod named busybox using the busybox image that runs the command
-      'sleep 3600'
-    type: command
-    metadata:
-      id: pod-mgmt-q2
-      category: Pod Management
-      response: kubectl run busybox --image=busybox -- sleep 3600
-      validator:
-        type: ai
-        expected: kubectl run busybox --image=busybox -- sleep 3600
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
-  - id: pod-mgmt-q3
-    prompt: Generate a YAML definition file for a pod named nginx, using the nginx image,
-      without creating it
-    type: command
-    review: true
-    metadata:
-      id: pod-mgmt-q3
-      category: Pod Management
-      response: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
-      validator:
-        type: ai
-        expected: kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
-  - id: pod-mgmt-q4
-    prompt: Create a pod named 'nginx' that runs the latest nginx image and sets an
-      environment variable DB_URL=postgresql://db
-    type: command
-    review: true
-    metadata:
-      id: pod-mgmt-q4
-      category: Pod Management
-      response: kubectl run nginx --image=nginx --env="DB_URL=postgresql://db"
-      validator:
-        type: ai
-        expected: kubectl run nginx --image=nginx --env="DB_URL=postgresql://db"
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,env%3D%22POD_NAMESPACE%3Ddefault
-  - id: pod-mgmt-q5
-    prompt: Extract the YAML definition of a running pod named 'webapp' in the 'development'
-      namespace
-    type: command
-    metadata:
-      id: pod-mgmt-q5
-      category: Pod Management
-      response: kubectl get pod webapp -n development -o yaml > webapp.yaml
-      validator:
-        type: ai
-        expected: kubectl get pod webapp -n development -o yaml > webapp.yaml
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20deployment%20my,Get%20a%20pod%27s%20YAML
-  - id: pod-mgmt-q6
-    prompt: Create a pod named nginx using the nginx image and set labels app=web and
-      tier=frontend
-    type: command
-    metadata:
-      id: pod-mgmt-q6
-      category: Pod Management
-      response: kubectl run nginx --image=nginx --labels="app=web,tier=frontend"
-      validator:
-        type: ai
-        expected: kubectl run nginx --image=nginx --labels="app=web,tier=frontend"
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,labels%3D%22app%3Dhazelcast%2Cenv%3Dprod
-  - id: pod-mgmt-q7
-    prompt: Create an interactive temporary pod named 'my-shell' using the Ubuntu image
-      to troubleshoot cluster issues
-    type: command
-    metadata:
-      id: pod-mgmt-q7
-      category: Pod Management
-      response: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
-      validator:
-        type: ai
-        expected: kubectl run my-shell --rm -i --tty --image=ubuntu -- bash
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
-  - id: pod-mgmt-q13
-    prompt: Add a security context to the container in deployment holy-api (namespace
-      pluto) to disable privilege escalation and privileged mode.
-    type: command
-    metadata:
-      id: pod-mgmt-q13
-      category: Pod Management
-      response: "securityContext:\n  allowPrivilegeEscalation: false\n  privileged:\
-        \ false\n"
-  - id: pod-mgmt-q8
-    prompt: Get detailed information about a pod named 'nginx'
-    type: command
-    metadata:
-      id: pod-mgmt-q8
-      category: Pod Management
-      response: kubectl describe pod nginx
-      validator:
-        type: ai
-        expected: kubectl describe pod nginx
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_describe/
-  - id: pod-mgmt-q10
-    prompt: Delete a pod named 'nginx'
-    type: command
-    metadata:
-      id: pod-mgmt-q10
-      category: Pod Management
-      response: kubectl delete pod nginx
-      validator:
-        type: ai
-        expected: kubectl delete pod nginx
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_delete/
-  - id: pod-mgmt-q11
-    prompt: View the logs for a pod named 'webapp'
-    type: command
-    metadata:
-      id: pod-mgmt-q11
-      category: Pod Management
-      response: kubectl logs webapp
-      validator:
-        type: ai
-        expected: kubectl logs webapp
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/
-  - id: pod-mgmt-q12
-    prompt: Execute the 'env' command in a pod named 'nginx'
-    type: command
-    metadata:
-      id: pod-mgmt-q12
-      category: Pod Management
-      response: kubectl exec nginx -- env
-      validator:
-        type: ai
-        expected: kubectl exec nginx -- env
-      links:
-      - https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#executing-commands-in-a-container
-  - id: pod-mgmt-q9
-    prompt: Create a temporary, interactive pod named 'curl1' using the 'curlimages/curl'
-      image to run a curl command against an internal service at 10.244.0.4
-    type: command
-    metadata:
-      id: pod-mgmt-q9
-      category: Pod Management
-      response: kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never
-        -- curl 10.244.0.4
-      validator:
-        type: ai
-        expected: kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never
-          -- curl 10.244.0.4
-      links:
-      - https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
-  - id: pod-mgmt-q10
-    category: Pod Management
-    prompt: Create a pod named pod1 with image httpd:2.4.41-alpine and output YAML only.
-    response: kubectl run pod1 --image=httpd:2.4.41-alpine --dry-run=client -o yaml
-  - id: pod-mgmt-q11
-    category: Pod Management
-    prompt: Force delete a pod named webserver-sat-003 in the saturn namespace.
-    response: kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0
-  - id: pod-mgmt-q12
-    category: Pod Management
-    prompt: Print the status phase of pod pod1 in the default namespace using a jsonpath
-      query.
-    response: kubectl -n default get pod pod1 -o jsonpath="{.status.phase}"
-- id: yaml_quiz::frontend-deployment
-  prompt: Edit 'deployment.yaml' to create a Deployment named 'frontend' with 3 replicas
-    of 'nginx:1.21'. After editing, apply the manifest.
-  type: live_k8s_edit
-  initial_files:
-    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: #\
-      \ TODO: Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n   \
-      \ matchLabels:\n      app: frontend\n  template:\n    metadata:\n      labels:\n\
-      \        app: frontend\n    spec:\n      containers:\n      - name: nginx\n\
-      \        image: # TODO: Set image\n"
-  validation_steps:
-  - cmd: kubectl get deploy frontend -o jsonpath='{.spec.replicas}'
-    matcher:
-      contains: '3'
-  - cmd: kubectl get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}'
-    matcher:
-      contains: nginx:1.21
-  explanation: Deployment with replica count and proper label selectors. Validation
-    is performed by checking the live resource in the cluster, not by comparing YAML
-    files.
-  metadata:
-    id: yaml_quiz::frontend-deployment
-    type: live_k8s_edit
-    category: YAML Editing - Deployments
-- id: yaml-edit-q3
-  prompt: Create a Deployment named 'frontend' with 3 replicas. Set the image for
-    the 'nginx' container to nginx:1.21.
-  type: yaml_edit
-  explanation: Deployment with replica count and proper label selectors
-  metadata:
-    id: yaml-edit-q3
-    category: YAML Editing - Deployments
-    type: yaml_edit
-    starting_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: # TODO:\
-      \ Add name\nspec:\n  replicas: # TODO: Set replicas\n  selector:\n    matchLabels:\n\
-      \      app: frontend\n  template:\n    metadata:\n      labels:\n        app:\
-      \ frontend\n    spec:\n      containers:\n      - name: nginx\n        image:\
-      \ # TODO: Set image\n"
-    answer: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: frontend\n\
-      spec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: frontend\n \
-      \ template:\n    metadata:\n      labels:\n        app: frontend\n    spec:\n\
-      \      containers:\n      - name: nginx\n        image: nginx:1.21\n"
-- id: yaml_quiz::web-server-pod
-  prompt: Edit 'pod.yaml' to create a Pod named 'web-server' using the 'nginx:1.20'
-    image, exposing port 80. After editing, apply the manifest.
-  type: live_k8s_edit
-  initial_files:
-    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\nspec:\n\
-      \  containers:\n  - name: # TODO: Add container name\n    image: # TODO: Add\
-      \ image\n    ports:\n    - containerPort: # TODO: Add port\n"
-  validation_steps:
-  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].image}'
-    matcher:
-      contains: nginx:1.20
-  - cmd: kubectl get pod web-server -o jsonpath='{.spec.containers[0].ports[0].containerPort}'
-    matcher:
-      contains: '80'
-  explanation: Basic pod with specific name, image, and port configuration. Validation
-    is performed by checking the live resource in the cluster, not by comparing YAML
-    files.
-  metadata:
-    id: yaml_quiz::web-server-pod
-    type: live_k8s_edit
-    category: YAML Editing - Pods
-- id: yaml_quiz::pod-with-env
-  prompt: 'Edit ''pod.yaml'' to create a Pod named ''app-pod'' with environment variables:
-    DB_HOST=localhost, DB_PORT=5432. After editing, apply the manifest.'
-  type: live_k8s_edit
-  initial_files:
-    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
-      \  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment variables\n"
-  validation_steps:
-  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[0].name}'
-    matcher:
-      contains: DB_HOST
-  - cmd: kubectl get pod app-pod -o jsonpath='{.spec.containers[0].env[1].value}'
-    matcher:
-      contains: '5432'
-  explanation: Pod with environment variables defined in container spec. Validation
-    is performed by checking the live resource in the cluster, not by comparing YAML
-    files.
-  metadata:
-    id: yaml_quiz::pod-with-env
-    type: live_k8s_edit
-    category: YAML Editing - Pods
-- id: yaml-edit-q1
-  prompt: Create a Pod named 'web-server' with a container named 'nginx' using the
-    nginx:1.20 image, and expose port 80.
-  type: yaml_edit
-  explanation: Basic pod with specific name, image, and port configuration
-  metadata:
-    id: yaml-edit-q1
-    category: YAML Editing - Pods
-    type: yaml_edit
-    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: # TODO: Add name\n\
-      spec:\n  containers:\n  - name: # TODO: Add container name\n    image: # TODO:\
-      \ Add image\n    ports:\n    - containerPort: # TODO: Add port\n"
-    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: web-server\nspec:\n  containers:\n\
-      \  - name: nginx\n    image: nginx:1.20\n    ports:\n    - containerPort: 80\n"
-- id: yaml-edit-q2
-  prompt: 'Create a Pod named ''app-pod'' with container name ''app'' and environment
-    variables: DB_HOST=localhost, DB_PORT=5432'
-  type: yaml_edit
-  explanation: Pod with environment variables defined in container spec
-  metadata:
-    id: yaml-edit-q2
-    category: YAML Editing - Pods
-    type: yaml_edit
-    starting_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n\
-      \  containers:\n  - name: app\n    image: nginx\n    env:\n    # TODO: Add environment\
-      \ variables\n"
-    answer: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-pod\nspec:\n  containers:\n\
-      \  - name: app\n    image: nginx\n    env:\n    - name: DB_HOST\n      value:\
-      \ localhost\n    - name: DB_PORT\n      value: \"5432\"\n"
-- id: manifests::deployments::increase-replicas
-  prompt: Edit the deployment manifest to increase the number of replicas to 3.
-  type: yaml_edit
-  category: YAML Editing Practice
-  initial_files:
-    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
-      spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n\
-      \    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n\
-      \      - name: nginx\n        image: nginx:1.14.2\n"
-  correct_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
-    spec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: nginx\n    template:\n\
-    \      metadata:\n        labels:\n          app: nginx\n    spec:\n      containers:\n\
-    \      - name: nginx\n        image: nginx:1.14.2\n"
-- id: manifests::deployments::change-image
-  prompt: Edit the deployment manifest to change the container image from `nginx:1.14.2`
-    to `nginx:1.16.1`.
-  type: yaml_edit
-  category: YAML Editing Practice
-  initial_files:
-    deployment.yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
-      spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n\
-      \    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n\
-      \      - name: nginx\n        image: nginx:1.14.2\n"
-  correct_yaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n\
-    spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n    template:\n\
-    \      metadata:\n        labels:\n          app: nginx\n    spec:\n      containers:\n\
-    \      - name: nginx\n        image: nginx:1.16.1\n"
-- id: manifests::pods::add-env-var
-  prompt: Edit the pod manifest to add an environment variable `GREETING` with the
-    value `Hello World` to the `nginx` container.
-  type: yaml_edit
-  category: YAML Editing Practice
-  initial_files:
-    pod.yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n\
-      \  - name: nginx\n    image: nginx:1.14.2\n"
-  correct_yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n\
-    \  - name: nginx\n    image: nginx:1.14.2\n    env:\n    - name: GREETING\n  \
-    \    value: \"Hello World\"\n"
+  - question: "Create a deployment named frontend using image nginx:1.14"
+    solution: "kubectl create deployment frontend --image=nginx:1.14"
+  - question: "List all deployments"
+    solution: "kubectl get deployments"
+  - question: "Describe deployment frontend"
+    solution: "kubectl describe deployment frontend"
+  - question: "Scale a deployment named 'frontend' to 5 replicas"
+    solution: "kubectl scale deployment frontend --replicas=5"
+  - question: "Roll back a deployment named 'webapp' to its previous version"
+    solution: "kubectl rollout undo deployment/webapp"
+  - question: "Restart the deployment frontend"
+    solution: "kubectl rollout restart deployment frontend"
+  - question: "Delete deployment frontend"
+    solution: "kubectl delete deployment frontend"
+  - question: "Update the image of a deployment named 'webapp' to nginx:1.18"
+    solution: "kubectl set image deployment/webapp webapp=nginx:1.18"
+  - question: "Check the rollout status of a deployment named 'frontend'"
+    solution: "kubectl rollout status deployment/frontend"
+  - question: "Create a deployment with a record of the change-cause for future reference"
+    solution: "kubectl create deployment nginx --image=nginx --record"
+  - question: "View the history of a deployment named 'webapp'"
+    solution: "kubectl rollout history deployment/webapp"
+  - question: "Pause the rollout of a deployment named 'frontend'"
+    solution: "kubectl rollout pause deployment/frontend"
+  - question: "Resume the rollout of a deployment named 'frontend'"
+    solution: "kubectl rollout resume deployment/frontend"
+  - question: "View the details of a specific revision (e.g., 2) of a deployment named 'webapp'"
+    solution: "kubectl rollout history deployment/webapp --revision=2"
+  - question: "Roll back the deployment api-new-c32 in namespace neptune to the previous revision."
+    solution: "kubectl -n neptune rollout undo deployment api-new-c32"
+  - question: "Restart the deployment web-moon in the moon namespace."
+    solution: "kubectl -n moon rollout restart deployment web-moon"
+  - question: "Create a pod named nginx using the nginx image and expose port 80"
+    solution: "kubectl run nginx --image=nginx --port=80"
+  - question: "Create a pod named busybox using the busybox image that runs the command 'sleep 3600'"
+    solution: "kubectl run busybox --image=busybox -- sleep 3600"
+  - question: "Generate a YAML definition file for a pod named nginx, using the nginx image, without creating it"
+    solution: "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml"
+  - question: "Create a pod named 'nginx' that runs the latest nginx image and sets an environment variable DB_URL=postgresql://db"
+    solution: "kubectl run nginx --image=nginx --env=\"DB_URL=postgresql://db\""
+  - question: "Extract the YAML definition of a running pod named 'webapp' in the 'development' namespace"
+    solution: "kubectl get pod webapp -n development -o yaml > webapp.yaml"
+  - question: "Create a pod named nginx using the nginx image and set labels app=web and tier=frontend"
+    solution: "kubectl run nginx --image=nginx --labels=\"app=web,tier=frontend\""
+  - question: "Create an interactive temporary pod named 'my-shell' using the Ubuntu image to troubleshoot cluster issues"
+    solution: "kubectl run my-shell --rm -i --tty --image=ubuntu -- bash"
+  - question: "Get detailed information about a pod named 'nginx'"
+    solution: "kubectl describe pod nginx"
+  - question: "Delete a pod named 'nginx'"
+    solution: "kubectl delete pod nginx"
+  - question: "View the logs for a pod named 'webapp'"
+    solution: "kubectl logs webapp"
+  - question: "Execute the 'env' command in a pod named 'nginx'"
+    solution: "kubectl exec nginx -- env"
+  - question: "Create a temporary, interactive pod named 'curl1' using the 'curlimages/curl' image to run a curl command against an internal service at 10.244.0.4"
+    solution: "kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4"
+  - question: "Create a pod named pod1 with image httpd:2.4.41-alpine and output YAML only."
+    solution: "kubectl run pod1 --image=httpd:2.4.41-alpine --dry-run=client -o yaml"
+  - question: "Force delete a pod named webserver-sat-003 in the saturn namespace."
+    solution: "kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0"
+  - question: "Print the status phase of pod pod1 in the default namespace using a jsonpath query."
+    solution: "kubectl -n default get pod pod1 -o jsonpath=\"{.status.phase}\""
+  - question: "Create a Deployment named 'frontend' with 3 replicas and label 'app: frontend'. The Pods should use the 'nginx:1.21' image."
+    solution: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        replicas: 3
+        selector:
+          matchLabels:
+            app: frontend
+        template:
+          metadata:
+            labels:
+              app: frontend
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.21
+  - question: Create a Pod named 'web-server' with a container named 'nginx' using the 'nginx:1.20' image, and expose port 80.
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: web-server
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:1.20
+          ports:
+          - containerPort: 80
+  - question: "Create a Pod named 'app-pod' with a container 'app' using image 'nginx'. Add environment variables DB_HOST=localhost and DB_PORT=5432."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: app-pod
+      spec:
+        containers:
+        - name: app
+          image: nginx
+          env:
+          - name: DB_HOST
+            value: localhost
+          - name: DB_PORT
+            value: "5432"
+  - question: "Create a manifest for a Deployment named `nginx-deployment` with 3 replicas."
+    solution: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+      spec:
+        replicas: 3
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.14.2
+  - question: "Create a manifest for a Deployment named `nginx-deployment` with 2 replicas, using image `nginx:1.16.1`."
+    solution: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: nginx
+        template:
+          metadata:
+            labels:
+              app: nginx
+          spec:
+            containers:
+            - name: nginx
+              image: nginx:1.16.1
+  - question: Create a manifest for a Pod named `my-pod` with a container `nginx` using image `nginx:1.14.2`. Add an environment variable `GREETING` with the value `Hello World`.
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: my-pod
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:1.14.2
+          env:
+          - name: GREETING
+            value: "Hello World"
