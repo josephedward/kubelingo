@@ -285,21 +285,8 @@ def list_and_select_topic():
             print("\n\nStudy session ended. Goodbye!")
             return None
 
-def main():
-    """Main function to run the study app."""
-    if not os.path.exists('questions'):
-        os.makedirs('questions')
-
-    parser = argparse.ArgumentParser(description="A CLI tool to help study for the CKAD exam.")
-    parser.add_argument("topic", nargs='?', default=None, help="The topic to study. If not provided, a menu will be shown.")
-    args = parser.parse_args()
-
-    topic = args.topic
-    if not topic:
-        topic = list_and_select_topic()
-        if not topic:
-            return
-
+def run_topic(topic):
+    """Loads and runs questions for a given topic."""
     questions = []
     session_topic_name = topic
     if topic == '_missed':
@@ -317,113 +304,140 @@ def main():
 
     random.shuffle(questions)
 
-    try:
-        question_index = 0
-        while question_index < len(questions):
-            q = questions[question_index]
-            is_correct = False
-            
-            # For saving to lists, use original topic if reviewing, otherwise current topic
-            question_topic_context = q.get('original_topic', topic)
-
-            clear_screen()
-            print(f"Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
-            print("-" * 40)
-            print(q['question'])
-            print("-" * 40)
-            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'flag', 'generate', 'vim'.")
-
-            user_commands = []
-            special_action = None
-            while True:
-                try:
-                    cmd = input("> ")
-                except EOFError:
-                    special_action = 'skip'
-                    break
-                
-                cmd_lower = cmd.strip().lower()
-
-                if cmd_lower == 'done':
-                    break
-                elif cmd_lower in ['solution', 'flag', 'generate', 'skip', 'vim']:
-                    special_action = cmd_lower
-                    break
-                elif cmd.strip():
-                    user_commands.append(cmd.strip())
-
-            # --- Process special actions that skip normal grading ---
-            if special_action == 'skip':
-                pass # Just moves to the next question
-            elif special_action == 'solution':
-                print("\nSolution:\n")
-                solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-                print(solution_text)
-            elif special_action == 'flag':
-                save_question_to_list(FLAGGED_QUESTIONS_FILE, q, question_topic_context)
-                print("\nQuestion flagged for review.")
-            elif special_action == 'generate':
-                new_q = generate_more_questions(question_topic_context, q)
-                if new_q:
-                    questions.insert(question_index + 1, new_q)
-                    print("A new question has been added to this session.")
-            elif special_action == 'vim':
-                user_manifest, result, sys_error = handle_vim_edit(q)
-                if not sys_error:
-                    print("\n--- AI Feedback ---")
-                    print(result['feedback'])
-                    print("-------------------")
-                    is_correct = result['correct']
-                    if not is_correct:
-                        print("\nThat wasn't quite right. Here is the solution:\n")
-                        print(q['solution'])
-            # --- Process user answer ---
-            elif user_commands:
-                user_answer = "\n".join(user_commands)
-                # Exact match check for 'solutions' (e.g., vim commands)
-                if 'solutions' in q:
-                    solution_list = [str(s).strip() for s in q['solutions']]
-                    user_answer_processed = ' '.join(user_answer.split()).strip()
-                    if user_answer_processed in solution_list:
-                        is_correct = True
-                        print("\nCorrect! Well done.")
-                    else:
-                        solution_text = solution_list[0]
-                # Fuzzy match for single 'solution' (e.g., kubectl commands)
-                elif 'solution' in q:
-                    solution_text = q['solution'].strip()
-                    user_answer_processed = ' '.join(user_answer.split())
-                    words = user_answer_processed.split(' ')
-                    if words and words[0] == 'k': words[0] = 'kubectl'
-                    normalized_user_answer = ' '.join(words)
-                    
-                    solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
-                    normalized_solution = ' '.join("\n".join(solution_lines).split())
-                    
-                    if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
-                        is_correct = True
-                        print("\nCorrect! Well done.")
-                    else:
-                        solution_text = q['solution'].strip()
-                
-                if not is_correct:
-                    print("\nNot quite. Here's one possible solution:\n")
-                    print(solution_text)
-                    print("\n--- AI Feedback ---")
-                    feedback = get_llm_feedback(q['question'], user_answer, solution_text)
-                    print(feedback)
-            
-            # --- Post-grading actions ---
-            if not is_correct and not special_action:
-                save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
-
-            question_index += 1
-            if question_index < len(questions):
-                print("-" * 40)
-                input("Press Enter for the next question...")
+    question_index = 0
+    while question_index < len(questions):
+        q = questions[question_index]
+        is_correct = False
+        
+        # For saving to lists, use original topic if reviewing, otherwise current topic
+        question_topic_context = q.get('original_topic', topic)
 
         clear_screen()
-        print("Great job! You've completed all questions for this topic.")
+        print(f"Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
+        print("-" * 40)
+        print(q['question'])
+        print("-" * 40)
+        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'flag', 'generate', 'vim'.")
+
+        user_commands = []
+        special_action = None
+        while True:
+            try:
+                cmd = input("> ")
+            except EOFError:
+                special_action = 'skip'
+                break
+            
+            cmd_lower = cmd.strip().lower()
+
+            if cmd_lower == 'done':
+                break
+            elif cmd_lower in ['solution', 'flag', 'generate', 'skip', 'vim']:
+                special_action = cmd_lower
+                break
+            elif cmd.strip():
+                user_commands.append(cmd.strip())
+
+        # --- Process special actions that skip normal grading ---
+        if special_action == 'skip':
+            pass # Just moves to the next question
+        elif special_action == 'solution':
+            print("\nSolution:\n")
+            solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
+            print(solution_text)
+        elif special_action == 'flag':
+            save_question_to_list(FLAGGED_QUESTIONS_FILE, q, question_topic_context)
+            print("\nQuestion flagged for review.")
+        elif special_action == 'generate':
+            new_q = generate_more_questions(question_topic_context, q)
+            if new_q:
+                questions.insert(question_index + 1, new_q)
+                print("A new question has been added to this session.")
+        elif special_action == 'vim':
+            user_manifest, result, sys_error = handle_vim_edit(q)
+            if not sys_error:
+                print("\n--- AI Feedback ---")
+                print(result['feedback'])
+                print("-------------------")
+                is_correct = result['correct']
+                if not is_correct:
+                    print("\nThat wasn't quite right. Here is the solution:\n")
+                    print(q['solution'])
+        # --- Process user answer ---
+        elif user_commands:
+            user_answer = "\n".join(user_commands)
+            # Exact match check for 'solutions' (e.g., vim commands)
+            if 'solutions' in q:
+                solution_list = [str(s).strip() for s in q['solutions']]
+                user_answer_processed = ' '.join(user_answer.split()).strip()
+                if user_answer_processed in solution_list:
+                    is_correct = True
+                    print("\nCorrect! Well done.")
+                else:
+                    solution_text = solution_list[0]
+            # Fuzzy match for single 'solution' (e.g., kubectl commands)
+            elif 'solution' in q:
+                solution_text = q['solution'].strip()
+                user_answer_processed = ' '.join(user_answer.split())
+                words = user_answer_processed.split(' ')
+                if words and words[0] == 'k': words[0] = 'kubectl'
+                normalized_user_answer = ' '.join(words)
+                
+                solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
+                normalized_solution = ' '.join("\n".join(solution_lines).split())
+                
+                if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
+                    is_correct = True
+                    print("\nCorrect! Well done.")
+                else:
+                    solution_text = q['solution'].strip()
+            
+            if not is_correct:
+                print("\nNot quite. Here's one possible solution:\n")
+                print(solution_text)
+                print("\n--- AI Feedback ---")
+                feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                print(feedback)
+        
+        # --- Post-grading actions ---
+        if not is_correct and not special_action:
+            save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
+
+        question_index += 1
+        if question_index < len(questions):
+            print("-" * 40)
+            input("Press Enter for the next question...")
+
+    clear_screen()
+    print("Great job! You've completed all questions for this topic.")
+
+
+def main():
+    """Main function to run the study app."""
+    if not os.path.exists('questions'):
+        os.makedirs('questions')
+
+    parser = argparse.ArgumentParser(description="A CLI tool to help study for the CKAD exam.")
+    parser.add_argument("topic", nargs='?', default=None, help="The topic to study. If not provided, a menu will be shown.")
+    args = parser.parse_args()
+
+    try:
+        # If topic is provided via CLI, run once and exit
+        if args.topic:
+            run_topic(args.topic)
+            return
+
+        # Interactive mode with main menu loop
+        while True:
+            topic = list_and_select_topic()
+            if not topic:
+                break # User exited menu
+            
+            run_topic(topic)
+            
+            print("\nReturning to the main menu...")
+            time.sleep(2)
+            
     except KeyboardInterrupt:
         print("\n\nStudy session ended. Goodbye!")
 
