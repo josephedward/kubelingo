@@ -11,3 +11,30 @@ questions:
         resources:
           requests:
             storage: 1Gi
+  - question: "Pod manifest using an emptyDir volume mounted at /cache."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: cache-user
+      spec:
+        volumes:
+          - name: cache
+            emptyDir: {}
+        containers:
+          - name: app
+            image: busybox
+            volumeMounts:
+              - name: cache
+                mountPath: /cache
+  - question: "PVC manifest requesting 1Gi, ReadWriteOnce."
+    solution: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: data-pvc
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

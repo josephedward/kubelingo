@@ -42,3 +42,26 @@ questions:
         containers:
         - name: nginx-container
           image: nginx:1.22-alpine
+  - question: "Generate a Deployment named web (3 replicas) using image nginx:1.25 and output the manifest."
+    solution: "kubectl create deploy web --image=nginx:1.25 --replicas=3 --dry-run=client -o yaml"
+  - question: "Manifest for a Deployment web (2 replicas) with label app=web and container port 80."
+    solution: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: web
+        template:
+          metadata:
+            labels:
+              app: web
+          spec:
+            containers:
+              - name: nginx
+                image: nginx:1.27
+                ports:
+                  - containerPort: 80

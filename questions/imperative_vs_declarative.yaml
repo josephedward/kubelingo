@@ -21,3 +21,7 @@ questions:
             containers:
             - name: nginx
               image: nginx
+  - question: "Command to generate a Pod manifest named web-pod using image nginx."
+    solution: "kubectl run web-pod --image=nginx --restart=Never --dry-run=client -o yaml"
+  - question: "Command to declaratively apply all manifests in ./manifests."
+    solution: "kubectl apply -f ./manifests"

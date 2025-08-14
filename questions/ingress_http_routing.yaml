@@ -20,3 +20,44 @@ questions:
                   name: webapp-svc
                   port:
                     number: 80
+  - question: "Ingress manifest routing '/' to Service web:80."
+    solution: |
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: web
+      spec:
+        rules:
+          - http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: web
+                      port:
+                        number: 80
+  - question: "Ingress manifest with two paths: '/api' -> api-svc:80 and '/' -> web-svc:80."
+    solution: |
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: routes
+      spec:
+        rules:
+          - http:
+              paths:
+                - path: /api
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: api-svc
+                      port:
+                        number: 80
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: web-svc
+                      port:
+                        number: 80

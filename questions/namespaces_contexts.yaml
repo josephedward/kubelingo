@@ -20,3 +20,7 @@ questions:
         containers:
         - name: nginx
           image: nginx
+  - question: "Command to generate Namespace dev as YAML."
+    solution: "kubectl create namespace dev --dry-run=client -o yaml"
+  - question: "Command to set the current context's default Namespace to dev."
+    solution: "kubectl config set-context --current --namespace=dev"

@@ -13,3 +13,40 @@ questions:
         containers:
         - name: main-app
           image: nginx
+  - question: "Pod manifest with one initContainer that waits 5s before starting app container."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: app-with-init
+      spec:
+        initContainers:
+          - name: wait
+            image: busybox
+            command: ["sh","-c","sleep 5"]
+        containers:
+          - name: app
+            image: nginx
+  - question: "Pod manifest with a sidecar that tails a shared log file."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: app-with-sidecar
+      spec:
+        volumes:
+          - name: logs
+            emptyDir: {}
+        containers:
+          - name: app
+            image: busybox
+            command: ["sh","-c","while true; do date >> /var/log/app/app.log; sleep 2; done"]
+            volumeMounts:
+              - name: logs
+                mountPath: /var/log/app
+          - name: log-tailer
+            image: busybox
+            command: ["sh","-c","tail -n+1 -F /var/log/app/app.log"]
+            volumeMounts:
+              - name: logs
+                mountPath: /var/log/app

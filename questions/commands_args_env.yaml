@@ -15,3 +15,28 @@ questions:
           command: ["/bin/sh", "-c"]
           args: ["echo Hello world"]
         restartPolicy: Never
+  - question: "Pod manifest overriding command and args to print 'hello'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: cmd-args
+      spec:
+        containers:
+          - name: c
+            image: busybox
+            command: ["sh","-c"]
+            args: ["echo hello && sleep 3600"]
+  - question: "Pod manifest loading env from a ConfigMap named app-cm."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: envfrom-cm
+      spec:
+        containers:
+          - name: c
+            image: busybox
+            envFrom:
+              - configMapRef:
+                  name: app-cm

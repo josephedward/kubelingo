@@ -13,3 +13,33 @@ questions:
           securityContext:
             runAsUser: 1000
             readOnlyRootFilesystem: true
+  - question: "Pod manifest running as non-root user 1000 with fsGroup 2000."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: nonroot
+      spec:
+        securityContext:
+          runAsUser: 1000
+          runAsNonRoot: true
+          fsGroup: 2000
+        containers:
+          - name: app
+            image: busybox
+            command: ["sh","-c","sleep 3600"]
+  - question: "Container securityContext dropping all capabilities and readOnlyRootFilesystem."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: strict-container
+      spec:
+        containers:
+          - name: app
+            image: busybox
+            command: ["sh","-c","sleep 3600"]
+            securityContext:
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]

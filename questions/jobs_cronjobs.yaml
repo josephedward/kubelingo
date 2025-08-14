@@ -17,3 +17,20 @@ questions:
               command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
             restartPolicy: Never
         backoffLimit: 4
+  - question: "Job manifest that runs busybox 'sleep 10' once with backoffLimit 2."
+    solution: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: run-once
+      spec:
+        backoffLimit: 2
+        template:
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: c
+                image: busybox
+                command: ["sh","-c","sleep 10"]
+  - question: "Command to generate a CronJob hello that echoes 'hi' every 5 minutes, output YAML."
+    solution: "kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh -c 'echo hi' --dry-run=client -o yaml"

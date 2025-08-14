@@ -18,3 +18,7 @@ questions:
         containers:
         - name: nginx
           image: nginx
+  - question: "Command to label Namespace prod with tier=backend (overwrite if exists)."
+    solution: "kubectl label ns prod tier=backend --overwrite"
+  - question: "Command to list Pod names only using jsonpath."
+    solution: "kubectl get pods -o jsonpath='{.items[*].metadata.name}'"

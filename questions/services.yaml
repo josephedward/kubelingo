@@ -16,3 +16,28 @@ questions:
           - protocol: TCP
             port: 80
             targetPort: 80
+  - question: "Service manifest (ClusterIP) exposing app=web on port 80 to targetPort 8080."
+    solution: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: web
+      spec:
+        selector:
+          app: web
+        ports:
+          - port: 80
+            targetPort: 8080
+  - question: "Headless Service manifest for app=db on port 5432."
+    solution: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: db
+      spec:
+        clusterIP: None
+        selector:
+          app: db
+        ports:
+          - port: 5432
+            targetPort: 5432

@@ -5,3 +5,7 @@ questions:
   - question: "List all available API resources in the cluster."
     solution: |
       kubectl api-resources
+  - question: "Command to list namespaced resources supporting 'list'."
+    solution: "kubectl api-resources --verbs=list --namespaced"
+  - question: "Command to view the fields under Deployment.spec.strategy."
+    solution: "kubectl explain deployment.spec.strategy"

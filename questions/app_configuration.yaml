@@ -12,3 +12,7 @@ questions:
       stringData:
         username: admin
         password: "s3cur3p@ssw0rd"
+  - question: "Command to generate a ConfigMap app-cm with MODE=prod, output as YAML."
+    solution: "kubectl create configmap app-cm --from-literal=MODE=prod --dry-run=client -o yaml"
+  - question: "Command to generate a generic Secret app-sec with key TOKEN=abc123, output as YAML."
+    solution: "kubectl create secret generic app-sec --from-literal=TOKEN=abc123 --dry-run=client -o yaml"

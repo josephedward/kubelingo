@@ -13,3 +13,33 @@ questions:
             httpGet:
               path: /
               port: 80
+  - question: "Pod manifest with HTTP liveness probe on /healthz port 8080."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: liveness-http
+      spec:
+        containers:
+          - name: app
+            image: nginx
+            livenessProbe:
+              httpGet:
+                path: /healthz
+                port: 8080
+              initialDelaySeconds: 5
+              periodSeconds: 10
+  - question: "Pod manifest with readiness exec probe checking /tmp/ready exists."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: readiness-exec
+      spec:
+        containers:
+          - name: app
+            image: busybox
+            command: ["sh","-c","touch /tmp/ready; sleep 3600"]
+            readinessProbe:
+              exec:
+                command: ["sh","-c","test -f /tmp/ready"]

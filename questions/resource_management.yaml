@@ -19,3 +19,7 @@ questions:
             limits:
               memory: "256Mi"
               cpu: "100m"
+  - question: "Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment web."
+    solution: "kubectl set resources deploy/web --requests=cpu=200m,memory=128Mi --limits=cpu=500m,memory=256Mi"
+  - question: "Command to create an HPA for web: min 2, max 5, target 50% CPU."
+    solution: "kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=50"
