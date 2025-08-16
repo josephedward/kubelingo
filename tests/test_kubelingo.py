@@ -128,6 +128,7 @@ def test_update_performance_tracking(monkeypatch):
 
 def test_back_command_feedback_is_colored(monkeypatch, capsys):
     """Tests that feedback from the 'back' command is colorized."""
+    monkeypatch.setenv('FORCE_COLOR', '1')
     # Test when an item is removed
     inputs = iter(['cmd1', 'back', 'done'])
     monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
