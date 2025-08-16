@@ -133,6 +133,7 @@ def test_session_score_overwrites_performance_data(monkeypatch):
     monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
     monkeypatch.setattr('time.sleep', lambda seconds: None)
     monkeypatch.setattr('kubelingo.save_question_to_list', lambda *args: None)
+    monkeypatch.setattr('kubelingo.random.shuffle', lambda x: None)
 
     from kubelingo import run_topic
 
