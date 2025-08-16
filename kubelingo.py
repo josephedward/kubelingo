@@ -438,9 +438,8 @@ def run_topic(topic):
         elif special_action == 'vim':
             user_manifest, result, sys_error = handle_vim_edit(q)
             if not sys_error:
-                print("\n--- AI Feedback ---")
+                print(colored("\n--- AI Feedback ---", 'magenta', attrs=['bold']))
                 print(result['feedback'])
-                print(colored("-------------------", 'magenta'))
                 is_correct = result['correct']
                 if not is_correct:
                     print(colored("\nThat wasn't quite right. Here is the solution:\n", 'red'))
