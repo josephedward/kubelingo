@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import os
 from unittest.mock import mock_open
+import colorama
 from kubelingo import get_user_input, handle_vim_edit, update_performance
 
 
@@ -128,19 +129,22 @@ def test_update_performance_tracking(monkeypatch):
 
 def test_back_command_feedback_is_colored(monkeypatch, capsys):
     """Tests that feedback from the 'back' command is colorized."""
-    monkeypatch.setenv('FORCE_COLOR', '1')
-    # Test when an item is removed
-    inputs = iter(['cmd1', 'back', 'done'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-    get_user_input()
-    captured = capsys.readouterr()
-    assert "(Removed: 'cmd1')" in captured.out
-    assert "\x1b[33m" in captured.out  # Yellow
+    colorama.init(strip=False)
+    try:
+        # Test when an item is removed
+        inputs = iter(['cmd1', 'back', 'done'])
+        monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
+        get_user_input()
+        captured = capsys.readouterr()
+        assert "(Removed: 'cmd1')" in captured.out
+        assert colorama.Fore.YELLOW in captured.out
 
-    # Test when list is empty
-    inputs = iter(['back', 'done'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-    get_user_input()
-    captured = capsys.readouterr()
-    assert "(No lines to remove)" in captured.out
-    assert "\x1b[33m" in captured.out  # Yellow
+        # Test when list is empty
+        inputs = iter(['back', 'done'])
+        monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
+        get_user_input()
+        captured = capsys.readouterr()
+        assert "(No lines to remove)" in captured.out
+        assert colorama.Fore.YELLOW in captured.out
+    finally:
+        colorama.deinit()

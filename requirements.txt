@@ -2,4 +2,5 @@ PyYAML
 google-generativeai
 thefuzz
 python-Levenshtein
-termcolor
+colorama
+Pygments

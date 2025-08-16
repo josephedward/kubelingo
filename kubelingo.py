@@ -8,9 +8,42 @@ import google.generativeai as genai
 from thefuzz import fuzz
 import tempfile
 import subprocess
-from termcolor import colored
+from colorama import Fore, Style, init as colorama_init
+from pygments import highlight
+from pygments.lexers import YamlLexer
+from pygments.formatters import TerminalFormatter
+
+ASCII_ART = r"""                                      bbbbbbbb
+KKKKKKKKK    KKKKKKK                  b::::::b                                lllllll   iiii
+K:::::::K    K:::::K                  b::::::b                                l:::::l  i::::i
+K:::::::K    K:::::K                  b::::::b                                l:::::l   iiii
+K:::::::K   K::::::K                   b:::::b                                l:::::l
+KK::::::K  K:::::KKKuuuuuu    uuuuuu   b:::::bbbbbbbbb        eeeeeeeeeeee     l::::l iiiiiii nnnn  nnnnnnnn       ggggggggg   ggggg   ooooooooooo
+  K:::::K K:::::K   u::::u    u::::u   b::::::::::::::bb    ee::::::::::::ee   l::::l i:::::i n:::nn::::::::nn    g:::::::::ggg::::g oo:::::::::::oo
+  K::::::K:::::K    u::::u    u::::u   b::::::::::::::::b  e::::::eeeee:::::ee l::::l  i::::i n::::::::::::::nn  g:::::::::::::::::go:::::::::::::::o
+  K:::::::::::K     u::::u    u::::u   b:::::bbbbb:::::::be::::::e     e:::::e l::::l  i::::i nn:::::::::::::::ng::::::ggggg::::::ggo:::::ooooo:::::o
+  K:::::::::::K     u::::u    u::::u   b:::::b    b::::::be:::::::eeeee::::::e l::::l  i::::i   n:::::nnnn:::::ng:::::g     g:::::g o::::o     o::::o
+  K::::::K:::::K    u::::u    u::::u   b:::::b     b:::::be:::::::::::::::::e  l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
+  K:::::K K:::::K   u::::u    u::::u   b:::::b     b:::::be::::::eeeeeeeeeee   l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
+KK::::::K  K:::::KKKu:::::uuuu:::::u   b:::::b     b:::::be:::::::e            l::::l  i::::i   n::::n    n::::ng::::::g    g:::::g o::::o     o::::o
+K:::::::K   K::::::Ku:::::::::::::::uu b:::::bbbbbb::::::be::::::::e          l::::::li::::::i  n::::n    n::::ng:::::::ggggg:::::g o:::::ooooo:::::o
+K:::::::K    K:::::K u:::::::::::::::u b::::::::::::::::b  e::::::::eeeeeeee  l::::::li::::::i  n::::n    n::::n g::::::::::::::::g o:::::::::::::::o
+K:::::::K    K:::::K  uu::::::::uu:::u b:::::::::::::::b    ee:::::::::::::e  l::::::li::::::i  n::::n    n::::n  gg::::::::::::::g  oo:::::::::::oo
+KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  lllllllliiiiiiii  nnnnnn    nnnnnn    gggggggg::::::g    ooooooooooo
+                                                                                                                            g:::::g
+                                                                                                                gggggg      g:::::g
+                                                                                                                g:::::gg   gg:::::g
+                                                                                                                 g::::::ggg:::::::g
+                                                                                                                  gg:::::::::::::g
+                                                                                                                    ggg::::::ggg
+                                                                                                                       gggggg                    """
 
 USER_DATA_DIR = "user_data"
+
+def colorize_yaml(yaml_string):
+    """Syntax highlights a YAML string."""
+    return highlight(yaml_string, YamlLexer(), TerminalFormatter())
+
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
@@ -229,7 +262,7 @@ def handle_vim_edit(question):
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    print(colored("\nValidating manifest with AI...", 'cyan'))
+    print(f"{Fore.CYAN}\nValidating manifest with AI...")
     result = validate_manifest_with_llm(question, user_manifest)
     return user_manifest, result, False
 
@@ -361,7 +394,7 @@ def get_user_input():
     special_action = None
     while True:
         try:
-            cmd = input(colored("> ", 'blue', attrs=['bold']))
+            cmd = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}")
         except EOFError:
             special_action = 'skip'
             break
@@ -373,9 +406,9 @@ def get_user_input():
         elif cmd_lower == 'back':
             if user_commands:
                 removed = user_commands.pop()
-                print(colored(f"(Removed: '{removed}')", 'yellow'))
+                print(f"{Fore.YELLOW}(Removed: '{removed}')")
             else:
-                print(colored("(No lines to remove)", 'yellow'))
+                print(f"{Fore.YELLOW}(No lines to remove)")
         elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
             special_action = cmd_lower
             break
@@ -412,10 +445,10 @@ def run_topic(topic):
         question_topic_context = q.get('original_topic', topic)
 
         clear_screen()
-        print(colored(f"Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})", 'cyan', attrs=['bold']))
-        print(colored("-" * 40, 'cyan'))
+        print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
+        print(f"{Fore.CYAN}{'-' * 40}")
         print(q['question'])
-        print(colored("-" * 40, 'cyan'))
+        print(f"{Fore.CYAN}{'-' * 40}")
         print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'back'.")
 
         user_commands, special_action = get_user_input()
@@ -424,9 +457,12 @@ def run_topic(topic):
         if special_action == 'skip':
             pass # Just moves to the next question
         elif special_action == 'solution':
-            print(colored("\nSolution:\n", 'yellow', attrs=['bold']))
+            print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
             solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-            print(colored(solution_text, 'yellow'))
+            if '\n' in solution_text:
+                print(colorize_yaml(solution_text))
+            else:
+                print(f"{Fore.YELLOW}{solution_text}")
         elif special_action == 'issue':
             create_issue(q, question_topic_context)
             input("Press Enter to continue...")
@@ -438,12 +474,12 @@ def run_topic(topic):
         elif special_action == 'vim':
             user_manifest, result, sys_error = handle_vim_edit(q)
             if not sys_error:
-                print(colored("\n--- AI Feedback ---", 'magenta', attrs=['bold']))
+                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
                 print(result['feedback'])
                 is_correct = result['correct']
                 if not is_correct:
-                    print(colored("\nThat wasn't quite right. Here is the solution:\n", 'red'))
-                    print(colored(q['solution'], 'yellow'))
+                    print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
+                    print(colorize_yaml(q['solution']))
         # --- Process user answer ---
         elif user_commands:
             user_answer = "\n".join(user_commands)
@@ -453,7 +489,7 @@ def run_topic(topic):
                 user_answer_processed = ' '.join(user_answer.split()).strip()
                 if user_answer_processed in solution_list:
                     is_correct = True
-                    print(colored("\nCorrect! Well done.", 'green'))
+                    print(f"{Fore.GREEN}\nCorrect! Well done.")
                 else:
                     solution_text = solution_list[0]
             # Fuzzy match for single 'solution' (e.g., kubectl commands)
@@ -469,14 +505,17 @@ def run_topic(topic):
                 
                 if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
                     is_correct = True
-                    print(colored("\nCorrect! Well done.", 'green'))
+                    print(f"{Fore.GREEN}\nCorrect! Well done.")
                 else:
                     solution_text = q['solution'].strip()
             
             if not is_correct:
-                print(colored("\nNot quite. Here's one possible solution:\n", 'red'))
-                print(colored(solution_text, 'yellow'))
-                print(colored("\n--- AI Feedback ---", 'magenta', attrs=['bold']))
+                print(f"{Fore.RED}\nNot quite. Here's one possible solution:")
+                if '\n' in solution_text:
+                    print(colorize_yaml(solution_text))
+                else:
+                    print(f"{Fore.YELLOW}{solution_text}")
+                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
                 feedback = get_llm_feedback(q['question'], user_answer, solution_text)
                 print(feedback)
         
@@ -495,11 +534,14 @@ def run_topic(topic):
                 input("Press Enter to continue...")
 
     clear_screen()
-    print(colored("Great job! You've completed all questions for this topic.", 'green', attrs=['bold']))
+    print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
 
 
 def main():
     """Main function to run the study app."""
+    colorama_init(autoreset=True)
+    print(f"{Fore.YELLOW}{ASCII_ART}")
+
     if not os.path.exists('questions'):
         os.makedirs('questions')
 
