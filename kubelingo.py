@@ -1,5 +1,6 @@
 import os
 import random
+import readline
 import time
 import yaml
 import argparse
