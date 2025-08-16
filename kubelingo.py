@@ -12,11 +12,41 @@ import subprocess
 USER_DATA_DIR = "user_data"
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
     if not os.path.exists(USER_DATA_DIR):
         os.makedirs(USER_DATA_DIR)
+
+def load_performance_data():
+    """Loads performance data from the user data directory."""
+    ensure_user_data_dir()
+    if not os.path.exists(PERFORMANCE_FILE):
+        return {}
+    with open(PERFORMANCE_FILE, 'r') as f:
+        try:
+            return yaml.safe_load(f) or {}
+        except yaml.YAMLError:
+            return {}
+
+def save_performance_data(data):
+    """Saves performance data."""
+    ensure_user_data_dir()
+    with open(PERFORMANCE_FILE, 'w') as f:
+        yaml.dump(data, f)
+
+def update_performance(topic, is_correct):
+    """Updates and saves performance stats for a given topic."""
+    data = load_performance_data()
+    if topic not in data:
+        data[topic] = {'correct': 0, 'total': 0}
+    
+    if is_correct:
+        data[topic]['correct'] += 1
+    data[topic]['total'] += 1
+    
+    save_performance_data(data)
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
@@ -286,9 +316,17 @@ def list_and_select_topic():
         print("No question topics found and no missed questions to review.")
         return None
 
+    performance_data = load_performance_data()
+
     print("\nPlease select a topic to study:")
     for i, topic_name in enumerate(available_topics):
-        print(f"  {i+1}. {topic_name.replace('_', ' ').title()}")
+        display_name = topic_name.replace('_', ' ').title()
+        stats = performance_data.get(topic_name)
+        if stats and stats.get('total', 0) > 0:
+            percent = (stats['correct'] / stats['total']) * 100
+            print(f"  {i+1}. {display_name} ({stats['correct']}/{stats['total']} correct - {percent:.0f}%)")
+        else:
+            print(f"  {i+1}. {display_name}")
     
     if has_missed:
         print("\nOr, select a special action:")
@@ -443,8 +481,10 @@ def run_topic(topic):
                 print(feedback)
         
         # --- Post-grading actions ---
-        if not is_correct and not special_action:
-            save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
+        if special_action is None or special_action == 'vim':
+            update_performance(question_topic_context, is_correct)
+            if not is_correct:
+                save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
 
         question_index += 1
         if question_index < len(questions):

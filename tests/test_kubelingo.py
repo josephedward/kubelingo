@@ -2,7 +2,7 @@ import subprocess
 import tempfile
 import os
 from unittest.mock import mock_open
-from kubelingo import get_user_input, handle_vim_edit
+from kubelingo import get_user_input, handle_vim_edit, update_performance
 
 
 def test_back_command_removes_last_entry(monkeypatch, capsys):
@@ -84,3 +84,43 @@ def test_vim_is_configured_for_2_spaces(monkeypatch):
     assert len(called_args) == 1
     expected_cmd = ['vim', '-c', "set tabstop=2 shiftwidth=2 expandtab", 'dummy.yaml']
     assert called_args[0] == expected_cmd
+
+
+def test_update_performance_tracking(monkeypatch):
+    """Tests that performance data is correctly updated for a topic."""
+    
+    mock_data_source = {}
+    saved_data = {}
+
+    def mock_load_performance_data():
+        return mock_data_source.copy()
+
+    def mock_save_performance_data(data):
+        nonlocal saved_data
+        saved_data = data
+    
+    monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
+    monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
+
+    # Test case 1: Correct answer for a new topic in an empty file
+    mock_data_source = {}
+    update_performance('new_topic', is_correct=True)
+    assert saved_data == {'new_topic': {'correct': 1, 'total': 1}}
+    
+    # Test case 2: Incorrect answer for a new topic in a file with existing data
+    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
+    update_performance('new_topic', is_correct=False)
+    assert saved_data == {
+        'existing_topic': {'correct': 5, 'total': 10},
+        'new_topic': {'correct': 0, 'total': 1}
+    }
+
+    # Test case 3: Correct answer for existing topic
+    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
+    update_performance('existing_topic', is_correct=True)
+    assert saved_data == {'existing_topic': {'correct': 6, 'total': 11}}
+    
+    # Test case 4: Incorrect answer for existing topic
+    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
+    update_performance('existing_topic', is_correct=False)
+    assert saved_data == {'existing_topic': {'correct': 5, 'total': 11}}
