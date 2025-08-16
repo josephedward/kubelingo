@@ -229,3 +229,40 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
     assert f"({colorama.Fore.GREEN}8/10 correct - 80%{colorama.Style.RESET_ALL})" in output
     assert f"({colorama.Fore.YELLOW}6/10 correct - 60%{colorama.Style.RESET_ALL})" in output
     assert f"{colorama.Style.BRIGHT}{colorama.Fore.CYAN}Please select a topic to study:" in output
+
+
+def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
+    """
+    Tests that a diff is shown when a user submits an incorrect manifest via vim.
+    """
+    colorama.init(strip=False)
+    try:
+        question = {
+            'question': 'Create a manifest for a pod.',
+            'solution': 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: correct-pod'
+        }
+        user_manifest = 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: wrong-pod'
+        
+        monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': [question]})
+        monkeypatch.setattr('kubelingo.get_user_input', lambda: ([], 'vim'))
+        mock_result = {'correct': False, 'feedback': 'Incorrect name.'}
+        monkeypatch.setattr('kubelingo.handle_vim_edit', lambda q: (user_manifest, mock_result, False))
+        
+        monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
+        monkeypatch.setattr('time.sleep', lambda seconds: None)
+        monkeypatch.setattr('kubelingo.update_performance', lambda topic, correct: None)
+        monkeypatch.setattr('kubelingo.save_question_to_list', lambda file, q, topic: None)
+
+        from kubelingo import run_topic
+        run_topic('some_topic')
+
+        captured = capsys.readouterr()
+        output = captured.out
+        
+        assert "--- Diff ---" in output
+        assert "-  name: wrong-pod" in output
+        assert "+  name: correct-pod" in output
+        assert colorama.Fore.RED in output
+        assert colorama.Fore.GREEN in output
+    finally:
+        colorama.deinit()

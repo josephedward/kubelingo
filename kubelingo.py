@@ -8,6 +8,7 @@ import google.generativeai as genai
 from thefuzz import fuzz
 import tempfile
 import subprocess
+import difflib
 from colorama import Fore, Style, init as colorama_init
 from pygments import highlight
 from pygments.lexers import YamlLexer
@@ -43,6 +44,26 @@ USER_DATA_DIR = "user_data"
 def colorize_yaml(yaml_string):
     """Syntax highlights a YAML string."""
     return highlight(yaml_string, YamlLexer(), TerminalFormatter())
+
+def show_diff(text1, text2, fromfile='your_submission', tofile='solution'):
+    """Prints a colorized diff of two texts."""
+    diff = difflib.unified_diff(
+        text1.splitlines(keepends=True),
+        text2.splitlines(keepends=True),
+        fromfile=fromfile,
+        tofile=tofile,
+    )
+    print(f"\n{Style.BRIGHT}{Fore.YELLOW}--- Diff ---{Style.RESET_ALL}")
+    for line in diff:
+        line = line.rstrip()
+        if line.startswith('+') and not line.startswith('+++'):
+            print(f'{Fore.GREEN}{line}{Style.RESET_ALL}')
+        elif line.startswith('-') and not line.startswith('---'):
+            print(f'{Fore.RED}{line}{Style.RESET_ALL}')
+        elif line.startswith('@@'):
+            print(f'{Fore.CYAN}{line}{Style.RESET_ALL}')
+        else:
+            print(line)
 
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
@@ -490,6 +511,7 @@ def run_topic(topic):
                 print(result['feedback'])
                 is_correct = result['correct']
                 if not is_correct:
+                    show_diff(user_manifest, q['solution'])
                     print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
                     print(colorize_yaml(q['solution']))
         # --- Process user answer ---
