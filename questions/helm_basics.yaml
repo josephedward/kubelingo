@@ -11,7 +11,7 @@ questions:
     solution: "helm uninstall my-release"
   - question: "How do you upgrade an existing Helm release named `my-release` using the chart in `./my-chart`?"
     solution: "helm upgrade my-release ./my-chart"
-  - question: "How do you add the Prometheus community Helm repository and name it `prometheus-community`?"
+  - question: "How do you add the Prometheus community Helm repository from `https://prometheus-community.github.io/helm-charts` and name it `prometheus-community`?"
     solution: "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts"
   - question: "What command is used to list configured Helm chart repositories?"
     solution: "helm repo list"
