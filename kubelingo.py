@@ -8,6 +8,7 @@ import google.generativeai as genai
 from thefuzz import fuzz
 import tempfile
 import subprocess
+from termcolor import colored
 
 USER_DATA_DIR = "user_data"
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
@@ -228,7 +229,7 @@ def handle_vim_edit(question):
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    print("\nValidating manifest with AI...")
+    print(colored("\nValidating manifest with AI...", 'cyan'))
     result = validate_manifest_with_llm(question, user_manifest)
     return user_manifest, result, False
 
@@ -360,7 +361,7 @@ def get_user_input():
     special_action = None
     while True:
         try:
-            cmd = input("> ")
+            cmd = input(colored("> ", 'blue', attrs=['bold']))
         except EOFError:
             special_action = 'skip'
             break
@@ -372,9 +373,9 @@ def get_user_input():
         elif cmd_lower == 'back':
             if user_commands:
                 removed = user_commands.pop()
-                print(f"(Removed: '{removed}')")
+                print(colored(f"(Removed: '{removed}')", 'yellow'))
             else:
-                print("(No lines to remove)")
+                print(colored("(No lines to remove)", 'yellow'))
         elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
             special_action = cmd_lower
             break
@@ -411,10 +412,10 @@ def run_topic(topic):
         question_topic_context = q.get('original_topic', topic)
 
         clear_screen()
-        print(f"Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
-        print("-" * 40)
+        print(colored(f"Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})", 'cyan', attrs=['bold']))
+        print(colored("-" * 40, 'cyan'))
         print(q['question'])
-        print("-" * 40)
+        print(colored("-" * 40, 'cyan'))
         print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'back'.")
 
         user_commands, special_action = get_user_input()
@@ -423,9 +424,9 @@ def run_topic(topic):
         if special_action == 'skip':
             pass # Just moves to the next question
         elif special_action == 'solution':
-            print("\nSolution:\n")
+            print(colored("\nSolution:\n", 'yellow', attrs=['bold']))
             solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-            print(solution_text)
+            print(colored(solution_text, 'yellow'))
         elif special_action == 'issue':
             create_issue(q, question_topic_context)
             input("Press Enter to continue...")
@@ -439,11 +440,11 @@ def run_topic(topic):
             if not sys_error:
                 print("\n--- AI Feedback ---")
                 print(result['feedback'])
-                print("-------------------")
+                print(colored("-------------------", 'magenta'))
                 is_correct = result['correct']
                 if not is_correct:
-                    print("\nThat wasn't quite right. Here is the solution:\n")
-                    print(q['solution'])
+                    print(colored("\nThat wasn't quite right. Here is the solution:\n", 'red'))
+                    print(colored(q['solution'], 'yellow'))
         # --- Process user answer ---
         elif user_commands:
             user_answer = "\n".join(user_commands)
@@ -453,7 +454,7 @@ def run_topic(topic):
                 user_answer_processed = ' '.join(user_answer.split()).strip()
                 if user_answer_processed in solution_list:
                     is_correct = True
-                    print("\nCorrect! Well done.")
+                    print(colored("\nCorrect! Well done.", 'green'))
                 else:
                     solution_text = solution_list[0]
             # Fuzzy match for single 'solution' (e.g., kubectl commands)
@@ -469,14 +470,14 @@ def run_topic(topic):
                 
                 if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
                     is_correct = True
-                    print("\nCorrect! Well done.")
+                    print(colored("\nCorrect! Well done.", 'green'))
                 else:
                     solution_text = q['solution'].strip()
             
             if not is_correct:
-                print("\nNot quite. Here's one possible solution:\n")
-                print(solution_text)
-                print("\n--- AI Feedback ---")
+                print(colored("\nNot quite. Here's one possible solution:\n", 'red'))
+                print(colored(solution_text, 'yellow'))
+                print(colored("\n--- AI Feedback ---", 'magenta', attrs=['bold']))
                 feedback = get_llm_feedback(q['question'], user_answer, solution_text)
                 print(feedback)
         
@@ -495,7 +496,7 @@ def run_topic(topic):
                 input("Press Enter to continue...")
 
     clear_screen()
-    print("Great job! You've completed all questions for this topic.")
+    print(colored("Great job! You've completed all questions for this topic.", 'green', attrs=['bold']))
 
 
 def main():

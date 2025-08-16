@@ -124,3 +124,22 @@ def test_update_performance_tracking(monkeypatch):
     mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
     update_performance('existing_topic', is_correct=False)
     assert saved_data == {'existing_topic': {'correct': 5, 'total': 11}}
+
+
+def test_back_command_feedback_is_colored(monkeypatch, capsys):
+    """Tests that feedback from the 'back' command is colorized."""
+    # Test when an item is removed
+    inputs = iter(['cmd1', 'back', 'done'])
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
+    get_user_input()
+    captured = capsys.readouterr()
+    assert "(Removed: 'cmd1')" in captured.out
+    assert "\x1b[33m" in captured.out  # Yellow
+
+    # Test when list is empty
+    inputs = iter(['back', 'done'])
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
+    get_user_input()
+    captured = capsys.readouterr()
+    assert "(No lines to remove)" in captured.out
+    assert "\x1b[33m" in captured.out  # Yellow
