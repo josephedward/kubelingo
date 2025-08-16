@@ -242,6 +242,50 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
     assert f"{colorama.Style.BRIGHT}{colorama.Fore.CYAN}Please select a topic to study:" in output
 
 
+def test_topic_menu_ignores_old_performance_format(monkeypatch, capsys):
+    """
+    Tests that the topic menu ignores old-format performance data and only
+    displays stats for the new format.
+    """
+    # Mock filesystem and data
+    monkeypatch.setattr('os.listdir', lambda path: ['old_format_topic.yaml', 'new_format_topic.yaml'])
+    monkeypatch.setattr('os.path.exists', lambda path: False) # For missed questions
+
+    mock_perf_data = {
+        'old_format_topic': {'correct': 8, 'total': 10}, # Old format, should be ignored
+        'new_format_topic': {'correct_questions': ['q1']} # New format, should be displayed
+    }
+    monkeypatch.setattr('kubelingo.load_performance_data', lambda: mock_perf_data)
+
+    def mock_load_questions(topic):
+        if topic == 'old_format_topic':
+            return {'questions': [{}, {}]} # 2 questions
+        if topic == 'new_format_topic':
+            return {'questions': [{}, {}, {}]} # 3 questions
+        return None
+    monkeypatch.setattr('kubelingo.load_questions', mock_load_questions)
+
+    # Mock input to exit menu
+    def mock_input_eof(prompt):
+        raise EOFError
+    monkeypatch.setattr('builtins.input', mock_input_eof)
+
+    from kubelingo import list_and_select_topic
+
+    list_and_select_topic()
+
+    captured = capsys.readouterr()
+    output = captured.out
+    
+    # Check that the topic with old format data does NOT show stats
+    assert "Old Format Topic [2 questions]" in output
+    assert "Old Format Topic [2 questions] (" not in output
+
+    # Check that the topic with new format data DOES show stats
+    assert "New Format Topic [3 questions]" in output
+    assert f"({colorama.Fore.RED}1/3 correct - 33%{colorama.Style.RESET_ALL})" in output
+
+
 def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
     """
     Tests that a diff is shown when a user submits an incorrect manifest via vim.
