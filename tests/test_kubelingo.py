@@ -148,3 +148,84 @@ def test_back_command_feedback_is_colored(monkeypatch, capsys):
         assert colorama.Fore.YELLOW in captured.out
     finally:
         colorama.deinit()
+
+
+def test_performance_tracking_resets_on_new_session(monkeypatch):
+    """
+    Tests that performance data is reset when a topic is started,
+    and then updated correctly during the session.
+    """
+    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
+    saved_data = {}
+
+    def mock_load_performance_data():
+        return mock_data_source.copy()
+
+    def mock_save_performance_data(data):
+        nonlocal saved_data, mock_data_source
+        saved_data = data
+        mock_data_source = data.copy()
+
+    monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
+    monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
+
+    monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': [{'question': 'q1', 'solution': 's1'}]})
+    monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
+    monkeypatch.setattr('time.sleep', lambda seconds: None)
+
+    from kubelingo import run_topic
+
+    # Run topic with a correct answer, score should be 1/1 for this session
+    monkeypatch.setattr('kubelingo.get_user_input', lambda: (['s1'], None))
+    run_topic('existing_topic')
+    assert saved_data['existing_topic']['correct'] == 1
+    assert saved_data['existing_topic']['total'] == 1
+
+    # Run again with a wrong answer, score should be 0/1 for this new session
+    monkeypatch.setattr('kubelingo.get_user_input', lambda: (['wrong'], None))
+    run_topic('existing_topic')
+    assert saved_data['existing_topic']['correct'] == 0
+    assert saved_data['existing_topic']['total'] == 1
+
+
+def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
+    """
+    Tests that the topic selection menu displays the number of questions
+    for each topic and uses colors for performance stats.
+    """
+    # Mock filesystem and data
+    monkeypatch.setattr('os.listdir', lambda path: ['topic1.yaml', 'topic2.yaml'])
+    monkeypatch.setattr('os.path.exists', lambda path: False) # For missed questions
+
+    mock_perf_data = {
+        'topic1': {'correct': 8, 'total': 10}, # 80% -> green
+        'topic2': {'correct': 6, 'total': 10}  # 60% -> yellow
+    }
+    monkeypatch.setattr('kubelingo.load_performance_data', lambda: mock_perf_data)
+
+    def mock_load_questions(topic):
+        if topic == 'topic1':
+            return {'questions': [1, 2, 3]} # 3 questions
+        if topic == 'topic2':
+            return {'questions': [1, 2, 3, 4, 5]} # 5 questions
+        return None
+    monkeypatch.setattr('kubelingo.load_questions', mock_load_questions)
+
+    # Mock input to exit menu
+    def mock_input_eof(prompt):
+        raise EOFError
+    monkeypatch.setattr('builtins.input', mock_input_eof)
+
+    from kubelingo import list_and_select_topic
+
+    topic = list_and_select_topic()
+    assert topic is None
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert "Topic1 [3 questions]" in output
+    assert "Topic2 [5 questions]" in output
+    assert f"({colorama.Fore.GREEN}8/10 correct - 80%{colorama.Style.RESET_ALL})" in output
+    assert f"({colorama.Fore.YELLOW}6/10 correct - 60%{colorama.Style.RESET_ALL})" in output
+    assert f"{colorama.Style.BRIGHT}{colorama.Fore.CYAN}Please select a topic to study:" in output

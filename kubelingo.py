@@ -352,19 +352,25 @@ def list_and_select_topic():
 
     performance_data = load_performance_data()
 
-    print("\nPlease select a topic to study:")
+    print(f"\n{Style.BRIGHT}{Fore.CYAN}Please select a topic to study:{Style.RESET_ALL}")
     for i, topic_name in enumerate(available_topics):
         display_name = topic_name.replace('_', ' ').title()
+
+        question_data = load_questions(topic_name)
+        num_questions = len(question_data.get('questions', [])) if question_data else 0
+        
         stats = performance_data.get(topic_name)
+        stats_str = ""
         if stats and stats.get('total', 0) > 0:
             percent = (stats['correct'] / stats['total']) * 100
-            print(f"  {i+1}. {display_name} ({stats['correct']}/{stats['total']} correct - {percent:.0f}%)")
-        else:
-            print(f"  {i+1}. {display_name}")
+            color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
+            stats_str = f" ({color}{stats['correct']}/{stats['total']} correct - {percent:.0f}%{Style.RESET_ALL})"
+
+        print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
     if has_missed:
-        print("\nOr, select a special action:")
-        print(f"  m. Review Missed Questions")
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}Or, select a special action:{Style.RESET_ALL}")
+        print(f"  {Style.BRIGHT}m.{Style.RESET_ALL} Review Missed Questions")
     
     while True:
         try:
@@ -419,6 +425,13 @@ def get_user_input():
 
 def run_topic(topic):
     """Loads and runs questions for a given topic."""
+    if topic != '_missed':
+        # Reset score for this session
+        data = load_performance_data()
+        if topic in data:
+            data[topic] = {'correct': 0, 'total': 0}
+            save_performance_data(data)
+
     questions = []
     session_topic_name = topic
     if topic == '_missed':
@@ -527,11 +540,7 @@ def run_topic(topic):
 
         question_index += 1
         if question_index < len(questions):
-            print("-" * 40)
-            action = input("Press Enter for the next question, or type 'issue' to report a problem: ").strip().lower()
-            if action == 'issue':
-                create_issue(q, question_topic_context)
-                input("Press Enter to continue...")
+            time.sleep(3) # Pause before showing the next question
 
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
