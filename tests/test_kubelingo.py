@@ -212,7 +212,6 @@ def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
         
         monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
         monkeypatch.setattr('time.sleep', lambda seconds: None)
-        monkeypatch.setattr('kubelingo.update_performance', lambda topic, correct: None)
         monkeypatch.setattr('kubelingo.save_question_to_list', lambda file, q, topic: None)
 
         from kubelingo import run_topic
