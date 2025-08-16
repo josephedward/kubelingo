@@ -315,6 +315,35 @@ def list_and_select_topic():
             print("\n\nStudy session ended. Goodbye!")
             return None
 
+def get_user_input():
+    """Collects user commands until a terminating keyword is entered."""
+    user_commands = []
+    special_action = None
+    while True:
+        try:
+            cmd = input("> ")
+        except EOFError:
+            special_action = 'skip'
+            break
+        
+        cmd_lower = cmd.strip().lower()
+
+        if cmd_lower == 'done':
+            break
+        elif cmd_lower == 'back':
+            if user_commands:
+                removed = user_commands.pop()
+                print(f"(Removed: '{removed}')")
+            else:
+                print("(No lines to remove)")
+        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
+            special_action = cmd_lower
+            break
+        elif cmd.strip():
+            user_commands.append(cmd.strip())
+    return user_commands, special_action
+
+
 def run_topic(topic):
     """Loads and runs questions for a given topic."""
     questions = []
@@ -349,30 +378,7 @@ def run_topic(topic):
         print("-" * 40)
         print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'back'.")
 
-        user_commands = []
-        special_action = None
-        while True:
-            try:
-                cmd = input("> ")
-            except EOFError:
-                special_action = 'skip'
-                break
-            
-            cmd_lower = cmd.strip().lower()
-
-            if cmd_lower == 'done':
-                break
-            elif cmd_lower == 'back':
-                if user_commands:
-                    removed = user_commands.pop()
-                    print(f"(Removed: '{removed}')")
-                else:
-                    print("(No lines to remove)")
-            elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
-                special_action = cmd_lower
-                break
-            elif cmd.strip():
-                user_commands.append(cmd.strip())
+        user_commands, special_action = get_user_input()
 
         # --- Process special actions that skip normal grading ---
         if special_action == 'skip':
