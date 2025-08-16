@@ -377,11 +377,6 @@ def list_and_select_topic():
                 percent = (num_correct / num_questions) * 100
                 color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
                 stats_str = f" ({color}{num_correct}/{num_questions} correct - {percent:.0f}%{Style.RESET_ALL})"
-        # Handle old format for backward compatibility
-        elif stats and stats.get('total', 0) > 0:
-            percent = (stats['correct'] / stats['total']) * 100
-            color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
-            stats_str = f" ({color}{stats['correct']}/{stats['total']} correct - {percent:.0f}%{Style.RESET_ALL})"
 
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
