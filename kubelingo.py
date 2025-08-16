@@ -50,8 +50,7 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
-    if not os.path.exists(USER_DATA_DIR):
-        os.makedirs(USER_DATA_DIR)
+    os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 def load_performance_data():
     """Loads performance data from the user data directory."""
