@@ -90,17 +90,6 @@ def save_performance_data(data):
     with open(PERFORMANCE_FILE, 'w') as f:
         yaml.dump(data, f)
 
-def update_performance(topic, is_correct):
-    """Updates and saves performance stats for a given topic."""
-    data = load_performance_data()
-    if topic not in data:
-        data[topic] = {'correct': 0, 'total': 0}
-    
-    if is_correct:
-        data[topic]['correct'] += 1
-    data[topic]['total'] += 1
-    
-    save_performance_data(data)
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
@@ -445,13 +434,6 @@ def get_user_input():
 
 def run_topic(topic):
     """Loads and runs questions for a given topic."""
-    if topic != '_missed':
-        # Reset score for this session
-        data = load_performance_data()
-        if topic in data:
-            data[topic] = {'correct': 0, 'total': 0}
-            save_performance_data(data)
-
     questions = []
     session_topic_name = topic
     if topic == '_missed':
@@ -470,6 +452,8 @@ def run_topic(topic):
     random.shuffle(questions)
 
     question_index = 0
+    session_correct = 0
+    session_total = 0
     while question_index < len(questions):
         q = questions[question_index]
         is_correct = False
@@ -555,13 +539,21 @@ def run_topic(topic):
         
         # --- Post-grading actions ---
         if special_action is None or special_action == 'vim':
-            update_performance(question_topic_context, is_correct)
+            session_total += 1
+            if is_correct:
+                session_correct += 1
+            
             if not is_correct:
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
 
         question_index += 1
         if question_index < len(questions):
             time.sleep(3) # Pause before showing the next question
+
+    if topic != '_missed' and session_total > 0:
+        data = load_performance_data()
+        data[topic] = {'correct': session_correct, 'total': session_total}
+        save_performance_data(data)
 
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")

@@ -3,7 +3,7 @@ import tempfile
 import os
 from unittest.mock import mock_open
 import colorama
-from kubelingo import get_user_input, handle_vim_edit, update_performance
+from kubelingo import get_user_input, handle_vim_edit
 
 
 def test_back_command_removes_last_entry(monkeypatch, capsys):
@@ -87,46 +87,6 @@ def test_vim_is_configured_for_2_spaces(monkeypatch):
     assert called_args[0] == expected_cmd
 
 
-def test_update_performance_tracking(monkeypatch):
-    """Tests that performance data is correctly updated for a topic."""
-    
-    mock_data_source = {}
-    saved_data = {}
-
-    def mock_load_performance_data():
-        return mock_data_source.copy()
-
-    def mock_save_performance_data(data):
-        nonlocal saved_data
-        saved_data = data
-    
-    monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
-    monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
-
-    # Test case 1: Correct answer for a new topic in an empty file
-    mock_data_source = {}
-    update_performance('new_topic', is_correct=True)
-    assert saved_data == {'new_topic': {'correct': 1, 'total': 1}}
-    
-    # Test case 2: Incorrect answer for a new topic in a file with existing data
-    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
-    update_performance('new_topic', is_correct=False)
-    assert saved_data == {
-        'existing_topic': {'correct': 5, 'total': 10},
-        'new_topic': {'correct': 0, 'total': 1}
-    }
-
-    # Test case 3: Correct answer for existing topic
-    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
-    update_performance('existing_topic', is_correct=True)
-    assert saved_data == {'existing_topic': {'correct': 6, 'total': 11}}
-    
-    # Test case 4: Incorrect answer for existing topic
-    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
-    update_performance('existing_topic', is_correct=False)
-    assert saved_data == {'existing_topic': {'correct': 5, 'total': 11}}
-
-
 def test_back_command_feedback_is_colored(monkeypatch, capsys):
     """Tests that feedback from the 'back' command is colorized."""
     colorama.init(strip=False)
@@ -150,10 +110,10 @@ def test_back_command_feedback_is_colored(monkeypatch, capsys):
         colorama.deinit()
 
 
-def test_performance_tracking_resets_on_new_session(monkeypatch):
+def test_session_score_overwrites_performance_data(monkeypatch):
     """
-    Tests that performance data is reset when a topic is started,
-    and then updated correctly during the session.
+    Tests that the score from a completed session overwrites any
+    previous performance data for that topic.
     """
     mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
     saved_data = {}
@@ -162,30 +122,32 @@ def test_performance_tracking_resets_on_new_session(monkeypatch):
         return mock_data_source.copy()
 
     def mock_save_performance_data(data):
-        nonlocal saved_data, mock_data_source
+        nonlocal saved_data
         saved_data = data
-        mock_data_source = data.copy()
 
     monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
     monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
 
-    monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': [{'question': 'q1', 'solution': 's1'}]})
+    questions = [{'question': 'q1', 'solution': 's1'}, {'question': 'q2', 'solution': 's2'}]
+    monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': questions})
     monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
     monkeypatch.setattr('time.sleep', lambda seconds: None)
+    monkeypatch.setattr('kubelingo.save_question_to_list', lambda *args: None)
 
     from kubelingo import run_topic
 
-    # Run topic with a correct answer, score should be 1/1 for this session
-    monkeypatch.setattr('kubelingo.get_user_input', lambda: (['s1'], None))
-    run_topic('existing_topic')
-    assert saved_data['existing_topic']['correct'] == 1
-    assert saved_data['existing_topic']['total'] == 1
+    # Mock user getting 1 of 2 questions correct
+    user_inputs = iter([
+        (['s1'], None),      # Correct answer for q1
+        (['wrong'], None),   # Incorrect answer for q2
+    ])
+    monkeypatch.setattr('kubelingo.get_user_input', lambda: next(user_inputs))
 
-    # Run again with a wrong answer, score should be 0/1 for this new session
-    monkeypatch.setattr('kubelingo.get_user_input', lambda: (['wrong'], None))
     run_topic('existing_topic')
-    assert saved_data['existing_topic']['correct'] == 0
-    assert saved_data['existing_topic']['total'] == 1
+
+    # The new score should be 1/2, overwriting the old 5/10.
+    assert saved_data['existing_topic']['correct'] == 1
+    assert saved_data['existing_topic']['total'] == 2
 
 
 def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
