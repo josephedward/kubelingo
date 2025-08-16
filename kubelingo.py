@@ -370,7 +370,15 @@ def list_and_select_topic():
         
         stats = performance_data.get(topic_name)
         stats_str = ""
-        if stats and stats.get('total', 0) > 0:
+        # Handle new format (unique correct questions)
+        if stats and 'correct_questions' in stats:
+            num_correct = len(stats['correct_questions'])
+            if num_questions > 0:
+                percent = (num_correct / num_questions) * 100
+                color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
+                stats_str = f" ({color}{num_correct}/{num_questions} correct - {percent:.0f}%{Style.RESET_ALL})"
+        # Handle old format for backward compatibility
+        elif stats and stats.get('total', 0) > 0:
             percent = (stats['correct'] / stats['total']) * 100
             color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
             stats_str = f" ({color}{stats['correct']}/{stats['total']} correct - {percent:.0f}%{Style.RESET_ALL})"
@@ -450,6 +458,15 @@ def run_topic(topic):
         questions = data['questions']
 
     random.shuffle(questions)
+
+    performance_data = load_performance_data()
+    topic_perf = performance_data.get(topic, {})
+    # If old format is detected, reset performance for this topic.
+    # The old stats are not convertible to the new format.
+    if 'correct' in topic_perf or 'total' in topic_perf:
+        topic_perf = {'correct_questions': []}
+    if 'correct_questions' not in topic_perf:
+        topic_perf['correct_questions'] = []
 
     question_index = 0
     session_correct = 0
@@ -542,6 +559,8 @@ def run_topic(topic):
             session_total += 1
             if is_correct:
                 session_correct += 1
+                if q['question'] not in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].append(q['question'])
             
             if not is_correct:
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
@@ -550,10 +569,9 @@ def run_topic(topic):
         if question_index < len(questions):
             time.sleep(3) # Pause before showing the next question
 
-    if topic != '_missed' and session_total > 0:
-        data = load_performance_data()
-        data[topic] = {'correct': session_correct, 'total': session_total}
-        save_performance_data(data)
+    if topic != '_missed':
+        performance_data[topic] = topic_perf
+        save_performance_data(performance_data)
 
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
