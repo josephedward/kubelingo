@@ -1,4 +1,8 @@
-from kubelingo import get_user_input
+import subprocess
+import tempfile
+import os
+from unittest.mock import mock_open
+from kubelingo import get_user_input, handle_vim_edit
 
 
 def test_back_command_removes_last_entry(monkeypatch, capsys):
@@ -49,3 +53,34 @@ def test_line_editing_is_enabled():
         # readline is not available on all platforms (e.g., Windows without
         # pyreadline). This test should pass gracefully on those platforms.
         pass
+
+
+def test_vim_is_configured_for_2_spaces(monkeypatch):
+    """Tests that vim is called with commands to set tab spacing to 2 spaces."""
+    question = {'question': 'q', 'solution': 's'}
+
+    called_args = []
+    def mock_subprocess_run(cmd_list, check=False):
+        called_args.append(cmd_list)
+        return subprocess.CompletedProcess(cmd_list, 0)
+    monkeypatch.setattr(subprocess, 'run', mock_subprocess_run)
+
+    class MockTempFile:
+        name = 'dummy.yaml'
+        def __enter__(self):
+            return self
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+        def write(self, *args): pass
+        def flush(self, *args): pass
+
+    monkeypatch.setattr(tempfile, 'NamedTemporaryFile', lambda **kwargs: MockTempFile())
+    monkeypatch.setattr('os.unlink', lambda path: None)
+    monkeypatch.setattr('builtins.open', mock_open(read_data='some manifest data'))
+    monkeypatch.setattr('kubelingo.validate_manifest_with_llm', lambda q, m: {'correct': True, 'feedback': ''})
+
+    handle_vim_edit(question)
+
+    assert len(called_args) == 1
+    expected_cmd = ['vim', '-c', "set tabstop=2 shiftwidth=2 expandtab", 'dummy.yaml']
+    assert called_args[0] == expected_cmd

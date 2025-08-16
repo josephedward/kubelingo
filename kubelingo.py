@@ -180,7 +180,7 @@ def handle_vim_edit(question):
         tmp_path = tmp.name
     
     try:
-        subprocess.run(['vim', tmp_path], check=True)
+        subprocess.run(['vim', '-c', "set tabstop=2 shiftwidth=2 expandtab", tmp_path], check=True)
     except FileNotFoundError:
         print("\nError: 'vim' command not found. Please install it to use this feature.")
         os.unlink(tmp_path)
