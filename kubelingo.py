@@ -347,7 +347,7 @@ def run_topic(topic):
         print("-" * 40)
         print(q['question'])
         print("-" * 40)
-        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim'.")
+        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'back'.")
 
         user_commands = []
         special_action = None
@@ -362,6 +362,12 @@ def run_topic(topic):
 
             if cmd_lower == 'done':
                 break
+            elif cmd_lower == 'back':
+                if user_commands:
+                    removed = user_commands.pop()
+                    print(f"(Removed: '{removed}')")
+                else:
+                    print("(No lines to remove)")
             elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
                 special_action = cmd_lower
                 break
