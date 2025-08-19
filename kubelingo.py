@@ -111,6 +111,23 @@ def save_question_to_list(list_file, question, topic):
         with open(list_file, 'w') as f:
             yaml.dump(questions, f)
 
+def remove_question_from_list(list_file, question):
+    """Removes a question from a specified list file."""
+    ensure_user_data_dir()
+    questions = []
+    if os.path.exists(list_file):
+        with open(list_file, 'r') as f:
+            try:
+                questions = yaml.safe_load(f) or []
+            except yaml.YAMLError:
+                questions = []
+
+    normalized_question_to_remove = get_normalized_question_text(question)
+    updated_questions = [q for q in questions if get_normalized_question_text(q) != normalized_question_to_remove]
+
+    with open(list_file, 'w') as f:
+        yaml.dump(updated_questions, f)
+
 def create_issue(question_dict, topic):
     """Prompts user for an issue and saves it to a file."""
     ensure_user_data_dir()
@@ -614,7 +631,65 @@ def run_topic(topic, num_to_study, performance_data):
                     except Exception as e:
                         print(f"Could not open browser: {e}")
                 else:
-                    print("No source available for this question.")
+                    print("\nNo source available for this question. Let's find one.")
+                    if search is None:
+                        print("  'googlesearch-python' is not installed. Cannot search for sources.")
+                    else:
+                        while True:
+                            search_query = input("  Enter search query (e.g., 'kubernetes <question text>'): ").strip()
+                            if not search_query:
+                                print("  Search query cannot be empty. Skipping source search.")
+                                break
+
+                            print("  Searching for sources...")
+                            search_results = []
+                            try:
+                                search_results = [url for url in search(search_query, num_results=5)]
+                            except Exception as e:
+                                print(f"  Error during search: {e}")
+
+                            if search_results:
+                                print("  Search results:")
+                                for j, url in enumerate(search_results):
+                                    print(f"    {j+1}. {url}")
+
+                                while True:
+                                    select_action = input("    Select a number to use, [o]pen in browser (first result), [s]earch again, [m]anual, [sk]ip, [q]quit: ").strip().lower()
+                                    if select_action == 'o':
+                                        try:
+                                            webbrowser.open(search_results[0])
+                                        except Exception as e:
+                                            print(f"    Could not open browser: {e}")
+                                        continue
+                                    elif select_action == 's':
+                                        break # Break inner loop to search again
+                                    elif select_action == 'm':
+                                        manual_source = input("    Enter source URL manually: ").strip()
+                                        if manual_source:
+                                            q['source'] = manual_source
+                                            print(f"    Source added: {q['source']}")
+                                            break # Source added
+                                        else:
+                                            print("    Manual source entry cancelled.")
+                                            continue # Go back to search/manual options
+                                    elif select_action == 'sk':
+                                        print("    Skipping source selection for this question.")
+                                        break # Skip this question
+                                    elif select_action == 'q':
+                                        sys.exit("User quit.") # Exit script
+                                    try:
+                                        selected_index = int(select_action) - 1
+                                        if 0 <= selected_index < len(search_results):
+                                            q['source'] = search_results[selected_index]
+                                            print(f"    Source added: {q['source']}")
+                                            break # Source added
+                                        else:
+                                            print("    Invalid selection.")
+                                    except ValueError:
+                                        print("    Invalid input.")
+                            else:
+                                print("  No search results found.")
+                                break # Exit search loop
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
 
@@ -734,14 +809,16 @@ def run_topic(topic, num_to_study, performance_data):
             session_total += 1
             if is_correct:
                 session_correct += 1
-                normalized_question = q['question'].strip().lower()
-                if normalized_question not in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].append(normalized_question)
+                normalized_question_text = get_normalized_question_text(q)
+                if normalized_question_text not in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].append(normalized_question_text)
+                # Also remove from missed questions if it was there
+                remove_question_from_list(MISSED_QUESTIONS_FILE, q)
             else:
                 # If the question was previously answered correctly, remove it.
-                normalized_question = q['question'].strip().lower()
-                if normalized_question in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].remove(normalized_question)
+                normalized_question_text = get_normalized_question_text(q)
+                if normalized_question_text in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].remove(normalized_question_text)
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
 
         if topic != '_missed':
