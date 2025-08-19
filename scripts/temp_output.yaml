@@ -1,0 +1,77 @@
+questions:
+- question: You have a deployment named 'webapp' with label 'app=webapp'. Create a
+    ClusterIP service named 'webapp-svc' to expose the deployment on port 80.
+  solution: 'kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
+
+    '
+  source: https://stackoverflow.com/questions/62964958/expose-a-web-app-on-port-80-using-kubernetes-and-minikube
+- question: Create a manifest for a NodePort service named 'webapp-nodeport'. The
+    service should forward traffic from a port on the node to port 80 on pods with
+    the label 'app=webapp'.
+  solution: "solution: |
+
+  solution: "  solution: |
+
+  solution: "    apiVersion: v1\nkind: Service\nmetadata:\n  name: webapp-nodeport\nspec:\n\
+
+  solution: "        \  type: NodePort\n  selector:\n    app: webapp\n  ports:\n    - protocol: TCP\n\
+
+  solution: "        \      port: 80\n      targetPort: 80\n
+
+  solution: "    source: https://kubernetes.io/docs/concepts/services-networking/service/
+
+  solution: "  - question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort
+
+  solution: "      8080.
+
+  solution: "    solution: solution: |
+  apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n\
+      \    app: web\n  ports:\n    - port: 80\n      targetPort: 8080\n
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+- question: Headless Service manifest for app=db on port 5432.
+  solution: "solution: |
+
+  solution: "  solution: |
+
+  solution: "    apiVersion: v1\nkind: Service\nmetadata:\n  name: db\nspec:\n  clusterIP:\
+
+  solution: "        \ None\n  selector:\n    app: db\n  ports:\n    - port: 5432\n      targetPort:\
+
+  solution: "        \ 5432\n
+
+  solution: "    source: https://stackoverflow.com/questions/69611827/kubernetes-is-there-any-way-to-get-headless-service-endpoint-info-in-container
+
+  solution: "  - question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
+
+  solution: "    solution: kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
+
+  solution: "    source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+
+  solution: "  - question: List all services.
+
+  solution: "    solution: kubectl get services
+
+  solution: "    source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
+
+  solution: "  - question: Describe service frontend-svc.
+
+  solution: "    solution: kubectl describe service frontend-svc
+
+  solution: "    source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
+
+  solution: "  - question: Delete service frontend-svc.
+
+  solution: "    solution: kubectl delete service frontend-svc
+
+  solution: "    source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+
+  solution: "  - question: 'Create a Service `my-service` that selects pods with label `app: MyApp`.
+
+  solution: "      The service should expose TCP port 80 and target port 8080 on the pods.'
+
+  solution: "    solution: solution: |
+  apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\nspec:\n\
+      \  selector:\n    app: MyApp\n  ports:\n    - protocol: TCP\n      port: 80\n\
+      \      targetPort: 8080\n
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+
