@@ -8,3 +8,4 @@ user_data/missed_questions.yaml
 docs/issues.md
 user_data/issues.yaml
 user_data/performance.yaml
+.DS_Store
