@@ -7,8 +7,8 @@ questions:
 - question: Create a ConfigMap named 'my-configmap' from all files in the '/configs' directory.
   solution: kubectl create cm my-configmap --from-file=/configs
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A %
-- question: Create a ConfigMap from an env file named 'config.env'.
-  solution: kubectl create cm env-config --from-env-file=config.env
+- question: Create a ConfigMap named 'my-env-config' from an env file named 'config.env'.
+  solution: kubectl create cm my-env-config --from-env-file=config.env
 - question: View the contents of a ConfigMap named 'db-config'.
   solution: kubectl describe cm db-config
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
