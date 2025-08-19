@@ -1,32 +1,30 @@
 questions:
-  - question: "Create a new namespace called 'development'."
-    solution: "kubectl create namespace development"
-  - question: "Switch your current context to use the 'development' namespace."
-    solution: "kubectl config set-context --current --namespace=development"
-  - question: "List all namespaces, and then delete the 'development' namespace."
-    solution: "kubectl get namespaces && kubectl delete namespace development"
-  - question: "Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the 'development' namespace."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: pod-in-ns
-        namespace: development
-      spec:
-        containers:
-        - name: nginx
-          image: nginx
-  - question: "Generate the YAML for a new namespace 'dev' without creating it."
-    solution: "kubectl create namespace dev --dry-run=client -o yaml"
-  - question: "Set the current context's default namespace to 'dev'."
-    solution: "kubectl config set-context --current --namespace=dev"
-  - question: "Get the list of all Namespaces in the cluster and save it to a file."
-    solution: "kubectl get namespaces > /path/to/namespaces.txt"
-  - question: "Verify which namespace is currently being used in your context."
-    solution: "kubectl config view --minify | grep namespace:"
-  - question: "List all resources across all namespaces."
-    solution: "kubectl get all -A"
-  - question: "List all pods in the 'kube-system' namespace."
-    solution: "kubectl get pods -n kube-system"
-  - question: "Create a resource quota for a namespace, limiting it to 10 pods."
-    solution: "kubectl create quota ns-quota --hard=pods=10 -n development"
+- question: Create a new namespace called 'development'.
+  solution: kubectl create namespace development
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace
+- question: Switch your current context to use the 'development' namespace.
+  solution: kubectl config set-context --current --namespace=development
+- question: List all namespaces, and then delete the 'development' namespace.
+  solution: kubectl get namespaces && kubectl delete namespace development
+- question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the
+    'development' namespace.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod-in-ns\n  namespace:\
+    \ development\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n"
+- question: Generate the YAML for a new namespace 'dev' without creating it.
+  solution: kubectl create namespace dev --dry-run=client -o yaml
+- question: Set the current context's default namespace to 'dev'.
+  solution: kubectl config set-context --current --namespace=dev
+- question: Get the list of all Namespaces in the cluster and save it to a file.
+  solution: kubectl get namespaces > /path/to/namespaces.txt
+- question: Verify which namespace is currently being used in your context.
+  solution: 'kubectl config view --minify | grep namespace:'
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
+- question: List all resources across all namespaces.
+  solution: kubectl get all -A
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=A%20note%20on%20%60
+- question: List all pods in the 'kube-system' namespace.
+  solution: kubectl get pods -n kube-system
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20nginx%20,in%20the%20namespace%20of%20mynamespace
+- question: Create a resource quota for a namespace, limiting it to 10 pods.
+  solution: kubectl create quota ns-quota --hard=pods=10 -n development
+  source: https://kubernetes.io/docs/concepts/policy/resource-quotas/#:~:text=kubectl%20create%20namespace%20myspace

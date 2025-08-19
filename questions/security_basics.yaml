@@ -1,53 +1,28 @@
 questions:
-  - question: "Create a pod manifest that runs a container with user ID 1000 and has a read-only root filesystem."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: secure-pod
-      spec:
-        containers:
-        - name: main
-          image: busybox
-          command: ["sleep", "3600"]
-          securityContext:
-            runAsUser: 1000
-            readOnlyRootFilesystem: true
-  - question: "Pod manifest running as non-root user 1000 with fsGroup 2000."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: nonroot
-      spec:
-        securityContext:
-          runAsUser: 1000
-          runAsNonRoot: true
-          fsGroup: 2000
-        containers:
-          - name: app
-            image: busybox
-            command: ["sh","-c","sleep 3600"]
-  - question: "Container securityContext dropping all capabilities and readOnlyRootFilesystem."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: strict-container
-      spec:
-        containers:
-          - name: app
-            image: busybox
-            command: ["sh","-c","sleep 3600"]
-            securityContext:
-              readOnlyRootFilesystem: true
-              capabilities:
-                drop: ["ALL"]
-  - question: "Create a generic secret named db-secret with a username and password."
-    solution: "kubectl create secret generic db-secret --from-literal=username=admin --from-literal=password=secret"
-  - question: "List all secrets."
-    solution: "kubectl get secrets"
-  - question: "Describe secret db-secret."
-    solution: "kubectl describe secret db-secret"
-  - question: "Delete secret db-secret."
-    solution: "kubectl delete secret db-secret"
+- question: Create a pod manifest that runs a container with user ID 1000 and has
+    a read-only root filesystem.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secure-pod\nspec:\n  containers:\n\
+    \  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]\n    securityContext:\n\
+    \      runAsUser: 1000\n      readOnlyRootFilesystem: true\n"
+- question: Pod manifest running as non-root user 1000 with fsGroup 2000.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: nonroot\nspec:\n  securityContext:\n\
+    \    runAsUser: 1000\n    runAsNonRoot: true\n    fsGroup: 2000\n  containers:\n\
+    \    - name: app\n      image: busybox\n      command: [\"sh\",\"-c\",\"sleep\
+    \ 3600\"]\n"
+- question: Container securityContext dropping all capabilities and readOnlyRootFilesystem.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: strict-container\nspec:\n\
+    \  containers:\n    - name: app\n      image: busybox\n      command: [\"sh\"\
+    ,\"-c\",\"sleep 3600\"]\n      securityContext:\n        readOnlyRootFilesystem:\
+    \ true\n        capabilities:\n          drop: [\"ALL\"]\n"
+- question: Create a generic secret named db-secret with a username and password.
+  solution: kubectl create secret generic db-secret --from-literal=username=admin
+    --from-literal=password=secret
+- question: List all secrets.
+  solution: kubectl get secrets
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+- question: Describe secret db-secret.
+  solution: kubectl describe secret db-secret
+  source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
+- question: Delete secret db-secret.
+  solution: kubectl delete secret db-secret
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng

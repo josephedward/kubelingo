@@ -1,84 +1,58 @@
 questions:
-  - question: "Create a ConfigMap named 'app-config' with data items 'app.color=blue' and 'app.environment=dev'."
-    solution: "kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev"
-  - question: "Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'."
-    solution: "kubectl create cm game-config --from-file=/configs/game.properties"
-  - question: "Create a ConfigMap from all files in the '/configs' directory."
-    solution: "kubectl create cm app-settings --from-file=/configs"
-  - question: "Create a ConfigMap from an env file named 'config.env'."
-    solution: "kubectl create cm env-config --from-env-file=config.env"
-  - question: "View the contents of a ConfigMap named 'db-config'."
-    solution: "kubectl describe cm db-config"
-  - question: "List all ConfigMaps."
-    solution: "kubectl get configmaps"
-  - question: "Delete a ConfigMap named 'app-config'."
-    solution: "kubectl delete configmap app-config"
-  - question: "Create a manifest for a Secret named 'db-secret' containing a username 'admin' and password 's3cur3p@ssw0rd'."
-    solution: |
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: db-secret
-      type: Opaque
-      stringData:
-        username: admin
-        password: "s3cur3p@ssw0rd"
-  - question: "Create a Secret named 'db-creds' with username 'admin' and password 'password123'."
-    solution: "kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123"
-  - question: "Create a generic Secret named 'secret1' in namespace 'moon' with two keys: user=test and pass=pwd."
-    solution: "kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd"
-  - question: "Create a TLS Secret 'my-tls' from a certificate and key file."
-    solution: "kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key"
-  - question: "Create a docker-registry Secret 'regcred'."
-    solution: "kubectl create secret docker-registry regcred --docker-server=... --docker-username=... --docker-password=... --docker-email=..."
-  - question: "View the encoded values in a Secret named 'api-secrets' in YAML format."
-    solution: "kubectl get secret api-secrets -o yaml"
-  - question: "Decode a base64 encoded Secret value."
-    solution: "echo -n 'encoded_string' | base64 --decode"
-  - question: "Create a manifest for a Pod 'pod1' that uses an environment variable 'TREE1' from a ConfigMap 'trauerweide' (key 'tree') and mounts a ConfigMap 'birke' to '/etc/birke'."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: pod1
-      spec:
-        containers:
-        - name: nginx
-          image: nginx:alpine
-          env:
-          - name: TREE1
-            valueFrom:
-              configMapKeyRef:
-                name: trauerweide
-                key: tree
-          volumeMounts:
-          - name: birke-volume
-            mountPath: /etc/birke
-        volumes:
-        - name: birke-volume
-          configMap:
-            name: birke
-  - question: "Create a manifest for a pod that mounts a secret 'secret2' as a volume at /tmp/secret2."
-    solution: |
-      # This is a partial manifest. Assuming a pod spec already exists.
-      volumes:
-        - name: secret2-volume
-          secret:
-            secretName: secret2
-      volumeMounts:
-        - name: secret2-volume
-          mountPath: /tmp/secret2
-  - question: "Create a manifest for a pod that adds environment variables 'SECRET1_USER' and 'SECRET1_PASS' from a secret 'secret1'."
-    solution: |
-      # This is a partial manifest. Assuming a container spec already exists.
-      env:
-        - name: SECRET1_USER
-          valueFrom:
-            secretKeyRef:
-              name: secret1
-              key: user
-        - name: SECRET1_PASS
-          valueFrom:
-            secretKeyRef:
-              name: secret1
-              key: pass
+- question: Create a ConfigMap named 'app-config' with data items 'app.color=blue'
+    and 'app.environment=dev'.
+  solution: kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
+- question: Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'.
+  solution: kubectl create cm game-config --from-file=/configs/game.properties
+- question: Create a ConfigMap named 'my-configmap' from all files in the '/configs' directory.
+  solution: kubectl create cm my-configmap --from-file=/configs
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A %
+- question: Create a ConfigMap from an env file named 'config.env'.
+  solution: kubectl create cm env-config --from-env-file=config.env
+- question: View the contents of a ConfigMap named 'db-config'.
+  solution: kubectl describe cm db-config
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
+- question: List all ConfigMaps.
+  solution: kubectl get configmaps
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
+- question: Delete a ConfigMap named 'app-config'.
+  solution: kubectl delete configmap app-config
+- question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  solution: "apiVersion: v1\nkind: Secret\nmetadata:\n  name: db-secret\ntype: Opaque\n\
+    stringData:\n  username: admin\n  password: \"s3cur3p@ssw0rd\"\n"
+- question: Create a Secret named 'db-creds' with username 'admin' and password 'password123'.
+  solution: kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123
+- question: 'Create a generic Secret named ''secret1'' in namespace ''moon'' with
+    two keys: user=test and pass=pwd.'
+  solution: kubectl -n moon create secret generic secret1 --from-literal=user=test
+    --from-literal=pass=pwd
+- question: Create a TLS Secret 'my-tls' from a certificate and key file.
+  solution: kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
+- question: Create a docker-registry Secret 'regcred'.
+  solution: kubectl create secret docker-registry regcred --docker-server=... --docker-username=...
+    --docker-password=... --docker-email=...
+- question: View the encoded values in a Secret named 'api-secrets' in YAML format.
+  solution: kubectl get secret api-secrets -o yaml
+- question: Decode a base64 encoded Secret value.
+  solution: echo -n 'encoded_string' | base64 --decode
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
+- question: Create a manifest for a Pod 'pod1' that uses an environment variable 'TREE1'
+    from a ConfigMap 'trauerweide' (key 'tree') and mounts a ConfigMap 'birke' to
+    '/etc/birke'.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n\
+    \  - name: nginx\n    image: nginx:alpine\n    env:\n    - name: TREE1\n     \
+    \ valueFrom:\n        configMapKeyRef:\n          name: trauerweide\n        \
+    \  key: tree\n    volumeMounts:\n    - name: birke-volume\n      mountPath: /etc/birke\n\
+    \  volumes:\n  - name: birke-volume\n    configMap:\n      name: birke\n"
+- question: Create a manifest for a pod that mounts a secret 'secret2' as a volume
+    at /tmp/secret2.
+  solution: "# This is a partial manifest. Assuming a pod spec already exists.\nvolumes:\n\
+    \  - name: secret2-volume\n    secret:\n      secretName: secret2\nvolumeMounts:\n\
+    \  - name: secret2-volume\n    mountPath: /tmp/secret2\n"
+- question: Create a manifest for a pod that adds environment variables 'SECRET1_USER'
+    and 'SECRET1_PASS' from a secret 'secret1'.
+  solution: "# This is a partial manifest. Assuming a container spec already exists.\n\
+    env:\n  - name: SECRET1_USER\n    valueFrom:\n      secretKeyRef:\n        name:\
+    \ secret1\n        key: user\n  - name: SECRET1_PASS\n    valueFrom:\n      secretKeyRef:\n\
+    \        name: secret1\n        key: pass\n"
