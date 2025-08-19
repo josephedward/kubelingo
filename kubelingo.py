@@ -514,7 +514,7 @@ def get_user_input():
     return user_commands, special_action
 
 
-def run_topic(topic, performance_data):
+def run_topic(topic, num_to_study, performance_data):
     """Loads and runs questions for a given topic."""
     questions = []
     session_topic_name = topic
@@ -530,6 +530,8 @@ def run_topic(topic, performance_data):
             print("No questions found in the specified topic file.")
             return
         questions = data['questions']
+    
+    questions = questions[:num_to_study]
 
     random.shuffle(questions)
 
@@ -537,8 +539,7 @@ def run_topic(topic, performance_data):
     topic_perf = performance_data.get(topic, {})
     # If old format is detected, reset performance for this topic.
     # The old stats are not convertible to the new format.
-    if 'correct' in topic_perf or 'total' in topic_perf:
-        topic_perf = {'correct_questions': []}
+    
     if 'correct_questions' not in topic_perf:
         topic_perf['correct_questions'] = []
     
@@ -701,13 +702,19 @@ def run_topic(topic, performance_data):
             session_total += 1
             if is_correct:
                 session_correct += 1
-                if q['question'] not in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].append(q['question'])
+                normalized_question = q['question'].strip().lower()
+                if normalized_question not in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].append(normalized_question)
             else:
                 # If the question was previously answered correctly, remove it.
-                if q['question'] in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].remove(q['question'])
+                normalized_question = q['question'].strip().lower()
+                if normalized_question in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].remove(normalized_question)
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
+
+        if topic != '_missed':
+                performance_data[topic] = topic_perf
+                save_performance_data(performance_data)
 
         # Post-answer menu loop
         while True:
@@ -733,9 +740,7 @@ def run_topic(topic, performance_data):
             else:
                 print("Invalid option. Please choose 'n', 'b', 'i', or 'q'.")
 
-    if topic != '_missed':
-        performance_data[topic] = topic_perf
-        save_performance_data(performance_data)
+    
 
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
@@ -764,11 +769,14 @@ def main():
         # Interactive mode with main menu loop
         performance_data = load_performance_data() # Load once here
         while True:
-            topic = list_and_select_topic(performance_data) # Pass performance_data
-            if not topic:
+            topic_info = list_and_select_topic(performance_data) # Pass performance_data
+            if topic_info is None:
                 break # User exited menu
             
-            run_topic(topic, performance_data) # Pass performance_data
+            selected_topic = topic_info[0]
+            num_to_study = topic_info[1]
+            
+            run_topic(selected_topic, num_to_study, performance_data) # Pass performance_data
             save_performance_data(performance_data) # Save after topic run
             
             print("\nReturning to the main menu...")
