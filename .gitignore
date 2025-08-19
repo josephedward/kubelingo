@@ -11,3 +11,4 @@ user_data/performance.yaml
 .DS_Store
 /misc
 /dist
+/kubelingo.egg-info
