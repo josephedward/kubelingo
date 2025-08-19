@@ -9,3 +9,4 @@ docs/issues.md
 user_data/issues.yaml
 user_data/performance.yaml
 .DS_Store
+/misc
