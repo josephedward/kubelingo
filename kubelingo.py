@@ -103,7 +103,8 @@ def save_question_to_list(list_file, question, topic):
                 questions = []
 
     # Avoid duplicates
-    if not any(q.get('question') == question.get('question') for q in questions):
+    normalized_new_question = get_normalized_question_text(question)
+    if not any(get_normalized_question_text(q_in_list) == normalized_new_question for q_in_list in questions):
         question_to_save = question.copy()
         question_to_save['original_topic'] = topic
         questions.append(question_to_save)
@@ -162,6 +163,9 @@ def load_questions(topic):
         return None
     with open(file_path, 'r') as file:
         return yaml.safe_load(file)
+
+def get_normalized_question_text(question_dict):
+    return question_dict.get('question', '').strip().lower()
 
 def get_llm_feedback(question, user_answer, correct_solution):
     """Gets feedback from Gemini on the user's answer."""
@@ -385,23 +389,27 @@ K8S_RESOURCE_ALIASES = {
     'statefulsets': 'statefulset',
 }
 
-def normalize_command(command):
-    """Normalizes a kubectl command string by expanding aliases."""
-    # Normalize whitespace and split
-    words = ' '.join(command.split()).split()
-    if not words:
-        return ""
-    
-    # Handle 'k' alias for 'kubectl'
-    if words[0] == 'k':
-        words[0] = 'kubectl'
+def normalize_command(command_lines):
+    """Normalizes a list of kubectl command strings by expanding aliases."""
+    normalized_lines = []
+    for command in command_lines:
+        # Normalize whitespace and split
+        words = ' '.join(command.split()).split()
+        if not words:
+            normalized_lines.append("")
+            continue
+        
+        # Handle 'k' alias for 'kubectl'
+        if words[0] == 'k':
+            words[0] = 'kubectl'
 
-    # Handle resource aliases (simple cases)
-    for i, word in enumerate(words):
-        if word in K8S_RESOURCE_ALIASES:
-            words[i] = K8S_RESOURCE_ALIASES[word]
-            
-    return ' '.join(words)
+        # Handle resource aliases (simple cases)
+        for i, word in enumerate(words):
+            if word in K8S_RESOURCE_ALIASES:
+                words[i] = K8S_RESOURCE_ALIASES[word]
+                
+        normalized_lines.append(' '.join(words))
+    return normalized_lines
 
 def list_and_select_topic(performance_data):
 
@@ -428,8 +436,7 @@ def list_and_select_topic(performance_data):
         stats_str = ""
         if num_questions > 0:
             percent = (num_correct / num_questions) * 100
-            color = Fore.GREEN if percent == 100 else Fore.YELLOW if percent >= 60 else Fore.RED
-            stats_str = f" ({color}{num_correct}/{num_questions} correct - {percent:.0f}%{Style.RESET_ALL})"
+            stats_str = f" ({Fore.GREEN}{num_correct}{Style.RESET_ALL}/{Fore.RED}{num_questions}{Style.RESET_ALL} correct - {Fore.CYAN}{percent:.0f}%{Style.RESET_ALL})"
 
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
@@ -447,7 +454,25 @@ def list_and_select_topic(performance_data):
             choice = input(prompt).lower()
 
             if choice == 'm' and has_missed:
-                return '_missed'
+                missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
+                if missed_questions_count == 0:
+                    print("No missed questions to review. Well done!")
+                    continue # Go back to topic selection
+
+                while True:
+                    num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or 'all'): ").strip().lower()
+                    if num_to_study_input == 'all':
+                        num_to_study = missed_questions_count
+                        break
+                    try:
+                        num_to_study = int(num_to_study_input)
+                        if 1 <= num_to_study <= missed_questions_count:
+                            break
+                        else:
+                            print(f"Please enter a number between 1 and {missed_questions_count}, or 'all'.")
+                    except ValueError:
+                        print("Invalid input. Please enter a number or 'all'.")
+                return '_missed', num_to_study
 
             choice_index = int(choice) - 1
             if 0 <= choice_index < len(available_topics):
@@ -631,6 +656,9 @@ def run_topic(topic, num_to_study, performance_data):
                     print(f"{Fore.YELLOW}{solution_text}")
                 if q.get('source'):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                feedback = get_llm_feedback(q['question'], "User requested solution", solution_text)
+                print(feedback)
                 break # Exit inner loop, go to post-answer menu
 
             elif special_action == 'vim':
@@ -663,13 +691,17 @@ def run_topic(topic, num_to_study, performance_data):
                 elif 'solution' in q:
                     solution_text = q['solution'].strip()
 
-                    normalized_user_answer = normalize_command(user_answer)
+                    # Process user's multi-line answer
+                    user_answer_lines = user_answer.split('\n')
+                    normalized_user_answer_lines = normalize_command(user_answer_lines)
+                    normalized_user_answer_string = '\n'.join(normalized_user_answer_lines) # Join back for fuzzy matching
 
+                    # Process solution's multi-line command
                     solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
-                    solution_command = ' '.join(solution_lines)
-                    normalized_solution = normalize_command(solution_command)
+                    normalized_solution_lines = normalize_command(solution_lines)
+                    normalized_solution_string = '\n'.join(normalized_solution_lines) # Join back for fuzzy matching
                     
-                    if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
+                    if fuzz.ratio(normalized_user_answer_string, normalized_solution_string) > 95:
                         is_correct = True
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
                     else:
@@ -684,7 +716,7 @@ def run_topic(topic, num_to_study, performance_data):
                     if q.get('source'):
                         print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                     print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                    feedback = get_llm_feedback(q['question'], normalized_user_answer_string, solution_text)
                     print(feedback)
                 user_answer_graded = True
                 break # Exit inner loop, go to post-answer menu
