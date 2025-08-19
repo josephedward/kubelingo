@@ -228,7 +228,7 @@ def validate_manifest_with_llm(question_dict, user_manifest):
         ---
         The student provided this manifest:
         ---
-        Student's Manifest:\n{user_manifest}
+        Student Manifest:\n{user_manifest}
         ---
         The canonical solution is:
         ---
@@ -319,8 +319,8 @@ def generate_more_questions(topic, existing_question):
         ---
 
         Your new question should be a {question_type}-based question.
-        - If it's a 'command' question, the solution should be a single or multi-line shell command (e.g., kubectl).
-        - If it's a 'manifest' question, the solution should be a complete YAML manifest and the question should be phrased to ask for a manifest.
+        - If it is a 'command' question, the solution should be a single or multi-line shell command (e.g., kubectl).
+        - If it is a 'manifest' question, the solution should be a complete YAML manifest and the question should be phrased to ask for a manifest.
 
         The new question should be in the same topic area but test a slightly different aspect or use different parameters.
         Provide the output in valid YAML format, as a single item in a 'questions' list.
