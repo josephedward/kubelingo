@@ -13,6 +13,8 @@ from colorama import Fore, Style, init as colorama_init
 from pygments import highlight
 from pygments.lexers import YamlLexer
 from pygments.formatters import TerminalFormatter
+from dotenv import load_dotenv, dotenv_values, set_key
+import click
 
 ASCII_ART = r"""                                      bbbbbbbb
 KKKKKKKKK    KKKKKKK                  b::::::b                                lllllll   iiii
@@ -428,7 +430,54 @@ def normalize_command(command_lines):
         normalized_lines.append(' '.join(words))
     return normalized_lines
 
+def handle_config_menu():
+    """Handles the configuration menu for API keys."""
+    clear_screen()
+    print(f"{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---{Style.RESET_ALL}")
+    
+    # Load existing .env values
+    config = dotenv_values()
+    gemini_key = config.get("GEMINI_API_KEY")
+    openai_key = config.get("OPENAI_API_KEY") # Assuming we might add OpenAI later
+
+    print("\nCurrent API Keys:")
+    print(f"  Gemini API Key: {gemini_key if gemini_key else 'Not Set'}")
+    print(f"  OpenAI API Key: {openai_key if openai_key else 'Not Set'} (Not currently used by Kubelingo)")
+
+    while True:
+        print("\nOptions:")
+        print("  [1] Set Gemini API Key")
+        print("  [2] Remove Gemini API Key")
+        print("  [b] Back to Main Menu")
+        
+        choice = input(f"{Style.BRIGHT}{Fore.BLUE}Enter your choice: {Style.RESET_ALL}").lower().strip()
+
+        if choice == '1':
+            new_key = input("Enter new Gemini API Key: ").strip()
+            if new_key:
+                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", new_key)
+                print("Gemini API Key set successfully.")
+                # Update in-memory environment variable as well
+                os.environ["GEMINI_API_KEY"] = new_key
+            else:
+                print("API Key cannot be empty.")
+        elif choice == '2':
+            if gemini_key:
+                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", "") # Set to empty string to remove
+                print("Gemini API Key removed.")
+                if "GEMINI_API_KEY" in os.environ:
+                    del os.environ["GEMINI_API_KEY"] # Remove from in-memory environment
+                gemini_key = None # Update local variable
+            else:
+                print("Gemini API Key is not set.")
+        elif choice == 'b':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+    input("Press Enter to continue...")
+
 def list_and_select_topic(performance_data):
+
 
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
@@ -460,17 +509,16 @@ def list_and_select_topic(performance_data):
     if has_missed:
         missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
         print(f"\n{Style.BRIGHT}{Fore.CYAN}Or, select a special action:{Style.RESET_ALL}")
-        print(f"  {Style.BRIGHT}m.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
+        print(f"  {Style.BRIGHT}0.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
+        print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configure API Keys")
+        print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
     
     while True:
         try:
-            prompt = f"\nEnter a number (1-{len(available_topics)})"
-            if has_missed:
-                prompt += " or letter 'm'"
-            prompt += ": "
+            prompt = f"\nEnter a number (1-{len(available_topics)}) or '0', 'c', 'q': "
             choice = input(prompt).lower()
 
-            if choice == 'm' and has_missed:
+            if choice == '0' and has_missed:
                 missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
                 if missed_questions_count == 0:
                     print("No missed questions to review. Well done!")
@@ -490,6 +538,12 @@ def list_and_select_topic(performance_data):
                     except ValueError:
                         print("Invalid input. Please enter a number or 'all'.")
                 return '_missed', num_to_study
+            elif choice == 'c':
+                handle_config_menu()
+                continue # Go back to topic selection menu
+            elif choice == 'q':
+                print("\nGoodbye!")
+                return None, None # Exit the main loop
 
             choice_index = int(choice) - 1
             if 0 <= choice_index < len(available_topics):
@@ -879,44 +933,3 @@ def run_topic(topic, num_to_study, performance_data):
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
 
 
-def main():
-    """Main function to run the study app."""
-    colorama_init(autoreset=True)
-    print(f"{Fore.YELLOW}{ASCII_ART}")
-
-    if not os.path.exists('questions'):
-        os.makedirs('questions')
-
-    
-
-    parser = argparse.ArgumentParser(description="A CLI tool to help study for the CKAD exam.")
-    parser.add_argument("topic", nargs='?', default=None, help="The topic to study. If not provided, a menu will be shown.")
-    args = parser.parse_args()
-
-    try:
-        # If topic is provided via CLI, run once and exit
-        if args.topic:
-            run_topic(args.topic)
-            return
-
-        # Interactive mode with main menu loop
-        performance_data = load_performance_data() # Load once here
-        while True:
-            topic_info = list_and_select_topic(performance_data) # Pass performance_data
-            if topic_info is None:
-                break # User exited menu
-            
-            selected_topic = topic_info[0]
-            num_to_study = topic_info[1]
-            
-            run_topic(selected_topic, num_to_study, performance_data) # Pass performance_data
-            save_performance_data(performance_data) # Save after topic run
-            
-            print("\nReturning to the main menu...")
-            time.sleep(2)
-            
-    except KeyboardInterrupt:
-        print("\n\nStudy session ended. Goodbye!")
-
-if __name__ == "__main__":
-    main()
