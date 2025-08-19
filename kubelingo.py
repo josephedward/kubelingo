@@ -302,6 +302,7 @@ def generate_more_questions(topic, existing_question):
 
         The new question should be in the same topic area but test a slightly different aspect or use different parameters.
         Provide the output in valid YAML format, as a single item in a 'questions' list.
+        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
         The solution must be correct and working.
 
         Example for a manifest question:
@@ -311,11 +312,13 @@ def generate_more_questions(topic, existing_question):
               apiVersion: v1
               kind: Pod
               ...
+            source: "https://kubernetes.io/docs/concepts/workloads/pods/"
 
         Example for a command question:
         questions:
           - question: "Create a pod named 'new-pod' imperatively..."
             solution: "kubectl run new-pod --image=nginx"
+            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
         """
         response = model.generate_content(prompt)
         # Clean the response to only get the YAML part
@@ -348,7 +351,60 @@ def generate_more_questions(topic, existing_question):
         print(f"\nError generating question: {e}")
         return None
 
-def list_and_select_topic():
+K8S_RESOURCE_ALIASES = {
+    'cm': 'configmap',
+    'configmaps': 'configmap',
+    'ds': 'daemonset',
+    'daemonsets': 'daemonset',
+    'deploy': 'deployment',
+    'deployments': 'deployment',
+    'ep': 'endpoints',
+    'ev': 'events',
+    'hpa': 'horizontalpodautoscaler',
+    'ing': 'ingress',
+    'ingresses': 'ingress',
+    'jo': 'job',
+    'jobs': 'job',
+    'netpol': 'networkpolicy',
+    'no': 'node',
+    'nodes': 'node',
+    'ns': 'namespace',
+    'namespaces': 'namespace',
+    'po': 'pod',
+    'pods': 'pod',
+    'pv': 'persistentvolume',
+    'pvc': 'persistentvolumeclaim',
+    'rs': 'replicaset',
+    'replicasets': 'replicaset',
+    'sa': 'serviceaccount',
+    'sec': 'secret',
+    'secrets': 'secret',
+    'svc': 'service',
+    'services': 'service',
+    'sts': 'statefulset',
+    'statefulsets': 'statefulset',
+}
+
+def normalize_command(command):
+    """Normalizes a kubectl command string by expanding aliases."""
+    # Normalize whitespace and split
+    words = ' '.join(command.split()).split()
+    if not words:
+        return ""
+    
+    # Handle 'k' alias for 'kubectl'
+    if words[0] == 'k':
+        words[0] = 'kubectl'
+
+    # Handle resource aliases (simple cases)
+    for i, word in enumerate(words):
+        if word in K8S_RESOURCE_ALIASES:
+            words[i] = K8S_RESOURCE_ALIASES[word]
+            
+    return ' '.join(words)
+
+def list_and_select_topic(performance_data):
+
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
     available_topics = sorted([f.replace('.yaml', '') for f in os.listdir('questions') if f.endswith('.yaml')])
@@ -359,8 +415,6 @@ def list_and_select_topic():
         print("No question topics found and no missed questions to review.")
         return None
 
-    performance_data = load_performance_data()
-
     print(f"\n{Style.BRIGHT}{Fore.CYAN}Please select a topic to study:{Style.RESET_ALL}")
     for i, topic_name in enumerate(available_topics):
         display_name = topic_name.replace('_', ' ').title()
@@ -368,21 +422,21 @@ def list_and_select_topic():
         question_data = load_questions(topic_name)
         num_questions = len(question_data.get('questions', [])) if question_data else 0
         
-        stats = performance_data.get(topic_name)
+        stats = performance_data.get(topic_name, {})
+        num_correct = len(stats.get('correct_questions', []))
+        
         stats_str = ""
-        # Handle new format (unique correct questions)
-        if stats and 'correct_questions' in stats:
-            num_correct = len(stats['correct_questions'])
-            if num_questions > 0:
-                percent = (num_correct / num_questions) * 100
-                color = Fore.GREEN if percent >= 80 else Fore.YELLOW if percent >= 60 else Fore.RED
-                stats_str = f" ({color}{num_correct}/{num_questions} correct - {percent:.0f}%{Style.RESET_ALL})"
+        if num_questions > 0:
+            percent = (num_correct / num_questions) * 100
+            color = Fore.GREEN if percent == 100 else Fore.YELLOW if percent >= 60 else Fore.RED
+            stats_str = f" ({color}{num_correct}/{num_questions} correct - {percent:.0f}%{Style.RESET_ALL})"
 
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
     if has_missed:
+        missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
         print(f"\n{Style.BRIGHT}{Fore.CYAN}Or, select a special action:{Style.RESET_ALL}")
-        print(f"  {Style.BRIGHT}m.{Style.RESET_ALL} Review Missed Questions")
+        print(f"  {Style.BRIGHT}m.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
     
     while True:
         try:
@@ -397,14 +451,39 @@ def list_and_select_topic():
 
             choice_index = int(choice) - 1
             if 0 <= choice_index < len(available_topics):
-                return available_topics[choice_index]
+                selected_topic = available_topics[choice_index]
+                
+                # Load questions for the selected topic to get total count
+                topic_data = load_questions(selected_topic)
+                all_questions = topic_data.get('questions', [])
+                total_questions = len(all_questions)
+
+                if total_questions == 0:
+                    print("This topic has no questions.")
+                    continue # Go back to topic selection
+
+                while True:
+                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}, or 'all'): ").strip().lower()
+                    if num_to_study_input == 'all':
+                        num_to_study = total_questions
+                        break
+                    try:
+                        num_to_study = int(num_to_study_input)
+                        if 1 <= num_to_study <= total_questions:
+                            break
+                        else:
+                            print(f"Please enter a number between 1 and {total_questions}, or 'all'.")
+                    except ValueError:
+                        print("Invalid input. Please enter a number or 'all'.")
+
+                return selected_topic, num_to_study # Return both
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
             print("Invalid input. Please enter a number or letter.")
         except (KeyboardInterrupt, EOFError):
             print("\n\nStudy session ended. Goodbye!")
-            return None
+            return None, None
 
 def get_user_input():
     """Collects user commands until a terminating keyword is entered."""
@@ -421,13 +500,13 @@ def get_user_input():
 
         if cmd_lower == 'done':
             break
-        elif cmd_lower == 'back':
+        elif cmd_lower == 'undo':
             if user_commands:
                 removed = user_commands.pop()
                 print(f"{Fore.YELLOW}(Removed: '{removed}')")
             else:
                 print(f"{Fore.YELLOW}(No lines to remove)")
-        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim']:
+        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu']:
             special_action = cmd_lower
             break
         elif cmd.strip():
@@ -435,7 +514,7 @@ def get_user_input():
     return user_commands, special_action
 
 
-def run_topic(topic):
+def run_topic(topic, performance_data):
     """Loads and runs questions for a given topic."""
     questions = []
     session_topic_name = topic
@@ -454,7 +533,7 @@ def run_topic(topic):
 
     random.shuffle(questions)
 
-    performance_data = load_performance_data()
+    # performance_data is now passed as an argument
     topic_perf = performance_data.get(topic, {})
     # If old format is detected, reset performance for this topic.
     # The old stats are not convertible to the new format.
@@ -462,107 +541,197 @@ def run_topic(topic):
         topic_perf = {'correct_questions': []}
     if 'correct_questions' not in topic_perf:
         topic_perf['correct_questions'] = []
+    
+    performance_data[topic] = topic_perf # Ensure performance_data is updated
 
     question_index = 0
     session_correct = 0
     session_total = 0
     while question_index < len(questions):
         q = questions[question_index]
-        is_correct = False
-        
+        is_correct = False # Reset for each question attempt
+        user_answer_graded = False # Flag to indicate if an answer was submitted and graded
+
         # For saving to lists, use original topic if reviewing, otherwise current topic
         question_topic_context = q.get('original_topic', topic)
 
-        clear_screen()
-        print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
-        print(f"{Fore.CYAN}{'-' * 40}")
-        print(q['question'])
-        print(f"{Fore.CYAN}{'-' * 40}")
-        print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'back'.")
+        # --- Inner loop for the current question ---
+        # This loop allows special actions (like 'source', 'issue')
+        # to be handled without immediately advancing to the next question.
+        while True:
+            clear_screen()
+            print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
+            print(f"{Fore.CYAN}{'-' * 40}")
+            print(q['question'])
+            print(f"{Fore.CYAN}{'-' * 40}")
+            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'undo', 'source', 'menu'.")
 
-        user_commands, special_action = get_user_input()
+            user_commands, special_action = get_user_input()
 
-        # --- Process special actions that skip normal grading ---
-        if special_action == 'skip':
-            pass # Just moves to the next question
-        elif special_action == 'solution':
-            print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
-            solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-            if '\n' in solution_text:
-                print(colorize_yaml(solution_text))
-            else:
-                print(f"{Fore.YELLOW}{solution_text}")
-        elif special_action == 'issue':
-            create_issue(q, question_topic_context)
-            input("Press Enter to continue...")
-        elif special_action == 'generate':
-            new_q = generate_more_questions(question_topic_context, q)
-            if new_q:
-                questions.insert(question_index + 1, new_q)
-                print("A new question has been added to this session.")
-        elif special_action == 'vim':
-            user_manifest, result, sys_error = handle_vim_edit(q)
-            if not sys_error:
-                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                print(result['feedback'])
-                is_correct = result['correct']
-                if not is_correct:
-                    show_diff(user_manifest, q['solution'])
-                    print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
-                    print(colorize_yaml(q['solution']))
-        # --- Process user answer ---
-        elif user_commands:
-            user_answer = "\n".join(user_commands)
-            # Exact match check for 'solutions' (e.g., vim commands)
-            if 'solutions' in q:
-                solution_list = [str(s).strip() for s in q['solutions']]
-                user_answer_processed = ' '.join(user_answer.split()).strip()
-                if user_answer_processed in solution_list:
-                    is_correct = True
-                    print(f"{Fore.GREEN}\nCorrect! Well done.")
-                else:
-                    solution_text = solution_list[0]
-            # Fuzzy match for single 'solution' (e.g., kubectl commands)
-            elif 'solution' in q:
-                solution_text = q['solution'].strip()
-                user_answer_processed = ' '.join(user_answer.split())
-                words = user_answer_processed.split(' ')
-                if words and words[0] == 'k': words[0] = 'kubectl'
-                normalized_user_answer = ' '.join(words)
-                
-                solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
-                normalized_solution = ' '.join("\n".join(solution_lines).split())
-                
-                if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
-                    is_correct = True
-                    print(f"{Fore.GREEN}\nCorrect! Well done.")
-                else:
-                    solution_text = q['solution'].strip()
+            # Handle 'menu' command first, as it exits the topic
+            if special_action == 'menu':
+                print("Returning to main menu...")
+                return # Exit run_topic function
+
+            # --- Process special actions that don't involve grading ---
+            if special_action == 'issue':
+                create_issue(q, question_topic_context)
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt
             
-            if not is_correct:
-                print(f"{Fore.RED}\nNot quite. Here's one possible solution:")
+            if special_action == 'source':
+                if q.get('source'):
+                    try:
+                        import webbrowser
+                        print(f"Opening source in your browser: {q['source']}")
+                        webbrowser.open(q['source'])
+                    except Exception as e:
+                        print(f"Could not open browser: {e}")
+                else:
+                    print("No source available for this question.")
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt
+
+            if special_action == 'generate':
+                new_q = generate_more_questions(question_topic_context, q)
+                if new_q:
+                    questions.insert(question_index + 1, new_q)
+                    print("A new question has been added to this session.")
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt (or the new one if it's next)
+
+            # --- Process actions that involve grading or showing solution ---
+            solution_text = "" # Initialize solution_text for scope
+
+            if special_action == 'skip':
+                is_correct = False
+                user_answer_graded = True
+                print(f"{Fore.RED}\nQuestion skipped. Here's one possible solution:")
+                solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
                 if '\n' in solution_text:
                     print(colorize_yaml(solution_text))
                 else:
                     print(f"{Fore.YELLOW}{solution_text}")
+                if q.get('source'):
+                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                feedback = get_llm_feedback(q['question'], "skipped", solution_text)
                 print(feedback)
+                break # Exit inner loop, go to post-answer menu
+
+            elif special_action == 'solution':
+                is_correct = False # Viewing solution means not correct by own answer
+                user_answer_graded = True
+                print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
+                solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
+                if '\n' in solution_text:
+                    print(colorize_yaml(solution_text))
+                else:
+                    print(f"{Fore.YELLOW}{solution_text}")
+                if q.get('source'):
+                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+                break # Exit inner loop, go to post-answer menu
+
+            elif special_action == 'vim':
+                user_manifest, result, sys_error = handle_vim_edit(q)
+                if not sys_error:
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    print(result['feedback'])
+                    is_correct = result['correct']
+                    if not is_correct:
+                        show_diff(user_manifest, q['solution'])
+                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
+                        print(colorize_yaml(q['solution']))
+                    if q.get('source'):
+                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+                user_answer_graded = True
+                break # Exit inner loop, go to post-answer menu
+
+            elif user_commands:
+                user_answer = "\n".join(user_commands)
+                # Exact match check for 'solutions' (e.g., vim commands)
+                if 'solutions' in q:
+                    solution_list = [str(s).strip() for s in q['solutions']]
+                    user_answer_processed = ' '.join(user_answer.split()).strip()
+                    if user_answer_processed in solution_list:
+                        is_correct = True
+                        print(f"{Fore.GREEN}\nCorrect! Well done.")
+                    else:
+                        solution_text = solution_list[0]
+                # Fuzzy match for single 'solution' (e.g., kubectl commands)
+                elif 'solution' in q:
+                    solution_text = q['solution'].strip()
+
+                    normalized_user_answer = normalize_command(user_answer)
+
+                    solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
+                    solution_command = ' '.join(solution_lines)
+                    normalized_solution = normalize_command(solution_command)
+                    
+                    if fuzz.ratio(normalized_user_answer, normalized_solution) > 95:
+                        is_correct = True
+                        print(f"{Fore.GREEN}\nCorrect! Well done.")
+                    else:
+                        solution_text = q['solution'].strip()
+                
+                if not is_correct:
+                    print(f"{Fore.RED}\nNot quite. Here's one possible solution:")
+                    if '\n' in solution_text:
+                        print(colorize_yaml(solution_text))
+                    else:
+                        print(f"{Fore.YELLOW}{solution_text}")
+                    if q.get('source'):
+                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    feedback = get_llm_feedback(q['question'], user_answer, solution_text)
+                    print(feedback)
+                user_answer_graded = True
+                break # Exit inner loop, go to post-answer menu
+            
+            else: # User typed 'done' without commands, or empty input
+                print("Please enter a command or a special action.")
+                continue # Re-display the same question prompt
+
+        # --- Post-answer interaction ---
+        # This block is reached after a question has been answered/skipped/solution viewed.
+        # The user can now choose to navigate or report an issue.
         
-        # --- Post-grading actions ---
-        if special_action is None or special_action == 'vim':
+        # Update performance data only if an answer was graded (not just viewing source/issue)
+        if user_answer_graded:
             session_total += 1
             if is_correct:
                 session_correct += 1
                 if q['question'] not in topic_perf['correct_questions']:
                     topic_perf['correct_questions'].append(q['question'])
-            
-            if not is_correct:
+            else:
+                # If the question was previously answered correctly, remove it.
+                if q['question'] in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].remove(q['question'])
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
 
-        question_index += 1
-        if question_index < len(questions):
-            time.sleep(3) # Pause before showing the next question
+        # Post-answer menu loop
+        while True:
+            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
+            print("Options: [n]ext, [b]ack, [i]ssue, [q]uit")
+            post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
+
+            if post_action == 'n':
+                question_index += 1
+                break # Exit post-answer loop, advance to next question
+            elif post_action == 'b':
+                if question_index > 0:
+                    question_index -= 1
+                    break # Exit post-answer loop, go back to previous question
+                else:
+                    print("Already at the first question.")
+            elif post_action == 'i':
+                create_issue(q, question_topic_context) # Issue for the *current* question
+                # Stay in this loop, allow other options
+            elif post_action == 'q':
+                # Exit the entire run_topic loop
+                return # Return to main menu
+            else:
+                print("Invalid option. Please choose 'n', 'b', 'i', or 'q'.")
 
     if topic != '_missed':
         performance_data[topic] = topic_perf
@@ -580,6 +749,8 @@ def main():
     if not os.path.exists('questions'):
         os.makedirs('questions')
 
+    
+
     parser = argparse.ArgumentParser(description="A CLI tool to help study for the CKAD exam.")
     parser.add_argument("topic", nargs='?', default=None, help="The topic to study. If not provided, a menu will be shown.")
     args = parser.parse_args()
@@ -591,12 +762,14 @@ def main():
             return
 
         # Interactive mode with main menu loop
+        performance_data = load_performance_data() # Load once here
         while True:
-            topic = list_and_select_topic()
+            topic = list_and_select_topic(performance_data) # Pass performance_data
             if not topic:
                 break # User exited menu
             
-            run_topic(topic)
+            run_topic(topic, performance_data) # Pass performance_data
+            save_performance_data(performance_data) # Save after topic run
             
             print("\nReturning to the main menu...")
             time.sleep(2)
