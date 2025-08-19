@@ -328,7 +328,7 @@ def generate_more_questions(topic, existing_question):
 
         Example for a manifest question:
         questions:
-          - question: "Create a manifest for a Pod named 'new-pod'..."
+          - question: "Create a manifest for a Pod named 'new-pod'வுகளை"
             solution: |
               apiVersion: v1
               kind: Pod
@@ -542,12 +542,12 @@ def get_user_input():
 
         if cmd_lower == 'done':
             break
-        elif cmd_lower == 'undo':
+        elif cmd_lower == 'clear':
             if user_commands:
-                removed = user_commands.pop()
-                print(f"{Fore.YELLOW}(Removed: '{removed}')")
+                user_commands.clear()
+                print(f"{Fore.YELLOW}(Input cleared)")
             else:
-                print(f"{Fore.YELLOW}(No lines to remove)")
+                print(f"{Fore.YELLOW}(No input to clear)")
         elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu']:
             special_action = cmd_lower
             break
@@ -584,6 +584,9 @@ def run_topic(topic, num_to_study, performance_data):
     
     if 'correct_questions' not in topic_perf:
         topic_perf['correct_questions'] = []
+        # If old format is detected, remove old keys
+        if 'correct' in topic_perf: del topic_perf['correct']
+        if 'total' in topic_perf: del topic_perf['total']
     
     performance_data[topic] = topic_perf # Ensure performance_data is updated
 
@@ -607,7 +610,7 @@ def run_topic(topic, num_to_study, performance_data):
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
             print(f"{Fore.CYAN}{'-' * 40}")
-            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'issue', 'generate', 'vim', 'undo', 'source', 'menu'.")
+            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
 
             user_commands, special_action = get_user_input()
 
@@ -731,9 +734,6 @@ def run_topic(topic, num_to_study, performance_data):
                     print(f"{Fore.YELLOW}{solution_text}")
                 if q.get('source'):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                feedback = get_llm_feedback(q['question'], "User requested solution", solution_text)
-                print(feedback)
                 break # Exit inner loop, go to post-answer menu
 
             elif special_action == 'vim':
@@ -828,7 +828,7 @@ def run_topic(topic, num_to_study, performance_data):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [q]uit")
+            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [q]uit")
             post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
 
             if post_action == 'n':
@@ -843,11 +843,35 @@ def run_topic(topic, num_to_study, performance_data):
             elif post_action == 'i':
                 create_issue(q, question_topic_context) # Issue for the *current* question
                 # Stay in this loop, allow other options
+            elif post_action == 'g':
+                new_q = generate_more_questions(question_topic_context, q)
+                if new_q:
+                    questions.insert(question_index + 1, new_q)
+                    print("A new question has been added to this session.")
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt (or the new one if it's next)
+            elif post_action == 's':
+                if q.get('source'):
+                    try:
+                        import webbrowser
+                        print(f"Opening source in your browser: {q['source']}")
+                        webbrowser.open(q['source'])
+                    except Exception as e:
+                        print(f"Could not open browser: {e}")
+                else:
+                    print("\nNo source available for this question.")
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt
+            elif post_action == 'r':
+                # Stay on the same question, clear user input, and re-prompt
+                user_commands.clear() # This needs to be handled by get_user_input or similar
+                print("\nRetrying the current question...")
+                break # Exit post-answer loop, re-enter inner loop for current question
             elif post_action == 'q':
                 # Exit the entire run_topic loop
                 return # Return to main menu
             else:
-                print("Invalid option. Please choose 'n', 'b', 'i', or 'q'.")
+                print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', or 'q'.")
 
     
 
