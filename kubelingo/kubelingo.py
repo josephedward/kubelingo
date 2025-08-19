@@ -5,6 +5,7 @@ import time
 import yaml
 import argparse
 import google.generativeai as genai
+import openai
 from thefuzz import fuzz
 import tempfile
 import subprocess
@@ -39,7 +40,7 @@ KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  ll
                                                                                                                  g::::::ggg:::::::g
                                                                                                                   gg:::::::::::::g
                                                                                                                     ggg::::::ggg
-                                                                                                                       gggggg                    """
+                                                                                                                       gggggg                    "
 
 USER_DATA_DIR = "user_data"
 
@@ -186,52 +187,40 @@ def load_questions(topic):
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
-def get_llm_feedback(question, user_answer, correct_solution):
-    """Gets feedback from Gemini on the user's answer."""
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        # Return a helpful message if the key is not set.
-        return "INFO: Set the GEMINI_API_KEY environment variable to get AI-powered feedback."
+def _get_llm_model():
+    """Determines which LLM to use based on available API keys and returns the appropriate model."""
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
 
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        prompt = f"""
-        You are a Kubernetes expert helping a student study for the CKAD exam.
-        The student was asked the following question:
-        ---
-        Question: {question}
-        ---
-        The student provided this answer:
-        ---
-        Answer: {user_answer}
-        ---
-        The correct solution is:
-        ---
-        Solution: {correct_solution}
-        ---
-        The student's answer was marked as incorrect.
-        Briefly explain why the student's answer is wrong and what they should do to fix it.
-        Focus on the differences between the student's answer and the correct solution.
-        Be concise and encouraging. Do not just repeat the solution. Your feedback should be 2-3 sentences.
-        """
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"Error getting feedback from LLM: {e}"
+    if gemini_api_key:
+        try:
+            genai.configure(api_key=gemini_api_key)
+            return "gemini", genai.GenerativeModel('gemini-1.5-flash-latest')
+        except Exception as e:
+            print(f"Warning: Could not configure Gemini model: {e}")
+    
+    if openai_api_key:
+        try:
+            # Assuming a default client for now, can be configured further if needed
+            client = openai.OpenAI(api_key=openai_api_key)
+            return "openai", client
+        except Exception as e:
+            print(f"Warning: Could not configure OpenAI model: {e}")
+            
+    return None, None
+
+# get_llm_feedback function removed temporarily for debugging
 
 def validate_manifest_with_llm(question_dict, user_manifest):
     """Validates a user-submitted manifest using the LLM."""
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY for AI-powered manifest validation."}
+    llm_type, model = _get_llm_model()
+    if not model:
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
 
     solution_manifest = question_dict['solution']
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-        prompt = f"""
+        prompt = f'''
         You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
         The student was asked:
         ---
@@ -248,15 +237,27 @@ def validate_manifest_with_llm(question_dict, user_manifest):
         Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Check for correct apiVersion, kind, metadata, and spec details.
         First, on a line by itself, write "CORRECT" or "INCORRECT".
         Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
-        """
-        response = model.generate_content(prompt)
-        lines = response.text.strip().split('\n')
+        '''
+        if llm_type == "gemini":
+            response = model.generate_content(prompt)
+            lines = response.text.strip().split('\n')
+        elif llm_type == "openai":
+            response = model.chat.completions.create(
+                model="gpt-3.5-turbo", # Or another suitable model
+                messages=[
+                    {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            lines = response.choices[0].message.content.strip().split('\n')
+
         is_correct = lines[0].strip().upper() == "CORRECT"
         feedback = "\n".join(lines[1:]).strip()
         
         return {'correct': is_correct, 'feedback': feedback}
     except Exception as e:
         return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
+
 
 def handle_vim_edit(question):
     """Handles the user editing a manifest in Vim."""
@@ -300,17 +301,15 @@ def handle_vim_edit(question):
 
 def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("\nINFO: Set the GEMINI_API_KEY environment variable to generate new questions.")
+    llm_type, model = _get_llm_model()
+    if not model:
+        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         question_type = random.choice(['command', 'manifest'])
-        prompt = f"""
+        prompt = f'''
         You are a Kubernetes expert creating questions for a CKAD study guide.
         Based on the following example question about '{topic}', please generate one new, distinct but related question.
 
@@ -330,7 +329,7 @@ def generate_more_questions(topic, existing_question):
 
         Example for a manifest question:
         questions:
-          - question: "Create a manifest for a Pod named 'new-pod'வுகளை"
+          - question: "Create a manifest for a Pod named 'new-pod'"
             solution: |
               apiVersion: v1
               kind: Pod
@@ -342,8 +341,19 @@ def generate_more_questions(topic, existing_question):
           - question: "Create a pod named 'new-pod' imperatively..."
             solution: "kubectl run new-pod --image=nginx"
             source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
-        """
-        response = model.generate_content(prompt)
+        '''
+        if llm_type == "gemini":
+            response = model.generate_content(prompt)
+        elif llm_type == "openai":
+            response = model.chat.completions.create(
+                model="gpt-3.5-turbo", # Or another suitable model
+                messages=[
+                    {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            response.text = response.choices[0].message.content # Normalize response for consistent parsing
+
         # Clean the response to only get the YAML part
         cleaned_response = response.text.strip()
         if cleaned_response.startswith('```yaml'):
@@ -373,6 +383,7 @@ def generate_more_questions(topic, existing_question):
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
+
 
 K8S_RESOURCE_ALIASES = {
     'cm': 'configmap',
@@ -430,54 +441,7 @@ def normalize_command(command_lines):
         normalized_lines.append(' '.join(words))
     return normalized_lines
 
-def handle_config_menu():
-    """Handles the configuration menu for API keys."""
-    clear_screen()
-    print(f"{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---{Style.RESET_ALL}")
-    
-    # Load existing .env values
-    config = dotenv_values()
-    gemini_key = config.get("GEMINI_API_KEY")
-    openai_key = config.get("OPENAI_API_KEY") # Assuming we might add OpenAI later
-
-    print("\nCurrent API Keys:")
-    print(f"  Gemini API Key: {gemini_key if gemini_key else 'Not Set'}")
-    print(f"  OpenAI API Key: {openai_key if openai_key else 'Not Set'} (Not currently used by Kubelingo)")
-
-    while True:
-        print("\nOptions:")
-        print("  [1] Set Gemini API Key")
-        print("  [2] Remove Gemini API Key")
-        print("  [b] Back to Main Menu")
-        
-        choice = input(f"{Style.BRIGHT}{Fore.BLUE}Enter your choice: {Style.RESET_ALL}").lower().strip()
-
-        if choice == '1':
-            new_key = input("Enter new Gemini API Key: ").strip()
-            if new_key:
-                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", new_key)
-                print("Gemini API Key set successfully.")
-                # Update in-memory environment variable as well
-                os.environ["GEMINI_API_KEY"] = new_key
-            else:
-                print("API Key cannot be empty.")
-        elif choice == '2':
-            if gemini_key:
-                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", "") # Set to empty string to remove
-                print("Gemini API Key removed.")
-                if "GEMINI_API_KEY" in os.environ:
-                    del os.environ["GEMINI_API_KEY"] # Remove from in-memory environment
-                gemini_key = None # Update local variable
-            else:
-                print("Gemini API Key is not set.")
-        elif choice == 'b':
-            break
-        else:
-            print("Invalid choice. Please try again.")
-    input("Press Enter to continue...")
-
 def list_and_select_topic(performance_data):
-
 
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
@@ -932,4 +896,43 @@ def run_topic(topic, num_to_study, performance_data):
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
 
+@click.group()
+@click.pass_context
+def cli(ctx):
+    """Kubelingo CLI tool for CKAD exam study."""
+    colorama_init(autoreset=True)
+    if not os.path.exists('questions'):
+        os.makedirs('questions')
+    ctx.ensure_object(dict)
+    ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
 
+@cli.command()
+@click.argument('topic', required=False)
+@click.pass_context
+def study(ctx, topic):
+    """Start a study session."""
+    performance_data = ctx.obj['PERFORMANCE_DATA']
+    if topic:
+        run_topic(topic, None, performance_data) # None for num_to_study, will prompt inside
+        save_performance_data(performance_data)
+        return
+
+    while True:
+        topic_info = list_and_select_topic(performance_data)
+        if topic_info is None:
+            break
+        
+        selected_topic = topic_info[0]
+        num_to_study = topic_info[1]
+        
+        run_topic(selected_topic, num_to_study, performance_data)
+        save_performance_data(performance_data)
+        
+        print("\nReturning to the main menu...")
+        time.sleep(2)
+
+# config command group removed temporarily for debugging
+
+if __name__ == "__main__":
+    load_dotenv() # Load environment variables from .env file
+    cli(obj={})
