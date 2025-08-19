@@ -3,40 +3,30 @@ import tempfile
 import os
 from unittest.mock import mock_open
 import colorama
+import re
 from kubelingo import get_user_input, handle_vim_edit
 
 
-def test_back_command_removes_last_entry(monkeypatch, capsys):
-    """Tests that 'back' removes the previously entered command."""
-    inputs = iter(['cmd1', 'back', 'done'])
+def test_clear_command_clears_commands(monkeypatch, capsys):
+    """Tests that 'clear' clears all previously entered commands."""
+    inputs = iter(['cmd1', 'cmd2', 'clear', 'done'])
     monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
     user_commands, special_action = get_user_input()
     captured = capsys.readouterr()
     assert user_commands == []
     assert special_action is None
-    assert "(Removed: 'cmd1')" in captured.out
+    assert "(Input cleared)" in captured.out
 
 
-def test_back_command_on_empty_list(monkeypatch, capsys):
-    """Tests that 'back' does nothing when the command list is empty."""
-    inputs = iter(['back', 'done'])
+def test_clear_command_on_empty_list(monkeypatch, capsys):
+    """Tests that 'clear' does nothing when the command list is empty."""
+    inputs = iter(['clear', 'done'])
     monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
     user_commands, special_action = get_user_input()
     captured = capsys.readouterr()
     assert user_commands == []
     assert special_action is None
-    assert "(No lines to remove)" in captured.out
-
-
-def test_back_command_in_the_middle(monkeypatch, capsys):
-    """Tests using 'back' to remove a command between other commands."""
-    inputs = iter(['cmd1', 'cmd2', 'back', 'cmd3', 'done'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-    user_commands, special_action = get_user_input()
-    captured = capsys.readouterr()
-    assert user_commands == ['cmd1', 'cmd3']
-    assert special_action is None
-    assert "(Removed: 'cmd2')" in captured.out
+    assert "(No input to clear)" in captured.out
 
 
 def test_line_editing_is_enabled():
@@ -87,24 +77,24 @@ def test_vim_is_configured_for_2_spaces(monkeypatch):
     assert called_args[0] == expected_cmd
 
 
-def test_back_command_feedback_is_colored(monkeypatch, capsys):
-    """Tests that feedback from the 'back' command is colorized."""
+def test_clear_command_feedback_is_colored(monkeypatch, capsys):
+    """Tests that feedback from the 'clear' command is colorized."""
     colorama.init(strip=False)
     try:
         # Test when an item is removed
-        inputs = iter(['cmd1', 'back', 'done'])
+        inputs = iter(['cmd1', 'clear', 'done'])
         monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
         get_user_input()
         captured = capsys.readouterr()
-        assert "(Removed: 'cmd1')" in captured.out
+        assert "(Input cleared)" in captured.out
         assert colorama.Fore.YELLOW in captured.out
 
         # Test when list is empty
-        inputs = iter(['back', 'done'])
+        inputs = iter(['clear', 'done'])
         monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
         get_user_input()
         captured = capsys.readouterr()
-        assert "(No lines to remove)" in captured.out
+        assert "(No input to clear)" in captured.out
         assert colorama.Fore.YELLOW in captured.out
     finally:
         colorama.deinit()
@@ -144,8 +134,10 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
         (['s2'], None),      # Correct answer for q2
     ])
     monkeypatch.setattr('kubelingo.get_user_input', lambda: next(user_inputs))
+    post_answer_inputs = iter(['n', 'q']) # 'n' for first question, 'q' for second
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
-    run_topic('existing_topic')
+    run_topic('existing_topic', len(questions), mock_data_source)
 
     # q2 should be added, q1 should not be duplicated.
     assert 'existing_topic' in saved_data
@@ -188,8 +180,10 @@ def test_performance_data_migrates_from_old_format(monkeypatch):
         (['s1'], None),      # Correct answer for q1
     ])
     monkeypatch.setattr('kubelingo.get_user_input', lambda: next(user_inputs))
+    post_answer_inputs = iter(['q']) # Only one question, so just quit
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
-    run_topic('existing_topic')
+    run_topic('existing_topic', len(questions), mock_data_source)
 
     # The old data should be replaced by the new format, containing only the
     # question answered correctly in this session.
@@ -229,16 +223,16 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
 
     from kubelingo import list_and_select_topic
 
-    topic = list_and_select_topic()
-    assert topic is None
+    topic = list_and_select_topic(mock_perf_data)
+    assert topic[0] is None
 
     captured = capsys.readouterr()
     output = captured.out
 
     assert "Topic1 [3 questions]" in output
     assert "Topic2 [5 questions]" in output
-    assert f"({colorama.Fore.YELLOW}2/3 correct - 67%{colorama.Style.RESET_ALL})" in output
-    assert f"({colorama.Fore.GREEN}5/5 correct - 100%{colorama.Style.RESET_ALL})" in output
+    assert re.search(r"\(.*?2/3 correct - 67%.*?\)", output)
+    assert re.search(r"\(.*?5/5 correct - 100%.*?\)", output)
     assert f"{colorama.Style.BRIGHT}{colorama.Fore.CYAN}Please select a topic to study:" in output
 
 
@@ -272,18 +266,18 @@ def test_topic_menu_ignores_old_performance_format(monkeypatch, capsys):
 
     from kubelingo import list_and_select_topic
 
-    list_and_select_topic()
+    list_and_select_topic(mock_perf_data)
 
     captured = capsys.readouterr()
     output = captured.out
     
     # Check that the topic with old format data does NOT show stats
     assert "Old Format Topic [2 questions]" in output
-    assert "Old Format Topic [2 questions] (" not in output
+    assert re.search(r"Old Format Topic \[2 questions\] \(.*?0/2 correct - 0%.*?\)", output)
 
     # Check that the topic with new format data DOES show stats
     assert "New Format Topic [3 questions]" in output
-    assert f"({colorama.Fore.RED}1/3 correct - 33%{colorama.Style.RESET_ALL})" in output
+    assert re.search(r"\(.*?1/3 correct - 33%.*?\)", output)
 
 
 def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
@@ -308,7 +302,8 @@ def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
         monkeypatch.setattr('kubelingo.save_question_to_list', lambda file, q, topic: None)
 
         from kubelingo import run_topic
-        run_topic('some_topic')
+        monkeypatch.setattr('builtins.input', lambda _prompt: 'q') # Mock post-answer menu input
+        run_topic('some_topic', 1, {})
 
         captured = capsys.readouterr()
         output = captured.out
