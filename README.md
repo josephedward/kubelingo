@@ -1,6 +1,11 @@
 # Kubelingo
 
+[![Build Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
+
 ## CKAD Studying Tool
+
+
+
 
 Kubelingo is a command-line interface (CLI) tool designed to help you study for the Certified Kubernetes Application Developer (CKAD) exam. It provides interactive questions and scenarios to test your knowledge of Kubernetes concepts and `kubectl` commands.
 
@@ -60,3 +65,16 @@ Contributions are welcome! If you have suggestions for new questions, features, 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+  
+## Demo
+
+We have recorded an interactive terminal session demonstrating all features of Kubelingo using [asciinema](https://asciinema.org).
+
+<details>
+<summary>Click to expand demo recording</summary>
+
+<asciinema-player src="https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ.cast" preload></asciinema-player>
+
+</details>
+
+
