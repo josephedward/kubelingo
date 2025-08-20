@@ -1,6 +1,7 @@
 # Kubelingo
 
-[![Build Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
+[![Build Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml) [![Coverage](https://img.shields.io/github/actions/workflow-outputs/josephedward/kubelingo/ci.yml/coverage-percent?branch=main)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
+View [latest test run](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml?query=branch%3Amain) for details.
 
 ## CKAD Studying Tool
 
