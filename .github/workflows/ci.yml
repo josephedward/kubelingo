@@ -50,9 +50,66 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
 
-    - name: Increment version
+    - name: Determine Version Bump Type
+      id: get_bump_type
       run: |
-        sed -i -E 's/^(version = "[0-9]+\.[0-9]+\.)([0-9]+)"$/echo "\1$((\2+1))"/e' pyproject.toml
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "Latest tag: $LATEST_TAG"
+        
+        # Get commit messages since the last tag
+        COMMIT_MESSAGES=$(git log --pretty=format:%s ${LATEST_TAG}..HEAD)
+        echo "Commit messages since last tag:
+$COMMIT_MESSAGES"
+
+        BUMP_TYPE="patch" # Default to patch
+
+        if echo "$COMMIT_MESSAGES" | grep -q "BREAKING CHANGE:"; then
+          BUMP_TYPE="major"
+        elif echo "$COMMIT_MESSAGES" | grep -q "feat:"; then
+          BUMP_TYPE="minor"
+        elif echo "$COMMIT_MESSAGES" | grep -q "fix:"; then
+          BUMP_TYPE="patch"
+        fi
+        
+        echo "Determined bump type: $BUMP_TYPE"
+        echo "VERSION_BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_OUTPUT
+
+    - name: Bump Version
+      run: |
+        python -c "
+import re
+import os
+
+file_path = 'pyproject.toml'
+bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
+
+with open(file_path, 'r') as f:
+    content = f.read()
+
+version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"', content)
+if version_match:
+    major, minor, patch = map(int, version_match.groups())
+
+    if bump_type == 'major':
+        major += 1
+        minor = 0
+        patch = 0
+    elif bump_type == 'minor':
+        minor += 1
+        patch = 0
+    else: # patch
+        patch += 1
+
+    new_version = f'version = "{major}.{minor}.{patch}"'
+    old_version_line = version_match.group(0)
+    content = content.replace(old_version_line, new_version)
+
+    with open(file_path, 'w') as f:
+        f.write(content)
+    print(f'Updated version to: {major}.{minor}.{patch}')
+else:
+    print('Version not found in pyproject.toml')
+"
         cat pyproject.toml # For debugging: show the updated version
     - name: Build package
       run: python -m build
