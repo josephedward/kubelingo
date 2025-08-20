@@ -62,3 +62,14 @@ Contributions are welcome! If you have suggestions for new questions, features, 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+  
+## Demo
+
+We have recorded an interactive terminal session demonstrating all features of Kubelingo using [asciinema](https://asciinema.org).
+
+<details>
+<summary>Click to expand demo recording</summary>
+
+<asciinema-player src="demo.cast" preload></asciinema-player>
+
+</details>
