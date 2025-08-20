@@ -276,16 +276,16 @@ def test_get_normalized_question_text_with_newlines():
     (["kubectl get deploy -n my-namespace"], ["kubectl get deployment --namespace my-namespace"]),
     (["kubectl get deploy --namespace my-namespace"], ["kubectl get deployment --namespace my-namespace"]),
     (["kubectl run my-pod --image=nginx --port=80"], ["kubectl run my-pod --image=nginx --port=80"]),
-    (["kubectl run my-pod --port=80 --image=nginx"], ["kubectl run my-pod --image=nginx --port=80"] # Flag sorting
-    ),(["kubectl create deployment my-app --image=my-image -n default"], ["kubectl create deployment my-app --image=my-image --namespace default"]),
+    (["kubectl run my-pod --port=80 --image=nginx"], ["kubectl run my-pod --image=nginx --port=80"]),
+    (["kubectl create deployment my-app --image=my-image -n default"], ["kubectl create deployment my-app --image=my-image --namespace default"]),
     (["helm install my-release stable/chart -f values.yaml"], ["helm install my-release stable/chart -f values.yaml"]),
-    ([""], [""] # Empty command
-    ),(["  kubectl   get   pods  "], ["kubectl get pod"] # Extra spaces
-    ),(["kubectl get svc -o wide"], ["kubectl get service -o wide"] # Short flag with value
-    ),(["kubectl get svc -A"], ["kubectl get service -A"] # Short flag without value
-    ),(["kubectl get all -n kube-system"], ["kubectl get all --namespace kube-system"] # 'all' is not an alias, should remain
-    ),(["kubectl get pod my-pod -o yaml --namespace test"], ["kubectl get pod my-pod --namespace test -o yaml"] # Positional args before flags
-    ),(["kubectl get pod my-pod --namespace test -o yaml"], ["kubectl get pod my-pod --namespace test -o yaml"])
+    ([""], [""]), # Empty command
+    (["  kubectl   get   pods  "], ["kubectl get pod"]),
+    (["kubectl get svc -o wide"], ["kubectl get service -o wide"]),
+    (["kubectl get svc -A"], ["kubectl get service -A"]),
+    (["kubectl get all -n kube-system"], ["kubectl get all --namespace kube-system"]),
+    (["kubectl get pod my-pod -o yaml --namespace test"], ["kubectl get pod my-pod --namespace test -o yaml"]),
+    (["kubectl get pod my-pod --namespace test -o yaml"], ["kubectl get pod my-pod --namespace test -o yaml"]),
 ])
 def test_normalize_command(input_commands, expected_output):
     assert normalize_command(input_commands) == expected_output
@@ -391,12 +391,12 @@ def test_update_question_source_in_yaml_empty_file(mock_topic_file, capsys):
 
 @pytest.fixture
 def mock_create_issue_deps(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
-    with patch('kubelingo.kubelingo.remove_question_from_list') as mock_remove_question_from_list,
-         patch('time.asctime', return_value='mock_timestamp'):
-        yield mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1], mock_remove_question_from_list
+    with patch('kubelingo.kubelingo.remove_question_from_list') as mock_remove_question_from_list:
+        with patch('time.asctime', return_value='mock_timestamp') as mock_asctime:
+            yield mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1], mock_remove_question_from_list, mock_asctime
 
 def test_create_issue_valid_input(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list = mock_create_issue_deps
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = False # No existing issues file
     
     question_dict = {'question': 'Test Question'}
@@ -424,7 +424,7 @@ def test_create_issue_valid_input(mock_create_issue_deps, capsys):
     assert "Issue reported. Thank you!" in captured.out
 
 def test_create_issue_empty_input(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list = mock_create_issue_deps
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = False
     
     question_dict = {'question': 'Test Question'}
@@ -444,7 +444,7 @@ def test_create_issue_empty_input(mock_create_issue_deps, capsys):
     assert "Issue reporting cancelled." in captured.out
 
 def test_create_issue_existing_issues(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list = mock_create_issue_deps
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = True
     mock_load.return_value = [{'issue': 'Old Issue'}]
     
@@ -521,15 +521,21 @@ def test_load_questions_file_found(mock_load_questions_deps):
 
 @pytest.fixture
 def mock_handle_config_menu_deps():
-    with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen,
-         patch('dotenv.dotenv_values', return_value={}) as mock_dotenv_values,
-         patch('dotenv.set_key') as mock_set_key,
-         patch('os.environ') as mock_environ,
-         patch('time.sleep') as mock_sleep:
-        yield mock_clear_screen, mock_dotenv_values, mock_set_key, mock_environ, mock_sleep
+    # Create a mock for os.environ that behaves like a dictionary
+    mock_environ_dict = {}
+    mock_environ = MagicMock(wraps=mock_environ_dict)
+    mock_environ.get.side_effect = mock_environ_dict.get
+    mock_environ.__setitem__.side_effect = mock_environ_dict.__setitem__
+
+    with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
+        with patch('kubelingo.kubelingo.dotenv_values', return_value={}) as mock_dotenv_values:
+            with patch('kubelingo.kubelingo.set_key') as mock_set_key:
+                with patch('os.environ', new=mock_environ) as mock_os_environ:
+                    with patch('time.sleep') as mock_sleep:
+                        yield mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep
 
 def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_environ, mock_sleep = mock_handle_config_menu_deps
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
     # Simulate user input: 1 (set Gemini), then a key, then 3 (back to main menu)
@@ -539,7 +545,7 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     mock_clear_screen.assert_called() # Called multiple times in the loop
     mock_dotenv_values.assert_called() # Called multiple times in the loop
     mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
-    assert mock_environ.get("GEMINI_API_KEY") == 'test_gemini_key' # Check if os.environ was updated
+    assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key' # Check if os.environ was updated
     mock_sleep.assert_called() # Called after each action
     
     captured = capsys.readouterr()
@@ -547,7 +553,7 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     assert "Gemini API Key saved." in captured.out
 
 def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_environ, mock_sleep = mock_handle_config_menu_deps
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
     # Simulate user input: 2 (set OpenAI), then a key, then 3 (back to main menu)
@@ -557,15 +563,15 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     mock_clear_screen.assert_called()
     mock_dotenv_values.assert_called()
     mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
-    assert mock_environ.get("OPENAI_API_KEY") == 'test_openai_key'
-    mock_sleep.assert_called() 
+    assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
+    mock_sleep.assert_called()
     
     captured = capsys.readouterr()
     assert "Set OpenAI API Key" in captured.out
     assert "OpenAI API Key saved." in captured.out
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_environ, mock_sleep = mock_handle_config_menu_deps
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
     # Simulate user input: invalid, then 3 (back to main menu)
