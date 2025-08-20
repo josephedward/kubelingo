@@ -4,3 +4,4 @@ thefuzz
 python-Levenshtein
 colorama
 Pygments
+openai
