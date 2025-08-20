@@ -191,6 +191,9 @@ def create_issue(question_dict, topic):
         with open(ISSUES_FILE, 'w') as f:
             yaml.dump(issues, f)
         
+        # If a question is flagged with an issue, remove it from the missed questions list
+        remove_question_from_list(MISSED_QUESTIONS_FILE, question_dict)
+
         print("\nIssue reported. Thank you!")
     else:
         print("\nIssue reporting cancelled.")
@@ -985,17 +988,80 @@ def run_topic(topic, num_to_study, performance_data):
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt (or the new one if it's next)
             elif post_action == 's':
-                if q.get('source'):
+                # Open existing source or search/assign new one
+                if not q.get('source'):
+                    # Interactive search to assign or explore sources
+                    if search is None:
+                        print("\n'googlesearch-python' is not installed. Cannot search for sources.")
+                        input("Press Enter to continue...")
+                        continue
+                    question_text = q.get('question', '').strip()
+                    print(f"\nSearching for source for: {question_text}")
                     try:
-                        import webbrowser
+                        results = list(search(f"kubernetes {question_text}", num_results=5))
+                    except Exception as e:
+                        print(f"Search error: {e}")
+                        input("Press Enter to continue...")
+                        continue
+                    if not results:
+                        print("No search results found.")
+                        input("Press Enter to continue...")
+                        continue
+                    # Determine default as first kubernetes.io link if present
+                    default_idx = next((i for i, u in enumerate(results) if 'kubernetes.io' in u), 0)
+                    print("Search results:")
+                    for idx, url in enumerate(results, 1):
+                        marker = ' (default)' if (idx-1) == default_idx else ''
+                        print(f"  {idx}. {url}{marker}")
+                    # Prompt user for action
+                    while True:
+                        sel = input("Enter=assign default, number=assign that, 'o N'=open N, 's'=skip: ").strip().lower()
+                        if sel == '':
+                            chosen = results[default_idx]
+                            print(f"Assigned default source: {chosen}")
+                        elif sel == 's':
+                            print("Skipping source assignment.")
+                            chosen = None
+                        elif sel.startswith('o'):
+                            parts = sel.split()
+                            if len(parts) == 2 and parts[1].isdigit():
+                                idx = int(parts[1]) - 1
+                                if 0 <= idx < len(results):
+                                    webbrowser.open(results[idx])
+                                    continue
+                            print("Invalid open command.")
+                            continue
+                        elif sel.isdigit() and 1 <= int(sel) <= len(results):
+                            chosen = results[int(sel)-1]
+                            print(f"Assigned source: {chosen}")
+                        else:
+                            print("Invalid choice.")
+                            continue
+                        # Apply assignment if any
+                        if chosen:
+                            q['source'] = chosen
+                            if topic != '_missed':
+                                file_path = f"questions/{topic}.yaml"
+                                topic_data = load_questions(topic)
+                                if topic_data and 'questions' in topic_data:
+                                    for orig_q in topic_data['questions']:
+                                        if get_normalized_question_text(orig_q) == get_normalized_question_text(q):
+                                            orig_q['source'] = chosen
+                                            break
+                                with open(file_path, 'w') as f:
+                                    yaml.dump(topic_data, f, sort_keys=False)
+                                print(f"Saved source to {file_path}")
+                        input("Press Enter to continue...")
+                        break
+                else:
+                    # Open existing source URL
+                    try:
                         print(f"Opening source in your browser: {q['source']}")
                         webbrowser.open(q['source'])
                     except Exception as e:
                         print(f"Could not open browser: {e}")
-                else:
-                    print("\nNo source available for this question.")
-                input("Press Enter to continue...")
-                continue # Re-display the same question prompt
+                    input("Press Enter to continue...")
+                continue  # Re-display the same question prompt
             elif post_action == 'r':
                 # Stay on the same question, clear user input, and re-prompt
                 user_commands.clear() # This needs to be handled by get_user_input or similar
