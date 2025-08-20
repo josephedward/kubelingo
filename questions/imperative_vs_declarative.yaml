@@ -4,6 +4,7 @@ questions:
   solution: 'kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml
 
     '
+  source: https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f
 - question: Create a manifest for a Deployment named 'declarative-deployment' with
     image 'nginx' and 2 replicas. This manifest will be used to apply the configuration
     declaratively.
