@@ -86,7 +86,10 @@ import os
 
 file_path = 'pyproject.toml'
 bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
-
+    - name: Bump Version
+      run: |
+        pip install semver
+        python scripts/bump_version.py
 with open(file_path, 'r') as f:
     content = f.read()
 
