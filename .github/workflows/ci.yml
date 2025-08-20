@@ -83,49 +83,13 @@ jobs:
 
     - name: Bump Version
       run: |
-        python -c "
-        import re
-        import os
-              
-        file_path = 'pyproject.toml'
-        bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
-            - name: Bump Version
-              run: |
-                pip install semver
-                python scripts/bump_version.py
-        with open(file_path, 'r') as f:
-            content = f.read()
+        pip install semver
+        python scripts/bump_version.py
+      - name: Build package
+        run: python -m build
         
-        version_match = re.search(r'version = \"(\d+)\.(\d+)\.(\d+)\"', content)
-        if version_match:
-            major, minor, patch = map(int, version_match.groups())
-        
-            if bump_type == 'major':
-                major += 1
-                minor = 0
-                patch = 0
-            elif bump_type == 'minor':
-                minor += 1
-                patch = 0
-            else: # patch
-                patch += 1
-            
-            new_version = f'version = \"{major}.{minor}.{patch}\"'
-            old_version_line = version_match.group(0)
-            content = content.replace(old_version_line, new_version)
-            
-            with open(file_path, 'w') as f:
-                f.write(content)
-            print(f'Updated version to: {major}.{minor}.{patch}')
-        else:
-            print('Version not found in pyproject.toml')
-        "
-              cat pyproject.toml # For debugging: show the updated version
-            - name: Build package
-              run: python -m build
-        
-            - name: Publish to PyPI
-              env:
-                TWINE_USERNAME: __token__
-                TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-              run: twine upload dist/*
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
