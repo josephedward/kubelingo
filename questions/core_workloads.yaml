@@ -29,7 +29,7 @@ questions:
     \  - name: nginx-container\n    image: nginx:1.22-alpine\n"
 - question: Create a new pod named 'nginx' using the 'nginx:alpine' image.
   solution: kubectl run nginx --image=nginx:alpine
-- question: Expose the 'nginx' pod on port 80.
+- question: Expose the 'nginx' pod on port 80 using a service named 'nginx-service'.
   solution: kubectl expose pod nginx --port=80 --name=nginx-service
 - question: Delete the 'nginx' pod and the 'nginx-service'.
   solution: 'kubectl delete pod nginx
