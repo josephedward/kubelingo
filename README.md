@@ -27,6 +27,30 @@ Once installed, you can run Kubelingo from your terminal:
 kubelingo
 ```
 
+## Managing Question Sources
+
+You can manage `source` fields directly via the `kubelingo` CLI using the following options:
+
+### Add sources from a consolidated file
+```bash
+kubelingo --add-sources --consolidated /path/to/consolidated_questions.yaml
+```
+
+### Check for missing sources
+```bash
+kubelingo --check-sources
+```
+
+### Interactively find and assign sources
+```bash
+kubelingo --interactive-sources
+```
+
+### Auto-approve first search result
+```bash
+kubelingo --interactive-sources --auto-approve
+```
+
 Follow the on-screen prompts to navigate through the questions and scenarios.
 
 ## Contributing
