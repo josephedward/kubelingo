@@ -1,0 +1,6 @@
+PyYAML
+google-generativeai
+thefuzz
+python-Levenshtein
+colorama
+Pygments

@@ -1,0 +1,12 @@
+questions:
+- question: Display documentation for the 'Pod' resource, including its fields.
+  solution: kubectl explain pod
+- question: List all available API resources in the cluster.
+  solution: kubectl api-resources
+- question: Command to list namespaced resources supporting 'list'.
+  solution: kubectl api-resources --verbs=list --namespaced
+- question: Command to view the fields under Deployment.spec.strategy.
+  solution: kubectl explain deployment.spec.strategy
+- question: Check the kubectl client and server versions.
+  solution: kubectl version
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server

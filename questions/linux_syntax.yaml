@@ -1,0 +1,95 @@
+questions:
+- question: In Vim, how do you save the file and quit?
+  solution: :wq or :x
+- question: Create an alias 'k' for 'kubectl'.
+  solution: alias k=kubectl
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
+- question: Enable kubectl autocompletion for bash.
+  solution: source <(kubectl completion bash)
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=BASH
+- question: Add kubectl autocompletion to ~/.bashrc.
+  solution: echo "source <(kubectl completion bash)" >> ~/.bashrc
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
+- question: Set the KUBECONFIG environment variable to /home/user/config.
+  solution: export KUBECONFIG=/home/user/config
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
+- question: Create the `k` alias for `kubectl`.
+  solution: alias k=kubectl
+- question: Enable kubectl autocomplete in your shell for the `k` alias.
+  solution: source <(kubectl completion bash) && complete -F __start_kubectl k
+- question: List pods using the 'k' alias.
+  solution: k get pods
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,List%20all%20pods%20in%20the
+- question: List replicasets using the short alias 'rs'.
+  solution: k get rs
+- question: List daemonsets using the short alias 'ds'.
+  solution: k get ds
+- question: List services using the 'k' alias and 'svc' shortname.
+  solution: k get svc
+- question: List ConfigMaps using the short alias 'cm'.
+  solution: k get cm
+- question: List secrets using the short alias.
+  solution: k get secret
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Secret
+- question: List HorizontalPodAutoscalers using the short alias 'hpa'.
+  solution: k get hpa
+- question: List Ingresses using the short alias 'ing'.
+  solution: k get ing
+- question: List NetworkPolicies using the short alias 'netpol'.
+  solution: k get netpol
+- question: List ServiceAccounts using the short alias 'sa'.
+  solution: k get sa
+- question: In Vim, how do you enter insert mode at the cursor?
+  solution: i
+- question: In Vim, how do you append text after the cursor?
+  solution: a
+- question: In Vim, how do you open a new line below the current line?
+  solution: o
+- question: In Vim, how do you save the file and quit?
+  solution: :wq or :x or ZZ
+- question: In Vim, how do you exit without saving changes?
+  solution: :q! or ZQ
+- question: In Vim, how do you save a file without exiting?
+  solution: :w
+- question: In Vim, how do you delete the current line?
+  solution: dd
+- question: In Vim, how do you copy the current line (yank)?
+  solution: yy
+- question: In Vim, how do you paste after the cursor?
+  solution: p
+- question: In Vim, how do you undo the last change?
+  solution: u
+- question: In Vim, how do you search forward for 'pattern'?
+  solution: /pattern
+- question: In Vim, how do you find the next search occurrence?
+  solution: n
+- question: In Vim, how do you go to the top of the file?
+  solution: gg
+- question: In Vim, how do you go to the end of the file?
+  solution: G
+- question: In Vim, how do you go to line 10?
+  solution: :10 or 10gg or 10G
+- question: In Vim, how do you exit insert mode?
+  solution: <Esc> or <C-c>
+- question: In Vim, how do you redo the last undone change?
+  solution: <C-r>
+- question: In Vim, how do you enter visual mode?
+  solution: v
+- question: In Vim, how do you enter visual line mode?
+  solution: V
+- question: In Vim, how do you enter visual block mode?
+  solution: <C-v>
+- question: In Vim, how do you enter replace mode?
+  solution: R
+- question: In Vim, how do you move to the next word?
+  solution: w
+- question: In Vim, how do you move to the previous word?
+  solution: b
+- question: In Vim, how do you move to the end of the word?
+  solution: e
+- question: In Vim, how do you move to the first character of the line?
+  solution: '0'
+- question: In Vim, how do you move to the end of the line?
+  solution: $
+- question: In Vim, how do you jump to a matching bracket?
+  solution: '%'

@@ -1,0 +1,50 @@
+questions:
+  - question: "Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: ssd-pod
+      spec:
+        containers:
+        - name: main
+          image: nginx
+        nodeSelector:
+          disktype: ssd
+  - question: "Deployment manifest with nodeSelector disktype=ssd."
+    solution: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: scheduled
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: scheduled
+        template:
+          metadata:
+            labels:
+              app: scheduled
+          spec:
+            nodeSelector:
+              disktype: ssd
+            containers:
+              - name: app
+                image: nginx
+  - question: "Pod manifest tolerating taint 'dedicated=ml:NoSchedule'."
+    solution: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: tolerate-ml
+      spec:
+        tolerations:
+          - key: "dedicated"
+            operator: "Equal"
+            value: "ml"
+            effect: "NoSchedule"
+        containers:
+          - name: app
+            image: busybox
+            command: ["sh","-c","sleep 3600"]
