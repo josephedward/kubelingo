@@ -1,4 +1,4 @@
----
+
 name: CI/CD Pipeline
 
 on:
@@ -90,7 +90,7 @@ bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
 with open(file_path, 'r') as f:
     content = f.read()
 
-version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"', content)
+version_match = re.search(r'version = \"(\d+)\.(\d+)\.(\d+)\"', content)
 if version_match:
     major, minor, patch = map(int, version_match.groups())
 
@@ -104,7 +104,7 @@ if version_match:
     else: # patch
         patch += 1
 
-    new_version = f'version = "{major}.{minor}.{patch}"'
+    new_version = f'version = \"{major}.{minor}.{patch}\"'
     old_version_line = version_match.group(0)
     content = content.replace(old_version_line, new_version)
 
@@ -114,7 +114,7 @@ if version_match:
 else:
     print('Version not found in pyproject.toml')
 "
-        cat pyproject.toml # For debugging: show the updated version
+      cat pyproject.toml # For debugging: show the updated version
     - name: Build package
       run: python -m build
 
