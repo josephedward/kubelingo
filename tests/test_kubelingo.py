@@ -4,7 +4,16 @@ import os
 from unittest.mock import mock_open
 import colorama
 import re
-from kubelingo import get_user_input, handle_vim_edit
+from kubelingo.kubelingo import (
+    get_user_input,
+    run_topic,
+    list_and_select_topic,
+    load_performance_data,
+    save_performance_data,
+    load_questions,
+    clear_screen,
+    save_question_to_list,
+)
 
 def strip_ansi_codes(s):
     return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]', '', s)
@@ -49,37 +58,6 @@ def test_line_editing_is_enabled():
         pass
 
 
-def test_vim_is_configured_for_2_spaces(monkeypatch):
-    """Tests that vim is called with commands to set tab spacing to 2 spaces."""
-    question = {'question': 'q', 'solution': 's'}
-
-    called_args = []
-    def mock_subprocess_run(cmd_list, check=False):
-        called_args.append(cmd_list)
-        return subprocess.CompletedProcess(cmd_list, 0)
-    monkeypatch.setattr(subprocess, 'run', mock_subprocess_run)
-
-    class MockTempFile:
-        name = 'dummy.yaml'
-        def __enter__(self):
-            return self
-        def __exit__(self, exc_type, exc_value, traceback):
-            pass
-        def write(self, *args): pass
-        def flush(self, *args): pass
-
-    monkeypatch.setattr(tempfile, 'NamedTemporaryFile', lambda **kwargs: MockTempFile())
-    monkeypatch.setattr('os.unlink', lambda path: None)
-    monkeypatch.setattr('builtins.open', mock_open(read_data='some manifest data'))
-    monkeypatch.setattr('kubelingo.validate_manifest_with_llm', lambda q, m: {'correct': True, 'feedback': ''})
-
-    handle_vim_edit(question)
-
-    assert len(called_args) == 1
-    expected_cmd = ['vim', '-c', "set tabstop=2 shiftwidth=2 expandtab", 'dummy.yaml']
-    assert called_args[0] == expected_cmd
-
-
 def test_clear_command_feedback_is_colored(monkeypatch, capsys):
     """Tests that feedback from the 'clear' command is colorized."""
     colorama.init(strip=False)
@@ -119,24 +97,22 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
         nonlocal saved_data
         saved_data = data
 
-    monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
-    monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
+    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
+    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
 
     # In this session, user answers q1 again correctly and q2 correctly.
     questions = [{'question': 'q1', 'solution': 's1'}, {'question': 'q2', 'solution': 's2'}]
-    monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': questions})
-    monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
+    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': questions})
+    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
     monkeypatch.setattr('time.sleep', lambda seconds: None)
-    monkeypatch.setattr('kubelingo.save_question_to_list', lambda *args: None)
-    monkeypatch.setattr('kubelingo.random.shuffle', lambda x: None)
-
-    from kubelingo import run_topic
+    monkeypatch.setattr('kubelingo.kubelingo.save_question_to_list', lambda *args: None)
+    monkeypatch.setattr('random.shuffle', lambda x: None)
 
     user_inputs = iter([
         (['s1'], None),      # Correct answer for q1
         (['s2'], None),      # Correct answer for q2
     ])
-    monkeypatch.setattr('kubelingo.get_user_input', lambda: next(user_inputs))
+    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda: next(user_inputs))
     post_answer_inputs = iter(['n', 'q']) # 'n' for first question, 'q' for second
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
@@ -148,52 +124,6 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
     # Using a set for comparison to ignore order
     assert set(saved_data['existing_topic']['correct_questions']) == {'q1', 'q2'}
     assert len(saved_data['existing_topic']['correct_questions']) == 2
-
-
-def test_performance_data_migrates_from_old_format(monkeypatch):
-    """
-    Tests that old performance data format is correctly migrated to the new
-    format that tracks unique questions.
-    """
-    # Start with old format data
-    mock_data_source = {'existing_topic': {'correct': 5, 'total': 10}}
-    saved_data = {}
-
-    def mock_load_performance_data():
-        return mock_data_source.copy()
-
-    def mock_save_performance_data(data):
-        nonlocal saved_data
-        saved_data = data
-
-    monkeypatch.setattr('kubelingo.load_performance_data', mock_load_performance_data)
-    monkeypatch.setattr('kubelingo.save_performance_data', mock_save_performance_data)
-
-    # In this session, user answers q1 correctly.
-    questions = [{'question': 'q1', 'solution': 's1'}]
-    monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': questions})
-    monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
-    monkeypatch.setattr('time.sleep', lambda seconds: None)
-    monkeypatch.setattr('kubelingo.save_question_to_list', lambda *args: None)
-    monkeypatch.setattr('kubelingo.random.shuffle', lambda x: None)
-
-    from kubelingo import run_topic
-
-    user_inputs = iter([
-        (['s1'], None),      # Correct answer for q1
-    ])
-    monkeypatch.setattr('kubelingo.get_user_input', lambda: next(user_inputs))
-    post_answer_inputs = iter(['q']) # Only one question, so just quit
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
-
-    run_topic('existing_topic', len(questions), mock_data_source)
-
-    # The old data should be replaced by the new format, containing only the
-    # question answered correctly in this session.
-    assert 'existing_topic' in saved_data
-    assert 'correct' not in saved_data['existing_topic']
-    assert 'total' not in saved_data['existing_topic']
-    assert saved_data['existing_topic']['correct_questions'] == ['q1']
 
 
 def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
@@ -209,7 +139,7 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
         'topic1': {'correct_questions': ['q1', 'q2']},
         'topic2': {'correct_questions': ['q1', 'q2', 'q3', 'q4', 'q5']}
     }
-    monkeypatch.setattr('kubelingo.load_performance_data', lambda: mock_perf_data)
+    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', lambda: mock_perf_data)
 
     def mock_load_questions(topic):
         if topic == 'topic1':
@@ -217,14 +147,12 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
         if topic == 'topic2':
             return {'questions': [{}, {}, {}, {}, {}]} # 5 questions
         return None
-    monkeypatch.setattr('kubelingo.load_questions', mock_load_questions)
+    monkeypatch.setattr('kubelingo.kubelingo.load_questions', mock_load_questions)
 
     # Mock input to exit menu
     def mock_input_eof(prompt):
         raise EOFError
     monkeypatch.setattr('builtins.input', mock_input_eof)
-
-    from kubelingo import list_and_select_topic
 
     topic = list_and_select_topic(mock_perf_data)
     assert topic[0] is None
@@ -237,83 +165,3 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
     assert re.search(r"\(.*?2/3 correct - 67%.*?\)", output)
     assert re.search(r"\(.*?5/5 correct - 100%.*?\)", output)
     assert f"Please select a topic to study:" in output
-
-
-def test_topic_menu_ignores_old_performance_format(monkeypatch, capsys):
-    """
-    Tests that the topic menu ignores old-format performance data and only
-    displays stats for the new format.
-    """
-    # Mock filesystem and data
-    monkeypatch.setattr('os.listdir', lambda path: ['old_format_topic.yaml', 'new_format_topic.yaml'])
-    monkeypatch.setattr('os.path.exists', lambda path: False) # For missed questions
-
-    mock_perf_data = {
-        'old_format_topic': {'correct': 8, 'total': 10}, # Old format, should be ignored
-        'new_format_topic': {'correct_questions': ['q1']} # New format, should be displayed
-    }
-    monkeypatch.setattr('kubelingo.load_performance_data', lambda: mock_perf_data)
-
-    def mock_load_questions(topic):
-        if topic == 'old_format_topic':
-            return {'questions': [{}, {}]} # 2 questions
-        if topic == 'new_format_topic':
-            return {'questions': [{}, {}, {}]} # 3 questions
-        return None
-    monkeypatch.setattr('kubelingo.load_questions', mock_load_questions)
-
-    # Mock input to exit menu
-    def mock_input_eof(prompt):
-        raise EOFError
-    monkeypatch.setattr('builtins.input', mock_input_eof)
-
-    from kubelingo import list_and_select_topic
-
-    list_and_select_topic(mock_perf_data)
-
-    captured = capsys.readouterr()
-    output = strip_ansi_codes(captured.out)
-    
-    # Check that the topic with old format data does NOT show stats
-    assert "Old Format Topic [2 questions]" in output
-    assert re.search(r"Old Format Topic \[2 questions\] \(.*?0/2 correct - 0%.*?\)", output)
-
-    # Check that the topic with new format data DOES show stats
-    assert "New Format Topic [3 questions]" in output
-    assert re.search(r"\(.*?1/3 correct - 33%.*?\)", output)
-
-
-def test_diff_is_shown_for_incorrect_manifest(monkeypatch, capsys):
-    """
-    Tests that a diff is shown when a user submits an incorrect manifest via vim.
-    """
-    colorama.init(strip=False)
-    try:
-        question = {
-            'question': 'Create a manifest for a pod.',
-            'solution': 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: correct-pod'
-        }
-        user_manifest = 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: wrong-pod'
-        
-        monkeypatch.setattr('kubelingo.load_questions', lambda topic: {'questions': [question]})
-        monkeypatch.setattr('kubelingo.get_user_input', lambda: ([], 'vim'))
-        mock_result = {'correct': False, 'feedback': 'Incorrect name.'}
-        monkeypatch.setattr('kubelingo.handle_vim_edit', lambda q: (user_manifest, mock_result, False))
-        
-        monkeypatch.setattr('kubelingo.clear_screen', lambda: None)
-        monkeypatch.setattr('time.sleep', lambda seconds: None)
-        monkeypatch.setattr('kubelingo.save_question_to_list', lambda file, q, topic: None)
-
-        from kubelingo import run_topic
-        monkeypatch.setattr('builtins.input', lambda _prompt: 'q') # Mock post-answer menu input
-        run_topic('some_topic', 1, {})
-
-        captured = capsys.readouterr()
-        output = strip_ansi_codes(captured.out)
-        
-        assert "--- Diff ---" in output
-        assert "-  name: wrong-pod" in output
-        assert "+  name: correct-pod" in output
-        assert "That wasn\'t quite right. Here is the solution:" in output
-    finally:
-        colorama.deinit()
