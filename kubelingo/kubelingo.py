@@ -11,6 +11,38 @@ import tempfile
 import subprocess
 import difflib
 from colorama import Fore, Style, init as colorama_init
+
+
+
+def colorize_ascii_art(ascii_art_string):
+    """Applies a green and black pattern to the ASCII art string."""
+    colors = [Fore.GREEN, Fore.WHITE] # Use only green and white
+    
+    lines = ascii_art_string.splitlines()
+    colored_lines = []
+    
+    # Find the center of the logo (approximately)
+    max_width = max(len(line) for line in lines)
+    max_height = len(lines)
+    center_x = max_width // 2
+    center_y = max_height // 2
+
+    for y, line in enumerate(lines):
+        colored_line = []
+        for x, char in enumerate(line):
+            if char == ' ':
+                colored_line.append(' ')
+            else:
+                # Calculate distance from center (Manhattan distance for simplicity)
+                distance = abs(x - center_x) + abs(y - center_y)
+                
+                # Alternate colors based on distance or a combination of x and y
+                # This will create a concentric or diagonal pattern
+                color_index = (distance // 2) % len(colors) # Adjust divisor for pattern density
+                color = colors[color_index]
+                colored_line.append(f"{color}{char}{Style.RESET_ALL}")
+        colored_lines.append("".join(colored_line))
+    return "\n".join(colored_lines)
 from pygments import highlight
 from pygments.lexers import YamlLexer
 from pygments.formatters import TerminalFormatter
@@ -540,10 +572,9 @@ K8S_RESOURCE_ALIASES = {
 }
 
 def normalize_command(command_lines):
-    """Normalizes a list of kubectl command strings by expanding aliases."""
+    """Normalizes a list of kubectl/helm command strings by expanding aliases, common short flags, and reordering flags."""
     normalized_lines = []
     for command in command_lines:
-        # Normalize whitespace and split
         words = ' '.join(command.split()).split()
         if not words:
             normalized_lines.append("")
@@ -557,8 +588,62 @@ def normalize_command(command_lines):
         for i, word in enumerate(words):
             if word in K8S_RESOURCE_ALIASES:
                 words[i] = K8S_RESOURCE_ALIASES[word]
-                
-        normalized_lines.append(' '.join(words))
+        
+        main_command = []
+        flags = []
+        positional_args = []
+        
+        # Simple state machine to parse command, flags, and positional args
+        # Assumes flags are either --flag or --flag value or -f value
+        i = 0
+        while i < len(words):
+            word = words[i]
+            
+            if word.startswith('--'): # Long flag
+                flags.append(word)
+                if i + 1 < len(words) and not words[i+1].startswith('-'): # Check if next word is a value
+                    flags.append(words[i+1])
+                    i += 1
+            elif word.startswith('-') and len(word) > 1: # Short flag (e.g., -n)
+                if word == '-n': # Expand -n to --namespace
+                    flags.append('--namespace')
+                    if i + 1 < len(words) and not words[i+1].startswith('-'):
+                        flags.append(words[i+1])
+                        i += 1
+                else: # Other short flags, treat as is for now
+                    flags.append(word)
+                    if i + 1 < len(words) and not words[i+1].startswith('-'):
+                        flags.append(words[i+1])
+                        i += 1
+            elif not main_command and (word == 'kubectl' or word == 'helm'): # Main command
+                main_command.append(word)
+            elif main_command and not positional_args and not word.startswith('-'): # Subcommand or first positional arg
+                main_command.append(word)
+            else: # Positional arguments
+                positional_args.append(word)
+            i += 1
+        
+        # Sort flags alphabetically to ensure consistent order
+        # This is tricky because flags come with values.
+        # Let's group flags with their values before sorting.
+        
+        grouped_flags = []
+        j = 0
+        while j < len(flags):
+            flag = flags[j]
+            if flag.startswith('-'):
+                if j + 1 < len(flags) and not flags[j+1].startswith('-'):
+                    grouped_flags.append(f"{flag} {flags[j+1]}")
+                    j += 1
+                else:
+                    grouped_flags.append(flag)
+            j += 1
+        
+        grouped_flags.sort() # Sort the grouped flags
+        
+        # Reconstruct the command
+        normalized_command_parts = main_command + positional_args + grouped_flags
+        normalized_lines.append(' '.join(normalized_command_parts))
     return normalized_lines
 
 def list_and_select_topic(performance_data):
@@ -706,16 +791,16 @@ def run_topic(topic, num_to_study, performance_data):
         if not questions:
             print("No missed questions to review. Well done!")
             return
+        random.shuffle(questions) # Shuffle ALL missed questions first
     else:
         data = load_questions(topic)
         if not data or 'questions' not in data:
             print("No questions found in the specified topic file.")
             return
         questions = data['questions']
+        random.shuffle(questions) # Also shuffle regular topic questions
     
     questions = questions[:num_to_study]
-
-    random.shuffle(questions)
 
     # performance_data is now passed as an argument
     topic_perf = performance_data.get(topic, {})
@@ -764,73 +849,15 @@ def run_topic(topic, num_to_study, performance_data):
                 create_issue(q, question_topic_context)
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
-            
             if special_action == 'source':
+                # Open existing source URL or inform absence
                 if q.get('source'):
-                    try:
-                        import webbrowser
-                        print(f"Opening source in your browser: {q['source']}")
-                        webbrowser.open(q['source'])
-                    except Exception as e:
-                        print(f"Could not open browser: {e}")
+                    print(f"Opening source in your browser: {q['source']}")
+                    webbrowser.open(q['source'])
                 else:
-                    print("\nNo source available for this question. Let's find one.")
-                    if search is None:
-                        print("  'googlesearch-python' is not installed. Cannot search for sources.")
-                    else:
-                        while True:
-                            search_query = input("  Enter search query (e.g., 'kubernetes <question text>'): ").strip()
-                            if not search_query:
-                                print("  Search query cannot be empty. Skipping source search.")
-                                break
-
-                            print("  Searching for sources...")
-                            search_results = []
-                            try:
-                                search_results = [url for url in search(search_query, num_results=5)]
-                            except Exception as e:
-                                print(f"  Error during search: {e}")
-
-                            if search_results:
-                                print("  Search results:")
-                                for j, url in enumerate(search_results):
-                                    print(f"    {j+1}. {url}")
-
-                                while True:
-                                    select_action = input("    Select a number to use, [o]pen in browser (first result), [s]earch again, [m]anual, [sk]skip, [q]quit: ").strip().lower()
-                                    if select_action == 'o':
-                                        try:
-                                            webbrowser.open(search_results[0])
-                                        except Exception as e:
-                                            print(f"    Could not open browser: {e}")
-                                        continue
-                                    elif select_action == 's':
-                                        break # Break inner loop to search again
-                                    elif select_action == 'm':
-                                        manual_source = input("    Enter source URL manually: ").strip()
-                                        if manual_source:
-                                            q['source'] = manual_source
-                                            print(f"    Source added: {q['source']}")
-                                            break # Source added
-                                        else:
-                                            print("    Manual source entry cancelled.")
-                                            continue # Go back to search/manual options
-                                    elif select_action == 'sk':
-                                        print("    Skipping source selection for this question.")
-                                        break # Skip this question
-                                    elif select_action == 'q':
-                                        sys.exit("User quit.") # Exit script
-                                    try:
-                                        selected_index = int(select_action) - 1
-                                        if 0 <= selected_index < len(search_results):
-                                            q['source'] = search_results[selected_index]
-                                            print(f"    Source added: {q['source']}")
-                                            break # Source added
-                                        else:
-                                            print("    Invalid selection.")
-                                    except ValueError:
-                                        print("    Invalid input.")
-
+                    print("\nNo source available for this question.")
+                input("Press Enter to continue...")
+                continue # Re-display the same question prompt
             if special_action == 'generate':
                 new_q = generate_more_questions(question_topic_context, q)
                 if new_q:
@@ -1224,7 +1251,7 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     if interactive_sources:
         cmd_interactive_sources(questions_dir='questions', auto_approve=auto_approve)
         return
-    print(ASCII_ART)
+    print(colorize_ascii_art(ASCII_ART))
     colorama_init(autoreset=True)
     if not os.path.exists('questions'):
         os.makedirs('questions')
