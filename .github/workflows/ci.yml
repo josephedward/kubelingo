@@ -10,6 +10,15 @@ on:
       - main
 
 jobs:
+  lint-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint commit messages
+        uses: wagoid/commitlint-github-action@v4
+        with:
+          configFile: .commitlintrc.yaml
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +45,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
-    needs: test
+    needs: [test, lint-commits]
     if: github.event_name == 'push' && success()
     runs-on: ubuntu-latest
     environment: release
