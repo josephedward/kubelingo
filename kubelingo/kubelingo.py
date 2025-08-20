@@ -16,6 +16,12 @@ from pygments.lexers import YamlLexer
 from pygments.formatters import TerminalFormatter
 from dotenv import load_dotenv, dotenv_values, set_key
 import click
+import sys
+import webbrowser
+try:
+    from googlesearch import search
+except ImportError:
+    search = None
 
 ASCII_ART = r"""                                      bbbbbbbb
 KKKKKKKKK    KKKKKKK                  b::::::b                                lllllll   iiii
@@ -29,7 +35,7 @@ KK::::::K  K:::::KKKuuuuuu    uuuuuu   b:::::bbbbbbbbb        eeeeeeeeeeee     l
   K:::::::::::K     u::::u    u::::u   b:::::b    b::::::be:::::::eeeee::::::e l::::l  i::::i   n:::::nnnn:::::ng:::::g     g:::::g o::::o     o::::o
   K::::::K:::::K    u::::u    u::::u   b:::::b     b:::::be:::::::::::::::::e  l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
   K:::::K K:::::K   u::::u    u::::u   b:::::b     b:::::be::::::eeeeeeeeeee   l::::l  i::::i   n::::n    n::::ng:::::g     g:::::g o::::o     o::::o
-KK::::::K  K:::::KKKu:::::uuuu:::::u   b:::::b     b:::::be:::::::e            l::::l  i::::i   n::::n    n::::ng::::::g    g:::::g o::::o     o::::o
+KK::::::K  K:::::KKKu:::::uuuu:::::u   b:::::b     b:::::be:::::::e            l::::l  i::::i   n::::n    n::::ng::::::g    g:::::g o:::::ooooo:::::o
 K:::::::K   K::::::Ku:::::::::::::::uu b:::::bbbbbb::::::be::::::::e          l::::::li::::::i  n::::n    n::::ng:::::::ggggg:::::g o:::::ooooo:::::o
 K:::::::K    K:::::K u:::::::::::::::u b::::::::::::::::b  e::::::::eeeeeeee  l::::::li::::::i  n::::n    n::::n g::::::::::::::::g o:::::::::::::::o
 K:::::::K    K:::::K  uu::::::::uu:::u b:::::::::::::::b    ee:::::::::::::e  l::::::li::::::i  n::::n    n::::n  gg::::::::::::::g  oo:::::::::::oo
@@ -40,8 +46,7 @@ KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  ll
                                                                                                                  g::::::ggg:::::::g
                                                                                                                   gg:::::::::::::g
                                                                                                                     ggg::::::ggg
-                                                                                                                       gggggg                    "
-"""
+                                                                                                                       gggggg                    """
 
 USER_DATA_DIR = "user_data"
 
@@ -132,6 +137,34 @@ def remove_question_from_list(list_file, question):
     with open(list_file, 'w') as f:
         yaml.dump(updated_questions, f)
 
+def update_question_source_in_yaml(topic, updated_question):
+    """Updates the source of a specific question in its topic YAML file."""
+    ensure_user_data_dir()
+    topic_file = f"questions/{topic}.yaml"
+    
+    if not os.path.exists(topic_file):
+        print(f"Error: Topic file not found at {topic_file}. Cannot update source.")
+        return
+
+    with open(topic_file, 'r+') as f:
+        data = yaml.safe_load(f) or {'questions': []}
+        
+        found = False
+        for i, question_in_list in enumerate(data['questions']):
+            if get_normalized_question_text(question_in_list) == get_normalized_question_text(updated_question):
+                data['questions'][i]['source'] = updated_question['source']
+                found = True
+                break
+        
+        if found:
+            f.seek(0)
+            yaml.dump(data, f)
+            f.truncate()
+            print(f"Source for question '{updated_question['question']}' updated in {topic}.yaml.")
+        else:
+            print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
+
+
 def create_issue(question_dict, topic):
     """Prompts user for an issue and saves it to a file."""
     ensure_user_data_dir()
@@ -188,6 +221,46 @@ def load_questions(topic):
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
+def handle_config_menu():
+    """Handles the API key configuration menu."""
+    while True:
+        clear_screen()
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---")
+        # Load existing config to display current state
+        config = dotenv_values(".env")
+        gemini_key = config.get("GEMINI_API_KEY", "Not Set")
+        openai_key = config.get("OPENAI_API_KEY", "Not Set")
+
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {Fore.YELLOW}{bool(gemini_key != 'Not Set')}{Style.RESET_ALL})")
+        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {Fore.YELLOW}{bool(openai_key != 'Not Set')}{Style.RESET_ALL})")
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back to Main Menu")
+        
+        choice = input("Enter your choice: ").strip()
+
+        if choice == '1':
+            key = input("Enter your Gemini API Key: ").strip()
+            if key:
+                set_key(".env", "GEMINI_API_KEY", key)
+                os.environ["GEMINI_API_KEY"] = key # Update current session
+                print("\nGemini API Key saved.")
+            else:
+                print("\nNo key entered.")
+            time.sleep(1)
+        elif choice == '2':
+            key = input("Enter your OpenAI API Key: ").strip()
+            if key:
+                set_key(".env", "OPENAI_API_KEY", key)
+                os.environ["OPENAI_API_KEY"] = key # Update current session
+                print("\nOpenAI API Key saved.")
+            else:
+                print("\nNo key entered.")
+            time.sleep(1)
+        elif choice == '3':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(1)
+
 def _get_llm_model():
     """Determines which LLM to use based on available API keys and returns the appropriate model."""
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
@@ -210,7 +283,50 @@ def _get_llm_model():
             
     return None, None
 
+def get_llm_feedback(question, user_answer, solution):
+    """Provides LLM-generated feedback on a user's answer."""
+    llm_type, model = _get_llm_model()
+    if not model:
+        return "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback." # Return info if no LLM
+
+    try:
+        prompt = f'''
+        You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question.
+        The student was asked:
+        ---
+        Question: {question}
+        ---
+        The student provided this answer:
+        ---
+        Student Answer:\n{user_answer}
+        ---
+        The canonical solution is:
+        ---
+        Solution:\n{solution}
+        ---
+        Your task is to provide brief, constructive feedback on the student's answer. 
+        - If the answer is correct, praise the student and briefly explain why it's a good answer.
+        - If the answer is incorrect, explain the mistake clearly and concisely. 
+        - If the student's answer is a reasonable alternative, acknowledge it.
+        - Keep the feedback to 2-3 sentences.
+        '''
+        if llm_type == "gemini":
+            response = model.generate_content(prompt)
+            return response.text.strip()
+        elif llm_type == "openai":
+            response = model.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error getting feedback from LLM: {e}"
+
 # get_llm_feedback function removed temporarily for debugging
+
 
 def validate_manifest_with_llm(question_dict, user_manifest):
     """Validates a user-submitted manifest using the LLM."""
@@ -455,6 +571,10 @@ def list_and_select_topic(performance_data):
         return None
 
     print(f"\n{Style.BRIGHT}{Fore.CYAN}Please select a topic to study:{Style.RESET_ALL}")
+    if has_missed:
+        missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
+        print(f"  {Style.BRIGHT}0.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
+
     for i, topic_name in enumerate(available_topics):
         display_name = topic_name.replace('_', ' ').title()
 
@@ -472,15 +592,13 @@ def list_and_select_topic(performance_data):
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
     if has_missed:
-        missed_questions_count = len(load_questions_from_list(MISSED_QUESTIONS_FILE))
-        print(f"\n{Style.BRIGHT}{Fore.CYAN}Or, select a special action:{Style.RESET_ALL}")
-        print(f"  {Style.BRIGHT}0.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
         print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configure API Keys")
         print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
     
+
     while True:
         try:
-            prompt = f"\nEnter a number (1-{len(available_topics)}) or '0', 'c', 'q': "
+            prompt = f"\nEnter a number (0-{len(available_topics)}), 'c', or 'q': "
             choice = input(prompt).lower()
 
             if choice == '0' and has_missed:
@@ -490,8 +608,8 @@ def list_and_select_topic(performance_data):
                     continue # Go back to topic selection
 
                 while True:
-                    num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or 'all'): ").strip().lower()
-                    if num_to_study_input == 'all':
+                    num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or press Enter for all): ").strip().lower()
+                    if num_to_study_input == 'all' or num_to_study_input == '':
                         num_to_study = missed_questions_count
                         break
                     try:
@@ -524,8 +642,8 @@ def list_and_select_topic(performance_data):
                     continue # Go back to topic selection
 
                 while True:
-                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}, or 'all'): ").strip().lower()
-                    if num_to_study_input == 'all':
+                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}, or press Enter for all): ").strip().lower()
+                    if num_to_study_input == 'all' or num_to_study_input == '':
                         num_to_study = total_questions
                         break
                     try:
@@ -676,7 +794,7 @@ def run_topic(topic, num_to_study, performance_data):
                                     print(f"    {j+1}. {url}")
 
                                 while True:
-                                    select_action = input("    Select a number to use, [o]pen in browser (first result), [s]earch again, [m]anual, [sk]ip, [q]quit: ").strip().lower()
+                                    select_action = input("    Select a number to use, [o]pen in browser (first result), [s]earch again, [m]anual, [sk]skip, [q]quit: ").strip().lower()
                                     if select_action == 'o':
                                         try:
                                             webbrowser.open(search_results[0])
@@ -709,11 +827,6 @@ def run_topic(topic, num_to_study, performance_data):
                                             print("    Invalid selection.")
                                     except ValueError:
                                         print("    Invalid input.")
-                            else:
-                                print("  No search results found.")
-                                break # Exit search loop
-                input("Press Enter to continue...")
-                continue # Re-display the same question prompt
 
             if special_action == 'generate':
                 new_q = generate_more_questions(question_topic_context, q)
@@ -765,6 +878,8 @@ def run_topic(topic, num_to_study, performance_data):
                         show_diff(user_manifest, q['solution'])
                         print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
                         print(colorize_yaml(q['solution']))
+                    else:
+                        print(f"{Fore.GREEN}\nCorrect! Well done.")
                     if q.get('source'):
                         print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 user_answer_graded = True
@@ -897,34 +1012,167 @@ def run_topic(topic, num_to_study, performance_data):
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
 
-@click.group()
+# --- Source Management Commands ---
+def get_source_from_consolidated(item):
+    metadata = item.get('metadata', {}) or {}
+    for key in ('links', 'source', 'citation'):
+        if key in metadata and metadata[key]:
+            val = metadata[key]
+            return val[0] if isinstance(val, list) else val
+    return None
+
+def cmd_add_sources(consolidated_file, questions_dir='questions'):
+    """Add missing 'source' fields from consolidated YAML."""
+    print(f"Loading consolidated questions from '{consolidated_file}'...")
+    data = yaml.safe_load(open(consolidated_file)) or {}
+    mapping = {}
+    for item in data.get('questions', []):
+        prompt = item.get('prompt') or item.get('question')
+        src = get_source_from_consolidated(item)
+        if prompt and src:
+            mapping[prompt.strip()] = src
+    print(f"Found {len(mapping)} source mappings.")
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        topic = yaml.safe_load(open(path)) or {}
+        qs = topic.get('questions', [])
+        updated = 0
+        for q in qs:
+            if q.get('source'):
+                continue
+            text = q.get('question', '').strip()
+            best_src, best_score = None, 0
+            for prompt, src in mapping.items():
+                r = fuzz.ratio(text, prompt)
+                if r > best_score:
+                    best_src, best_score = src, r
+            if best_score > 95:
+                q['source'] = best_src
+                updated += 1
+                print(f"  + Added source to '{text[:50]}...' -> {best_src}")
+        if updated:
+            yaml.dump(topic, open(path, 'w'), sort_keys=False)
+            print(f"Updated {updated} entries in {fname}.")
+    print("Done adding sources.")
+
+def cmd_check_sources(questions_dir='questions'):
+    """Report questions missing a 'source' field."""
+    missing = 0
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        data = yaml.safe_load(open(path)) or {}
+        for i, q in enumerate(data.get('questions', []), start=1):
+            if not q.get('source'):
+                print(f"{fname}: question {i} missing 'source': {q.get('question','')[:80]}")
+                missing += 1
+    if missing == 0:
+        print("All questions have a source.")
+    else:
+        print(f"{missing} questions missing sources.")
+
+def cmd_interactive_sources(questions_dir='questions', auto_approve=False):
+    """Interactively search and assign sources to questions."""
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        data = yaml.safe_load(open(path)) or {}
+        qs = data.get('questions', [])
+        modified = False
+        for idx, q in enumerate(qs, start=1):
+            if q.get('source'):
+                continue
+            text = q.get('question','').strip()
+            print(f"\nFile: {fname} | Question {idx}: {text}")
+            if auto_approve:
+                if not search:
+                    print("  googlesearch not available.")
+                    continue
+                try:
+                    results = list(search(f"kubernetes {text}", num_results=1))
+                except Exception as e:
+                    print(f"  Search error: {e}")
+                    continue
+                if results:
+                    q['source'] = results[0]
+                    print(f"  Auto-set source: {results[0]}")
+                    modified = True
+                continue
+            if not search:
+                print("  Install googlesearch-python to enable search.")
+                return
+            print("  Searching for sources...")
+            try:
+                results = list(search(f"kubernetes {text}", num_results=5))
+            except Exception as e:
+                print(f"  Search error: {e}")
+                continue
+            if not results:
+                print("  No results found.")
+                continue
+            for i, url in enumerate(results, start=1):
+                print(f"    {i}. {url}")
+            choice = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ").strip().lower()
+            if choice == 'o':
+                for url in results:
+                    webbrowser.open(url)
+                choice = '1'
+            if choice.isdigit() and 1 <= int(choice) <= len(results):
+                sel = results[int(choice)-1]
+                q['source'] = sel
+                print(f"  Selected source: {sel}")
+                modified = True
+        if modified:
+            yaml.dump(data, open(path, 'w'), sort_keys=False)
+            print(f"Saved updates to {fname}.")
+    print("Interactive source session complete.")
+
+@click.command()
+@click.option('--add-sources', 'add_sources', is_flag=True, default=False,
+              help='Add missing sources from a consolidated YAML file.')
+@click.option('--consolidated', 'consolidated', type=click.Path(), default=None,
+              help='Path to consolidated YAML with sources (required with --add-sources).')
+@click.option('--check-sources', 'check_sources', is_flag=True, default=False,
+              help='Check all question files for missing sources.')
+@click.option('--interactive-sources', 'interactive_sources', is_flag=True, default=False,
+              help='Interactively search and assign sources to questions.')
+@click.option('--auto-approve', 'auto_approve', is_flag=True, default=False,
+              help='Auto-approve the first search result (use with --interactive-sources).')
 @click.pass_context
-def cli(ctx):
-    """Kubelingo CLI tool for CKAD exam study."""
+def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve):
+    """Kubelingo CLI tool for CKAD exam study or source management."""
+    # Handle source management modes
+    if add_sources:
+        if not consolidated:
+            click.echo("Error: --consolidated PATH is required with --add-sources.")
+            sys.exit(1)
+        cmd_add_sources(consolidated, questions_dir='questions')
+        return
+    if check_sources:
+        cmd_check_sources(questions_dir='questions')
+        return
+    if interactive_sources:
+        cmd_interactive_sources(questions_dir='questions', auto_approve=auto_approve)
+        return
+    print(ASCII_ART)
     colorama_init(autoreset=True)
     if not os.path.exists('questions'):
         os.makedirs('questions')
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
 
-@cli.command()
-@click.argument('topic', required=False)
-@click.pass_context
-def study(ctx, topic):
-    """Start a study session."""
     performance_data = ctx.obj['PERFORMANCE_DATA']
-    if topic:
-        run_topic(topic, None, performance_data) # None for num_to_study, will prompt inside
-        save_performance_data(performance_data)
-        return
-
+    
     while True:
         topic_info = list_and_select_topic(performance_data)
-        if topic_info is None:
+        if topic_info is None or topic_info[0] is None:
             break
         
-        selected_topic = topic_info[0]
-        num_to_study = topic_info[1]
+        selected_topic, num_to_study = topic_info
         
         run_topic(selected_topic, num_to_study, performance_data)
         save_performance_data(performance_data)
@@ -932,7 +1180,7 @@ def study(ctx, topic):
         print("\nReturning to the main menu...")
         time.sleep(2)
 
-# config command group removed temporarily for debugging
+
 
 if __name__ == "__main__":
     load_dotenv() # Load environment variables from .env file
