@@ -10,6 +10,14 @@ on:
       - main
 
 jobs:
+  lint-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint commit messages
+        uses: wagoid/commitlint-github-action@v4
+        with:
+          configFile: .commitlintrc.yaml
   test:
     runs-on: ubuntu-latest
     outputs:
@@ -77,7 +85,7 @@ jobs:
         elif echo "$COMMIT_MESSAGES" | grep -q "fix:"; then
           BUMP_TYPE="patch"
         fi
-        
+
         echo "Determined bump type: $BUMP_TYPE"
         echo "VERSION_BUMP_TYPE=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
 
@@ -85,11 +93,12 @@ jobs:
       run: |
         pip install semver
         python scripts/bump_version.py
-      - name: Build package
-        run: python -m build
-        
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/*
+
+    - name: Build package
+      run: python -m build
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: twine upload dist/*
