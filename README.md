@@ -73,7 +73,7 @@ We have recorded an interactive terminal session demonstrating all features of K
 <details>
 <summary>Click to expand demo recording</summary>
 
-<asciinema-player src="https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ.cast" preload></asciinema-player>
+[![asciicast](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ.svg)](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ)
 
 </details>
 
