@@ -1,5 +1,0 @@
-# Install package in editable mode with test dependencies from pyproject.toml
--e .[test]
-
-# For building the Rust extension
-maturin>=1.0,<2.0
