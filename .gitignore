@@ -12,3 +12,4 @@ user_data/performance.yaml
 /misc
 /dist
 /kubelingo.egg-info
+.env
