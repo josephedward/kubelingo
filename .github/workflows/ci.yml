@@ -1,4 +1,5 @@
 
+---
 name: CI/CD Pipeline
 
 on:
@@ -14,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x' # Use a compatible Python version
+        python-version: '3.x'  # Use a compatible Python version
 
     - name: Install dependencies
       run: |
@@ -42,7 +43,7 @@ jobs:
     environment: release
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -62,8 +63,7 @@ jobs:
         
         # Get commit messages since the last tag
         COMMIT_MESSAGES=$(git log --pretty=format:%s ${LATEST_TAG}..HEAD)
-        echo "Commit messages since last tag:
-$COMMIT_MESSAGES"
+        echo "Commit messages since last tag: $COMMIT_MESSAGES"
 
         BUMP_TYPE="patch" # Default to patch
 
@@ -90,7 +90,7 @@ bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
 with open(file_path, 'r') as f:
     content = f.read()
 
-version_match = re.search(r'version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"' ', content)
+version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"', content)
 if version_match:
     major, minor, patch = map(int, version_match.groups())
 
@@ -114,7 +114,7 @@ if version_match:
 else:
     print('Version not found in pyproject.toml')
 "
-        cat pyproject.toml # For debugging: show the updated version
+      cat pyproject.toml # For debugging: show the updated version
     - name: Build package
       run: python -m build
 
