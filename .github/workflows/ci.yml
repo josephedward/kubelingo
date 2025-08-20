@@ -26,10 +26,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .
         pip install -r requirements.txt
-        pip install pytest build twine
+        pip install pytest pytest-cov build twine
 
-    - name: Run tests
-      run: pytest
+    - name: Run tests with coverage
+      run: pytest --cov=kubelingo --cov-report=xml
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   publish:
     needs: test
@@ -72,7 +76,7 @@ $COMMIT_MESSAGES"
         fi
         
         echo "Determined bump type: $BUMP_TYPE"
-        echo "VERSION_BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_OUTPUT
+        echo "VERSION_BUMP_TYPE=$BUMP_TYPE" >> "$GITHUB_OUTPUT"
 
     - name: Bump Version
       run: |
@@ -86,7 +90,7 @@ bump_type = os.environ.get('VERSION_BUMP_TYPE', 'patch')
 with open(file_path, 'r') as f:
     content = f.read()
 
-version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"', content)
+version_match = re.search(r'version_match = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"' ', content)
 if version_match:
     major, minor, patch = map(int, version_match.groups())
 
