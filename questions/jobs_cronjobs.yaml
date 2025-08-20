@@ -2,7 +2,7 @@ questions:
   - question: "Create a CronJob named 'hello-cron' that runs every minute. The job should use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from the Kubernetes cluster'."
     solution: |
       kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" -- /bin/sh -c 'date; echo Hello from the Kubernetes cluster'
-  - question: "Create a manifest for a Job named 'pi' that calculates pi to 2000 places using the 'perl' image."
+  - question: "Create a manifest for a Job named 'pi' that calculates pi to 2000 places using the 'perl' image. The container should run the command perl -Mbignum=bpi -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4."
     solution: |
       apiVersion: batch/v1
       kind: Job
