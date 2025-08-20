@@ -1,7 +1,5 @@
 # Kubelingo
 
-[![Build Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml) [![Coverage](https://img.shields.io/github/actions/workflow-outputs/josephedward/kubelingo/ci.yml/coverage-percent?branch=main)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
-View [latest test run](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml?query=branch%3Amain) for details.
 
 ## CKAD Studying Tool
 
@@ -69,13 +67,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   
 ## Demo
 
-We have recorded an interactive terminal session demonstrating all features of Kubelingo using [asciinema](https://asciinema.org).
-
-<details>
-<summary>Click to expand demo recording</summary>
-
 [![asciicast](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ.svg)](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ)
 
-</details>
 
 
