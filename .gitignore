@@ -13,3 +13,6 @@ user_data/performance.yaml
 /dist
 /kubelingo.egg-info
 .env
+*.cast
+demo-kubelingo/
+demo.sh
