@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kubelingo"
-version = "0.1.15"
+version = "0.1.17"
 description = "CKAD Studying Tool"
 readme = "README.md"
 authors = [
@@ -41,7 +41,7 @@ llm = [
 ]
 
 [project.scripts]
-kubelingo = "kubelingo.cli:main"
+kubelingo = "kubelingo.kubelingo:cli"
 
 [tool.pytest.ini_options]
 markers = [
