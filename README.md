@@ -1,5 +1,7 @@
 # Kubelingo
 
+[![CI Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
+
 
 ## CKAD Studying Tool
 
