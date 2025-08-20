@@ -1,0 +1,24 @@
+name: Lint Commits
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'release/*'
+  pull_request:
+
+jobs:
+  lint-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so commitlint can compare against previous commits
+          fetch-depth: 0
+      - name: Lint commit messages
+        uses: wagoid/commitlint-github-action@v4
+        with:
+          configFile: .commitlintrc.yaml
