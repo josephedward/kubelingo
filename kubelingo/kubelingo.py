@@ -131,6 +131,13 @@ def save_performance_data(data):
     with open(PERFORMANCE_FILE, 'w') as f:
         yaml.dump(data, f)
 
+def save_questions_to_topic_file(topic, questions_data):
+    """Saves questions data to the specified topic YAML file."""
+    ensure_user_data_dir() # This ensures user_data, but questions are in 'questions' dir
+    topic_file = f"questions/{topic}.yaml"
+    with open(topic_file, 'w') as f:
+        yaml.dump({'questions': questions_data}, f, sort_keys=False)
+
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
@@ -467,7 +474,7 @@ def generate_more_questions(topic, existing_question):
 
         Example Question:
         ---
-        {yaml.dump({'questions': [existing_question]})}
+        {yaml.safe_dump({'questions': [existing_question]})}
         ---
 
         Your new question should be a {question_type}-based question.
@@ -513,21 +520,15 @@ def generate_more_questions(topic, existing_question):
         if cleaned_response.endswith('```'):
             cleaned_response = cleaned_response[:-3]
 
-        new_question_data = yaml.safe_load(cleaned_response)
+        try:
+            new_question_data = yaml.safe_load(cleaned_response)
+        except yaml.YAMLError:
+            print("\nAI failed to generate a valid question. Please try again.")
+            return None
         
         if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
             new_q = new_question_data['questions'][0]
             print("\nNew question generated!")
-            
-            topic_file = f"questions/{topic}.yaml"
-            if os.path.exists(topic_file):
-                with open(topic_file, 'r+') as f:
-                    data = yaml.safe_load(f) or {'questions': []}
-                    data['questions'].append(new_q)
-                    f.seek(0)
-                    yaml.dump(data, f)
-                    f.truncate()
-                print(f"Added new question to '{topic}.yaml'.")
             return new_q
         else:
             print("\nAI failed to generate a valid question. Please try again.")
@@ -862,7 +863,13 @@ def run_topic(topic, num_to_study, performance_data):
                 new_q = generate_more_questions(question_topic_context, q)
                 if new_q:
                     questions.insert(question_index + 1, new_q)
-                    print("A new question has been added to this session.")
+                    # Save the updated questions list to the topic file
+                    # Only save if it's not a missed questions review session
+                    if topic != '_missed':
+                        save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
+                        print(f"Added new question to '{question_topic_context}.yaml'.")
+                    else:
+                        print("A new question has been added to this session (not saved to file in review mode).")
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt (or the new one if it's next)
 
@@ -1011,9 +1018,15 @@ def run_topic(topic, num_to_study, performance_data):
                 new_q = generate_more_questions(question_topic_context, q)
                 if new_q:
                     questions.insert(question_index + 1, new_q)
-                    print("A new question has been added to this session.")
+                    # Save the updated questions list to the topic file
+                    # Only save if it's not a missed questions review session
+                    if topic != '_missed':
+                        save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
+                        print(f"Added new question to '{question_topic_context}.yaml'.")
+                    else:
+                        print("A new question has been added to this session (not saved to file in review mode).")
                 input("Press Enter to continue...")
-                continue # Re-display the same question prompt (or the new one if it's next)
+                continue  # Re-display the same question prompt
             elif post_action == 's':
                 # Open existing source or search/assign new one
                 if not q.get('source'):
