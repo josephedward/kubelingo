@@ -2,6 +2,8 @@
 
 ## CKAD Studying Tool
 
+[![codecov](https://codecov.io/gh/josephedward/kubelingo/branch/main/graph/badge.svg)](https://codecov.io/gh/josephedward/kubelingo)
+
 Kubelingo is a command-line interface (CLI) tool designed to help you study for the Certified Kubernetes Application Developer (CKAD) exam. It provides interactive questions and scenarios to test your knowledge of Kubernetes concepts and `kubectl` commands.
 
 ## Features
