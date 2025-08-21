@@ -27,9 +27,9 @@ questions:
     two keys: user=test and pass=pwd.'
   solution: kubectl -n moon create secret generic secret1 --from-literal=user=test
     --from-literal=pass=pwd
-- question: Create a TLS Secret 'my-tls' from a certificate and key file.
+- question: "Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt` and the private key is at `/etc/certs/tls.key`."
   solution: kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
-- question: Create a docker-registry Secret 'regcred'.
+- question: "Create a Secret of type `docker-registry` named 'regcred'. Use the following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`, password=`P@ssw0rd!`, email=`user@example.com`."
   solution: kubectl create secret docker-registry regcred --docker-server=... --docker-username=...
     --docker-password=... --docker-email=...
 - question: View the encoded values in a Secret named 'api-secrets' in YAML format.
@@ -37,22 +37,54 @@ questions:
 - question: Decode a base64 encoded Secret value.
   solution: echo -n 'encoded_string' | base64 --decode
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-- question: Create a manifest for a Pod 'pod1' that uses an environment variable 'TREE1'
-    from a ConfigMap 'trauerweide' (key 'tree') and mounts a ConfigMap 'birke' to
-    '/etc/birke'.
+- question: "Create a manifest for a Pod named 'pod1'. The Pod must have a single container using the `nginx:alpine` image. The Pod should be configured to have an environment variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'. Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'."
   solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n\
     \  - name: nginx\n    image: nginx:alpine\n    env:\n    - name: TREE1\n     \
     \ valueFrom:\n        configMapKeyRef:\n          name: trauerweide\n        \
     \  key: tree\n    volumeMounts:\n    - name: birke-volume\n      mountPath: /etc/birke\n\
     \  volumes:\n  - name: birke-volume\n    configMap:\n      name: birke\n"
-- question: Create a manifest for a pod that mounts a secret 'secret2' as a volume
-    at /tmp/secret2.
-  solution: "# This is a partial manifest. Assuming a pod spec already exists.\nvolumes:\n\
-    \  - name: secret2-volume\n    secret:\n      secretName: secret2\nvolumeMounts:\n\
-    \  - name: secret2-volume\n    mountPath: /tmp/secret2\n"
-- question: Create a manifest for a pod that adds environment variables 'SECRET1_USER'
-    and 'SECRET1_PASS' from a secret 'secret1'.
-  solution: "# This is a partial manifest. Assuming a container spec already exists.\n\
-    env:\n  - name: SECRET1_USER\n    valueFrom:\n      secretKeyRef:\n        name:\
-    \ secret1\n        key: user\n  - name: SECRET1_PASS\n    valueFrom:\n      secretKeyRef:\n\
-    \        name: secret1\n        key: pass\n"
+- question: "You are given a basic Pod manifest. Modify it to mount a Secret named 'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'."
+  starter_manifest: "apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+"
+  solution: "# This is a partial manifest. Assuming a pod spec already exists.
+volumes:
+  - name: secret2-volume
+    secret:
+      secretName: secret2
+volumeMounts:
+  - name: secret2-volume
+    mountPath: /tmp/secret2
+"
+- question: "You are given a basic Pod manifest. Modify it to add two environment
+    variables, 'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named
+    'secret1'."
+  starter_manifest: "apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: my-container
+    image: nginx
+"
+  solution: "# This is a partial manifest. Assuming a container spec already exists.
+
+env:
+  - name: SECRET1_USER
+    valueFrom:
+      secretKeyRef:
+        name: secret1
+        key: user
+  - name: SECRET1_PASS
+    valueFrom:
+      secretKeyRef:
+        name: secret1
+        key: pass
+"
