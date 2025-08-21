@@ -5,7 +5,9 @@ import time
 import yaml
 import argparse
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 import openai
+from openai import AuthenticationError
 from thefuzz import fuzz
 import tempfile
 import subprocess
@@ -273,8 +275,11 @@ def handle_config_menu():
         gemini_key = config.get("GEMINI_API_KEY", "Not Set")
         openai_key = config.get("OPENAI_API_KEY", "Not Set")
 
-        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {Fore.YELLOW}{bool(gemini_key != 'Not Set')}{Style.RESET_ALL})")
-        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {Fore.YELLOW}{bool(openai_key != 'Not Set')}{Style.RESET_ALL})")
+        gemini_display = f"{Fore.GREEN}{gemini_key}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        openai_display = f"{Fore.GREEN}{openai_key}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display})")
+        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display})")
         print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back to Main Menu")
         
         choice = input("Enter your choice: ").strip()
@@ -303,26 +308,19 @@ def handle_config_menu():
             print("Invalid choice. Please try again.")
             time.sleep(1)
 
+
 def _get_llm_model():
     """Determines which LLM to use based on available API keys and returns the appropriate model."""
-    load_dotenv() # Load environment variables from .env file
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
 
     if gemini_api_key:
-        try:
-            genai.configure(api_key=gemini_api_key)
-            return "gemini", genai.GenerativeModel('gemini-1.5-flash-latest')
-        except Exception as e:
-            print(f"Warning: Could not configure Gemini model: {e}")
+        genai.configure(api_key=gemini_api_key)
+        return "gemini", genai.GenerativeModel('gemini-1.5-flash-latest')
     
     if openai_api_key:
-        try:
-            # Assuming a default client for now, can be configured further if needed
-            client = openai.OpenAI(api_key=openai_api_key)
-            return "openai", client
-        except Exception as e:
-            print(f"Warning: Could not configure OpenAI model: {e}")
+        client = openai.OpenAI(api_key=openai_api_key)
+        return "openai", client
             
     return None, None
 
@@ -365,6 +363,12 @@ def get_llm_feedback(question, user_answer, solution):
                 ]
             )
             return response.choices[0].message.content.strip()
+    except google_exceptions.InvalidArgument as e:
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        return f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}\nThe configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."
+    except AuthenticationError as e:
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        return f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}\nThe configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."
     except Exception as e:
         return f"Error getting feedback from LLM: {e}"
 
@@ -415,6 +419,12 @@ def validate_manifest_with_llm(question_dict, user_manifest):
         feedback = "\n".join(lines[1:]).strip()
         
         return {'correct': is_correct, 'feedback': feedback}
+    except google_exceptions.InvalidArgument as e:
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        return {'correct': False, 'feedback': f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}\nThe configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."}
+    except AuthenticationError as e:
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        return {'correct': False, 'feedback': f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}\nThe configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."}
     except Exception as e:
         return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
 
@@ -534,9 +544,22 @@ def generate_more_questions(topic, existing_question):
         else:
             print("\nAI failed to generate a valid question. Please try again.")
             return None
+    except google_exceptions.InvalidArgument as e:
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        print(f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}")
+        print(f"The configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}")
+        print("Please go to the configuration menu to set a valid key.")
+        return None
+    except AuthenticationError as e:
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        print(f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}")
+        print(f"The configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}")
+        print("Please go to the configuration menu to set a valid key.")
+        return None
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
+
 
 
 K8S_RESOURCE_ALIASES = {
@@ -1252,6 +1275,8 @@ def cmd_interactive_sources(questions_dir='questions', auto_approve=False):
 @click.pass_context
 def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve):
     """Kubelingo CLI tool for CKAD exam study or source management."""
+    # Load environment variables from .env file
+    load_dotenv()
     # Handle source management modes
     if add_sources:
         if not consolidated:
