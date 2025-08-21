@@ -37,6 +37,8 @@ jobs:
         echo "VERSION_BUMP_TYPE=${{ github.event.inputs.bump_type }}" >> "$GITHUB_OUTPUT"
 
     - name: Bump Version
+      env:
+        BUMP_TYPE: ${{ steps.get_bump_type.outputs.VERSION_BUMP_TYPE }}
       run: |
         pip install semver
         python scripts/bump_version.py
