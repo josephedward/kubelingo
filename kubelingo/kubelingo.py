@@ -305,6 +305,7 @@ def handle_config_menu():
 
 def _get_llm_model():
     """Determines which LLM to use based on available API keys and returns the appropriate model."""
+    load_dotenv() # Load environment variables from .env file
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -1289,5 +1290,4 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
 
 
 if __name__ == "__main__":
-    load_dotenv() # Load environment variables from .env file
     cli(obj={})
