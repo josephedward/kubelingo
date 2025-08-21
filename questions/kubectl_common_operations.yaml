@@ -5,7 +5,7 @@ questions:
 - question: Create a replication controller using the definition in example-controller.yaml.
   solution: kubectl apply -f example-controller.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
-- question: Create the objects defined in all files within a directory.
+- question: Create the Kubernetes objects defined in all YAML files located in the absolute path `/path/to/manifests`.
   solution: kubectl apply -f /path/to/manifests
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: List all pods in plain-text output format.
