@@ -16,3 +16,4 @@ user_data/performance.yaml
 *.cast
 demo-kubelingo/
 demo.sh
+.DS_Store
