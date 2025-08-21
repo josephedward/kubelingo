@@ -49,6 +49,7 @@ markers = [
     "e2e: marks end-to-end tests that require a full installation",
 ]
 addopts = "-m 'not network'"
+testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 where = ["."]
