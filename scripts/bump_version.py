@@ -40,7 +40,7 @@ def bump_version():
         sys.exit(1)
 
     new_version_str = str(new_version)
-    new_content = content.replace(f"version = \"{current_version}\", f"version = \"{new_version_str}\")
+    new_content = content.replace(f'version = "{current_version}"', f'version = "{new_version_str}"')
 
     with open("pyproject.toml", "w") as f:
         f.write(new_content)
