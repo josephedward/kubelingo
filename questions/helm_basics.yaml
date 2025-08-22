@@ -39,7 +39,7 @@ questions:
 - question: What command downloads the `wordpress` chart from the `bitnami` repository
     without installing it?
   solution: helm pull bitnami/wordpress
-- question: How do you add the Bitnami chart repository and name it `bitnami`?
+- question: How do you add the Bitnami chart repository from `https://charts.bitnami.com/bitnami` and name it `bitnami`?
   solution: helm repo add bitnami https://charts.bitnami.com/bitnami
 - question: How do you print the contents of `values.yaml` for the `bitnami/node`
     chart?
