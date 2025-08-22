@@ -22,6 +22,8 @@ from kubelingo.kubelingo import (
     get_llm_feedback,
     validate_manifest_with_llm,
     generate_more_questions,
+    validate_manifest_with_kubectl_dry_run,
+    validate_kubectl_command_dry_run,
     USER_DATA_DIR,
     MISSED_QUESTIONS_FILE,
     PERFORMANCE_FILE,
@@ -788,7 +790,7 @@ def test_get_llm_feedback_gemini_error(mock_llm_deps):
         
         mock_get_llm_model.assert_called_once()
         mock_gemini_model_instance.generate_content.assert_called_once()
-        assert "Error getting feedback from LLM: Gemini error" in feedback
+        assert "Error getting feedback from Gemini LLM: Gemini error" in feedback
 
 def test_get_llm_feedback_openai_error(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
@@ -801,7 +803,7 @@ def test_get_llm_feedback_openai_error(mock_llm_deps):
         
         mock_get_llm_model.assert_called_once()
         mock_openai_client_instance.chat.completions.create.assert_called_once()
-        assert "Error getting feedback from LLM: OpenAI error" in feedback
+        assert "Error getting feedback from OpenAI LLM: OpenAI error" in feedback
 
 def test_validate_manifest_with_llm_gemini(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
@@ -864,7 +866,7 @@ def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
         
         mock_get_llm_model.assert_called_once()
         mock_gemini_model_instance.generate_content.assert_called_once()
-        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
+        assert result == {'correct': False, 'feedback': "Error validating manifest with Gemini LLM: Gemini manifest error"}
 
 def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
@@ -877,7 +879,7 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
         
         mock_get_llm_model.assert_called_once()
         mock_openai_client_instance.chat.completions.create.assert_called_once()
-        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
+        assert result == {'correct': False, 'feedback': "Error validating manifest with OpenAI LLM: OpenAI manifest error"}
 
 def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
@@ -1001,3 +1003,155 @@ def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_built
         
         captured = capsys.readouterr()
         assert "AI failed to generate a valid question. Please try again." in captured.out
+
+
+class TestKubectlValidation:
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        # Mock tempfile.NamedTemporaryFile to control file creation
+        with patch('tempfile.NamedTemporaryFile', new_callable=mock_open) as mock_tmp_file:
+            self.mock_tmp_file = mock_tmp_file
+            self.mock_tmp_file_handle = mock_tmp_file.return_value.__enter__.return_value
+            self.mock_tmp_file_handle.name = "/tmp/mock_temp_file.yaml" # Assign a mock name
+
+            # Mock os.unlink for temp file cleanup
+            with patch('os.unlink') as mock_unlink:
+                self.mock_unlink = mock_unlink
+                yield
+
+    # --- Tests for validate_manifest_with_kubectl_dry_run ---
+
+    def test_validate_manifest_valid_yaml(self, capsys):
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.stdout = "pod/test-pod created (dry-run)\n"
+        mock_process.stderr = ""
+
+        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
+            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
+            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+
+            assert success is True
+            assert "kubectl dry-run output" in feedback
+            assert "pod/test-pod created (dry-run)" in feedback
+            mock_subprocess_run.assert_called_once()
+            self.mock_tmp_file.assert_called_once_with(mode='w+', suffix=".yaml", delete=False)
+            self.mock_tmp_file_handle.write.assert_called_once_with(manifest)
+            self.mock_unlink.assert_called_once_with("/tmp/mock_temp_file.yaml")
+
+    def test_validate_manifest_invalid_yaml(self, capsys):
+        mock_process = MagicMock()
+        mock_process.returncode = 1
+        mock_process.stdout = ""
+        mock_process.stderr = "Error from server (BadRequest): error when creating \"/tmp/mock_temp_file.yaml\": Pod in version \"v1\" cannot be handled as a Pod: strict decoding error: unknown field \"invalidField\"\n"
+
+        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
+            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\ninvalidField: value\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
+            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+
+            assert success is False
+            assert "kubectl dry-run failed" in feedback
+            assert "unknown field \"invalidField\"" in feedback
+            mock_subprocess_run.assert_called_once()
+            self.mock_unlink.assert_called_once()
+
+    def test_validate_manifest_not_kubernetes_yaml(self, capsys):
+        manifest = "key: value\nanother_key: another_value\n"
+        success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+
+        assert success is False
+        assert "Skipping kubectl dry-run: Not a Kubernetes YAML manifest." in feedback
+        # Ensure subprocess.run and tempfile operations were not called
+        with patch('subprocess.run') as mock_subprocess_run:
+            mock_subprocess_run.assert_not_called()
+        self.mock_tmp_file.assert_not_called()
+        self.mock_unlink.assert_not_called()
+
+    def test_validate_manifest_kubectl_not_found(self, capsys):
+        with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
+            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
+            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+
+            assert success is False
+            assert "Error: 'kubectl' command not found." in feedback
+            mock_subprocess_run.assert_called_once()
+            self.mock_unlink.assert_called_once()
+
+    # --- Tests for validate_kubectl_command_dry_run ---
+
+    def test_validate_kubectl_command_valid_run(self, capsys):
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  creationTimestamp: null\n  labels:\n    run: my-pod\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n    resources: {}\nstatus: {}\n"
+        mock_process.stderr = ""
+
+        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
+            command_string = "kubectl run my-pod --image=nginx"
+            success, feedback = validate_kubectl_command_dry_run(command_string)
+
+            assert success is True
+            assert "kubectl dry-run output (YAML syntax valid)" in feedback
+            assert "kind: Pod" in feedback
+            mock_subprocess_run.assert_called_once_with(
+                ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "yaml"],
+                capture_output=True, text=True, check=False
+            )
+
+    def test_validate_kubectl_command_invalid_run(self, capsys):
+        mock_process = MagicMock()
+        mock_process.returncode = 1
+        mock_process.stdout = ""
+        mock_process.stderr = "Error: unknown flag: --invalid-flag\n"
+
+        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
+            command_string = "kubectl run my-pod --image=nginx --invalid-flag"
+            success, feedback = validate_kubectl_command_dry_run(command_string)
+
+            assert success is False
+            assert "kubectl dry-run failed" in feedback
+            assert "unknown flag: --invalid-flag" in feedback
+            mock_subprocess_run.assert_called_once()
+
+    def test_validate_kubectl_command_skipped_get(self, capsys):
+        command_string = "kubectl get pods"
+        success, feedback = validate_kubectl_command_dry_run(command_string)
+
+        assert success is True
+        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in feedback
+        with patch('subprocess.run') as mock_subprocess_run:
+            mock_subprocess_run.assert_not_called()
+
+    def test_validate_kubectl_command_skipped_non_kubectl(self, capsys):
+        command_string = "ls -l"
+        success, feedback = validate_kubectl_command_dry_run(command_string)
+
+        assert success is True
+        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in feedback
+        with patch('subprocess.run') as mock_subprocess_run:
+            mock_subprocess_run.assert_not_called()
+
+    def test_validate_kubectl_command_kubectl_not_found(self, capsys):
+        with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
+            command_string = "kubectl run my-pod --image=nginx"
+            success, feedback = validate_kubectl_command_dry_run(command_string)
+
+            assert success is False
+            assert "Error: 'kubectl' command not found." in feedback
+            mock_subprocess_run.assert_called_once()
+
+    def test_validate_kubectl_command_already_has_dry_run_and_output(self, capsys):
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n"
+        mock_process.stderr = ""
+
+        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
+            command_string = "kubectl run my-pod --image=nginx --dry-run=client -o json"
+            success, feedback = validate_kubectl_command_dry_run(command_string)
+
+            assert success is True
+            assert "kubectl dry-run output (YAML syntax valid)" in feedback # Note: it will still try to load as YAML
+            mock_subprocess_run.assert_called_once_with(
+                ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "json"],
+                capture_output=True, text=True, check=False
+            )
