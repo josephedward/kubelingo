@@ -2,6 +2,7 @@ import pytest
 import os
 import yaml
 from unittest.mock import patch, mock_open, MagicMock, call
+from colorama import Fore, Style
 from kubelingo.kubelingo import (
     ensure_user_data_dir,
     load_performance_data,
@@ -638,289 +639,365 @@ def test_get_user_input_eof_error():
 def mock_llm_deps():
     with (
         patch('google.generativeai.configure') as mock_gemini_configure,
-        patch('google.generativeai.GenerativeModel') as MockGenerativeModel,
-        patch('openai.OpenAI') as MockOpenAI,
-        patch('kubelingo.kubelingo.os.environ', new={}) as mock_environ
+        patch('google.generativeai.GenerativeModel') as MockGenerativeModel_class,
+        patch('openai.OpenAI') as MockOpenAI_class,
+        patch('kubelingo.kubelingo.os.environ', new={}) as mock_environ,
+        patch('kubelingo.kubelingo.click.confirm', return_value=False) as mock_click_confirm,
+        patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu
     ):
-        yield mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ
+        # Configure the class mocks to return specific mock instances
+        mock_gemini_model_instance = MagicMock()
+        MockGenerativeModel_class.return_value = mock_gemini_model_instance
+
+        mock_openai_client_instance = MagicMock()
+        MockOpenAI_class.return_value = mock_openai_client_instance
+
+        yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu
 
 def test_get_llm_model_gemini_only(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
     
     llm_type, model = _get_llm_model()
     
     mock_gemini_configure.assert_called_once_with(api_key="test_gemini_key")
-    MockGenerativeModel.assert_called_once_with('gemini-1.5-flash-latest')
-    MockOpenAI.assert_not_called()
+    assert MockGenerativeModel_class.call_count == 2
+    assert MockGenerativeModel_class.call_args_list == [
+        call('gemini-1.5-flash-latest'),
+        call('gemini-1.5-flash-latest')
+    ]
+    mock_gemini_model_instance.generate_content.assert_called_once_with("hello", stream=False)
+    MockOpenAI_class.assert_not_called()
     assert llm_type == "gemini"
-    assert model == MockGenerativeModel.return_value
+    assert model == mock_gemini_model_instance
+    mock_click_confirm.assert_not_called()
+    mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_openai_only(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_environ["OPENAI_API_KEY"] = "test_openai_key"
     
     llm_type, model = _get_llm_model()
     
     mock_gemini_configure.assert_not_called()
-    MockGenerativeModel.assert_not_called()
-    MockOpenAI.assert_called_once_with(api_key="test_openai_key")
+    MockGenerativeModel_class.assert_not_called()
+    mock_gemini_model_instance.generate_content.assert_not_called() # No Gemini key, so no call
+    MockOpenAI_class.assert_called_once_with(api_key="test_openai_key")
+    mock_openai_client_instance.chat.completions.create.assert_called_once_with(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hello"}], max_tokens=5)
     assert llm_type == "openai"
-    assert model == MockOpenAI.return_value
+    assert model == mock_openai_client_instance
+    mock_click_confirm.assert_not_called()
+    mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_both_gemini_preferred(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
     mock_environ["OPENAI_API_KEY"] = "test_openai_key"
     
     llm_type, model = _get_llm_model()
     
     mock_gemini_configure.assert_called_once_with(api_key="test_gemini_key")
-    MockGenerativeModel.assert_called_once_with('gemini-1.5-flash-latest')
-    MockOpenAI.assert_not_called() # Gemini is preferred
+    assert MockGenerativeModel_class.call_count == 2
+    assert MockGenerativeModel_class.call_args_list == [
+        call('gemini-1.5-flash-latest'),
+        call('gemini-1.5-flash-latest')
+    ]
+    mock_gemini_model_instance.generate_content.assert_called_once_with("hello", stream=False)
+    MockOpenAI_class.assert_not_called() # Gemini is preferred, so OpenAI should not be initialized
+    mock_openai_client_instance.chat.completions.create.assert_not_called() # OpenAI's create method should not be called
     assert llm_type == "gemini"
-    assert model == MockGenerativeModel.return_value
+    assert model == mock_gemini_model_instance
+    mock_click_confirm.assert_not_called()
+    mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_neither(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     # No API keys set
     
     llm_type, model = _get_llm_model()
     
     mock_gemini_configure.assert_not_called()
-    MockGenerativeModel.assert_not_called()
-    MockOpenAI.assert_not_called()
+    MockGenerativeModel_class.assert_not_called()
+    mock_gemini_model_instance.generate_content.assert_not_called()
+    MockOpenAI_class.assert_not_called()
+    mock_openai_client_instance.chat.completions.create.assert_not_called()
+    mock_click_confirm.assert_called_once_with(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True)
+    mock_handle_config_menu.assert_not_called() # Because mock_click_confirm returns False
     assert llm_type is None
     assert model is None
 
 def test_get_llm_feedback_gemini(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    mock_response = MagicMock()
-    mock_response.text = "Gemini feedback."
-    MockGenerativeModel.return_value.generate_content.return_value = mock_response
-    
-    question = "Q"
-    user_answer = "A"
-    solution = "S"
-    
-    feedback = get_llm_feedback(question, user_answer, solution)
-    
-    MockGenerativeModel.return_value.generate_content.assert_called_once()
-    assert feedback == "Gemini feedback."
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.text = "Gemini feedback."
+        mock_gemini_model_instance.generate_content.return_value = mock_response
+        
+        question = "Q"
+        user_answer = "A"
+        solution = "S"
+        
+        feedback = get_llm_feedback(question, user_answer, solution)
+        
+        mock_get_llm_model.assert_called_once() # Ensure _get_llm_model was called
+        mock_gemini_model_instance.generate_content.assert_called_once() # Assert on the instance's method
+        assert feedback == "Gemini feedback."
 
 def test_get_llm_feedback_openai(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "OpenAI feedback."
-    MockOpenAI.return_value.chat.completions.create.return_value = mock_response
-    
-    question = "Q"
-    user_answer = "A"
-    solution = "S"
-    
-    feedback = get_llm_feedback(question, user_answer, solution)
-    
-    MockOpenAI.return_value.chat.completions.create.assert_called_once()
-    assert feedback == "OpenAI feedback."
+    # Patch _get_llm_model to return a configured OpenAI model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "OpenAI feedback."
+        mock_openai_client_instance.chat.completions.create.return_value = mock_response
+        
+        question = "Q"
+        user_answer = "A"
+        solution = "S"
+        
+        feedback = get_llm_feedback(question, user_answer, solution)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_openai_client_instance.chat.completions.create.assert_called_once()
+        assert feedback == "OpenAI feedback."
 
 def test_get_llm_feedback_no_llm(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    # No API keys set
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    feedback = get_llm_feedback("Q", "A", "S")
-    
-    assert feedback == "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback."
-    MockGenerativeModel.assert_not_called()
-    MockOpenAI.assert_not_called()
+    # Patch _get_llm_model to return no model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
+        feedback = get_llm_feedback("Q", "A", "S")
+        
+        mock_get_llm_model.assert_called_once()
+        assert feedback == "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback."
+        MockGenerativeModel_class.assert_not_called()
+        MockOpenAI_class.assert_not_called()
 
 def test_get_llm_feedback_gemini_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    MockGenerativeModel.return_value.generate_content.side_effect = Exception("Gemini error")
-    
-    feedback = get_llm_feedback("Q", "A", "S")
-    
-    assert "Error getting feedback from LLM: Gemini error" in feedback
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_gemini_model_instance.generate_content.side_effect = Exception("Gemini error")
+        
+        feedback = get_llm_feedback("Q", "A", "S")
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert "Error getting feedback from LLM: Gemini error" in feedback
 
 def test_get_llm_feedback_openai_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    MockOpenAI.return_value.chat.completions.create.side_effect = Exception("OpenAI error")
-    
-    feedback = get_llm_feedback("Q", "A", "S")
-    
-    assert "Error getting feedback from LLM: OpenAI error" in feedback
+    # Patch _get_llm_model to return a configured OpenAI model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
+        mock_openai_client_instance.chat.completions.create.side_effect = Exception("OpenAI error")
+        
+        feedback = get_llm_feedback("Q", "A", "S")
+        
+        mock_get_llm_model.assert_called_once()
+        mock_openai_client_instance.chat.completions.create.assert_called_once()
+        assert "Error getting feedback from LLM: OpenAI error" in feedback
 
 def test_validate_manifest_with_llm_gemini(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    mock_response = MagicMock()
-    mock_response.text = "CORRECT\nManifest is valid."
-    MockGenerativeModel.return_value.generate_content.return_value = mock_response
-    
-    question_dict = {'question': 'Q', 'solution': 'S'}
-    user_manifest = "M"
-    
-    result = validate_manifest_with_llm(question_dict, user_manifest)
-    
-    MockGenerativeModel.return_value.generate_content.assert_called_once()
-    assert result == {'correct': True, 'feedback': 'Manifest is valid.'}
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.text = "CORRECT\nManifest is valid."
+        mock_gemini_model_instance.generate_content.return_value = mock_response
+        
+        question_dict = {'question': 'Q', 'solution': 'S'}
+        user_manifest = "M"
+        
+        result = validate_manifest_with_llm(question_dict, user_manifest)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert result == {'correct': True, 'feedback': 'Manifest is valid.'}
 
 def test_validate_manifest_with_llm_openai(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "INCORRECT\nManifest is missing a field."
-    MockOpenAI.return_value.chat.completions.create.return_value = mock_response
-    
-    question_dict = {'question': 'Q', 'solution': 'S'}
-    user_manifest = "M"
-    
-    result = validate_manifest_with_llm(question_dict, user_manifest)
-    
-    MockOpenAI.return_value.chat.completions.create.assert_called_once()
-    assert result == {'correct': False, 'feedback': 'Manifest is missing a field.'}
+    # Patch _get_llm_model to return a configured OpenAI model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "INCORRECT\nManifest is missing a field."
+        mock_openai_client_instance.chat.completions.create.return_value = mock_response
+        
+        question_dict = {'question': 'Q', 'solution': 'S'}
+        user_manifest = "M"
+        
+        result = validate_manifest_with_llm(question_dict, user_manifest)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_openai_client_instance.chat.completions.create.assert_called_once()
+        assert result == {'correct': False, 'feedback': 'Manifest is missing a field.'}
 
 def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    # No API keys set
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
-    
-    assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
-    MockGenerativeModel.assert_not_called()
-    MockOpenAI.assert_not_called()
+    # Patch _get_llm_model to return no model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
+        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        
+        mock_get_llm_model.assert_called_once()
+        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."
+        }
+        MockGenerativeModel_class.assert_not_called()
+        MockOpenAI_class.assert_not_called()
 
 def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    MockGenerativeModel.return_value.generate_content.side_effect = Exception("Gemini manifest error")
-    
-    result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
-    
-    assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_gemini_model_instance.generate_content.side_effect = Exception("Gemini manifest error")
+        
+        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
 
 def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    MockOpenAI.return_value.chat.completions.create.side_effect = Exception("OpenAI manifest error")
-    
-    result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
-    
-    assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
+    # Patch _get_llm_model to return a configured OpenAI model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
+        mock_openai_client_instance.chat.completions.create.side_effect = Exception("OpenAI manifest error")
+        
+        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        
+        mock_get_llm_model.assert_called_once()
+        mock_openai_client_instance.chat.completions.create.assert_called_once()
+        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
 
 def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
     
-    mock_response = MagicMock()
-    mock_response.text = "```yaml\nquestions:\n  - question: \"New Gemini Q\"\n    solution: \"New Gemini S\"\n    source: \"http://gemini.source.com\"\n```"
-    MockGenerativeModel.return_value.generate_content.return_value = mock_response
-    
-    mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}]}, {'questions': []}]
-    
-    existing_question = {'question': 'Old Q', 'solution': 'Old S'}
-    topic = 'test_topic'
-    
-    with patch('random.choice', return_value='command'): # Control question type
-        new_q = generate_more_questions(topic, existing_question)
-    
-    MockGenerativeModel.return_value.generate_content.assert_called_once()
-    assert new_q == {'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}
-    
-    mock_yaml_safe_load.assert_called_once() # Called for existing topic file
-    
-    captured = capsys.readouterr()
-    assert "New question generated!" in captured.out
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.text = """```yaml
+questions:
+  - question: \"New Gemini Q\"
+    solution: \"New Gemini S\"
+    source: \"http://gemini.source.com\"
+```"""
+        mock_gemini_model_instance.generate_content.return_value = mock_response
+        
+        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}]}, {'questions': []}]
+        
+        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        topic = 'test_topic'
+        
+        with patch('random.choice', return_value='command'): # Control question type
+            new_q = generate_more_questions(topic, existing_question)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert new_q == {'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}
+        
+        mock_yaml_safe_load.assert_called_once() # Called for existing topic file
+        
+        captured = capsys.readouterr()
+        assert "New question generated!" in captured.out
+
 
 def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
     
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"
-    MockOpenAI.return_value.chat.completions.create.return_value = mock_response
-    
-    mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}]}, {'questions': []}]
-    
-    existing_question = {'question': 'Old Q', 'solution': 'Old S'}
-    topic = 'test_topic'
-    
-    with patch('random.choice', return_value='manifest'): # Control question type
-        new_q = generate_more_questions(topic, existing_question)
-    
-    MockOpenAI.return_value.chat.completions.create.assert_called_once()
-    assert new_q == {'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}
-    
-    mock_yaml_safe_load.assert_called_once()
-    
-    captured = capsys.readouterr()
-    assert "New question generated!" in captured.out
+    # Patch _get_llm_model to return a configured OpenAI model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = """```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"""
+        mock_openai_client_instance.chat.completions.create.return_value = mock_response
+        
+        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}]}, {'questions': []}]
+        
+        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        topic = 'test_topic'
+        
+        with patch('random.choice', return_value='manifest'): # Control question type
+            new_q = generate_more_questions(topic, existing_question)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_openai_client_instance.chat.completions.create.assert_called_once()
+        assert new_q == {'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}
+        
+        mock_yaml_safe_load.assert_called_once()
+        
+        captured = capsys.readouterr()
+        assert "New question generated!" in captured.out
+
 
 def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    # No API keys set
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    existing_question = {'question': 'Old Q', 'solution': 'Old S'}
-    topic = 'test_topic'
-    
-    new_q = generate_more_questions(topic, existing_question)
-    
-    assert new_q is None
-    MockGenerativeModel.assert_not_called()
-    MockOpenAI.assert_not_called()
-    
-    captured = capsys.readouterr()
-    assert "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions." in captured.out
+    # Patch _get_llm_model to return no model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
+        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        topic = 'test_topic'
+        
+        new_q = generate_more_questions(topic, existing_question)
+        
+        mock_get_llm_model.assert_called_once()
+        assert new_q is None
+        MockGenerativeModel_class.assert_not_called()
+        MockOpenAI_class.assert_not_called()
+        
+        captured = capsys.readouterr()
+        assert "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions." in captured.out
 
 def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    MockGenerativeModel.return_value.generate_content.side_effect = Exception("LLM generation error")
-    
-    existing_question = {'question': 'Old Q', 'solution': 'Old S'}
-    topic = 'test_topic'
-    
-    new_q = generate_more_questions(topic, existing_question)
-    
-    assert new_q is None
-    captured = capsys.readouterr()
-    assert "Error generating question: LLM generation error" in captured.out
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_gemini_model_instance.generate_content.side_effect = Exception("LLM generation error")
+        
+        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        topic = 'test_topic'
+        
+        new_q = generate_more_questions(topic, existing_question)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert new_q is None
+        captured = capsys.readouterr()
+        assert "Error generating question: LLM generation error" in captured.out
 
 def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel, MockOpenAI, mock_environ = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
-    mock_response = MagicMock()
-    mock_response.text = "This is not valid YAML."
-    MockGenerativeModel.return_value.generate_content.return_value = mock_response
-    mock_yaml_safe_load.side_effect = yaml.YAMLError("Invalid YAML for testing") # Added line
-    
-    existing_question = {'question': 'Old Q', 'solution': 'Old S'}
-    topic = 'test_topic'
-    
-    with patch('random.choice', return_value='command'):
-        new_q = generate_more_questions(topic, existing_question)
-    
-    assert new_q is None
-    mock_yaml_safe_load.assert_called_once() # Called for parsing invalid YAML
-    mock_yaml_dump.assert_not_called()
-    
-    captured = capsys.readouterr()
-    assert "AI failed to generate a valid question. Please try again." in captured.out
+    # Patch _get_llm_model to return a configured Gemini model
+    with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
+        mock_response = MagicMock()
+        mock_response.text = "This is not valid YAML."
+        mock_gemini_model_instance.generate_content.return_value = mock_response
+        mock_yaml_safe_load.side_effect = yaml.YAMLError("Invalid YAML for testing") # Added line
+        
+        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        topic = 'test_topic'
+        
+        with patch('random.choice', return_value='command'):
+            new_q = generate_more_questions(topic, existing_question)
+        
+        mock_get_llm_model.assert_called_once()
+        mock_gemini_model_instance.generate_content.assert_called_once()
+        assert new_q is None
+        mock_yaml_safe_load.assert_called_once() # Called for parsing invalid YAML
+        mock_yaml_dump.assert_not_called()
+        
+        captured = capsys.readouterr()
+        assert "AI failed to generate a valid question. Please try again." in captured.out

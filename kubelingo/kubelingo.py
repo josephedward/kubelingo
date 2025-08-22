@@ -309,20 +309,67 @@ def handle_config_menu():
             time.sleep(1)
 
 
-def _get_llm_model():
-    """Determines which LLM to use based on available API keys and returns the appropriate model."""
+def _get_llm_model(is_retry=False):
+    """
+    Determines which LLM to use based on available API keys and returns the appropriate model.
+    If no valid keys are found, it prompts the user for action.
+    """
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
 
+    current_llm_type = None
+    current_model = None
+
+    # Try Gemini first
     if gemini_api_key:
-        genai.configure(api_key=gemini_api_key)
-        return "gemini", genai.GenerativeModel('gemini-1.5-flash-latest')
+        try:
+            genai.configure(api_key=gemini_api_key)
+            # Attempt a small call to validate the key
+            genai.GenerativeModel('gemini-1.5-flash-latest').generate_content("hello", stream=False)
+            current_llm_type = "gemini"
+            current_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            return current_llm_type, current_model
+        except google_exceptions.InvalidArgument:
+            print(f"{Fore.RED}Invalid Gemini API Key. Please check your key.{Style.RESET_ALL}")
+            # Clear the invalid key from environment for this session
+            os.environ.pop("GEMINI_API_KEY", None)
+        except Exception as e:
+            print(f"{Fore.RED}Error with Gemini API: {e}{Style.RESET_ALL}")
+            os.environ.pop("GEMINI_API_KEY", None)
+
+    # If Gemini failed or not set, try OpenAI
+    if openai_api_key and not current_model:
+        try:
+            client = openai.OpenAI(api_key=openai_api_key)
+            # Attempt a small call to validate the key
+            client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hello"}], max_tokens=5)
+            current_llm_type = "openai"
+            current_model = client
+            return current_llm_type, current_model
+        except AuthenticationError:
+            print(f"{Fore.RED}Invalid OpenAI API Key. Please check your key.{Style.RESET_ALL}")
+            # Clear the invalid key from environment for this session
+            os.environ.pop("OPENAI_API_KEY", None)
+        except Exception as e:
+            print(f"{Fore.RED}Error with OpenAI API: {e}{Style.RESET_ALL}")
+            os.environ.pop("OPENAI_API_KEY", None)
+
+    # If no model could be configured
+    if not current_model and not is_retry:
+        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini or OpenAI). AI features will be disabled.{Style.RESET_ALL}")
+        if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
+            handle_config_menu()
+            # After configuring, try to get the model again
+            return _get_llm_model(is_retry=True)
+        else:
+            print(f"{Fore.YELLOW}Continuing without AI features.{Style.RESET_ALL}")
+            return None, None
+    elif not current_model and is_retry:
+        print(f"{Fore.YELLOW}Still no valid LLM API key after configuration. Continuing without AI features.{Style.RESET_ALL}")
+        return None, None
     
-    if openai_api_key:
-        client = openai.OpenAI(api_key=openai_api_key)
-        return "openai", client
-            
-    return None, None
+    return current_llm_type, current_model
+
 
 def get_llm_feedback(question, user_answer, solution):
     """Provides LLM-generated feedback on a user's answer."""
@@ -363,12 +410,6 @@ def get_llm_feedback(question, user_answer, solution):
                 ]
             )
             return response.choices[0].message.content.strip()
-    except google_exceptions.InvalidArgument as e:
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        return f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}\nThe configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."
-    except AuthenticationError as e:
-        openai_api_key = os.environ.get("OPENAI_API_KEY")
-        return f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}\nThe configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."
     except Exception as e:
         return f"Error getting feedback from LLM: {e}"
 
@@ -419,12 +460,6 @@ def validate_manifest_with_llm(question_dict, user_manifest):
         feedback = "\n".join(lines[1:]).strip()
         
         return {'correct': is_correct, 'feedback': feedback}
-    except google_exceptions.InvalidArgument as e:
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        return {'correct': False, 'feedback': f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}\nThe configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."}
-    except AuthenticationError as e:
-        openai_api_key = os.environ.get("OPENAI_API_KEY")
-        return {'correct': False, 'feedback': f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}\nThe configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}\nPlease go to the configuration menu to set a valid key."}
     except Exception as e:
         return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
 
@@ -544,18 +579,6 @@ def generate_more_questions(topic, existing_question):
         else:
             print("\nAI failed to generate a valid question. Please try again.")
             return None
-    except google_exceptions.InvalidArgument as e:
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        print(f"{Fore.RED}Error: Invalid Gemini API Key.{Style.RESET_ALL}")
-        print(f"The configured Gemini API key is: {Fore.YELLOW}{gemini_api_key}{Style.RESET_ALL}")
-        print("Please go to the configuration menu to set a valid key.")
-        return None
-    except AuthenticationError as e:
-        openai_api_key = os.environ.get("OPENAI_API_KEY")
-        print(f"{Fore.RED}Error: Invalid OpenAI API Key.{Style.RESET_ALL}")
-        print(f"The configured OpenAI API key is: {Fore.YELLOW}{openai_api_key}{Style.RESET_ALL}")
-        print("Please go to the configuration menu to set a valid key.")
-        return None
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
@@ -798,7 +821,7 @@ def get_user_input():
                 print(f"{Fore.YELLOW}(Input cleared)")
             else:
                 print(f"{Fore.YELLOW}(No input to clear)")
-        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu']:
+        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu', 'c']:
             special_action = cmd_lower
             break
         elif cmd.strip():
@@ -1023,7 +1046,7 @@ def run_topic(topic, num_to_study, performance_data):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [q]uit")
+            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [c]onfigure, [q]uit")
             post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
 
             if post_action == 'n':
@@ -1038,6 +1061,9 @@ def run_topic(topic, num_to_study, performance_data):
             elif post_action == 'i':
                 create_issue(q, question_topic_context) # Issue for the *current* question
                 # Stay in this loop, allow other options
+            elif post_action == 'c':
+                handle_config_menu()
+                continue # Re-display the same question prompt after config
             elif post_action == 'g':
                 new_q = generate_more_questions(question_topic_context, q)
                 if new_q:
