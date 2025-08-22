@@ -331,11 +331,13 @@ def _get_llm_model(is_retry=False):
             return current_llm_type, current_model
         except google_exceptions.InvalidArgument:
             print(f"{Fore.RED}Invalid Gemini API Key. Please check your key.{Style.RESET_ALL}")
-            # Clear the invalid key from environment for this session
+            # Clear the invalid key from environment and .env file
             os.environ.pop("GEMINI_API_KEY", None)
+            set_key(".env", "GEMINI_API_KEY", "")
         except Exception as e:
             print(f"{Fore.RED}Error with Gemini API: {e}{Style.RESET_ALL}")
             os.environ.pop("GEMINI_API_KEY", None)
+            set_key(".env", "GEMINI_API_KEY", "")
 
     # If Gemini failed or not set, try OpenAI
     if openai_api_key and not current_model:
@@ -348,11 +350,13 @@ def _get_llm_model(is_retry=False):
             return current_llm_type, current_model
         except AuthenticationError:
             print(f"{Fore.RED}Invalid OpenAI API Key. Please check your key.{Style.RESET_ALL}")
-            # Clear the invalid key from environment for this session
+            # Clear the invalid key from environment and .env file
             os.environ.pop("OPENAI_API_KEY", None)
+            set_key(".env", "OPENAI_API_KEY", "")
         except Exception as e:
             print(f"{Fore.RED}Error with OpenAI API: {e}{Style.RESET_ALL}")
             os.environ.pop("OPENAI_API_KEY", None)
+            set_key(".env", "OPENAI_API_KEY", "")
 
     # If no model could be configured
     if not current_model and not is_retry:
@@ -377,41 +381,46 @@ def get_llm_feedback(question, user_answer, solution):
     if not model:
         return "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback." # Return info if no LLM
 
-    try:
-        prompt = f'''
-        You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question.
-        The student was asked:
-        ---
-        Question: {question}
-        ---
-        The student provided this answer:
-        ---
-        Student Answer:\n{user_answer}
-        ---
-        The canonical solution is:
-        ---
-        Solution:\n{solution}
-        ---
-        Your task is to provide brief, constructive feedback on the student's answer. 
-        - If the answer is correct, praise the student and briefly explain why it's a good answer.
-        - If the answer is incorrect, explain the mistake clearly and concisely. 
-        - If the student's answer is a reasonable alternative, acknowledge it.
-        - Keep the feedback to 2-3 sentences.
-        '''
-        if llm_type == "gemini":
+    prompt = f'''
+    You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question.
+    The student was asked:
+    ---
+    Question: {question}
+    ---
+    The student provided this answer:
+    ---
+    Student Answer:\n{user_answer}
+    ---
+    The canonical solution is:
+    ---
+    Solution:\n{solution}
+    ---
+    Your task is to provide brief, constructive feedback on the student's answer. 
+    - If the answer is correct, praise the student and briefly explain why it's a good answer.
+    - If the answer is incorrect, explain the mistake clearly and concisely. 
+    - If the student's answer is a reasonable alternative, acknowledge it.
+    - Keep the feedback to 2-3 sentences.
+    '''
+    if llm_type == "gemini":
+        try:
             response = model.generate_content(prompt)
             return response.text.strip()
-        elif llm_type == "openai":
-            response = model.chat.completions.create(
+        except Exception as e:
+            return f"Error getting feedback from Gemini LLM: {e}"
+    elif llm_type == "openai":
+        try:
+            resp = model.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question."},
                     {"role": "user", "content": prompt}
                 ]
             )
-            return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error getting feedback from LLM: {e}"
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Error getting feedback from OpenAI LLM: {e}"
+    else:
+        return "INFO: No LLM configured"
 
 # get_llm_feedback function removed temporarily for debugging
 
@@ -424,44 +433,50 @@ def validate_manifest_with_llm(question_dict, user_manifest):
 
     solution_manifest = question_dict['solution']
 
-    try:
-        prompt = f'''
-        You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
-        The student was asked:
-        ---
-        Question: {question_dict['question']}
-        ---
-        The student provided this manifest:
-        ---
-        Student Manifest:\n{user_manifest}
-        ---
-        The canonical solution is:
-        ---
-        Solution Manifest:\n{solution_manifest}
-        ---
-        Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Check for correct apiVersion, kind, metadata, and spec details.
-        First, on a line by itself, write "CORRECT" or "INCORRECT".
-        Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
-        '''
-        if llm_type == "gemini":
+    # Compose prompt for validation
+    prompt = f'''
+    You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
+    The student was asked:
+    ---
+    Question: {question_dict['question']}
+    ---
+    The student provided this manifest:
+    ---
+    Student Manifest:\n{user_manifest}
+    ---
+    The canonical solution is:
+    ---
+    Solution Manifest:\n{solution_manifest}
+    ---
+    Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name or container names; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
+    First, on a line by itself, write "CORRECT" or "INCORRECT".
+    Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
+    '''
+    # Use only the configured LLM
+    if llm_type == "gemini":
+        try:
             response = model.generate_content(prompt)
-            lines = response.text.strip().split('\n')
-        elif llm_type == "openai":
-            response = model.chat.completions.create(
-                model="gpt-3.5-turbo", # Or another suitable model
+            text = response.text.strip()
+        except Exception as e:
+            return {'correct': False, 'feedback': f"Error validating manifest with Gemini LLM: {e}"}
+    elif llm_type == "openai":
+        try:
+            resp = model.chat.completions.create(
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
                     {"role": "user", "content": prompt}
                 ]
             )
-            lines = response.choices[0].message.content.strip().split('\n')
-
-        is_correct = lines[0].strip().upper() == "CORRECT"
-        feedback = "\n".join(lines[1:]).strip()
-        
-        return {'correct': is_correct, 'feedback': feedback}
-    except Exception as e:
-        return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
+            text = resp.choices[0].message.content.strip()
+        except Exception as e:
+            return {'correct': False, 'feedback': f"Error validating manifest with OpenAI LLM: {e}"}
+    else:
+        return {'correct': False, 'feedback': "No LLM configured"}
+    lines = text.split('\n')
+    is_correct = lines[0].strip().upper() == "CORRECT"
+    feedback = "\n".join(lines[1:]).strip()
+    return {'correct': is_correct, 'feedback': feedback}
 
 
 def handle_vim_edit(question):
@@ -482,7 +497,14 @@ def handle_vim_edit(question):
         tmp_path = tmp.name
     
     try:
-        subprocess.run(['vim', '-c', "set tabstop=2 shiftwidth=2 expandtab", tmp_path], check=True)
+        subprocess.run([
+            'vim',
+            '-c', 'syntax on',
+            # '-c', 'filetype plugin indent on',
+            # '-c', 'set ft=yaml',
+            '-c', 'set tabstop=2 shiftwidth=2 expandtab',
+            tmp_path
+        ], check=True)
     except FileNotFoundError:
         print("\nError: 'vim' command not found. Please install it to use this feature.")
         os.unlink(tmp_path)
@@ -496,13 +518,55 @@ def handle_vim_edit(question):
         user_manifest = f.read()
     os.unlink(tmp_path)
 
+    print(f"{Fore.YELLOW}\n--- User Submission (Raw) ---\n{user_manifest}{Style.RESET_ALL}")
     if not user_manifest.strip():
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    print(f"{Fore.CYAN}\nValidating manifest with AI...")
-    result = validate_manifest_with_llm(question, user_manifest)
+    print(f"{Fore.CYAN}\nValidating manifest with kubectl dry-run...")
+    dry_run_success, dry_run_feedback = validate_manifest_with_kubectl_dry_run(user_manifest)
+    print(dry_run_feedback)
+
+    if not dry_run_success:
+        print(f"{Fore.RED}Dry-run failed. Please correct your manifest.{Style.RESET_ALL}")
+        result = {'correct': False, 'feedback': dry_run_feedback}
+    else:
+        print(f"{Fore.GREEN}Dry-run successful!{Style.RESET_ALL}")
+        result = {'correct': True, 'feedback': dry_run_feedback}
+    
     return user_manifest, result, False
+
+def validate_manifest_with_kubectl_dry_run(manifest_content):
+    # Check if it's likely a Kubernetes YAML manifest
+    if not manifest_content.strip().startswith(('apiVersion:', 'kind:')):
+        return False, f"{Fore.YELLOW}Skipping kubectl dry-run: Not a Kubernetes YAML manifest.{Style.RESET_ALL}"
+
+    with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False) as tmp_file:
+        tmp_file.write(manifest_content)
+        tmp_file.flush()
+        tmp_path = tmp_file.name
+
+    try:
+        # Use --dry-run=client to validate syntax without connecting to a cluster
+        # Use --validate=true for schema validation
+        cmd = ["kubectl", "apply", "--dry-run=client", "--validate=true", "-f", tmp_path]
+        process = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        
+        os.unlink(tmp_path) # Clean up the temporary file
+
+        if process.returncode == 0:
+            return True, f"{Fore.GREEN}kubectl dry-run output:{Style.RESET_ALL}\n{process.stdout.strip()}", process.stdout.strip()
+        else:
+            error_output = process.stderr.strip()
+            if not error_output: # Sometimes errors are in stdout for kubectl
+                error_output = process.stdout.strip()
+            return False, f"{Fore.RED}kubectl dry-run failed:{Style.RESET_ALL}\n{error_output}", error_output
+    except FileNotFoundError:
+        os.unlink(tmp_path) # Clean up even if kubectl not found
+        return False, f"{Fore.RED}Error: 'kubectl' command not found. Please ensure kubectl is installed and in your system's PATH to enable dry-run validation.{Style.RESET_ALL}", "kubectl not found"
+    except Exception as e:
+        os.unlink(tmp_path) # Clean up on other exceptions
+        return False, f"{Fore.RED}An unexpected error occurred during kubectl dry-run: {e}{Style.RESET_ALL}\n", str(e)
 
 def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
@@ -903,7 +967,7 @@ def run_topic(topic, num_to_study, performance_data):
                     print(f"Opening source in your browser: {q['source']}")
                     webbrowser.open(q['source'])
                 else:
-                    print("\nNo source available for this question.")
+                    print("No source available for this question.")
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
             if special_action == 'generate':
@@ -926,7 +990,7 @@ def run_topic(topic, num_to_study, performance_data):
             if special_action == 'skip':
                 is_correct = False
                 user_answer_graded = True
-                print(f"{Fore.RED}\nQuestion skipped. Here's one possible solution:")
+                print(f"{Fore.RED}Question skipped. Here's one possible solution:")
                 solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
                 if '\n' in solution_text:
                     print(colorize_yaml(solution_text))
@@ -994,6 +1058,18 @@ def run_topic(topic, num_to_study, performance_data):
                     normalized_solution_lines = normalize_command(solution_lines)
                     normalized_solution_string = '\n'.join(normalized_solution_lines) # Join back for fuzzy matching
                     
+                    # Attempt kubectl dry-run validation for commands
+                    if normalized_user_answer_string.startswith("kubectl"):
+                        print(f"{Fore.CYAN}\nValidating kubectl command with dry-run...{Style.RESET_ALL}")
+                        dry_run_success, dry_run_feedback = validate_kubectl_command_dry_run(normalized_user_answer_string)
+                        print(dry_run_feedback)
+                        if not dry_run_success:
+                            print(f"{Fore.RED}kubectl dry-run failed. Please check your command syntax.{Style.RESET_ALL}")
+                            # If dry-run fails, force incorrect
+                            is_correct = False
+                        else:
+                            print(f"{Fore.GREEN}kubectl dry-run successful!{Style.RESET_ALL}")
+
                     if fuzz.ratio(normalized_user_answer_string, normalized_solution_string) > 95:
                         is_correct = True
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
@@ -1017,6 +1093,192 @@ def run_topic(topic, num_to_study, performance_data):
             else: # User typed 'done' without commands, or empty input
                 print("Please enter a command or a special action.")
                 continue # Re-display the same question prompt
+
+        # --- Post-answer interaction ---
+        # This block is reached after a question has been answered/skipped/solution viewed.
+        # The user can now choose to navigate or report an issue.
+        
+        # Update performance data only if an answer was graded (not just viewing source/issue)
+        if user_answer_graded:
+            session_total += 1
+            if is_correct:
+                session_correct += 1
+                normalized_question_text = get_normalized_question_text(q)
+                if normalized_question_text not in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].append(normalized_question_text)
+                # Also remove from missed questions if it was there
+                remove_question_from_list(MISSED_QUESTIONS_FILE, q)
+            else:
+                # If the question was previously answered correctly, remove it.
+                normalized_question_text = get_normalized_question_text(q)
+                if normalized_question_text in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].remove(normalized_question_text)
+                save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
+
+        if topic != '_missed':
+                performance_data[topic] = topic_perf
+                save_performance_data(performance_data)
+
+        # Post-answer menu loop
+        while True:
+            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
+            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [c]onfigure, [q]uit")
+            post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
+
+            if post_action == 'n':
+                question_index += 1
+                break # Exit post-answer loop, advance to next question
+            elif post_action == 'b':
+                if question_index > 0:
+                    question_index -= 1
+                    break # Exit post-answer loop, go back to previous question
+                else:
+                    print("Already at the first question.")
+            elif post_action == 'i':
+                create_issue(q, question_topic_context) # Issue for the *current* question
+                # Stay in this loop, allow other options
+            elif post_action == 'c':
+                handle_config_menu()
+                continue # Re-display the same question prompt after config
+            elif post_action == 'g':
+                new_q = generate_more_questions(question_topic_context, q)
+                if new_q:
+                    questions.insert(question_index + 1, new_q)
+                    # Save the updated questions list to the topic file
+                    # Only save if it's not a missed questions review session
+                    if topic != '_missed':
+                        save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
+                        print(f"Added new question to '{question_topic_context}.yaml'.")
+                    else:
+                        print("A new question has been added to this session (not saved to file in review mode).")
+                input("Press Enter to continue...")
+                continue  # Re-display the same question prompt
+            elif post_action == 's':
+                # Open existing source or search/assign new one
+                if not q.get('source'):
+                    # Interactive search to assign or explore sources
+                    if search is None:
+                        print("'googlesearch-python' is not installed. Cannot search for sources.")
+                        input("Press Enter to continue...")
+                        continue
+                    question_text = q.get('question', '').strip()
+                    print(f"\nSearching for source for: {question_text}")
+                    try:
+                        results = list(search(f"kubernetes {question_text}", num_results=5))
+                    except Exception as e:
+                        print(f"Search error: {e}")
+                        input("Press Enter to continue...")
+                        continue
+                    if not results:
+                        print("No search results found.")
+                        input("Press Enter to continue...")
+                        continue
+                    # Determine default as first kubernetes.io link if present
+                    default_idx = next((i for i, u in enumerate(results) if 'kubernetes.io' in u), 0)
+                    print("Search results:")
+                    for idx, url in enumerate(results, 1):
+                        marker = ' (default)' if (idx-1) == default_idx else ''
+                        print(f"  {idx}. {url}{marker}")
+                    # Prompt user for action
+                    while True:
+                        sel = input("Enter=assign default, number=assign that, 'o N'=open N, 's'=skip: ").strip().lower()
+                        if sel == '':
+                            chosen = results[default_idx]
+                            print(f"Assigned default source: {chosen}")
+                        elif sel == 's':
+                            print("Skipping source assignment.")
+                            chosen = None
+                        elif sel.startswith('o'):
+                            parts = sel.split()
+                            if len(parts) == 2 and parts[1].isdigit():
+                                idx = int(parts[1]) - 1
+                                if 0 <= idx < len(results):
+                                    webbrowser.open(results[idx])
+                                    continue
+                            print("Invalid open command.")
+                            continue
+                        elif sel.isdigit() and 1 <= int(sel) <= len(results):
+                            chosen = results[int(sel)-1]
+                            print(f"Assigned source: {chosen}")
+                        else:
+                            print("Invalid choice.")
+                            continue
+                        # Apply assignment if any
+                        if chosen:
+                            q['source'] = chosen
+                            if topic != '_missed':
+                                file_path = f"questions/{topic}.yaml"
+                                topic_data = load_questions(topic)
+                                if topic_data and 'questions' in topic_data:
+                                    for orig_q in topic_data['questions']:
+                                        if get_normalized_question_text(orig_q) == get_normalized_question_text(q):
+                                            orig_q['source'] = chosen
+                                            break
+                                with open(file_path, 'w') as f:
+                                    yaml.dump(topic_data, f, sort_keys=False)
+                                print(f"Saved source to {file_path}")
+                        input("Press Enter to continue...")
+                        break
+                else:
+                    # Open existing source URL
+                    try:
+                        print(f"Opening source in your browser: {q['source']}")
+                        webbrowser.open(q['source'])
+                    except Exception as e:
+                        print(f"Could not open browser: {e}")
+                    input("Press Enter to continue...")
+                continue  # Re-display the same question prompt
+            elif post_action == 'r':
+                # Stay on the same question, clear user input, and re-prompt
+                user_commands.clear() # This needs to be handled by get_user_input or similar
+                print("\nRetrying the current question...")
+                break # Exit post-answer loop, re-enter inner loop for current question
+            elif post_action == 'q':
+                # Exit the entire run_topic loop
+                return # Return to main menu
+            else:
+                print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', or 'q'.")
+
+    
+
+    clear_screen()
+    print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
+
+def validate_kubectl_command_dry_run(command_string):
+    # Only attempt dry-run for commands that typically create/modify resources
+    # and can output YAML for client-side validation.
+    # This is a heuristic and might not cover all cases.
+    if not any(cmd in command_string for cmd in ["create", "run", "apply", "set", "edit"]):
+        return True, f"{Fore.YELLOW}Skipping kubectl dry-run: Command type not typically dry-runnable client-side.{Style.RESET_ALL}"
+
+    # Attempt to append --dry-run=client -o yaml
+    # Be careful not to duplicate if already present
+    modified_command = command_string
+    if "--dry-run" not in modified_command:
+        modified_command += " --dry-run=client"
+    if "-o" not in modified_command and "--output" not in modified_command:
+        modified_command += " -o yaml"
+
+    try:
+        cmd = modified_command.split()
+        process = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        
+        if process.returncode == 0:
+            # If dry-run is successful, check if the output is valid YAML
+            try:
+                yaml.safe_load(process.stdout)
+                return True, f"{Fore.GREEN}kubectl dry-run output (YAML syntax valid):{Style.RESET_ALL}\n{process.stdout.strip()}", process.stdout.strip()
+            except yaml.YAMLError:
+                return False, f"{Fore.RED}kubectl dry-run output (YAML syntax invalid):{Style.RED}\n{process.stdout.strip()}\n{process.stderr.strip()}{Style.RESET_ALL}", process.stdout.strip() + "\n" + process.stderr.strip()
+        else:
+            error_output = process.stderr.strip()
+            if not error_output: # Sometimes errors are in stdout for kubectl
+                error_output = process.stdout.strip()
+            return False, f"{Fore.RED}kubectl dry-run failed:{Style.RESET_ALL}\n{error_output}", error_output
+    except FileNotFoundError:
+        return False, f"{Fore.RED}Error: 'kubectl' command not found. Please ensure kubectl is installed and in your system's PATH to enable dry-run validation.{Style.RESET_ALL}", "kubectl not found"
+    except Exception as e:
+        return False, f"{Fore.RED}An unexpected error occurred during kubectl dry-run: {e}{Style.RESET_ALL}", str(e)
 
         # --- Post-answer interaction ---
         # This block is reached after a question has been answered/skipped/solution viewed.
