@@ -11,7 +11,7 @@ questions:
           image: my-registry/my-app:1.0
         imagePullSecrets:
         - name: reg-secret
-  - question: "Command to generate a docker-registry pull secret regcred (output YAML)."
+  - question: "Command to generate a docker-registry pull secret named 'regcred' for 'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com' (output YAML)."
     solution: "kubectl create secret docker-registry regcred --docker-server=registry.example.com --docker-username=USER --docker-password=PASS --docker-email=user@example.com --dry-run=client -o yaml"
   - question: "Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred."
     solution: |
