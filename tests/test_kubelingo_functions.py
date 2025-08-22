@@ -1029,11 +1029,11 @@ class TestKubectlValidation:
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
             manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
 
             assert success is True
-            assert "kubectl dry-run output" in feedback
-            assert "pod/test-pod created (dry-run)" in feedback
+            assert "kubectl dry-run successful!" in user_feedback
+            assert "pod/test-pod created (dry-run)" in ai_feedback
             mock_subprocess_run.assert_called_once()
             self.mock_tmp_file.assert_called_once_with(mode='w+', suffix=".yaml", delete=False)
             self.mock_tmp_file_handle.write.assert_called_once_with(manifest)
@@ -1047,20 +1047,21 @@ class TestKubectlValidation:
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
             manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\ninvalidField: value\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
 
             assert success is False
-            assert "kubectl dry-run failed" in feedback
-            assert "unknown field \"invalidField\"" in feedback
+            assert "kubectl dry-run failed. Please check your manifest." in user_feedback
+            assert "unknown field \"invalidField\"" in ai_feedback
             mock_subprocess_run.assert_called_once()
             self.mock_unlink.assert_called_once()
 
     def test_validate_manifest_not_kubernetes_yaml(self, capsys):
         manifest = "key: value\nanother_key: another_value\n"
-        success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+        success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
 
         assert success is False
-        assert "Skipping kubectl dry-run: Not a Kubernetes YAML manifest." in feedback
+        assert "Skipping kubectl dry-run: Not a Kubernetes YAML manifest." in user_feedback
+        assert "Skipped: Not a Kubernetes YAML manifest." in ai_feedback
         # Ensure subprocess.run and tempfile operations were not called
         with patch('subprocess.run') as mock_subprocess_run:
             mock_subprocess_run.assert_not_called()
@@ -1070,10 +1071,11 @@ class TestKubectlValidation:
     def test_validate_manifest_kubectl_not_found(self, capsys):
         with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
             manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, feedback = validate_manifest_with_kubectl_dry_run(manifest)
+            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
 
             assert success is False
-            assert "Error: 'kubectl' command not found." in feedback
+            assert "Error: 'kubectl' command not found." in user_feedback
+            assert "kubectl not found" in ai_feedback
             mock_subprocess_run.assert_called_once()
             self.mock_unlink.assert_called_once()
 
@@ -1087,11 +1089,11 @@ class TestKubectlValidation:
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
             command_string = "kubectl run my-pod --image=nginx"
-            success, feedback = validate_kubectl_command_dry_run(command_string)
+            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
             assert success is True
-            assert "kubectl dry-run output (YAML syntax valid)" in feedback
-            assert "kind: Pod" in feedback
+            assert "kubectl dry-run successful!" in user_feedback
+            assert "kind: Pod" in ai_feedback
             mock_subprocess_run.assert_called_once_with(
                 ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "yaml"],
                 capture_output=True, text=True, check=False
@@ -1105,38 +1107,41 @@ class TestKubectlValidation:
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
             command_string = "kubectl run my-pod --image=nginx --invalid-flag"
-            success, feedback = validate_kubectl_command_dry_run(command_string)
+            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
             assert success is False
-            assert "kubectl dry-run failed" in feedback
-            assert "unknown flag: --invalid-flag" in feedback
+            assert "kubectl dry-run failed. Please check your command syntax." in user_feedback
+            assert "unknown flag: --invalid-flag" in ai_feedback
             mock_subprocess_run.assert_called_once()
 
     def test_validate_kubectl_command_skipped_get(self, capsys):
         command_string = "kubectl get pods"
-        success, feedback = validate_kubectl_command_dry_run(command_string)
+        success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
         assert success is True
-        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in feedback
+        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in user_feedback
+        assert "Skipped: Command type not typically dry-runnable client-side." in ai_feedback
         with patch('subprocess.run') as mock_subprocess_run:
             mock_subprocess_run.assert_not_called()
 
     def test_validate_kubectl_command_skipped_non_kubectl(self, capsys):
         command_string = "ls -l"
-        success, feedback = validate_kubectl_command_dry_run(command_string)
+        success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
         assert success is True
-        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in feedback
+        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in user_feedback
+        assert "Skipped: Command type not typically dry-runnable client-side." in ai_feedback
         with patch('subprocess.run') as mock_subprocess_run:
             mock_subprocess_run.assert_not_called()
 
     def test_validate_kubectl_command_kubectl_not_found(self, capsys):
         with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
             command_string = "kubectl run my-pod --image=nginx"
-            success, feedback = validate_kubectl_command_dry_run(command_string)
+            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
             assert success is False
-            assert "Error: 'kubectl' command not found." in feedback
+            assert "Error: 'kubectl' command not found." in user_feedback
+            assert "kubectl not found" in ai_feedback
             mock_subprocess_run.assert_called_once()
 
     def test_validate_kubectl_command_already_has_dry_run_and_output(self, capsys):
@@ -1147,10 +1152,11 @@ class TestKubectlValidation:
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
             command_string = "kubectl run my-pod --image=nginx --dry-run=client -o json"
-            success, feedback = validate_kubectl_command_dry_run(command_string)
+            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
 
             assert success is True
-            assert "kubectl dry-run output (YAML syntax valid)" in feedback # Note: it will still try to load as YAML
+            assert "kubectl dry-run successful!" in user_feedback
+            assert "kind: Pod" in ai_feedback
             mock_subprocess_run.assert_called_once_with(
                 ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "json"],
                 capture_output=True, text=True, check=False
