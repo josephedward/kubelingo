@@ -3,15 +3,10 @@ name: Publish to PyPI
 on:
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: 'Type of version bump (major, minor, patch)'
+      version:
+        description: 'Version to publish (e.g. 1.2.3)'
         required: true
-        default: 'patch'
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
+        type: string
 
 jobs:
   publish:
@@ -29,19 +24,18 @@ jobs:
     - name: Install publishing dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build twine toml
 
-    - name: Determine Version Bump Type (from input)
-      id: get_bump_type
+    - name: Update version in pyproject.toml
       run: |
-        echo "VERSION_BUMP_TYPE=${{ github.event.inputs.bump_type }}" >> "$GITHUB_OUTPUT"
-
-    - name: Bump Version
-      env:
-        BUMP_TYPE: ${{ steps.get_bump_type.outputs.VERSION_BUMP_TYPE }}
-      run: |
-        pip install semver
-        python scripts/bump_version.py
+        python - << 'EOF'
+        import toml, pathlib
+        version = "${{ github.event.inputs.version }}"
+        pyproject = pathlib.Path('pyproject.toml')
+        data = toml.loads(pyproject.read_text())
+        data['project']['version'] = version
+        pyproject.write_text(toml.dumps(data))
+        EOF
 
     - name: Build package
       run: python -m build
