@@ -1,63 +1,71 @@
 questions:
-  - question: "Create a pod named 'env-pod' with image 'busybox' that runs the command 'echo $(GREETING) $(NAME)!' and has two environment variables: GREETING=Hello and NAME=World. The pod should print 'Hello World!' to its logs and should not restart after completion."
-    solution: |
-      kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello" --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
-  - question: "Create a Pod manifest named `args-pod` with a container named `busybox-container` using the `busybox` image. Override the container's command to be `[`/bin/sh`, `-c`]` and its arguments to be `[`echo Hello world`]` . The Pod should have a `restartPolicy` of `Never`."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: args-pod
-      spec:
-        containers:
-        - name: busybox-container
-          image: busybox
-          command: ["/bin/sh", "-c"]
-          args: ["echo Hello world"]
-        restartPolicy: Never
-  - question: |
-      **Scenario:**
+- question: 'Create a pod named ''env-pod'' with image ''busybox'' that runs the command
+    ''echo $(GREETING) $(NAME)!'' and has two environment variables: GREETING=Hello
+    and NAME=World. The pod should print ''Hello World!'' to its logs and should not
+    restart after completion.'
+  solutions:
+  - 'kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello"
+    --env="NAME=World" -- /bin/sh -c ''echo $(GREETING) $(NAME)!''
 
-      In Kubernetes, you often need to run a container with a different command than the one specified in its Dockerfile. For example, you might want to run a one-off debugging script, or start a database container with a custom configuration flag.
+    '
+- question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
+    using the `busybox` image. Override the container's command to be `[`/bin/sh`,
+    `-c`]` and its arguments to be `[`echo Hello world`]` . The Pod should have a
+    `restartPolicy` of `Never`.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: args-pod\nspec:\n  containers:\n\
+    \    - args:\n        - echo Hello world\n      command:\n        - /bin/sh\n\
+    \        - -c\n      image: busybox\n      name: busybox-container\n  restartPolicy:\
+    \ Never\n"
+- question: '**Scenario:**
 
-      You can override a container's default startup instruction (`ENTRYPOINT`) and its default arguments (`CMD`) directly in the Pod manifest.
 
-      *   `spec.containers.command` overrides the image's `ENTRYPOINT`.
-      *   `spec.containers.args` overrides the image's `CMD`.
+    In Kubernetes, you often need to run a container with a different command than
+    the one specified in its Dockerfile. For example, you might want to run a one-off
+    debugging script, or start a database container with a custom configuration flag.
 
-      **Your Task:**
 
-      Create a Pod manifest for a container that uses the `busybox` image. Your goal is to override its default command to make it print the word "hello" to its standard output and then remain running.
+    You can override a container''s default startup instruction (`ENTRYPOINT`) and
+    its default arguments (`CMD`) directly in the Pod manifest.
 
-      **Requirements:**
 
-      1.  **Pod Name:** The Pod should be named `cmd-args`.
-      2.  **Image:** Use the `busybox` image.
-      3.  **Command:** The container should execute a shell. Use the `command` field to set this to `["sh", "-c"]`.
-      4.  **Arguments:** The shell should be given a command string to execute. Use the `args` field to provide a string that first prints "hello" and then sleeps for a long time (e.g., `echo hello && sleep 3600`). The `sleep` command ensures the container remains in a `Running` state for inspection."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: cmd-args
-      spec:
-        containers:
-          - name: c
-            image: busybox
-            command: ["sh", "-c"]
-            args: ["echo hello && sleep 3600"]
-  - question: "Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
-    named 'c' that uses the 'busybox' image. Configure the container to import
-    all key-value pairs from the ConfigMap named 'app-cm' as environment variables."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: envfrom-cm
-      spec:
-        containers:
-          - name: c
-            image: busybox
-            envFrom:
-              - configMapRef:
-                  name: app-cm
+    *   `spec.containers.command` overrides the image''s `ENTRYPOINT`.
+
+    *   `spec.containers.args` overrides the image''s `CMD`.
+
+
+    **Your Task:**
+
+
+    Create a Pod manifest for a container that uses the `busybox` image. Your goal
+    is to override its default command to make it print the word "hello" to its standard
+    output and then remain running.
+
+
+    **Requirements:**
+
+
+    1.  **Pod Name:** The Pod should be named `cmd-args`.
+
+    2.  **Image:** Use the `busybox` image.
+
+    3.  **Command:** The container should execute a shell. Use the `command` field
+    to set this to `["sh", "-c"]`.
+
+    4.  **Arguments:** The shell should be given a command string to execute. Use
+    the `args` field to provide a string that first prints "hello" and then sleeps
+    for a long time (e.g., `echo hello && sleep 3600`). The `sleep` command ensures
+    the container remains in a `Running` state for inspection."
+
+    '
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: cmd-args\nspec:\n  containers:\n\
+    \    - args:\n        - echo hello && sleep 3600\n      command:\n        - sh\n\
+    \        - -c\n      image: busybox\n      name: c\n"
+- question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
+    named 'c' that uses the 'busybox' image. Configure the container to import all
+    key-value pairs from the ConfigMap named 'app-cm' as environment variables.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: envfrom-cm\nspec:\n  containers:\n\
+    \    - envFrom:\n        - configMapRef:\n            name: app-cm\n      image:\
+    \ busybox\n      name: c\n"

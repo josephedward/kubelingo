@@ -1,28 +1,19 @@
 questions:
-  - question: "Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0' from a private registry. The pod should use an image pull secret named 'reg-secret'."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: private-pod
-      spec:
-        containers:
-        - name: main
-          image: my-registry/my-app:1.0
-        imagePullSecrets:
-        - name: reg-secret
-  - question: "Command to generate a docker-registry pull secret named 'regcred' for 'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com' (output YAML)."
-    solution: "kubectl create secret docker-registry regcred --docker-server=registry.example.com --docker-username=USER --docker-password=PASS --docker-email=user@example.com --dry-run=client -o yaml"
-  - question: "Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: pull-demo
-      spec:
-        imagePullSecrets:
-          - name: regcred
-        containers:
-          - name: c
-            image: nginx
-            imagePullPolicy: Always
+- question: Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0'
+    from a private registry. The pod should use an image pull secret named 'reg-secret'.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: private-pod\nspec:\n  containers:\n\
+    \    - image: my-registry/my-app:1.0\n      name: main\n  imagePullSecrets:\n\
+    \    - name: reg-secret\n"
+- question: Command to generate a docker-registry pull secret named 'regcred' for
+    'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com'
+    (output YAML).
+  solutions:
+  - kubectl create secret docker-registry regcred --docker-server=registry.example.com
+    --docker-username=USER --docker-password=PASS --docker-email=user@example.com
+    --dry-run=client -o yaml
+- question: Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pull-demo\nspec:\n  containers:\n\
+    \    - image: nginx\n      imagePullPolicy: Always\n      name: c\n  imagePullSecrets:\n\
+    \    - name: regcred\n"

@@ -1,117 +1,161 @@
 questions:
 - question: List the available commands that correspond to alpha features.
-  solution: kubectl alpha
+  solutions:
+  - kubectl alpha
 - question: Add or update the annotations of one or more resources.
-  solution: kubectl annotate
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl annotate
 - question: List the API resources that are available.
-  solution: kubectl api-resources
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl api-resources
 - question: List the API versions that are available.
-  solution: kubectl api-versions
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl api-versions
 - question: Apply a configuration change to a resource from a file or stdin.
-  solution: kubectl apply
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl apply
 - question: Attach to a running container.
-  solution: kubectl attach
+  solutions:
+  - kubectl attach
 - question: Inspect authorization.
-  solution: kubectl auth
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl auth
 - question: Automatically scale the set of pods managed by a replication controller.
-  solution: kubectl autoscale
+  solutions:
+  - kubectl autoscale
 - question: Modify certificate resources.
-  solution: kubectl certificate
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl certificate
 - question: Display endpoint information about the master and services in the cluster.
-  solution: kubectl cluster-info
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl cluster-info
 - question: Output shell completion code for the specified shell (bash or zsh).
-  solution: kubectl completion
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl completion
 - question: Modify kubeconfig files.
-  solution: kubectl config
+  solutions:
+  - kubectl config
 - question: Convert config files between different API versions.
-  solution: kubectl convert
+  solutions:
+  - kubectl convert
 - question: Mark node as unschedulable.
-  solution: kubectl cordon
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl cordon
 - question: Copy files and directories to and from containers.
-  solution: kubectl cp
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl cp
 - question: Create one or more resources from a file or stdin.
-  solution: kubectl create
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl create
 - question: Delete resources from a file, stdin, or by selectors.
-  solution: kubectl delete
+  solutions:
+  - kubectl delete
 - question: Display the detailed state of one or more resources.
-  solution: kubectl describe
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl describe
 - question: Diff file or stdin against live configuration.
-  solution: kubectl diff
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl diff
 - question: Drain node in preparation for maintenance.
-  solution: kubectl drain
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl drain
 - question: Edit a resource on the server.
-  solution: kubectl edit
+  solutions:
+  - kubectl edit
 - question: List events.
-  solution: kubectl events
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl events
 - question: Execute a command against a container in a pod.
-  solution: kubectl exec
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl exec
 - question: Get documentation for a resource.
-  solution: kubectl explain
+  solutions:
+  - kubectl explain
 - question: Expose a resource as a new Kubernetes service.
-  solution: kubectl expose
+  solutions:
+  - kubectl expose
 - question: List one or more resources.
-  solution: kubectl get
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl get
 - question: Build a set of Kustomize resources.
-  solution: kubectl kustomize
+  solutions:
+  - kubectl kustomize
 - question: Add or update the labels of one or more resources.
-  solution: kubectl label
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl label
 - question: Print the logs for a container in a pod.
-  solution: kubectl logs
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl logs
 - question: List global command-line options.
-  solution: kubectl options
+  solutions:
+  - kubectl options
 - question: Update one or more fields of a resource.
-  solution: kubectl patch
+  solutions:
+  - kubectl patch
 - question: Provides utilities for interacting with plugins.
-  solution: kubectl plugin
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl plugin
 - question: Forward one or more local ports to a pod.
-  solution: kubectl port-forward
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl port-forward
 - question: Run a proxy to the Kubernetes API server.
-  solution: kubectl proxy
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl proxy
 - question: Replace a resource from a file or stdin.
-  solution: kubectl replace
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl replace
 - question: Manage the rollout of a resource.
-  solution: kubectl rollout
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl rollout
 - question: Run a specified image on the cluster.
-  solution: kubectl run
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl run
 - question: Update the size of a replication controller.
-  solution: kubectl scale
+  solutions:
+  - kubectl scale
 - question: Configure application resources.
-  solution: kubectl set
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl set
 - question: Update the taints on one or more nodes.
-  solution: kubectl taint
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl taint
 - question: Display resource usage of pods or nodes.
-  solution: kubectl top
+  solutions:
+  - kubectl top
 - question: Mark node as schedulable.
-  solution: kubectl uncordon
   source: https://kubernetes.io/docs/reference/kubectl/#operations
+  solutions:
+  - kubectl uncordon
 - question: Display the Kubernetes version.
-  solution: kubectl version
+  solutions:
+  - kubectl version
 - question: Wait for a specific condition on one or many resources.
-  solution: kubectl wait
+  solutions:
+  - kubectl wait
