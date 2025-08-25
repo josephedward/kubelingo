@@ -17,8 +17,8 @@ from colorama import Fore, Style, init as colorama_init
 
 
 def colorize_ascii_art(ascii_art_string):
-    """Applies a green and black pattern to the ASCII art string."""
-    colors = [Fore.GREEN, Fore.WHITE] # Use only green and white
+    """Applies a green and cyan pattern to the ASCII art string."""
+    colors = [Fore.GREEN, Fore.CYAN] # Use only green and cyan
     
     lines = ascii_art_string.splitlines()
     colored_lines = []
