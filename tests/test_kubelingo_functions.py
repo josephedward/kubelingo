@@ -660,7 +660,8 @@ def mock_llm_deps():
         patch('openai.OpenAI') as MockOpenAI_class,
         patch('kubelingo.kubelingo.os.environ', new={}) as mock_environ,
         patch('kubelingo.kubelingo.click.confirm', return_value=False) as mock_click_confirm,
-        patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu
+        patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu,
+        patch('requests.post') as mock_requests_post
     ):
         # Configure the class mocks to return specific mock instances
         mock_gemini_model_instance = MagicMock()
@@ -669,11 +670,11 @@ def mock_llm_deps():
         mock_openai_client_instance = MagicMock()
         MockOpenAI_class.return_value = mock_openai_client_instance
 
-        yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu
+        yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
-    mock_post.return_value.status_code = 200
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_requests_post.return_value.status_code = 200
     
     llm_type, model = _get_llm_model()
     
@@ -682,8 +683,8 @@ def test_get_llm_model_openrouter_first(mock_llm_deps):
     mock_post.assert_called_once()
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
-    mock_post.return_value.raise_for_status.side_effect = Exception("API error")
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_requests_post.return_value.raise_for_status.side_effect = Exception("API error")
     mock_gemini.return_value.generate_content.return_value.text = "test response"
     
     llm_type, model = _get_llm_model()
@@ -886,7 +887,7 @@ def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
         result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
         
         mock_get_llm_model.assert_called_once()
-        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
+        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered manifest validation."}
         MockGenerativeModel_class.assert_not_called()
         MockOpenAI_class.assert_not_called()
 
@@ -989,7 +990,7 @@ def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
         MockOpenAI_class.assert_not_called()
         
         captured = capsys.readouterr()
-        assert "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions." in captured.out
+        assert "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY environment variables to generate new questions." in captured.out
 
 def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
