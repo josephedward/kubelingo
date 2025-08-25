@@ -896,7 +896,7 @@ def list_and_select_topic(performance_data):
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}")
     
     if has_missed:
-        print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configure API Keys")
+        print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configuration Menu")
         
         print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
     
