@@ -1,19 +1,26 @@
 questions:
 - question: Create a new namespace called 'development'.
-  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace
   solutions:
   - kubectl create namespace development
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace
 - question: Switch your current context to use the 'development' namespace.
   solutions:
   - kubectl config set-context --current --namespace=development
 - question: List all namespaces, and then delete the 'development' namespace.
   solutions:
   - kubectl get namespaces && kubectl delete namespace development
-- question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the
-    'development' namespace.
+- question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the 'development' namespace.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod-in-ns\n  namespace: development\n\
-    spec:\n  containers:\n    - image: nginx\n      name: nginx\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: pod-in-ns
+    namespace: development
+    spec:
+    containers:
+    - image: nginx
+    name: nginx
 - question: Generate the YAML for a new namespace 'dev' without creating it.
   solutions:
   - kubectl create namespace dev --dry-run=client -o yaml
@@ -24,20 +31,18 @@ questions:
   solutions:
   - kubectl get namespaces > /path/to/namespaces.txt
 - question: Verify which namespace is currently being used in your context.
-  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
   solutions:
-  - 'kubectl config view --minify | grep namespace: null
-
-    '
+  - 'kubectl config view --minify | grep namespace: null'
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
 - question: List all resources across all namespaces.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=A%20note%20on%20%60
   solutions:
   - kubectl get all -A
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=A%20note%20on%20%60
 - question: List all pods in the 'kube-system' namespace.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20nginx%20,in%20the%20namespace%20of%20mynamespace
   solutions:
   - kubectl get pods -n kube-system
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20nginx%20,in%20the%20namespace%20of%20mynamespace
 - question: Create a resource quota for a namespace, limiting it to 10 pods.
-  source: https://kubernetes.io/docs/concepts/policy/resource-quotas/#:~:text=kubectl%20create%20namespace%20myspace
   solutions:
   - kubectl create quota ns-quota --hard=pods=10 -n development
+  source: https://kubernetes.io/docs/concepts/policy/resource-quotas/#:~:text=kubectl%20create%20namespace%20myspace

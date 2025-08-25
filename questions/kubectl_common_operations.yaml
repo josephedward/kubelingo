@@ -1,40 +1,39 @@
 questions:
 - question: Create a service using the definition in example-service.yaml.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl apply -f example-service.yaml
-- question: Create a replication controller using the definition in example-controller.yaml.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: Create a replication controller using the definition in example-controller.yaml.
   solutions:
   - kubectl apply -f example-controller.yaml
-- question: Create the Kubernetes objects defined in all YAML files located in the
-    absolute path `/path/to/manifests`.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: Create the Kubernetes objects defined in all YAML files located in the absolute path `/path/to/manifests`.
   solutions:
   - kubectl apply -f /path/to/manifests
-- question: List all pods in plain-text output format.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: List all pods in plain-text output format.
   solutions:
   - kubectl get pods
-- question: List all pods and include additional information such as node name.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: List all pods and include additional information such as node name.
   solutions:
   - kubectl get pods -o wide
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: List the replication controller with a specified name using an alias.
   solutions:
   - kubectl get rc <rc-name>
 - question: List all replication controllers and services together.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl get rc,services
-- question: List all daemon sets.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: List all daemon sets.
   solutions:
   - kubectl get ds
-- question: List all pods running on node server01.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: List all pods running on node server01.
   solutions:
   - kubectl get pods --field-selector=spec.nodeName=server01
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: Display the details of a node.
   solutions:
   - kubectl describe nodes <node-name>
@@ -45,20 +44,20 @@ questions:
   solutions:
   - kubectl describe pods <rc-name>
 - question: Describe all pods.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl describe pods
-- question: Delete a pod using the definition in pod.yaml.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- question: Delete a pod using the definition in pod.yaml.
   solutions:
   - kubectl delete -f pod.yaml
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: Delete all pods and services with a specific label.
   solutions:
   - kubectl delete pods,services -l <label-key>=<label-value>
 - question: Delete all pods, including uninitialized ones.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl delete pods --all
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: Get the output of 'date' from a pod.
   solutions:
   - kubectl exec <pod-name> -- date
@@ -75,9 +74,9 @@ questions:
   solutions:
   - kubectl logs -f <pod-name>
 - question: View a diff of resources in pod.json.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl diff -f pod.json
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
 - question: View a diff reading from stdin.
   solutions:
   - cat pod.json | kubectl diff -f -
@@ -85,6 +84,6 @@ questions:
   solutions:
   - kubectl hello
 - question: List available kubectl-compatible plugins.
-  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
   solutions:
   - kubectl plugin list
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations

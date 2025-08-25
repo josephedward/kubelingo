@@ -1,45 +1,76 @@
 questions:
-- question: You have a deployment named 'webapp' with label 'app=webapp'. Create a
-    ClusterIP service named 'webapp-svc' to expose the deployment on port 80.
+- question: You have a deployment named 'webapp' with label 'app=webapp'. Create a ClusterIP service named 'webapp-svc' to expose the deployment on port 80.
   solutions:
-  - 'kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
-
-    '
-- question: Create a manifest for a NodePort service named 'webapp-nodeport'. The
-    service should forward traffic from a port on the node to port 80 on pods with
-    the label 'app=webapp'.
+  - kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
+- question: Create a manifest for a NodePort service named 'webapp-nodeport'. The service should forward traffic from a port on the node to port 80 on pods with the label 'app=webapp'.
   solutions:
-  - "apiVersion: v1\nkind: Service\nmetadata:\n  name: webapp-nodeport\nspec:\n  ports:\n\
-    \    - port: 80\n      protocol: TCP\n      targetPort: 80\n  selector:\n    app:\
-    \ webapp\n  type: NodePort\n"
-- question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort
-    8080.
+  - |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: webapp-nodeport
+    spec:
+    ports:
+    - port: 80
+    protocol: TCP
+    targetPort: 80
+    selector:
+    app: webapp
+    type: NodePort
+- question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort 8080.
   solutions:
-  - "apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  ports:\n    -\
-    \ port: 80\n      targetPort: 8080\n  selector:\n    app: web\n"
+  - |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: web
+    spec:
+    ports:
+    - port: 80
+    targetPort: 8080
+    selector:
+    app: web
 - question: Headless Service manifest for app=db on port 5432.
   solutions:
-  - "apiVersion: v1\nkind: Service\nmetadata:\n  name: db\nspec:\n  clusterIP: None\n\
-    \  ports:\n    - port: 5432\n      targetPort: 5432\n  selector:\n    app: db\n"
+  - |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: db
+    spec:
+    clusterIP: None
+    ports:
+    - port: 5432
+    targetPort: 5432
+    selector:
+    app: db
 - question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
-  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
   solutions:
   - kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
 - question: List all services.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
   solutions:
   - kubectl get services
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
 - question: Describe service frontend-svc.
-  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
   solutions:
   - kubectl describe service frontend-svc
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
 - question: Delete service frontend-svc.
-  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
   solutions:
   - kubectl delete service frontend-svc
-- question: 'Create a Service `my-service` that selects pods with label `app: MyApp`.
-    The service should expose TCP port 80 and target port 8080 on the pods.'
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+- question: 'Create a Service `my-service` that selects pods with label `app: MyApp`. The service should expose TCP port 80 and target port 8080 on the pods.'
   solutions:
-  - "apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\nspec:\n  ports:\n\
-    \    - port: 80\n      protocol: TCP\n      targetPort: 8080\n  selector:\n  \
-    \  app: MyApp\n"
+  - |-
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: my-service
+    spec:
+    ports:
+    - port: 80
+    protocol: TCP
+    targetPort: 8080
+    selector:
+    app: MyApp

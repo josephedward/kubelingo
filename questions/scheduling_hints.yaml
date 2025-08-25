@@ -1,18 +1,56 @@
 questions:
 - question: Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: ssd-pod\nspec:\n  containers:\n\
-    \    - image: nginx\n      name: main\n  nodeSelector:\n    disktype: ssd\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: ssd-pod
+    spec:
+    containers:
+    - image: nginx
+    name: main
+    nodeSelector:
+    disktype: ssd
 - question: Deployment manifest with nodeSelector disktype=ssd.
   solutions:
-  - "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: scheduled\nspec:\n\
-    \  replicas: 1\n  selector:\n    matchLabels:\n      app: scheduled\n  template:\n\
-    \    metadata:\n      labels:\n        app: scheduled\n    spec:\n      containers:\n\
-    \        - image: nginx\n          name: app\n      nodeSelector:\n        disktype:\
-    \ ssd\n"
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: scheduled
+    spec:
+    replicas: 1
+    selector:
+    matchLabels:
+    app: scheduled
+    template:
+    metadata:
+    labels:
+    app: scheduled
+    spec:
+    containers:
+    - image: nginx
+    name: app
+    nodeSelector:
+    disktype: ssd
 - question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: tolerate-ml\nspec:\n  containers:\n\
-    \    - command:\n        - sh\n        - -c\n        - sleep 3600\n      image:\
-    \ busybox\n      name: app\n  tolerations:\n    - effect: NoSchedule\n      key:\
-    \ dedicated\n      operator: Equal\n      value: ml\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: tolerate-ml
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - sleep 3600
+    image: busybox
+    name: app
+    tolerations:
+    - effect: NoSchedule
+    key: dedicated
+    operator: Equal
+    value: ml
