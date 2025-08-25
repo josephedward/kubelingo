@@ -1170,6 +1170,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
             elif user_commands:
                 user_answer = "\n".join(user_commands)
+                normalized_user_answer_string = ""  # Initialize variable
                 # Exact match check for 'solutions' (e.g., vim commands)
                 if 'solutions' in q:
                     solution_list = [str(s).strip() for s in q['solutions']]
