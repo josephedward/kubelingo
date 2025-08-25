@@ -1,64 +1,90 @@
 questions:
 - question: Create a service using the definition in example-service.yaml.
-  solution: kubectl apply -f example-service.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl apply -f example-service.yaml
 - question: Create a replication controller using the definition in example-controller.yaml.
-  solution: kubectl apply -f example-controller.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
-- question: Create the Kubernetes objects defined in all YAML files located in the absolute path `/path/to/manifests`.
-  solution: kubectl apply -f /path/to/manifests
+  solutions:
+  - kubectl apply -f example-controller.yaml
+- question: Create the Kubernetes objects defined in all YAML files located in the
+    absolute path `/path/to/manifests`.
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl apply -f /path/to/manifests
 - question: List all pods in plain-text output format.
-  solution: kubectl get pods
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl get pods
 - question: List all pods and include additional information such as node name.
-  solution: kubectl get pods -o wide
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl get pods -o wide
 - question: List the replication controller with a specified name using an alias.
-  solution: kubectl get rc <rc-name>
+  solutions:
+  - kubectl get rc <rc-name>
 - question: List all replication controllers and services together.
-  solution: kubectl get rc,services
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl get rc,services
 - question: List all daemon sets.
-  solution: kubectl get ds
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl get ds
 - question: List all pods running on node server01.
-  solution: kubectl get pods --field-selector=spec.nodeName=server01
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl get pods --field-selector=spec.nodeName=server01
 - question: Display the details of a node.
-  solution: kubectl describe nodes <node-name>
+  solutions:
+  - kubectl describe nodes <node-name>
 - question: Display the details of a pod.
-  solution: kubectl describe pods/<pod-name>
+  solutions:
+  - kubectl describe pods/<pod-name>
 - question: Display the details of all pods managed by a replication controller.
-  solution: kubectl describe pods <rc-name>
+  solutions:
+  - kubectl describe pods <rc-name>
 - question: Describe all pods.
-  solution: kubectl describe pods
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl describe pods
 - question: Delete a pod using the definition in pod.yaml.
-  solution: kubectl delete -f pod.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl delete -f pod.yaml
 - question: Delete all pods and services with a specific label.
-  solution: kubectl delete pods,services -l <label-key>=<label-value>
+  solutions:
+  - kubectl delete pods,services -l <label-key>=<label-value>
 - question: Delete all pods, including uninitialized ones.
-  solution: kubectl delete pods --all
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl delete pods --all
 - question: Get the output of 'date' from a pod.
-  solution: kubectl exec <pod-name> -- date
+  solutions:
+  - kubectl exec <pod-name> -- date
 - question: Get the output of 'date' from a specific container in a pod.
-  solution: kubectl exec <pod-name> -c <container-name> -- date
+  solutions:
+  - kubectl exec <pod-name> -c <container-name> -- date
 - question: Open an interactive bash shell in a pod.
-  solution: kubectl exec -ti <pod-name> -- /bin/bash
+  solutions:
+  - kubectl exec -ti <pod-name> -- /bin/bash
 - question: Return a snapshot of logs from a pod.
-  solution: kubectl logs <pod-name>
+  solutions:
+  - kubectl logs <pod-name>
 - question: Stream logs from a pod.
-  solution: kubectl logs -f <pod-name>
+  solutions:
+  - kubectl logs -f <pod-name>
 - question: View a diff of resources in pod.json.
-  solution: kubectl diff -f pod.json
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl diff -f pod.json
 - question: View a diff reading from stdin.
-  solution: cat pod.json | kubectl diff -f -
+  solutions:
+  - cat pod.json | kubectl diff -f -
 - question: Invoke a kubectl plugin named 'hello'.
-  solution: kubectl hello
+  solutions:
+  - kubectl hello
 - question: List available kubectl-compatible plugins.
-  solution: kubectl plugin list
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  solutions:
+  - kubectl plugin list

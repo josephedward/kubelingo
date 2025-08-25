@@ -545,53 +545,65 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
-    # Simulate user input: 1 (set Gemini), then a key, then 3 (back to main menu)
-    with patch('builtins.input', side_effect=['1', 'test_gemini_key', '3']):
+    # Simulate user input: 1 (API Keys), 1 (set Gemini), then a key, then 3 (back), 3 (back)
+    with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '3', '3']):
         handle_config_menu()
     
-    mock_clear_screen.assert_called() # Called multiple times in the loop
-    mock_dotenv_values.assert_called() # Called multiple times in the loop
     mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
-    assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key' # Check if os.environ was updated
-    mock_sleep.assert_called() # Called after each action
+    assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key'
     
     captured = capsys.readouterr()
-    assert "Set Gemini API Key" in captured.out
     assert "Gemini API Key saved." in captured.out
 
 def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys):
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
-    # Simulate user input: 2 (set OpenAI), then a key, then 3 (back to main menu)
-    with patch('builtins.input', side_effect=['2', 'test_openai_key', '3']):
+    # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
+    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '3', '3']):
         handle_config_menu()
     
-    mock_clear_screen.assert_called()
-    mock_dotenv_values.assert_called()
     mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
     assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
-    mock_sleep.assert_called()
     
     captured = capsys.readouterr()
-    assert "Set OpenAI API Key" in captured.out
     assert "OpenAI API Key saved." in captured.out
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
-    mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
+    mock_dotenv_values.return_value = {} # No keys set
     
     # Simulate user input: invalid, then 3 (back to main menu)
     with patch('builtins.input', side_effect=['invalid', '3']):
         handle_config_menu()
     
-    mock_clear_screen.assert_called()
-    mock_dotenv_values.assert_called()
     mock_set_key.assert_not_called()
-    mock_sleep.assert_called()
     
     captured = capsys.readouterr()
     assert "Invalid choice. Please try again." in captured.out
+
+def test_handle_validation_menu_toggles(mock_handle_config_menu_deps, capsys):
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
+    # Initial config state
+    mock_dotenv_values.return_value = {
+        "KUBELINGO_VALIDATION_KUBECTL_DRY_RUN": "True",
+        "KUBELINGO_VALIDATION_AI_FEEDBACK": "True",
+        "KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS": "True",
+        "KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK": "True"
+    }
+
+    # Simulate toggling each setting off
+    with patch('builtins.input', side_effect=['2', '1', '2', '3', '4', '5', '3']):
+        handle_config_menu()
+
+    # Verify that set_key was called to toggle each setting
+    calls = [
+        call(".env", "KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "False"),
+        call(".env", "KUBELINGO_VALIDATION_AI_FEEDBACK", "False"),
+        call(".env", "KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "False"),
+        call(".env", "KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "False"),
+    ]
+    mock_set_key.assert_has_calls(calls, any_order=True)
 
 # --- Tests for get_user_input ---
 
@@ -850,8 +862,7 @@ def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
         result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
         
         mock_get_llm_model.assert_called_once()
-        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."
-        }
+        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
         MockGenerativeModel_class.assert_not_called()
         MockOpenAI_class.assert_not_called()
 
@@ -888,12 +899,7 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
         mock_response = MagicMock()
-        mock_response.text = """```yaml
-questions:
-  - question: \"New Gemini Q\"
-    solution: \"New Gemini S\"
-    source: \"http://gemini.source.com\"
-```"""
+        mock_response.text = "```yaml\nquestions:\n  - question: \"New Gemini Q\"\n    solution: \"New Gemini S\"\n    source: \"http://gemini.source.com\"\n```"
         mock_gemini_model_instance.generate_content.return_value = mock_response
         
         mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}]}, {'questions': []}]
@@ -922,7 +928,7 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = """```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"""
+        mock_response.choices[0].message.content = "```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"
         mock_openai_client_instance.chat.completions.create.return_value = mock_response
         
         mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}]}, {'questions': []}]

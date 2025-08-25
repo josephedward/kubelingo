@@ -1,28 +1,32 @@
 questions:
 - question: Create a pod manifest that runs a container with user ID 1000 and has
     a read-only root filesystem.
-  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secure-pod\nspec:\n  containers:\n\
-    \  - name: main\n    image: busybox\n    command: [\"sleep\", \"3600\"]\n    securityContext:\n\
-    \      runAsUser: 1000\n      readOnlyRootFilesystem: true\n"
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secure-pod\nspec:\n  containers:\n\
+    \    - command:\n        - sleep\n        - '3600'\n      image: busybox\n   \
+    \   name: main\n      securityContext:\n        readOnlyRootFilesystem: true\n\
+    \        runAsUser: 1000\n"
 - question: Pod manifest running as non-root user 1000 with fsGroup 2000.
-  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: nonroot\nspec:\n  securityContext:\n\
-    \    runAsUser: 1000\n    runAsNonRoot: true\n    fsGroup: 2000\n  containers:\n\
-    \    - name: app\n      image: busybox\n      command: [\"sh\",\"-c\",\"sleep\
-    \ 3600\"]\n"
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: nonroot\nspec:\n  containers:\n\
+    \    - command:\n        - sh\n        - -c\n        - sleep 3600\n      image:\
+    \ busybox\n      name: app\n  securityContext:\n    fsGroup: 2000\n    runAsNonRoot:\
+    \ true\n    runAsUser: 1000\n"
 - question: Container securityContext dropping all capabilities and readOnlyRootFilesystem.
-  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: strict-container\nspec:\n\
-    \  containers:\n    - name: app\n      image: busybox\n      command: [\"sh\"\
-    ,\"-c\",\"sleep 3600\"]\n      securityContext:\n        readOnlyRootFilesystem:\
-    \ true\n        capabilities:\n          drop: [\"ALL\"]\n"
-- question: Create a generic secret named db-secret with a username and password.
-  solution: kubectl create secret generic db-secret --from-literal=username=admin
-    --from-literal=password=secret
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: strict-container\nspec:\n  containers:\n\
+    \    - command:\n        - sh\n        - -c\n        - sleep 3600\n      image:\
+    \ busybox\n      name: app\n      securityContext:\n        capabilities:\n  \
+    \        drop:\n            - ALL\n        readOnlyRootFilesystem: true\n"
 - question: List all secrets.
-  solution: kubectl get secrets
   source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
+  solutions:
+  - kubectl get secrets
 - question: Describe secret db-secret.
-  solution: kubectl describe secret db-secret
   source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
+  solutions:
+  - kubectl describe secret db-secret
 - question: Delete secret db-secret.
-  solution: kubectl delete secret db-secret
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng
+  solutions:
+  - kubectl delete secret db-secret
