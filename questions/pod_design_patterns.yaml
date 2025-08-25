@@ -1,60 +1,122 @@
 questions:
-- question: Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer.
-    The initContainer should use the 'busybox' image and run the command 'sleep 2'.
-    The main container should use the 'nginx' image.
+- question: Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer. The initContainer should use the 'busybox' image and run the command 'sleep 2'. The main container should use the 'nginx' image.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod-with-init\nspec:\n  containers:\n\
-    \    - image: nginx\n      name: main-app\n  initContainers:\n    - command:\n\
-    \        - sh\n        - -c\n        - sleep 2\n      image: busybox\n      name:\
-    \ init-work\n"
-- question: Pod manifest with one initContainer that waits 5s before starting app
-    container.
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: pod-with-init
+    spec:
+    containers:
+    - image: nginx
+    name: main-app
+    initContainers:
+    - command:
+    - sh
+    - -c
+    - sleep 2
+    image: busybox
+    name: init-work
+- question: Pod manifest with one initContainer that waits 5s before starting app container.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-with-init\nspec:\n  containers:\n\
-    \    - image: nginx\n      name: app\n  initContainers:\n    - command:\n    \
-    \    - sh\n        - -c\n        - sleep 5\n      image: busybox\n      name:\
-    \ wait\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: app-with-init
+    spec:
+    containers:
+    - image: nginx
+    name: app
+    initContainers:
+    - command:
+    - sh
+    - -c
+    - sleep 5
+    image: busybox
+    name: wait
 - question: Pod manifest with a sidecar that tails a shared log file.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-with-sidecar\nspec:\n  containers:\n\
-    \    - command:\n        - sh\n        - -c\n        - while true; do date >>\
-    \ /var/log/app/app.log; sleep 2; done\n      image: busybox\n      name: app\n\
-    \      volumeMounts:\n        - mountPath: /var/log/app\n          name: logs\n\
-    \    - command:\n        - sh\n        - -c\n        - tail -n+1 -F /var/log/app/app.log\n\
-    \      image: busybox\n      name: log-tailer\n      volumeMounts:\n        -\
-    \ mountPath: /var/log/app\n          name: logs\n  volumes:\n    - emptyDir: {}\n\
-    \      name: logs\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: app-with-sidecar
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - while true; do date >> /var/log/app/app.log; sleep 2; done
+    image: busybox
+    name: app
+    volumeMounts:
+    - mountPath: /var/log/app
+    name: logs
+    - command:
+    - sh
+    - -c
+    - tail -n+1 -F /var/log/app/app.log
+    image: busybox
+    name: log-tailer
+    volumeMounts:
+    - mountPath: /var/log/app
+    name: logs
+    volumes:
+    - emptyDir: {}
+    name: logs
 - question: Run a pod named busybox with image busybox that runs indefinitely.
-  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
   solutions:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
 - question: List all pods.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
   solutions:
   - kubectl get pods
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
 - question: Describe pod busybox.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
   solutions:
   - kubectl describe pod busybox
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
 - question: Delete pod busybox.
-  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
   solutions:
   - kubectl delete pod busybox
-- question: Create a Deployment named `test-init-container` in namespace `mars`. It
-    should have one replica. The Pods should have an `nginx:1.17.3-alpine` container
-    and an `initContainer` named `init-con` using `busybox:1.31.0`. An `emptyDir`
-    volume `web-content` should be mounted to `/usr/share/nginx/html` in the nginx
-    container and `/tmp/web-content` in the init container. The init container should
-    run `echo 'check this out!' > /tmp/web-content/index.html`.
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
+- question: Create a Deployment named `test-init-container` in namespace `mars`. It should have one replica. The Pods should have an `nginx:1.17.3-alpine` container and an `initContainer` named `init-con` using `busybox:1.31.0`. An `emptyDir` volume `web-content` should be mounted to `/usr/share/nginx/html` in the nginx container and `/tmp/web-content` in the init container. The init container should run `echo 'check this out!' > /tmp/web-content/index.html`.
   solutions:
-  - "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test-init-container\n\
-    \  namespace: mars\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n    \
-    \  id: test-init-container\n  template:\n    metadata:\n      labels:\n      \
-    \  id: test-init-container\n    spec:\n      containers:\n        - image: nginx:1.17.3-alpine\n\
-    \          name: nginx\n          ports:\n            - containerPort: 80\n  \
-    \        volumeMounts:\n            - mountPath: /usr/share/nginx/html\n     \
-    \         name: web-content\n      initContainers:\n        - command:\n     \
-    \       - sh\n            - -c\n            - echo \"check this out!\" > /tmp/web-content/index.html\n\
-    \          image: busybox:1.31.0\n          name: init-con\n          volumeMounts:\n\
-    \            - mountPath: /tmp/web-content\n              name: web-content\n\
-    \      volumes:\n        - emptyDir: {}\n          name: web-content\n"
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: test-init-container
+    namespace: mars
+    spec:
+    replicas: 1
+    selector:
+    matchLabels:
+    id: test-init-container
+    template:
+    metadata:
+    labels:
+    id: test-init-container
+    spec:
+    containers:
+    - image: nginx:1.17.3-alpine
+    name: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+    name: web-content
+    initContainers:
+    - command:
+    - sh
+    - -c
+    - echo "check this out!" > /tmp/web-content/index.html
+    image: busybox:1.31.0
+    name: init-con
+    volumeMounts:
+    - mountPath: /tmp/web-content
+    name: web-content
+    volumes:
+    - emptyDir: {}
+    name: web-content

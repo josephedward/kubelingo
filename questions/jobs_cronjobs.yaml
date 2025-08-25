@@ -1,39 +1,70 @@
 questions:
-- question: Create a CronJob named 'hello-cron' that runs every minute. The job should
-    use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from
-    the Kubernetes cluster'.
+- question: Create a CronJob named 'hello-cron' that runs every minute. The job should use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from the Kubernetes cluster'.
   solutions:
-  - 'kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" --
-    /bin/sh -c ''date; echo Hello from the Kubernetes cluster''
-
-    '
-- question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places
-    using the 'perl' image. The container should run the command perl -Mbignum=bpi
-    -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4.
+  - kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" -- /bin/sh -c 'date; echo Hello from the Kubernetes cluster'
+- question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places using the 'perl' image. The container should run the command perl -Mbignum=bpi -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4.
   solutions:
-  - "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: pi\nspec:\n  backoffLimit:\
-    \ 4\n  template:\n    spec:\n      containers:\n        - command:\n         \
-    \   - perl\n            - -Mbignum=bpi\n            - -wle\n            - print\
-    \ bpi(2000)\n          image: perl\n          name: pi\n      restartPolicy: Never\n"
+  - |-
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+    name: pi
+    spec:
+    backoffLimit: 4
+    template:
+    spec:
+    containers:
+    - command:
+    - perl
+    - -Mbignum=bpi
+    - -wle
+    - print bpi(2000)
+    image: perl
+    name: pi
+    restartPolicy: Never
 - question: Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.
   solutions:
-  - "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: run-once\nspec:\n  backoffLimit:\
-    \ 2\n  template:\n    spec:\n      containers:\n        - command:\n         \
-    \   - sh\n            - -c\n            - sleep 10\n          image: busybox\n\
-    \          name: c\n      restartPolicy: Never\n"
-- question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes,
-    output YAML.
+  - |-
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+    name: run-once
+    spec:
+    backoffLimit: 2
+    template:
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - sleep 10
+    image: busybox
+    name: c
+    restartPolicy: Never
+- question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes, output YAML.
   solutions:
-  - kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh
-    -c 'echo hi' --dry-run=client -o yaml
-- question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`.
-    It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions,
-    and 2 running in parallel. Pods must have the label `id: awesome-job`, and the
-    container must be named `neb-new-job-container`.'
+  - kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh -c 'echo hi' --dry-run=client -o yaml
+- question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`. It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions, and 2 running in parallel. Pods must have the label `id: awesome-job`, and the container must be named `neb-new-job-container`.'
   solutions:
-  - "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: neb-new-job\n  namespace:\
-    \ neptune\nspec:\n  completions: 3\n  parallelism: 2\n  template:\n    metadata:\n\
-    \      labels:\n        id: awesome-job\n    spec:\n      containers:\n      \
-    \  - command:\n            - sh\n            - -c\n            - sleep 2 && echo\
-    \ done\n          image: busybox:1.31.0\n          name: neb-new-job-container\n\
-    \      restartPolicy: OnFailure\n"
+  - |-
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+    name: neb-new-job
+    namespace: neptune
+    spec:
+    completions: 3
+    parallelism: 2
+    template:
+    metadata:
+    labels:
+    id: awesome-job
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - sleep 2 && echo done
+    image: busybox:1.31.0
+    name: neb-new-job-container
+    restartPolicy: OnFailure
