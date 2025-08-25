@@ -560,6 +560,7 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
+    # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '3', '3']):
         handle_config_menu()
     
@@ -568,6 +569,8 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     
     captured = capsys.readouterr()
     assert "OpenAI API Key saved." in captured.out
+
+
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
@@ -1167,3 +1170,16 @@ class TestKubectlValidation:
                 ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "json"],
                 capture_output=True, text=True, check=False
             )
+
+def test_run_topic_vim_no_solution(capsys):
+    with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, None, False)) as mock_handle_vim_edit:
+        with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
+            with patch('kubelingo.kubelingo.load_questions', return_value={'questions': [{'question': 'Test Q without solution'}]}):
+                with patch('kubelingo.kubelingo.clear_screen'):
+                    with patch('builtins.input', return_value=''):
+                        from kubelingo.kubelingo import run_topic
+                        run_topic('dummy_topic', 0)
+                        captured = capsys.readouterr()
+                        assert "This question does not have a solution to validate against for vim edit." in captured.out
+                        assert "TypeError" not in captured.err
+                        mock_handle_vim_edit.assert_called_once()
