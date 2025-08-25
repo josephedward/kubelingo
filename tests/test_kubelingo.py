@@ -116,7 +116,7 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
     post_answer_inputs = iter(['n', 'q']) # 'n' for first question, 'q' for second
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
-    run_topic('existing_topic', len(questions), mock_data_source)
+    run_topic('existing_topic', len(questions), mock_data_source, questions)
 
     # q2 should be added, q1 should not be duplicated.
     assert 'existing_topic' in saved_data

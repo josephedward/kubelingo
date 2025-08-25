@@ -1,46 +1,20 @@
 questions:
-  - question: "Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage with the 'ReadWriteOnce' access mode."
-    solution: |
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: my-pvc
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
-  - question: "Create a Pod named `cache-user` with a `busybox` container. The pod should have an `emptyDir` volume named `cache` mounted at `/cache`."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: cache-user
-      spec:
-        volumes:
-          - name: cache
-            emptyDir: {}
-        containers:
-          - name: app
-            image: busybox
-            volumeMounts:
-              - name: cache
-                mountPath: /cache
-  - question: "Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep 3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`."
-    solution: |
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        name: my-pod-with-volume
-      spec:
-        containers:
-        - name: my-container
-          image: busybox
-          command: ["sleep", "3600"]
-          volumeMounts:
-          - name: workdir
-            mountPath: /app/data
-        volumes:
-        - name: workdir
-          emptyDir: {}
+- question: Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage
+    with the 'ReadWriteOnce' access mode.
+  solutions:
+  - "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: my-pvc\nspec:\n\
+    \  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage:\
+    \ 1Gi\n"
+- question: Create a Pod named `cache-user` with a `busybox` container. The pod should
+    have an `emptyDir` volume named `cache` mounted at `/cache`.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: cache-user\nspec:\n  containers:\n\
+    \    - image: busybox\n      name: app\n      volumeMounts:\n        - mountPath:\
+    \ /cache\n          name: cache\n  volumes:\n    - emptyDir: {}\n      name: cache\n"
+- question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
+    3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
+  solutions:
+  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod-with-volume\nspec:\n  containers:\n\
+    \    - command:\n        - sleep\n        - '3600'\n      image: busybox\n   \
+    \   name: my-container\n      volumeMounts:\n        - mountPath: /app/data\n\
+    \          name: workdir\n  volumes:\n    - emptyDir: {}\n      name: workdir\n"
