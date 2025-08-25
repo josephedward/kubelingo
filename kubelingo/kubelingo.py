@@ -925,7 +925,8 @@ def list_and_select_topic(performance_data):
                             print(f"Please enter a number between 1 and {missed_questions_count}, or 'all'.")
                     except ValueError:
                         print("Invalid input. Please enter a number or 'all'.")
-                return '_missed', num_to_study, questions # Pass the full list of missed questions
+                missed_questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
+                return '_missed', num_to_study, missed_questions # Pass the full list of missed questions
             elif choice == 'c':
                 handle_config_menu()
                 continue # Go back to topic selection menu
