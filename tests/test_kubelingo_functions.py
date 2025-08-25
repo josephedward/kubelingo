@@ -671,6 +671,27 @@ def mock_llm_deps():
 
         yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu
 
+def test_get_llm_model_openrouter_first(mock_llm_deps):
+    mock_gemini, mock_openai, mock_post = mock_llm_deps
+    mock_post.return_value.status_code = 200
+    
+    llm_type, model = _get_llm_model()
+    
+    assert llm_type == "openrouter"
+    assert model["api_key"] == "test-or"
+    mock_post.assert_called_once()
+
+def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
+    mock_gemini, mock_openai, mock_post = mock_llm_deps
+    mock_post.return_value.raise_for_status.side_effect = Exception("API error")
+    mock_gemini.return_value.generate_content.return_value.text = "test response"
+    
+    llm_type, model = _get_llm_model()
+    
+    assert llm_type == "gemini"
+    mock_post.assert_called_once()
+    mock_gemini.assert_called_once()
+
 def test_get_llm_model_gemini_only(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
@@ -1178,7 +1199,7 @@ def test_run_topic_vim_no_solution(capsys):
                 with patch('kubelingo.kubelingo.clear_screen'):
                     with patch('builtins.input', return_value=''):
                         from kubelingo.kubelingo import run_topic
-                        run_topic('dummy_topic', 0)
+                        run_topic('dummy_topic', 0, {}, [{'question': 'Test Q without solution'}])
                         captured = capsys.readouterr()
                         assert "This question does not have a solution to validate against for vim edit." in captured.out
                         assert "TypeError" not in captured.err

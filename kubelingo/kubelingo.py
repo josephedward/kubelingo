@@ -398,8 +398,41 @@ def _get_llm_model(is_retry=False):
     current_llm_type = None
     current_model = None
 
-    # Try Gemini first
-    if gemini_api_key:
+    # Try OpenRouter first since it's free
+    if openrouter_api_key and not current_model:
+        try:
+            # Test the OpenRouter API directly
+            headers = {
+                "Authorization": f"Bearer {openrouter_api_key}",
+                "HTTP-Referer": "https://github.com/your-repo",
+                "X-Title": "Kubelingo"
+            }
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": "deepseek/deepseek-r1-0528:free",
+                    "messages": [{"role": "user", "content": "hello"}],
+                    "max_tokens": 5
+                }
+            )
+            response.raise_for_status()
+            
+            # Return openrouter config
+            current_llm_type = "openrouter"
+            current_model = {
+                "api_key": openrouter_api_key,
+                "headers": headers,
+                "default_model": "deepseek/deepseek-r1-0528:free"
+            }
+            return current_llm_type, current_model
+        except Exception as e:
+            print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
+            os.environ.pop("OPENROUTER_API_KEY", None)
+            set_key(".env", "OPENROUTER_API_KEY", "")
+
+    # Try Gemini next
+    if gemini_api_key and not current_model:
         try:
             genai.configure(api_key=gemini_api_key)
             # Attempt a small call to validate the key
