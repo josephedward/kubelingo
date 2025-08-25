@@ -546,7 +546,7 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
     
     # Simulate user input: 1 (API Keys), 1 (set Gemini), then a key, then 3 (back), 3 (back)
-    with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '3', '3']):
+    with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '4', '3']):
         handle_config_menu()
     
     mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
@@ -561,7 +561,7 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
-    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '3', '3']):
+    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '4', '3']):
         handle_config_menu()
     
     mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
@@ -672,7 +672,7 @@ def mock_llm_deps():
         yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
-    mock_gemini, mock_openai, mock_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_post.return_value.status_code = 200
     
     llm_type, model = _get_llm_model()
@@ -682,7 +682,7 @@ def test_get_llm_model_openrouter_first(mock_llm_deps):
     mock_post.assert_called_once()
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
-    mock_gemini, mock_openai, mock_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_post.return_value.raise_for_status.side_effect = Exception("API error")
     mock_gemini.return_value.generate_content.return_value.text = "test response"
     
