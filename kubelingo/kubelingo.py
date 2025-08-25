@@ -274,14 +274,17 @@ def handle_keys_menu():
         config = dotenv_values(".env")
         gemini_key = config.get("GEMINI_API_KEY", "Not Set")
         openai_key = config.get("OPENAI_API_KEY", "Not Set")
+        openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
 
         gemini_display = f"{Fore.GREEN}{gemini_key}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
         openai_display = f"{Fore.GREEN}{openai_key}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        openrouter_display = f"{Fore.GREEN}{openrouter_key}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
 
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display})")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display})")
-        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back to Configuration Menu")
-        
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display})")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Back to Configuration Menu")
+
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
@@ -303,10 +306,20 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '3':
+            key = input("Enter your OpenRouter API Key: ").strip()
+            if key:
+                set_key(".env", "OPENROUTER_API_KEY", key)
+                os.environ["OPENROUTER_API_KEY"] = key # Update current session
+                print("\nOpenRouter API Key saved.")
+            else:
+                print("\nNo key entered.")
+            time.sleep(1)
+        elif choice == '4':
             break
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+
 
 
 
