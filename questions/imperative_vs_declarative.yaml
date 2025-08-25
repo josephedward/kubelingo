@@ -1,36 +1,43 @@
 questions:
-- question: Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without
-    creating it. Save it to a file named 'pod.yaml'.
+- question: Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without creating it. Save it to a file named 'pod.yaml'.
+  solutions:
+  - kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml
   source: https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f
+- question: Create a manifest for a Deployment named 'declarative-deployment' with image 'nginx' and 2 replicas. This manifest will be used to apply the configuration declaratively.
   solutions:
-  - 'kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml
-
-    '
-- question: Create a manifest for a Deployment named 'declarative-deployment' with
-    image 'nginx' and 2 replicas. This manifest will be used to apply the configuration
-    declaratively.
-  solutions:
-  - "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: declarative-deployment\n\
-    spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n\
-    \    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n\
-    \        - image: nginx\n          name: nginx\n"
-- question: Command to generate a Pod manifest named web-pod using image nginx without
-    creating the resource and output in YAML format.
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: declarative-deployment
+    spec:
+    replicas: 2
+    selector:
+    matchLabels:
+    app: nginx
+    template:
+    metadata:
+    labels:
+    app: nginx
+    spec:
+    containers:
+    - image: nginx
+    name: nginx
+- question: Command to generate a Pod manifest named web-pod using image nginx without creating the resource and output in YAML format.
   solutions:
   - kubectl run web-pod --image=nginx --restart=Never --dry-run=client -o yaml
 - question: Command to declaratively apply all manifests in ./manifests.
   solutions:
   - kubectl apply -f ./manifests
 - question: Apply the configuration in deployment.yaml.
-  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20ser%20usadas
   solutions:
   - kubectl apply -f deployment.yaml
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20ser%20usadas
 - question: Use kubectl to edit deployment frontend.
-  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
   solutions:
   - kubectl edit deployment frontend
-- question: Generate a YAML file for a deployment with nginx image without creating
-    it.
-  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
+- question: Generate a YAML file for a deployment with nginx image without creating it.
   solutions:
   - kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)
