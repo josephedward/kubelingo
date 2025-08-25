@@ -1,44 +1,90 @@
 questions:
-- question: Create an Ingress resource named 'app-ingress'. It should route traffic
-    for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on
-    port 80.
+- question: Create an Ingress resource named 'app-ingress'. It should route traffic for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on port 80.
   solutions:
-  - 'kubectl create ingress app-ingress --rule="app.example.com/*=webapp-svc:80"
-
-    '
-- question: Create a manifest for an Ingress resource named 'app-ingress-manifest'.
-    It should route traffic for the host 'app.example.com' with path '/' to a service
-    named 'webapp-svc' on port 80.
+  - kubectl create ingress app-ingress --rule="app.example.com/*=webapp-svc:80"
+- question: Create a manifest for an Ingress resource named 'app-ingress-manifest'. It should route traffic for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on port 80.
   solutions:
-  - "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: app-ingress-manifest\n\
-    spec:\n  rules:\n    - host: app.example.com\n      http:\n        paths:\n  \
-    \        - backend:\n              service:\n                name: webapp-svc\n\
-    \                port:\n                  number: 80\n            path: /\n  \
-    \          pathType: Prefix\n"
+  - |-
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+    name: app-ingress-manifest
+    spec:
+    rules:
+    - host: app.example.com
+    http:
+    paths:
+    - backend:
+    service:
+    name: webapp-svc
+    port:
+    number: 80
+    path: /
+    pathType: Prefix
 - question: Ingress manifest routing '/' to Service web:80.
   solutions:
-  - "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: web\nspec:\n\
-    \  rules:\n    - http:\n        paths:\n          - backend:\n              service:\n\
-    \                name: web\n                port:\n                  number: 80\n\
-    \            path: /\n            pathType: Prefix\n"
-- question: 'Ingress manifest with two paths: ''/api'' -> api-svc:80 and ''/'' ->
-    web-svc:80.'
+  - |-
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+    name: web
+    spec:
+    rules:
+    - http:
+    paths:
+    - backend:
+    service:
+    name: web
+    port:
+    number: 80
+    path: /
+    pathType: Prefix
+- question: 'Ingress manifest with two paths: ''/api'' -> api-svc:80 and ''/'' -> web-svc:80.'
   solutions:
-  - "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: routes\n\
-    spec:\n  rules:\n    - http:\n        paths:\n          - backend:\n         \
-    \     service:\n                name: api-svc\n                port:\n       \
-    \           number: 80\n            path: /api\n            pathType: Prefix\n\
-    \          - backend:\n              service:\n                name: web-svc\n\
-    \                port:\n                  number: 80\n            path: /\n  \
-    \          pathType: Prefix\n"
-- question: Create a Kubernetes Ingress manifest named 'secure-app-ingress' that routes
-    traffic for the host 'secure.example.com' to the service 'secure-svc' on port
-    443 using HTTPS.  The Ingress should use the TLS secret named 'secure-tls-secret'.
+  - |-
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+    name: routes
+    spec:
+    rules:
+    - http:
+    paths:
+    - backend:
+    service:
+    name: api-svc
+    port:
+    number: 80
+    path: /api
+    pathType: Prefix
+    - backend:
+    service:
+    name: web-svc
+    port:
+    number: 80
+    path: /
+    pathType: Prefix
+- question: Create a Kubernetes Ingress manifest named 'secure-app-ingress' that routes traffic for the host 'secure.example.com' to the service 'secure-svc' on port 443 using HTTPS.  The Ingress should use the TLS secret named 'secure-tls-secret'.
+  solutions:
+  - |-
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+    name: secure-app-ingress
+    spec:
+    rules:
+    - host: secure.example.com
+    http:
+    paths:
+    - backend:
+    service:
+    name: secure-svc
+    port:
+    number: 443
+    path: /
+    pathType: Prefix
+    tls:
+    - hosts:
+    - secure.example.com
+    secretName: secure-tls-secret
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
-  solutions:
-  - "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: secure-app-ingress\n\
-    spec:\n  rules:\n    - host: secure.example.com\n      http:\n        paths:\n\
-    \          - backend:\n              service:\n                name: secure-svc\n\
-    \                port:\n                  number: 443\n            path: /\n \
-    \           pathType: Prefix\n  tls:\n    - hosts:\n        - secure.example.com\n\
-    \      secretName: secure-tls-secret\n"

@@ -12,6 +12,6 @@ questions:
   solutions:
   - kubectl explain deployment.spec.strategy
 - question: Check the kubectl client and server versions.
-  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server
   solutions:
   - kubectl version
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server

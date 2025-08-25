@@ -1,41 +1,104 @@
 questions:
-- question: Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness
-    probe. The probe should perform an HTTP GET request on port 80 at the path '/'.
+- question: Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness probe. The probe should perform an HTTP GET request on port 80 at the path '/'.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: probe-pod\nspec:\n  containers:\n\
-    \    - image: nginx\n      livenessProbe:\n        httpGet:\n          path: /\n\
-    \          port: 80\n      name: nginx\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: probe-pod
+    spec:
+    containers:
+    - image: nginx
+    livenessProbe:
+    httpGet:
+    path: /
+    port: 80
+    name: nginx
 - question: Pod manifest with HTTP liveness probe on /healthz port 8080.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: liveness-http\nspec:\n  containers:\n\
-    \    - image: nginx\n      livenessProbe:\n        httpGet:\n          path: /healthz\n\
-    \          port: 8080\n        initialDelaySeconds: 5\n        periodSeconds:\
-    \ 10\n      name: app\n"
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: liveness-http
+    spec:
+    containers:
+    - image: nginx
+    livenessProbe:
+    httpGet:
+    path: /healthz
+    port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    name: app
 - question: Pod manifest with readiness exec probe checking /tmp/ready exists.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: readiness-exec\nspec:\n  containers:\n\
-    \    - command:\n        - sh\n        - -c\n        - touch /tmp/ready; sleep\
-    \ 3600\n      image: busybox\n      name: app\n      readinessProbe:\n       \
-    \ exec:\n          command:\n            - sh\n            - -c\n            -\
-    \ test -f /tmp/ready\n"
-- question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`.
-    The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness
-    probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a
-    `periodSeconds` of 10.
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: readiness-exec
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - touch /tmp/ready; sleep 3600
+    image: busybox
+    name: app
+    readinessProbe:
+    exec:
+    command:
+    - sh
+    - -c
+    - test -f /tmp/ready
+- question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`. The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a `periodSeconds` of 10.
   solutions:
-  - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod6\n  namespace: default\nspec:\n\
-    \  containers:\n    - command:\n        - sh\n        - -c\n        - touch /tmp/ready\
-    \ && sleep 1d\n      image: busybox:1.31.0\n      name: pod6\n      readinessProbe:\n\
-    \        exec:\n          command:\n            - cat\n            - /tmp/ready\n\
-    \        initialDelaySeconds: 5\n        periodSeconds: 10\n"
-- question: Create a Deployment named space-alien-welcome-message-generator using
-    image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready'
-    with initialDelaySeconds=10 and periodSeconds=5.
+  - |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+    name: pod6
+    namespace: default
+    spec:
+    containers:
+    - command:
+    - sh
+    - -c
+    - touch /tmp/ready && sleep 1d
+    image: busybox:1.31.0
+    name: pod6
+    readinessProbe:
+    exec:
+    command:
+    - cat
+    - /tmp/ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+- question: Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready' with initialDelaySeconds=10 and periodSeconds=5.
   solutions:
-  - "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\n\
-    spec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n\
-    \  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n\
-    \    spec:\n      containers:\n        - image: httpd:alpine\n          name:\
-    \ httpd\n          readinessProbe:\n            exec:\n              command:\n\
-    \                - stat\n                - /tmp/ready\n            initialDelaySeconds:\
-    \ 10\n            periodSeconds: 5\n"
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: space-alien-welcome-message-generator
+    spec:
+    replicas: 1
+    selector:
+    matchLabels:
+    app: space-alien-welcome-message-generator
+    template:
+    metadata:
+    labels:
+    app: space-alien-welcome-message-generator
+    spec:
+    containers:
+    - image: httpd:alpine
+    name: httpd
+    readinessProbe:
+    exec:
+    command:
+    - stat
+    - /tmp/ready
+    initialDelaySeconds: 10
+    periodSeconds: 5

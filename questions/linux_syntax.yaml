@@ -1,18 +1,17 @@
 questions:
 - question: Create an alias 'k' for 'kubectl'.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
   solutions:
   - alias k=kubectl
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
 - question: Add kubectl autocompletion to ~/.bashrc.
-  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
   solutions:
   - echo "source <(kubectl completion bash)" >> ~/.bashrc
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
 - question: Set the KUBECONFIG environment variable to /home/user/config.
-  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
   solutions:
   - export KUBECONFIG=/home/user/config
-- question: Enable kubectl autocompletion in your shell, ensuring it also works for
-    the `k` alias.
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
+- question: Enable kubectl autocompletion in your shell, ensuring it also works for the `k` alias.
   solutions:
   - source <(kubectl completion bash) && complete -F __start_kubectl k
 - question: In Vim, how do you enter insert mode at the cursor?
