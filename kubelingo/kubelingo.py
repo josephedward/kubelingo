@@ -457,7 +457,7 @@ def _get_llm_model(is_retry=False):
 
     # If no model could be configured
     if not current_model and not is_retry:
-        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI, or OpenRouter). AI features will be disabled.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI or OpenRouter). AI features will be disabled.{Style.RESET_ALL}")
         if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
             handle_config_menu()
             # After configuring, try to get the model again
