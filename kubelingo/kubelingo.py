@@ -274,14 +274,17 @@ def handle_keys_menu():
         config = dotenv_values(".env")
         gemini_key = config.get("GEMINI_API_KEY", "Not Set")
         openai_key = config.get("OPENAI_API_KEY", "Not Set")
+        openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
 
         gemini_display = f"{Fore.GREEN}{gemini_key}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
         openai_display = f"{Fore.GREEN}{openai_key}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        openrouter_display = f"{Fore.GREEN}{openrouter_key}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
 
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display})")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display})")
-        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back to Configuration Menu")
-        
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display})")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Back to Configuration Menu")
+
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
@@ -303,10 +306,20 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '3':
+            key = input("Enter your OpenRouter API Key: ").strip()
+            if key:
+                set_key(".env", "OPENROUTER_API_KEY", key)
+                os.environ["OPENROUTER_API_KEY"] = key # Update current session
+                print("\nOpenRouter API Key saved.")
+            else:
+                print("\nNo key entered.")
+            time.sleep(1)
+        elif choice == '4':
             break
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+
 
 def handle_validation_menu():
     """Handles the validation configuration menu."""
@@ -377,6 +390,7 @@ def _get_llm_model(is_retry=False):
     """
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
+    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
 
     current_llm_type = None
     current_model = None
@@ -419,9 +433,31 @@ def _get_llm_model(is_retry=False):
             os.environ.pop("OPENAI_API_KEY", None)
             set_key(".env", "OPENAI_API_KEY", "")
 
+    # If OpenAI failed or not set, try OpenRouter
+    if openrouter_api_key and not current_model:
+        try:
+            client = openai.OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=openrouter_api_key
+            )
+            # Attempt a small call to validate the key
+            client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hello"}], max_tokens=5)
+            current_llm_type = "openrouter"
+            current_model = client
+            return current_llm_type, current_model
+        except AuthenticationError:
+            print(f"{Fore.RED}Invalid OpenRouter API Key. Please check your key.{Style.RESET_ALL}")
+            # Clear the invalid key from environment and .env file
+            os.environ.pop("OPENROUTER_API_KEY", None)
+            set_key(".env", "OPENROUTER_API_KEY", "")
+        except Exception as e:
+            print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
+            os.environ.pop("OPENROUTER_API_KEY", None)
+            set_key(".env", "OPENROUTER_API_KEY", "")
+
     # If no model could be configured
     if not current_model and not is_retry:
-        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini or OpenAI). AI features will be disabled.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI, or OpenRouter). AI features will be disabled.{Style.RESET_ALL}")
         if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
             handle_config_menu()
             # After configuring, try to get the model again
@@ -440,7 +476,7 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
     """Provides LLM-generated feedback on a user's answer."""
     llm_type, model = _get_llm_model()
     if not model:
-        return "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback." # Return info if no LLM
+        return "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered feedback." # Return info if no LLM
 
     if verbose:
         prompt = f'''
@@ -487,7 +523,7 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             return response.text.strip()
         except Exception as e:
             return f"Error getting feedback from Gemini LLM: {e}"
-    elif llm_type == "openai":
+    elif llm_type == "openai" or llm_type == "openrouter":
         try:
             resp = model.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -498,9 +534,10 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
-            return f"Error getting feedback from OpenAI LLM: {e}"
+            return f"Error getting feedback from {llm_type.title()} LLM: {e}"
     else:
         return "INFO: No LLM configured"
+
 
 # get_llm_feedback function removed temporarily for debugging
 
@@ -509,7 +546,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     """Validates a user-submitted manifest using the LLM."""
     llm_type, model = _get_llm_model()
     if not model:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered manifest validation."}
 
     solution_manifest = question_dict['solution']
 
@@ -558,7 +595,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             text = response.text.strip()
         except Exception as e:
             return {'correct': False, 'feedback': f"Error validating manifest with Gemini LLM: {e}"}
-    elif llm_type == "openai":
+    elif llm_type == "openai" or llm_type == "openrouter":
         try:
             resp = model.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -569,7 +606,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             )
             text = resp.choices[0].message.content.strip()
         except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with OpenAI LLM: {e}"}
+            return {'correct': False, 'feedback': f"Error validating manifest with {llm_type.title()} LLM: {e}"}
     else:
         return {'correct': False, 'feedback': "No LLM configured"}
     lines = text.split('\n')
@@ -676,7 +713,7 @@ def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        print("\nINFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY environment variables to generate new questions.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
@@ -717,7 +754,7 @@ def generate_more_questions(topic, existing_question):
         '''
         if llm_type == "gemini":
             response = model.generate_content(prompt)
-        elif llm_type == "openai":
+        elif llm_type == "openai" or llm_type == "openrouter":
             response = model.chat.completions.create(
                 model="gpt-3.5-turbo", # Or another suitable model
                 messages=[
