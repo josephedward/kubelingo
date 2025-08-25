@@ -1,4 +1,5 @@
 import os
+import requests
 import random
 import readline
 import time
@@ -438,20 +439,31 @@ def _get_llm_model(is_retry=False):
     # If OpenAI failed or not set, try OpenRouter
     if openrouter_api_key and not current_model:
         try:
-            client = openai.OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=openrouter_api_key
+            # Test the OpenRouter API directly
+            headers = {
+                "Authorization": f"Bearer {openrouter_api_key}",
+                "HTTP-Referer": "https://github.com/your-repo",
+                "X-Title": "Kubelingo"
+            }
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": "deepseek/deepseek-r1-0528:free",
+                    "messages": [{"role": "user", "content": "hello"}],
+                    "max_tokens": 5
+                }
             )
-            # Attempt a small call to validate the key
-            client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hello"}], max_tokens=5)
+            response.raise_for_status()
+            
+            # Return openrouter config
             current_llm_type = "openrouter"
-            current_model = client
+            current_model = {
+                "api_key": openrouter_api_key,
+                "headers": headers,
+                "default_model": "deepseek/deepseek-r1-0528:free"
+            }
             return current_llm_type, current_model
-        except AuthenticationError:
-            print(f"{Fore.RED}Invalid OpenRouter API Key. Please check your key.{Style.RESET_ALL}")
-            # Clear the invalid key from environment and .env file
-            os.environ.pop("OPENROUTER_API_KEY", None)
-            set_key(".env", "OPENROUTER_API_KEY", "")
         except Exception as e:
             print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
             os.environ.pop("OPENROUTER_API_KEY", None)
@@ -537,6 +549,23 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             return resp.choices[0].message.content.strip()
         except Exception as e:
             return f"Error getting feedback from OpenAI LLM: {e}"
+    elif llm_type == "openrouter":
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=model["headers"],
+                json={
+                    "model": model["default_model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question."},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+            )
+            response.raise_for_status()
+            return response.json()['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            return f"Error getting feedback from OpenRouter LLM: {e}"
     else:
         return "INFO: No LLM configured"
 
