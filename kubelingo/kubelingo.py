@@ -578,7 +578,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     """Validates a user-submitted manifest using the LLM."""
     llm_type, model = _get_llm_model()
     if not model:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered manifest validation."}
 
     solution_manifest = question_dict['solution']
 
@@ -639,6 +639,23 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             text = resp.choices[0].message.content.strip()
         except Exception as e:
             return {'correct': False, 'feedback': f"Error validating manifest with OpenAI LLM: {e}"}
+    elif llm_type == "openrouter":
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=model["headers"],
+                json={
+                    "model": model["default_model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+            )
+            response.raise_for_status()
+            text = response.json()['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            return {'correct': False, 'feedback': f"Error validating manifest with OpenRouter LLM: {e}"}
     else:
         return {'correct': False, 'feedback': "No LLM configured"}
     lines = text.split('\n')
@@ -745,7 +762,7 @@ def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        print("\nINFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY environment variables to generate new questions.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
@@ -786,7 +803,7 @@ def generate_more_questions(topic, existing_question):
         '''
         if llm_type == "gemini":
             response = model.generate_content(prompt)
-        elif llm_type == "openai":
+        elif llm_type == "openai" or llm_type == "openrouter":
             response = model.chat.completions.create(
                 model="gpt-3.5-turbo", # Or another suitable model
                 messages=[
@@ -1222,6 +1239,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
             elif special_action == 'vim':
                 user_manifest, result, sys_error = handle_vim_edit(q, verbose_ai_feedback)
+                if result is None: # Added check for None result
+                    continue # Re-display the question prompt
                 if not sys_error:
                     if ai_feedback_enabled:
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
