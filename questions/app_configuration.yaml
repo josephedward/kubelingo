@@ -47,7 +47,7 @@ questions:
 - question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
     and the private key is at `/etc/certs/tls.key`.
   solutions:
-  - kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
+  - kubectl create secret tls my-tls --cert=/etc/certs/tls.crt --key=/etc/certs/tls.key
 - question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the
     following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
     password=`P@ssw0rd!`, email=`user@example.com`.'
@@ -82,10 +82,10 @@ questions:
                   name: trauerweide
                   key: tree
           volumeMounts:
-            - name: birke
+            - name: birke-volume
               mountPath: /etc/birke
       volumes:
-        - name: birke
+        - name: birke-volume
           configMap:
             name: birke
 - question: You are given a basic Pod manifest. Modify it to mount a Secret named
@@ -116,7 +116,8 @@ questions:
         - name: my-container
           image: nginx
 - question: You are given a basic Pod manifest. Modify it to add two environment variables,
-    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
+    key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.
   solutions: 
   - apiVersion: v1
     kind: Pod
