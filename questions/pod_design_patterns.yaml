@@ -42,30 +42,30 @@ questions:
     apiVersion: v1
     kind: Pod
     metadata:
-    name: app-with-sidecar
+      name: app-with-sidecar
     spec:
-    containers:
-    - command:
-    - sh
-    - -c
-    - while true; do date >> /var/log/app/app.log; sleep 2; done
-    image: busybox
-    name: app
-    volumeMounts:
-    - mountPath: /var/log/app
-    name: logs
-    - command:
-    - sh
-    - -c
-    - tail -n+1 -F /var/log/app/app.log
-    image: busybox
-    name: log-tailer
-    volumeMounts:
-    - mountPath: /var/log/app
-    name: logs
-    volumes:
-    - emptyDir: {}
-    name: logs
+      containers:
+      - command:
+        - sh
+        - -c
+        - while true; do date >> /var/log/app/app.log; sleep 2; done
+        image: busybox
+        name: app
+        volumeMounts:
+        - mountPath: /var/log/app
+          name: logs
+      - command:
+        - sh
+        - -c
+        - tail -n+1 -F /var/log/app/app.log
+        image: busybox
+        name: log-tailer
+        volumeMounts:
+        - mountPath: /var/log/app
+          name: logs
+      volumes:
+      - emptyDir: {}
+        name: logs
 - question: Run a pod named busybox with image busybox that runs indefinitely.
   solutions:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
