@@ -600,13 +600,13 @@ def test_handle_validation_menu_toggles(mock_handle_config_menu_deps, capsys):
     # Simulate toggling each setting off, then exit menus
     with patch('builtins.input', side_effect=['2', '1', '2', '3', '4', '3']):
 
-    # Verify that set_key was called to toggle each setting
-    calls = [
-        call(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False"),
-        call(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False"),
-        call(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False"),
-    ]
-    mock_set_key.assert_has_calls(calls, any_order=True)
+        # Verify that set_key was called to toggle each setting
+        calls = [
+            call(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False"),
+            call(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False"),
+            call(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False"),
+        ]
+        mock_set_key.assert_has_calls(calls, any_order=True)
 
 # --- Tests for get_user_input ---
 
