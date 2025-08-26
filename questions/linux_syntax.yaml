@@ -27,7 +27,7 @@ questions:
   - o
 - question: In Vim, how do you save the file and quit?
   solutions:
-  - :wq
+  - :x
 - question: In Vim, how do you exit without saving changes?
   solutions:
   - :q!
