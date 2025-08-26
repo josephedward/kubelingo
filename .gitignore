@@ -18,3 +18,5 @@ demo.sh
 .DS_Store
 .DS_Store
 misc
+misc/.aider.input.history
+misc/.aider.chat.history.md
