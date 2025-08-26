@@ -1100,7 +1100,6 @@ def validate_manifest_with_kubectl_dry_run(manifest):
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
 
-def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
@@ -1112,11 +1111,11 @@ def generate_more_questions(topic, existing_question):
         question_type = random.choice(['command', 'manifest'])
         prompt = f'''
         You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{topic}', please generate one new, distinct but related question.
+        Based on the following example question about '{question_topic_context}', please generate one new, distinct but related question.
 
         Example Question:
         ---
-        {yaml.safe_dump({'questions': [existing_question]})}
+        {yaml.safe_dump({'questions': [q]})}
         ---
 
         Your new question should be a {question_type}-based question.
