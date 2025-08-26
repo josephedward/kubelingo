@@ -582,7 +582,7 @@ def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys)
     # Simulate user input: invalid, then 3 (back to main menu)
     with patch('builtins.input', side_effect=['invalid', '3']):
     
-    mock_set_key.assert_not_called()
+        mock_set_key.assert_not_called()
     
     captured = capsys.readouterr()
     assert "Invalid choice. Please try again." in captured.out
