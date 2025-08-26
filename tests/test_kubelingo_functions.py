@@ -1205,7 +1205,8 @@ def test_run_topic_vim_no_solution(capsys):
             # Provide two questions: first without solution, second a dummy
             mock_questions = [{
                 'question': 'Test Q without solution',
-                'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n"
+                'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
+                'solutions': []
             }, {'question': 'Second dummy question'}]
             with patch('kubelingo.kubelingo.load_questions', return_value={'questions': mock_questions}):
                 with patch('kubelingo.kubelingo.clear_screen'):
