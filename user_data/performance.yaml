@@ -57,3 +57,30 @@ core_workloads:
   - delete the 'nginx' pod and the 'nginx-service'.
 image_registry_use:
   correct_questions: []
+linux_syntax:
+  correct_questions:
+  - in vim, how do you delete the current line?
+  - in vim, how do you append text after the cursor?
+  - in vim, how do you move to the next word?
+  - in vim, how do you copy the current line (yank)?
+  - in vim, how do you go to the top of the file?
+  - create an alias 'k' for 'kubectl'.
+  - in vim, how do you redo the last undone change?
+  - in vim, how do you go to the end of the file?
+  - in vim, how do you enter insert mode at the cursor?
+  - in vim, how do you search forward for 'pattern'?
+  - add kubectl autocompletion to ~/.bashrc.
+  - in vim, how do you enter replace mode?
+  - in vim, how do you move to the end of the line?
+  - in vim, how do you enter visual block mode?
+  - in vim, how do you move to the previous word?
+  - in vim, how do you undo the last change?
+  - in vim, how do you move to the end of the word?
+  - in vim, how do you paste after the cursor?
+  - in vim, how do you enter visual line mode?
+  - in vim, how do you find the next search occurrence?
+  - in vim, how do you enter visual mode?
+  - in vim, how do you exit without saving changes?
+  - in vim, how do you go to line 10?
+  - set the kubeconfig environment variable to /home/user/config.
+  - in vim, how do you save a file without exiting?
