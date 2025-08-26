@@ -54,7 +54,7 @@
  ```
  1. The ASCII-art logo is displayed.
  2. Select a topic and the number of questions to practice.
- 3. For **command** questions, type your `kubectl` (or `helm`) command and press Enter.
+3. For **command** questions, type your `kubectl` (or `helm`) command and press Enter. To submit your answer, either press Enter on a blank line or type `done` and press Enter.
  4. For **manifest** questions, Kubelingo will open a temporary file in `vim` (or your default editor).
     - Write or paste your YAML manifest.
     - Save and close the editor to submit.
