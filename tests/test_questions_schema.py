@@ -5,6 +5,7 @@ import os
 class TestQuestionSchema(unittest.TestCase):
     def test_all_questions_have_required_keys(self):
         questions_dir = os.path.join(os.path.dirname(__file__), 'questions')
+        os.makedirs(questions_dir, exist_ok=True)
         for filename in os.listdir(questions_dir):
             if filename.endswith('.yaml'):
                 filepath = os.path.join(questions_dir, filename)
