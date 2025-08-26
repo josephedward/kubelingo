@@ -9,6 +9,7 @@ from kubelingo.kubelingo import (
     load_performance_data,
     save_performance_data,
     save_question_to_list,
+    PERFORMANCE_FILE,
     remove_question_from_list,
     load_questions_from_list,
     get_normalized_question_text,
@@ -26,7 +27,6 @@ from kubelingo.kubelingo import (
     USER_DATA_DIR,
     QUESTIONS_DIR,
     MISSED_QUESTIONS_FILE,
-    PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
     ISSUES_FILE
 )
 
