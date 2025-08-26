@@ -1477,7 +1477,7 @@ def list_and_select_topic(performance_data):
                     
                     # Check if the user has achieved 100% correctness
                     percent_correct = (num_correct / total_questions) * 100
-                    generate_option = ", (g) to generate more questions in this category" if percent_correct == 100 else ""
+                    generate_option = ", 'g' to generate more questions in this category" if percent_correct == 100 else ""
                     
                     num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}{prompt_suffix}{generate_option}, or press Enter for all): ").strip().lower()
                     
