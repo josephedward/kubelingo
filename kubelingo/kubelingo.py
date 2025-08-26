@@ -278,12 +278,9 @@ def create_issue(question_dict, topic):
     print("\nPlease describe the issue with the question.")
     issue_desc = input("Description: ")
     if issue_desc.strip():
-        new_issue = {
-            'topic': topic,
-            'question': question_dict['question'],
-            'issue': issue_desc.strip(),
-            'timestamp': time.asctime()
-        }
+        # Add the entire question to the issue
+        question_dict['issue'] = issue_desc.strip()
+        question_dict['timestamp'] = time.asctime()
 
         issues = []
         if os.path.exists(ISSUES_FILE):
@@ -293,15 +290,24 @@ def create_issue(question_dict, topic):
                 except yaml.YAMLError:
                     issues = []
         
-        issues.append(new_issue)
+        issues.append(question_dict)
 
         with open(ISSUES_FILE, 'w') as f:
             yaml.dump(issues, f)
         
+        # Remove the question from the topic file
+        topic_file = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
+        if os.path.exists(topic_file):
+            with open(topic_file, 'r') as f:
+                data = yaml.safe_load(f) or {'questions': []}
+                data['questions'] = [q for q in data['questions'] if get_normalized_question_text(q) != get_normalized_question_text(question_dict)]
+            with open(topic_file, 'w') as f:
+                yaml.dump(data, f)
+
         # If a question is flagged with an issue, remove it from the missed questions list
         remove_question_from_list(MISSED_QUESTIONS_FILE, question_dict)
 
-        print("\nIssue reported. Thank you!")
+        print("\nIssue reported and question removed from the topic. Thank you!")
     else:
         print("\nIssue reporting cancelled.")
 
