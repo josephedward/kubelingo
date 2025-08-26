@@ -33,6 +33,7 @@ from kubelingo.kubelingo import (
     Style, Fore # Import for asserting on colored output
 )
 from kubelingo.kubelingo import cli # Import cli for testing
+from tests.test_kubelingo_updates import setup_user_data_dir, setup_questions_dir
 
 # Constants for paths (will be mocked)
 USER_DATA_DIR = "user_data"
