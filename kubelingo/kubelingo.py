@@ -1193,6 +1193,13 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     session_total = 0
     while question_index < len(questions):
         q = questions[question_index]
+        # Determine canonical solution manifest for diff/display
+        if 'solution' in q:
+            sol_manifest = q['solution']
+        elif 'solutions' in q and isinstance(q['solutions'], list) and q['solutions']:
+            sol_manifest = q['solutions'][0]
+        else:
+            sol_manifest = None
         is_correct = False # Reset for each question attempt
         user_answer_graded = False # Flag to indicate if an answer was submitted and graded
 
@@ -1300,9 +1307,14 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         print(result['feedback'])
                     is_correct = result['correct']
                     if not is_correct:
-                        show_diff(user_manifest, q['solution'])
+                        # Use canonical solution manifest
+                        if isinstance(sol_manifest, (dict, list)):
+                            sol_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
+                        else:
+                            sol_text = sol_manifest or ''
+                        show_diff(user_manifest, sol_text)
                         print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
-                        print(colorize_yaml(q['solution']))
+                        print(colorize_yaml(sol_text))
                     else:
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
                     if q.get('source'):
