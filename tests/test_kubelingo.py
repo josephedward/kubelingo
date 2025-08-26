@@ -226,7 +226,90 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     assert 'app_configuration' in saved_data
     assert saved_data['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
 
-def test_performance_file_backup(monkeypatch):
+def test_instruction_update():
+    """Test that instructions correctly ignore indentation styles and field order."""
+    question_dict = {
+        'question': 'Modify the manifest to mount a Secret named "secret2".',
+        'solution': {
+            'apiVersion': 'v1',
+            'kind': 'Pod',
+            'metadata': {'name': 'mypod'},
+            'spec': {
+                'containers': [{
+                    'name': 'my-container',
+                    'image': 'nginx',
+                    'volumeMounts': [{'name': 'secret-volume', 'mountPath': '/tmp/secret2'}]
+                }],
+                'volumes': [{'name': 'secret-volume', 'secret': {'secretName': 'secret2'}}]
+            }
+        }
+    }
+    user_manifest = """
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        volumeMounts:
+        - mountPath: /tmp/secret2
+          name: secret-volume
+      volumes:
+      - name: secret-volume
+        secret:
+          secretName: secret2
+    """
+    result = kubelingo.validate_manifest_with_llm(question_dict, user_manifest)
+    assert result['correct'], "The manifest should be considered correct."
+
+def test_create_issue(monkeypatch, setup_user_data_dir, setup_questions_dir):
+    """Test that creating an issue saves the question and removes it from the topic file."""
+    question_dict = {'question': 'Sample question', 'solution': 'Sample solution'}
+    topic = 'sample_topic'
+    issues_file = os.path.join(kubelingo.USER_DATA_DIR, 'issues.yaml')
+    topic_file = os.path.join(kubelingo.QUESTIONS_DIR, f'{topic}.yaml')
+
+    # Create a sample topic file
+    with open(topic_file, 'w') as f:
+        yaml.dump({'questions': [question_dict]}, f)
+
+    # Mock input to provide a description
+    monkeypatch.setattr('builtins.input', lambda _: "Sample issue description")
+
+    kubelingo.create_issue(question_dict, topic)
+
+    # Check that the issue was saved
+    with open(issues_file, 'r') as f:
+        issues = yaml.safe_load(f)
+    assert any(q['question'] == 'Sample question' for q in issues), "The issue should be saved."
+
+    # Check that the question was removed from the topic file
+    with open(topic_file, 'r') as f:
+        data = yaml.safe_load(f)
+    assert not any(q['question'] == 'Sample question' for q in data['questions']), "The question should be removed from the topic file."
+
+def test_generate_option_availability(monkeypatch, setup_user_data_dir, setup_questions_dir):
+    """Test that the 'generate' option is only available at 100% completion."""
+    performance_data = {
+        'sample_topic': {
+            'correct_questions': ['sample question']
+        }
+    }
+    question_dict = {'question': 'Sample question', 'solution': 'Sample solution'}
+    topic_file = os.path.join(kubelingo.QUESTIONS_DIR, 'sample_topic.yaml')
+
+    # Create a sample topic file
+    with open(topic_file, 'w') as f:
+        yaml.dump({'questions': [question_dict]}, f)
+
+    # Mock input to select the topic and simulate user input
+    monkeypatch.setattr('builtins.input', lambda _: "1")
+
+    selected_topic, num_to_study, questions_to_study = kubelingo.list_and_select_topic(performance_data)
+    assert selected_topic == 'sample_topic', "The selected topic should be 'sample_topic'."
+    assert 'g' in selected_topic, "The 'generate' option should be available at 100% completion."
     """Tests that performance.yaml is backed up to misc/performance.yaml on quiz open/close and app exit."""
     # In-memory data stores for performance and backup files
     mock_user_performance_data = {}
