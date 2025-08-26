@@ -869,42 +869,25 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
         return {'correct': False, 'feedback': 'No solution found in question data.'}
 
     # Compose prompt for validation
-    if verbose:
-        prompt = f'''
-        You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
-        The student was asked:
-        ---
-        Question: {question_dict['question']}
-        ---
-        The student provided this manifest:
-        ---
-        Student Manifest:\n{user_manifest}
-        ---
-        The canonical solution is:
-        ---
-        Solution Manifest:\n{solution_manifest}
-        ---
-        Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name, container names, indentation styles (so long as a 'kubectl apply' would accept the manifest), or the order of fields; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
-        First, on a line by itself, write "CORRECT" or "INCORRECT".
-        Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
-        '''
-    else:
-        prompt = f'''
-        You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
-        The student was asked:
-        ---
-        Question: {question_dict['question']}
-        ---
-        The student provided this manifest:
-        ---
-        Student Manifest:\n{user_manifest}
-        ---
-        The canonical solution is:
-        ---\n        Solution Manifest:\n{solution_manifest}
-        ---
-        Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name or container names; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
-        Respond with "CORRECT" or "INCORRECT".
-        '''
+    prompt = f'''
+    You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
+    The student was asked:
+    ---
+    Question: {question_dict['question']}
+    ---
+    The student provided this manifest:
+    ---
+    Student Manifest:\n{user_manifest}
+    ---
+    The canonical solution is:
+    ---
+    Solution Manifest:\n{solution_manifest}
+    ---
+    Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name, container names, indentation styles (so long as a 'kubectl apply' would accept the manifest), or the order of fields; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
+    First, on a line by itself, write "CORRECT" or "INCORRECT".
+    Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
+    '''
+    
     # Use only the configured LLM
     if llm_type == "gemini":
         try:
