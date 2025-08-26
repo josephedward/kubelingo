@@ -84,3 +84,5 @@ linux_syntax:
   - in vim, how do you go to line 10?
   - set the kubeconfig environment variable to /home/user/config.
   - in vim, how do you save a file without exiting?
+resource_reference:
+  correct_questions: []
