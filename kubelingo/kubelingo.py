@@ -193,18 +193,28 @@ def load_performance_data():
         return {}
     with open(PERFORMANCE_FILE, 'r') as f:
         try:
-            return yaml.safe_load(f) or {}
+            data = yaml.safe_load(f)
+            if not isinstance(data, dict):
+                print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
+                with open(PERFORMANCE_FILE, 'w') as f_write:
+                    yaml.dump({}, f_write)
+                return {}
+            return data or {}
         except yaml.YAMLError:
+            print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
             # If file is corrupted, return empty dict and overwrite
-            with open(PERFORMANCE_FILE, 'w') as f:
-                yaml.dump({}, f)
+            with open(PERFORMANCE_FILE, 'w') as f_write:
+                yaml.dump({}, f_write)
             return {}
 
 def save_performance_data(data):
     """Saves performance data."""
     ensure_user_data_dir()
-    with open(PERFORMANCE_FILE, 'w') as f:
-        yaml.dump(data, f)
+    try:
+        with open(PERFORMANCE_FILE, 'w') as f:
+            yaml.dump(data, f)
+    except Exception as e:
+        print(f"{Fore.RED}Error saving performance data to '{PERFORMANCE_FILE}': {e}{Style.RESET_ALL}")
 
 def save_questions_to_topic_file(topic, questions_data):
     """Saves questions data to the specified topic YAML file."""
@@ -599,7 +609,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
 
 
 
-def get_llm_feedback(question, user_answer, solution, verbose=True):
+def get_llm_feedback(question, user_answer, solution, verbose=True, custom_query=None):
     """Provides LLM-generated feedback on a user's answer."""
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
@@ -644,6 +654,9 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
         Your task is to determine if the student's answer is correct. Respond with "Correct" or "Incorrect".
         '''
 
+    # Append any custom follow-up query to the prompt
+    if custom_query:
+        prompt = prompt.rstrip() + f"\n\nStudent requested clarification: {custom_query}"
     if llm_type == "gemini":
         try:
             response = model.generate_content(prompt)
@@ -1352,6 +1365,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             sol_manifest = None
         is_correct = False # Reset for each question attempt
         user_answer_graded = False # Flag to indicate if an answer was submitted and graded
+        solution_shown_for_current_question = False # New flag for this question attempt
 
         # For saving to lists, use original topic if reviewing, otherwise current topic
         question_topic_context = q.get('original_topic', topic)
@@ -1364,9 +1378,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
             print(f"{Fore.CYAN}{'-' * 40}")
-            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
-
-            user_commands, special_action = get_user_input()
+            
+            user_commands, special_action = get_user_input(allow_solution_command=not solution_shown_for_current_question)
 
             # Handle 'menu' command first, as it exits the topic
             if special_action == 'menu':
@@ -1428,6 +1441,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             elif special_action == 'solution':
                 is_correct = False # Viewing solution means not correct by own answer
                 user_answer_graded = True
+                solution_shown_for_current_question = True
                 print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
                 solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
                 if isinstance(solution_text, (dict, list)):
@@ -1447,7 +1461,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     continue # Re-display the question prompt
                 # If result is not a dict, treat as a message and display
                 if not isinstance(result, dict):
-                    print(result)
+                    print(str(result)) # Convert to string before printing
                     user_answer_graded = True
                     break
                 if not sys_error:
@@ -1483,7 +1497,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     continue # Re-display the question prompt
                 # If result is not a dict, treat as a message and display
                 if not isinstance(result, dict):
-                    print(result)
+                    print(str(result)) # Convert to string before printing
                     user_answer_graded = True
                     break
                 if not sys_error:
@@ -1533,7 +1547,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 matched_solution = ""
                 for sol in solutions:
                     # Solutions can be multiline commands
-                    sol_lines = sol.strip().split('\n')
+                    sol_str = str(sol)
+                    sol_lines = sol_str.strip().split('\n')
 
                     normalized_sol = normalize_command(sol_lines)
                     
@@ -1549,7 +1564,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     print(f"{Fore.RED}\nThat wasn't quite right.")
                     # Show diff if there's a single solution for clarity
                     if len(solutions) == 1 and solutions[0] is not None:
-                        show_diff(user_answer_str, solutions[0])
+                        show_diff(user_answer_str, str(solutions[0]))
 
                     print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
                     solution_text = solutions[0] # Show the first solution
@@ -1607,7 +1622,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [c]onfigure, [q]uit")
+            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [l]lm-feedback, [c]onfigure, [q]uit")
             post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
 
             if post_action == 'n':
@@ -1719,16 +1734,36 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 continue  # Re-display the same question prompt
             elif post_action == 'r':
                 # Stay on the same question, clear user input, and re-prompt
-                user_commands.clear() # This needs to be handled by get_user_input or similar
+                user_commands.clear()
+                solution_shown_for_current_question = False # Reset for retry
                 print("\nRetrying the current question...")
                 break # Exit post-answer loop, re-enter inner loop for current question
+            elif post_action == 'l':
+                # Optional LLM feedback with custom query
+                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---{Style.RESET_ALL}")
+                custom_query = input("Enter custom query for AI feedback (or press Enter for general clarification): ").strip()
+                # Determine the student's answer for feedback
+                try:
+                    ua = user_answer_str
+                except NameError:
+                    ua = globals().get('user_manifest', '')
+                # Determine the canonical solution
+                try:
+                    sol = solution_text
+                except NameError:
+                    sols = q.get('solutions') or []
+                    sol = sols[0] if sols else q.get('solution', '')
+                feedback = get_llm_feedback(q['question'], ua, sol, verbose_ai_feedback, custom_query=custom_query or None)
+                print(feedback)
+                input("Press Enter to continue...")
+                continue
             elif post_action == 'q':
                 # Persist performance data and exit the run_topic loop
                 if topic != '_missed':
                     save_performance_data(performance_data)
                 return # Return to main menu
             else:
-                print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', or 'q'.")
+                print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', 'l', or 'q'.")
 
     
 
