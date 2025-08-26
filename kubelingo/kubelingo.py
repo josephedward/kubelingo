@@ -1310,70 +1310,29 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 user_answer_graded = True
                 break # Exit inner loop, go to post-answer menu
 
-            elif user_commands:
-                user_answer = "\n".join(user_commands)
-                normalized_user_answer_string = ""  # Initialize variable
-                # Exact match check for 'solutions' (e.g., vim commands)
-                if 'solutions' in q:
-                    solution_list = [str(s).strip() for s in q['solutions']]
-                    user_answer_processed = ' '.join(user_answer.split()).strip()
-                    # Normalize user answer and solutions for comparison
-                    normalized_user_answer = normalize_command([user_answer_processed])[0]
-                    normalized_solutions = [normalize_command([s])[0] for s in solution_list]
-
-                    if normalized_user_answer in normalized_solutions:
-                        is_correct = True
-                        print(f"{Fore.GREEN}\nCorrect! Well done.")
-                    else:
-                        solution_text = solution_list[0]
-                # Fuzzy match for single 'solution' (e.g., kubectl commands)
-                elif 'solution' in q:
-                    solution_text = q['solution'].strip()
-
-                    # Process user's multi-line answer
-                    user_answer_lines = user_answer.split('\n')
-                    normalized_user_answer_lines = normalize_command(user_answer_lines)
-                    normalized_user_answer_string = '\n'.join(normalized_user_answer_lines) # Join back for fuzzy matching
-
-                    # Process solution's multi-line command
-                    solution_lines = [line.strip() for line in solution_text.split('\n') if not line.strip().startswith('#')]
-                    normalized_solution_lines = normalize_command(solution_lines)
-                    normalized_solution_string = '\n'.join(normalized_solution_lines) # Join back for fuzzy matching
-                    
-                    # Attempt kubectl dry-run validation for commands
-                    if kubectl_dry_run_enabled and normalized_user_answer_string.startswith("kubectl"):
-                        print(f"{Fore.CYAN}\nValidating kubectl command with dry-run...{Style.RESET_ALL}")
-                        dry_run_success, user_dry_run_feedback, ai_dry_run_feedback = validate_kubectl_command_dry_run(normalized_user_answer_string)
-                        if show_dry_run_logs:
-                            print(user_dry_run_feedback)
-                        if not dry_run_success:
-                            # If dry-run fails, force incorrect
-                            is_correct = False
-                        # Append dry-run feedback to solution_text for AI feedback
-                        solution_text += f"\n\n--- Kubectl Dry-Run Feedback ---\n{ai_dry_run_feedback}"
-
-                    if fuzz.ratio(normalized_user_answer_string, normalized_solution_string) > 95:
-                        is_correct = True
-                        print(f"{Fore.GREEN}\nCorrect! Well done.")
-                    else:
-                        solution_text = q['solution'].strip()
-                
-                if not is_correct:
-                    print(f"{Fore.RED}\nNot quite. Here's one possible solution:")
-                    # Print solution in YAML if mapping/sequence or contains newlines
-                    if isinstance(solution_text, (dict, list)):
-                        dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
-                        print(colorize_yaml(dumped))
-                    elif '\n' in solution_text:
-                        print(colorize_yaml(solution_text))
-                    else:
-                        print(f"{Fore.YELLOW}{solution_text}")
-                    if q.get('source'):
-                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+            elif 'manifest' in q.get('question', '').lower():
+                # Automatically use vim for manifest questions
+                user_manifest, result, sys_error = handle_vim_edit(q, verbose_ai_feedback)
+                if result is None: # Added check for None result
+                    continue # Re-display the question prompt
+                # If result is not a dict, treat as a message and display
+                if not isinstance(result, dict):
+                    print(result)
+                    user_answer_graded = True
+                    break
+                if not sys_error:
                     if ai_feedback_enabled:
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        feedback = get_llm_feedback(q['question'], normalized_user_answer_string, solution_text, verbose_ai_feedback)
-                        print(feedback)
+                        print(result['feedback'])
+                    is_correct = result['correct']
+                    if not is_correct:
+                        show_diff(user_manifest, q['solution'])
+                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
+                        print(colorize_yaml(q['solution']))
+                    else:
+                        print(f"{Fore.GREEN}\nCorrect! Well done.")
+                    if q.get('source'):
+                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 user_answer_graded = True
                 break # Exit inner loop, go to post-answer menu
             
