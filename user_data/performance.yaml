@@ -1,0 +1,59 @@
+api_discovery_docs:
+  correct_questions:
+  - check the kubectl client and server versions.
+  - command to list namespaced resources supporting 'list'.
+  - list all available api resources in the cluster.
+  - command to view the fields under deployment.spec.strategy.
+  - display documentation for the 'pod' resource, including its fields.
+app_configuration:
+  correct_questions:
+  - create a configmap named 'my-configmap' from all files in the '/configs' directory.
+  - list all configmaps.
+  - create a configmap named 'app-config' with data items 'app.color=blue' and 'app.environment=dev'.
+  - create a configmap named 'my-env-config' from an env file named 'config.env'.
+  - 'create a generic secret named ''secret1'' in namespace ''moon'' with two keys:
+    user=test and pass=pwd.'
+  - create a secret named 'db-creds' with username 'admin' and password 'password123'.
+  - create a configmap named 'game-config' from a file located at '/configs/game.properties'.
+  - create a tls secret named 'my-tls'. the certificate is located at `/etc/certs/tls.crt`
+    and the private key is at `/etc/certs/tls.key`.
+  - delete a configmap named 'app-config'.
+  - 'create a secret of type `docker-registry` named ''regcred''. use the following
+    details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
+    password=`p@ssw0rd!`, email=`user@example.com`.'
+  - the string 'zw5jb2rlzf9zdhjpbmc=' is a base64 encoded secret value. decode it.
+  - view the encoded values in a secret named 'api-secrets' in yaml format.
+  - view the detailed contents of a configmap named 'db-config'.
+commands_args_env:
+  correct_questions:
+  - create a pod manifest named 'envfrom-cm'. the pod should have a container named
+    'c' that uses the 'busybox' image. configure the container to import all key-value
+    pairs from the configmap named 'app-cm' as environment variables.
+  - '**scenario:** in kubernetes, you often need to run a container with a different
+    command than the one specified in its dockerfile. for example, you might want
+    to run a one-off debugging script, or start a database container with a custom
+    configuration flag. you can override a container''s default startup instruction
+    (`entrypoint`) and its default arguments (`cmd`) directly in the pod manifest.
+    *   `spec.containers.command` overrides the image''s `entrypoint`. *   `spec.containers.args`
+    overrides the image''s `cmd`. **your task:** create a pod manifest for a container
+    that uses the `busybox` image. your goal is to override its default command to
+    make it print the word "hello" to its standard output and then remain running.
+    **requirements:** 1.  **pod name:** the pod should be named `cmd-args`. 2.  **image:**
+    use the `busybox` image. 3.  **command:** the container should execute a shell.
+    use the `command` field to set this to `["sh", "-c"]`. 4.  **arguments:** the
+    shell should be given a command string to execute. use the `args` field to provide
+    a string that first prints "hello" and then sleeps for a long time (e.g., `echo
+    hello && sleep 3600`). the `sleep` command ensures the container remains in a
+    `running` state for inspection."'
+  - create a pod manifest named `args-pod` with a container named `busybox-container`
+    using the `busybox` image. override the container's command to be `[`/bin/sh`,
+    `-c`]` and its arguments to be `[`echo hello world`]` . the pod should have a
+    `restartpolicy` of `never`.
+core_workloads:
+  correct_questions:
+  - create a manifest for a pod named 'simple-pod'. the pod should use the 'nginx:1.21-alpine'
+    image and have a label 'app=webserver'.
+  - create a new pod named 'nginx' using the 'nginx:alpine' image.
+  - delete the 'nginx' pod and the 'nginx-service'.
+image_registry_use:
+  correct_questions: []
