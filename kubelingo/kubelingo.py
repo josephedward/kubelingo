@@ -686,8 +686,8 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     current_llm_type = None
     current_model = None
 
-    # Try OpenRouter first since it's free and enabled (if AI validation is enabled)
-    if openrouter_api_key and ai_validation_enabled:
+    # Try OpenRouter first since it's free and enabled
+    if openrouter_api_key:
         try:
             # Test the OpenRouter API directly
             headers = {
@@ -720,7 +720,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             current_model = None
 
     # Try Gemini next if API key is provided and no model has been successfully configured yet
-    if not current_model and gemini_api_key and ai_validation_enabled:
+    if not current_model and gemini_api_key:
         try:
             genai.configure(api_key=gemini_api_key)
             # Attempt a small call to validate the key
@@ -738,7 +738,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             current_model = None
 
     # If Gemini failed or not set, try OpenAI if API key is provided and no model has been successfully configured yet
-    if not current_model and openai_api_key and ai_validation_enabled:
+    if not current_model and openai_api_key:
         try:
             client = openai.OpenAI(api_key=openai_api_key)
             # Attempt a small call to validate the key
