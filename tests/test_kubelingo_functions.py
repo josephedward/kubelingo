@@ -17,7 +17,6 @@ from kubelingo.kubelingo import (
     create_issue,
     clear_screen,
     load_questions,
-    handle_config_menu,
     get_user_input,
     _get_llm_model,
     get_ai_verdict,
