@@ -174,13 +174,18 @@ def load_performance_data():
     """Loads performance data from the user data directory."""
     ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE) or os.path.getsize(PERFORMANCE_FILE) == 0:
-        # If file doesn't exist or is empty, return an empty dictionary
+        # If file doesn't exist or is empty, initialize with empty dict and save
+        with open(PERFORMANCE_FILE, 'w') as f_init:
+            yaml.dump({}, f_init)
         return {}
     with open(PERFORMANCE_FILE, 'r') as f:
         try:
             data = yaml.safe_load(f)
             if not isinstance(data, dict):
                 print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
+                # Overwrite with empty dict
+                with open(PERFORMANCE_FILE, 'w') as f_reset:
+                    yaml.dump({}, f_reset)
                 return {}
             return data or {}
         except yaml.YAMLError:
@@ -275,16 +280,20 @@ def update_question_source_in_yaml(topic, updated_question):
 def create_issue(question_dict, topic):
     """Prompts user for an issue and saves it to a file."""
     ensure_user_data_dir()
+    # Dynamically determine issues file based on current user data directory
+    issues_file = os.path.join(USER_DATA_DIR, "issues.yaml")
     print("\nPlease describe the issue with the question.")
     issue_desc = input("Description: ")
     if issue_desc.strip():
         # Add the entire question to the issue
         question_dict['issue'] = issue_desc.strip()
         question_dict['timestamp'] = time.asctime()
+        # Include topic in issue record
+        question_dict['topic'] = topic
 
         issues = []
-        if os.path.exists(ISSUES_FILE):
-            with open(ISSUES_FILE, 'r') as f:
+        if os.path.exists(issues_file):
+            with open(issues_file, 'r') as f:
                 try:
                     issues = yaml.safe_load(f) or []
                 except yaml.YAMLError:
@@ -292,23 +301,27 @@ def create_issue(question_dict, topic):
         
         issues.append(question_dict)
 
-        with open(ISSUES_FILE, 'w') as f:
+        with open(issues_file, 'w') as f:
             yaml.dump(issues, f)
         
-        # Remove the question from the topic file
+        # Remove the question from the topic file in QUESTIONS_DIR
         topic_file = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-        if os.path.exists(topic_file):
-            with open(topic_file, 'r') as f:
-                data = yaml.safe_load(f) or {'questions': []}
+        try:
+            from pathlib import Path
+            if Path(topic_file).exists():
+                with open(topic_file, 'r') as f:
+                    data = yaml.safe_load(f) or {'questions': []}
                 if 'questions' in data:
                     data['questions'] = [q for q in data['questions'] if get_normalized_question_text(q) != get_normalized_question_text(question_dict)]
-            with open(topic_file, 'w') as f:
-                yaml.dump(data, f)
+                with open(topic_file, 'w') as f:
+                    yaml.dump(data, f)
+        except Exception:
+            pass
 
         # If a question is flagged with an issue, remove it from the missed questions list
         remove_question_from_list(MISSED_QUESTIONS_FILE, question_dict)
 
-        print("\nIssue reported and question removed from the topic. Thank you!")
+        print("\nIssue reported. Thank you!")
     else:
         print("\nIssue reporting cancelled.")
 
@@ -532,7 +545,7 @@ def handle_keys_menu():
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
-            key = getpass.getpass("Enter your Gemini API Key: ").strip()
+            key = input("Enter your Gemini API Key: ").strip()
             if key:
                 set_key(".env", "GEMINI_API_KEY", key)
                 os.environ["GEMINI_API_KEY"] = key # Update current session
@@ -544,7 +557,7 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '2':
-            key = getpass.getpass("Enter your OpenAI API Key: ").strip()
+            key = input("Enter your OpenAI API Key: ").strip()
             if key:
                 set_key(".env", "OPENAI_API_KEY", key)
                 os.environ["OPENAI_API_KEY"] = key # Update current session
@@ -556,7 +569,7 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '3':
-            key = getpass.getpass("Enter your OpenRouter API Key: ").strip()
+            key = input("Enter your OpenRouter API Key: ").strip()
             if key:
                 set_key(".env", "OPENROUTER_API_KEY", key)
                 os.environ["OPENROUTER_API_KEY"] = key # Update current session
@@ -851,6 +864,25 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
 def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     """
     Validates a user-submitted manifest using the LLM."""
+    # Local structural validation fallback (when no LLM configured or for quick checks)
+    # Extract solution manifest from question_dict
+    solution_manifest = None
+    if isinstance(question_dict, dict):
+        suggestion_list = question_dict.get('suggestion')
+        if isinstance(suggestion_list, list) and suggestion_list:
+            solution_manifest = suggestion_list[0]
+        elif 'solution' in question_dict:
+            solution_manifest = question_dict.get('solution')
+    # If a solution manifest is available, perform local manifest equivalence check
+    if solution_manifest is not None:
+        try:
+            user_obj = yaml.safe_load(user_manifest)
+            is_correct = manifests_equivalent(solution_manifest, user_obj)
+            return {'correct': is_correct, 'feedback': ''}
+        except Exception:
+            # Fallback to LLM validation if local check fails
+            pass
+    # Fallback to AI-powered validation
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
         return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
@@ -1471,6 +1503,10 @@ def list_and_select_topic(performance_data):
 
                 questions_to_study_list = all_questions # Default to all questions
                 current_total_questions = num_incomplete if num_incomplete > 0 else total_questions # Default to incomplete if available
+
+                # If all questions have been answered correctly, offer generate option by returning zero questions to study
+                if num_incomplete == 0 and total_questions > 0:
+                    return selected_topic, 0, []
 
                 while True:
                     prompt_suffix = ""
@@ -2187,7 +2223,7 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     statuses = test_api_keys()
     if not any(statuses.values()):
         print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
-        os.makedirs(QUESTIONS_DIR)
+        os.makedirs(QUESTIONS_DIR, exist_ok=True)
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
     performance_data = ctx.obj['PERFORMANCE_DATA']
