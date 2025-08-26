@@ -774,6 +774,8 @@ def test_get_llm_model_neither(mock_llm_deps):
     mock_handle_config_menu.assert_not_called() # Because mock_click_confirm returns False
     assert llm_type is None
     assert model is None
+    assert llm_type is None
+    assert model is None
 
 @pytest.mark.skipif(
     not dotenv_values().get("GEMINI_API_KEY"),
