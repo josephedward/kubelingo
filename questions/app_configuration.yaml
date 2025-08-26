@@ -111,24 +111,24 @@ questions:
 - question: You are given a basic Pod manifest. Modify it to add two environment variables,
     'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
   solutions: 
-  apiVersion: v1
-  kind: Pod
-  metadata:
-    name: mypod
-  spec:
-    containers:
-    - name: my-container
-      image: nginx
-      env:
-      - name: SECRET1_USER
-        valueFrom:
-          secretKeyRef:
-            name: secret1
-            key: user
-      - name: SECRET1_PASS
-        valueFrom:
-          secretKeyRef:
-            name: secret1
-            key: pass
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        env:
+        - name: SECRET1_USER
+          valueFrom:
+            secretKeyRef:
+              name: secret1
+              key: user
+        - name: SECRET1_PASS
+          valueFrom:
+            secretKeyRef:
+              name: secret1
+              key: pass
   starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n\
     \  containers:\n    - name: my-container\n      image: nginx\n"
