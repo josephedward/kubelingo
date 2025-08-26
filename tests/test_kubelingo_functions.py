@@ -12,7 +12,7 @@ from kubelingo.kubelingo import (
     remove_question_from_list,
 )
 
-PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
+PERFORMANCE_FILE = os.path.join("user_data", "performance_test.yaml")
 load_questions_from_list,
 get_normalized_question_text,
 normalize_command,
