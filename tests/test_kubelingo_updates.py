@@ -2,6 +2,7 @@ import os
 import yaml
 import pytest
 from kubelingo import kubelingo
+from unittest.mock import patch
 
 USER_DATA_DIR = "user_data"
 QUESTIONS_DIR = "questions"

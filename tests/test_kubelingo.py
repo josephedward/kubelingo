@@ -1,6 +1,7 @@
 import subprocess
 import tempfile
 import os
+import pytest
 from unittest.mock import mock_open, patch
 import colorama
 import re
