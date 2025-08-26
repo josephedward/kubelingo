@@ -1380,7 +1380,11 @@ def list_and_select_topic(performance_data):
                     if num_incomplete > 0:
                         prompt_suffix = f", 'i' for incomplete ({num_incomplete})"
                     
-                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}{prompt_suffix}, or press Enter for all): ").strip().lower()
+                    # Check if the user has achieved 100% correctness
+                    percent_correct = (num_correct / total_questions) * 100
+                    generate_option = ", (g) to generate more questions in this category" if percent_correct == 100 else ""
+                    
+                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}{prompt_suffix}{generate_option}, or press Enter for all): ").strip().lower()
                     
                     if num_to_study_input == 'all' or num_to_study_input == '':
                         num_to_study = total_questions
@@ -1768,7 +1772,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [c]onfigure, [q]uit")
+            print("Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]uit")
             post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
 
             if post_action == 'n':
