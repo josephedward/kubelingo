@@ -1,3 +1,4 @@
+---
 questions:
 - question: Create an alias 'k' for 'kubectl'.
   solutions:
@@ -58,7 +59,8 @@ questions:
   solutions:
   - G
 - question: In Vim, how do you go to line 10?
-  solutions: :10
+  solutions:
+  - :10
 
 - question: In Vim, how do you exit insert mode?
   solutions:
