@@ -1374,10 +1374,10 @@ def list_and_select_topic(performance_data):
                     if num_incomplete > 0:
                         prompt_suffix = f", 'i' for incomplete ({num_incomplete})"
                     
-                    num_to_study_input = input(f"Enter number of questions to study (1-{current_total_questions}{prompt_suffix}, or press Enter for all): ").strip().lower()
+                    num_to_study_input = input(f"Enter number of questions to study (1-{total_questions}{prompt_suffix}, or press Enter for all): ").strip().lower()
                     
                     if num_to_study_input == 'all' or num_to_study_input == '':
-                        num_to_study = current_total_questions
+                        num_to_study = total_questions
                         break
                     elif num_to_study_input == 'i':
                         if num_incomplete == 0:
@@ -1385,10 +1385,9 @@ def list_and_select_topic(performance_data):
                             continue # Stay in this loop, let user choose again
                         else:
                             questions_to_study_list = incomplete_questions
-                            current_total_questions = num_incomplete
-                            print(f"Now selecting from {num_incomplete} incomplete questions.")
-                            # Re-prompt with the new total
-                            continue
+                            num_to_study = num_incomplete
+                            print(f"Selected all {num_incomplete} incomplete questions.")
+                            break
                     try:
                         num_to_study = int(num_to_study_input)
                         if 1 <= num_to_study <= current_total_questions:
