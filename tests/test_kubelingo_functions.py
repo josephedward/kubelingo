@@ -567,12 +567,11 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '8', '3']):
-    
-    mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
-    assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
-    
-    captured = capsys.readouterr()
-    assert "OpenAI API Key saved." in captured.out
+        mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
+        assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
+        
+        captured = capsys.readouterr()
+        assert "OpenAI API Key saved." in captured.out
 
 
 
