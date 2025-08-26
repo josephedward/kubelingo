@@ -35,7 +35,17 @@ from kubelingo.kubelingo import (
 from kubelingo.kubelingo import cli # Import cli for testing
 from tests.test_kubelingo_updates import setup_user_data_dir, setup_questions_dir
 
-# Constants for paths (will be mocked)
+@pytest.fixture
+def setup_user_data_dir(tmp_path):
+    user_data_dir = tmp_path / "test/user_data"
+    user_data_dir.mkdir(parents=True, exist_ok=True)
+    return user_data_dir
+
+@pytest.fixture
+def setup_questions_dir(tmp_path):
+    questions_dir = tmp_path / "test/questions"
+    questions_dir.mkdir(parents=True, exist_ok=True)
+    return questions_dir
 USER_DATA_DIR = "user_data"
 MISC_DIR = "misc"
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")

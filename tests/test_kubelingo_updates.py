@@ -71,7 +71,8 @@ def test_create_issue_with_setup(setup_user_data_dir, setup_questions_dir):
     with open(topic_file, 'w') as f:
         yaml.dump({'questions': [question_dict]}, f)
 
-    kubelingo.create_issue(question_dict, topic)
+    with patch('builtins.input', return_value="This is a test issue."):
+        kubelingo.create_issue(question_dict, topic)
 
     # Check that the issue was saved
     with open(issues_file, 'r') as f:
