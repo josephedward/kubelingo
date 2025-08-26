@@ -21,7 +21,36 @@ from thefuzz import fuzz
 import tempfile
 import subprocess
 import difflib
+import copy
 from colorama import Fore, Style, init as colorama_init
+
+def _normalize_manifest(obj):
+    """
+    Deep-copy a manifest object and remove non-essential fields (names) for equivalence comparison.
+    """
+    m = copy.deepcopy(obj)
+    if isinstance(m, dict):
+        # Remove top-level metadata name
+        if 'metadata' in m and isinstance(m['metadata'], dict):
+            m['metadata'].pop('name', None)
+        # Remove container names
+        spec = m.get('spec')
+        if isinstance(spec, dict):
+            containers = spec.get('containers')
+            if isinstance(containers, list):
+                for c in containers:
+                    if isinstance(c, dict):
+                        c.pop('name', None)
+        return m
+    if isinstance(m, list):
+        return [_normalize_manifest(item) for item in m]
+    return m
+
+def manifests_equivalent(sol_obj, user_obj):
+    """
+    Compare two manifest objects for structural equivalence, ignoring names.
+    """
+    return _normalize_manifest(sol_obj) == _normalize_manifest(user_obj)
 
 
 def colorize_ascii_art(ascii_art_string):
@@ -133,20 +162,42 @@ def show_diff(text1, text2, fromfile='your_submission', tofile='solution'):
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
+MISC_DIR = "misc"
+PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
     os.makedirs(USER_DATA_DIR, exist_ok=True)
 
+def ensure_misc_dir():
+    """Ensures the misc directory exists."""
+    os.makedirs(MISC_DIR, exist_ok=True)
+
+def backup_performance_file():
+    """Backs up the performance.yaml file to misc/performance.yaml."""
+    ensure_misc_dir()
+    if os.path.exists(PERFORMANCE_FILE):
+        try:
+            with open(PERFORMANCE_FILE, 'rb') as src, open(PERFORMANCE_BACKUP_FILE, 'wb') as dst:
+                dst.write(src.read())
+        except Exception as e:
+            print(f"Error backing up performance file: {e}")
+
 def load_performance_data():
     """Loads performance data from the user data directory."""
     ensure_user_data_dir()
-    if not os.path.exists(PERFORMANCE_FILE):
+    if not os.path.exists(PERFORMANCE_FILE) or os.path.getsize(PERFORMANCE_FILE) == 0:
+        # If file doesn't exist or is empty, initialize with empty dict and save
+        with open(PERFORMANCE_FILE, 'w') as f:
+            yaml.dump({}, f)
         return {}
     with open(PERFORMANCE_FILE, 'r') as f:
         try:
             return yaml.safe_load(f) or {}
         except yaml.YAMLError:
+            # If file is corrupted, return empty dict and overwrite
+            with open(PERFORMANCE_FILE, 'w') as f:
+                yaml.dump({}, f)
             return {}
 
 def save_performance_data(data):
@@ -463,8 +514,8 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     current_llm_type = None
     current_model = None
 
-    # Try OpenRouter first since it's free and enabled
-    if openrouter_api_key and openrouter_feedback_enabled and not current_model:
+    # Try OpenRouter first since it's free and enabled (if API key is provided)
+    if openrouter_api_key and openrouter_feedback_enabled:
         try:
             # Test the OpenRouter API directly
             headers = {
@@ -493,9 +544,11 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             return current_llm_type, current_model
         except Exception as e:
             print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
+            current_llm_type = None
+            current_model = None
 
-    # Try Gemini next if enabled
-    if gemini_api_key and gemini_feedback_enabled and not current_model:
+    # Try Gemini next if API key is provided and no model has been successfully configured yet
+    if not current_model and gemini_api_key and gemini_feedback_enabled:
         try:
             genai.configure(api_key=gemini_api_key)
             # Attempt a small call to validate the key
@@ -505,11 +558,15 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             return current_llm_type, current_model
         except google_exceptions.InvalidArgument:
             print(f"{Fore.RED}Invalid Gemini API Key. Please check your key.{Style.RESET_ALL}")
+            current_llm_type = None
+            current_model = None
         except Exception as e:
             print(f"{Fore.RED}Error with Gemini API: {e}{Style.RESET_ALL}")
+            current_llm_type = None
+            current_model = None
 
-    # If Gemini failed or not set, try OpenAI if enabled
-    if openai_api_key and openai_feedback_enabled and not current_model:
+    # If Gemini failed or not set, try OpenAI if API key is provided and no model has been successfully configured yet
+    if not current_model and openai_api_key and openai_feedback_enabled:
         try:
             client = openai.OpenAI(api_key=openai_api_key)
             # Attempt a small call to validate the key
@@ -519,8 +576,12 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             return current_llm_type, current_model
         except AuthenticationError:
             print(f"{Fore.RED}Invalid OpenAI API Key. Please check your key.{Style.RESET_ALL}")
+            current_llm_type = None
+            current_model = None
         except Exception as e:
             print(f"{Fore.RED}Error with OpenAI API: {e}{Style.RESET_ALL}")
+            current_llm_type = None
+            current_model = None
 
     # If no model could be configured
     if not current_model:
@@ -777,15 +838,46 @@ def handle_vim_edit(question, verbose_ai_feedback=True):
         cleaned_user_manifest = user_manifest.split("# --- Start your YAML manifest below ---", 1)[1]
     else:
         cleaned_user_manifest = user_manifest
+    # Remove leading whitespace/newlines to avoid indentation errors
+    cleaned_user_manifest = cleaned_user_manifest.lstrip('\r\n ')
+    # Fast-path: if parsed user manifest structurally matches solution, accept immediately
+    try:
+        user_obj = yaml.safe_load(cleaned_user_manifest)
+        if isinstance(sol_manifest, (dict, list)) and isinstance(user_obj, (dict, list)):
+            if manifests_equivalent(sol_manifest, user_obj):
+                return user_manifest, {'correct': True, 'validation_feedback': '', 'ai_feedback': ''}, False
+    except yaml.YAMLError:
+        pass
+    # Fallback textual equivalence: ignore indentation, blank lines, and leading/trailing spaces
+    try:
+        # Generate canonical YAML for solution
+        canonical_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
+        # Normalize lines: strip whitespace and skip empty lines
+        user_lines = [ln.strip() for ln in cleaned_user_manifest.splitlines() if ln.strip()]
+        sol_lines = [ln.strip() for ln in canonical_text.splitlines() if ln.strip()]
+        if user_lines == sol_lines:
+            return user_manifest, {'correct': True, 'validation_feedback': '', 'ai_feedback': ''}, False
+    except Exception:
+        pass
 
     if not cleaned_user_manifest.strip():
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    # Run external validators on the submitted manifest
-    print(f"{Fore.CYAN}\nRunning manifest validations...")
-    success, summary, details = validate_manifest(cleaned_user_manifest)
-    print(summary)
+    # Check YAML parseability; skip local lint/schema validation if parseable
+    try:
+        yaml.safe_load(cleaned_user_manifest)
+        parse_success = True
+    except yaml.YAMLError:
+        parse_success = False
+    # Only run external validators on parse errors; hide validation by default
+    if not parse_success:
+        print(f"{Fore.CYAN}\nRunning manifest validations...")
+        success, summary, details = validate_manifest(cleaned_user_manifest)
+        print(summary)
+    else:
+        success = True
+        details = ""
 
     ai_result = {'correct': False, 'feedback': ''}
     config = dotenv_values(".env")
@@ -1170,10 +1262,14 @@ def list_and_select_topic(performance_data):
             print("\n\nStudy session ended. Goodbye!")
             return None, None, None
 
-def get_user_input():
+def get_user_input(allow_solution_command=True):
     """Collects user commands until a terminating keyword is entered."""
     user_commands = []
     special_action = None
+    
+    solution_option_text = "'solution', " if allow_solution_command else ""
+    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
+
     while True:
         try:
             cmd = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}")
@@ -1192,7 +1288,10 @@ def get_user_input():
                 print(f"{Fore.YELLOW}(Input cleared)")
             else:
                 print(f"{Fore.YELLOW}(No input to clear)")
-        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu']:
+        elif cmd_lower == 'solution' and allow_solution_command:
+            special_action = 'solution'
+            break
+        elif cmd_lower in ['issue', 'generate', 'skip', 'vim', 'source', 'menu']:
             special_action = cmd_lower
             break
         elif cmd.strip():
@@ -1261,7 +1360,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # This loop allows special actions (like 'source', 'issue')
         # to be handled without immediately advancing to the next question.
         while True:
-            clear_screen()
             print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
@@ -1492,12 +1590,16 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     topic_perf['correct_questions'].append(normalized_question_text)
                 # Also remove from missed questions if it was there
                 remove_question_from_list(MISSED_QUESTIONS_FILE, q)
+                if topic != '_missed':
+                    save_performance_data(performance_data)
             else:
                 # If the question was previously answered correctly, remove it.
                 normalized_question_text = get_normalized_question_text(q)
                 if normalized_question_text in topic_perf['correct_questions']:
                     topic_perf['correct_questions'].remove(normalized_question_text)
                 save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
+                if topic != '_missed':
+                    save_performance_data(performance_data)
 
         if topic != '_missed':
                 performance_data[topic] = topic_perf
@@ -1792,22 +1894,28 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         os.makedirs(QUESTIONS_DIR)
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
-
     performance_data = ctx.obj['PERFORMANCE_DATA']
+    save_performance_data(performance_data) # Ensure performance.yaml exists for backup
     
     while True:
         topic_info = list_and_select_topic(performance_data)
         if topic_info is None or topic_info[0] is None:
+            save_performance_data(performance_data)
+            backup_performance_file()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
+        backup_performance_file()
         run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
         save_performance_data(performance_data)
+        backup_performance_file()
         
         time.sleep(2)
 
 
+
+    
 
 if __name__ == "__main__":
     cli(obj={})
