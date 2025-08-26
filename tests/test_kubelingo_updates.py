@@ -60,7 +60,7 @@ def test_instruction_update():
     result = kubelingo.validate_manifest_with_llm(question_dict, user_manifest)
     assert result['correct'], "The manifest should be considered correct."
 
-def test_create_issue(setup_user_data_dir, setup_questions_dir):
+def test_create_issue_with_setup(setup_user_data_dir, setup_questions_dir):
     """Test that creating an issue saves the question and removes it from the topic file."""
     question_dict = {'question': 'Sample question', 'solution': 'Sample solution'}
     topic = 'sample_topic'

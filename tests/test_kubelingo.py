@@ -5,7 +5,19 @@ from unittest.mock import mock_open, patch
 import colorama
 import re
 import yaml
-from kubelingo import kubelingo
+from kubelingo.kubelingo import (
+    get_user_input,
+    run_topic,
+    list_and_select_topic,
+    load_performance_data,
+    save_performance_data,
+    load_questions,
+    clear_screen,
+    save_question_to_list,
+    get_ai_verdict,
+    Style, Fore,
+    cli
+)
 from kubelingo.kubelingo import (
     get_user_input,
     run_topic,
