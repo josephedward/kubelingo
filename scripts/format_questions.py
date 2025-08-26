@@ -1,6 +1,7 @@
-import yaml
-import sys
 import os
+import yaml
+import re
+import sys
 import textwrap
 
 def format_solution_yaml(data):
@@ -44,23 +45,18 @@ def format_solution_yaml(data):
             format_solution_yaml(item)
     return data
 
-if __name__ == "__main__":
-    # Accept a single file or a directory of YAML files
-    if len(sys.argv) != 2:
-        print("Usage: python format_yaml_solution.py <yaml_file_or_directory>", file=sys.stderr)
-        sys.exit(1)
-    base = sys.argv[1]
+def format_yaml_solution_main(base_path):
     paths = []
-    if os.path.isdir(base):
-        for root, dirs, files in os.walk(base):
+    if os.path.isdir(base_path):
+        for root, dirs, files in os.walk(base_path):
             for fname in files:
                 if fname.endswith(('.yaml', '.yml')):
                     paths.append(os.path.join(root, fname))
     else:
-        if not os.path.exists(base):
-            print(f"Error: Path not found: {base}", file=sys.stderr)
+        if not os.path.exists(base_path):
+            print(f"Error: Path not found: {base_path}", file=sys.stderr)
             sys.exit(1)
-        paths = [base]
+        paths = [base_path]
     exit_code = 0
     for file_path in paths:
         try:
@@ -71,8 +67,62 @@ if __name__ == "__main__":
             updated_content = yaml.safe_dump(updated, indent=2, default_flow_style=False, sort_keys=False)
             with open(file_path, 'w') as f:
                 f.write(updated_content)
-            print(f"Formatted solutions in {file_path}")
+            print(f"Formatted YAML solutions in {file_path}")
         except Exception as e:
             print(f"Error processing {file_path}: {e}", file=sys.stderr)
             exit_code = 1
-    sys.exit(exit_code)
+    return exit_code
+
+def convert_text(text):
+    # Match single-quoted multi-line manifest solutions
+    # Pattern: indent, - 'apiVersion... until closing quote
+    pattern = re.compile(
+        r"(?P<indent>^[ ]*)- '(?P<content>[\s\S]*?)'", re.MULTILINE
+    )
+    def repl(m):
+        indent = m.group('indent')
+        content = m.group('content')
+        # Split into lines and remove leading/trailing whitespace
+        lines = content.splitlines()
+        trimmed = [line.strip() for line in lines if line.strip()]
+        # Build block literal
+        block = f"{indent}- |-\n"
+        for line in trimmed:
+            block += f"{indent}  {line}\n"
+        return block.rstrip("\n")
+    return re.sub(pattern, repl, text)
+
+def process_file_manifest(path):
+    try:
+        text = open(path, 'r', encoding='utf-8').read()
+    except Exception:
+        return
+    new_text = convert_text(text)
+    if new_text != text:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(new_text)
+        print(f"Formatted manifest solutions in {path}")
+
+def format_manifest_solutions_main(targets):
+    for target in targets:
+        for root, _, files in os.walk(target):
+            for fname in files:
+                if fname.endswith(('.yaml', '.yml')):
+                    process_file_manifest(os.path.join(root, fname))
+
+if __name__ == "__main__":
+    questions_dir = "/Users/user/Documents/GitHub/kubelingo/questions"
+
+    # Format YAML solutions
+    print("\n--- Formatting YAML solutions ---")
+    yaml_exit_code = format_yaml_solution_main(questions_dir)
+    if yaml_exit_code != 0:
+        print("YAML solution formatting completed with errors.")
+
+    # Format manifest solutions
+    print("\n--- Formatting manifest solutions ---")
+    # The original script used sys.argv[1:] or ['questions'] for targets
+    # Here we'll pass the questions_dir directly.
+    format_manifest_solutions_main([questions_dir])
+
+    print("\n--- All formatting tasks completed ---")
