@@ -1,6 +1,7 @@
 import pytest
 import os
 import yaml
+from dotenv import dotenv_values
 from unittest.mock import patch, mock_open, MagicMock, call
 from colorama import Fore, Style
 from kubelingo.kubelingo import (
@@ -703,6 +704,10 @@ def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
     mock_requests_post.assert_called_once()
     assert MockGenerativeModel_class.call_count == 2
 
+@pytest.mark.skipif(
+    not dotenv_values().get("GEMINI_API_KEY"),
+    reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
+)
 def test_get_llm_model_gemini_only(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
@@ -775,6 +780,10 @@ def test_get_llm_model_neither(mock_llm_deps):
     assert llm_type is None
     assert model is None
 
+@pytest.mark.skipif(
+    not dotenv_values().get("GEMINI_API_KEY"),
+    reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
+)
 def test_get_ai_verdict_gemini(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
@@ -859,6 +868,10 @@ def test_get_llm_feedback_openai_error(mock_llm_deps):
         assert result['correct'] == False
         assert "Error getting AI verdict: OpenAI error" in result['feedback']
 
+@pytest.mark.skipif(
+    not dotenv_values().get("GEMINI_API_KEY"),
+    reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
+)
 def test_validate_manifest_with_llm_gemini(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
@@ -934,6 +947,10 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
         mock_openai_client_instance.chat.completions.create.assert_called_once()
         assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
 
+@pytest.mark.skipif(
+    not dotenv_values().get("GEMINI_API_KEY"),
+    reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
+)
 def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
