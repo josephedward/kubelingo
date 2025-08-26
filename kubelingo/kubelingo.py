@@ -304,7 +304,8 @@ def create_issue(question_dict, topic):
         if os.path.exists(topic_file):
             with open(topic_file, 'r') as f:
                 data = yaml.safe_load(f) or {'questions': []}
-                data['questions'] = [q for q in data['questions'] if get_normalized_question_text(q) != get_normalized_question_text(question_dict)]
+                if 'questions' in data:
+                    data['questions'] = [q for q in data['questions'] if get_normalized_question_text(q) != get_normalized_question_text(question_dict)]
             with open(topic_file, 'w') as f:
                 yaml.dump(data, f)
 
