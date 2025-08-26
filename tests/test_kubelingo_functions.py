@@ -26,7 +26,7 @@ from kubelingo.kubelingo import (
     USER_DATA_DIR,
     QUESTIONS_DIR,
     MISSED_QUESTIONS_FILE,
-    PERFORMANCE_FILE,
+    PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
     ISSUES_FILE
 )
 

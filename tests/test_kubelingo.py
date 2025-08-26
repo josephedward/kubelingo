@@ -23,7 +23,7 @@ from kubelingo.kubelingo import cli # Import cli for testing
 # Constants for paths (will be mocked)
 USER_DATA_DIR = "user_data"
 MISC_DIR = "misc"
-PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
 def strip_ansi_codes(s):
