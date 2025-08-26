@@ -1493,6 +1493,13 @@ def list_and_select_topic(performance_data):
                             num_to_study = num_incomplete
                             print(f"Selected all {num_incomplete} incomplete questions.")
                             break
+                    elif num_to_study_input == 'g' and percent_correct == 100:
+                        new_q = generate_more_questions(selected_topic, questions_to_study_list[0])
+                        if new_q:
+                            questions_to_study_list.append(new_q)
+                            save_questions_to_topic_file(selected_topic, questions_to_study_list)
+                            print(f"New question generated and added to '{selected_topic}'.")
+                        continue
                     try:
                         num_to_study = int(num_to_study_input)
                         if 1 <= num_to_study <= current_total_questions:
