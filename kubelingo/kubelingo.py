@@ -25,6 +25,10 @@ import difflib
 import copy
 from colorama import Fore, Style, init as colorama_init
 
+def clear_screen():
+    """Clears the terminal screen."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 def _normalize_manifest(obj):
     """
     Deep-copy a manifest object and remove non-essential fields (names) for equivalence comparison.
