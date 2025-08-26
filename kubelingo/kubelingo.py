@@ -1100,6 +1100,85 @@ def validate_manifest_with_kubectl_dry_run(manifest):
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
 
+def generate_more_questions(topic, existing_question):
+    """Generates more questions based on an existing one."""
+    llm_type, model = _get_llm_model()
+    if not model:
+        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        return None
+
+    print("\nGenerating a new question... this might take a moment.")
+    try:
+        question_type = random.choice(['command', 'manifest'])
+        prompt = f'''
+        You are a Kubernetes expert creating questions for a CKAD study guide.
+        Based on the following example question about '{topic}', please generate one new, distinct but related question.
+
+        Example Question:
+        ---
+        {yaml.safe_dump({'questions': [existing_question]})}
+        ---
+
+        Your new question should be a {question_type}-based question.
+        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
+        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.
+
+        The new question should be in the same topic area but test a slightly different aspect or use different parameters.
+        Provide the output in valid YAML format, as a single item in a 'questions' list.
+        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
+        The solution must be correct and working.
+
+        Example for a manifest question:
+        questions:
+          - question: "Create a manifest for a Pod named 'new-pod'"
+            solution: |
+              apiVersion: v1
+              kind: Pod
+              ...
+            source: "https://kubernetes.io/docs/concepts/workloads/pods/"
+
+        Example for a command question:
+        questions:
+          - question: "Create a pod named 'new-pod' imperatively..."
+            solution: "kubectl run new-pod --image=nginx"
+            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
+        '''
+        if llm_type == "gemini":
+            response = model.generate_content(prompt)
+        elif llm_type == "openai" or llm_type == "openrouter":
+            response = model.chat.completions.create(
+                model="gpt-3.5-turbo", # Or another suitable model
+                messages=[
+                    {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            response.text = response.choices[0].message.content # Normalize response for consistent parsing
+
+        # Clean the response to only get the YAML part
+        cleaned_response = response.text.strip()
+        if cleaned_response.startswith('```yaml'):
+            cleaned_response = cleaned_response[7:]
+        if cleaned_response.endswith('```'):
+            cleaned_response = cleaned_response[:-3]
+
+        try:
+            new_question_data = yaml.safe_load(cleaned_response)
+        except yaml.YAMLError:
+            print("\nAI failed to generate a valid question. Please try again.")
+            return None
+        
+        if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
+            new_q = new_question_data['questions'][0]
+            print("\nNew question generated!")
+            return new_q
+        else:
+            print("\nAI failed to generate a valid question. Please try again.")
+            return None
+    except Exception as e:
+        print(f"\nError generating question: {e}")
+        return None
+
 def validate_kubectl_command_dry_run(command_string):
     """Placeholder function for validating a kubectl command with dry-run."""
     # Implement the actual logic here
@@ -1116,11 +1195,11 @@ def validate_kubectl_command_dry_run(command_string):
         question_type = random.choice(['command', 'manifest'])
         prompt = f'''
         You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{topic}', please generate one new, distinct but related question.
+        Based on the following example question about '{question_topic_context}', please generate one new, distinct but related question.
 
         Example Question:
         ---
-        {yaml.safe_dump({'questions': [existing_question]})}
+        {yaml.safe_dump({'questions': [q]})}
         ---
 
         Your new question should be a {question_type}-based question.
