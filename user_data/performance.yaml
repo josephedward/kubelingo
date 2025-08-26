@@ -24,6 +24,17 @@ app_configuration:
   - the string 'zw5jb2rlzf9zdhjpbmc=' is a base64 encoded secret value. decode it.
   - view the encoded values in a secret named 'api-secrets' in yaml format.
   - view the detailed contents of a configmap named 'db-config'.
+  - create a manifest for a pod named 'pod1'. the pod must have a single container
+    using the `nginx:alpine` image. the pod should be configured to have an environment
+    variable 'tree1' sourced from the 'tree' key in a configmap named 'trauerweide'.
+    additionally, it should mount the configmap 'birke' as a volume to the path '/etc/birke'.
+  - you are given a basic pod manifest. modify it to add two environment variables,
+    'secret1_user' and 'secret1_pass', sourced from the secret named 'secret1'. the
+    key for 'secret1_user' is 'user' and the key for 'secret1_pass' is 'pass'.
+  - create a manifest for a secret named 'db-secret' containing a username 'admin'
+    and password 's3cur3p@ssw0rd'.
+  - you are given a basic pod manifest. modify it to mount a secret named 'secret2'
+    as a volume at the path `/tmp/secret2`. the volume should be named 'secret-volume'.
 commands_args_env:
   correct_questions:
   - create a pod manifest named 'envfrom-cm'. the pod should have a container named
@@ -85,4 +96,17 @@ linux_syntax:
   - set the kubeconfig environment variable to /home/user/config.
   - in vim, how do you save a file without exiting?
 resource_reference:
-  correct_questions: []
+  correct_questions:
+  - what is the api version for networkpolicy?
+  - is csinode a namespaced resource?
+  - what is the api version for podtemplate?
+  - is volumeattachment a namespaced resource?
+  - what is the short name for ingress?
+  - what is the short name for horizontalpodautoscaler?
+  - is clusterrolebinding a namespaced resource?
+  - is service a namespaced resource?
+  - what is the api version for deployment?
+  - what is the short name for pod?
+  - what is the api version for daemonset?
+  - what is the short name for storageclass?
+  - what is the api version for persistentvolumeclaim?
