@@ -1,47 +1,53 @@
 questions:
-- question: Generate the manifest for a pod named 'resource-pod' with image 'nginx'. Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m' and memory limits to '512Mi'.
+- question: Generate the manifest for a pod named 'resource-pod' with image 'nginx'.
+    Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m'
+    and memory limits to '512Mi'.
   solutions:
-  - kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi --dry-run=client -o yaml
-- question: Create a manifest for a Pod named 'resource-pod-manifest' that requests '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi' of memory.
+  - kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi
+    --dry-run=client -o yaml
+- question: Create a manifest for a Pod named 'resource-pod-manifest' that requests
+    '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi'
+    of memory.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    name: resource-pod-manifest
+      name: resource-pod-manifest
     spec:
-    containers:
-    - image: nginx
-    name: main
-    resources:
-    limits:
-    cpu: 100m
-    memory: 256Mi
-    requests:
-    cpu: 50m
-    memory: 128Mi
-- question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment web.
+      containers:
+        - name: nginx
+          image: nginx
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+- question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
+    web.
   solutions:
   - kubectl set resources deploy/web --requests=cpu=200m,memory=128Mi --limits=cpu=500m,memory=256Mi
 - question: 'Command to create an HPA for web: min 2, max 5, target 50% CPU.'
   solutions:
   - kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=50
-- question: 'In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.'
+- question: 'In namespace limit create a Pod named resource-checker using image httpd:alpine
+    with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m,
+    memory=30Mi.'
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    name: resource-checker
-    namespace: limit
+      name: resource-checker
+      namespace: limit
     spec:
-    containers:
-    - image: httpd:alpine
-    name: my-container
-    resources:
-    limits:
-    cpu: 300m
-    memory: 30Mi
-    requests:
-    cpu: 30m
-    memory: 30Mi
+      containers:
+        - name: my-container
+          image: httpd:alpine
+          resources:
+            requests:
+              cpu: 30m
+              memory: 30Mi
+            limits:
+              cpu: 300m
+              memory: 30Mi

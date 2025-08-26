@@ -1,51 +1,49 @@
 questions:
-- question: Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage with the 'ReadWriteOnce' access mode.
+- question: Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage
+    with the 'ReadWriteOnce' access mode.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: PersistentVolumeClaim
-    metadata:
+    metadata: 
     name: my-pvc
-    spec:
+    spec: 
     accessModes:
     - ReadWriteOnce
-    resources:
-    requests:
+    resources: 
+    requests: 
     storage: 1Gi
-- question: Create a Pod named `cache-user` with a `busybox` container. The pod should have an `emptyDir` volume named `cache` mounted at `/cache`.
+- question: Create a Pod named `cache-user` with a `busybox` container. The pod should
+    have an `emptyDir` volume named `cache` mounted at `/cache`.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
-    metadata:
-    name: cache-user
-    spec:
+    metadata: 
+    name: cache
+    spec: 
     containers:
     - image: busybox
-    name: app
     volumeMounts:
     - mountPath: /cache
-    name: cache
     volumes:
     - emptyDir: {}
-    name: cache
-- question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep 3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
+- question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
+    3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    name: my-pod-with-volume
+      name: my-pod-with-volume
     spec:
-    containers:
-    - command:
-    - sleep
-    - '3600'
-    image: busybox
-    name: my-container
-    volumeMounts:
-    - mountPath: /app/data
-    name: workdir
-    volumes:
-    - emptyDir: {}
-    name: workdir
+      containers:
+        - name: my-container
+          image: busybox
+          command:
+            - sh
+            - -c
+            - sleep 3600
+          volumeMounts:
+            - name: workdir
+              mountPath: /app/data
+      volumes:
+        - name: workdir
+          emptyDir: {}

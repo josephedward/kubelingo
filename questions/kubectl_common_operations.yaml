@@ -7,7 +7,8 @@ questions:
   solutions:
   - kubectl apply -f example-controller.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
-- question: Create the Kubernetes objects defined in all YAML files located in the absolute path `/path/to/manifests`.
+- question: Create the Kubernetes objects defined in all YAML files located in the
+    absolute path `/path/to/manifests`.
   solutions:
   - kubectl apply -f /path/to/manifests
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations

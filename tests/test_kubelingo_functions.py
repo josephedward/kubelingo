@@ -1120,7 +1120,7 @@ class TestKubectlValidation:
     def test_validate_kubectl_command_valid_run(self, capsys):
         mock_process = MagicMock()
         mock_process.returncode = 0
-        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  creationTimestamp: null\n  labels:\n    run: my-pod\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n    resources: {}\nstatus: {}\n"
+        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  creationTimestamp: \n  labels:\n    run: my-pod\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n    resources: {}\nstatus: {}\n"
         mock_process.stderr = ""
 
         with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:

@@ -11,7 +11,8 @@ questions:
   solutions:
   - export KUBECONFIG=/home/user/config
   source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
-- question: Enable kubectl autocompletion in your shell, ensuring it also works for the `k` alias.
+- question: Enable kubectl autocompletion in your shell, ensuring it also works for
+    the `k` alias.
   solutions:
   - source <(kubectl completion bash) && complete -F __start_kubectl k
 - question: In Vim, how do you enter insert mode at the cursor?
@@ -92,10 +93,12 @@ questions:
   - e
 - question: In Vim, how do you move to the first character of the line?
   solutions:
-  - '0'
+  - |-
+    0
 - question: In Vim, how do you move to the end of the line?
   solutions:
   - $
 - question: In Vim, how do you jump to a matching bracket?
   solutions:
-  - '%'
+  - |-
+    %
