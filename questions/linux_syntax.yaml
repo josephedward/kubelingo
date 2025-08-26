@@ -99,4 +99,5 @@ questions:
   - $
 - question: In Vim, how do you jump to a matching bracket?
   solutions:
-  - '%'
+  - |-
+    %

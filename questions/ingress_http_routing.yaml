@@ -14,16 +14,16 @@ questions:
       name: app-ingress-manifest
     spec:
       rules:
-        - host: app.example.com
-          http:
-            paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service:
-                    name: webapp-svc
-                    port:
-                      number: 80
+      - host: app.example.com
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp-svc
+                port:
+                  number: 80
 - question: Ingress manifest routing '/' to Service web:80.
   solutions:
   - apiVersion: networking.k8s.io/v1
@@ -32,15 +32,15 @@ questions:
       name: web
     spec:
       rules:
-        - http:
-            paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service:
-                    name: web
-                    port:
-                      number: 80
+      - http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
 - question: 'Ingress manifest with two paths: ''/api'' -> api-svc:80 and ''/'' ->
     web-svc:80.'
   solutions:
@@ -76,18 +76,18 @@ questions:
       name: secure-app-ingress
     spec:
       tls:
-        - hosts:
-            - secure.example.com
-          secretName: secure-tls-secret
+      - hosts:
+        - secure.example.com
+        secretName: secure-tls-secret
       rules:
-        - host: secure.example.com
-          http:
-            paths:
-              - path: /
-                pathType: Prefix
-                backend:
-                  service:
-                    name: secure-svc
-                    port:
-                      number: 443
+      - host: secure.example.com
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: secure-svc
+                port:
+                  number: 443
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
