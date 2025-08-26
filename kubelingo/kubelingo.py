@@ -1107,6 +1107,22 @@ def validate_manifest_with_kubectl_dry_run(manifest):
         return None
 
     print("\nGenerating a new question... this might take a moment.")
+def generate_more_questions(topic, question):
+    """Generates more questions based on an existing one."""
+    llm_type, model = _get_llm_model()
+    if not model:
+        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        return None
+
+    print("\nGenerating a new question... this might take a moment.")
+def generate_more_questions(topic, question):
+    """Generates more questions based on an existing one."""
+    llm_type, model = _get_llm_model()
+    if not model:
+        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        return None
+
+    print("\nGenerating a new question... this might take a moment.")
     try:
         question_type = random.choice(['command', 'manifest'])
         prompt = f'''
