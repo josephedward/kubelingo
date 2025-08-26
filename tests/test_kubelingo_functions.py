@@ -974,7 +974,7 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
 
 
 def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
@@ -992,7 +992,7 @@ def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
         assert "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY environment variables to generate new questions." in captured.out
 
 def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -1010,7 +1010,7 @@ def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
         assert "Error generating question: LLM generation error" in captured.out
 
 def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
