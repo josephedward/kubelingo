@@ -9,18 +9,18 @@ questions:
 - question: List all namespaces, and then delete the 'development' namespace.
   solutions:
   - kubectl get namespaces && kubectl delete namespace development
-- question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the 'development' namespace.
+- question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the
+    'development' namespace.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    name: pod-in-ns
-    namespace: development
+      name: pod-in-ns
+      namespace: development
     spec:
-    containers:
-    - image: nginx
-    name: nginx
+      containers:
+        - name: nginx
+          image: nginx
 - question: Generate the YAML for a new namespace 'dev' without creating it.
   solutions:
   - kubectl create namespace dev --dry-run=client -o yaml
@@ -32,7 +32,8 @@ questions:
   - kubectl get namespaces > /path/to/namespaces.txt
 - question: Verify which namespace is currently being used in your context.
   solutions:
-  - 'kubectl config view --minify | grep namespace: null'
+  - |-
+    kubectl config view --minify | grep namespace: 
   source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
 - question: List all resources across all namespaces.
   solutions:

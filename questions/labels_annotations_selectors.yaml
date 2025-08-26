@@ -5,20 +5,20 @@ questions:
 - question: Get all pods with the label 'env=prod'.
   solutions:
   - kubectl get pods -l env=prod
-- question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx'' that has two labels: ''env=prod'' and ''app=frontend''.'
+- question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx''
+    that has two labels: ''env=prod'' and ''app=frontend''.'
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    labels:
-    app: frontend
-    env: prod
-    name: labeled-pod
+      name: labeled-pod
+      labels:
+        env: prod
+        app: frontend
     spec:
-    containers:
-    - image: nginx
-    name: nginx
+      containers:
+        - name: nginx
+          image: nginx
 - question: Command to label Namespace prod with tier=backend (overwrite if exists).
   solutions:
   - kubectl label ns prod tier=backend --overwrite

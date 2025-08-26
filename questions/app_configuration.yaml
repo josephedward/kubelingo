@@ -1,14 +1,17 @@
 questions:
-- question: Create a ConfigMap named 'app-config' with data items 'app.color=blue' and 'app.environment=dev'.
+- question: Create a ConfigMap named 'app-config' with data items 'app.color=blue'
+    and 'app.environment=dev'.
   solutions:
   - kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
 - question: Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'.
   solutions:
   - kubectl create cm game-config --from-file=/configs/game.properties
-- question: Create a ConfigMap named 'my-configmap' from all files in the '/configs' directory.
+- question: Create a ConfigMap named 'my-configmap' from all files in the '/configs'
+    directory.
   solutions:
   - kubectl create cm my-configmap --from-file=/configs
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A %
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A
+    %
 - question: Create a ConfigMap named 'my-env-config' from an env file named 'config.env'.
   solutions:
   - kubectl create cm my-env-config --from-env-file=config.env
@@ -23,64 +26,72 @@ questions:
 - question: Delete a ConfigMap named 'app-config'.
   solutions:
   - kubectl delete configmap app-config
-- question: Create a manifest for a Secret named 'db-secret' containing a username 'admin' and password 's3cur3p@ssw0rd'.
+- question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Secret
     metadata:
-    name: db-secret
+      name: db-secret
     stringData:
-    password: s3cur3p@ssw0rd
-    username: admin
+      username: admin
+      password: s3cur3p@ssw0rd
     type: Opaque
 - question: Create a Secret named 'db-creds' with username 'admin' and password 'password123'.
   solutions:
   - kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123
-- question: 'Create a generic Secret named ''secret1'' in namespace ''moon'' with two keys: user=test and pass=pwd.'
+- question: 'Create a generic Secret named ''secret1'' in namespace ''moon'' with
+    two keys: user=test and pass=pwd.'
   solutions:
   - kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd
-- question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt` and the private key is at `/etc/certs/tls.key`.
+- question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
+    and the private key is at `/etc/certs/tls.key`.
   solutions:
   - kubectl create secret tls my-tls --cert=path/to/cert.crt --key=path/to/key.key
-- question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`, password=`P@ssw0rd!`, email=`user@example.com`.'
+- question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the
+    following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
+    password=`P@ssw0rd!`, email=`user@example.com`.'
   solutions:
-  - kubectl create secret docker-registry regcred --docker-server='https://private.docker.io/v1/' --docker-username='my-user' --docker-password='P@ssw0rd!' --docker-email='user@example.com'
+  - kubectl create secret docker-registry regcred --docker-server='https://private.docker.io/v1/'
+    --docker-username='my-user' --docker-password='P@ssw0rd!' --docker-email='user@example.com'
 - question: View the encoded values in a Secret named 'api-secrets' in YAML format.
   solutions:
   - kubectl get secret api-secrets -o yaml
-- question: The string 'ZW5jb2RlZF9zdHJpbmc=' is a base64 encoded Secret value. Decode it.
+- question: The string 'ZW5jb2RlZF9zdHJpbmc=' is a base64 encoded Secret value. Decode
+    it.
   solutions:
   - echo -n 'ZW5jb2RlZF9zdHJpbmc=' | base64 --decode
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
-- question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container using the `nginx:alpine` image. The Pod should be configured to have an environment variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'. Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+- question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
-    name: pod1
+      name: pod1
     spec:
-    containers:
-    - env:
-    - name: TREE1
-    valueFrom:
-    configMapKeyRef:
-    key: tree
-    name: trauerweide
-    image: nginx:alpine
-    name: nginx
-    volumeMounts:
-    - mountPath: /etc/birke
-    name: birke-volume
-    volumes:
-    - configMap:
-    name: birke
-    name: birke-volume
-- question: You are given a basic Pod manifest. Modify it to mount a Secret named 'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          env:
+            - name: TREE1
+              valueFrom:
+                configMapKeyRef:
+                  name: trauerweide
+                  key: tree
+          volumeMounts:
+            - name: birke
+              mountPath: /etc/birke
+      volumes:
+        - name: birke
+          configMap:
+            name: birke
+- question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
       name: mypod
@@ -95,19 +106,29 @@ questions:
       - name: secret-volume
         secret:
           secretName: secret2
-  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n    - name: my-container\n      image: nginx\n"
-- question: You are given a basic Pod manifest. Modify it to add two environment variables, 'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
-  solutions:
-  - |-
-    env:
-    - name: SECRET1_USER
-    valueFrom:
-    secretKeyRef:
-    key: user
-    name: secret1
-    - name: SECRET1_PASS
-    valueFrom:
-    secretKeyRef:
-    key: pass
-    name: secret1
-  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n    - name: my-container\n      image: nginx\n"
+  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n\
+    \  containers:\n    - name: my-container\n      image: nginx\n"
+- question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
+  solutions: 
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: mypod
+  spec:
+    containers:
+    - name: my-container
+      image: nginx
+      env:
+      - name: SECRET1_USER
+        valueFrom:
+          secretKeyRef:
+            name: secret1
+            key: user
+      - name: SECRET1_PASS
+        valueFrom:
+          secretKeyRef:
+            name: secret1
+            key: pass
+  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n\
+    \  containers:\n    - name: my-container\n      image: nginx\n"
