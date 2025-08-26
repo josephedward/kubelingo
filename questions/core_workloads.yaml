@@ -23,8 +23,7 @@ questions:
 - question: Create a manifest for a Pod named 'simple-pod'. The pod should use the
     'nginx:1.21-alpine' image and have a label 'app=webserver'.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
       labels:
@@ -37,8 +36,7 @@ questions:
 - question: Edit the following Pod manifest to change the image tag to '1.22-alpine'
     and add the annotation 'owner=study-app'.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
       annotations:
@@ -82,23 +80,21 @@ questions:
   solutions:
   - kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
-- question: Create a temporary, interactive pod named 'my-shell' using the 'ubuntu' image. The pod should automatically delete upon exit.
+- question: Create a temporary, interactive pod named 'my-shell' using the 'ubuntu'
+    image. The pod should automatically delete upon exit.
   solutions:
   - kubectl run my-shell --image=ubuntu -i -t --rm --restart=Never
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
-
-- question: Run a curl command against an internal service at 10.244.0.4 in a temporary pod named 'curl1' using 'curlimages/curl'.
+- question: Run a curl command against an internal service at 10.244.0.4 in a temporary
+    pod named 'curl1' using 'curlimages/curl'.
   solutions:
   - kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
-
-- question: Force delete a pod named 'webserver-sat-003' in the 'saturn' namespace. The deletion should be immediate, without waiting for a grace period.
+- question: Force delete a pod named 'webserver-sat-003' in the 'saturn' namespace.
+    The deletion should be immediate, without waiting for a grace period.
   solutions:
   - kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0
-
-
 - question: Print the status phase of pod 'pod1' in the default namespace using a
     jsonpath query. You must use the `-o` flag for output formatting.
   solutions:
   - kubectl -n default get pod pod1 -o jsonpath="{.status.phase}"
-
