@@ -32,8 +32,7 @@ questions:
   - kubectl get namespaces > /path/to/namespaces.txt
 - question: Verify which namespace is currently being used in your context.
   solutions:
-  - |-
-    kubectl config view --minify | grep namespace: 
+  - kubectl config view --minify | grep namespace: 
   source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
 - question: List all resources across all namespaces.
   solutions:
