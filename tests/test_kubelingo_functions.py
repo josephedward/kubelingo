@@ -9,7 +9,7 @@ from kubelingo.kubelingo import (
     load_performance_data,
     save_performance_data,
     save_question_to_list,
-    remove_question_from_list,
+    remove_question_from_list
 
 PERFORMANCE_FILE = os.path.join("user_data", "performance_test.yaml")
 load_questions_from_list,
