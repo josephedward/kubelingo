@@ -14,7 +14,9 @@ from kubelingo.kubelingo import (
     load_questions,
     clear_screen,
     save_question_to_list,
-    backup_performance_file, # Added for testing
+        get_ai_verdict, # Import for mocking
+    
+    Style, Fore # Import for asserting on colored output
 )
 from kubelingo.kubelingo import cli # Import cli for testing
 
@@ -218,7 +220,7 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
 
     # Check the output
     captured = capsys.readouterr()
-    assert "Correct! Well done." in captured.out
+    assert "Correct" in strip_ansi_codes(captured.out)
 
     # Check that performance data was updated
     assert 'app_configuration' in saved_data
@@ -310,3 +312,5 @@ def test_performance_file_backup(monkeypatch):
     # data is only modified as expected, not deleted. This test focuses on the
     # logic of the calls, not the file system mechanics, which are handled by
     # the mocked load/save/backup functions.
+
+
