@@ -20,3 +20,4 @@ misc
 misc/.aider.input.history
 misc/.aider.chat.history.md
 /build
+questions/sample_topic.yaml
