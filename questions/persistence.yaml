@@ -4,28 +4,31 @@ questions:
   solutions:
   - apiVersion: v1
     kind: PersistentVolumeClaim
-    metadata: 
-    name: my-pvc
-    spec: 
-    accessModes:
-    - ReadWriteOnce
-    resources: 
-    requests: 
-    storage: 1Gi
+    metadata:
+      name: my-pvc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
 - question: Create a Pod named `cache-user` with a `busybox` container. The pod should
     have an `emptyDir` volume named `cache` mounted at `/cache`.
   solutions:
   - apiVersion: v1
     kind: Pod
-    metadata: 
-    name: cache
-    spec: 
-    containers:
-    - image: busybox
-    volumeMounts:
-    - mountPath: /cache
-    volumes:
-    - emptyDir: {}
+    metadata:
+      name: cache-user
+    spec:
+      containers:
+      - image: busybox
+        name: cache-user
+        volumeMounts:
+        - mountPath: /cache
+          name: cache
+      volumes:
+      - name: cache
+        emptyDir: {}
 - question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
     3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
   solutions:
