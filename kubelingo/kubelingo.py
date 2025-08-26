@@ -1068,7 +1068,8 @@ def list_and_select_topic(performance_data):
                     continue # Go back to topic selection
 
                 topic_perf = performance_data.get(selected_topic, {})
-                correct_questions_normalized = set(topic_perf.get('correct_questions', []))
+                correct_questions_data = topic_perf.get('correct_questions', [])
+                correct_questions_normalized = set(correct_questions_data if correct_questions_data is not None else [])
 
                 incomplete_questions = [
                     q for q in all_questions 
@@ -1718,7 +1719,6 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
         save_performance_data(performance_data)
         
-        print("\nReturning to the main menu...")
         time.sleep(2)
 
 
