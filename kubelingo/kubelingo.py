@@ -1,5 +1,6 @@
 import os
 import requests
+import getpass
 import random
 import readline
 import time
@@ -359,7 +360,7 @@ def handle_keys_menu():
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
-            key = input("Enter your Gemini API Key: ").strip()
+            key = getpass.getpass("Enter your Gemini API Key: ").strip()
             if key:
                 set_key(".env", "GEMINI_API_KEY", key)
                 os.environ["GEMINI_API_KEY"] = key # Update current session
@@ -368,7 +369,7 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '2':
-            key = input("Enter your OpenAI API Key: ").strip()
+            key = getpass.getpass("Enter your OpenAI API Key: ").strip()
             if key:
                 set_key(".env", "OPENAI_API_KEY", key)
                 os.environ["OPENAI_API_KEY"] = key # Update current session
@@ -377,7 +378,7 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '3':
-            key = input("Enter your OpenRouter API Key: ").strip()
+            key = getpass.getpass("Enter your OpenRouter API Key: ").strip()
             if key:
                 set_key(".env", "OPENROUTER_API_KEY", key)
                 os.environ["OPENROUTER_API_KEY"] = key # Update current session
