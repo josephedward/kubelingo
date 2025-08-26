@@ -1,10 +1,10 @@
 questions:
 - question: Forward local port 8080 to port 80 on a pod named 'webapp-pod-123'.
-  solutions:
+  suggestion:
   - kubectl port-forward pod/webapp-pod-123 8080:80
 - question: Command to port-forward Service web port 80 to local 8080.
-  solutions:
+  suggestion:
   - kubectl port-forward svc/web 8080:80
 - question: Command to exec into a Pod named nginx-abc with a shell.
-  solutions:
+  suggestion:
   - kubectl exec -it nginx-abc -- sh

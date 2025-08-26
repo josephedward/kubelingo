@@ -1,12 +1,12 @@
 questions:
 - question: You have a deployment named 'webapp' with label 'app=webapp'. Create a
     ClusterIP service named 'webapp-svc' to expose the deployment on port 80.
-  solutions:
+  suggestion:
   - kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
 - question: Create a manifest for a NodePort service named 'webapp-nodeport'. The
     service should forward traffic from a port on the node to port 80 on pods with
     the label 'app=webapp'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Service
     metadata:
@@ -21,7 +21,7 @@ questions:
       type: NodePort
 - question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort
     8080.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Service
     metadata:
@@ -33,7 +33,7 @@ questions:
       selector:
         app: web
 - question: Headless Service manifest for app=db on port 5432.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Service
     metadata:
@@ -46,24 +46,24 @@ questions:
       selector:
         app: db
 - question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
-  solutions:
+  suggestion:
   - kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
 - question: List all services.
-  solutions:
+  suggestion:
   - kubectl get services
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,current%20namespace%2C%20with%20more%20details
 - question: Describe service frontend-svc.
-  solutions:
+  suggestion:
   - kubectl describe service frontend-svc
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
 - question: Delete service frontend-svc.
-  solutions:
+  suggestion:
   - kubectl delete service frontend-svc
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
 - question: 'Create a Service `my-service` that selects pods with label `app: MyApp`.
     The service should expose TCP port 80 and target port 8080 on the pods.'
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Service
     metadata:

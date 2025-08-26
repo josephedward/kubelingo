@@ -1,6 +1,6 @@
 questions:
 - question: Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -12,7 +12,7 @@ questions:
       - name: nginx
         image: nginx
 - question: Deployment manifest with nodeSelector disktype=ssd.
-  solutions:
+  suggestion:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -33,7 +33,7 @@ questions:
           - name: nginx
             image: nginx
 - question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:

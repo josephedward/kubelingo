@@ -2,13 +2,13 @@ questions:
 - question: Create a CronJob named 'hello-cron' that runs every minute. The job should
     use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from
     the Kubernetes cluster'.
-  solutions:
+  suggestion:
   - kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" --
     /bin/sh -c 'date; echo Hello from the Kubernetes cluster'
 - question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places
     using the 'perl' image. The container should run the command perl -Mbignum=bpi
     -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4.
-  solutions:
+  suggestion:
   - apiVersion: batch/v1
     kind: Job
     metadata:
@@ -27,7 +27,7 @@ questions:
             - print bpi(2000)
           restartPolicy: Never
 - question: Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.
-  solutions:
+  suggestion:
   - apiVersion: batch/v1
     kind: Job
     metadata:
@@ -46,14 +46,14 @@ questions:
           restartPolicy: Never
 - question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes,
     output YAML.
-  solutions:
+  suggestion:
   - kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh
     -c 'echo hi' --dry-run=client -o yaml
 - question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`.
     It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions,
     and 2 running in parallel. Pods must have the label `id: awesome-job`, and the
     container must be named `neb-new-job-container`.'
-  solutions:
+  suggestion:
   - apiVersion: batch/v1
     kind: Job
     metadata:

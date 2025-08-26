@@ -1,28 +1,28 @@
 questions:
 - question: Create a deployment named 'webapp' with image 'nginx:1.21' and 3 replicas.
-  solutions:
+  suggestion:
   - kubectl create deployment webapp --image=nginx:1.21 --replicas=3
 - question: Scale the 'webapp' deployment to 5 replicas.
-  solutions:
+  suggestion:
   - kubectl scale deployment webapp --replicas=5
 - question: Update the image for the 'webapp' deployment to 'nginx:1.22'.
-  solutions:
+  suggestion:
   - kubectl set image deployment/webapp webapp=nginx:1.22
 - question: Check the rollout status of a deployment named 'frontend'.
-  solutions:
+  suggestion:
   - kubectl rollout status deployment/frontend
   source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20check%20if%20a,returns%20a%20zero%20exit%20code
 - question: View the history of a deployment named 'webapp'.
-  solutions:
+  suggestion:
   - kubectl rollout history deployment/webapp
   source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=,rollout%20started
 - question: Roll back a deployment named 'webapp' to its previous version.
-  solutions:
+  suggestion:
   - kubectl rollout undo deployment/webapp
   source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=1,rollback%20to%20the%20previous%20revision
 - question: Create a manifest for a Pod named 'simple-pod'. The pod should use the
     'nginx:1.21-alpine' image and have a label 'app=webserver'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -35,7 +35,7 @@ questions:
         name: nginx-container
 - question: Edit the following Pod manifest to change the image tag to '1.22-alpine'
     and add the annotation 'owner=study-app'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -60,41 +60,41 @@ questions:
         - name: nginx-container
           image: nginx:1.21-alpine
 - question: Create a new pod named 'nginx' using the 'nginx:alpine' image.
-  solutions:
-  - kubectl run nginx --image=nginx:alpine
+  suggestion:
+  - kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
 - question: Expose the 'nginx' pod on port 80 using a service named 'nginx-service'.
-  solutions:
+  suggestion:
   - kubectl expose pod nginx --port=80 --name=nginx-service
 - question: Delete the 'nginx' pod and the 'nginx-service'.
-  solutions:
+  suggestion:
   - |-
     kubectl delete pod nginx
     kubectl delete service nginx-service
 - question: Create a pod named busybox using the busybox image that runs the command
     'sleep 3600'.
-  solutions:
+  suggestion:
   - kubectl run busybox --image=busybox -- sleep 3600
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)
 - question: Generate a YAML definition file for a pod named nginx, using the nginx
     image, without creating it.
-  solutions:
+  suggestion:
   - kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,run%3Dclient
 - question: Create a temporary, interactive pod named 'my-shell' using the 'ubuntu'
     image. The pod should automatically delete upon exit.
-  solutions:
+  suggestion:
   - kubectl run my-shell --image=ubuntu -i -t --rm --restart=Never
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
 - question: Run a curl command against an internal service at 10.244.0.4 in a temporary
     pod named 'curl1' using 'curlimages/curl'.
-  solutions:
+  suggestion:
   - kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
 - question: Force delete a pod named 'webserver-sat-003' in the 'saturn' namespace.
     The deletion should be immediate, without waiting for a grace period.
-  solutions:
+  suggestion:
   - kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0
 - question: Print the status phase of pod 'pod1' in the default namespace using a
     jsonpath query. You must use the `-o` flag for output formatting.
-  solutions:
+  suggestion:
   - kubectl -n default get pod pod1 -o jsonpath="{.status.phase}"

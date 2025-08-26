@@ -1,14 +1,14 @@
 questions:
 - question: View the logs for a pod named 'my-pod'.
-  solutions:
+  suggestion:
   - kubectl logs my-pod
 - question: If 'my-pod' has multiple containers ('app' and 'sidecar'), how do you
     view logs for the 'sidecar' container?
-  solutions:
+  suggestion:
   - kubectl logs my-pod -c sidecar
 - question: Command to get the last 100 log lines from Pod web-0.
-  solutions:
+  suggestion:
   - kubectl logs web-0 --tail=100
 - question: Command to add an ephemeral debug container to Pod web-0 and open a shell.
-  solutions:
+  suggestion:
   - kubectl debug pod/web-0 -it --image=busybox
