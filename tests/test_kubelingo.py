@@ -82,7 +82,12 @@ def test_line_editing_is_enabled():
         pass
 
 
-def test_clear_command_feedback_is_colored(monkeypatch, capsys):
+def test_llm_provider_check_warns_on_no_valid_keys(monkeypatch, capsys):
+    """Test that a warning is printed when no valid LLM provider keys are found."""
+    monkeypatch.setattr('kubelingo.kubelingo.test_api_keys', lambda: {"gemini": False, "openai": False, "openrouter": False})
+    kubelingo.check_llm_provider()
+    captured = capsys.readouterr()
+    assert "Warning: No valid API keys found." in captured.out
     """Tests that feedback from the 'clear' command is colorized."""
     colorama.init(strip=False)
     try:
