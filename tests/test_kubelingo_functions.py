@@ -673,19 +673,18 @@ def mock_llm_deps():
         yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_requests_post.return_value.status_code = 200
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     
     llm_type, model = _get_llm_model()
     
     assert llm_type == "openrouter"
     assert model["api_key"] == "test-or"
-    mock_post.assert_called_once()
+    mock_requests_post.assert_called_once()
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
     mock_requests_post.return_value.raise_for_status.side_effect = Exception("API error")
-    mock_gemini.return_value.generate_content.return_value.text = "test response"
+    mock_gemini_model_instance.generate_content.return_value.text = "test response"
     
     llm_type, model = _get_llm_model()
     
@@ -918,7 +917,7 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
         assert result == {'correct': False, 'feedback': "Error validating manifest with OpenAI LLM: OpenAI manifest error"}
 
 def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
     
     # Patch _get_llm_model to return a configured Gemini model
@@ -946,7 +945,7 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
 
 
 def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
     
     # Patch _get_llm_model to return a configured OpenAI model
@@ -1194,7 +1193,7 @@ class TestKubectlValidation:
             )
 
 def test_run_topic_vim_no_solution(capsys):
-    with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, None, False)) as mock_handle_vim_edit:
+    with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, "This question does not have a solution to validate against for vim edit.", False)) as mock_handle_vim_edit:
         # Simulate 'vim' for the first question, then 'done' for the second question
         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
             # Provide two questions: first without solution, second a dummy
