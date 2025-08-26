@@ -468,7 +468,6 @@ def test_api_keys():
 
 def handle_validation_menu():
     """Handles the validation configuration menu."""
-    check_llm_provider()
     while True:
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Validation Configuration ---")
         config = dotenv_values(".env")
@@ -503,7 +502,7 @@ def handle_validation_menu():
             print("Invalid choice. Please try again.")
             time.sleep(1)
 
-    check_llm_provider()
+def handle_keys_menu():
     """Handles the API key configuration menu."""
     statuses = test_api_keys()
     if not any(statuses.values()):
@@ -592,19 +591,7 @@ def handle_validation_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
-def handle_keys_menu():
-    """Placeholder for handling keys menu."""
-    print("Handling keys menu...")
-
 def handle_config_menu():
-    """Placeholder for handling config menu."""
-    print("Handling config menu...")
-
-def check_llm_provider():
-    """Checks for a valid LLM provider key and warns if none is found."""
-    statuses = test_api_keys()
-    if not any(statuses.values()):
-        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
     """Handles the main configuration menu."""
     while True:
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Configuration Menu ---")
@@ -635,10 +622,8 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
 
-    # Check for a valid LLM provider key
-    statuses = test_api_keys()
-    if not any(statuses.values()):
-        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
+    # Get AI feedback toggle settings (deprecated - using provider selection)
+    ai_validation_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
     # Provider selection overrides auto-detection
     provider = config.get("KUBELINGO_LLM_PROVIDER", "")
     if provider:
@@ -2202,7 +2187,7 @@ def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
 @click.pass_context
 def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve):
     """Kubelingo CLI tool for CKAD exam study or source management."""
-    check_llm_provider()
+    # Load environment variables from .env file
     load_dotenv()
     # Handle source management modes
     if add_sources:
