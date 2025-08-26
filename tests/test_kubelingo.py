@@ -5,6 +5,7 @@ from unittest.mock import mock_open, patch
 import colorama
 import re
 import yaml
+from kubelingo import kubelingo
 from kubelingo.kubelingo import (
     get_user_input,
     run_topic,
