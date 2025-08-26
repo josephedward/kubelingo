@@ -1133,7 +1133,7 @@ def generate_more_questions(topic, question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        print("\nINFO: No valid API keys found. Question generation is disabled.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
@@ -1167,7 +1167,6 @@ def generate_more_questions(topic, question):
             source: "https://kubernetes.io/docs/concepts/workloads/pods/"
 
         Example for a command question:
-        questions:
           - question: "Create a pod named 'new-pod' imperatively..."
             solution: "kubectl run new-pod --image=nginx"
             source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
