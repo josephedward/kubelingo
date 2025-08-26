@@ -592,6 +592,14 @@ def handle_validation_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+def handle_keys_menu():
+    """Placeholder for handling keys menu."""
+    print("Handling keys menu...")
+
+def handle_config_menu():
+    """Placeholder for handling config menu."""
+    print("Handling config menu...")
+
 def check_llm_provider():
     """Checks for a valid LLM provider key and warns if none is found."""
     statuses = test_api_keys()
