@@ -1,13 +1,13 @@
 questions:
 - question: Add a label 'env=prod' to the pod named 'my-pod'.
-  solutions:
+  suggestion:
   - kubectl label pod my-pod env=prod
 - question: Get all pods with the label 'env=prod'.
-  solutions:
+  suggestion:
   - kubectl get pods -l env=prod
 - question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx''
     that has two labels: ''env=prod'' and ''app=frontend''.'
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -20,24 +20,24 @@ questions:
       - name: nginx
         image: nginx
 - question: Command to label Namespace prod with tier=backend (overwrite if exists).
-  solutions:
+  suggestion:
   - kubectl label ns prod tier=backend --overwrite
 - question: Command to list Pod names only using jsonpath.
-  solutions:
+  suggestion:
   - kubectl get pods -o jsonpath='{.items[*].metadata.name}'
 - question: Label pod busybox with env=prod.
-  solutions:
+  suggestion:
   - kubectl label pod busybox env=prod
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
 - question: Remove the label 'env' from pod busybox.
-  solutions:
+  suggestion:
   - kubectl label pod busybox env-
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
 - question: Annotate deployment frontend with description=test.
-  solutions:
+  suggestion:
   - kubectl annotate deployment frontend description=test
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
 - question: Remove the annotation 'description' from deployment frontend.
-  solutions:
+  suggestion:
   - kubectl annotate deployment frontend description-
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng

@@ -1,101 +1,101 @@
 ---
 questions:
 - question: Create an alias 'k' for 'kubectl'.
-  solutions:
+  suggestion:
   - alias k=kubectl
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion
 - question: Add kubectl autocompletion to ~/.bashrc.
-  solutions:
+  suggestion:
   - echo "source <(kubectl completion bash)" >> ~/.bashrc
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell
 - question: Set the KUBECONFIG environment variable to /home/user/config.
-  solutions:
+  suggestion:
   - export KUBECONFIG=/home/user/config
   source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o
 - question: Enable kubectl autocompletion in your shell, ensuring it also works for
     the `k` alias.
-  solutions:
+  suggestion:
   - source <(kubectl completion bash) && complete -F __start_kubectl k
 - question: In Vim, how do you enter insert mode at the cursor?
-  solutions:
+  suggestion:
   - i
 - question: In Vim, how do you append text after the cursor?
-  solutions:
+  suggestion:
   - a
 - question: In Vim, how do you open a new line below the current line?
-  solutions:
+  suggestion:
   - o
 - question: In Vim, how do you save the file and quit?
-  solutions:
+  suggestion:
   - :x
 - question: In Vim, how do you exit without saving changes?
-  solutions:
+  suggestion:
   - :q!
 - question: In Vim, how do you save a file without exiting?
-  solutions:
+  suggestion:
   - :w
 - question: In Vim, how do you delete the current line?
-  solutions:
+  suggestion:
   - dd
 - question: In Vim, how do you copy the current line (yank)?
-  solutions:
+  suggestion:
   - yy
 - question: In Vim, how do you paste after the cursor?
-  solutions:
+  suggestion:
   - p
 - question: In Vim, how do you undo the last change?
-  solutions:
+  suggestion:
   - u
 - question: In Vim, how do you search forward for 'pattern'?
-  solutions:
+  suggestion:
   - /pattern
 - question: In Vim, how do you find the next search occurrence?
-  solutions:
+  suggestion:
   - n
 - question: In Vim, how do you go to the top of the file?
-  solutions:
+  suggestion:
   - gg
 - question: In Vim, how do you go to the end of the file?
-  solutions:
+  suggestion:
   - G
 - question: In Vim, how do you go to line 10?
-  solutions:
+  suggestion:
   - :10
 
 - question: In Vim, how do you exit insert mode?
-  solutions:
+  suggestion:
   - '<Esc>'
 - question: In Vim, how do you redo the last undone change?
-  solutions:
+  suggestion:
   - <C-r>
 - question: In Vim, how do you enter visual mode?
-  solutions:
+  suggestion:
   - v
 - question: In Vim, how do you enter visual line mode?
-  solutions:
+  suggestion:
   - V
 - question: In Vim, how do you enter visual block mode?
-  solutions:
+  suggestion:
   - <C-v>
 - question: In Vim, how do you enter replace mode?
-  solutions:
+  suggestion:
   - R
 - question: In Vim, how do you move to the next word?
-  solutions:
+  suggestion:
   - w
 - question: In Vim, how do you move to the previous word?
-  solutions:
+  suggestion:
   - b
 - question: In Vim, how do you move to the end of the word?
-  solutions:
+  suggestion:
   - e
 - question: In Vim, how do you move to the first character of the line?
-  solutions:
+  suggestion:
   - 0
 - question: In Vim, how do you move to the end of the line?
-  solutions:
+  suggestion:
   - $
 - question: In Vim, how do you jump to a matching bracket?
-  solutions:
+  suggestion:
   - |-
     %
