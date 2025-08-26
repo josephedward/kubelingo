@@ -870,7 +870,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
         ---
         Solution Manifest:\n{solution_manifest}
         ---
-        Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name, container names, indentation styles, or the order of fields; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
+        Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name, container names, indentation styles (so long as a 'kubectl apply' would accept the manifest), or the order of fields; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
         First, on a line by itself, write "CORRECT" or "INCORRECT".
         Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
         '''
