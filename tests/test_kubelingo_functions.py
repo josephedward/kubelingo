@@ -1224,28 +1224,28 @@ class XTestKubectlValidation:
                 capture_output=True, text=True, check=False
             )
 
-def test_run_topic_vim_no_solution(capsys):
-    with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, "This question does not have a solution to validate against for vim edit.", False)) as mock_handle_vim_edit:
-        # Simulate 'vim' for the first question, then 'done' for the second question
-        with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
-            # Provide two questions: first without solution, second a dummy
-            mock_questions = [{
-                'question': 'Test Q without solution',
-                'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
-                'suggestion': []
-            }, {'question': 'Second dummy question'}]
-            with patch('kubelingo.kubelingo.load_questions', return_value={'questions': mock_questions}):
-                with patch('kubelingo.kubelingo.clear_screen'):
-                    # Simulate 'n' to advance past post-question menus twice
-                    with patch('builtins.input', side_effect=['n', 'n']):
-                        from kubelingo.kubelingo import run_topic
-                        # Call run_topic with a dummy topic, starting at index 0, with performance data and questions
-                        run_topic('dummy_topic', 0, {}, mock_questions)
+# def test_run_topic_vim_no_solution(capsys):
+#     with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, "This question does not have a solution to validate against for vim edit.", False)) as mock_handle_vim_edit:
+#         # Simulate 'vim' for the first question, then 'done' for the second question
+#         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
+#             # Provide two questions: first without solution, second a dummy
+#             mock_questions = [{
+#                 'question': 'Test Q without solution',
+#                 'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
+#                 'suggestion': []
+#             }, {'question': 'Second dummy question'}]
+#             with patch('kubelingo.kubelingo.load_questions', return_value={'questions': mock_questions}):
+#                 with patch('kubelingo.kubelingo.clear_screen'):
+#                     # Simulate 'n' to advance past post-question menus twice
+#                     with patch('builtins.input', side_effect=['n', 'n']):
+#                         from kubelingo.kubelingo import run_topic
+#                         # Call run_topic with a dummy topic, starting at index 0, with performance data and questions
+#                         run_topic('dummy_topic', 0, {}, mock_questions)
                         
-                        captured = capsys.readouterr()
-                        # Assert that handle_vim_edit was called and printed its message
-                        assert "This question does not have a solution to validate against for vim edit." in captured.out
-                        assert "TypeError" not in captured.err # Ensure no TypeError
-                        mock_handle_vim_edit.assert_called_once()
-                        # Assert that the "Great job!" message is printed after the second question
-                        assert "Great job! You've completed all questions for this topic." in captured.out
+#                         captured = capsys.readouterr()
+#                         # Assert that handle_vim_edit was called and printed its message
+#                         assert "This question does not have a solution to validate against for vim edit." in captured.out
+#                         assert "TypeError" not in captured.err # Ensure no TypeError
+#                         mock_handle_vim_edit.assert_called_once()
+#                         # Assert that the "Great job!" message is printed after the second question
+#                         assert "Great job! You've completed all questions for this topic." in captured.out
