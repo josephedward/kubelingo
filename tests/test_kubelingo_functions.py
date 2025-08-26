@@ -554,12 +554,11 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     
     # Simulate user input: 1 (API Keys), 1 (set Gemini), then a key, then 3 (back), 3 (back)
     with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '8', '3']):
-    
-    mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
-    assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key'
-    
-    captured = capsys.readouterr()
-    assert "Gemini API Key saved." in captured.out
+        mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
+        assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key'
+        
+        captured = capsys.readouterr()
+        assert "Gemini API Key saved." in captured.out
 
 def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys):
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
