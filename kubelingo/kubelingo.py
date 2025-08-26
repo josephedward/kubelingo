@@ -342,9 +342,9 @@ def handle_keys_menu():
         openai_key = config.get("OPENAI_API_KEY", "Not Set")
         openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
 
-        gemini_display = f"{Fore.GREEN}{gemini_key}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
-        openai_display = f"{Fore.GREEN}{openai_key}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
-        openrouter_display = f"{Fore.GREEN}{openrouter_key}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        openai_display = f"{Fore.GREEN}****{openai_key[-4:]}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
 
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
