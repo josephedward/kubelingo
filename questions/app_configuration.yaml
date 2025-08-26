@@ -80,14 +80,22 @@ questions:
 - question: You are given a basic Pod manifest. Modify it to mount a Secret named 'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
   solutions:
   - |-
-    volumeMounts:
-    - mountPath: /tmp/secret2
-    name: secret2-volume
-    volumes:
-    - name: secret2-volume
-    secret:
-    secretName: secret2
-  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n"
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+      - name: my-container
+        image: nginx
+        volumeMounts:
+        - mountPath: /tmp/secret2
+          name: secret-volume
+      volumes:
+      - name: secret-volume
+        secret:
+          secretName: secret2
+  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n    - name: my-container\n      image: nginx\n"
 - question: You are given a basic Pod manifest. Modify it to add two environment variables, 'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
   solutions:
   - |-
