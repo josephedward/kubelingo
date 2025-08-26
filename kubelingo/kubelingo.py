@@ -669,6 +669,13 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
         handle_config_menu()
         return _get_llm_model(is_retry=True, skip_prompt=skip_prompt)
 
+    # If no valid API key is found, return None
+    if not any([gemini_api_key, openai_api_key, openrouter_api_key]):
+        print(f"{Fore.RED}No valid API keys found. Please set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY.{Style.RESET_ALL}")
+        return None, None
+
+    return None, None
+
     current_llm_type = None
     current_model = None
 
@@ -1111,7 +1118,7 @@ def generate_more_questions(topic, question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+        print("\nINFO: No valid API keys found. Question generation is disabled.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
