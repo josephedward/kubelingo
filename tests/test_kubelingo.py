@@ -165,3 +165,53 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
     assert re.search(r"\(.*?2/3 correct - 67%.*?\)", output)
     assert re.search(r"\(.*?5/5 correct - 100%.*?\)", output)
     assert f"Please select a topic to study:" in output
+
+def test_correct_command_is_accepted(monkeypatch, capsys):
+    """
+    Tests that a correct command-based answer is accepted and graded as correct.
+    This is a regression test for the bug where correct answers were ignored.
+    """
+    # Mock performance data to be empty
+    mock_perf_data = {}
+    def mock_load_performance_data():
+        return mock_perf_data
+
+    saved_data = {}
+    def mock_save_performance_data(data):
+        nonlocal saved_data
+        saved_data = data
+
+    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
+    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
+
+    # Mock the question and solution
+    question = {
+        'question': "View the encoded values in a Secret named 'api-secrets' in YAML format.",
+        'solution': "kubectl get secret api-secrets -o yaml"
+    }
+    questions = [question]
+    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': questions})
+    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
+    monkeypatch.setattr('time.sleep', lambda seconds: None)
+    monkeypatch.setattr('kubelingo.kubelingo.save_question_to_list', lambda *args: None)
+    monkeypatch.setattr('random.shuffle', lambda x: None)
+
+    # Mock user input: the correct command, then 'done'
+    user_inputs = iter([
+        (['k get secret api-secrets -o yaml'], None),
+    ])
+    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda: next(user_inputs))
+    # Mock post-answer input to quit
+    post_answer_inputs = iter(['q'])
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
+
+    # Run the topic
+    run_topic('app_configuration', 1, mock_perf_data, questions)
+
+    # Check the output
+    captured = capsys.readouterr()
+    assert "Correct! Well done." in captured.out
+
+    # Check that performance data was updated
+    assert 'app_configuration' in saved_data
+    assert saved_data['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
