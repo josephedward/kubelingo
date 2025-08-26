@@ -100,4 +100,5 @@ def test_generate_option_availability(setup_user_data_dir, setup_questions_dir):
         yaml.dump({'questions': [question_dict]}, f)
 
     selected_topic, num_to_study, questions_to_study = kubelingo.list_and_select_topic(performance_data)
-    assert 'g' in selected_topic, "The 'generate' option should be available at 100% completion."
+    assert selected_topic == 'sample_topic', "The selected topic should be 'sample_topic'."
+    assert num_to_study == 0, "The 'generate' option should be available when there are no questions left to study."
