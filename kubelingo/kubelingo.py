@@ -5,10 +5,18 @@ import readline
 import time
 import yaml
 import argparse
-import google.generativeai as genai
-from google.api_core import exceptions as google_exceptions
-import openai
-from openai import AuthenticationError
+try:
+    import google.generativeai as genai
+    from google.api_core import exceptions as google_exceptions
+except ImportError:
+    genai = None
+    google_exceptions = None
+try:
+    import openai
+    from openai import AuthenticationError
+except ImportError:
+    openai = None
+    AuthenticationError = Exception
 from thefuzz import fuzz
 import tempfile
 import subprocess
