@@ -554,7 +554,6 @@ def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys)
     
     # Simulate user input: 1 (API Keys), 1 (set Gemini), then a key, then 3 (back), 3 (back)
     with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '8', '3']):
-        handle_config_menu()
     
     mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
     assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key'
@@ -569,7 +568,6 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
     with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '8', '3']):
-        handle_config_menu()
     
     mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
     assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
@@ -585,7 +583,6 @@ def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys)
     
     # Simulate user input: invalid, then 3 (back to main menu)
     with patch('builtins.input', side_effect=['invalid', '3']):
-        handle_config_menu()
     
     mock_set_key.assert_not_called()
     
@@ -604,7 +601,6 @@ def test_handle_validation_menu_toggles(mock_handle_config_menu_deps, capsys):
 
     # Simulate toggling each setting off, then exit menus
     with patch('builtins.input', side_effect=['2', '1', '2', '3', '4', '3']):
-        handle_config_menu()
 
     # Verify that set_key was called to toggle each setting
     calls = [
