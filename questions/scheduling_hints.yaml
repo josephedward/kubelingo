@@ -9,8 +9,8 @@ questions:
       nodeSelector:
         disktype: ssd
       containers:
-        - name: nginx
-          image: nginx
+      - name: nginx
+        image: nginx
 - question: Deployment manifest with nodeSelector disktype=ssd.
   solutions:
   - apiVersion: apps/v1
@@ -30,8 +30,8 @@ questions:
           nodeSelector:
             disktype: ssd
           containers:
-            - name: nginx
-              image: nginx
+          - name: nginx
+            image: nginx
 - question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
   solutions:
   - apiVersion: v1
@@ -40,14 +40,14 @@ questions:
       name: app
     spec:
       containers:
-        - name: busybox
-          image: busybox
-          command:
-            - sh
-            - -c
-            - sleep 3600
+      - name: busybox
+        image: busybox
+        command:
+        - sh
+        - -c
+        - sleep 3600
       tolerations:
-        - key: dedicated
-          operator: Equal
-          value: ml
-          effect: NoSchedule
+      - key: dedicated
+        operator: Equal
+        value: ml
+        effect: NoSchedule

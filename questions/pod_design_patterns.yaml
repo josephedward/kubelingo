@@ -9,15 +9,15 @@ questions:
       name: pod-with-init
     spec:
       initContainers:
-        - name: init
-          image: busybox
-          command:
-            - sh
-            - -c
-            - sleep 2
+      - name: init
+        image: busybox
+        command:
+        - sh
+        - -c
+        - sleep 2
       containers:
-        - name: nginx
-          image: nginx
+      - name: nginx
+        image: nginx
 - question: Pod manifest with one initContainer that waits 5s before starting app
     container.
   solutions:
@@ -27,19 +27,18 @@ questions:
       name: wait
     spec:
       initContainers:
-        - name: init
-          image: busybox
-          command:
-            - sh
-            - -c
-            - sleep 5
+      - name: init
+        image: busybox
+        command:
+        - sh
+        - -c
+        - sleep 5
       containers:
-        - name: nginx
-          image: nginx
+      - name: nginx
+        image: nginx
 - question: Pod manifest with a sidecar that tails a shared log file.
   solutions:
-  - |-
-    apiVersion: v1
+  - apiVersion: v1
     kind: Pod
     metadata:
       name: app-with-sidecar
@@ -105,23 +104,23 @@ questions:
             app: test-init-container
         spec:
           initContainers:
-            - name: init-con
-              image: busybox:1.31.0
-              command:
-                - sh
-                - -c
-                - echo 'check this out!' > /tmp/web-content/index.html
-              volumeMounts:
-                - name: web-content
-                  mountPath: /tmp/web-content
-          containers:
-            - name: nginx
-              image: nginx:1.17.3-alpine
-              ports:
-                - containerPort: 80
-              volumeMounts:
-                - name: web-content
-                  mountPath: /usr/share/nginx/html
-          volumes:
+          - name: init-con
+            image: busybox:1.31.0
+            command:
+            - sh
+            - -c
+            - echo 'check this out!' > /tmp/web-content/index.html
+            volumeMounts:
             - name: web-content
-              emptyDir: {}
+              mountPath: /tmp/web-content
+          containers:
+          - name: nginx
+            image: nginx:1.17.3-alpine
+            ports:
+            - containerPort: 80
+            volumeMounts:
+            - name: web-content
+              mountPath: /usr/share/nginx/html
+          volumes:
+          - name: web-content
+            emptyDir: {}

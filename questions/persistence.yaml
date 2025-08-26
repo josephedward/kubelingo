@@ -8,7 +8,7 @@ questions:
       name: my-pvc
     spec:
       accessModes:
-        - ReadWriteOnce
+      - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi
@@ -38,15 +38,15 @@ questions:
       name: my-pod-with-volume
     spec:
       containers:
-        - name: my-container
-          image: busybox
-          command:
-            - sh
-            - -c
-            - sleep 3600
-          volumeMounts:
-            - name: workdir
-              mountPath: /app/data
-      volumes:
+      - name: my-container
+        image: busybox
+        command:
+        - sh
+        - -c
+        - sleep 3600
+        volumeMounts:
         - name: workdir
-          emptyDir: {}
+          mountPath: /app/data
+      volumes:
+      - name: workdir
+        emptyDir: {}
