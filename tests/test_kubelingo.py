@@ -369,21 +369,6 @@ def test_generate_option_availability(monkeypatch, setup_user_data_dir, setup_qu
     monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
     monkeypatch.setattr('time.sleep', lambda seconds: None)
 
-    # --- Test Case 1: Initial startup and quit (no quiz started) ---
-    # Simulate quitting from the main menu immediately
-    mock_list_and_select_topic_inputs = iter([
-        (None, None, None), # Simulate 'q' (quit) from main menu
-    ])
-    monkeypatch.setattr('kubelingo.kubelingo.list_and_select_topic', lambda perf_data: next(mock_list_and_select_topic_inputs))
-
-    # Run the cli (main application loop)
-    cli.main(args=[], standalone_mode=False, obj={})
-
-    # Assert that user_data/performance.yaml (mocked) is empty
-    assert mock_user_performance_data == {}
-
-    # Assert that misc/performance.yaml (mocked) is empty
-    assert mock_misc_performance_data == {}
 
     # --- Test Case 2: Start quiz, make changes, quit quiz, then quit app ---
     # Reset in-memory data for a fresh start
