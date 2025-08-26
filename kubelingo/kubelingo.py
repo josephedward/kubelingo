@@ -348,12 +348,12 @@ def handle_keys_menu():
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
         print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
-        # Get current settings for AI feedback toggles
-        ai_validation_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
+        # Get current AI provider setting
+        provider = config.get("KUBELINGO_LLM_PROVIDER", "")
+        provider_display = f"{Fore.GREEN}{provider}{Style.RESET_ALL}" if provider else f"{Fore.RED}None{Style.RESET_ALL}"
 
-        # Display AI validation settings
-        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Validation Settings ---")
-        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Toggle AI Validation (current: {get_display(ai_validation_enabled)})")
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Provider Selection ---")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Choose AI Provider (current: {provider_display})")
         print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back")
 
         choice = input("Enter your choice: ").strip()
@@ -386,12 +386,22 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '4':
-            set_key(".env", "KUBELINGO_VALIDATION_AI_ENABLED", "False" if ai_validation_enabled == "True" else "True")
+            print("\nSelect AI Provider:")
+            print("  1. openrouter")
+            print("  2. gemini")
+            print("  3. openai")
+            print("  4. none (disable AI)")
+            sub = input("Enter your choice: ").strip()
+            mapping = {'1': 'openrouter', '2': 'gemini', '3': 'openai', '4': ''}
+            if sub in mapping:
+                sel = mapping[sub]
+                set_key(".env", "KUBELINGO_LLM_PROVIDER", sel)
+                os.environ["KUBELINGO_LLM_PROVIDER"] = sel
+                print(f"\nAI Provider set to {sel or 'none'}.")
+            else:
+                print("\nInvalid selection.")
             time.sleep(1)
-        elif choice == '7':
-            
-            time.sleep(1)
-        elif choice == '8':
+        elif choice == '5':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -465,8 +475,49 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
 
-    # Get AI feedback toggle settings
+    # Get AI feedback toggle settings (deprecated - using provider selection)
     ai_validation_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
+    # Provider selection overrides auto-detection
+    provider = config.get("KUBELINGO_LLM_PROVIDER", "")
+    if provider:
+        if provider == "openrouter":
+            if not openrouter_api_key:
+                print(f"{Fore.RED}OpenRouter API key not set. Please set it first.{Style.RESET_ALL}")
+            else:
+                try:
+                    headers = {"Authorization": f"Bearer {openrouter_api_key}", "HTTP-Referer": "https://github.com/your-repo", "X-Title": "Kubelingo"}
+                    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": "deepseek/deepseek-r1-0528:free", "messages":[{"role":"user","content":"hello"}], "max_tokens":5})
+                    response.raise_for_status()
+                    return "openrouter", {"api_key": openrouter_api_key, "headers": headers, "default_model": "deepseek/deepseek-r1-0528:free"}
+                except Exception as e:
+                    print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
+        elif provider == "gemini":
+            if not gemini_api_key:
+                print(f"{Fore.RED}Gemini API key not set. Please set it first.{Style.RESET_ALL}")
+            else:
+                try:
+                    genai.configure(api_key=gemini_api_key)
+                    genai.GenerativeModel('gemini-1.5-flash-latest').generate_content("hello", stream=False)
+                    return "gemini", genai.GenerativeModel('gemini-1.5-flash-latest')
+                except Exception as e:
+                    print(f"{Fore.RED}Error with Gemini API: {e}{Style.RESET_ALL}")
+        elif provider == "openai":
+            if not openai_api_key:
+                print(f"{Fore.RED}OpenAI API key not set. Please set it first.{Style.RESET_ALL}")
+            else:
+                try:
+                    client = openai.OpenAI(api_key=openai_api_key)
+                    client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role":"user","content":"hello"}], max_tokens=5)
+                    return "openai", client
+                except Exception as e:
+                    print(f"{Fore.RED}Error with OpenAI API: {e}{Style.RESET_ALL}")
+        # Prompt configuration if provider set but problems encountered
+        if not skip_prompt:
+            if click.confirm(f"{Fore.CYAN}Would you like to configure API keys and provider now?{Style.RESET_ALL}", default=True):
+                handle_config_menu()
+                return _get_llm_model(is_retry=True, skip_prompt=skip_prompt)
+        print(f"{Fore.YELLOW}Continuing without AI features.{Style.RESET_ALL}")
+        return None, None
 
     current_llm_type = None
     current_model = None
