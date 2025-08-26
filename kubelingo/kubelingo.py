@@ -60,27 +60,9 @@ def colorize_ascii_art(ascii_art_string):
     lines = ascii_art_string.splitlines()
     colored_lines = []
     
-    # Find the center of the logo (approximately)
-    max_width = max(len(line) for line in lines)
-    max_height = len(lines)
-    center_x = max_width // 2
-    center_y = max_height // 2
-
-    for y, line in enumerate(lines):
-        colored_line = []
-        for x, char in enumerate(line):
-            if char == ' ':
-                colored_line.append(' ')
-            else:
-                # Calculate distance from center (Manhattan distance for simplicity)
-                distance = abs(x - center_x) + abs(y - center_y)
-                
-                # Alternate colors based on distance or a combination of x and y
-                # This will create a concentric or diagonal pattern
-                color_index = (distance // 2) % len(colors) # Adjust divisor for pattern density
-                color = colors[color_index]
-                colored_line.append(f"{color}{char}{Style.RESET_ALL}")
-        colored_lines.append("".join(colored_line))
+    for i, line in enumerate(lines):
+        color = colors[i % len(colors)] # Alternate colors per line
+        colored_lines.append(f"{color}{line}{Style.RESET_ALL}")
     return "\n".join(colored_lines)
 from pygments import highlight
 from pygments.lexers import YamlLexer
@@ -329,9 +311,6 @@ def load_questions_from_list(list_file):
     with open(list_file, 'r') as file:
         return yaml.safe_load(file) or []
 
-def clear_screen():
-    """Clears the terminal screen."""
-    os.system('cls' if os.name == 'nt' else 'clear')
 
 def get_display(value):
     return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
@@ -355,7 +334,6 @@ def get_normalized_question_text(question_dict):
 def handle_keys_menu():
     """Handles the API key configuration menu."""
     while True:
-        clear_screen()
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---")
         # Load existing config to display current state
         config = dotenv_values(".env")
@@ -371,23 +349,12 @@ def handle_keys_menu():
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
         print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
         # Get current settings for AI feedback toggles
-        gemini_feedback = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True")
-        openai_feedback = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True")
-        openrouter_feedback = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True")
-        verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True")
+        ai_validation_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
 
-        # Determine if toggles should be enabled (based on API key presence)
-        gemini_feedback_enabled = gemini_key != "Not Set"
-        openai_feedback_enabled = openai_key != "Not Set"
-        openrouter_feedback_enabled = openrouter_key != "Not Set"
-
-        # Display AI feedback toggles
-        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Feedback Settings ---")
-        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Toggle Gemini AI feedback (current: {get_display(gemini_feedback)}) {{'(Disabled - No Key)' if not gemini_feedback_enabled else ''}}")
-        print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Toggle OpenAI AI feedback (current: {get_display(openai_feedback)}) {{'(Disabled - No Key)' if not openai_feedback_enabled else ''}}")
-        print(f"  {Style.BRIGHT}6.{Style.RESET_ALL} Toggle OpenRouter AI feedback (current: {get_display(openrouter_feedback)}) {{'(Disabled - No Key)' if not openrouter_feedback_enabled else ''}}")
-        print(f"  {Style.BRIGHT}7.{Style.RESET_ALL} Verbose AI feedback (current: {get_display(verbose_ai_feedback)})")
-        print(f"  {Style.BRIGHT}8.{Style.RESET_ALL} Back")
+        # Display AI validation settings
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Validation Settings ---")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Toggle AI Validation (current: {get_display(ai_validation_enabled)})")
+        print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back")
 
         choice = input("Enter your choice: ").strip()
 
@@ -419,25 +386,10 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '4':
-            if gemini_feedback_enabled:
-                set_key(".env", "KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "False" if gemini_feedback == "True" else "True")
-            else:
-                print(f"{Fore.RED}Gemini API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
-            time.sleep(1)
-        elif choice == '5':
-            if openai_feedback_enabled:
-                set_key(".env", "KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "False" if openai_feedback == "True" else "True")
-            else:
-                print(f"{Fore.RED}OpenAI API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
-            time.sleep(1)
-        elif choice == '6':
-            if openrouter_feedback_enabled:
-                set_key(".env", "KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "False" if openrouter_feedback == "True" else "True")
-            else:
-                print(f"{Fore.RED}OpenRouter API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
+            set_key(".env", "KUBELINGO_VALIDATION_AI_ENABLED", "False" if ai_validation_enabled == "True" else "True")
             time.sleep(1)
         elif choice == '7':
-            set_key(".env", "KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "False" if verbose_ai_feedback == "True" else "True")
+            
             time.sleep(1)
         elif choice == '8':
             break
@@ -449,7 +401,6 @@ def handle_keys_menu():
 def handle_validation_menu():
     """Handles the validation configuration menu."""
     while True:
-        clear_screen()
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Validation Configuration ---")
         config = dotenv_values(".env")
 
@@ -457,8 +408,7 @@ def handle_validation_menu():
         yamllint = config.get("KUBELINGO_VALIDATION_YAMLLINT", "True")
         kubeconform = config.get("KUBELINGO_VALIDATION_KUBECONFORM", "True")
         kubectl_validate = config.get("KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "True")
-        ai_feedback = config.get("KUBELINGO_VALIDATION_AI_FEEDBACK", "True")
-        verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True")
+        # ai_feedback = config.get("KUBELINGO_VALIDATION_AI_FEEDBACK", "True") # REMOVED
 
         # Display toggles
         def get_display(value):
@@ -487,7 +437,6 @@ def handle_validation_menu():
 def handle_config_menu():
     """Handles the main configuration menu."""
     while True:
-        clear_screen()
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Configuration Menu ---")
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} LLM Settings")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Validation Settings")
@@ -517,15 +466,13 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
 
     # Get AI feedback toggle settings
-    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
-    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
-    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
+    ai_validation_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
 
     current_llm_type = None
     current_model = None
 
-    # Try OpenRouter first since it's free and enabled (if API key is provided)
-    if openrouter_api_key and openrouter_feedback_enabled:
+    # Try OpenRouter first since it's free and enabled (if AI validation is enabled)
+    if openrouter_api_key and ai_validation_enabled:
         try:
             # Test the OpenRouter API directly
             headers = {
@@ -558,7 +505,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             current_model = None
 
     # Try Gemini next if API key is provided and no model has been successfully configured yet
-    if not current_model and gemini_api_key and gemini_feedback_enabled:
+    if not current_model and gemini_api_key and ai_validation_enabled:
         try:
             genai.configure(api_key=gemini_api_key)
             # Attempt a small call to validate the key
@@ -576,7 +523,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             current_model = None
 
     # If Gemini failed or not set, try OpenAI if API key is provided and no model has been successfully configured yet
-    if not current_model and openai_api_key and openai_feedback_enabled:
+    if not current_model and openai_api_key and ai_validation_enabled:
         try:
             client = openai.OpenAI(api_key=openai_api_key)
             # Attempt a small call to validate the key
@@ -596,7 +543,7 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     # If no model could be configured
     if not current_model:
         if not skip_prompt:
-            print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI or OpenRouter) with AI feedback enabled. AI features will be disabled.{Style.RESET_ALL}")
+            print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI or OpenRouter) with AI validation enabled. AI features will be disabled.{Style.RESET_ALL}")
             if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
                 handle_config_menu()
                 # After configuring, try to get the model again
@@ -608,16 +555,17 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
     return current_llm_type, current_model
 
 
-
-def get_llm_feedback(question, user_answer, solution, verbose=True, custom_query=None):
-    """Provides LLM-generated feedback on a user's answer."""
+def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
+    """
+    Provides an AI-generated verdict on the technical correctness of a user's answer.
+    The AI determines if the answer is technically correct, regardless of exact match to suggestion.
+    """
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
-        return "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered feedback." # Return info if no LLM
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered validation."}
 
-    if verbose:
-        prompt = f'''
-        You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question.
+    prompt = f'''
+        You are a Kubernetes expert whose sole task is to determine the technical correctness of a student's answer to a CKAD exam practice question.
         The student was asked:
         ---
         Question: {question}
@@ -626,92 +574,89 @@ def get_llm_feedback(question, user_answer, solution, verbose=True, custom_query
         ---
         Student Answer:\n{user_answer}
         ---
-        The canonical solution is:
+        The suggested answer is:
         ---
-        Solution:\n{solution}
+        Suggestion:\n{suggestion}
         ---
-        Your task is to provide brief, constructive feedback on the student's answer. 
-        - If the answer is correct, praise the student and briefly explain why it's a good answer.
-        - If the answer is incorrect, explain the mistake clearly and concisely. 
-        - If the student's answer is a reasonable alternative, acknowledge it.
-        - Keep the feedback to 2-3 sentences.
-        '''
-    else:
-        prompt = f'''
-        You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question.
-        The student was asked:
-        ---
-        Question: {question}
-        ---
-        The student provided this answer:
-        ---
-        Student Answer:\n{user_answer}
-        ---
-        The canonical solution is:
-        ---
-        Solution:\n{solution}
-        ---
-        Your task is to determine if the student's answer is correct. Respond with "Correct" or "Incorrect".
+        
+        Your decision must be based *solely* on the technical correctness of the student's answer in the context of Kubernetes.
+        
+        - If the student's answer is technically correct and would achieve the desired outcome, even if it differs from the suggestion, your verdict is 'CORRECT'.
+        - If the student's answer contains any technical inaccuracies, syntax errors (e.g., invalid YAML), or would *not* produce the outcome needed, your verdict is 'INCORRECT'.
+        
+        Provide your feedback first, then your verdict. 
+        
+        Format your response strictly as follows:
+        FEEDBACK: [Your concise feedback here, explaining why it's correct or incorrect. Max 3 sentences.]
+        VERDICT: [CORRECT or INCORRECT]
         '''
 
     # Append any custom follow-up query to the prompt
     if custom_query:
         prompt = prompt.rstrip() + f"\n\nStudent requested clarification: {custom_query}"
-    if llm_type == "gemini":
-        try:
+
+    try:
+        if llm_type == "gemini":
             response = model.generate_content(prompt)
-            return response.text.strip()
-        except Exception as e:
-            return f"Error getting feedback from LLM: {e}"
-    elif llm_type == "openai":
-        try:
+            ai_response = response.text.strip()
+        elif llm_type == "openai":
             resp = model.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question."},
+                    {"role": "system", "content": "You are a Kubernetes expert determining technical correctness."},
                     {"role": "user", "content": prompt}
                 ]
             )
-            return resp.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Error getting feedback from LLM: {e}"
-    elif llm_type == "openrouter":
-        try:
+            ai_response = resp.choices[0].message.content.strip()
+        elif llm_type == "openrouter":
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=model["headers"],
                 json={
                     "model": model["default_model"],
                     "messages": [
-                        {"role": "system", "content": "You are a Kubernetes expert providing feedback on a student's answer for a CKAD exam practice question."},
+                        {"role": "system", "content": "You are a Kubernetes expert determining technical correctness."},
                         {"role": "user", "content": prompt}
                     ]
                 }
             )
             response.raise_for_status()
-            return response.json()['choices'][0]['message']['content'].strip()
-        except Exception as e:
-            return f"Error getting feedback from LLM: {e}"
-    else:
-        return "INFO: No LLM configured"
+            ai_response = response.json()['choices'][0]['message']['content'].strip()
+        else:
+            return {'correct': False, 'feedback': "INFO: No LLM configured"}
 
+        # Parse the AI's response
+        feedback_line = ""
+        verdict_line = ""
+        for line in ai_response.split('\n'):
+            if line.startswith("FEEDBACK:"):
+                feedback_line = line[len("FEEDBACK:"):
+].strip()
+            elif line.startswith("VERDICT:"):
+                verdict_line = line[len("VERDICT:"):
+].strip()
 
-# get_llm_feedback function removed temporarily for debugging
+        is_correct = (verdict_line.upper() == "CORRECT")
+        return {'correct': is_correct, 'feedback': feedback_line}
+
+    except Exception as e:
+        return {'correct': False, 'feedback': f"Error getting AI verdict: {e}"}
 
 
 def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
-    """Validates a user-submitted manifest using the LLM."""
+    """
+    Validates a user-submitted manifest using the LLM."""
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
         return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
 
     solution_manifest = None
     if isinstance(question_dict, dict):
-        # Try to get from 'solutions' first
-        solutions_list = question_dict.get('solutions')
-        if isinstance(solutions_list, list) and solutions_list:
-            solution_manifest = solutions_list[0]
-        # If not found in 'solutions', try 'solution'
+        # Try to get from 'suggestion' first
+        suggestion_list = question_dict.get('suggestion')
+        if isinstance(suggestion_list, list) and suggestion_list:
+            solution_manifest = suggestion_list[0]
+        # If not found in 'suggestion', try 'solution'
         elif 'solution' in question_dict:
             solution_manifest = question_dict.get('solution')
 
@@ -750,8 +695,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
         Student Manifest:\n{user_manifest}
         ---
         The canonical solution is:
-        ---
-        Solution Manifest:\n{solution_manifest}
+        ---\n        Solution Manifest:\n{solution_manifest}
         ---
         Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name or container names; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
         Respond with "CORRECT" or "INCORRECT".
@@ -799,12 +743,12 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     feedback = "\n".join(lines[1:]).strip()
     return {'correct': is_correct, 'feedback': feedback}
 
-
-def handle_vim_edit(question, verbose_ai_feedback=True):
-    """Handles the user editing a manifest in Vim."""
+def handle_vim_edit(question):
+    """
+    Handles the user editing a manifest in Vim."""
     # Determine the canonical solution manifest
-    if 'solutions' in question and isinstance(question['solutions'], list) and question['solutions']:
-        sol_manifest = question['solutions'][0]
+    if 'suggestion' in question and isinstance(question['suggestion'], list) and question['suggestion']:
+        sol_manifest = question['suggestion'][0]
     elif 'solution' in question:
         sol_manifest = question['solution']
     else:
@@ -894,12 +838,9 @@ def handle_vim_edit(question, verbose_ai_feedback=True):
 
     ai_result = {'correct': False, 'feedback': ''}
     config = dotenv_values(".env")
-    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
-    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
-    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
-    ai_feedback_enabled = gemini_feedback_enabled or openai_feedback_enabled or openrouter_feedback_enabled
+    ai_feedback_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
     if ai_feedback_enabled:
-        ai_result = validate_manifest_with_llm(question, cleaned_user_manifest, verbose_ai_feedback)
+        ai_result = validate_manifest_with_llm(question, cleaned_user_manifest)
 
     # If local validation passed, trust the AI's correctness assessment.
     # Otherwise, the answer is definitely incorrect.
@@ -916,8 +857,7 @@ def handle_vim_edit(question, verbose_ai_feedback=True):
 def validate_manifest(manifest_content):
     """
     Validate a Kubernetes manifest string using external tools (yamllint, kubeconform, kubectl-validate).
-    Returns a tuple: (success: bool, summary: str, details: str).
-    """
+    Returns a tuple: (success: bool, summary: str, details: str)."""
     config = dotenv_values(".env")
     validators = [
         ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
@@ -950,7 +890,8 @@ def validate_manifest(manifest_content):
     return overall, summary, "\n".join(detail_lines)
 
 def generate_more_questions(topic, existing_question):
-    """Generates more questions based on an existing one."""
+    """
+    Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
         print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
@@ -969,8 +910,8 @@ def generate_more_questions(topic, existing_question):
         ---
 
         Your new question should be a {question_type}-based question.
-        - If it is a 'command' question, the solution should be a single or multi-line shell command (e.g., kubectl).
-        - If it is a 'manifest' question, the solution should be a complete YAML manifest and the question should be phrased to ask for a manifest.
+        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
+        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.
 
         The new question should be in the same topic area but test a slightly different aspect or use different parameters.
         Provide the output in valid YAML format, as a single item in a 'questions' list.
@@ -1235,7 +1176,7 @@ def list_and_select_topic(performance_data):
                 num_incomplete = len(incomplete_questions)
 
                 questions_to_study_list = all_questions # Default to all questions
-                current_total_questions = total_questions
+                current_total_questions = num_incomplete if num_incomplete > 0 else total_questions # Default to incomplete if available
 
                 while True:
                     prompt_suffix = ""
@@ -1281,7 +1222,8 @@ def get_user_input(allow_solution_command=True):
     special_action = None
     
     solution_option_text = "'solution', " if allow_solution_command else ""
-    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
+    prompt_text = f"Enter command(s) (alias 'k' for 'kubectl'). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
+    print(f"{Style.BRIGHT}{Fore.CYAN}{prompt_text}{Style.RESET_ALL}")
 
     while True:
         try:
@@ -1313,15 +1255,13 @@ def get_user_input(allow_solution_command=True):
 
 
 def run_topic(topic, num_to_study, performance_data, questions_to_study):
-    """Loads and runs questions for a given topic."""
+    """
+    Loads and runs questions for a given topic."""
     config = dotenv_values(".env")
     kubectl_dry_run_enabled = config.get("KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "True") == "True"
-    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
-    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
-    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
-    ai_feedback_enabled = gemini_feedback_enabled or openai_feedback_enabled or openrouter_feedback_enabled
+    ai_feedback_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
     show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True") == "True"
-    verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True") == "True"
+    
 
     session_topic_name = topic
     questions = questions_to_study # Use the passed list directly
@@ -1359,13 +1299,13 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Determine canonical solution manifest for diff/display
         if 'solution' in q:
             sol_manifest = q['solution']
-        elif 'solutions' in q and isinstance(q['solutions'], list) and q['solutions']:
-            sol_manifest = q['solutions'][0]
+        elif 'suggestion' in q and isinstance(q['suggestion'], list) and q['suggestion']:
+            sol_manifest = q['suggestion'][0]
         else:
             sol_manifest = None
         is_correct = False # Reset for each question attempt
         user_answer_graded = False # Flag to indicate if an answer was submitted and graded
-        solution_shown_for_current_question = False # New flag for this question attempt
+        suggestion_shown_for_current_question = False # New flag for this question attempt
 
         # For saving to lists, use original topic if reviewing, otherwise current topic
         question_topic_context = q.get('original_topic', topic)
@@ -1379,7 +1319,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             print(q['question'])
             print(f"{Fore.CYAN}{'-' * 40}")
             
-            user_commands, special_action = get_user_input(allow_solution_command=not solution_shown_for_current_question)
+            user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
 
             # Handle 'menu' command first, as it exits the topic
             if special_action == 'menu':
@@ -1420,9 +1360,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             if special_action == 'skip':
                 is_correct = False
                 user_answer_graded = True
-                print(f"{Fore.RED}Question skipped. Here's one possible solution:")
-                solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-                # Print solution in YAML if it's a mapping/sequence or contains newlines
+                print(f"{Fore.RED}Question skipped. Here's one possible suggestion:")
+                solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
+                # Print suggestion in YAML if it's a mapping/sequence or contains newlines
                 if isinstance(solution_text, (dict, list)):
                     dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                     print(colorize_yaml(dumped))
@@ -1434,16 +1374,17 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 if ai_feedback_enabled:
                     print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    feedback = get_llm_feedback(q['question'], "skipped", solution_text, verbose_ai_feedback)
+                    ai_result = get_ai_verdict(q['question'], "skipped", solution_text)
+                    feedback = ai_result['feedback']
                     print(feedback)
                 break # Exit inner loop, go to post-answer menu
 
             elif special_action == 'solution':
                 is_correct = False # Viewing solution means not correct by own answer
                 user_answer_graded = True
-                solution_shown_for_current_question = True
-                print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
-                solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
+                suggestion_shown_for_current_question = True
+                print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
+                solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
                 if isinstance(solution_text, (dict, list)):
                     dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                     print(colorize_yaml(dumped))
@@ -1456,7 +1397,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 break # Exit inner loop, go to post-answer menu
 
             elif special_action == 'vim':
-                user_manifest, result, sys_error = handle_vim_edit(q, verbose_ai_feedback)
+                user_manifest, result, sys_error = handle_vim_edit(q)
                 if result is None: # Added check for None result
                     continue # Re-display the question prompt
                 # If result is not a dict, treat as a message and display
@@ -1481,7 +1422,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         else:
                             sol_text = sol_manifest or ''
                         show_diff(user_manifest, sol_text)
-                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
+                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
                         print(colorize_yaml(sol_text))
                     else:
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
@@ -1492,7 +1433,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
             elif 'manifest' in q.get('question', '').lower():
                 # Automatically use vim for manifest questions
-                user_manifest, result, sys_error = handle_vim_edit(q, verbose_ai_feedback)
+                user_manifest, result, sys_error = handle_vim_edit(q)
                 if result is None: # Added check for None result
                     continue # Re-display the question prompt
                 # If result is not a dict, treat as a message and display
@@ -1512,7 +1453,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     is_correct = result['correct']
                     if not is_correct:
                         show_diff(user_manifest, q['solution'])
-                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the solution:")
+                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
                         print(colorize_yaml(q['solution']))
                     else:
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
@@ -1524,29 +1465,30 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 user_answer_graded = True
                 user_answer_str = "\n".join(user_commands)
                 
-                # Normalize both user answer and solution for comparison
+                # Normalize both user answer and suggestion for comparison
                 normalized_user_answer = normalize_command(user_commands)
                 
-                # The solution can be a single string or a list of strings
-                solutions = q.get('solutions')
-                if not solutions: # If 'solutions' key is missing or empty
-                    solutions = [q.get('solution')] # Fallback to 'solution' key
+                # The suggestion can be a single string or a list of strings
+                suggestions = q.get('suggestion')
+                if not suggestions: # If 'suggestion' key is missing or empty
+                    suggestions = [q.get('solution')]
                 
-                # Check if there's actually a solution to compare against
-                if not solutions or solutions == [None]:
+                # Check if there's actually a suggestion to compare against
+                if not suggestions or suggestions == [None]:
                     is_correct = False
-                    print(f"{Fore.RED}No solution available for comparison.")
-                    # Optionally, provide AI feedback if enabled, indicating no solution
+                    print(f"{Fore.RED}No suggestion available for comparison.")
+                    # Optionally, provide AI feedback if enabled, indicating no suggestion
                     if ai_feedback_enabled:
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        feedback = get_llm_feedback(q['question'], user_answer_str, "No solution provided", verbose_ai_feedback)
+                        ai_result = get_ai_verdict(q['question'], user_answer_str, "No suggestion provided")
+                        feedback = ai_result['feedback']
                         print(feedback)
                     break # Exit inner loop to go to post-answer menu
 
                 is_correct = False
-                matched_solution = ""
-                for sol in solutions:
-                    # Solutions can be multiline commands
+                matched_suggestion = ""
+                for sol in suggestions:
+                    # Suggestions can be multiline commands
                     sol_str = str(sol)
                     sol_lines = sol_str.strip().split('\n')
 
@@ -1555,19 +1497,19 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     # Simple string comparison after normalization
                     if ' '.join(normalized_user_answer) == ' '.join(normalized_sol):
                         is_correct = True
-                        matched_solution = sol
+                        matched_suggestion = sol
                         break
 
                 if is_correct:
-                    print(f"{Fore.GREEN}\nCorrect! Well done.")
+                    pass
                 else:
-                    print(f"{Fore.RED}\nThat wasn't quite right.")
-                    # Show diff if there's a single solution for clarity
-                    if len(solutions) == 1 and solutions[0] is not None:
-                        show_diff(user_answer_str, str(solutions[0]))
+                    # Showing diff and suggestion for incorrect answers
+                    # Show diff if there's a single suggestion for clarity
+                    if len(suggestions) == 1 and suggestions[0] is not None:
+                        show_diff(user_answer_str, str(suggestions[0]))
 
-                    print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
-                    solution_text = solutions[0] # Show the first solution
+                    print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
+                    solution_text = suggestions[0] # Show the first suggestion
                     if isinstance(solution_text, (dict, list)):
                         dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                         print(colorize_yaml(dumped))
@@ -1579,12 +1521,20 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 if q.get('source'):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
 
-                if ai_feedback_enabled:
+                if ai_feedback_enabled and not is_correct:
                     print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    feedback = get_llm_feedback(q['question'], user_answer_str, solutions[0], verbose_ai_feedback)
+                    ai_result = get_ai_verdict(q['question'], user_answer_str, suggestions[0])
+                    feedback = ai_result['feedback']
+                    is_correct = ai_result['correct']
                     print(feedback)
-                
-                break # Exit inner loop to go to post-answer menu
+
+                # Final binary decision
+                if is_correct:
+                    print(f"\n{Fore.GREEN}Correct")
+                else:
+                    print(f"\n{Fore.RED}Incorrect")
+
+                break # Exit inner loop, go to post-answer menu
             else: # User typed 'done' without commands, or empty input
                 print("Please enter a command or a special action.")
                 continue # Re-display the same question prompt
@@ -1622,7 +1572,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [l]lm-feedback, [c]onfigure, [q]uit")
+            print("Options: [n]ext, [b]ack, [i]ssue, [g]enerate, [s]ource, [r]etry, [c]onfigure, [q]uit")
             post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
 
             if post_action == 'n':
@@ -1735,26 +1685,30 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             elif post_action == 'r':
                 # Stay on the same question, clear user input, and re-prompt
                 user_commands.clear()
-                solution_shown_for_current_question = False # Reset for retry
+                suggestion_shown_for_current_question = False # Reset for retry
                 print("\nRetrying the current question...")
                 break # Exit post-answer loop, re-enter inner loop for current question
             elif post_action == 'l':
                 # Optional LLM feedback with custom query
-                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---{Style.RESET_ALL}")
                 custom_query = input("Enter custom query for AI feedback (or press Enter for general clarification): ").strip()
-                # Determine the student's answer for feedback
-                try:
-                    ua = user_answer_str
-                except NameError:
-                    ua = globals().get('user_manifest', '')
-                # Determine the canonical solution
-                try:
-                    sol = solution_text
-                except NameError:
-                    sols = q.get('solutions') or []
-                    sol = sols[0] if sols else q.get('solution', '')
-                feedback = get_llm_feedback(q['question'], ua, sol, verbose_ai_feedback, custom_query=custom_query or None)
-                print(feedback)
+                if custom_query: # Only generate and display feedback if a custom query is provided
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    # Determine the student's answer for feedback
+                    try:
+                        ua = user_answer_str
+                    except NameError:
+                        ua = globals().get('user_manifest', '')
+                    # Determine the canonical solution
+                    try:
+                        sol = solution_text
+                    except NameError:
+                        sols = q.get('suggestion') or []
+                        sol = sols[0] if sols else q.get('solution', '')
+                    ai_result = get_ai_verdict(q['question'], ua, sol, custom_query=custom_query or None)
+                    feedback = ai_result['feedback']
+                    print(feedback)
+                else:
+                    print("No custom query provided. AI feedback not generated.")
                 input("Press Enter to continue...")
                 continue
             elif post_action == 'q':
@@ -1767,7 +1721,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
     
 
-    clear_screen()
+    
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
     # Persist performance data at end of session
     if topic != '_missed':
@@ -1838,7 +1792,8 @@ def cmd_check_sources(questions_dir=QUESTIONS_DIR):
         print(f"{missing} questions missing sources.")
 
 def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
-    """Interactively search and assign sources to questions."""
+    """
+    Interactively search and assign sources to questions."""
     for fname in os.listdir(questions_dir):
         if not fname.endswith('.yaml'):
             continue
@@ -1877,7 +1832,7 @@ def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
             if not results:
                 print("  No results found.")
                 continue
-            for i, url in enumerate(results, start=1):
+            for i, url in enumerate(results, 1):
                 print(f"    {i}. {url}")
             choice = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ").strip().lower()
             if choice == 'o':
@@ -1949,8 +1904,6 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         time.sleep(2)
 
 
-
-    
 
 if __name__ == "__main__":
     cli(obj={})
