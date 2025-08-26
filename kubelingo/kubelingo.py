@@ -476,7 +476,7 @@ def handle_validation_menu():
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Toggle kubeconform (current: {get_display(kubeconform)})")
         print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Toggle kubectl-validate (current: {get_display(kubectl_validate)})")
         
-        print(f"  {Style.BRIGHT}6.{Style.RESET_ALL} Back")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Back")
 
         choice = input("Enter your choice: ").strip()
 
