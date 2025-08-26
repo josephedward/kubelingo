@@ -677,7 +677,7 @@ def mock_llm_deps():
         yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     
     llm_type, model = _get_llm_model()
     
@@ -686,15 +686,15 @@ def test_get_llm_model_openrouter_first(mock_llm_deps):
     mock_requests_post.assert_called_once()
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
     mock_requests_post.return_value.raise_for_status.side_effect = Exception("API error")
     mock_gemini_model_instance.generate_content.return_value.text = "test response"
     
     llm_type, model = _get_llm_model()
     
     assert llm_type == "gemini"
-    mock_post.assert_called_once()
-    mock_gemini.assert_called_once()
+    mock_requests_post.assert_called_once()
+    MockGenerativeModel_class.assert_called_once()
 
 def test_get_llm_model_gemini_only(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
