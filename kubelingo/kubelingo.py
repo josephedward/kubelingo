@@ -174,17 +174,13 @@ def load_performance_data():
     """Loads performance data from the user data directory."""
     ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE) or os.path.getsize(PERFORMANCE_FILE) == 0:
-        # If file doesn't exist or is empty, initialize with empty dict and save
-        with open(PERFORMANCE_FILE, 'w') as f:
-            yaml.dump({}, f)
+        # If file doesn't exist or is empty, return an empty dictionary
         return {}
     with open(PERFORMANCE_FILE, 'r') as f:
         try:
             data = yaml.safe_load(f)
             if not isinstance(data, dict):
                 print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
-                with open(PERFORMANCE_FILE, 'w') as f_write:
-                    yaml.dump({}, f_write)
                 return {}
             return data or {}
         except yaml.YAMLError:
