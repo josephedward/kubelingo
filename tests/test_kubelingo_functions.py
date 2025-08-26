@@ -28,7 +28,10 @@ generate_more_questions,
 USER_DATA_DIR,
 QUESTIONS_DIR,
 MISSED_QUESTIONS_FILE,
-ISSUES_FILE
+ISSUES_F    ISSUES_FILE,
+ISSUES_F)
+
+ISSUES_FPERFORMANCE_FILE = os.path.join("user_data", "performance_test.yaml")
 )
 
 # --- Fixtures for mocking file system ---
