@@ -520,7 +520,8 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
         print(f"{Fore.YELLOW}Continuing without AI features.{Style.RESET_ALL}")
         return None, None
     else:
-        return prompt_config()
+        handle_config_menu()
+        return _get_llm_model(is_retry=True, skip_prompt=skip_prompt)
 
     current_llm_type = None
     current_model = None
