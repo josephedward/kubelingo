@@ -22,7 +22,7 @@ def format_solution_yaml(data):
                     print(f"Warning: Could not parse YAML in 'solution'. Keeping original. Error: {e}", file=sys.stderr)
             # Handle multiple solutions entries
             # Handle lists of solutions, converting multi-line YAML strings
-            elif key == 'solutions' and isinstance(value, list):
+                        elif key == 'suggestion' and isinstance(value, list):
                 new_list = []
                 for item in value:
                     if isinstance(item, str) and '\n' in item:
