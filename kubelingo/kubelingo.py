@@ -1413,7 +1413,7 @@ def get_user_input(allow_solution_command=True):
     special_action = None
     
     solution_option_text = "'solution', " if allow_solution_command else ""
-    prompt_text = f"Enter command(s) (alias 'k' for 'kubectl'). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
+    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
     print(f"{Style.BRIGHT}{Fore.CYAN}{prompt_text}{Style.RESET_ALL}")
 
     while True:
