@@ -13,23 +13,23 @@ from kubelingo.kubelingo import (
 )
 
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
-    load_questions_from_list,
-    get_normalized_question_text,
-    normalize_command,
-    update_question_source_in_yaml,
-    create_issue,
-    clear_screen,
-    load_questions,
-    handle_config_menu,
-    get_user_input,
-    _get_llm_model,
-    get_ai_verdict,
-    validate_manifest_with_llm,
-    generate_more_questions,
-    USER_DATA_DIR,
-    QUESTIONS_DIR,
-    MISSED_QUESTIONS_FILE,
-    ISSUES_FILE
+load_questions_from_list,
+get_normalized_question_text,
+normalize_command,
+update_question_source_in_yaml,
+create_issue,
+clear_screen,
+load_questions,
+handle_config_menu,
+get_user_input,
+_get_llm_model,
+get_ai_verdict,
+validate_manifest_with_llm,
+generate_more_questions,
+USER_DATA_DIR,
+QUESTIONS_DIR,
+MISSED_QUESTIONS_FILE,
+ISSUES_FILE
 )
 
 # --- Fixtures for mocking file system ---
