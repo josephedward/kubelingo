@@ -1,7 +1,7 @@
 questions:
 - question: Create a pod manifest that runs a container with user ID 1000 and has
     a read-only root filesystem.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -18,7 +18,7 @@ questions:
           readOnlyRootFilesystem: true
           runAsUser: 1000
 - question: Pod manifest running as non-root user 1000 with fsGroup 2000.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -36,7 +36,7 @@ questions:
         - -c
         - sleep 3600
 - question: Container securityContext dropping all capabilities and readOnlyRootFilesystem.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -55,14 +55,14 @@ questions:
             - ALL
           readOnlyRootFilesystem: true
 - question: List all secrets.
-  solutions:
+  suggestion:
   - kubectl get secrets
   source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service
 - question: Describe secret db-secret.
-  solutions:
+  suggestion:
   - kubectl describe secret db-secret
   source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml
 - question: Delete secret db-secret.
-  solutions:
+  suggestion:
   - kubectl delete secret db-secret
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng

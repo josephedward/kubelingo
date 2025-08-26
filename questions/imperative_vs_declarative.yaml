@@ -1,13 +1,13 @@
 questions:
 - question: Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without
     creating it. Save it to a file named 'pod.yaml'.
-  solutions:
+  suggestion:
   - kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml
   source: https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f
 - question: Create a manifest for a Deployment named 'declarative-deployment' with
     image 'nginx' and 2 replicas. This manifest will be used to apply the configuration
     declaratively.
-  solutions:
+  suggestion:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -27,21 +27,21 @@ questions:
             image: nginx
 - question: Command to generate a Pod manifest named web-pod using image nginx without
     creating the resource and output in YAML format.
-  solutions:
+  suggestion:
   - kubectl run web-pod --image=nginx --restart=Never --dry-run=client -o yaml
 - question: Command to declaratively apply all manifests in ./manifests.
-  solutions:
+  suggestion:
   - kubectl apply -f ./manifests
 - question: Apply the configuration in deployment.yaml.
-  solutions:
+  suggestion:
   - kubectl apply -f deployment.yaml
-  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20ser%20usadas
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20be%20usadas
 - question: Use kubectl to edit deployment frontend.
-  solutions:
+  suggestion:
   - kubectl edit deployment frontend
   source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
 - question: Generate a YAML file for a deployment with nginx image without creating
     it.
-  solutions:
+  suggestion:
   - kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)

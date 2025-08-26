@@ -3,14 +3,14 @@ questions:
     ''echo $(GREETING) $(NAME)!'' and has two environment variables: GREETING=Hello
     and NAME=World. The pod should print ''Hello World!'' to its logs and should not
     restart after completion.'
-  solutions:
+  suggestion:
   - kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello"
     --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
 - question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
     using the `busybox` image. Override the container's command to be `[`/bin/sh`,
     `-c`]` and its arguments to be `[`echo Hello world`]` . The Pod should have a
     `restartPolicy` of `Never`.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -41,7 +41,7 @@ questions:
     a string that first prints "hello" and then sleeps for a long time (e.g., `echo
     hello && sleep 3600`). The `sleep` command ensures the container remains in a
     `Running` state for inspection." '
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -58,7 +58,7 @@ questions:
 - question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
     named 'c' that uses the 'busybox' image. Configure the container to import all
     key-value pairs from the ConfigMap named 'app-cm' as environment variables.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:

@@ -1,7 +1,7 @@
 questions:
 - question: Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness
     probe. The probe should perform an HTTP GET request on port 80 at the path '/'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -15,7 +15,7 @@ questions:
             path: /
             port: 80
 - question: Pod manifest with HTTP liveness probe on /healthz port 8080.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -31,7 +31,7 @@ questions:
           initialDelaySeconds: 5
           periodSeconds: 10
 - question: Pod manifest with readiness exec probe checking /tmp/ready exists.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -54,7 +54,7 @@ questions:
     The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness
     probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a
     `periodSeconds` of 10.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -78,7 +78,7 @@ questions:
 - question: Create a Deployment named space-alien-welcome-message-generator using
     image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready'
     with initialDelaySeconds=10 and periodSeconds=5.
-  solutions:
+  suggestion:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:

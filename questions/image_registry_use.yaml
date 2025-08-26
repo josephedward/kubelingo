@@ -1,7 +1,7 @@
 questions:
 - question: Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0'
     from a private registry. The pod should use an image pull secret named 'reg-secret'.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -15,12 +15,12 @@ questions:
 - question: Command to generate a docker-registry pull secret named 'regcred' for
     'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com'
     (output YAML).
-  solutions:
+  suggestion:
   - kubectl create secret docker-registry regcred --docker-server=registry.example.com
     --docker-username=USER --docker-password=PASS --docker-email=user@example.com
     --dry-run=client -o yaml
 - question: Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:

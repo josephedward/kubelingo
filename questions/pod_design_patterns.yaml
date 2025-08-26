@@ -2,7 +2,7 @@ questions:
 - question: Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer.
     The initContainer should use the 'busybox' image and run the command 'sleep 2'.
     The main container should use the 'nginx' image.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -20,7 +20,7 @@ questions:
         image: nginx
 - question: Pod manifest with one initContainer that waits 5s before starting app
     container.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -37,7 +37,7 @@ questions:
       - name: nginx
         image: nginx
 - question: Pod manifest with a sidecar that tails a shared log file.
-  solutions:
+  suggestion:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -66,19 +66,19 @@ questions:
       - emptyDir: {}
         name: logs
 - question: Run a pod named busybox with image busybox that runs indefinitely.
-  solutions:
+  suggestion:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
 - question: List all pods.
-  solutions:
+  suggestion:
   - kubectl get pods
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
 - question: Describe pod busybox.
-  solutions:
+  suggestion:
   - kubectl describe pod busybox
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
 - question: Delete pod busybox.
-  solutions:
+  suggestion:
   - kubectl delete pod busybox
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
 - question: Create a Deployment named `test-init-container` in namespace `mars`. It
@@ -87,7 +87,7 @@ questions:
     volume `web-content` should be mounted to `/usr/share/nginx/html` in the nginx
     container and `/tmp/web-content` in the init container. The init container should
     run `echo 'check this out!' > /tmp/web-content/index.html`.
-  solutions:
+  suggestion:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
