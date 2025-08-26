@@ -26,7 +26,9 @@ from kubelingo.kubelingo import (
     USER_DATA_DIR,
     QUESTIONS_DIR,
     MISSED_QUESTIONS_FILE,
-    ISSUES_FILE
+    ISSUES_FILE,
+    validate_manifest_with_kubectl_dry_run,
+    validate_kubectl_command_dry_run
 )
 
 PERFORMANCE_FILE = os.path.join("user_data", "performance_test.yaml")
