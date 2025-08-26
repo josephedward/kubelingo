@@ -581,6 +581,7 @@ def handle_keys_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+def handle_config_menu():
     """Handles the main configuration menu."""
     while True:
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Configuration Menu ---")
