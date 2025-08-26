@@ -663,6 +663,10 @@ def mock_llm_deps():
         patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu,
         patch('requests.post') as mock_requests_post
     ):
+        # Configure mock response for OpenRouter health check
+        mock_requests_post.return_value.status_code = 200
+        mock_requests_post.return_value.json.return_value = {}
+
         # Configure the class mocks to return specific mock instances
         mock_gemini_model_instance = MagicMock()
         MockGenerativeModel_class.return_value = mock_gemini_model_instance
