@@ -27,12 +27,9 @@ questions:
 - question: In Vim, how do you save the file and quit?
   solutions:
   - :wq
-  - :x
-  - ZZ
 - question: In Vim, how do you exit without saving changes?
   solutions:
   - :q!
-  - ZQ
 - question: In Vim, how do you save a file without exiting?
   solutions:
   - :w
@@ -61,12 +58,11 @@ questions:
   solutions:
   - G
 - question: In Vim, how do you go to line 10?
-  solutions:
-  - :10 or 10gg or 10G
+  solutions: :10
+
 - question: In Vim, how do you exit insert mode?
   solutions:
-  - <Esc>
-  - <C-c>
+  - '<Esc>'
 - question: In Vim, how do you redo the last undone change?
   solutions:
   - <C-r>
