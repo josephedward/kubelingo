@@ -24,7 +24,6 @@ import difflib
 from colorama import Fore, Style, init as colorama_init
 
 
-
 def colorize_ascii_art(ascii_art_string):
     """Applies a green and cyan pattern to the ASCII art string."""
     colors = [Fore.GREEN, Fore.CYAN] # Use only green and cyan
@@ -66,7 +65,21 @@ try:
 except ImportError:
     search = None
 
-ASCII_ART = r"""                                      bbbbbbbb
+# Determine questions directory: prefer project-root 'questions' when present, else package-relative
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, os.pardir))
+# Directory alongside project root (for local development)
+_ROOT_QUESTIONS = os.path.join(_PROJECT_ROOT, "questions")
+# Package-relative questions (if bundled in installation)
+_PKG_QUESTIONS = os.path.join(_SCRIPT_DIR, "questions")
+# Allow override via environment variable
+QUESTIONS_DIR = os.getenv(
+    "KUBELINGO_QUESTIONS_DIR",
+    _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
+)
+
+ASCII_ART = r"""
+                                      bbbbbbbb
 KKKKKKKKK    KKKKKKK                  b::::::b                                lllllll   iiii
 K:::::::K    K:::::K                  b::::::b                                l:::::l  i::::i
 K:::::::K    K:::::K                  b::::::b                                l:::::l   iiii
@@ -144,8 +157,8 @@ def save_performance_data(data):
 
 def save_questions_to_topic_file(topic, questions_data):
     """Saves questions data to the specified topic YAML file."""
-    ensure_user_data_dir() # This ensures user_data, but questions are in 'questions' dir
-    topic_file = f"questions/{topic}.yaml"
+    ensure_user_data_dir() # This ensures user_data, but questions are in QUESTIONS_DIR
+    topic_file = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     with open(topic_file, 'w') as f:
         yaml.dump({'questions': questions_data}, f, sort_keys=False)
 
@@ -190,7 +203,7 @@ def remove_question_from_list(list_file, question):
 def update_question_source_in_yaml(topic, updated_question):
     """Updates the source of a specific question in its topic YAML file."""
     ensure_user_data_dir()
-    topic_file = f"questions/{topic}.yaml"
+    topic_file = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     
     if not os.path.exists(topic_file):
         print(f"Error: Topic file not found at {topic_file}. Cannot update source.")
@@ -259,17 +272,21 @@ def clear_screen():
     """Clears the terminal screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def get_display(value):
+    return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
+
 def load_questions(topic):
     """Loads questions from a YAML file based on the topic."""
-    file_path = f"questions/{topic}.yaml"
+    file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     if not os.path.exists(file_path):
         print(f"Error: Question file not found at {file_path}")
-        available_topics = [f.replace('.yaml', '') for f in os.listdir('questions') if f.endswith('.yaml')]
+        available_topics = [f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')]
         if available_topics:
             print("Available topics: " + ", ".join(available_topics))
         return None
     with open(file_path, 'r') as file:
         return yaml.safe_load(file)
+
 
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
@@ -289,10 +306,27 @@ def handle_keys_menu():
         openai_display = f"{Fore.GREEN}{openai_key}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
         openrouter_display = f"{Fore.GREEN}{openrouter_key}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
 
-        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display})")
-        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display})")
-        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display})")
-        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Back to Configuration Menu")
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
+        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
+        # Get current settings for AI feedback toggles
+        gemini_feedback = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True")
+        openai_feedback = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True")
+        openrouter_feedback = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True")
+        verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True")
+
+        # Determine if toggles should be enabled (based on API key presence)
+        gemini_feedback_enabled = gemini_key != "Not Set"
+        openai_feedback_enabled = openai_key != "Not Set"
+        openrouter_feedback_enabled = openrouter_key != "Not Set"
+
+        # Display AI feedback toggles
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Feedback Settings ---")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Toggle Gemini AI feedback (current: {get_display(gemini_feedback)}) {{'(Disabled - No Key)' if not gemini_feedback_enabled else ''}}")
+        print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Toggle OpenAI AI feedback (current: {get_display(openai_feedback)}) {{'(Disabled - No Key)' if not openai_feedback_enabled else ''}}")
+        print(f"  {Style.BRIGHT}6.{Style.RESET_ALL} Toggle OpenRouter AI feedback (current: {get_display(openrouter_feedback)}) {{'(Disabled - No Key)' if not openrouter_feedback_enabled else ''}}")
+        print(f"  {Style.BRIGHT}7.{Style.RESET_ALL} Verbose AI feedback (current: {get_display(verbose_ai_feedback)})")
+        print(f"  {Style.BRIGHT}8.{Style.RESET_ALL} Back")
 
         choice = input("Enter your choice: ").strip()
 
@@ -324,12 +358,31 @@ def handle_keys_menu():
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '4':
+            if gemini_feedback_enabled:
+                set_key(".env", "KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "False" if gemini_feedback == "True" else "True")
+            else:
+                print(f"{Fore.RED}Gemini API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
+            time.sleep(1)
+        elif choice == '5':
+            if openai_feedback_enabled:
+                set_key(".env", "KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "False" if openai_feedback == "True" else "True")
+            else:
+                print(f"{Fore.RED}OpenAI API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
+            time.sleep(1)
+        elif choice == '6':
+            if openrouter_feedback_enabled:
+                set_key(".env", "KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "False" if openrouter_feedback == "True" else "True")
+            else:
+                print(f"{Fore.RED}OpenRouter API Key not set. Cannot toggle feedback.{Style.RESET_ALL}")
+            time.sleep(1)
+        elif choice == '7':
+            set_key(".env", "KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "False" if verbose_ai_feedback == "True" else "True")
+            time.sleep(1)
+        elif choice == '8':
             break
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
-
-
 
 
 def handle_validation_menu():
@@ -340,32 +393,31 @@ def handle_validation_menu():
         config = dotenv_values(".env")
 
         # Get current settings, defaulting to 'True' (on) if not set
-        kubectl_dry_run = config.get("KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "True")
+        yamllint = config.get("KUBELINGO_VALIDATION_YAMLLINT", "True")
+        kubeconform = config.get("KUBELINGO_VALIDATION_KUBECONFORM", "True")
+        kubectl_validate = config.get("KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "True")
         ai_feedback = config.get("KUBELINGO_VALIDATION_AI_FEEDBACK", "True")
-        show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True")
         verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True")
 
         # Display toggles
         def get_display(value):
             return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
 
-        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Toggle kubectl dry-run (current: {get_display(kubectl_dry_run)})")
-        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Toggle AI feedback (current: {get_display(ai_feedback)})")
-        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Show kubectl dry-run logs (current: {get_display(show_dry_run_logs)})")
-        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Verbose AI feedback (current: {get_display(verbose_ai_feedback)})")
-        print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back to Configuration Menu")
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Toggle yamllint (current: {get_display(yamllint)})")
+        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Toggle kubeconform (current: {get_display(kubeconform)})")
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Toggle kubectl-validate (current: {get_display(kubectl_validate)})")
+        
+        print(f"  {Style.BRIGHT}6.{Style.RESET_ALL} Back")
 
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
-            set_key(".env", "KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "False" if kubectl_dry_run == "True" else "True")
+            set_key(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False" if yamllint == "True" else "True")
         elif choice == '2':
-            set_key(".env", "KUBELINGO_VALIDATION_AI_FEEDBACK", "False" if ai_feedback == "True" else "True")
+            set_key(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False" if kubeconform == "True" else "True")
         elif choice == '3':
-            set_key(".env", "KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "False" if show_dry_run_logs == "True" else "True")
+            set_key(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False" if kubectl_validate == "True" else "True")
         elif choice == '4':
-            set_key(".env", "KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "False" if verbose_ai_feedback == "True" else "True")
-        elif choice == '5':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -376,9 +428,9 @@ def handle_config_menu():
     while True:
         clear_screen()
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Configuration Menu ---")
-        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} API Keys")
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} LLM Settings")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Validation Settings")
-        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back to Main Menu")
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Back")
         
         choice = input("Enter your choice: ").strip()
 
@@ -393,21 +445,26 @@ def handle_config_menu():
             time.sleep(1)
 
 
-
-def _get_llm_model(is_retry=False):
+def _get_llm_model(is_retry=False, skip_prompt=False):
     """
     Determines which LLM to use based on available API keys and returns the appropriate model.
     If no valid keys are found, it prompts the user for action.
     """
+    config = dotenv_values(".env") # Load config inside function to get latest values
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
 
+    # Get AI feedback toggle settings
+    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
+    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
+    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
+
     current_llm_type = None
     current_model = None
 
-    # Try OpenRouter first since it's free
-    if openrouter_api_key and not current_model:
+    # Try OpenRouter first since it's free and enabled
+    if openrouter_api_key and openrouter_feedback_enabled and not current_model:
         try:
             # Test the OpenRouter API directly
             headers = {
@@ -425,7 +482,7 @@ def _get_llm_model(is_retry=False):
                 }
             )
             response.raise_for_status()
-            
+
             # Return openrouter config
             current_llm_type = "openrouter"
             current_model = {
@@ -436,11 +493,9 @@ def _get_llm_model(is_retry=False):
             return current_llm_type, current_model
         except Exception as e:
             print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
-            os.environ.pop("OPENROUTER_API_KEY", None)
-            set_key(".env", "OPENROUTER_API_KEY", "")
 
-    # Try Gemini next
-    if gemini_api_key and not current_model:
+    # Try Gemini next if enabled
+    if gemini_api_key and gemini_feedback_enabled and not current_model:
         try:
             genai.configure(api_key=gemini_api_key)
             # Attempt a small call to validate the key
@@ -450,16 +505,11 @@ def _get_llm_model(is_retry=False):
             return current_llm_type, current_model
         except google_exceptions.InvalidArgument:
             print(f"{Fore.RED}Invalid Gemini API Key. Please check your key.{Style.RESET_ALL}")
-            # Clear the invalid key from environment and .env file
-            os.environ.pop("GEMINI_API_KEY", None)
-            set_key(".env", "GEMINI_API_KEY", "")
         except Exception as e:
             print(f"{Fore.RED}Error with Gemini API: {e}{Style.RESET_ALL}")
-            os.environ.pop("GEMINI_API_KEY", None)
-            set_key(".env", "GEMINI_API_KEY", "")
 
-    # If Gemini failed or not set, try OpenAI
-    if openai_api_key and not current_model:
+    # If Gemini failed or not set, try OpenAI if enabled
+    if openai_api_key and openai_feedback_enabled and not current_model:
         try:
             client = openai.OpenAI(api_key=openai_api_key)
             # Attempt a small call to validate the key
@@ -469,69 +519,30 @@ def _get_llm_model(is_retry=False):
             return current_llm_type, current_model
         except AuthenticationError:
             print(f"{Fore.RED}Invalid OpenAI API Key. Please check your key.{Style.RESET_ALL}")
-            # Clear the invalid key from environment and .env file
-            os.environ.pop("OPENAI_API_KEY", None)
-            set_key(".env", "OPENAI_API_KEY", "")
         except Exception as e:
             print(f"{Fore.RED}Error with OpenAI API: {e}{Style.RESET_ALL}")
-            os.environ.pop("OPENAI_API_KEY", None)
-            set_key(".env", "OPENAI_API_KEY", "")
-
-    # If OpenAI failed or not set, try OpenRouter
-    if openrouter_api_key and not current_model:
-        try:
-            # Test the OpenRouter API directly
-            headers = {
-                "Authorization": f"Bearer {openrouter_api_key}",
-                "HTTP-Referer": "https://github.com/your-repo",
-                "X-Title": "Kubelingo"
-            }
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json={
-                    "model": "deepseek/deepseek-r1-0528:free",
-                    "messages": [{"role": "user", "content": "hello"}],
-                    "max_tokens": 5
-                }
-            )
-            response.raise_for_status()
-            
-            # Return openrouter config
-            current_llm_type = "openrouter"
-            current_model = {
-                "api_key": openrouter_api_key,
-                "headers": headers,
-                "default_model": "deepseek/deepseek-r1-0528:free"
-            }
-            return current_llm_type, current_model
-        except Exception as e:
-            print(f"{Fore.RED}Error with OpenRouter API: {e}{Style.RESET_ALL}")
-            os.environ.pop("OPENROUTER_API_KEY", None)
-            set_key(".env", "OPENROUTER_API_KEY", "")
 
     # If no model could be configured
-    if not current_model and not is_retry:
-        print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI or OpenRouter). AI features will be disabled.{Style.RESET_ALL}")
-        if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
-            handle_config_menu()
-            # After configuring, try to get the model again
-            return _get_llm_model(is_retry=True)
-        else:
-            print(f"{Fore.YELLOW}Continuing without AI features.{Style.RESET_ALL}")
-            return None, None
-    elif not current_model and is_retry:
-        print(f"{Fore.YELLOW}Still no valid LLM API key after configuration. Continuing without AI features.{Style.RESET_ALL}")
+    if not current_model:
+        if not skip_prompt:
+            print(f"\n{Fore.YELLOW}No valid LLM API key found (Gemini, OpenAI or OpenRouter) with AI feedback enabled. AI features will be disabled.{Style.RESET_ALL}")
+            if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
+                handle_config_menu()
+                # After configuring, try to get the model again
+                return _get_llm_model(is_retry=True, skip_prompt=skip_prompt)
+            else:
+                print(f"{Fore.YELLOW}Continuing without AI features.{Style.RESET_ALL}")
         return None, None
-    
+
     return current_llm_type, current_model
+
 
 
 def get_llm_feedback(question, user_answer, solution, verbose=True):
     """Provides LLM-generated feedback on a user's answer."""
-    llm_type, model = _get_llm_model()
+    llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
-        return "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered feedback." # Return info if no LLM
+        return "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered feedback." # Return info if no LLM
 
     if verbose:
         prompt = f'''
@@ -577,7 +588,7 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             response = model.generate_content(prompt)
             return response.text.strip()
         except Exception as e:
-            return f"Error getting feedback from Gemini LLM: {e}"
+            return f"Error getting feedback from LLM: {e}"
     elif llm_type == "openai":
         try:
             resp = model.chat.completions.create(
@@ -589,7 +600,7 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
-            return f"Error getting feedback from OpenAI LLM: {e}"
+            return f"Error getting feedback from LLM: {e}"
     elif llm_type == "openrouter":
         try:
             response = requests.post(
@@ -606,10 +617,9 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
             response.raise_for_status()
             return response.json()['choices'][0]['message']['content'].strip()
         except Exception as e:
-            return f"Error getting feedback from OpenRouter LLM: {e}"
+            return f"Error getting feedback from LLM: {e}"
     else:
         return "INFO: No LLM configured"
-
 
 
 # get_llm_feedback function removed temporarily for debugging
@@ -617,11 +627,22 @@ def get_llm_feedback(question, user_answer, solution, verbose=True):
 
 def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     """Validates a user-submitted manifest using the LLM."""
-    llm_type, model = _get_llm_model()
+    llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered manifest validation."}
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
 
-    solution_manifest = question_dict['solution']
+    solution_manifest = None
+    if isinstance(question_dict, dict):
+        # Try to get from 'solutions' first
+        solutions_list = question_dict.get('solutions')
+        if isinstance(solutions_list, list) and solutions_list:
+            solution_manifest = solutions_list[0]
+        # If not found in 'solutions', try 'solution'
+        elif 'solution' in question_dict:
+            solution_manifest = question_dict.get('solution')
+
+    if solution_manifest is None:
+        return {'correct': False, 'feedback': 'No solution found in question data.'}
 
     # Compose prompt for validation
     if verbose:
@@ -667,7 +688,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             response = model.generate_content(prompt)
             text = response.text.strip()
         except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with Gemini LLM: {e}"}
+            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
     elif llm_type == "openai":
         try:
             resp = model.chat.completions.create(
@@ -679,7 +700,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             )
             text = resp.choices[0].message.content.strip()
         except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with OpenAI LLM: {e}"}
+            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
     elif llm_type == "openrouter":
         try:
             response = requests.post(
@@ -696,7 +717,7 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
             response.raise_for_status()
             text = response.json()['choices'][0]['message']['content'].strip()
         except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with OpenRouter LLM: {e}"}
+            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
     else:
         return {'correct': False, 'feedback': "No LLM configured"}
     lines = text.split('\n')
@@ -761,54 +782,73 @@ def handle_vim_edit(question, verbose_ai_feedback=True):
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    print(f"{Fore.CYAN}\nValidating manifest with kubectl dry-run...")
-    dry_run_success, user_dry_run_feedback, ai_dry_run_feedback = validate_manifest_with_kubectl_dry_run(cleaned_user_manifest)
-    print(user_dry_run_feedback)
+    # Run external validators on the submitted manifest
+    print(f"{Fore.CYAN}\nRunning manifest validations...")
+    success, summary, details = validate_manifest(cleaned_user_manifest)
+    print(summary)
 
-    if not dry_run_success:
-        result = {'correct': False, 'feedback': ai_dry_run_feedback}
-    else:
-        result = {'correct': True, 'feedback': ai_dry_run_feedback}
-    
+    ai_result = {'correct': False, 'feedback': ''}
+    config = dotenv_values(".env")
+    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
+    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
+    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
+    ai_feedback_enabled = gemini_feedback_enabled or openai_feedback_enabled or openrouter_feedback_enabled
+    if ai_feedback_enabled:
+        ai_result = validate_manifest_with_llm(question, cleaned_user_manifest, verbose_ai_feedback)
+
+    # If local validation passed, trust the AI's correctness assessment.
+    # Otherwise, the answer is definitely incorrect.
+    final_success = success and ai_result.get('correct', False)
+
+    result = {
+        'correct': final_success,
+        'validation_feedback': details,
+        'ai_feedback': ai_result.get('feedback', '')
+    }
     return user_manifest, result, False
 
 
-def validate_manifest_with_kubectl_dry_run(manifest_content):
-    # Check if it's likely a Kubernetes YAML manifest
-    if not manifest_content.strip().startswith(('apiVersion:', 'kind:')):
-        return False, f"{Fore.YELLOW}Skipping kubectl dry-run: Not a Kubernetes YAML manifest.{Style.RESET_ALL}", "Skipped: Not a Kubernetes YAML manifest."
-
-    with tempfile.NamedTemporaryFile(mode='w+', suffix=".yaml", delete=False) as tmp_file:
-        tmp_file.write(manifest_content)
-        tmp_file.flush()
-        tmp_path = tmp_file.name
-
-    try:
-        # Use --dry-run=client to validate syntax without connecting to a cluster
-        # Use --validate=true for schema validation
-        cmd = ["kubectl", "apply", "--dry-run=client", "--validate=true", "-f", tmp_path]
-        process = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        
-        os.unlink(tmp_path) # Clean up the temporary file
-
-        ai_feedback = process.stdout.strip() + "\n" + process.stderr.strip()
-
-        if process.returncode == 0:
-            return True, f"{Fore.GREEN}kubectl dry-run successful!{Style.RESET_ALL}", ai_feedback
-        else:
-            return False, f"{Fore.RED}kubectl dry-run failed. Please check your manifest.{Style.RESET_ALL}", ai_feedback
-    except FileNotFoundError:
-        os.unlink(tmp_path) # Clean up even if kubectl not found
-        return False, f"{Fore.RED}Error: 'kubectl' command not found. Please ensure kubectl is installed and in your system's PATH to enable dry-run validation.{Style.RESET_ALL}", "kubectl not found"
-    except Exception as e:
-        os.unlink(tmp_path) # Clean up on other exceptions
-        return False, f"{Fore.RED}An unexpected error occurred during kubectl dry-run: {e}{Style.RESET_ALL}\n", str(e)
+def validate_manifest(manifest_content):
+    """
+    Validate a Kubernetes manifest string using external tools (yamllint, kubeconform, kubectl-validate).
+    Returns a tuple: (success: bool, summary: str, details: str).
+    """
+    config = dotenv_values(".env")
+    validators = [
+        ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
+        ("kubeconform", ["kubeconform", "-strict", "-"], "Validating Kubernetes schema"),
+        ("kubectl-validate", ["kubectl-validate", "-f", "-"], "Validating with kubectl-validate"),
+    ]
+    overall = True
+    detail_lines = []
+    for key, cmd, desc in validators:
+        if config.get(f"KUBELINGO_VALIDATION_{key.upper()}", "True") != "True":
+            continue
+        detail_lines.append(f"=== {desc} ===")
+        try:
+            proc = subprocess.run(cmd, input=manifest_content, capture_output=True, text=True)
+            out = proc.stdout.strip()
+            err = proc.stderr.strip()
+            if proc.returncode != 0:
+                overall = False
+                detail_lines.append(f"{key} failed (exit {proc.returncode}):")
+                if out: detail_lines.append(out)
+                if err: detail_lines.append(err)
+            else:
+                detail_lines.append(f"{key} passed.")
+        except FileNotFoundError:
+            detail_lines.append(f"{key} not found; skipping.")
+        except Exception as e:
+            overall = False
+            detail_lines.append(f"Error running {key}: {e}")
+    summary = f"{Fore.GREEN}All validations passed!{Style.RESET_ALL}" if overall else f"{Fore.RED}Validation failed.{Style.RESET_ALL}"
+    return overall, summary, "\n".join(detail_lines)
 
 def generate_more_questions(topic, existing_question):
     """Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
     if not model:
-        print("\nINFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY environment variables to generate new questions.")
+        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
         return None
 
     print("\nGenerating a new question... this might take a moment.")
@@ -882,7 +922,6 @@ def generate_more_questions(topic, existing_question):
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
-
 
 
 K8S_RESOURCE_ALIASES = {
@@ -998,7 +1037,7 @@ def list_and_select_topic(performance_data):
 
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
-    available_topics = sorted([f.replace('.yaml', '') for f in os.listdir('questions') if f.endswith('.yaml')])
+    available_topics = sorted([f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')])
     
     has_missed = os.path.exists(MISSED_QUESTIONS_FILE) and os.path.getsize(MISSED_QUESTIONS_FILE) > 0
 
@@ -1141,10 +1180,8 @@ def get_user_input():
         except EOFError:
             special_action = 'skip'
             break
-        # Allow blank line to submit when at least one command was entered
+        
         cmd_stripped = cmd.strip()
-        if cmd_stripped == '' and user_commands:
-            break
         cmd_lower = cmd_stripped.lower()
 
         if cmd_lower == 'done':
@@ -1167,7 +1204,10 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """Loads and runs questions for a given topic."""
     config = dotenv_values(".env")
     kubectl_dry_run_enabled = config.get("KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "True") == "True"
-    ai_feedback_enabled = config.get("KUBELINGO_VALIDATION_AI_FEEDBACK", "True") == "True"
+    gemini_feedback_enabled = config.get("KUBELINGO_VALIDATION_GEMINI_FEEDBACK", "True") == "True"
+    openai_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENAI_FEEDBACK", "True") == "True"
+    openrouter_feedback_enabled = config.get("KUBELINGO_VALIDATION_OPENROUTER_FEEDBACK", "True") == "True"
+    ai_feedback_enabled = gemini_feedback_enabled or openai_feedback_enabled or openrouter_feedback_enabled
     show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True") == "True"
     verbose_ai_feedback = config.get("KUBELINGO_VALIDATION_VERBOSE_AI_FEEDBACK", "True") == "True"
 
@@ -1177,9 +1217,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     # If it's a missed questions review, the list is already shuffled and limited by num_to_study
     # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
     if topic != '_missed':
-        random.shuffle(questions)
-        # If num_to_study > 0, limit the number of questions; otherwise, use all
+        # If num_to_study > 0, shuffle and limit the number of questions; otherwise, preserve order
         if num_to_study > 0:
+            random.shuffle(questions)
             questions = questions[:num_to_study]
     else:
         # For missed questions, questions_to_study is already shuffled and limited
@@ -1226,7 +1266,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
             print(f"{Fore.CYAN}{'-' * 40}")
-            print("Enter command(s). Type 'done' or press Enter on a blank line to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
+            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
 
             user_commands, special_action = get_user_input()
 
@@ -1257,7 +1297,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     # Only save if it's not a missed questions review session
                     if topic != '_missed':
                         save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
-                        print(f"Added new question to '{question_topic_context}.yaml'.")
+                        print(f"Added new question to '{os.path.join(QUESTIONS_DIR, f'{question_topic_context}.yaml')}'.")
                     else:
                         print("A new question has been added to this session (not saved to file in review mode).")
                 input("Press Enter to continue...")
@@ -1313,9 +1353,14 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     user_answer_graded = True
                     break
                 if not sys_error:
-                    if ai_feedback_enabled:
+                    if result.get('validation_feedback'):
+                        print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
+                        print(result['validation_feedback'])
+                    
+                    if result.get('ai_feedback'):
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        print(result['feedback'])
+                        print(result['ai_feedback'])
+
                     is_correct = result['correct']
                     if not is_correct:
                         # Use canonical solution manifest
@@ -1344,9 +1389,14 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     user_answer_graded = True
                     break
                 if not sys_error:
-                    if ai_feedback_enabled:
+                    if result.get('validation_feedback'):
+                        print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
+                        print(result['validation_feedback'])
+                    
+                    if result.get('ai_feedback'):
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        print(result['feedback'])
+                        print(result['ai_feedback'])
+
                     is_correct = result['correct']
                     if not is_correct:
                         show_diff(user_manifest, q['solution'])
@@ -1366,13 +1416,27 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 normalized_user_answer = normalize_command(user_commands)
                 
                 # The solution can be a single string or a list of strings
-                solutions = q.get('solutions', [q.get('solution')])
+                solutions = q.get('solutions')
+                if not solutions: # If 'solutions' key is missing or empty
+                    solutions = [q.get('solution')] # Fallback to 'solution' key
                 
+                # Check if there's actually a solution to compare against
+                if not solutions or solutions == [None]:
+                    is_correct = False
+                    print(f"{Fore.RED}No solution available for comparison.")
+                    # Optionally, provide AI feedback if enabled, indicating no solution
+                    if ai_feedback_enabled:
+                        print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                        feedback = get_llm_feedback(q['question'], user_answer_str, "No solution provided", verbose_ai_feedback)
+                        print(feedback)
+                    break # Exit inner loop to go to post-answer menu
+
                 is_correct = False
                 matched_solution = ""
                 for sol in solutions:
                     # Solutions can be multiline commands
                     sol_lines = sol.strip().split('\n')
+
                     normalized_sol = normalize_command(sol_lines)
                     
                     # Simple string comparison after normalization
@@ -1386,7 +1450,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 else:
                     print(f"{Fore.RED}\nThat wasn't quite right.")
                     # Show diff if there's a single solution for clarity
-                    if len(solutions) == 1:
+                    if len(solutions) == 1 and solutions[0] is not None:
                         show_diff(user_answer_str, solutions[0])
 
                     print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
@@ -1467,7 +1531,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     # Only save if it's not a missed questions review session
                     if topic != '_missed':
                         save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
-                        print(f"Added new question to '{question_topic_context}.yaml'.")
+                        print(f"Added new question to '{os.path.join(QUESTIONS_DIR, f'{question_topic_context}.yaml')}'.")
                     else:
                         print("A new question has been added to this session (not saved to file in review mode).")
                 input("Press Enter to continue...")
@@ -1495,12 +1559,16 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     # Determine default as first kubernetes.io link if present
                     default_idx = next((i for i, u in enumerate(results) if 'kubernetes.io' in u), 0)
                     print("Search results:")
-                    for idx, url in enumerate(results, 1):
-                        marker = ' (default)' if (idx-1) == default_idx else ''
-                        print(f"  {idx}. {url}{marker}")
+                    for i_enum, url in enumerate(results, 1):
+                        marker = ' (default)' if (i_enum-1) == default_idx else ''
+                        print(f"  {i_enum}. {url}{marker}")
                     # Prompt user for action
                     while True:
-                        sel = input("Enter=assign default, number=assign that, 'o N'=open N, 's'=skip: ").strip().lower()
+                        raw_sel = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ")
+                        if raw_sel is None:
+                            print("Error: Input received None. This should not happen.")
+                            continue
+                        sel = raw_sel.strip().lower()
                         if sel == '':
                             chosen = results[default_idx]
                             print(f"Assigned default source: {chosen}")
@@ -1526,7 +1594,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         if chosen:
                             q['source'] = chosen
                             if topic != '_missed':
-                                file_path = f"questions/{topic}.yaml"
+                                file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
                                 topic_data = load_questions(topic)
                                 if topic_data and 'questions' in topic_data:
                                     for orig_q in topic_data['questions']:
@@ -1553,7 +1621,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 print("\nRetrying the current question...")
                 break # Exit post-answer loop, re-enter inner loop for current question
             elif post_action == 'q':
-                # Exit the entire run_topic loop
+                # Persist performance data and exit the run_topic loop
+                if topic != '_missed':
+                    save_performance_data(performance_data)
                 return # Return to main menu
             else:
                 print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', or 'q'.")
@@ -1562,48 +1632,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
     clear_screen()
     print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
+    # Persist performance data at end of session
+    if topic != '_missed':
+        save_performance_data(performance_data)
 
-def validate_kubectl_command_dry_run(command_string):
-    # Only attempt dry-run for commands that typically create/modify resources
-    # and can output YAML for client-side validation.
-    # This is a heuristic and might not cover all cases.
-    if not any(cmd in command_string for cmd in ["create", "run", "apply", "set", "edit"]):
-        return True, f"{Fore.YELLOW}Skipping kubectl dry-run: Command type not typically dry-runnable client-side.{Style.RESET_ALL}", "Skipped: Command type not typically dry-runnable client-side."
-
-    # Attempt to append --dry-run=client -o yaml
-    # Be careful not to duplicate if already present
-    modified_command = command_string
-    if "--dry-run" not in modified_command:
-        modified_command += " --dry-run=client"
-    if "-o" not in modified_command and "--output" not in modified_command:
-        modified_command += " -o yaml"
-
-    try:
-        cmd = modified_command.split()
-        process = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        
-        ai_feedback = process.stdout.strip() + "\n" + process.stderr.strip()
-
-        if process.returncode == 0:
-            # If dry-run is successful, check if the output is valid YAML
-            try:
-                yaml.safe_load(process.stdout)
-                return True, f"{Fore.GREEN}kubectl dry-run successful!{Style.RESET_ALL}", ai_feedback
-            except yaml.YAMLError:
-                return False, f"{Fore.RED}kubectl dry-run produced invalid YAML. Please check your command syntax.{Style.RESET_ALL}", ai_feedback
-        else:
-            return False, f"{Fore.RED}kubectl dry-run failed. Please check your command syntax.{Style.RESET_ALL}", ai_feedback
-    except FileNotFoundError:
-        return False, f"{Fore.RED}Error: 'kubectl' command not found. Please ensure kubectl is installed and in your system's PATH to enable dry-run validation.{Style.RESET_ALL}", "kubectl not found"
-    except Exception as e:
-        return False, f"{Fore.RED}An unexpected error occurred during kubectl dry-run: {e}{Style.RESET_ALL}", str(e)
-
-        
-
-    
-
-    clear_screen()
-    print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.")
+    # kubectl command dry-run logic has been removed; command questions rely on normalization and AI feedback only
 
 # --- Source Management Commands ---
 def get_source_from_consolidated(item):
@@ -1614,7 +1647,7 @@ def get_source_from_consolidated(item):
             return val[0] if isinstance(val, list) else val
     return None
 
-def cmd_add_sources(consolidated_file, questions_dir='questions'):
+def cmd_add_sources(consolidated_file, questions_dir=QUESTIONS_DIR):
     """Add missing 'source' fields from consolidated YAML."""
     print(f"Loading consolidated questions from '{consolidated_file}'...")
     data = yaml.safe_load(open(consolidated_file)) or {}
@@ -1650,7 +1683,7 @@ def cmd_add_sources(consolidated_file, questions_dir='questions'):
             print(f"Updated {updated} entries in {fname}.")
     print("Done adding sources.")
 
-def cmd_check_sources(questions_dir='questions'):
+def cmd_check_sources(questions_dir=QUESTIONS_DIR):
     """Report questions missing a 'source' field."""
     missing = 0
     for fname in os.listdir(questions_dir):
@@ -1667,7 +1700,7 @@ def cmd_check_sources(questions_dir='questions'):
     else:
         print(f"{missing} questions missing sources.")
 
-def cmd_interactive_sources(questions_dir='questions', auto_approve=False):
+def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
     """Interactively search and assign sources to questions."""
     for fname in os.listdir(questions_dir):
         if not fname.endswith('.yaml'):
@@ -1745,18 +1778,18 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         if not consolidated:
             click.echo("Error: --consolidated PATH is required with --add-sources.")
             sys.exit(1)
-        cmd_add_sources(consolidated, questions_dir='questions')
+        cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
         return
     if check_sources:
-        cmd_check_sources(questions_dir='questions')
+        cmd_check_sources(questions_dir=QUESTIONS_DIR)
         return
     if interactive_sources:
-        cmd_interactive_sources(questions_dir='questions', auto_approve=auto_approve)
+        cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
     print(colorize_ascii_art(ASCII_ART))
     colorama_init(autoreset=True)
-    if not os.path.exists('questions'):
-        os.makedirs('questions')
+    if not os.path.exists(QUESTIONS_DIR):
+        os.makedirs(QUESTIONS_DIR)
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
 
