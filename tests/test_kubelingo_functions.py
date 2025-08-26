@@ -1203,7 +1203,10 @@ def test_run_topic_vim_no_solution(capsys):
         # Simulate 'vim' for the first question, then 'done' for the second question
         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
             # Provide two questions: first without solution, second a dummy
-            mock_questions = [{'question': 'Test Q without solution'}, {'question': 'Second dummy question'}]
+            mock_questions = [{
+                'question': 'Test Q without solution',
+                'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n"
+            }, {'question': 'Second dummy question'}]
             with patch('kubelingo.kubelingo.load_questions', return_value={'questions': mock_questions}):
                 with patch('kubelingo.kubelingo.clear_screen'):
                     with patch('builtins.input', return_value=''): # Mock input for "Press Enter to continue..."
