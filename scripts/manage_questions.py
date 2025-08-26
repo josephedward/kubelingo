@@ -85,7 +85,7 @@ def find_missing_details(question_text, solution_text):
                 missing.append(pat['append_template'].format(**gd))
             except Exception:
                 missing.append(pat['append_template'])
-    # Handle namespace in YAML solutions
+    # Handle namespace in YAML suggestions
     if '\n' in solution_text and 'apiVersion' in solution_text:
         try:
             manifest = yaml.safe_load(solution_text)
