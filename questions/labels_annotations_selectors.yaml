@@ -17,8 +17,8 @@ questions:
         app: frontend
     spec:
       containers:
-        - name: nginx
-          image: nginx
+      - name: nginx
+        image: nginx
 - question: Command to label Namespace prod with tier=backend (overwrite if exists).
   solutions:
   - kubectl label ns prod tier=backend --overwrite

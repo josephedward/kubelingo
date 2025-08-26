@@ -8,12 +8,12 @@ questions:
       name: probe-pod
     spec:
       containers:
-        - name: nginx
-          image: nginx
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
+      - name: nginx
+        image: nginx
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
 - question: Pod manifest with HTTP liveness probe on /healthz port 8080.
   solutions:
   - apiVersion: v1
@@ -22,14 +22,14 @@ questions:
       name: app
     spec:
       containers:
-        - name: app
-          image: nginx
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
+      - name: app
+        image: nginx
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
 - question: Pod manifest with readiness exec probe checking /tmp/ready exists.
   solutions:
   - apiVersion: v1
@@ -38,18 +38,18 @@ questions:
       name: app
     spec:
       containers:
-        - name: busybox
-          image: busybox
-          command:
+      - name: busybox
+        image: busybox
+        command:
+        - sh
+        - -c
+        - touch /tmp/ready; sleep 3600
+        readinessProbe:
+          exec:
+            command:
             - sh
             - -c
-            - touch /tmp/ready; sleep 3600
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - test -f /tmp/ready
+            - test -f /tmp/ready
 - question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`.
     The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness
     probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a
@@ -62,19 +62,19 @@ questions:
       namespace: default
     spec:
       containers:
-        - name: pod6
-          image: busybox:1.31.0
-          command:
-            - sh
-            - -c
-            - touch /tmp/ready && sleep 1d
-          readinessProbe:
-            exec:
-              command:
-                - cat
-                - /tmp/ready
-            initialDelaySeconds: 5
-            periodSeconds: 10
+      - name: pod6
+        image: busybox:1.31.0
+        command:
+        - sh
+        - -c
+        - touch /tmp/ready && sleep 1d
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/ready
+          initialDelaySeconds: 5
+          periodSeconds: 10
 - question: Create a Deployment named space-alien-welcome-message-generator using
     image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready'
     with initialDelaySeconds=10 and periodSeconds=5.
@@ -94,12 +94,12 @@ questions:
             app: space-alien-welcome-message-generator
         spec:
           containers:
-            - name: httpd
-              image: httpd:alpine
-              readinessProbe:
-                exec:
-                  command:
-                    - stat
-                    - /tmp/ready
-                initialDelaySeconds: 10
-                periodSeconds: 5
+          - name: httpd
+            image: httpd:alpine
+            readinessProbe:
+              exec:
+                command:
+                - stat
+                - /tmp/ready
+              initialDelaySeconds: 10
+              periodSeconds: 5

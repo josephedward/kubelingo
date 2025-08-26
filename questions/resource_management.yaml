@@ -15,15 +15,15 @@ questions:
       name: resource-pod-manifest
     spec:
       containers:
-        - name: nginx
-          image: nginx
-          resources:
-            requests:
-              cpu: 50m
-              memory: 128Mi
-            limits:
-              cpu: 100m
-              memory: 256Mi
+      - name: nginx
+        image: nginx
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
 - question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
     web.
   solutions:
@@ -42,12 +42,12 @@ questions:
       namespace: limit
     spec:
       containers:
-        - name: my-container
-          image: httpd:alpine
-          resources:
-            requests:
-              cpu: 30m
-              memory: 30Mi
-            limits:
-              cpu: 300m
-              memory: 30Mi
+      - name: my-container
+        image: httpd:alpine
+        resources:
+          requests:
+            cpu: 30m
+            memory: 30Mi
+          limits:
+            cpu: 300m
+            memory: 30Mi
