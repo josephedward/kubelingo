@@ -332,9 +332,49 @@ def load_questions(topic):
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
-def handle_keys_menu():
+def test_api_keys():
+    """Tests the validity of API keys and returns a dictionary with their statuses."""
+    config = dotenv_values(".env")
+    statuses = {
+        "gemini": False,
+        "openai": False,
+        "openrouter": False
+    }
+
+    gemini_api_key = config.get("GEMINI_API_KEY")
+    openai_api_key = config.get("OPENAI_API_KEY")
+    openrouter_api_key = config.get("OPENROUTER_API_KEY")
+
+    if gemini_api_key:
+        try:
+            genai.configure(api_key=gemini_api_key)
+            genai.GenerativeModel('gemini-1.5-flash-latest').generate_content("hello", stream=False)
+            statuses["gemini"] = True
+        except Exception:
+            pass
+
+    if openai_api_key:
+        try:
+            client = openai.OpenAI(api_key=openai_api_key)
+            client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hello"}], max_tokens=5)
+            statuses["openai"] = True
+        except Exception:
+            pass
+
+    if openrouter_api_key:
+        try:
+            headers = {"Authorization": f"Bearer {openrouter_api_key}", "HTTP-Referer": "https://github.com/your-repo", "X-Title": "Kubelingo"}
+            response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": "deepseek/deepseek-r1-0528:free", "messages":[{"role":"user","content":"hello"}], "max_tokens":5})
+            response.raise_for_status()
+            statuses["openrouter"] = True
+        except Exception:
+            pass
+
+    return statuses
     """Handles the API key configuration menu."""
-    while True:
+    statuses = test_api_keys()
+    if not any(statuses.values()):
+        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
         print(f"\n{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---")
         # Load existing config to display current state
         config = dotenv_values(".env")
@@ -342,9 +382,10 @@ def handle_keys_menu():
         openai_key = config.get("OPENAI_API_KEY", "Not Set")
         openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
 
-        gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]}{Style.RESET_ALL}" if gemini_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
-        openai_display = f"{Fore.GREEN}****{openai_key[-4:]}{Style.RESET_ALL}" if openai_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
-        openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]}{Style.RESET_ALL}" if openrouter_key != 'Not Set' else f"{Fore.RED}Not Set{Style.RESET_ALL}"
+        statuses = test_api_keys()
+        gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["gemini"] else f"{Fore.RED}****{gemini_key[-4:]} (Invalid){Style.RESET_ALL}"
+        openai_display = f"{Fore.GREEN}****{openai_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openai"] else f"{Fore.RED}****{openai_key[-4:]} (Invalid){Style.RESET_ALL}"
+        openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openrouter"] else f"{Fore.RED}****{openrouter_key[-4:]} (Invalid){Style.RESET_ALL}"
 
         print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
         print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
@@ -365,7 +406,9 @@ def handle_keys_menu():
                 set_key(".env", "GEMINI_API_KEY", key)
                 os.environ["GEMINI_API_KEY"] = key # Update current session
                 print("\nGemini API Key saved.")
-            else:
+                statuses = test_api_keys()
+                if not statuses["gemini"]:
+                    print(f"{Fore.RED}Invalid Gemini API Key. Please check your key.{Style.RESET_ALL}")
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '2':
@@ -374,7 +417,9 @@ def handle_keys_menu():
                 set_key(".env", "OPENAI_API_KEY", key)
                 os.environ["OPENAI_API_KEY"] = key # Update current session
                 print("\nOpenAI API Key saved.")
-            else:
+                statuses = test_api_keys()
+                if not statuses["openai"]:
+                    print(f"{Fore.RED}Invalid OpenAI API Key. Please check your key.{Style.RESET_ALL}")
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '3':
@@ -383,7 +428,9 @@ def handle_keys_menu():
                 set_key(".env", "OPENROUTER_API_KEY", key)
                 os.environ["OPENROUTER_API_KEY"] = key # Update current session
                 print("\nOpenRouter API Key saved.")
-            else:
+                statuses = test_api_keys()
+                if not statuses["openrouter"]:
+                    print(f"{Fore.RED}Invalid OpenRouter API Key. Please check your key.{Style.RESET_ALL}")
                 print("\nNo key entered.")
             time.sleep(1)
         elif choice == '4':
@@ -1935,7 +1982,9 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         return
     print(colorize_ascii_art(ASCII_ART))
     colorama_init(autoreset=True)
-    if not os.path.exists(QUESTIONS_DIR):
+    statuses = test_api_keys()
+    if not any(statuses.values()):
+        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
         os.makedirs(QUESTIONS_DIR)
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
