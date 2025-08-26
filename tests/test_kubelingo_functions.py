@@ -1213,7 +1213,7 @@ def test_run_topic_vim_no_solution(capsys):
                         
                         captured = capsys.readouterr()
                         # Assert that handle_vim_edit was called and printed its message
-                        assert "This question does not have a solution to validate against for vim edit." in captured.err
+                        assert "This question does not have a solution to validate against for vim edit." in captured.out
                         assert "TypeError" not in captured.err # Ensure no TypeError
                         mock_handle_vim_edit.assert_called_once()
                         # Assert that the "Great job!" message is printed after the second question
