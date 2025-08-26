@@ -1111,11 +1111,11 @@ def validate_manifest_with_kubectl_dry_run(manifest):
         question_type = random.choice(['command', 'manifest'])
         prompt = f'''
         You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{question_topic_context}', please generate one new, distinct but related question.
+        Based on the following example question about '{topic}', please generate one new, distinct but related question.
 
         Example Question:
         ---
-        {yaml.safe_dump({'questions': [q]})}
+        {yaml.safe_dump({'questions': [question]})}
         ---
 
         Your new question should be a {question_type}-based question.
@@ -1194,11 +1194,11 @@ def validate_kubectl_command_dry_run(command_string):
         question_type = random.choice(['command', 'manifest'])
         prompt = f'''
         You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{question_topic_context}', please generate one new, distinct but related question.
+        Based on the following example question about '{topic}', please generate one new, distinct but related question.
 
         Example Question:
         ---
-        {yaml.safe_dump({'questions': [q]})}
+        {yaml.safe_dump({'questions': [question]})}
         ---
 
         Your new question should be a {question_type}-based question.
@@ -1636,7 +1636,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
             if special_action == 'generate':
-                new_q = generate_more_questions(question_topic_context, q)
+                new_q = generate_more_questions(topic, q)
                 if new_q:
                     questions.insert(question_index + 1, new_q)
                     # Save the updated questions list to the topic file
@@ -1886,7 +1886,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 handle_config_menu()
                 continue # Re-display the same question prompt after config
             elif post_action == 'g':
-                new_q = generate_more_questions(question_topic_context, q)
+                new_q = generate_more_questions(topic, q)
                 if new_q:
                     questions.insert(question_index + 1, new_q)
                     # Save the updated questions list to the topic file
