@@ -93,12 +93,10 @@ questions:
   - e
 - question: In Vim, how do you move to the first character of the line?
   solutions:
-  - |-
-    0
+  - 0
 - question: In Vim, how do you move to the end of the line?
   solutions:
   - $
 - question: In Vim, how do you jump to a matching bracket?
   solutions:
-  - |-
-    %
+  - '%'
