@@ -920,8 +920,8 @@ def normalize_command(command_lines):
             normalized_lines.append("")
             continue
         
-        # Handle 'k' alias for 'kubectl'
-        if words[0] == 'k':
+        # Handle 'k' alias (case-insensitive) for 'kubectl'
+        if words and words[0].lower() == 'k':
             words[0] = 'kubectl'
 
         # Handle resource aliases (simple cases)
@@ -1133,8 +1133,11 @@ def get_user_input():
         except EOFError:
             special_action = 'skip'
             break
-        
-        cmd_lower = cmd.strip().lower()
+        # Allow blank line to submit when at least one command was entered
+        cmd_stripped = cmd.strip()
+        if cmd_stripped == '' and user_commands:
+            break
+        cmd_lower = cmd_stripped.lower()
 
         if cmd_lower == 'done':
             break
@@ -1215,7 +1218,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
             print(f"{Fore.CYAN}{'-' * 40}")
-            print("Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
+            print("Enter command(s). Type 'done' or press Enter on a blank line to check. Special commands: 'solution', 'vim', 'clear', 'menu'.")
 
             user_commands, special_action = get_user_input()
 
@@ -1347,7 +1350,56 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 user_answer_graded = True
                 break # Exit inner loop, go to post-answer menu
-            
+            elif user_commands:
+                user_answer_graded = True
+                user_answer_str = "\n".join(user_commands)
+                
+                # Normalize both user answer and solution for comparison
+                normalized_user_answer = normalize_command(user_commands)
+                
+                # The solution can be a single string or a list of strings
+                solutions = q.get('solutions', [q.get('solution')])
+                
+                is_correct = False
+                matched_solution = ""
+                for sol in solutions:
+                    # Solutions can be multiline commands
+                    sol_lines = sol.strip().split('\n')
+                    normalized_sol = normalize_command(sol_lines)
+                    
+                    # Simple string comparison after normalization
+                    if ' '.join(normalized_user_answer) == ' '.join(normalized_sol):
+                        is_correct = True
+                        matched_solution = sol
+                        break
+
+                if is_correct:
+                    print(f"{Fore.GREEN}\nCorrect! Well done.")
+                else:
+                    print(f"{Fore.RED}\nThat wasn't quite right.")
+                    # Show diff if there's a single solution for clarity
+                    if len(solutions) == 1:
+                        show_diff(user_answer_str, solutions[0])
+
+                    print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
+                    solution_text = solutions[0] # Show the first solution
+                    if isinstance(solution_text, (dict, list)):
+                        dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
+                        print(colorize_yaml(dumped))
+                    elif '\n' in solution_text:
+                        print(colorize_yaml(solution_text))
+                    else:
+                        print(f"{Fore.YELLOW}{solution_text}")
+
+                if q.get('source'):
+                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+
+                if ai_feedback_enabled:
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    feedback = get_llm_feedback(q['question'], user_answer_str, solutions[0], verbose_ai_feedback)
+                    print(feedback)
+                
+                break # Exit inner loop to go to post-answer menu
             else: # User typed 'done' without commands, or empty input
                 print("Please enter a command or a special action.")
                 continue # Re-display the same question prompt
@@ -1377,7 +1429,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
         if topic != '_missed':
                 performance_data[topic] = topic_perf
-                save_performance_data(performance_data)
 
         # Post-answer menu loop
         while True:
