@@ -3,7 +3,7 @@ import pytest
 
 from kubelingo.kubelingo import manifests_equivalent
 
-def test_block_vs_inline_pod_manifest_equivalence():
+def test_block_vs_inline_pod_manifest_equivalence_correct():
     block_yaml = '''
 apiVersion: v1
 kind: Pod
