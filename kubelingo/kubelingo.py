@@ -148,7 +148,7 @@ def show_diff(text1, text2, fromfile='your_submission', tofile='solution'):
 
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
-PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 MISC_DIR = "misc"
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
