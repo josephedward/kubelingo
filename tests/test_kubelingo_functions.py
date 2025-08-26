@@ -30,7 +30,7 @@ from kubelingo.kubelingo import (
     validate_kubectl_command_dry_run
 )
 
-PERFORMANCE_FILE = os.path.join("user_data", "performance_test.yaml")
+PERFORMANCE_FILE = os.path.join("test/user_data", "performance.yaml")
 # --- Fixtures for mocking file system ---
 
 @pytest.fixture
