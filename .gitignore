@@ -9,7 +9,6 @@ docs/issues.md
 user_data/issues.yaml
 user_data/performance.yaml
 .DS_Store
-/misc
 /dist
 /kubelingo.egg-info
 .env
@@ -18,3 +17,4 @@ demo-kubelingo/
 demo.sh
 .DS_Store
 .DS_Store
+misc
