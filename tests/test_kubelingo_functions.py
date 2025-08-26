@@ -678,6 +678,7 @@ def mock_llm_deps():
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_environ["OPENROUTER_API_KEY"] = "test-or"
     
     llm_type, model = _get_llm_model()
     
@@ -687,6 +688,7 @@ def test_get_llm_model_openrouter_first(mock_llm_deps):
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_environ["GEMINI_API_KEY"] = "test-gemini"
     mock_requests_post.return_value.raise_for_status.side_effect = Exception("API error")
     mock_gemini_model_instance.generate_content.return_value.text = "test response"
     
@@ -1211,7 +1213,7 @@ def test_run_topic_vim_no_solution(capsys):
                         
                         captured = capsys.readouterr()
                         # Assert that handle_vim_edit was called and printed its message
-                        assert "This question does not have a solution to validate against for vim edit." in captured.out
+                        assert "This question does not have a solution to validate against for vim edit." in captured.err
                         assert "TypeError" not in captured.err # Ensure no TypeError
                         mock_handle_vim_edit.assert_called_once()
                         # Assert that the "Great job!" message is printed after the second question
