@@ -7,7 +7,6 @@ user_data/missed_questions.yaml
 *.pyc
 docs/issues.md
 user_data/issues.yaml
-user_data/performance.yaml
 .DS_Store
 /dist
 /kubelingo.egg-info
