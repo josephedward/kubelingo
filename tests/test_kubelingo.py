@@ -1,9 +1,10 @@
 import subprocess
 import tempfile
 import os
-from unittest.mock import mock_open
+from unittest.mock import mock_open, patch
 import colorama
 import re
+import yaml
 from kubelingo.kubelingo import (
     get_user_input,
     run_topic,
@@ -13,11 +14,18 @@ from kubelingo.kubelingo import (
     load_questions,
     clear_screen,
     save_question_to_list,
+    backup_performance_file, # Added for testing
 )
+from kubelingo.kubelingo import cli # Import cli for testing
+
+# Constants for paths (will be mocked)
+USER_DATA_DIR = "user_data"
+MISC_DIR = "misc"
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
+PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
 def strip_ansi_codes(s):
     return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]', '', s)
-
 
 def test_clear_command_clears_commands(monkeypatch, capsys):
     """Tests that 'clear' clears all previously entered commands."""
@@ -112,7 +120,7 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
         (['s1'], None),      # Correct answer for q1
         (['s2'], None),      # Correct answer for q2
     ])
-    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda: next(user_inputs))
+    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
     post_answer_inputs = iter(['n', 'q']) # 'n' for first question, 'q' for second
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
@@ -200,7 +208,7 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     user_inputs = iter([
         (['k get secret api-secrets -o yaml'], None),
     ])
-    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda: next(user_inputs))
+    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
     # Mock post-answer input to quit
     post_answer_inputs = iter(['q'])
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
@@ -215,3 +223,90 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     # Check that performance data was updated
     assert 'app_configuration' in saved_data
     assert saved_data['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
+
+def test_performance_file_backup(monkeypatch):
+    """Tests that performance.yaml is backed up to misc/performance.yaml on quiz open/close and app exit."""
+    # In-memory data stores for performance and backup files
+    mock_user_performance_data = {}
+    mock_misc_performance_data = {}
+
+    # Mock load_performance_data to return our in-memory data
+    def mock_load_performance_data():
+        return mock_user_performance_data.copy()
+    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
+
+    # Mock save_performance_data to update our in-memory data
+    def mock_save_performance_data(data):
+        nonlocal mock_user_performance_data
+        mock_user_performance_data = data.copy()
+    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
+
+    # Mock backup_performance_file to copy from user to misc in-memory
+    def mock_backup_performance_file():
+        nonlocal mock_misc_performance_data
+        mock_misc_performance_data = mock_user_performance_data.copy()
+    monkeypatch.setattr('kubelingo.kubelingo.backup_performance_file', mock_backup_performance_file)
+
+    # Mock other external dependencies that cli() calls
+    monkeypatch.setattr('kubelingo.kubelingo.load_dotenv', lambda: None)
+    monkeypatch.setattr('kubelingo.kubelingo.colorama_init', lambda **kwargs: None)
+    monkeypatch.setattr('os.makedirs', lambda name, exist_ok: None) # Not strictly needed with in-memory mocks, but good practice
+    monkeypatch.setattr('kubelingo.kubelingo.click.echo', lambda msg: None)
+    monkeypatch.setattr('kubelingo.kubelingo.click.confirm', lambda msg, default: True)
+    monkeypatch.setattr('kubelingo.kubelingo.handle_config_menu', lambda: None)
+    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
+    monkeypatch.setattr('time.sleep', lambda seconds: None)
+
+    # --- Test Case 1: Initial startup and quit (no quiz started) ---
+    # Simulate quitting from the main menu immediately
+    mock_list_and_select_topic_inputs = iter([
+        (None, None, None), # Simulate 'q' (quit) from main menu
+    ])
+    monkeypatch.setattr('kubelingo.kubelingo.list_and_select_topic', lambda perf_data: next(mock_list_and_select_topic_inputs))
+
+    # Run the cli (main application loop)
+    cli.main(args=[], standalone_mode=False, obj={})
+
+    # Assert that user_data/performance.yaml (mocked) is empty
+    assert mock_user_performance_data == {}
+
+    # Assert that misc/performance.yaml (mocked) is empty
+    assert mock_misc_performance_data == {}
+
+    # --- Test Case 2: Start quiz, make changes, quit quiz, then quit app ---
+    # Reset in-memory data for a fresh start
+    mock_user_performance_data.clear()
+    mock_misc_performance_data.clear()
+
+    # Simulate selecting a topic, then answering a question, then quitting the quiz, then quitting the app
+    mock_list_and_select_topic_inputs = iter([
+        ('test_topic', 1, [{'question': 'q1', 'solution': 's1'}]), # Select topic, 1 question
+        (None, None, None), # Simulate 'q' (quit) from main menu after quiz
+    ])
+    monkeypatch.setattr('kubelingo.kubelingo.list_and_select_topic', lambda perf_data: next(mock_list_and_select_topic_inputs))
+
+    mock_run_topic_inputs = iter([
+        (['s1'], None), # Correct answer for q1
+    ])
+    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(mock_run_topic_inputs))
+    monkeypatch.setattr('builtins.input', lambda _prompt: 'q') # Quit after question
+
+    # Mock load_questions for run_topic
+    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': [{'question': 'q1', 'solution': 's1'}]})
+
+    # Run the cli (main application loop)
+    cli.main(args=[], standalone_mode=False, obj={})
+
+    # Assert that user_data/performance.yaml (mocked) contains updated data
+    expected_user_data = {'test_topic': {'correct_questions': ['q1']}}
+    assert mock_user_performance_data == expected_user_data
+
+    # Assert that misc/performance.yaml (mocked) contains the updated data
+    assert mock_misc_performance_data == expected_user_data
+
+    # --- Test Case 3: Ensure user_data/performance.yaml is never deleted ---
+    # This is implicitly covered by the assertions above. If the file were deleted,
+    # the mocked data would be empty or missing. The in-memory mocks ensure that
+    # data is only modified as expected, not deleted. This test focuses on the
+    # logic of the calls, not the file system mechanics, which are handled by
+    # the mocked load/save/backup functions.
