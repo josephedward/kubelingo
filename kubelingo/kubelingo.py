@@ -699,7 +699,12 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
 
 def handle_vim_edit(question, verbose_ai_feedback=True):
     """Handles the user editing a manifest in Vim."""
-    if 'solution' not in question:
+    # Determine the canonical solution manifest
+    if 'solutions' in question and isinstance(question['solutions'], list) and question['solutions']:
+        sol_manifest = question['solutions'][0]
+    elif 'solution' in question:
+        sol_manifest = question['solution']
+    else:
         print("This question does not have a solution to validate against for vim edit.")
         return None, None, False
 
@@ -1139,7 +1144,7 @@ def get_user_input():
                 print(f"{Fore.YELLOW}(Input cleared)")
             else:
                 print(f"{Fore.YELLOW}(No input to clear)")
-        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu', 'c']:
+        elif cmd_lower in ['solution', 'issue', 'generate', 'skip', 'vim', 'source', 'menu']:
             special_action = cmd_lower
             break
         elif cmd.strip():
@@ -1162,7 +1167,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
     if topic != '_missed':
         random.shuffle(questions)
-        questions = questions[:num_to_study]
+        # If num_to_study > 0, limit the number of questions; otherwise, use all
+        if num_to_study > 0:
+            questions = questions[:num_to_study]
     else:
         # For missed questions, questions_to_study is already shuffled and limited
         # by the list_and_select_topic function.
@@ -1246,7 +1253,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 user_answer_graded = True
                 print(f"{Fore.RED}Question skipped. Here's one possible solution:")
                 solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-                if '\n' in solution_text:
+                # Print solution in YAML if it's a mapping/sequence or contains newlines
+                if isinstance(solution_text, (dict, list)):
+                    dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
+                    print(colorize_yaml(dumped))
+                elif '\n' in solution_text:
                     print(colorize_yaml(solution_text))
                 else:
                     print(f"{Fore.YELLOW}{solution_text}")
@@ -1263,7 +1274,10 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 user_answer_graded = True
                 print(f"{Style.BRIGHT}{Fore.YELLOW}\nSolution:")
                 solution_text = q.get('solutions', [q.get('solution', 'N/A')])[0]
-                if '\n' in solution_text:
+                if isinstance(solution_text, (dict, list)):
+                    dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
+                    print(colorize_yaml(dumped))
+                elif '\n' in solution_text:
                     print(colorize_yaml(solution_text))
                 else:
                     print(f"{Fore.YELLOW}{solution_text}")
@@ -1275,6 +1289,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 user_manifest, result, sys_error = handle_vim_edit(q, verbose_ai_feedback)
                 if result is None: # Added check for None result
                     continue # Re-display the question prompt
+                # If result is not a dict, treat as a message and display
+                if not isinstance(result, dict):
+                    print(result)
+                    user_answer_graded = True
+                    break
                 if not sys_error:
                     if ai_feedback_enabled:
                         print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
@@ -1341,7 +1360,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 
                 if not is_correct:
                     print(f"{Fore.RED}\nNot quite. Here's one possible solution:")
-                    if '\n' in solution_text:
+                    # Print solution in YAML if mapping/sequence or contains newlines
+                    if isinstance(solution_text, (dict, list)):
+                        dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
+                        print(colorize_yaml(dumped))
+                    elif '\n' in solution_text:
                         print(colorize_yaml(solution_text))
                     else:
                         print(f"{Fore.YELLOW}{solution_text}")
