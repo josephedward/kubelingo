@@ -1,6 +1,5 @@
 import os
 import sys
-is_retrying_session = False
 import getpass
 import random
 if sys.stdin.isatty():
@@ -1130,7 +1129,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """
     Loads and runs questions for a given topic.
     """
-    global is_retrying_session
     dbg(f"run_topic: start topic={topic}, num_to_study={num_to_study}, questions_to_study_count={len(questions_to_study)}")
     
     dbg("run_topic: Before loading config")
@@ -1147,7 +1145,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     session_topic_name = topic
     
     while True: # Outer loop for retrying the topic
-        dbg(f"run_topic: is_retrying_session at start of outer loop: {is_retrying_session}")
         questions = list(questions_to_study) # Make a fresh copy for each retry
         # If it's a missed questions review, the list is already shuffled and limited by num_to_study
         # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
@@ -1202,11 +1199,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             dbg("Before printing question")
             # Clear screen before displaying question
             os.system('cls' if os.name == 'nt' else 'clear')
-            print(flush=True)
-
-            if is_retrying_session:
-                print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}", flush=True)
-                print("DEBUG: Retrying message printed", flush=True)
 
             # Display the current question and prompt once
             print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})", flush=True)
@@ -1424,8 +1416,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
         # End of inner while question_index < len(questions) loop
         if retry_current_question: # Check the flag
+            print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}") # Print message here
             retry_current_question = False # Reset the flag
-            # Do not increment question_index, so the same question is re-displayed
+            continue # Do not increment question_index, so the same question is re-displayed
         else:
             question_index += 1 # Increment question_index after processing
 
@@ -1486,8 +1479,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
             elif choice == 'r':
                 # Reload/retry the current question
-                is_retrying_session = True # Set the flag
-                dbg(f"run_topic: is_retrying_session after setting in 'r' choice: {is_retrying_session}")
+                retry_current_question = True # Set the flag
+                dbg(f"run_topic: retry_current_question after setting in 'r' choice: {retry_current_question}")
                 break # Exit post-answer menu
             elif choice == 'c':
                 # Go to configuration menu
