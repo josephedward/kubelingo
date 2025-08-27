@@ -15,3 +15,9 @@ questions:
   suggestion:
   - kubectl version
   source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server
+- question: Retrieve detailed information about the services running in the current
+    namespace.
+  solution: 'kubectl get services --namespace=default -o wide
+
+    '
+  source: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get
