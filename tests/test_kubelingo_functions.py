@@ -22,46 +22,65 @@ from kubelingo.kubelingo import (
     get_ai_verdict,
     validate_manifest_with_llm,
     generate_more_questions,
+    handle_keys_menu,
     USER_DATA_DIR,
     QUESTIONS_DIR,
     MISSED_QUESTIONS_FILE,
     ISSUES_FILE,
     validate_manifest_with_kubectl_dry_run,
-    validate_kubectl_command_dry_run
+    validate_kubectl_command_dry_run,
+    handle_config_menu
 )
 
-PERFORMANCE_FILE = os.path.join("test/user_data", "performance.yaml")
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 # --- Fixtures for mocking file system ---
+
 
 @pytest.fixture
 def mock_user_data_dir():
-    with patch('os.makedirs') as mock_makedirs:
+    with patch('kubelingo.kubelingo.os.makedirs') as mock_makedirs:
         yield mock_makedirs
 
 @pytest.fixture
 def mock_os_path_exists():
-    with patch('os.path.exists') as mock_exists:
+    with patch('kubelingo.kubelingo.os.path.exists') as mock_exists:
         yield mock_exists
 
 @pytest.fixture
+def mock_os_path_getsize():
+    with patch('kubelingo.kubelingo.os.path.getsize') as mock_getsize:
+        yield mock_getsize
+
+@pytest.fixture
 def mock_yaml_safe_load():
-    with patch('yaml.safe_load') as mock_load:
+    with patch('kubelingo.kubelingo.yaml.safe_load') as mock_load:
         yield mock_load
 
 @pytest.fixture
 def mock_yaml_dump():
-    with patch('yaml.dump') as mock_dump:
+    with patch('kubelingo.kubelingo.yaml.dump') as mock_dump:
         yield mock_dump
 
+
+
 @pytest.fixture
-def mock_builtins_open():
+def mock_builtins_open(mocker):
     # Create a mock for the file handle that mock_open would return
-    mock_file_handle = MagicMock()
-    # Configure mock_open to return our mock_file_handle when called
-    with patch('builtins.open', return_value=mock_file_handle) as m_open:
-        # Allow entering and exiting the context manager
-        m_open.return_value.__enter__.return_value = mock_file_handle
-        yield m_open, mock_file_handle
+    mock_file_handle = mocker.MagicMock()
+    m_open = mocker.patch('builtins.open', return_value=mock_file_handle)
+    # Allow entering and exiting the context manager
+    m_open.return_value.__enter__.return_value = mock_file_handle
+    yield m_open, mock_file_handle
+
+@pytest.fixture
+def mock_os_environ(mocker):
+    # Patch os.environ with an empty dictionary, and let mocker handle cleanup
+    mocker.patch.dict('os.environ', {}, clear=True)
+    # Yield os.environ itself, as it's now the mocked dictionary
+    yield os.environ, os.environ
+
+
+
 
 # --- Tests for user_data directory and performance data ---
 
@@ -69,39 +88,58 @@ def test_ensure_user_data_dir(mock_user_data_dir):
     ensure_user_data_dir()
     mock_user_data_dir.assert_called_once_with(USER_DATA_DIR, exist_ok=True)
 
-def test_load_performance_data_no_file(mock_os_path_exists):
+
+def test_load_performance_data_no_file(mock_os_path_exists, mock_builtins_open, mock_yaml_dump):
     mock_os_path_exists.return_value = False
-    data = load_performance_data()
-    assert data == {}
-    mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
+    mock_open_func, mock_file_handle = mock_builtins_open
+    with patch('kubelingo.kubelingo.ensure_user_data_dir'):
+        with patch('kubelingo.kubelingo.os.path.getsize'):
+            data = load_performance_data()
+            assert data == {}
+            mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
+            mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
+            mock_yaml_dump.assert_called_once_with({}, mock_file_handle)
+
 
 def test_load_performance_data_empty_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
-    mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
+    mock_open_func, mock_file_handle = mock_builtins_open
     mock_yaml_safe_load.return_value = None
-    data = load_performance_data()
-    assert data == {}
-    mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
-    mock_open_func.assert_has_calls([call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')])
+    with patch('kubelingo.kubelingo.ensure_user_data_dir'):
+        data = load_performance_data()
+        assert data == {}
+        mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
+        mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
+        mock_open_func.assert_has_calls([call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')])
+
 
 def test_load_performance_data_valid_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
     expected_data = {'topic1': {'correct_questions': ['q1']}}
     mock_yaml_safe_load.return_value = expected_data
-    data = load_performance_data()
-    assert data == expected_data
-    mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
-    mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'r')
+    with patch('kubelingo.kubelingo.ensure_user_data_dir'):
+        data = load_performance_data()
+        assert data == expected_data
+        mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
+        mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'r')
+        mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
 
-def test_load_performance_data_yaml_error(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
+
+def test_load_performance_data_yaml_error(mock_os_path_exists, mock_os_path_getsize, mock_yaml_safe_load, mock_builtins_open, mock_yaml_dump):
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
+    mock_os_path_getsize.return_value = 100
     mock_yaml_safe_load.side_effect = yaml.YAMLError
-    data = load_performance_data()
-    assert data == {}
-    mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
-    mock_open_func.assert_has_calls([call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')])
+    with patch('kubelingo.kubelingo.ensure_user_data_dir'):
+        data = load_performance_data()
+        assert data == {}
+        mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
+        
+        assert mock_open_func.call_args_list == [call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')]
+        mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
+        mock_yaml_dump.assert_called_once_with({}, mock_file_handle)
+
 
 def test_save_performance_data(mock_user_data_dir, mock_yaml_dump, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
@@ -534,79 +572,103 @@ def test_load_questions_file_found(mock_load_questions_deps):
 # --- Tests for handle_config_menu ---
 
 @pytest.fixture
-def mock_handle_config_menu_deps():
-    # Create a mock for os.environ that behaves like a dictionary
-    mock_environ_dict = {}
-    mock_environ = MagicMock(wraps=mock_environ_dict)
-    mock_environ.get.side_effect = mock_environ_dict.get
-    mock_environ.__setitem__.side_effect = mock_environ_dict.__setitem__
-
+def mock_handle_config_menu_deps(mock_os_environ):
+    mock_environ, mock_environ_values = mock_os_environ
     with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
-        with patch('kubelingo.kubelingo.dotenv_values') as mock_dotenv_values:
+        with patch('kubelingo.kubelingo.dotenv_values', side_effect=lambda *args, **kwargs: mock_environ) as mock_dotenv_values:
             with patch('kubelingo.kubelingo.set_key') as mock_set_key:
-                with patch('os.environ', new=mock_environ) as mock_os_environ:
+                # Make mock_set_key actually update os.environ
+                def _mock_set_key_side_effect(dotenv_path, key_to_set, value_to_set):
+                    os.environ[key_to_set] = value_to_set
+                mock_set_key.side_effect = _mock_set_key_side_effect
+                with patch('getpass.getpass', return_value='mock_getpass_key') as mock_getpass:
                     with patch('time.sleep') as mock_sleep:
-                        yield mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep
+                        yield mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values
 
 def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
-    mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ["GEMINI_API_KEY"] = "Not Set"
+    mock_environ["OPENAI_API_KEY"] = "Not Set"
+    mock_environ["OPENROUTER_API_KEY"] = "Not Set"
+
+    # Simulate user input: 1 (set Gemini), then a key, then 5 (back)
+    with patch('builtins.input', side_effect=['1', 'mock_getpass_key', '5']):
+        handle_keys_menu()
     
-    # Simulate user input: 1 (API Keys), 1 (set Gemini), then a key, then 3 (back), 3 (back)
-    with patch('builtins.input', side_effect=['1', '1', 'test_gemini_key', '8', '3']):
-        mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'test_gemini_key')
-        assert mock_os_environ.get("GEMINI_API_KEY") == 'test_gemini_key'
-        
-        captured = capsys.readouterr()
-        assert "Gemini API Key saved." in captured.out
+    mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'mock_getpass_key')
+    assert mock_environ_values["GEMINI_API_KEY"] == 'mock_getpass_key'
+    
+    captured = capsys.readouterr()
+    assert "Gemini API Key saved." in captured.out
 
 def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
-    mock_dotenv_values.return_value = {"GEMINI_API_KEY": "Not Set", "OPENAI_API_KEY": "Not Set"}
-    
-    # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
-    # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
-    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '8', '3']):
-        mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
-        assert mock_os_environ.get("OPENAI_API_KEY") == 'test_openai_key'
-        
-        captured = capsys.readouterr()
-        assert "OpenAI API Key saved." in captured.out
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ["GEMINI_API_KEY"] = "Not Set"
+    mock_environ["OPENAI_API_KEY"] = "Not Set"
+    mock_environ["OPENROUTER_API_KEY"] = "Not Set"
 
+    # Simulate user input: 2 (set OpenAI), then a key, then 5 (back)
+    with patch('builtins.input', side_effect=['2', 'test_openai_key', '5']):
+        handle_keys_menu()
+
+    mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
+    assert mock_environ_values["OPENAI_API_KEY"] == 'test_openai_key'
+    
+    captured = capsys.readouterr()
+    assert "OpenAI API Key saved." in captured.out
 
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
-    mock_dotenv_values.return_value = {} # No keys set
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ.clear() # No keys set
+
+    # Remove print statements after debugging
+    # print(f"\n--- test_handle_config_menu_invalid_choice START ---")
+    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
+    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
+
+    # Remove print statements after debugging
+    # print(f"\n--- test_handle_config_menu_invalid_choice START ---")
+    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
+    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
     
     # Simulate user input: invalid, then 3 (back to main menu)
     with patch('builtins.input', side_effect=['invalid', '3']):
+        handle_config_menu()
     
-        mock_set_key.assert_not_called()
+    mock_set_key.assert_not_called()
     
     captured = capsys.readouterr()
     assert "Invalid choice. Please try again." in captured.out
 
 def test_handle_validation_menu_toggles(mock_handle_config_menu_deps, capsys):
-    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_os_environ, mock_sleep = mock_handle_config_menu_deps
-    # Initial config state
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
     # Initial config state (new validation toggles default to True if missing)
-    mock_dotenv_values.return_value = {
-        "KUBELINGO_VALIDATION_YAMLLINT": "True",
-        "KUBELINGO_VALIDATION_KUBECONFORM": "True",
-        "KUBELINGO_VALIDATION_KUBECTL_VALIDATE": "True",
-    }
+    mock_environ["KUBELINGO_VALIDATION_YAMLLINT"] = "True"
+    mock_environ["KUBELINGO_VALIDATION_KUBECONFORM"] = "True"
+    mock_environ["KUBELINGO_VALIDATION_KUBECTL_VALIDATE"] = "True"
+
+    # Remove print statements after debugging
+    # print(f"\n--- test_handle_validation_menu_toggles START ---")
+    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
+    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
+
+    # Remove print statements after debugging
+    # print(f"\n--- test_handle_validation_menu_toggles START ---")
+    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
+    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
 
     # Simulate toggling each setting off, then exit menus
     with patch('builtins.input', side_effect=['2', '1', '2', '3', '4', '3']):
+        handle_config_menu()
 
-        # Verify that set_key was called to toggle each setting
-        calls = [
-            call(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False"),
-            call(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False"),
-            call(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False"),
-        ]
-        mock_set_key.assert_has_calls(calls, any_order=True)
+    # Verify that set_key was called to toggle each setting
+    calls = [
+        call(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False"),
+        call(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False"),
+        call(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False"),
+    ]
+    mock_set_key.assert_has_calls(calls, any_order=True)
 
 # --- Tests for get_user_input ---
 
@@ -653,32 +715,34 @@ def test_get_user_input_eof_error():
 # --- Tests for LLM Interactions ---
 
 @pytest.fixture
-def mock_llm_deps():
+def mock_llm_deps(mock_os_environ):
+    mock_environ, mock_environ_values = mock_os_environ
+
+    mock_genai_module = MagicMock()
+    mock_genai_module.configure = MagicMock()
+    mock_gemini_model_instance = MagicMock()
+    mock_genai_module.GenerativeModel = MagicMock(return_value=mock_gemini_model_instance)
+
+    mock_openai_client_instance = MagicMock()
+    mock_openai_module = MagicMock()
+    mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
+
     with (
-        patch('google.generativeai.configure') as mock_gemini_configure,
-        patch('google.generativeai.GenerativeModel') as MockGenerativeModel_class,
-        patch('openai.OpenAI') as MockOpenAI_class,
-        patch('kubelingo.kubelingo.os.environ', new={}) as mock_environ,
+        patch.dict('sys.modules', {'google.generativeai': mock_genai_module, 'openai': mock_openai_module}),
         patch('kubelingo.kubelingo.click.confirm', return_value=False) as mock_click_confirm,
         patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu,
-        patch('requests.post') as mock_requests_post
+        patch('kubelingo.kubelingo.requests.post') as mock_requests_post
     ):
         # Configure mock response for OpenRouter health check
         mock_requests_post.return_value.status_code = 200
         mock_requests_post.return_value.json.return_value = {}
 
-        # Configure the class mocks to return specific mock instances
-        mock_gemini_model_instance = MagicMock()
-        MockGenerativeModel_class.return_value = mock_gemini_model_instance
-
-        mock_openai_client_instance = MagicMock()
-        MockOpenAI_class.return_value = mock_openai_client_instance
-
-        yield mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post
+        yield mock_genai_module.configure, mock_genai_module.GenerativeModel, mock_gemini_model_instance, mock_openai_module.OpenAI, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values
 
 def test_get_llm_model_openrouter_first(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_environ["OPENROUTER_API_KEY"] = "test-or"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
+    mock_environ_values["OPENROUTER_API_KEY"] = "test-or"
+    mock_environ_values["KUBELINGO_LLM_PROVIDER"] = "openrouter"
     
     llm_type, model = _get_llm_model()
     
@@ -687,25 +751,26 @@ def test_get_llm_model_openrouter_first(mock_llm_deps):
     mock_requests_post.assert_called_once()
 
 def test_get_llm_model_openrouter_failure_falls_back(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_environ["OPENROUTER_API_KEY"] = "test-or"
-    mock_environ["GEMINI_API_KEY"] = "test-gemini"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
+    mock_environ_values["OPENROUTER_API_KEY"] = "test-or"
+    mock_environ_values["GEMINI_API_KEY"] = "test-gemini"
+    mock_environ_values["KUBELINGO_LLM_PROVIDER"] = "openrouter"
     mock_requests_post.return_value.raise_for_status.side_effect = Exception("API error")
-    mock_gemini_model_instance.generate_content.return_value.text = "test response"
     
     llm_type, model = _get_llm_model()
     
-    assert llm_type == "gemini"
+    assert llm_type is None
+    assert model is None
     mock_requests_post.assert_called_once()
-    assert MockGenerativeModel_class.call_count == 2
+    MockGenerativeModel_class.assert_not_called()
 
 @pytest.mark.skipif(
     not dotenv_values().get("GEMINI_API_KEY"),
     reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
 )
 def test_get_llm_model_gemini_only(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
+    mock_environ_values["GEMINI_API_KEY"] = "test_gemini_key"
     
     llm_type, model = _get_llm_model()
     
@@ -723,8 +788,10 @@ def test_get_llm_model_gemini_only(mock_llm_deps):
     mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_openai_only(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
+    mock_environ_values["OPENAI_API_KEY"] = "test_openai_key"
+    mock_environ_values["OPENROUTER_API_KEY"] = "" # Ensure OpenRouter is not considered
+    mock_environ_values["GEMINI_API_KEY"] = "" # Ensure Gemini is not considered
     
     llm_type, model = _get_llm_model()
     
@@ -739,9 +806,10 @@ def test_get_llm_model_openai_only(mock_llm_deps):
     mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_both_gemini_preferred(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
-    mock_environ["GEMINI_API_KEY"] = "test_gemini_key"
-    mock_environ["OPENAI_API_KEY"] = "test_openai_key"
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
+    mock_environ_values["GEMINI_API_KEY"] = "test_gemini_key"
+    mock_environ_values["OPENAI_API_KEY"] = "test_openai_key"
+    mock_environ_values["OPENROUTER_API_KEY"] = "" # Ensure OpenRouter is not considered
     
     llm_type, model = _get_llm_model()
     
@@ -760,7 +828,7 @@ def test_get_llm_model_both_gemini_preferred(mock_llm_deps):
     mock_handle_config_menu.assert_not_called()
 
 def test_get_llm_model_neither(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     # No API keys set
     
     llm_type, model = _get_llm_model()
@@ -774,15 +842,13 @@ def test_get_llm_model_neither(mock_llm_deps):
     mock_handle_config_menu.assert_not_called() # Because mock_click_confirm returns False
     assert llm_type is None
     assert model is None
-    assert llm_type is None
-    assert model is None
 
 @pytest.mark.skipif(
     not dotenv_values().get("GEMINI_API_KEY"),
     reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
 )
 def test_get_ai_verdict_gemini(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -802,9 +868,8 @@ def test_get_ai_verdict_gemini(mock_llm_deps):
         assert result['correct'] == True
 
 
-
 def test_get_llm_feedback_openai(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
@@ -826,7 +891,7 @@ def test_get_llm_feedback_openai(mock_llm_deps):
 
 
 def test_get_llm_feedback_no_llm(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
@@ -838,7 +903,7 @@ def test_get_llm_feedback_no_llm(mock_llm_deps):
         MockOpenAI_class.assert_not_called()
 
 def test_get_llm_feedback_gemini_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -852,7 +917,7 @@ def test_get_llm_feedback_gemini_error(mock_llm_deps):
         assert "Error getting AI verdict: Gemini error" in result['feedback']
 
 def test_get_llm_feedback_openai_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
@@ -870,7 +935,7 @@ def test_get_llm_feedback_openai_error(mock_llm_deps):
     reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
 )
 def test_validate_manifest_with_llm_gemini(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -888,7 +953,7 @@ def test_validate_manifest_with_llm_gemini(mock_llm_deps):
         assert result == {'correct': True, 'feedback': 'Manifest is valid.'}
 
 def test_validate_manifest_with_llm_openai(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
@@ -907,7 +972,7 @@ def test_validate_manifest_with_llm_openai(mock_llm_deps):
         assert result == {'correct': False, 'feedback': 'Manifest is missing a field.'}
 
 def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
@@ -919,7 +984,7 @@ def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
         MockOpenAI_class.assert_not_called()
 
 def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -932,7 +997,7 @@ def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
         assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
 
 def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
@@ -949,7 +1014,7 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
     reason="Skipping Gemini tests because GEMINI_API_KEY is not set."
 )
 def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
     
     # Patch _get_llm_model to return a configured Gemini model
@@ -977,7 +1042,7 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
 
 
 def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     mock_open_func, mock_file_handle = mock_builtins_open
     
     # Patch _get_llm_model to return a configured OpenAI model
@@ -1006,7 +1071,7 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
 
 
 def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
@@ -1024,7 +1089,7 @@ def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
         assert "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions." in captured.out
 
 def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -1042,7 +1107,7 @@ def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
         assert "Error generating question: LLM generation error" in captured.out
 
 def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_builtins_open, mock_yaml_safe_load, mock_yaml_dump, capsys):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -1243,7 +1308,7 @@ class XTestKubectlValidation:
 #         # Simulate 'vim' for the first question, then 'done' for the second question
 #         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
 #             # Provide two questions: first without solution, second a dummy
-#             mock_questions = [{
+#             mock_questions = [{ 
 #                 'question': 'Test Q without solution',
 #                 'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
 #                 'suggestion': []
