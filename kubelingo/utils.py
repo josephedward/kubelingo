@@ -18,6 +18,25 @@ QUESTIONS_DIR = os.getenv(
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
 
+def _get_llm_model(model_name="gemini-pro"):
+    """Initializes and returns the generative AI model."""
+    if not genai:
+        print(f"{Fore.RED}Google Generative AI SDK not found. Please install it with 'pip install google-generativeai'{Style.RESET_ALL}")
+        return None
+    try:
+        # Configure the API key
+        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+        # Create the model
+        model = genai.GenerativeModel(model_name)
+        return model
+    except Exception as e:
+        print(f"{Fore.RED}Error initializing the model: {e}{Style.RESET_ALL}")
+        # Look for the API key in the environment variables
+        if "GEMINI_API_KEY" not in os.environ:
+            print(f"{Fore.YELLOW}GEMINI_API_KEY not found in environment variables.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Please set it to your Google AI Studio API key.{Style.RESET_ALL}")
+        return None
+
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
