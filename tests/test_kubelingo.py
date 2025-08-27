@@ -3,11 +3,11 @@ import subprocess
 import tempfile
 import os
 import sys
-import pytest
 from unittest.mock import mock_open, patch
 import colorama
 import re
 import yaml
+import shutil # Added for cleanup
 from kubelingo import kubelingo
 from kubelingo.kubelingo import (
     get_user_input,
@@ -28,6 +28,21 @@ USER_DATA_DIR = "user_data"
 MISC_DIR = "misc"
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
+
+@pytest.fixture
+def setup_user_data_dir(tmp_path):
+    user_data_path = tmp_path / "user_data"
+    user_data_path.mkdir()
+    with patch('kubelingo.kubelingo.USER_DATA_DIR', str(user_data_path)):
+        yield user_data_path
+
+@pytest.fixture
+def setup_questions_dir(tmp_path):
+    questions_path = tmp_path / "questions"
+    questions_path.mkdir()
+    with patch('kubelingo.utils.QUESTIONS_DIR', str(questions_path)):
+        with patch('kubelingo.kubelingo.QUESTIONS_DIR', str(questions_path)):
+            yield questions_path
 
 def strip_ansi_codes(s):
     return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]', '', s)
@@ -95,21 +110,20 @@ def test_clear_command_feedback_is_colored(monkeypatch, capsys):
         colorama.deinit()
 
 
-    def test_performance_data_update_logic(monkeypatch):
+def test_performance_data_update_logic(monkeypatch):
     """
     Tests that performance data is updated with unique correctly answered questions,
     and doesn't just overwrite with session data.
     """
     # Start with q1 already correct
     mock_data_source = {'existing_topic': {'correct_questions': ['q1']}}
-    saved_data = {}
+    saved_data_container = [{}]
 
     def mock_load_performance_data():
         return mock_data_source.copy()
 
     def mock_save_performance_data(data):
-        nonlocal saved_data
-        saved_data = data
+        saved_data_container[0] = data
 
     monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
     monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
@@ -133,11 +147,11 @@ def test_clear_command_feedback_is_colored(monkeypatch, capsys):
     run_topic('existing_topic', len(questions), mock_data_source, questions)
 
     # q2 should be added, q1 should not be duplicated.
-    assert 'existing_topic' in saved_data
-    assert isinstance(saved_data['existing_topic']['correct_questions'], list)
+    assert 'existing_topic' in saved_data_container[0]
+    assert isinstance(saved_data_container[0]['existing_topic']['correct_questions'], list)
     # Using a set for comparison to ignore order
-    assert set(saved_data['existing_topic']['correct_questions']) == {'q1', 'q2'}
-    assert len(saved_data['existing_topic']['correct_questions']) == 2
+    assert set(saved_data_container[0]['existing_topic']['correct_questions']) == {'q1', 'q2'}
+    assert len(saved_data_container[0]['existing_topic']['correct_questions']) == 2
 
 
 def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
@@ -190,10 +204,9 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     def mock_load_performance_data():
         return mock_perf_data
 
-    saved_data = {}
+    saved_data_container = [{}]
     def mock_save_performance_data(data):
-        nonlocal saved_data
-        saved_data = data
+        saved_data_container[0] = data
 
     monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
     monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
@@ -227,8 +240,8 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     assert "Correct" in strip_ansi_codes(captured.out)
 
     # Check that performance data was updated
-    assert 'app_configuration' in saved_data
-    assert saved_data['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
+    assert 'app_configuration' in saved_data_container[0]
+    assert saved_data_container[0]['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
 
 def test_instruction_update_with_llm(monkeypatch):
     """Test that instructions correctly ignore indentation styles and field order."""
@@ -265,7 +278,7 @@ spec:
     secret:
       secretName: secret2
     """
-        # Mock validate_manifest_with_llm to prevent actual LLM calls
+    # Mock validate_manifest_with_llm to prevent actual LLM calls
     monkeypatch.setattr('kubelingo.validation.validate_manifest_with_llm', lambda q, u: {'correct': True, 'feedback': 'Mocked feedback'})
     result = validate_manifest_with_llm(question_dict, user_manifest)
     assert result['correct'], "The manifest should be considered correct."
@@ -279,7 +292,8 @@ def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questio
 
     # Create a sample topic file
     with open(topic_file, 'w') as f:
-        yaml.dump({'questions': [question_dict]}, f)
+        yaml.dump({'questions': [question_dict]},
+ f)
 
     # Mock input to provide a description
     monkeypatch.setattr('builtins.input', lambda _: "Sample issue description")
