@@ -1327,26 +1327,24 @@ def list_and_select_topic(performance_data):
                     print("No missed questions to review. Well done!")
                     continue # Go back to topic selection
 
-                while True:
-                    num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or press Enter for all): ").strip().lower()
-                    # Allow 'c' to configure, 'q' to quit at this prompt
-                    if num_to_study_input == 'c':
-                        handle_config_menu()
-                        continue
-                    if num_to_study_input == 'q':
-                        print("\nGoodbye!")
-                        return None, None, None
-                    if num_to_study_input == 'all' or num_to_study_input == '':
-                        num_to_study = missed_questions_count
-                        break
+                num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or press Enter for all): ").strip().lower()
+                if num_to_study_input == 'c':
+                    handle_config_menu()
+                    continue
+                if num_to_study_input == 'q':
+                    print("\nGoodbye!")
+                    return None, None, None
+                if num_to_study_input == 'all' or num_to_study_input == '':
+                    num_to_study = missed_questions_count
+                else:
                     try:
                         num_to_study = int(num_to_study_input)
-                        if 1 <= num_to_study <= missed_questions_count:
-                            break
-                        else:
+                        if not (1 <= num_to_study <= missed_questions_count):
                             print(f"Please enter a number between 1 and {missed_questions_count}, or 'all'.")
+                            continue
                     except ValueError:
                         print("Invalid input. Please enter a number or 'all'.")
+                        continue
                 missed_questions = load_questions_from_list(missed_file)
                 return '_missed', num_to_study, missed_questions # Pass the full list of missed questions
             elif choice == 'c':
@@ -1387,53 +1385,30 @@ def list_and_select_topic(performance_data):
                 # Determine default total to study: incomplete if any, otherwise full set
                 current_total_questions = num_incomplete if num_incomplete > 0 else total_questions
 
-                while True:
-                    prompt_suffix = ""
-                    if num_incomplete > 0:
-                        prompt_suffix = f", 'i' for incomplete ({num_incomplete})"
-                    percent_correct = (num_correct / total_questions) * 100
-                    if percent_correct == 100:
-                        prompt_suffix += ", 'g' to generate new question"
-                    options = f"1-{total_questions}{prompt_suffix}"
-                    prompt = f"Enter number of questions to study ({options}), or press Enter for all: "
-                    num_to_study_input = input(prompt).strip().lower()
-                    # Allow 'c' to configure, 'q' to quit at this prompt
-                    if num_to_study_input == 'c':
-                        handle_config_menu()
-                        continue
-                    if num_to_study_input == 'q':
-                        print("\nGoodbye!")
-                        return None, None, None
-                    
-                    if num_to_study_input == 'all' or num_to_study_input == '':
-                        num_to_study = total_questions
-                        break
-                    elif num_to_study_input == 'i':
-                        if num_incomplete == 0:
-                            print(f"All questions in '{selected_topic.replace('_', ' ').title()}' have been answered correctly. Well done!")
-                            continue # Stay in this loop, let user choose again
-                        else:
-                            questions_to_study_list = incomplete_questions
-                            num_to_study = num_incomplete
-                            print(f"Selected all {num_incomplete} incomplete questions.")
-                            break
-                    elif num_to_study_input == 'g' and percent_correct == 100:
-                        new_q = generate_more_questions(selected_topic, questions_to_study_list[0])
-                        if new_q:
-                            questions_to_study_list.append(new_q)
-                            save_questions_to_topic_file(selected_topic, questions_to_study_list)
-                            print(f"New question generated and added to '{selected_topic}'.")
-                        continue
-                    try:
-                        num_to_study = int(num_to_study_input)
-                        if 1 <= num_to_study <= current_total_questions:
-                            break
-                        else:
-                            print(f"Please enter a number between 1 and {current_total_questions}, or 'all'.")
-                    except ValueError:
-                        print("Invalid input. Please enter a number or 'all'.")
-
-                return selected_topic, num_to_study, questions_to_study_list # Return both
+                # Single prompt for number of questions to study
+                percent_correct = (num_correct / total_questions) * 100
+                if num_incomplete > 0:
+                    prompt_suffix = f"i for incomplete ({num_incomplete})"
+                else:
+                    prompt_suffix = f"1-{total_questions}"
+                if percent_correct == 100:
+                    prompt_suffix += ", g to generate new question"
+                inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
+                if inp == 'i' and num_incomplete > 0:
+                    questions_to_study_list = incomplete_questions
+                    num_to_study = num_incomplete
+                elif inp == 'g' and percent_correct == 100:
+                    new_q = generate_more_questions(selected_topic, questions_to_study_list[0])
+                    if new_q:
+                        questions_to_study_list.append(new_q)
+                        save_questions_to_topic_file(selected_topic, questions_to_study_list)
+                    num_to_study = len(questions_to_study_list)
+                elif inp.isdigit():
+                    n = int(inp)
+                    num_to_study = n if 1 <= n <= total_questions else total_questions
+                else:
+                    num_to_study = total_questions
+                return selected_topic, num_to_study, questions_to_study_list
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
@@ -1577,20 +1552,14 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Separate selection feedback from question display
         print()
 
-        # --- Inner loop for the current question ---
-        # This loop allows special actions (like 'source', 'issue')
-        # to be handled without immediately advancing to the next question.
-        while True:
-            # clear_screen() # Clear screen for each new question - Temporarily disabled to debug hang
-            print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
-            print(f"{Fore.CYAN}{'-' * 40}")
-            print(q['question'])
-            print(f"{Fore.CYAN}{'-' * 40}")
-            
-            user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
-            # If user just pressed Enter without commands, treat as skip
-            if not user_commands and special_action is None:
-                special_action = 'skip'
+        # Display the current question and prompt once
+        print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
+        print(f"{Fore.CYAN}{'-' * 40}")
+        print(q['question'])
+        print(f"{Fore.CYAN}{'-' * 40}")
+        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+        if not user_commands and special_action is None:
+            special_action = 'skip'
 
             # Handle 'menu' command first, as it exits the topic
             if special_action == 'menu':
