@@ -1143,8 +1143,13 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     
 
     session_topic_name = topic
+    is_retrying_session = False
     
     while True: # Outer loop for retrying the topic
+        if is_retrying_session:
+            print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
+            print("DEBUG: Retrying message printed")
+            is_retrying_session = False
         questions = list(questions_to_study) # Make a fresh copy for each retry
         # If it's a missed questions review, the list is already shuffled and limited by num_to_study
         # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
@@ -1178,6 +1183,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         session_total = 0
         dbg(f"run_topic: Number of questions to iterate: {len(questions)}")
         while question_index < len(questions):
+            print(f"DEBUG: Inside run_topic loop. question_index: {question_index}")
             q = questions[question_index]
             dbg(f"run_topic: Current question (q): {q}")
             # Determine canonical solution manifest for diff/display
@@ -1415,9 +1421,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 continue # Re-display the same question prompt
 
         # End of inner while question_index < len(questions) loop
-        if retry_current_question: # Check the flag
-            retry_current_question = False # Reset the flag
-            continue # Continue the outer loop to re-display the current question
         question_index += 1 # Increment question_index after processing
 
         # Post-answer menu (after a question has been answered or skipped)
@@ -1476,7 +1479,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
             elif choice == 'r':
                 # Reload/retry the current question
-                print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
                 retry_current_question = True # Set the flag
                 break # Exit post-answer menu
             elif choice == 'c':
@@ -1487,9 +1489,13 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             else:
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
 
-
-
-    
+        if retry_current_question:
+            # Do not increment question_index, and reset the flag
+            retry_current_question = False
+            print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
+            continue # Continue the outer loop to re-display the same question
+        else:
+            question_index += 1 # Increment question_index only if not retrying
 
     # No final session menu: simply return to main menu after completion
     return
