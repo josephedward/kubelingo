@@ -14,9 +14,7 @@ try:
 except ImportError:
     search = None
 
-# Import necessary functions/variables from kubelingo.py
-from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR
-from kubelingo.utils import load_questions, get_normalized_question_text
+from kubelingo.utils import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text
 
 def assign_source(question_dict, topic, Fore, Style, genai):
     """
