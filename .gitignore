@@ -22,3 +22,5 @@ misc/.aider.chat.history.md
 /build
 questions/sample_topic.yaml
 /pytest-of-user
+q-gen.rtf
+.DS_Store
