@@ -95,3 +95,33 @@ def remove_question_from_corpus(question_to_remove, topic):
             print(f"{Fore.YELLOW}Question not found in {topic}.yaml. No changes made.{Style.RESET_ALL}")
     else:
         print(f"{Fore.YELLOW}No questions found in {topic}.yaml. No changes made.{Style.RESET_ALL}")
+
+import copy
+
+def _normalize_manifest(obj):
+    """
+    Deep-copy a manifest object and remove non-essential fields (names) for equivalence comparison.
+    """
+    m = copy.deepcopy(obj)
+    if isinstance(m, dict):
+        # Remove top-level metadata name
+        if 'metadata' in m and isinstance(m['metadata'], dict):
+            m['metadata'].pop('name', None)
+        # Remove container names
+        spec = m.get('spec')
+        if isinstance(spec, dict):
+            containers = spec.get('containers')
+            if isinstance(containers, list):
+                for c in containers:
+                    if isinstance(c, dict):
+                        c.pop('name', None)
+        return m
+    if isinstance(m, list):
+        return [_normalize_manifest(item) for item in m]
+    return m
+
+def manifests_equivalent(sol_obj, user_obj):
+    """
+    Compare two manifest objects for structural equivalence, ignoring names.
+    """
+    return _normalize_manifest(sol_obj) == _normalize_manifest(user_obj)
