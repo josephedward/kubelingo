@@ -11,6 +11,7 @@ from kubelingo.utils import load_questions, get_normalized_question_text, remove
 from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
 import kubelingo.question_generator as qg
 import kubelingo.issue_manager as im
+import kubelingo.study_session as study_session
 
 # Import necessary modules for LLM handling from utils
 # These are now handled within _get_llm_model in utils.py
@@ -33,6 +34,100 @@ import subprocess
 import difflib
 import copy
 from colorama import Fore, Style, init as colorama_init
+
+# Mapping of common Kubernetes resource aliases to their canonical names.
+K8S_RESOURCE_ALIASES = {
+    'cm': 'configmap',
+    'configmaps': 'configmap',
+    'crd': 'customresourcedefinition',
+    'crds': 'customresourcedefinition',
+    'deploy': 'deployment',
+    'deployments': 'deployment',
+    'ds': 'daemonset',
+    'daemonsets': 'daemonset',
+    'ep': 'endpoints',
+    'endpoints': 'endpoints',
+    'ing': 'ingress',
+    'ingresses': 'ingress',
+    'jo': 'job',
+    'jobs': 'job',
+    'netpol': 'networkpolicy',
+    'no': 'node',
+    'nodes': 'node',
+    'ns': 'namespace',
+    'namespaces': 'namespace',
+    'po': 'pod',
+    'pods': 'pod',
+    'pv': 'persistentvolume',
+    'pvc': 'persistentvolumeclaim',
+    'rs': 'replicaset',
+    'replicasets': 'replicaset',
+    'sa': 'serviceaccount',
+    'sec': 'secret',
+    'secrets': 'secret',
+    'svc': 'service',
+    'services': 'service',
+    'sts': 'statefulset',
+    'statefulsets': 'statefulset',
+}
+
+def normalize_command(command_lines):
+    """Normalizes a list of kubectl/helm command strings by expanding aliases, handling flags, and reordering."""
+    normalized_lines = []
+    for command in command_lines:
+        words = ' '.join(command.split()).split()
+        if not words:
+            normalized_lines.append('')
+            continue
+        if words[0] == 'k':
+            words[0] = 'kubectl'
+        for i, word in enumerate(words):
+            if word in K8S_RESOURCE_ALIASES:
+                words[i] = K8S_RESOURCE_ALIASES[word]
+        main_command = []
+        flags = []
+        positional_args = []
+        i = 0
+        while i < len(words):
+            word = words[i]
+            if word.startswith('--'):
+                flags.append(word)
+                if i + 1 < len(words) and not words[i+1].startswith('-'):
+                    flags.append(words[i+1])
+                    i += 1
+            elif word.startswith('-') and len(word) > 1:
+                if word == '-n':
+                    flags.append('--namespace')
+                    if i + 1 < len(words) and not words[i+1].startswith('-'):
+                        flags.append(words[i+1])
+                        i += 1
+                else:
+                    flags.append(word)
+                    if i + 1 < len(words) and not words[i+1].startswith('-'):
+                        flags.append(words[i+1])
+                        i += 1
+            elif not main_command and word in ('kubectl', 'helm'):
+                main_command.append(word)
+            elif main_command and not positional_args and not word.startswith('-'):
+                main_command.append(word)
+            else:
+                positional_args.append(word)
+            i += 1
+        grouped_flags = []
+        j = 0
+        while j < len(flags):
+            flag = flags[j]
+            if flag.startswith('-'):
+                if j + 1 < len(flags) and not flags[j+1].startswith('-'):
+                    grouped_flags.append(f"{flag} {flags[j+1]}")
+                    j += 1
+                else:
+                    grouped_flags.append(flag)
+            j += 1
+        grouped_flags.sort()
+        normalized_command_parts = main_command + positional_args + grouped_flags
+        normalized_lines.append(' '.join(normalized_command_parts))
+    return normalized_lines
 
 
 def clear_screen():
@@ -1125,11 +1220,13 @@ def get_user_input(allow_solution_command=True):
             user_commands.append(cmd.strip())
     return user_commands, special_action
 
-def run_topic(topic, num_to_study, performance_data, questions_to_study):
+def run_topic(topic, questions_to_study, performance_data):
+    print("DEBUG: run_topic entered", file=sys.stderr)
     """
     Loads and runs questions for a given topic.
     """
-    dbg(f"run_topic: start topic={topic}, num_to_study={num_to_study}, questions_to_study_count={len(questions_to_study)}")
+    session_topic_name = topic
+    dbg(f"run_topic: start topic={topic}, questions_to_study_count={len(questions_to_study)}")
     
     dbg("run_topic: Before loading config")
     config = dotenv_values(".env")
@@ -1141,126 +1238,203 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True") == "True"
     dbg("run_topic: After show_dry_run_logs")
     
+    session = study_session.StudySession(topic, questions_to_study, performance_data, get_normalized_question_text)
+    session.next_question() # Advance to the first question
 
-    session_topic_name = topic
-    
-    while True: # Outer loop for retrying the topic
-        questions = list(questions_to_study) # Make a fresh copy for each retry
-        # If it's a missed questions review, the list is already shuffled and limited by num_to_study
-        # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
-        if topic != '_missed':
-            # If num_to_study > 0, shuffle and limit the number of questions; otherwise, preserve order
-            if num_to_study > 0:
-                random.shuffle(questions)
-                questions = questions[:num_to_study]
+    while not session.is_session_complete():
+        q = session.get_current_question()
+        # The following 'if q is None: break' block is now redundant if next_question() is called correctly
+        # and is_session_complete() is accurate. However, keeping it as a safeguard.
+        if q is None: # Should not happen if is_session_complete is False
+            break
+        
+        # Determine canonical solution manifest for diff/display
+        if 'solution' in q:
+            sol_manifest = q['solution']
+        elif 'suggestion' in q and isinstance(q['suggestion'], list) and q['suggestion']:
+            sol_manifest = q['suggestion'][0]
         else:
-            # For missed questions, questions_to_study is already shuffled and limited
-            # by the list_and_select_topic function.
-            pass
+            sol_manifest = None
+        is_correct = False  # Reset for each question attempt
+        user_answer_graded = False  # Flag to indicate if an answer was submitted and graded
+        suggestion_shown_for_current_question = False  # New flag for this question attempt
+        # retry_current_question is now handled by StudySession
 
-        # Removed introductory delay to immediately show the first question
+        # For saving to lists, use original topic if reviewing, otherwise current topic
+        question_topic_context = q.get('original_topic', topic)
+        # Separate selection feedback from question display
+        dbg("Before printing question")
+        # Clear screen before displaying question
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-        # performance_data is now passed as an argument
-        topic_perf = performance_data.get(topic, {})
-        # If old format is detected, reset performance for this topic.
-        # The old stats are not convertible to the new format.
-        
-        if 'correct_questions' not in topic_perf:
-            topic_perf['correct_questions'] = []
-            # If old format is detected, remove old keys
-            if 'correct' in topic_perf: del topic_perf['correct']
-            if 'total' in topic_perf: del topic_perf['total']
-        
-        performance_data[topic] = topic_perf # Ensure performance_data is updated
+        # Display the current question and prompt once
+        print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
+        print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+        print(q['question'], flush=True)
+        print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+        dbg("Before get_user_input")
+        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+        dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
+        if not user_commands and special_action is None:
+            continue
 
-        question_index = 0
-        session_correct = 0
-        session_total = 0
-        dbg(f"run_topic: Number of questions to iterate: {len(questions)}")
-        while question_index < len(questions):
-            print(f"DEBUG: Inside run_topic loop. question_index: {question_index}")
-            q = questions[question_index]
-            dbg(f"run_topic: Current question (q): {q}")
-            # Determine canonical solution manifest for diff/display
-            if 'solution' in q:
-                sol_manifest = q['solution']
-            elif 'suggestion' in q and isinstance(q['suggestion'], list) and q['suggestion']:
-                sol_manifest = q['suggestion'][0]
+
+        # --- Process actions that involve grading or showing solution ---
+        solution_text = "" # Initialize solution_text for scope
+        if special_action == 'solution':
+            is_correct = False # Viewing solution means not correct by own answer
+            user_answer_graded = True
+            suggestion_shown_for_current_question = True
+            print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
+            solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
+            if isinstance(solution_text, (dict, list)):
+                dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
+                print(colorize_yaml(dumped))
+            elif '\n' in solution_text:
+                print(colorize_yaml(solution_text))
             else:
-                sol_manifest = None
-            is_correct = False  # Reset for each question attempt
-            user_answer_graded = False  # Flag to indicate if an answer was submitted and graded
-            suggestion_shown_for_current_question = False  # New flag for this question attempt
-            retry_current_question = False # Flag to indicate if the user wants to retry the current question
+                print(f"{Fore.YELLOW}{solution_text}")
+            if q.get('source'):
+                print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+            # Handled by outer loop logic
+            # No break here, flow to post-answer menu
 
-            # For saving to lists, use original topic if reviewing, otherwise current topic
-            question_topic_context = q.get('original_topic', topic)
-            # Separate selection feedback from question display
-            dbg("Before printing question")
-            # Clear screen before displaying question
-            os.system('cls' if os.name == 'nt' else 'clear')
-
-            # Display the current question and prompt once
-            print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})", flush=True)
-            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-            print(q['question'], flush=True)
-            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-            dbg("Before get_user_input")
-            user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
-            dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
-            if not user_commands and special_action is None:
-                continue
-
-            # Handle 'menu' command first, as it exits the topic
-            if special_action == 'menu':
-                print("Returning to main menu...")
-                return # Exit run_topic function
-
-            # --- Process special actions that don't involve grading ---
-            if special_action == 'issue':
-                im.create_issue(q, question_topic_context)
-                input("Press Enter to continue...")
-                continue # Re-display the same question prompt
-            if special_action == 'source':
-                # Open existing source URL or inform absence
-                if q.get('source'):
-                    print(f"Opening source in your browser: {q['source']}")
-                    webbrowser.open(q['source'])
-                else:
-                    print("No source available for this question.")
-                input("Press Enter to continue...")
-                continue # Re-display the same question prompt
-            if special_action == 'generate':
-                new_q = qg.generate_more_questions(
-                    topic, 
-                    q, 
-                    _get_llm_model,
-                    QUESTIONS_DIR,
-                    Fore,
-                    Style,
-                    load_questions,
-                    get_normalized_question_text
-                )
-                if new_q:
-                    questions.insert(question_index + 1, new_q)
-                    # Save the updated questions list to the topic file
-                    # Only save if it's not a missed questions review session
-                    if topic != '_missed':
-                        save_questions_to_topic_file(question_topic_context, [q for q in questions if q.get('original_topic', topic) == question_topic_context])
-                        print(f"Added new question to '{os.path.join(QUESTIONS_DIR, f'{question_topic_context}.yaml')}'.")
-                    else:
-                        print("A new question has been added to this session (not saved to file in review mode).")
-                input("Press Enter to continue...")
-                continue # Re-display the same question prompt (or the new one if it's next)
-
-            # --- Process actions that involve grading or showing solution ---
-            solution_text = "" # Initialize solution_text for scope
-            if special_action == 'solution':
-                is_correct = False # Viewing solution means not correct by own answer
+        elif special_action == 'vim':
+            user_manifest, result, sys_error = handle_vim_edit(q)
+            if result is None: # Added check for None result
+                continue # Re-display the question prompt
+            # If result is not a dict, treat as a message and display
+            if not isinstance(result, dict):
+                print(str(result)) # Convert to string before printing
                 user_answer_graded = True
-                suggestion_shown_for_current_question = True
+                break
+            if not sys_error:
+                if result.get('validation_feedback'):
+                    print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
+                    print(result['validation_feedback'])
+                
+                if result.get('ai_feedback'):
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    print(result['ai_feedback'])
+
+                is_correct = result['correct']
+                if not is_correct:
+                    # Use canonical solution manifest
+                    if isinstance(sol_manifest, (dict, list)):
+                        sol_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
+                    else:
+                        sol_text = sol_manifest or ''
+                    show_diff(user_manifest, sol_text)
+                    print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
+                    print(colorize_yaml(sol_text))
+                else:
+                    print(f"{Fore.GREEN}\nCorrect! Well done.")
+                    user_answer_graded = True
+                    # No break here, flow to post-answer menu
+
+        elif 'manifest' in q.get('question', '').lower():
+            # Automatically use vim for manifest questions
+            user_manifest, result, sys_error = handle_vim_edit(q)
+            if result is None: # Added check for None result
+                continue # Re-display the question prompt
+            # If result is not a dict, treat as a message and display
+            if not isinstance(result, dict):
+                print(str(result)) # Convert to string before printing
+                user_answer_graded = True
+                break
+            if not sys_error:
+                if result.get('validation_feedback'):
+                    print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
+                    print(result['validation_feedback'])
+                
+                if result.get('ai_feedback'):
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    print(result['ai_feedback'])
+
+                is_correct = result['correct']
+                if not is_correct:
+                    show_diff(user_manifest, q['solution'])
+                    print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
+                    print(colorize_yaml(q['solution']))
+                else:
+                    print(f"{Fore.GREEN}\nCorrect! Well done.")
+                if q.get('source'):
+                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+            user_answer_graded = True
+            # No break here, flow to post-answer menu
+        elif user_commands:
+            user_answer_graded = True
+            user_answer_str = "\n".join(user_commands)
+            
+            # Normalize both user answer and suggestion for comparison
+            normalized_user_answer = normalize_command(user_commands)
+            
+            # The suggestion can be a single string or a list of strings
+            suggestions = q.get('suggestion')
+            if not suggestions: # If 'suggestion' key is missing or empty
+                suggestions = [q.get('solution')]
+            
+            # Check if there's actually a suggestion to compare against
+            if not suggestions or suggestions == [None]:
+                is_correct = False
+                print(f"{Fore.RED}No suggestion available for comparison.")
+                # Optionally, provide AI feedback if enabled, indicating no suggestion
+                if ai_feedback_enabled:
+                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                    ai_result = get_ai_verdict(q['question'], user_answer_str, "No suggestion provided")
+                    feedback = ai_result['feedback']
+                    print(feedback)
+                break # Exit inner loop to go to post-answer menu
+
+            is_correct = False
+            matched_suggestion = ""
+            for sol in suggestions:
+                # Suggestions can be multiline commands
+                sol_str = str(sol)
+                sol_lines = sol_str.strip().split('\n')
+
+                normalized_sol = normalize_command(sol_lines)
+                
+                # Simple string comparison after normalization
+                if ' '.join(normalized_user_answer) == ' '.join(normalized_sol):
+                    is_correct = True
+                    matched_suggestion = sol
+                    break
+
+            # Initial check for correctness based on normalized string comparison
+            # This is a preliminary check; AI will provide final verdict if enabled.
+            initial_is_correct = False
+            matched_suggestion = ""
+            for sol in suggestions:
+                sol_str = str(sol)
+                sol_lines = sol_str.strip().split('\n')
+                normalized_sol = normalize_command(sol_lines)
+                if ' '.join(normalized_user_answer) == ' '.join(normalized_sol):
+                    initial_is_correct = True
+                    matched_suggestion = sol
+                    break
+
+            # Determine final correctness: skip AI if suggestion matches exactly
+            if initial_is_correct:
+                is_correct = True
+            elif ai_feedback_enabled:
+                print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                ai_result = get_ai_verdict(q['question'], user_answer_str, suggestions[0])
+                feedback = ai_result['feedback']
+                is_correct = ai_result['correct']
+                print(feedback)
+            else:
+                is_correct = False
+
+            # Display diff and suggestion if incorrect
+            if not is_correct:
+                # Showing diff and suggestion for incorrect answers
+                # Show diff if there's a single suggestion for clarity
+                if len(suggestions) == 1 and suggestions[0] is not None:
+                    show_diff(user_answer_str, str(suggestions[0]))
+
                 print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
-                solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
+                solution_text = suggestions[0] # Show the first suggestion
                 if isinstance(solution_text, (dict, list)):
                     dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                     print(colorize_yaml(dumped))
@@ -1268,198 +1442,50 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     print(colorize_yaml(solution_text))
                 else:
                     print(f"{Fore.YELLOW}{solution_text}")
-                if q.get('source'):
-                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                # Handled by outer loop logic
-                break
 
-            elif special_action == 'vim':
-                user_manifest, result, sys_error = handle_vim_edit(q)
-                if result is None: # Added check for None result
-                    continue # Re-display the question prompt
-                # If result is not a dict, treat as a message and display
-                if not isinstance(result, dict):
-                    print(str(result)) # Convert to string before printing
-                    user_answer_graded = True
-                    break
-                if not sys_error:
-                    if result.get('validation_feedback'):
-                        print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
-                        print(result['validation_feedback'])
-                    
-                    if result.get('ai_feedback'):
-                        print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        print(result['ai_feedback'])
+            if q.get('source'):
+                print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
 
-                    is_correct = result['correct']
-                    if not is_correct:
-                        # Use canonical solution manifest
-                        if isinstance(sol_manifest, (dict, list)):
-                            sol_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
-                        else:
-                            sol_text = sol_manifest or ''
-                        show_diff(user_manifest, sol_text)
-                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
-                        print(colorize_yaml(sol_text))
-                    else:
-                        print(f"{Fore.GREEN}\nCorrect! Well done.")
-                        user_answer_graded = True
-                        break
+            # Final binary decision
+            if is_correct:
+                print(f"\n{Fore.GREEN}Correct")
+            else:
+                print(f"\n{Fore.RED}Incorrect")
 
-            elif 'manifest' in q.get('question', '').lower():
-                # Automatically use vim for manifest questions
-                user_manifest, result, sys_error = handle_vim_edit(q)
-                if result is None: # Added check for None result
-                    continue # Re-display the question prompt
-                # If result is not a dict, treat as a message and display
-                if not isinstance(result, dict):
-                    print(str(result)) # Convert to string before printing
-                    user_answer_graded = True
-                    break
-                if not sys_error:
-                    if result.get('validation_feedback'):
-                        print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
-                        print(result['validation_feedback'])
-                    
-                    if result.get('ai_feedback'):
-                        print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        print(result['ai_feedback'])
-
-                    is_correct = result['correct']
-                    if not is_correct:
-                        show_diff(user_manifest, q['solution'])
-                        print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
-                        print(colorize_yaml(q['solution']))
-                    else:
-                        print(f"{Fore.GREEN}\nCorrect! Well done.")
-                    if q.get('source'):
-                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                user_answer_graded = True
-                break # Exit inner loop, go to post-answer menu
-            elif user_commands:
-                user_answer_graded = True
-                user_answer_str = "\n".join(user_commands)
-                
-                # Normalize both user answer and suggestion for comparison
-                normalized_user_answer = normalize_command(user_commands)
-                
-                # The suggestion can be a single string or a list of strings
-                suggestions = q.get('suggestion')
-                if not suggestions: # If 'suggestion' key is missing or empty
-                    suggestions = [q.get('solution')]
-                
-                # Check if there's actually a suggestion to compare against
-                if not suggestions or suggestions == [None]:
-                    is_correct = False
-                    print(f"{Fore.RED}No suggestion available for comparison.")
-                    # Optionally, provide AI feedback if enabled, indicating no suggestion
-                    if ai_feedback_enabled:
-                        print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                        ai_result = get_ai_verdict(q['question'], user_answer_str, "No suggestion provided")
-                        feedback = ai_result['feedback']
-                        print(feedback)
-                    break # Exit inner loop to go to post-answer menu
-
-                is_correct = False
-                matched_suggestion = ""
-                for sol in suggestions:
-                    # Suggestions can be multiline commands
-                    sol_str = str(sol)
-                    sol_lines = sol_str.strip().split('\n')
-
-                    normalized_sol = normalize_command(sol_lines)
-                    
-                    # Simple string comparison after normalization
-                    if ' '.join(normalized_user_answer) == ' '.join(normalized_sol):
-                        is_correct = True
-                        matched_suggestion = sol
-                        break
-
-                if is_correct:
-                    pass
-                else:
-                    # Showing diff and suggestion for incorrect answers
-                    # Show diff if there's a single suggestion for clarity
-                    if len(suggestions) == 1 and suggestions[0] is not None:
-                        show_diff(user_answer_str, str(suggestions[0]))
-
-                    print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
-                    solution_text = suggestions[0] # Show the first suggestion
-                    if isinstance(solution_text, (dict, list)):
-                        dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
-                        print(colorize_yaml(dumped))
-                    elif '\n' in solution_text:
-                        print(colorize_yaml(solution_text))
-                    else:
-                        print(f"{Fore.YELLOW}{solution_text}")
-
-                if q.get('source'):
-                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-
-                if ai_feedback_enabled and not is_correct:
-                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    ai_result = get_ai_verdict(q['question'], user_answer_str, suggestions[0])
-                    feedback = ai_result['feedback']
-                    is_correct = ai_result['correct']
-                    print(feedback)
-
-                # Final binary decision
-                if is_correct:
-                    print(f"\n{Fore.GREEN}Correct")
-                else:
-                    print(f"\n{Fore.RED}Incorrect")
-
-                break # Exit inner loop, go to post-answer menu
-            else: # User typed 'done' without commands, or empty input
-                print("Please enter a command or a special action.")
-                continue # Re-display the same question prompt
-
-        # End of inner while question_index < len(questions) loop
-        if retry_current_question: # Check the flag
-            print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}") # Print message here
-            retry_current_question = False # Reset the flag
-            continue # Do not increment question_index, so the same question is re-displayed
-        else:
-            question_index += 1 # Increment question_index after processing
+            # No break here, flow to post-answer menu
+        else: # User typed 'done' without commands, or empty input
+            print("Please enter a command or a special action.")
+            continue # Re-display the same question prompt
 
         # Post-answer menu (after a question has been answered or skipped)
         if user_answer_graded:
             # Update performance data with the graded result
-            if is_correct:
-                normalized_q = get_normalized_question_text(q)
-                topic_perf = performance_data.get(topic, {})
-                if 'correct_questions' not in topic_perf:
-                    topic_perf['correct_questions'] = []
-                if normalized_q not in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].append(normalized_q)
-                performance_data[topic] = topic_perf
+            session.update_performance(q, is_correct, get_normalized_question_text)
             # Save performance data after each graded question
             save_performance_data(performance_data)
 
-        # If all questions in the current session are done, break the outer loop
-        if question_index >= len(questions):
-            break # Exit outer loop, all questions done
-
         # Post-answer menu loop
         while True:
-            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {question_index}/{len(questions)} ---" + Style.RESET_ALL)
+            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {session.current_question_index + 1}/{len(session.questions_in_session)} ---" + Style.RESET_ALL)
+            # Prompt user for post-answer action
             choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]quit: {Style.RESET_ALL}").strip().lower()
 
             if choice == 'n':
-                question_index += 1 # Increment question_index for next question
+                next_q = session.next_question()
+                if next_q is None:
+                    return # Session complete
                 break # Exit post-answer menu, go to next question
             elif choice == 'b':
-                # Go back to the previous question
-                if question_index > 0:
-                    question_index -= 1
+                prev_q = session.previous_question()
+                if prev_q:
                     print(f"{Fore.GREEN}Going back to the previous question.{Style.RESET_ALL}")
                     break # Break to re-render the previous question
                 else:
-                    print(f"{Fore.YELLOW}Already at the first question.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}Already at the first question or no history.{Style.RESET_ALL}")
             elif choice == 'i':
                 # Mark question as problematic and remove from corpus
-                im.create_issue(current_question, question_topic_context)
-                remove_question_from_corpus(current_question, question_topic_context)
+                im.create_issue(q, question_topic_context)
+                remove_question_from_corpus(q, question_topic_context)
                 # Also remove from current session's questions list to prevent it from being asked again
                 # This requires modifying the 'questions' list in the run_topic scope.
                 # For now, I'll just print a message.
@@ -1467,20 +1493,22 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
             elif choice == 's':
                 # Display source for the question
-                if 'source' in current_question:
+                if 'source' in q:
                     try:
                         import webbrowser
-                        print(f"{Fore.CYAN}Opening source in your browser: {current_question['source']}{Style.RESET_ALL}")
-                        webbrowser.open(current_question['source'])
+                        print(f"{Fore.CYAN}Opening source in your browser: {q['source']}{Style.RESET_ALL}")
+                        webbrowser.open(q['source'])
                     except Exception as e:
                         print(f"{Fore.RED}Could not open browser: {e}{Style.RESET_ALL}")
                 else:
                     print(f"{Fore.YELLOW}No source available for this question.{Style.RESET_ALL}")
                 input("Press Enter to continue...")
             elif choice == 'r':
-                # Reload/retry the current question
-                retry_current_question = True # Set the flag
-                dbg(f"run_topic: retry_current_question after setting in 'r' choice: {retry_current_question}")
+                session.add_to_retry_queue(q)
+                print(f"{Fore.GREEN}Question added to retry queue.{Style.RESET_ALL}")
+                next_q = session.next_question()
+                if next_q is None:
+                    return # Session complete
                 break # Exit post-answer menu
             elif choice == 'c':
                 # Go to configuration menu
@@ -1489,8 +1517,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 return 'quit_app' # Signal to quit application
             else:
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
-
-        
 
     # No final session menu: simply return to main menu after completion
     return
@@ -1547,7 +1573,7 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         selected_topic, num_to_study, questions_to_study = topic_info
         
         backup_performance_file()
-        run_topic_result = run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
+        run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
             save_performance_data(performance_data)
             backup_performance_file()
@@ -1580,7 +1606,7 @@ if __name__ == "__main__":
             _CLI_ANSWER_OVERRIDE = args.cli_answer # Set the global override variable
             
             print(f"Processing question from topic '{args.cli_question_topic}' at index {args.cli_question_index} with answer: '{args.cli_answer}'")
-            run_topic(args.cli_question_topic, 1, performance_data, questions_to_study)
+            run_topic(args.cli_question_topic, questions_to_study, performance_data)
             save_performance_data(performance_data)
             backup_performance_file()
             sys.exit(0) # Exit after processing the single question
