@@ -8,7 +8,7 @@ import random
 
 # Changed import
 import kubelingo.question_generator as qg
-from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text, manifests_equivalent, USER_DATA_DIR, MISSED_QUESTIONS_FILE # Added manifests_equivalent, USER_DATA_DIR, MISSED_QUESTIONS_FILE
+from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text, manifests_equivalent, USER_DATA_DIR, MISSED_QUESTIONS_FILE, save_question_to_list, remove_question_from_list, load_questions_from_list # Added save_question_to_list, remove_question_from_list, load_questions_from_list
 
 # --- Fixtures for mocking file system ---
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_save_question_to_list_new_file(mock_question_list_file):
     question = {'question': 'Test Q', 'solution': 'A'}
     topic = 'test_topic'
     
-    qg.save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
     
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_not_called() # No file to load from
@@ -57,7 +57,7 @@ def test_save_question_to_list_existing_file_new_question(mock_question_list_fil
     question = {'question': 'New Q', 'solution': 'C'}
     topic = 'test_topic'
 
-    qg.save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
 
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
@@ -75,7 +75,7 @@ def test_save_question_to_list_existing_file_duplicate_question(mock_question_li
     mock_load.return_value = [question] # Duplicate
     topic = 'test_topic'
 
-    qg.save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
 
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
@@ -89,7 +89,7 @@ def test_save_question_to_list_yaml_error(mock_question_list_file):
     question = {'question': 'New Q', 'solution': 'C'}
     topic = 'test_topic'
 
-    qg.save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
     
     expected_question_to_save = question.copy()
     expected_question_to_save['original_topic'] = topic
@@ -103,7 +103,7 @@ def test_remove_question_from_list_exists(mock_question_list_file):
     existing_q2 = {'question': 'Q2', 'solution': 'B'}
     mock_load.return_value = [existing_q1, existing_q2]
     
-    qg.remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
+    remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
     
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
@@ -117,7 +117,7 @@ def test_remove_question_from_list_not_exists(mock_question_list_file):
     mock_load.return_value = [existing_q1]
     question_to_remove = {'question': 'Non-existent Q', 'solution': 'C'}
     
-    qg.remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
@@ -129,7 +129,7 @@ def test_remove_question_from_list_no_file(mock_question_list_file):
     mock_exists.return_value = False
     question_to_remove = {'question': 'Q1', 'solution': 'A'}
     
-    qg.remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
     mock_load.assert_not_called()
@@ -142,14 +142,14 @@ def test_remove_question_from_list_yaml_error(mock_question_list_file):
     mock_load.side_effect = yaml.YAMLError
     question_to_remove = {'question': 'Q1', 'solution': 'A'}
 
-    qg.remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
     mock_dump.assert_called_once_with([], mock_file_handle) # Should write an empty list
     assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
 
 def test_load_questions_from_list_no_file(mock_os_path_exists):
     mock_os_path_exists.return_value = False
-    questions = qg.load_questions_from_list(MISSED_QUESTIONS_FILE)
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
     assert questions == []
     mock_os_path_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
 
@@ -157,7 +157,7 @@ def test_load_questions_from_list_empty_file(mock_os_path_exists, mock_yaml_safe
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
     mock_yaml_safe_load.return_value = None
-    questions = qg.load_questions_from_list(MISSED_QUESTIONS_FILE)
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
     assert questions == []
     mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
     mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
@@ -167,7 +167,7 @@ def test_load_questions_from_list_valid_file(mock_os_path_exists, mock_yaml_safe
     mock_os_path_exists.return_value = True
     expected_questions = {'question': 'Q1'}
     mock_yaml_safe_load.return_value = expected_questions
-    questions = qg.load_questions_from_list(MISSED_QUESTIONS_FILE)
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
     assert questions == expected_questions
     mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
     mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
@@ -176,19 +176,19 @@ def test_load_questions_from_list_valid_file(mock_os_path_exists, mock_yaml_safe
 
 def test_get_normalized_question_text_basic():
     q = {'question': '  What is Kubernetes?  '}
-    assert qg.get_normalized_question_text(q) == 'what is kubernetes?'
+    assert get_normalized_question_text(q) == 'what is kubernetes?'
 
 def test_get_normalized_question_text_missing_key():
     q = {'not_question': 'abc'}
-    assert qg.get_normalized_question_text(q) == ''
+    assert get_normalized_question_text(q) == ''
 
 def test_get_normalized_question_text_empty_string():
     q = {'question': ''}
-    assert qg.get_normalized_question_text(q) == ''
+    assert get_normalized_question_text(q) == ''
 
 def test_get_normalized_question_text_with_newlines():
     q = {'question': 'What\nis\nKubernetes?\n'}
-    assert qg.get_normalized_question_text(q) == 'what\nis\nkubernetes?'
+    assert get_normalized_question_text(q) == 'what\nis\nkubernetes?'
 
 
 @pytest.fixture
