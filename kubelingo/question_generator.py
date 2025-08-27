@@ -7,9 +7,39 @@ import requests
 import sys
 from thefuzz import fuzz
 from colorama import Fore, Style
+import webbrowser # Added for cmd_interactive_sources
+
+try:
+    from googlesearch import search
+except ImportError:
+    search = None
 
 # Import necessary functions/variables from kubelingo.py
-from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text, Fore, Style
+from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR
+from kubelingo.utils import load_questions, get_normalized_question_text
+
+def assign_source(question_dict, topic, Fore, Style, genai):
+    """
+    Searches for and assigns a source URL to a question if it's missing.
+    Returns True if a source was assigned, False otherwise.
+    """
+    if 'source' not in question_dict or not question_dict['source']:
+        if search: # Check if googlesearch is available
+            search_query = f"kubernetes {question_dict['question'].splitlines()[0].strip()}" # Use first line of question as query
+            try:
+                # Get the first search result URL
+                search_results = list(search(search_query, num_results=1))
+                if search_results:
+                    question_dict['source'] = search_results[0]
+                    return True
+            except Exception as e:
+                # Handle potential errors during search (e.g., network issues)
+                if genai is None: # Check if AI is disabled
+                    print(f"{Fore.YELLOW}Note: Could not find source for a question (AI disabled or search error: {e}).{Style.RESET_ALL}")
+        else:
+            if genai is None: # Check if AI is disabled
+                print(f"{Fore.YELLOW}Note: Could not find source for a question (googlesearch not installed and AI disabled).{Style.RESET_ALL}")
+    return False
 
 def generate_more_questions(topic, question):
     """Generates more questions based on an existing one."""
@@ -23,7 +53,7 @@ def generate_more_questions(topic, question):
         question_type = random.choice(['command', 'manifest'])
         
         # Get all existing questions for the topic to include in the prompt for uniqueness
-        all_existing_questions = load_questions(topic)
+        all_existing_questions = load_questions(topic, Fore, Style, None) # Pass Fore, Style, None for genai in load_questions
         existing_questions_list = all_existing_questions.get('questions', []) if all_existing_questions else []
         
         existing_questions_yaml = ""
@@ -44,7 +74,9 @@ def generate_more_questions(topic, question):
         The new question MUST be unique and not a semantic or literal copy of any existing questions provided.
 
         Example Question:
-        ---\n{yaml.safe_dump({'questions': [question]})}        ---\n
+        ---
+{yaml.safe_dump({'questions': [question]})}        ---
+
         {existing_questions_yaml}
         Your new question should be a {question_type}-based question.
         - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
@@ -66,7 +98,7 @@ def generate_more_questions(topic, question):
               metadata:
                 name: new-pod
             source: "https://kubernetes.io/docs/concepts/workloads/pods/"
-            rationale: "Tests basic Pod creation and YAML syntax."
+            rationale: "Tests basic Deployment creation and YAML syntax."
 
         Example for a command question:
         questions:
@@ -111,22 +143,28 @@ def generate_more_questions(topic, question):
                     return None # Indicate failure to generate a unique question
 
             # Normalize generated question: convert 'solution' to 'suggestion' list and clean whitespace
+            suggestion_list = []
             if 'suggestion' in new_q:
                 raw_sug = new_q.pop('suggestion')
                 suggestion_list = raw_sug if isinstance(raw_sug, list) else [raw_sug]
             elif 'solution' in new_q:
                 raw_sol = new_q.pop('solution')
                 suggestion_list = [raw_sol]
-            else:
-                suggestion_list = []
+            
             cleaned_suggestion = []
             for item in suggestion_list:
                 if isinstance(item, str):
-                    cleaned_suggestion.append(item.strip())
+                    # Aggressively clean whitespace and newlines for command-like solutions
+                    cleaned_item = item.strip().replace('\n', ' ').replace('  ', ' ')
+                    cleaned_suggestion.append(cleaned_item)
                 else:
                     cleaned_suggestion.append(item)
+            
             if cleaned_suggestion:
                 new_q['suggestion'] = cleaned_suggestion
+            # Ensure 'solution' key is removed if it was present
+            if 'solution' in new_q:
+                new_q.pop('solution')
             
             # Ensure 'source' field exists
             if not new_q.get('source'):
@@ -143,3 +181,123 @@ def generate_more_questions(topic, question):
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
+
+# --- Source Management Commands ---
+def get_source_from_consolidated(item):
+    metadata = item.get('metadata', {}) or {}
+    for key in ('links', 'source', 'citation'):
+        if key in metadata and metadata[key]:
+            val = metadata[key]
+            return val[0] if isinstance(val, list) else val
+    return None
+
+def cmd_add_sources(consolidated_file, questions_dir=QUESTIONS_DIR):
+    """Add missing 'source' fields from consolidated YAML."""
+    print(f"Loading consolidated questions from '{consolidated_file}'...")
+    data = yaml.safe_load(open(consolidated_file)) or {}
+    mapping = {}
+    for item in data.get('questions', []):
+        prompt = item.get('prompt') or item.get('question')
+        src = get_source_from_consolidated(item)
+        if prompt and src:
+            mapping[prompt.strip()] = src
+    print(f"Found {len(mapping)} source mappings.")
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        topic = yaml.safe_load(open(path)) or {}
+        qs = topic.get('questions', [])
+        updated = 0
+        for q in qs:
+            if q.get('source'):
+                continue
+            text = q.get('question', '').strip()
+            best_src, best_score = None, 0
+            for prompt, src in mapping.items():
+                r = fuzz.ratio(text, prompt)
+                if r > best_score:
+                    best_src, best_score = src, r
+            if best_score > 95:
+                q['source'] = best_src
+                updated += 1
+                print(f"  + Added source to '{text[:50]}...' -> {best_src}")
+        if updated:
+            yaml.dump(topic, open(path, 'w'), sort_keys=False)
+            print(f"Updated {updated} entries in {fname}.")
+    print("Done adding sources.")
+
+def cmd_check_sources(questions_dir=QUESTIONS_DIR):
+    """Report questions missing a 'source' field."""
+    missing = 0
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        data = yaml.safe_load(open(path)) or {}
+        for i, q in enumerate(data.get('questions', []), start=1):
+            if not q.get('source'):
+                print(f"{fname}: question {i} missing 'source': {q.get('question','')[:80]}")
+                missing += 1
+    if missing == 0:
+        print("All questions have a source.")
+    else:
+        print(f"{missing} questions missing sources.")
+
+def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
+    """
+    Interactively search and assign sources to questions."""
+    for fname in os.listdir(questions_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        path = os.path.join(questions_dir, fname)
+        data = yaml.safe_load(open(path)) or {}
+        qs = data.get('questions', [])
+        modified = False
+        for idx, q in enumerate(qs, start=1):
+            if q.get('source'):
+                continue
+            text = q.get('question','').strip()
+            print(f"\nFile: {fname} | Question {idx}: {text}")
+            if auto_approve:
+                if not search:
+                    print("  googlesearch not available.")
+                    continue
+                try:
+                    results = list(search(f"kubernetes {text}", num_results=1))
+                except Exception as e:
+                    print(f"  Search error: {e}")
+                    continue
+                if results:
+                    q['source'] = results[0]
+                    print(f"  Auto-set source: {results[0]}")
+                    modified = True
+                continue
+            if not search:
+                print("  Install googlesearch-python to enable search.")
+                return
+            print("  Searching for sources...")
+            try:
+                results = list(search(f"kubernetes {text}", num_results=5))
+            except Exception as e:
+                print(f"  Search error: {e}")
+                continue
+            if not results:
+                print("  No results found.")
+                continue
+            for i, url in enumerate(results, 1):
+                print(f"    {i}. {url}")
+            choice = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ").strip().lower()
+            if choice == 'o':
+                for url in results:
+                    webbrowser.open(url)
+                choice = '1'
+            if choice.isdigit() and 1 <= int(choice) <= len(results):
+                sel = results[int(choice)-1]
+                q['source'] = sel
+                print(f"  Selected source: {sel}")
+                modified = True
+        if modified:
+            yaml.dump(data, open(path, 'w'), sort_keys=False)
+            print(f"Saved updates to {fname}.")
+    print("Interactive source session complete.")
