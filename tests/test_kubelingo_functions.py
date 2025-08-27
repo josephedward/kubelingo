@@ -18,19 +18,18 @@ from kubelingo.kubelingo import (
     clear_screen,
     load_questions,
     get_user_input,
-    _get_llm_model,
     get_ai_verdict,
     validate_manifest_with_llm,
-    generate_more_questions,
     handle_keys_menu,
     USER_DATA_DIR,
-    QUESTIONS_DIR,
     MISSED_QUESTIONS_FILE,
     ISSUES_FILE,
     validate_manifest_with_kubectl_dry_run,
     validate_kubectl_command_dry_run,
     handle_config_menu
 )
+from kubelingo.question_generator import generate_more_questions
+from kubelingo.utils import _get_llm_model, QUESTIONS_DIR
 
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 # --- Fixtures for mocking file system ---
