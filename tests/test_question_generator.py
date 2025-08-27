@@ -10,20 +10,7 @@ import random
 import kubelingo.question_generator as qg
 from kubelingo.kubelingo import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text, manifests_equivalent, USER_DATA_DIR, MISSED_QUESTIONS_FILE, save_question_to_list, remove_question_from_list, load_questions_from_list # Added save_question_to_list, remove_question_from_list, load_questions_from_list
 
-# --- Fixtures for mocking file system ---
-@pytest.fixture
-def mock_os_path_exists():
-    with patch('kubelingo.kubelingo.os.path.exists') as mock_exists:
-        yield mock_exists
 
-@pytest.fixture
-def mock_builtins_open(mocker):
-    # Create a mock for the file handle that mock_open would return
-    mock_file_handle = mocker.MagicMock()
-    m_open = mocker.patch('builtins.open', return_value=mock_file_handle)
-    # Allow entering and exiting the context manager
-    m_open.return_value.__enter__.return_value = mock_file_handle
-    yield m_open, mock_file_handle
 
 # --- Tests for question list management ---
 
