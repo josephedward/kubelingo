@@ -3,6 +3,7 @@ questions:
     ClusterIP service named 'webapp-svc' to expose the deployment on port 80.
   suggestion:
   - kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
+  source: https://stackoverflow.com/questions/62964958/expose-a-web-app-on-port-80-using-kubernetes-and-minikube
 - question: Create a manifest for a NodePort service named 'webapp-nodeport'. The
     service should forward traffic from a port on the node to port 80 on pods with
     the label 'app=webapp'.
@@ -19,6 +20,7 @@ questions:
       selector:
         app: webapp
       type: NodePort
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
 - question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort
     8080.
   suggestion:
@@ -32,6 +34,7 @@ questions:
         targetPort: 8080
       selector:
         app: web
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
 - question: Headless Service manifest for app=db on port 5432.
   suggestion:
   - apiVersion: v1
@@ -45,6 +48,7 @@ questions:
         targetPort: 5432
       selector:
         app: db
+  source: https://stackoverflow.com/questions/69611827/kubernetes-is-there-any-way-to-get-headless-service-endpoint-info-in-container
 - question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
   suggestion:
   - kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
@@ -75,3 +79,4 @@ questions:
         targetPort: 8080
       selector:
         app: MyApp
+  source: https://kubernetes.io/docs/tutorials/services/connect-applications-service/

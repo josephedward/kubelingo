@@ -12,6 +12,7 @@ questions:
         name: main
       imagePullSecrets:
       - name: reg-secret
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 - question: Command to generate a docker-registry pull secret named 'regcred' for
     'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com'
     (output YAML).
@@ -19,6 +20,7 @@ questions:
   - kubectl create secret docker-registry regcred --docker-server=registry.example.com
     --docker-username=USER --docker-password=PASS --docker-email=user@example.com
     --dry-run=client -o yaml
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
 - question: Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred.
   suggestion:
   - apiVersion: v1
@@ -32,3 +34,4 @@ questions:
         imagePullPolicy: Always
       imagePullSecrets:
       - name: regcred
+  source: https://kubernetes.io/docs/concepts/containers/images/

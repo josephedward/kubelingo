@@ -5,8 +5,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Binding a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - question: What is the short name for ComponentStatus?
   suggestion:
   - cs
@@ -17,8 +17,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ComponentStatus a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for ConfigMap?
   suggestion:
   - cm
@@ -29,8 +29,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ConfigMap a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
 - question: What is the short name for Endpoints?
   suggestion:
   - ep
@@ -41,8 +41,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Endpoints a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for Event?
   suggestion:
   - ev
@@ -53,8 +53,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Event a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for LimitRange?
   suggestion:
   - limits
@@ -65,8 +65,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is LimitRange a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/policy/limit-range/
 - question: What is the short name for Namespace?
   suggestion:
   - ns
@@ -77,12 +77,11 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Namespace a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for Node?
   suggestion:
-  - |-
-    no
+  - 'no'
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: What is the API version for Node?
   suggestion:
@@ -90,8 +89,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Node a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for PersistentVolumeClaim?
   suggestion:
   - pvc
@@ -102,8 +101,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PersistentVolumeClaim a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 - question: What is the short name for PersistentVolume?
   suggestion:
   - pv
@@ -114,8 +113,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PersistentVolume a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 - question: What is the short name for Pod?
   suggestion:
   - po
@@ -126,16 +125,16 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Pod a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the API version for PodTemplate?
   suggestion:
   - v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PodTemplate a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for ReplicationController?
   suggestion:
   - rc
@@ -146,8 +145,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ReplicationController a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/
 - question: What is the short name for ResourceQuota?
   suggestion:
   - quota
@@ -158,16 +157,16 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ResourceQuota a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/policy/resource-quotas/
 - question: What is the API version for Secret?
   suggestion:
   - v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Secret a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
 - question: What is the short name for ServiceAccount?
   suggestion:
   - sa
@@ -178,8 +177,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ServiceAccount a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/security/service-accounts/
 - question: What is the short name for Service?
   suggestion:
   - svc
@@ -190,51 +189,52 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Service a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the API version for MutatingWebhookConfiguration?
   suggestion:
   - admissionregistration.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is MutatingWebhookConfiguration a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
 - question: What is the API version for ValidatingWebhookConfiguration?
   suggestion:
   - admissionregistration.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ValidatingWebhookConfiguration a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/
 - question: What are the short names for CustomResourceDefinition?
   suggestion:
   - crd, crds
+  source: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/
 - question: What is the API version for CustomResourceDefinition?
   suggestion:
   - apiextensions.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CustomResourceDefinition a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/
 - question: What is the API version for APIService?
   suggestion:
   - apiregistration.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is APIService a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/using-api/api-concepts/
 - question: What is the API version for ControllerRevision?
   suggestion:
   - apps/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ControllerRevision a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for DaemonSet?
   suggestion:
   - ds
@@ -245,8 +245,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is DaemonSet a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 - question: What is the short name for Deployment?
   suggestion:
   - deploy
@@ -257,8 +257,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Deployment a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for ReplicaSet?
   suggestion:
   - rs
@@ -269,8 +269,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ReplicaSet a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 - question: What is the short name for StatefulSet?
   suggestion:
   - sts
@@ -281,48 +281,48 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is StatefulSet a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
 - question: What is the API version for TokenReview?
   suggestion:
   - authentication.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is TokenReview a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/authentication/
 - question: What is the API version for LocalSubjectAccessReview?
   suggestion:
   - authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is LocalSubjectAccessReview a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: /search?num=3
 - question: What is the API version for SelfSubjectAccessReview?
   suggestion:
   - authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is SelfSubjectAccessReview a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/authorization/
 - question: What is the API version for SelfSubjectRulesReview?
   suggestion:
   - authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is SelfSubjectRulesReview a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/authorization/
 - question: What is the API version for SubjectAccessReview?
   suggestion:
   - authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is SubjectAccessReview a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/authorization/
 - question: What is the short name for HorizontalPodAutoscaler?
   suggestion:
   - hpa
@@ -333,8 +333,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is HorizontalPodAutoscaler a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
 - question: What is the short name for CronJob?
   suggestion:
   - cj
@@ -345,16 +345,16 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CronJob a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
 - question: What is the API version for Job?
   suggestion:
   - batch/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Job a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the short name for CertificateSigningRequest?
   suggestion:
   - csr
@@ -365,48 +365,48 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CertificateSigningRequest a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://cert-manager.io/docs/usage/kube-csr/
 - question: What is the API version for Lease?
   suggestion:
   - coordination.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Lease a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the API version for EndpointSlice?
   suggestion:
   - discovery.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is EndpointSlice a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/
 - question: What is the API version for FlowSchema?
   suggestion:
   - flowcontrol.apiserver.k8s.io/v1beta2
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is FlowSchema a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
 - question: What is the API version for PriorityLevelConfiguration?
   suggestion:
   - flowcontrol.apiserver.k8s.io/v1beta2
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PriorityLevelConfiguration a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: /search?num=3
 - question: What is the API version for IngressClass?
   suggestion:
   - networking.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is IngressClass a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: /search?num=3
 - question: What is the short name for Ingress?
   suggestion:
   - ing
@@ -417,8 +417,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Ingress a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/services-networking/ingress/
 - question: What is the short name for NetworkPolicy?
   suggestion:
   - netpol
@@ -429,16 +429,16 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is NetworkPolicy a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/concepts/services-networking/network-policies/
 - question: What is the API version for RuntimeClass?
   suggestion:
   - node.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is RuntimeClass a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/containers/runtime-class/
 - question: What is the short name for PodDisruptionBudget?
   suggestion:
   - pdb
@@ -449,8 +449,8 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PodDisruptionBudget a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
 - question: What is the short name for PodSecurityPolicy?
   suggestion:
   - psp
@@ -461,40 +461,40 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PodSecurityPolicy a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/security/pod-security-policy/
 - question: What is the API version for ClusterRoleBinding?
   suggestion:
   - rbac.authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ClusterRoleBinding a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - question: What is the API version for ClusterRole?
   suggestion:
   - rbac.authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is ClusterRole a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - question: What is the API version for RoleBinding?
   suggestion:
   - rbac.authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is RoleBinding a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - question: What is the API version for Role?
   suggestion:
   - rbac.authorization.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is Role a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
 - question: What is the short name for PriorityClass?
   suggestion:
   - pc
@@ -505,32 +505,32 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is PriorityClass a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/
 - question: What is the API version for CSIDriver?
   suggestion:
   - storage.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CSIDriver a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes-csi.github.io/docs/csi-driver-object.html
 - question: What is the API version for CSINode?
   suggestion:
   - storage.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CSINode a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: What is the API version for CSIStorageCapacity?
   suggestion:
   - storage.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is CSIStorageCapacity a namespaced resource?
   suggestion:
-  - |-
-    true
+  - 'true'
+  source: /search?num=3
 - question: What is the short name for StorageClass?
   suggestion:
   - sc
@@ -541,13 +541,13 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is StorageClass a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/storage/storage-classes/
 - question: What is the API version for VolumeAttachment?
   suggestion:
   - storage.k8s.io/v1
   source: https://kubernetes.io/docs/reference/kubectl/#resource-types
 - question: Is VolumeAttachment a namespaced resource?
   suggestion:
-  - |-
-    false
+  - 'false'
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/

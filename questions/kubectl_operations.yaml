@@ -2,6 +2,7 @@ questions:
 - question: List the available commands that correspond to alpha features.
   suggestion:
   - kubectl alpha
+  source: https://kubernetes.io/docs/reference/kubectl/
 - question: Add or update the annotations of one or more resources.
   suggestion:
   - kubectl annotate
@@ -21,6 +22,7 @@ questions:
 - question: Attach to a running container.
   suggestion:
   - kubectl attach
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_attach/
 - question: Inspect authorization.
   suggestion:
   - kubectl auth
@@ -28,6 +30,7 @@ questions:
 - question: Automatically scale the set of pods managed by a replication controller.
   suggestion:
   - kubectl autoscale
+  source: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
 - question: Modify certificate resources.
   suggestion:
   - kubectl certificate
@@ -43,9 +46,11 @@ questions:
 - question: Modify kubeconfig files.
   suggestion:
   - kubectl config
+  source: https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/
 - question: Convert config files between different API versions.
   suggestion:
   - kubectl convert
+  source: https://jamesdefabia.github.io/docs/user-guide/kubectl/kubectl_convert/
 - question: Mark node as unschedulable.
   suggestion:
   - kubectl cordon
@@ -61,6 +66,7 @@ questions:
 - question: Delete resources from a file, stdin, or by selectors.
   suggestion:
   - kubectl delete
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_delete/
 - question: Display the detailed state of one or more resources.
   suggestion:
   - kubectl describe
@@ -76,6 +82,7 @@ questions:
 - question: Edit a resource on the server.
   suggestion:
   - kubectl edit
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_edit/
 - question: List events.
   suggestion:
   - kubectl events
@@ -87,9 +94,11 @@ questions:
 - question: Get documentation for a resource.
   suggestion:
   - kubectl explain
+  source: https://kubernetes.io/docs/reference/kubectl/
 - question: Expose a resource as a new Kubernetes service.
   suggestion:
   - kubectl expose
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_expose/
 - question: List one or more resources.
   suggestion:
   - kubectl get
@@ -97,6 +106,7 @@ questions:
 - question: Build a set of Kustomize resources.
   suggestion:
   - kubectl kustomize
+  source: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/
 - question: Add or update the labels of one or more resources.
   suggestion:
   - kubectl label
@@ -108,9 +118,11 @@ questions:
 - question: List global command-line options.
   suggestion:
   - kubectl options
+  source: https://kubernetes.io/docs/reference/kubectl/
 - question: Update one or more fields of a resource.
   suggestion:
   - kubectl patch
+  source: https://stackoverflow.com/questions/40142242/updating-the-deployment-need-to-change-multiple-values
 - question: Provides utilities for interacting with plugins.
   suggestion:
   - kubectl plugin
@@ -138,6 +150,7 @@ questions:
 - question: Update the size of a replication controller.
   suggestion:
   - kubectl scale
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_scale/
 - question: Configure application resources.
   suggestion:
   - kubectl set
@@ -149,6 +162,7 @@ questions:
 - question: Display resource usage of pods or nodes.
   suggestion:
   - kubectl top
+  source: https://stackoverflow.com/questions/54531646/checking-kubernetes-pod-cpu-and-memory-utilization
 - question: Mark node as schedulable.
   suggestion:
   - kubectl uncordon
@@ -156,6 +170,8 @@ questions:
 - question: Display the Kubernetes version.
   suggestion:
   - kubectl version
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_version/
 - question: Wait for a specific condition on one or many resources.
   suggestion:
   - kubectl wait
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_wait/
