@@ -1300,7 +1300,7 @@ class XTestKubectlValidation:
 #         # Simulate 'vim' for the first question, then 'done' for the second question
 #         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
 #             # Provide two questions: first without solution, second a dummy
-#             mock_questions = [{ 
+#             mock_questions = [{
 #                 'question': 'Test Q without solution',
 #                 'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
 #                 'suggestion': []
@@ -1312,7 +1312,7 @@ class XTestKubectlValidation:
 #                         from kubelingo.kubelingo import run_topic
 #                         # Call run_topic with a dummy topic, starting at index 0, with performance data and questions
 #                         run_topic('dummy_topic', 0, {}, mock_questions)
-                        
+#
 #                         captured = capsys.readouterr()
 #                         # Assert that handle_vim_edit was called and printed its message
 #                         assert "This question does not have a solution to validate against for vim edit." in captured.out
@@ -1320,3 +1320,36 @@ class XTestKubectlValidation:
 #                         mock_handle_vim_edit.assert_called_once()
 #                         # Assert that the "Great job!" message is printed after the second question
 #                         assert "Great job! You've completed all questions for this topic." in captured.out
+
+def test_run_topic_retry_question(capsys):
+    # Mock necessary functions
+    with patch('kubelingo.kubelingo.get_user_input', side_effect=[
+        ([], 'r'), # First input: retry
+        (['done'], None) # Second input: done (after retry)
+    ]) as mock_get_user_input:
+        with patch('builtins.input', side_effect=[
+            'r', # Post-answer menu: retry
+            'n'  # Post-answer menu: next (after retry)
+        ]) as mock_input:
+            with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
+                with patch('kubelingo.kubelingo.save_performance_data') as mock_save_performance_data:
+                    # Provide a single question
+                    mock_questions = [{'question': 'Test Question', 'solution': 'Test Solution'}]
+                    
+                    # Call run_topic
+                    from kubelingo.kubelingo import run_topic
+                    run_topic('dummy_topic', 1, {}, mock_questions)
+                    
+                    captured = capsys.readouterr()
+                    
+                    # Verify that the question was displayed twice (once initially, once after retry)
+                    assert captured.out.count('--- Question 1/1 ---') == 2
+                    assert captured.out.count('Test Question') == 2
+                    assert 'Retrying the current question.' in captured.out
+                    
+                    # Verify that get_user_input was called twice for the same question
+                    assert mock_get_user_input.call_count == 2
+                    
+                    # Verify that save_performance_data was called
+                    mock_save_performance_data.assert_called_once()
+
