@@ -2,9 +2,11 @@ questions:
 - question: Add a label 'env=prod' to the pod named 'my-pod'.
   suggestion:
   - kubectl label pod my-pod env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 - question: Get all pods with the label 'env=prod'.
   suggestion:
   - kubectl get pods -l env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 - question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx''
     that has two labels: ''env=prod'' and ''app=frontend''.'
   suggestion:
@@ -19,12 +21,15 @@ questions:
       containers:
       - name: nginx
         image: nginx
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 - question: Command to label Namespace prod with tier=backend (overwrite if exists).
   suggestion:
   - kubectl label ns prod tier=backend --overwrite
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 - question: Command to list Pod names only using jsonpath.
   suggestion:
   - kubectl get pods -o jsonpath='{.items[*].metadata.name}'
+  source: https://kubernetes.io/docs/reference/kubectl/jsonpath/
 - question: Label pod busybox with env=prod.
   suggestion:
   - kubectl label pod busybox env=prod

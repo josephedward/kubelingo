@@ -10,13 +10,13 @@ questions:
       containers:
       - command:
         - sleep
-        - |-
-          3600
+        - '3600'
         image: busybox
         name: main
         securityContext:
           readOnlyRootFilesystem: true
           runAsUser: 1000
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 - question: Pod manifest running as non-root user 1000 with fsGroup 2000.
   suggestion:
   - apiVersion: v1
@@ -35,6 +35,7 @@ questions:
         - sh
         - -c
         - sleep 3600
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 - question: Container securityContext dropping all capabilities and readOnlyRootFilesystem.
   suggestion:
   - apiVersion: v1
@@ -54,6 +55,7 @@ questions:
             drop:
             - ALL
           readOnlyRootFilesystem: true
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 - question: List all secrets.
   suggestion:
   - kubectl get secrets

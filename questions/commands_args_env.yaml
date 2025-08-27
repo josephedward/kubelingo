@@ -6,6 +6,7 @@ questions:
   suggestion:
   - kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello"
     --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
+  source: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
 - question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
     using the `busybox` image. Override the container's command to be `[`/bin/sh`,
     `-c`]` and its arguments to be `[`echo Hello world`]` . The Pod should have a
@@ -25,6 +26,7 @@ questions:
         args:
         - echo Hello world
       restartPolicy: Never
+  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
 - question: '**Scenario:** In Kubernetes, you often need to run a container with a
     different command than the one specified in its Dockerfile. For example, you might
     want to run a one-off debugging script, or start a database container with a custom
@@ -55,6 +57,7 @@ questions:
         - -c
         args:
         - echo hello && sleep 3600
+  source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
 - question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
     named 'c' that uses the 'busybox' image. Configure the container to import all
     key-value pairs from the ConfigMap named 'app-cm' as environment variables.
@@ -70,3 +73,4 @@ questions:
         envFrom:
         - configMapRef:
             name: app-cm
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
