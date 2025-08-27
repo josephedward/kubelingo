@@ -3,7 +3,8 @@ import sys
 import requests
 import getpass
 import random
-import readline
+if sys.stdin.isatty():
+    import readline
 import time
 import yaml
 import argparse
@@ -25,6 +26,8 @@ import subprocess
 import difflib
 import copy
 from colorama import Fore, Style, init as colorama_init
+
+
 
 def clear_screen():
     """Clears the terminal screen."""
@@ -189,14 +192,21 @@ def load_performance_data():
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
     except yaml.YAMLError:
-        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Using empty data.{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Reinitializing.{Style.RESET_ALL}")
+        # Reinitialize the performance file with empty data
+        with open(PERFORMANCE_FILE, 'w') as f_init:
+            yaml.dump({}, f_init)
+        return {}
+    # If file is empty (no data), initialize with empty dict
+    if data is None:
+        with open(PERFORMANCE_FILE, 'w') as f_init:
+            yaml.dump({}, f_init)
         return {}
     # Ensure the loaded data is a mapping; otherwise ignore and preserve file
     if not isinstance(data, dict):
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' has unexpected format. Using empty data.{Style.RESET_ALL}")
         return {}
-    # Return the loaded data, or empty dict if none
-    return data or {}
+    return data
 
 def save_performance_data(data):
     """Saves performance data."""
@@ -971,8 +981,18 @@ def validate_manifest_with_kubectl_dry_run(manifest):
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
 
-def generate_more_questions(topic, question):
-    """Generates more questions based on an existing one."""
+
+
+def validate_kubectl_command_dry_run(command_string):
+    """Placeholder function for validating a kubectl command with dry-run."""
+    # Implement the actual logic here
+    return True, "kubectl dry-run successful!", "Details of the dry-run"
+    
+# --- Question Generation ---
+def generate_more_questions(topic, existing_question):
+    """
+    Generates more questions based on an existing one.
+    """
     llm_type, model = _get_llm_model()
     if not model:
         print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
@@ -981,51 +1001,20 @@ def generate_more_questions(topic, question):
     print("\nGenerating a new question... this might take a moment.")
     try:
         question_type = random.choice(['command', 'manifest'])
-        prompt = f'''
-        You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{topic}', please generate one new, distinct but related question.
-
-        Example Question:
-        ---
-        {yaml.safe_dump({'questions': [question]})}
-        ---
-
-        Your new question should be a {question_type}-based question.
-        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
-        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.
-
-        The new question should be in the same topic area but test a slightly different aspect or use different parameters.
-        Provide the output in valid YAML format, as a single item in a 'questions' list.
-        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
-        The solution must be correct and working.
-
-        Example for a manifest question:
-        questions:
-          - question: "Create a manifest for a Pod named 'new-pod'"
-            solution: |
-              apiVersion: v1
-              kind: Pod
-              ...
-            source: "https://kubernetes.io/docs/concepts/workloads/pods/"
-
-        Example for a command question:
-          - question: "Create a pod named 'new-pod' imperatively..."
-            solution: "kubectl run new-pod --image=nginx"
-            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
-        '''
+        prompt = f'''  \
+        You are a Kubernetes expert creating questions for a CKAD study guide.\n+        Based on the following example question about '{topic}', please generate one new, distinct but related question.\n+\n+        Example Question:\n+        ---\n+        {yaml.safe_dump({'questions': [existing_question]})}\n+        ---\n+\n+        Your new question should be a {question_type}-based question.\n+        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).\n+        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.\n+\n+        The new question should be in the same topic area but test a slightly different aspect or use different parameters.\n+        Provide the output in valid YAML format, as a single item in a 'questions' list.\n+        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.\n+        The solution must be correct and working.\n+\n+        Example for a manifest question:\n+        questions:\n+          - question: "Create a manifest for a Pod named 'new-pod'"\n+            solution: |\n+              apiVersion: v1\n+              kind: Pod\n+              ...\n+            source: "https://kubernetes.io/docs/concepts/workloads/pods/"\n+\n+        Example for a command question:\n+        questions:\n+          - question: "Create a pod named 'new-pod' imperatively..."\n+            solution: "kubectl run new-pod --image=nginx"\n+            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"\n+        '''
         if llm_type == "gemini":
             response = model.generate_content(prompt)
-        elif llm_type == "openai" or llm_type == "openrouter":
+        elif llm_type in ("openai", "openrouter"):
             response = model.chat.completions.create(
-                model="gpt-3.5-turbo", # Or another suitable model
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
                     {"role": "user", "content": prompt}
                 ]
             )
-            response.text = response.choices[0].message.content # Normalize response for consistent parsing
+            response.text = response.choices[0].message.content
 
-        # Clean the response to only get the YAML part
         cleaned_response = response.text.strip()
         if cleaned_response.startswith('```yaml'):
             cleaned_response = cleaned_response[7:]
@@ -1037,7 +1026,7 @@ def generate_more_questions(topic, question):
         except yaml.YAMLError:
             print("\nAI failed to generate a valid question. Please try again.")
             return None
-        
+
         if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
             new_q = new_question_data['questions'][0]
             print("\nNew question generated!")
@@ -1048,11 +1037,6 @@ def generate_more_questions(topic, question):
     except Exception as e:
         print(f"\nError generating question: {e}")
         return None
-
-def validate_kubectl_command_dry_run(command_string):
-    """Placeholder function for validating a kubectl command with dry-run."""
-    # Implement the actual logic here
-    return True, "kubectl dry-run successful!", "Details of the dry-run"
     """
     Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
@@ -1080,6 +1064,7 @@ def validate_kubectl_command_dry_run(command_string):
         Provide the output in valid YAML format, as a single item in a 'questions' list.
         The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
         The solution must be correct and working.
+        If a 'starter_manifest' is provided, it must use the literal block scalar style (e.g., 'starter_manifest: |').
 
         Example for a manifest question:
         questions:
@@ -1506,17 +1491,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     dbg("run_topic: After ai_feedback_enabled")
     show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True") == "True"
     dbg("run_topic: After show_dry_run_logs")
-    # In non-interactive CLI mode, show only the first question and exit immediately
-    if os.getenv('KUBELINGO_CLI_MODE') and not sys.stdin.isatty():
-        if questions_to_study:
-            q = questions_to_study[0]
-            context = q.get('original_topic', topic)
-            total = len(questions_to_study)
-            print(f"{Style.BRIGHT}{Fore.CYAN}Question 1/{total} (Topic: {context})", flush=True)
-            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-            print(q.get('question', ''), flush=True)
-            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-        return
     
 
     session_topic_name = topic
@@ -1605,7 +1579,16 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
             if special_action == 'generate':
-                new_q = generate_more_questions(topic, q)
+                new_q = generate_more_questions(
+                    topic, 
+                    q, 
+                    _get_llm_model, 
+                    QUESTIONS_DIR, 
+                    Fore, 
+                    Style, 
+                    load_questions, 
+                    get_normalized_question_text
+                )
                 if new_q:
                     questions.insert(question_index + 1, new_q)
                     # Save the updated questions list to the topic file
@@ -1636,6 +1619,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 if q.get('source'):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 # Handled by outer loop logic
+                break
 
             elif special_action == 'vim':
                 user_manifest, result, sys_error = handle_vim_edit(q)
@@ -1667,10 +1651,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         print(colorize_yaml(sol_text))
                     else:
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
-            if q.get('source'):
-                print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                user_answer_graded = True
-                break # Exit inner loop, go to post-answer menu
+                        user_answer_graded = True
+                        break
 
             elif 'manifest' in q.get('question', '').lower():
                 # Automatically use vim for manifest questions
@@ -1785,6 +1767,15 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
         # Post-answer menu (after a question has been answered or skipped)
         if user_answer_graded:
+            # Update performance data with the graded result
+            if is_correct:
+                normalized_q = get_normalized_question_text(q)
+                topic_perf = performance_data.get(topic, {})
+                if 'correct_questions' not in topic_perf:
+                    topic_perf['correct_questions'] = []
+                if normalized_q not in topic_perf['correct_questions']:
+                    topic_perf['correct_questions'].append(normalized_q)
+                performance_data[topic] = topic_perf
             # Save performance data after each graded question
             save_performance_data(performance_data)
 
@@ -1817,223 +1808,12 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
 
 
-        # --- Post-answer interaction ---
-        # This block is reached after a question has been answered/skipped/solution viewed.
-        # The user can now choose to navigate or report an issue.
         
-        # Update performance data only if an answer was graded (not just viewing source/issue)
-        if user_answer_graded:
-            session_total += 1
-            if is_correct:
-                session_correct += 1
-                normalized_question_text = get_normalized_question_text(q)
-                if normalized_question_text not in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].append(normalized_question_text)
-                # Also remove from missed questions if it was there
-                remove_question_from_list(MISSED_QUESTIONS_FILE, q)
-                if topic != '_missed':
-                    save_performance_data(performance_data)
-            else:
-                # If the question was previously answered correctly, remove it.
-                normalized_question_text = get_normalized_question_text(q)
-                if normalized_question_text in topic_perf['correct_questions']:
-                    topic_perf['correct_questions'].remove(normalized_question_text)
-                save_question_to_list(MISSED_QUESTIONS_FILE, q, question_topic_context)
-                if topic != '_missed':
-                    save_performance_data(performance_data)
-
-        if topic != '_missed':
-                performance_data[topic] = topic_perf
-
-        # Post-answer menu loop
-        while True:
-            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question Completed ---")
-            print("Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]uit")
-            post_action = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").lower().strip()
-
-            if post_action == 'n':
-                question_index += 1
-                break # Exit post-answer loop, advance to next question
-            elif post_action == 'b':
-                if question_index > 0:
-                    question_index -= 1
-                    break # Exit post-answer loop, go back to previous question
-                else:
-                    print("Already at the first question.")
-            elif post_action == 'i':
-                create_issue(q, question_topic_context) # Issue for the *current* question
-                # Stay in this loop, allow other options
-            elif post_action == 'c':
-                handle_config_menu()
-                continue # Re-display the same question prompt after config
-            elif post_action == 's':
-                # Open existing source or search/assign new one
-                if not q.get('source'):
-                    # Interactive search to assign or explore sources
-                    if search is None:
-                        print("'googlesearch-python' is not installed. Cannot search for sources.")
-                        input("Press Enter to continue...")
-                        continue
-                    question_text = q.get('question', '').strip()
-                    print(f"\nSearching for source for: {question_text}")
-                    try:
-                        results = list(search(f"kubernetes {question_text}", num_results=5))
-                    except Exception as e:
-                        print(f"Search error: {e}")
-                        input("Press Enter to continue...")
-                        continue
-                    if not results:
-                        print("No search results found.")
-                        input("Press Enter to continue...")
-                        continue
-                    # Determine default as first kubernetes.io link if present
-                    default_idx = next((i for i, u in enumerate(results) if 'kubernetes.io' in u), 0)
-                    print("Search results:")
-                    for i_enum, url in enumerate(results, 1):
-                        marker = ' (default)' if (i_enum-1) == default_idx else ''
-                        print(f"  {i_enum}. {url}{marker}")
-                    # Prompt user for action
-                    while True:
-                        raw_sel = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ")
-                        if raw_sel is None:
-                            print("Error: Input received None. This should not happen.")
-                            continue
-                        sel = raw_sel.strip().lower()
-                        if sel == '':
-                            chosen = results[default_idx]
-                            print(f"Assigned default source: {chosen}")
-                        elif sel == 's':
-                            print("Skipping source assignment.")
-                            chosen = None
-                        elif sel.startswith('o'):
-                            parts = sel.split()
-                            if len(parts) == 2 and parts[1].isdigit():
-                                idx = int(parts[1]) - 1
-                                if 0 <= idx < len(results):
-                                    webbrowser.open(results[idx])
-                                    continue
-                            print("Invalid open command.")
-                            continue
-                        elif sel.isdigit() and 1 <= int(sel) <= len(results):
-                            chosen = results[int(sel)-1]
-                            print(f"Assigned source: {chosen}")
-                        else:
-                            print("Invalid choice.")
-                            continue
-                        # Apply assignment if any
-                        if chosen:
-                            q['source'] = chosen
-                            if topic != '_missed':
-                                file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-                                topic_data = load_questions(topic)
-                                if topic_data and 'questions' in topic_data:
-                                    for orig_q in topic_data['questions']:
-                                        if get_normalized_question_text(orig_q) == get_normalized_question_text(q):
-                                            orig_q['source'] = chosen
-                                            break
-                                with open(file_path, 'w') as f:
-                                    yaml.dump(topic_data, f, sort_keys=False)
-                                print(f"Saved source to {file_path}")
-                        input("Press Enter to continue...")
-                        break
-                else:
-                    # Open existing source URL
-                    try:
-                        print(f"Opening source in your browser: {q['source']}")
-                        webbrowser.open(q['source'])
-                    except Exception as e:
-                        print(f"Could not open browser: {e}")
-                    input("Press Enter to continue...")
-                continue  # Re-display the same question prompt
-            elif post_action == 'r':
-                # Stay on the same question, clear user input, and re-prompt
-                user_commands.clear()
-                suggestion_shown_for_current_question = False # Reset for retry
-                print("\nRetrying the current question...")
-                break # Exit post-answer loop, re-enter inner loop for current question
-            elif post_action == 'l':
-                # Optional LLM feedback with custom query
-                custom_query = input("Enter custom query for AI feedback (or press Enter for general clarification): ").strip()
-                if custom_query: # Only generate and display feedback if a custom query is provided
-                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    # Determine the student's answer for feedback
-                    try:
-                        ua = user_answer_str
-                    except NameError:
-                        ua = globals().get('user_manifest', '')
-                    # Determine the canonical solution
-                    try:
-                        sol = solution_text
-                    except NameError:
-                        sols = q.get('suggestion') or []
-                        sol = sols[0] if sols else q.get('solution', '')
-                    ai_result = get_ai_verdict(q['question'], ua, sol, custom_query=custom_query or None)
-                    feedback = ai_result['feedback']
-                    print(feedback)
-                else:
-                    print("No custom query provided. AI feedback not generated.")
-                input("Press Enter to continue...")
-                continue
-            elif post_action == 'q':
-                # Persist performance data and exit the run_topic function
-                if topic != '_missed':
-                    save_performance_data(performance_data)
-                return  # Exit run_topic immediately
-            else:
-                print("Invalid option. Please choose 'n', 'b', 'i', 'g', 's', 'r', 'l', or 'q'.")
 
     
 
-    
-    # After completing all questions, offer post-completion options
-    # Session completed: persistence
-    while True:
-        print(f"{Style.BRIGHT}{Fore.GREEN}Great job! You've completed all questions for this topic.{Style.RESET_ALL}")
-        if topic != '_missed':
-            save_performance_data(performance_data)
-        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Topic Completed ---{Style.RESET_ALL}")
-        # Determine if generate is available (100% complete)
-        topic_data = load_questions(topic)
-        total_q = len(topic_data.get('questions', [])) if topic_data else 0
-        stats = performance_data.get(topic, {})
-        num_correct = len(stats.get('correct_questions') or [])
-        gen_opt = ''
-        if total_q > 0 and num_correct == total_q:
-            gen_opt = ", [g]enerate more questions"
-        print(f"Options: [r]etry topic{gen_opt}, [q]uit to main menu")
-        choice = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}").strip().lower()
-        if choice == 'r':
-            # Clear correct answers for fresh retry
-            if topic != '_missed' and stats is not None:
-                stats['correct_questions'] = []
-                save_performance_data(performance_data)
-            # Reload questions and restart
-            questions_all = topic_data.get('questions', []) if topic_data else []
-            return run_topic(topic, len(questions_all), performance_data, list(questions_all))
-        elif choice == 'g' and gen_opt:
-            # Generate a new question based on a random existing one
-            base_q = None
-            if topic_data and topic_data.get('questions'):
-                base_q = random.choice(topic_data['questions'])
-            new_q = generate_more_questions(topic, base_q)
-            if new_q:
-                # Append and save
-                topic_data['questions'].append(new_q)
-                file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-                with open(file_path, 'w') as f:
-                    yaml.dump(topic_data, f, sort_keys=False)
-                print(f"Added new question to '{file_path}'.")
-            else:
-                print("No new question generated.")
-            # Stay in loop to allow retry or generate again
-            continue
-        elif choice == 'q':
-            print("Returning to main menu...")
-            return
-        else:
-            print("Invalid option. Please choose 'r', 'g', or 'q'.")
-
-    # kubectl command dry-run logic has been removed; command questions rely on normalization and AI feedback only
+    # No final session menu: simply return to main menu after completion
+    return
 
 # --- Source Management Commands ---
 def get_source_from_consolidated(item):
