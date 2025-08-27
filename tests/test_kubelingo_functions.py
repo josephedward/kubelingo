@@ -19,13 +19,10 @@ from kubelingo.kubelingo import (
     load_questions,
     get_user_input,
     get_ai_verdict,
-    validate_manifest_with_llm,
     handle_keys_menu,
     USER_DATA_DIR,
     MISSED_QUESTIONS_FILE,
     ISSUES_FILE,
-    validate_manifest_with_kubectl_dry_run,
-    validate_kubectl_command_dry_run,
     handle_config_menu
 )
 from kubelingo.question_generator import generate_more_questions
@@ -94,7 +91,7 @@ def test_load_performance_data_no_file(mock_os_path_exists, mock_builtins_open, 
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         with patch('kubelingo.kubelingo.os.path.getsize'):
             data = load_performance_data()
-            assert data == {}
+            assert data == {{}}
             mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
             mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
             mock_yaml_dump.assert_called_once_with({}, mock_file_handle)
@@ -106,7 +103,7 @@ def test_load_performance_data_empty_file(mock_os_path_exists, mock_yaml_safe_lo
     mock_yaml_safe_load.return_value = None
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
-        assert data == {}
+        assert data == {{}}
         mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
         mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
         mock_open_func.assert_has_calls([call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')])
@@ -115,7 +112,7 @@ def test_load_performance_data_empty_file(mock_os_path_exists, mock_yaml_safe_lo
 def test_load_performance_data_valid_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
-    expected_data = {'topic1': {'correct_questions': ['q1']}}
+    expected_data = {{'topic1': {{'correct_questions': ['q1']}}}}
     mock_yaml_safe_load.return_value = expected_data
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
@@ -132,7 +129,7 @@ def test_load_performance_data_yaml_error(mock_os_path_exists, mock_os_path_gets
     mock_yaml_safe_load.side_effect = yaml.YAMLError
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
-        assert data == {}
+        assert data == {{}}
         mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
         
         assert mock_open_func.call_args_list == [call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')]
@@ -142,7 +139,7 @@ def test_load_performance_data_yaml_error(mock_os_path_exists, mock_os_path_gets
 
 def test_save_performance_data(mock_user_data_dir, mock_yaml_dump, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
-    data_to_save = {'topic1': {'correct_questions': ['q1']}}
+    data_to_save = {{'topic1': {{'correct_questions': ['q1']}}}}
     save_performance_data(data_to_save)
     mock_user_data_dir.assert_called_once()
     mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
@@ -160,7 +157,7 @@ def mock_question_list_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_
 def test_save_question_to_list_new_file(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = False
-    question = {'question': 'Test Q', 'solution': 'A'}
+    question = {{'question': 'Test Q', 'solution': 'A'}}
     topic = 'test_topic'
     
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -176,8 +173,8 @@ def test_save_question_to_list_new_file(mock_question_list_file):
 def test_save_question_to_list_existing_file_new_question(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    mock_load.return_value = [{'question': 'Existing Q', 'solution': 'B'}]
-    question = {'question': 'New Q', 'solution': 'C'}
+    mock_load.return_value = [{{'question': 'Existing Q', 'solution': 'B'}}]
+    question = {{'question': 'New Q', 'solution': 'C'}}
     topic = 'test_topic'
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -187,14 +184,14 @@ def test_save_question_to_list_existing_file_new_question(mock_question_list_fil
     
     expected_question_to_save = question.copy()
     expected_question_to_save['original_topic'] = topic
-    expected_list = [{'question': 'Existing Q', 'solution': 'B'}, expected_question_to_save]
+    expected_list = [{{'question': 'Existing Q', 'solution': 'B'}}, expected_question_to_save]
     mock_dump.assert_called_once_with(expected_list, mock_file_handle)
     assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
 
 def test_save_question_to_list_existing_file_duplicate_question(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    question = {'question': 'Existing Q', 'solution': 'B'}
+    question = {{'question': 'Existing Q', 'solution': 'B'}}
     mock_load.return_value = [question] # Duplicate
     topic = 'test_topic'
 
@@ -209,7 +206,7 @@ def test_save_question_to_list_yaml_error(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
     mock_load.side_effect = yaml.YAMLError
-    question = {'question': 'New Q', 'solution': 'C'}
+    question = {{'question': 'New Q', 'solution': 'C'}}
     topic = 'test_topic'
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -222,8 +219,8 @@ def test_save_question_to_list_yaml_error(mock_question_list_file):
 def test_remove_question_from_list_exists(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    existing_q1 = {'question': 'Q1', 'solution': 'A'}
-    existing_q2 = {'question': 'Q2', 'solution': 'B'}
+    existing_q1 = {{'question': 'Q1', 'solution': 'A'}}
+    existing_q2 = {{'question': 'Q2', 'solution': 'B'}}
     mock_load.return_value = [existing_q1, existing_q2]
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
@@ -236,9 +233,9 @@ def test_remove_question_from_list_exists(mock_question_list_file):
 def test_remove_question_from_list_not_exists(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    existing_q1 = {'question': 'Q1', 'solution': 'A'}
+    existing_q1 = {{'question': 'Q1', 'solution': 'A'}}
     mock_load.return_value = [existing_q1]
-    question_to_remove = {'question': 'Non-existent Q', 'solution': 'C'}
+    question_to_remove = {{'question': 'Non-existent Q', 'solution': 'C'}}
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
@@ -250,7 +247,7 @@ def test_remove_question_from_list_not_exists(mock_question_list_file):
 def test_remove_question_from_list_no_file(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = False
-    question_to_remove = {'question': 'Q1', 'solution': 'A'}
+    question_to_remove = {{'question': 'Q1', 'solution': 'A'}}
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
@@ -263,7 +260,7 @@ def test_remove_question_from_list_yaml_error(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
     mock_load.side_effect = yaml.YAMLError
-    question_to_remove = {'question': 'Q1', 'solution': 'A'}
+    question_to_remove = {{'question': 'Q1', 'solution': 'A'}}
 
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
@@ -288,7 +285,7 @@ def test_load_questions_from_list_empty_file(mock_os_path_exists, mock_yaml_safe
 def test_load_questions_from_list_valid_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
-    expected_questions = [{'question': 'Q1'}]
+    expected_questions = [{{'question': 'Q1'}}]
     mock_yaml_safe_load.return_value = expected_questions
     questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
     assert questions == expected_questions
@@ -298,19 +295,19 @@ def test_load_questions_from_list_valid_file(mock_os_path_exists, mock_yaml_safe
 # --- Tests for get_normalized_question_text ---
 
 def test_get_normalized_question_text_basic():
-    q = {'question': '  What is Kubernetes?  '}
+    q = {{'question': '  What is Kubernetes?  '}}
     assert get_normalized_question_text(q) == 'what is kubernetes?'
 
 def test_get_normalized_question_text_missing_key():
-    q = {'not_question': 'abc'}
+    q = {{'not_question': 'abc'}}
     assert get_normalized_question_text(q) == ''
 
 def test_get_normalized_question_text_empty_string():
-    q = {'question': ''}
+    q = {{'question': ''}}
     assert get_normalized_question_text(q) == ''
 
 def test_get_normalized_question_text_with_newlines():
-    q = {'question': 'What\nis\nKubernetes?\n'}
+    q = {{'question': 'What\nis\nKubernetes?\n'}}
     assert get_normalized_question_text(q) == 'what\nis\nkubernetes?'
 
 # --- Tests for normalize_command ---
@@ -346,7 +343,7 @@ def test_update_question_source_in_yaml_file_not_found(mock_topic_file, capsys):
     mock_exists.return_value = False
     
     topic = 'non_existent_topic'
-    updated_question = {'question': 'Q1', 'source': 'new_source'}
+    updated_question = {{'question': 'Q1', 'source': 'new_source'}}
     
     update_question_source_in_yaml(topic, updated_question)
     
@@ -363,16 +360,16 @@ def test_update_question_source_in_yaml_question_found(mock_topic_file, capsys):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = True
     
-    initial_data = {
+    initial_data = {{
         'questions': [
-            {'question': 'Q1', 'solution': 'A', 'source': 'old_source'},
-            {'question': 'Q2', 'solution': 'B'}
+            {{'question': 'Q1', 'solution': 'A', 'source': 'old_source'}},
+            {{'question': 'Q2', 'solution': 'B'}}
         ]
-    }
+    }}
     mock_load.return_value = initial_data
     
     topic = 'test_topic'
-    updated_question = {'question': 'Q1', 'source': 'new_source'}
+    updated_question = {{'question': 'Q1', 'source': 'new_source'}}
     
     update_question_source_in_yaml(topic, updated_question)
     
@@ -380,12 +377,12 @@ def test_update_question_source_in_yaml_question_found(mock_topic_file, capsys):
     mock_exists.assert_called_once_with(expected_path)
     mock_load.assert_called_once_with(mock_file_handle)
     
-    expected_data = {
+    expected_data = {{
         'questions': [
-            {'question': 'Q1', 'solution': 'A', 'source': 'new_source'},
-            {'question': 'Q2', 'solution': 'B'}
+            {{'question': 'Q1', 'solution': 'A', 'source': 'new_source'}},
+            {{'question': 'Q2', 'solution': 'B'}}
         ]
-    }
+    }}
     mock_dump.assert_called_once_with(expected_data, mock_file_handle)
     mock_open_func.assert_called_once_with(expected_path, 'r+')
     
@@ -396,15 +393,15 @@ def test_update_question_source_in_yaml_question_not_found(mock_topic_file, caps
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = True
     
-    initial_data = {
+    initial_data = {{
         'questions': [
-            {'question': 'Q1', 'solution': 'A', 'source': 'old_source'}
+            {{'question': 'Q1', 'solution': 'A', 'source': 'old_source'}}
         ]
-    }
+    }}
     mock_load.return_value = initial_data
     
     topic = 'test_topic'
-    updated_question = {'question': 'Non-existent Q', 'source': 'new_source'}
+    updated_question = {{'question': 'Non-existent Q', 'source': 'new_source'}}
     
     update_question_source_in_yaml(topic, updated_question)
     
@@ -423,7 +420,7 @@ def test_update_question_source_in_yaml_empty_file(mock_topic_file, capsys):
     mock_load.return_value = None # Empty YAML file
     
     topic = 'test_topic'
-    updated_question = {'question': 'Q1', 'source': 'new_source'}
+    updated_question = {{'question': 'Q1', 'source': 'new_source'}}
     
     update_question_source_in_yaml(topic, updated_question)
     
@@ -448,7 +445,7 @@ def test_create_issue_valid_input(mock_create_issue_deps, capsys):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = False # No existing issues file
     
-    question_dict = {'question': 'Test Question'}
+    question_dict = {{'question': 'Test Question'}}
     topic = 'test_topic'
     user_input = "This is a test issue."
 
@@ -458,12 +455,12 @@ def test_create_issue_valid_input(mock_create_issue_deps, capsys):
     mock_exists.assert_called_once_with(ISSUES_FILE)
     mock_load.assert_not_called()
     
-    expected_issue = {
+    expected_issue = {{
         'topic': topic,
         'question': question_dict['question'],
         'issue': user_input,
         'timestamp': 'mock_timestamp'
-    }
+    }}
     mock_dump.assert_called_once_with([expected_issue], mock_file_handle)
     mock_open_func.assert_called_once_with(ISSUES_FILE, 'w')
     mock_remove_question_from_list.assert_called_once_with(MISSED_QUESTIONS_FILE, question_dict)
@@ -476,7 +473,7 @@ def test_create_issue_empty_input(mock_create_issue_deps, capsys):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = False
     
-    question_dict = {'question': 'Test Question'}
+    question_dict = {{'question': 'Test Question'}}
     topic = 'test_topic'
     user_input = ""
 
@@ -495,9 +492,9 @@ def test_create_issue_empty_input(mock_create_issue_deps, capsys):
 def test_create_issue_existing_issues(mock_create_issue_deps, capsys):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
     mock_exists.return_value = True
-    mock_load.return_value = [{'issue': 'Old Issue'}]
+    mock_load.return_value = [{{'issue': 'Old Issue'}}]
     
-    question_dict = {'question': 'Test Question'}
+    question_dict = {{'question': 'Test Question'}}
     topic = 'test_topic'
     user_input = "New issue."
 
@@ -507,13 +504,13 @@ def test_create_issue_existing_issues(mock_create_issue_deps, capsys):
     mock_exists.assert_called_once_with(ISSUES_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
     
-    expected_issue = {
+    expected_issue = {{
         'topic': topic,
         'question': question_dict['question'],
         'issue': user_input,
         'timestamp': 'mock_timestamp'
-    }
-    expected_list = [{'issue': 'Old Issue'}, expected_issue]
+    }}
+    expected_list = [{{'issue': 'Old Issue'}}, expected_issue]
     mock_dump.assert_called_once_with(expected_list, mock_file_handle)
     assert mock_open_func.call_args_list == [call(ISSUES_FILE, 'r'), call(ISSUES_FILE, 'w')]
     mock_remove_question_from_list.assert_called_once_with(MISSED_QUESTIONS_FILE, question_dict)
@@ -556,7 +553,7 @@ def test_load_questions_file_not_found(mock_load_questions_deps, capsys):
 def test_load_questions_file_found(mock_load_questions_deps):
     mock_exists, mock_load, mock_open_func, mock_file_handle = mock_load_questions_deps
     mock_exists.return_value = True
-    expected_data = {'questions': [{'question': 'Q1'}]}
+    expected_data = {{'questions': [{{'question': 'Q1'}}]}}
     mock_load.return_value = expected_data
     
     topic = 'existing_topic'
@@ -616,7 +613,6 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
         captured = capsys.readouterr()
         assert "OpenAI API Key saved." in captured.out
 
-    
 
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
@@ -719,14 +715,14 @@ def mock_llm_deps(mock_os_environ):
     mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
 
     with (
-        patch.dict('sys.modules', {'google.generativeai': mock_genai_module, 'openai': mock_openai_module}),
+        patch.dict('sys.modules', {{'google.generativeai': mock_genai_module, 'openai': mock_openai_module}}),
         patch('kubelingo.kubelingo.click.confirm', return_value=False) as mock_click_confirm,
         patch('kubelingo.kubelingo.handle_config_menu') as mock_handle_config_menu,
         patch('kubelingo.kubelingo.requests.post') as mock_requests_post
     ):
         # Configure mock response for OpenRouter health check
         mock_requests_post.return_value.status_code = 200
-        mock_requests_post.return_value.json.return_value = {}
+        mock_requests_post.return_value.json.return_value = {{}}
 
         yield mock_genai_module.configure, mock_genai_module.GenerativeModel, mock_gemini_model_instance, mock_openai_module.OpenAI, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values
 
@@ -889,7 +885,7 @@ def test_get_llm_feedback_no_llm(mock_llm_deps):
         result = get_ai_verdict("Q", "A", "S")
         
         mock_get_llm_model.assert_called_once()
-        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered validation."}
+        assert result == {{'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered validation."}}
         MockGenerativeModel_class.assert_not_called()
         MockOpenAI_class.assert_not_called()
 
@@ -934,14 +930,14 @@ def test_validate_manifest_with_llm_gemini(mock_llm_deps):
         mock_response.text = "CORRECT\nManifest is valid."
         mock_gemini_model_instance.generate_content.return_value = mock_response
         
-        question_dict = {'question': 'Q', 'solution': 'S'}
+        question_dict = {{'question': 'Q', 'solution': 'S'}}
         user_manifest = "M"
         
         result = validate_manifest_with_llm(question_dict, user_manifest)
         
         mock_get_llm_model.assert_called_once()
         mock_gemini_model_instance.generate_content.assert_called_once()
-        assert result == {'correct': True, 'feedback': 'Manifest is valid.'}
+        assert result == {{'correct': True, 'feedback': 'Manifest is valid.'}}
 
 def test_validate_manifest_with_llm_openai(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
@@ -953,24 +949,24 @@ def test_validate_manifest_with_llm_openai(mock_llm_deps):
         mock_response.choices[0].message.content = "INCORRECT\nManifest is missing a field."
         mock_openai_client_instance.chat.completions.create.return_value = mock_response
         
-        question_dict = {'question': 'Q', 'solution': 'S'}
+        question_dict = {{'question': 'Q', 'solution': 'S'}}
         user_manifest = "M"
         
         result = validate_manifest_with_llm(question_dict, user_manifest)
         
         mock_get_llm_model.assert_called_once()
         mock_openai_client_instance.chat.completions.create.assert_called_once()
-        assert result == {'correct': False, 'feedback': 'Manifest is missing a field.'}
+        assert result == {{'correct': False, 'feedback': 'Manifest is missing a field.'}}
 
 def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
-        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        result = validate_manifest_with_llm({{'question': 'Q', 'solution': 'S'}}, "M")
         
         mock_get_llm_model.assert_called_once()
-        assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
+        assert result == {{'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}}
         MockGenerativeModel_class.assert_not_called()
         MockOpenAI_class.assert_not_called()
 
@@ -981,11 +977,11 @@ def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
         mock_gemini_model_instance.generate_content.side_effect = Exception("Gemini manifest error")
         
-        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        result = validate_manifest_with_llm({{'question': 'Q', 'solution': 'S'}}, "M")
         
         mock_get_llm_model.assert_called_once()
         mock_gemini_model_instance.generate_content.assert_called_once()
-        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
+        assert result == {{'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}}
 
 def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
@@ -994,11 +990,11 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
         mock_openai_client_instance.chat.completions.create.side_effect = Exception("OpenAI manifest error")
         
-        result = validate_manifest_with_llm({'question': 'Q', 'solution': 'S'}, "M")
+        result = validate_manifest_with_llm({{'question': 'Q', 'solution': 'S'}}, "M")
         
         mock_get_llm_model.assert_called_once()
         mock_openai_client_instance.chat.completions.create.assert_called_once()
-        assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
+        assert result == {{'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}}
 
 @pytest.mark.skipif(
     not dotenv_values().get("GEMINI_API_KEY"),
@@ -1014,9 +1010,9 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
         mock_response.text = "```yaml\nquestions:\n  - question: \"New Gemini Q\"\n    solution: \"New Gemini S\"\n    source: \"http://gemini.source.com\"\n```"
         mock_gemini_model_instance.generate_content.return_value = mock_response
         
-        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}]}, {'questions': []}]
+        mock_yaml_safe_load.side_effect = [{{'questions': [{{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}}}}, {{'questions': []}}]
         
-        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
         
         with patch('random.choice', return_value='command'): # Control question type
@@ -1024,7 +1020,7 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
         
         mock_get_llm_model.assert_called_once()
         mock_gemini_model_instance.generate_content.assert_called_once()
-        assert new_q == {'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}
+        assert new_q == {{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}}
         
         mock_yaml_safe_load.assert_called_once() # Called for existing topic file
         
@@ -1043,9 +1039,9 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
         mock_response.choices[0].message.content = "```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"
         mock_openai_client_instance.chat.completions.create.return_value = mock_response
         
-        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}]}, {'questions': []}]
+        mock_yaml_safe_load.side_effect = [{{'questions': [{{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}}}}, {{'questions': []}}]
         
-        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
         
         with patch('random.choice', return_value='manifest'): # Control question type
@@ -1053,7 +1049,7 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
         
         mock_get_llm_model.assert_called_once()
         mock_openai_client_instance.chat.completions.create.assert_called_once()
-        assert new_q == {'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}
+        assert new_q == {{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}}
         
         mock_yaml_safe_load.assert_called_once()
         
@@ -1066,7 +1062,7 @@ def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.kubelingo._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
-        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
         
         new_q = generate_more_questions(topic, existing_question)
@@ -1079,6 +1075,7 @@ def test_generate_more_questions_no_llm(mock_llm_deps, capsys):
         captured = capsys.readouterr()
         assert "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions." in captured.out
 
+
 def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
     mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_click_confirm, mock_handle_config_menu, mock_requests_post, mock_environ_values = mock_llm_deps
     
@@ -1086,7 +1083,7 @@ def test_generate_more_questions_llm_error(mock_llm_deps, capsys):
     with patch('kubelingo.kubelingo._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
         mock_gemini_model_instance.generate_content.side_effect = Exception("LLM generation error")
         
-        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
         
         new_q = generate_more_questions(topic, existing_question)
@@ -1107,7 +1104,7 @@ def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_built
         mock_gemini_model_instance.generate_content.return_value = mock_response
         mock_yaml_safe_load.side_effect = yaml.YAMLError("Invalid YAML for testing") # Added line
         
-        existing_question = {'question': 'Old Q', 'solution': 'Old S'}
+        existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
         
         with patch('random.choice', return_value='command'):
@@ -1123,203 +1120,6 @@ def test_generate_more_questions_invalid_yaml_response(mock_llm_deps, mock_built
         assert "AI failed to generate a valid question. Please try again." in captured.out
 
 
-class XTestKubectlValidation:
-    @pytest.fixture(autouse=True)
-    def setup_mocks(self):
-        # Mock tempfile.NamedTemporaryFile to control file creation
-        with patch('tempfile.NamedTemporaryFile', new_callable=mock_open) as mock_tmp_file:
-            self.mock_tmp_file = mock_tmp_file
-            self.mock_tmp_file_handle = mock_tmp_file.return_value.__enter__.return_value
-            self.mock_tmp_file_handle.name = "/tmp/mock_temp_file.yaml" # Assign a mock name
-
-            # Mock os.unlink for temp file cleanup
-            with patch('os.unlink') as mock_unlink:
-                self.mock_unlink = mock_unlink
-                yield
-
-    # --- Tests for validate_manifest_with_kubectl_dry_run ---
-
-    def test_validate_manifest_valid_yaml(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 0
-        mock_process.stdout = "pod/test-pod created (dry-run)\n"
-        mock_process.stderr = ""
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
-
-            assert success is True
-            assert "kubectl dry-run successful!" in user_feedback
-            assert "pod/test-pod created (dry-run)" in ai_feedback
-            mock_subprocess_run.assert_called_once()
-            self.mock_tmp_file.assert_called_once_with(mode='w+', suffix=".yaml", delete=False)
-            self.mock_tmp_file_handle.write.assert_called_once_with(manifest)
-            self.mock_unlink.assert_called_once_with("/tmp/mock_temp_file.yaml")
-
-    def test_validate_manifest_invalid_yaml(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 1
-        mock_process.stdout = ""
-        mock_process.stderr = "Error from server (BadRequest): error when creating \"/tmp/mock_temp_file.yaml\": Pod in version \"v1\" cannot be handled as a Pod: strict decoding error: unknown field \"invalidField\"\n"
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\ninvalidField: value\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
-
-            assert success is False
-            assert "kubectl dry-run failed. Please check your manifest." in user_feedback
-            assert "unknown field \"invalidField\"" in ai_feedback
-            mock_subprocess_run.assert_called_once()
-            self.mock_unlink.assert_called_once()
-
-    def test_validate_manifest_not_kubernetes_yaml(self, capsys):
-        manifest = "key: value\nanother_key: another_value\n"
-        success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
-
-        assert success is False
-        assert "Skipping kubectl dry-run: Not a Kubernetes YAML manifest." in user_feedback
-        assert "Skipped: Not a Kubernetes YAML manifest." in ai_feedback
-        # Ensure subprocess.run and tempfile operations were not called
-        with patch('subprocess.run') as mock_subprocess_run:
-            mock_subprocess_run.assert_not_called()
-        self.mock_tmp_file.assert_not_called()
-        self.mock_unlink.assert_not_called()
-
-    def test_validate_manifest_kubectl_not_found(self, capsys):
-        with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
-            manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
-
-            assert success is False
-            assert "Error: 'kubectl' command not found." in user_feedback
-            assert "kubectl not found" in ai_feedback
-            mock_subprocess_run.assert_called_once()
-            self.mock_unlink.assert_called_once()
-
-    def test_validate_manifest_with_leading_comments(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 0
-        mock_process.stdout = "pod/test-pod created (dry-run)\n"
-        mock_process.stderr = ""
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            manifest = "# This is a comment\n\napiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: test-container\n    image: nginx\n"
-            success, user_feedback, ai_feedback = validate_manifest_with_kubectl_dry_run(manifest)
-
-            assert success is True
-            assert "kubectl dry-run successful!" in user_feedback
-            mock_subprocess_run.assert_called_once()
-
-    # --- Tests for validate_kubectl_command_dry_run ---
-
-    def test_validate_kubectl_command_valid_run(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 0
-        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  creationTimestamp: \n  labels:\n    run: my-pod\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n    resources: {}\nstatus: {}\n"
-        mock_process.stderr = ""
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            command_string = "kubectl run my-pod --image=nginx"
-            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-            assert success is True
-            assert "kubectl dry-run successful!" in user_feedback
-            assert "kind: Pod" in ai_feedback
-            mock_subprocess_run.assert_called_once_with(
-                ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "yaml"],
-                capture_output=True, text=True, check=False
-            )
-
-    def test_validate_kubectl_command_invalid_run(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 1
-        mock_process.stdout = ""
-        mock_process.stderr = "Error: unknown flag: --invalid-flag\n"
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            command_string = "kubectl run my-pod --image=nginx --invalid-flag"
-            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-            assert success is False
-            assert "kubectl dry-run failed. Please check your command syntax." in user_feedback
-            assert "unknown flag: --invalid-flag" in ai_feedback
-            mock_subprocess_run.assert_called_once()
-
-    def test_validate_kubectl_command_skipped_get(self, capsys):
-        command_string = "kubectl get pods"
-        success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-        assert success is True
-        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in user_feedback
-        assert "Skipped: Command type not typically dry-runnable client-side." in ai_feedback
-        with patch('subprocess.run') as mock_subprocess_run:
-            mock_subprocess_run.assert_not_called()
-
-    def test_validate_kubectl_command_skipped_non_kubectl(self, capsys):
-        command_string = "ls -l"
-        success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-        assert success is True
-        assert "Skipping kubectl dry-run: Command type not typically dry-runnable client-side." in user_feedback
-        assert "Skipped: Command type not typically dry-runnable client-side." in ai_feedback
-        with patch('subprocess.run') as mock_subprocess_run:
-            mock_subprocess_run.assert_not_called()
-
-    def test_validate_kubectl_command_kubectl_not_found(self, capsys):
-        with patch('subprocess.run', side_effect=FileNotFoundError) as mock_subprocess_run:
-            command_string = "kubectl run my-pod --image=nginx"
-            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-            assert success is False
-            assert "Error: 'kubectl' command not found." in user_feedback
-            assert "kubectl not found" in ai_feedback
-            mock_subprocess_run.assert_called_once()
-
-    def test_validate_kubectl_command_already_has_dry_run_and_output(self, capsys):
-        mock_process = MagicMock()
-        mock_process.returncode = 0
-        mock_process.stdout = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\nspec:\n  containers:\n  - image: nginx\n    name: my-pod\n"
-        mock_process.stderr = ""
-
-        with patch('subprocess.run', return_value=mock_process) as mock_subprocess_run:
-            command_string = "kubectl run my-pod --image=nginx --dry-run=client -o json"
-            success, user_feedback, ai_feedback = validate_kubectl_command_dry_run(command_string)
-
-            assert success is True
-            assert "kubectl dry-run successful!" in user_feedback
-            assert "kind: Pod" in ai_feedback
-            mock_subprocess_run.assert_called_once_with(
-                ["kubectl", "run", "my-pod", "--image=nginx", "--dry-run=client", "-o", "json"],
-                capture_output=True, text=True, check=False
-            )
-
-# def test_run_topic_vim_no_solution(capsys):
-#     with patch('kubelingo.kubelingo.handle_vim_edit', return_value=(None, "This question does not have a solution to validate against for vim edit.", False)) as mock_handle_vim_edit:
-#         # Simulate 'vim' for the first question, then 'done' for the second question
-#         with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), (['done'], None)]):
-#             # Provide two questions: first without solution, second a dummy
-#             mock_questions = [{
-#                 'question': 'Test Q without solution',
-#                 'starter_manifest': "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\nspec:\n  containers:\n  - name: my-container\n    image: nginx\n",
-#                 'suggestion': []
-#             }, {'question': 'Second dummy question'}]
-#             with patch('kubelingo.kubelingo.load_questions', return_value={'questions': mock_questions}):
-#                 with patch('kubelingo.kubelingo.clear_screen'):
-#                     # Simulate 'n' to advance past post-question menus twice
-#                     with patch('builtins.input', side_effect=['n', 'n']):
-#                         from kubelingo.kubelingo import run_topic
-#                         # Call run_topic with a dummy topic, starting at index 0, with performance data and questions
-#                         run_topic('dummy_topic', 0, {}, mock_questions)
-#
-#                         captured = capsys.readouterr()
-#                         # Assert that handle_vim_edit was called and printed its message
-#                         assert "This question does not have a solution to validate against for vim edit." in captured.out
-#                         assert "TypeError" not in captured.err # Ensure no TypeError
-#                         mock_handle_vim_edit.assert_called_once()
-#                         # Assert that the "Great job!" message is printed after the second question
-#                         assert "Great job! You've completed all questions for this topic." in captured.out
-
 def test_run_topic_retry_question(capsys):
     # Mock necessary functions
     with patch('kubelingo.kubelingo.get_user_input', side_effect=[
@@ -1333,11 +1133,11 @@ def test_run_topic_retry_question(capsys):
             with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
                 with patch('kubelingo.kubelingo.save_performance_data') as mock_save_performance_data:
                     # Provide a single question
-                    mock_questions = [{'question': 'Test Question', 'solution': 'Test Solution'}]
+                    mock_questions = [{{'question': 'Test Question', 'solution': 'Test Solution'}}]
                     
                     # Call run_topic
                     from kubelingo.kubelingo import run_topic
-                    run_topic('dummy_topic', 1, {}, mock_questions)
+                    run_topic('dummy_topic', 1, {{}}, mock_questions)
                     
                     captured = capsys.readouterr()
                     
@@ -1351,4 +1151,3 @@ def test_run_topic_retry_question(capsys):
                     
                     # Verify that save_performance_data was called
                     mock_save_performance_data.assert_called_once()
-
