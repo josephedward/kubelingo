@@ -42,11 +42,11 @@ def create_issue(question_dict, topic):
     print("\nPlease describe the issue with the question.")
     issue_desc = input("Description: ")
     if issue_desc.strip():
-        # Add the entire question to the issue
-        question_dict['issue'] = issue_desc.strip()
-        question_dict['timestamp'] = time.asctime()
+        new_issue = question_dict.copy()
+        new_issue['issue'] = issue_desc.strip()
+        new_issue['timestamp'] = time.asctime()
         # Include topic in issue record
-        question_dict['topic'] = topic
+        new_issue['topic'] = topic
 
         issues = []
         if os.path.exists(issues_file):
