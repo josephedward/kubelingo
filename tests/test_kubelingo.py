@@ -44,6 +44,7 @@ PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 def strip_ansi_codes(s):
     return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]', '', s)
 
+
 def test_clear_command_clears_commands(monkeypatch, capsys):
     """Tests that 'clear' clears all previously entered commands."""
     inputs = iter(['cmd1', 'cmd2', 'clear', 'done'])
@@ -308,7 +309,6 @@ def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questio
     assert not any(q['question'] == 'Sample question' for q in data['questions']), "The question should be removed from the topic file."
 
 
-
 def test_performance_backup(monkeypatch):
     """Tests that performance.yaml is backed up to misc/performance.yaml on quiz open/close and app exit."""
     # In-memory data stores for performance and backup files
@@ -390,5 +390,3 @@ def test_performance_backup(monkeypatch):
     # data is only modified as expected, not deleted. This test focuses on the
     # logic of the calls, not the file system mechanics, which are handled by
     # the mocked load/save/backup functions.
-
-
