@@ -60,8 +60,7 @@ import logging
 # Debug helper: enable by setting environment variable KUBELINGO_DEBUG=1 or true
 DEBUG = os.getenv('KUBELINGO_DEBUG', 'False').lower() in ('1', 'true')
 def dbg(msg):
-    if DEBUG:
-        print(f"[DEBUG] {msg}", file=sys.stderr)
+    print(f"[DEBUG] {msg}", file=sys.stderr)
 import webbrowser
 try:
     from googlesearch import search
@@ -1146,10 +1145,10 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     is_retrying_session = False
     
     while True: # Outer loop for retrying the topic
+        dbg(f"run_topic: is_retrying_session at start of outer loop: {is_retrying_session}")
         if is_retrying_session:
             print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
             print("DEBUG: Retrying message printed")
-            is_retrying_session = False
         questions = list(questions_to_study) # Make a fresh copy for each retry
         # If it's a missed questions review, the list is already shuffled and limited by num_to_study
         # If it's a regular topic or incomplete questions, we need to shuffle and limit here.
@@ -1421,7 +1420,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 continue # Re-display the same question prompt
 
         # End of inner while question_index < len(questions) loop
-        question_index += 1 # Increment question_index after processing
+        if retry_current_question: # Check the flag
+            retry_current_question = False # Reset the flag
+            # Do not increment question_index, so the same question is re-displayed
+        else:
+            question_index += 1 # Increment question_index after processing
 
         # Post-answer menu (after a question has been answered or skipped)
         if user_answer_graded:
@@ -1447,6 +1450,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]quit: {Style.RESET_ALL}").strip().lower()
 
             if choice == 'n':
+                question_index += 1 # Increment question_index for next question
                 break # Exit post-answer menu, go to next question
             elif choice == 'b':
                 # Go back to the previous question
@@ -1479,7 +1483,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
             elif choice == 'r':
                 # Reload/retry the current question
-                retry_current_question = True # Set the flag
+                is_retrying_session = True # Set the flag
+                dbg(f"run_topic: is_retrying_session after setting in 'r' choice: {is_retrying_session}")
                 break # Exit post-answer menu
             elif choice == 'c':
                 # Go to configuration menu
@@ -1489,13 +1494,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             else:
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
 
-        if retry_current_question:
-            # Do not increment question_index, and reset the flag
-            retry_current_question = False
-            print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
-            continue # Continue the outer loop to re-display the same question
-        else:
-            question_index += 1 # Increment question_index only if not retrying
+        
 
     # No final session menu: simply return to main menu after completion
     return
