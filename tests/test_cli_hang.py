@@ -19,6 +19,7 @@ def test_cli_hangs_before_showing_question(tmp_path):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
+        cwd=str(tmp_path),
         text=True
     )
     # Simulate: select topic 2, then 'i' for incomplete questions
