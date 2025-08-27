@@ -18,29 +18,95 @@ QUESTIONS_DIR = os.getenv(
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
 
-def _get_llm_model(model_name="gemini-pro"):
-    """Initializes and returns the generative AI model."""
-    if not genai:
-        print(f"{Fore.RED}Google Generative AI SDK not found. Please install it with 'pip install google-generativeai'{Style.RESET_ALL}")
-        return None
-    try:
-        # Configure the API key
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        # Create the model
-        model = genai.GenerativeModel(model_name)
-        return model
-    except Exception as e:
-        print(f"{Fore.RED}Error initializing the model: {e}{Style.RESET_ALL}")
-        # Look for the API key in the environment variables
-        if "GEMINI_API_KEY" not in os.environ:
-            print(f"{Fore.YELLOW}GEMINI_API_KEY not found in environment variables.{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}Please set it to your Google AI Studio API key.{Style.RESET_ALL}")
-        return None
+import openai
+import requests
+from dotenv import load_dotenv, dotenv_values
+
+def _get_llm_model(skip_prompt=False):
+    """
+    Initializes and returns the generative AI model based on configured provider.
+    Returns a tuple: (llm_type_string, model_object) or (None, None)
+    """
+    load_dotenv() # Ensure .env is loaded
+    config = dotenv_values()
+    llm_provider = os.getenv("KUBELINGO_LLM_PROVIDER", "").lower()
+
+    if llm_provider == "gemini":
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            if not skip_prompt:
+                print(f"{Fore.RED}GEMINI_API_KEY not found in environment variables.{Style.RESET_ALL}")
+            return None, None
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+            # Test model availability
+            model.generate_content("hello", safety_settings={'HARASSMENT': 'BLOCK_NONE'})
+            return "gemini", model
+        except Exception as e:
+            if not skip_prompt:
+                print(f"{Fore.RED}Error initializing Gemini model: {e}{Style.RESET_ALL}")
+            return None, None
+    elif llm_provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            if not skip_prompt:
+                print(f"{Fore.RED}OPENAI_API_KEY not found in environment variables.{Style.RESET_ALL}")
+            return None, None
+        try:
+            openai.api_key = api_key
+            model = openai.OpenAI()
+            # Test model availability
+            model.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hi"}])
+            return "openai", model
+        except Exception as e:
+            if not skip_prompt:
+                print(f"{Fore.RED}Error initializing OpenAI model: {e}{Style.RESET_ALL}")
+            return None, None
+    elif llm_provider == "openrouter":
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        if not api_key:
+            if not skip_prompt:
+                print(f"{Fore.RED}OPENROUTER_API_KEY not found in environment variables.{Style.RESET_ALL}")
+            return None, None
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "HTTP-Referer": "https://github.com/your-username/kubelingo", # Replace with your actual GitHub repo URL
+                "X-Title": "Kubelingo",
+            }
+            # OpenRouter doesn't have a direct client object like genai or openai
+            # We return a dict with necessary info for requests.post
+            model_info = {
+                "headers": headers,
+                "default_model": "deepseek/deepseek-chat", # Or another preferred OpenRouter model
+            }
+            # Test model availability with a dummy request
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": model_info["default_model"],
+                    "messages": [{"role": "user", "content": "hi"}],
+                }
+            )
+            response.raise_for_status()
+            return "openrouter", model_info
+        except Exception as e:
+            if not skip_prompt:
+                print(f"{Fore.RED}Error initializing OpenRouter model: {e}{Style.RESET_ALL}")
+            return None, None
+    else:
+        if not skip_prompt:
+            print(f"{Fore.YELLOW}No LLM provider configured. Please set KUBELINGO_LLM_PROVIDER in your .env file.{Style.RESET_ALL}")
+        return None, None
+
 
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
-def load_questions(topic, Fore, Style, genai): # Added Fore, Style, genai as arguments
+def load_questions(topic, Fore, Style): # Removed genai as argument
     """Loads questions from a YAML file based on the topic."""
     file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     if not os.path.exists(file_path):
@@ -58,7 +124,7 @@ def load_questions(topic, Fore, Style, genai): # Added Fore, Style, genai as arg
         # Import assign_source locally to avoid circular dependency
         from kubelingo.question_generator import assign_source
         for q in data['questions']:
-            if assign_source(q, topic, Fore, Style, genai): # Pass Fore, Style, genai
+            if assign_source(q, topic, Fore, Style): # Removed genai
                 updated = True
         
         if updated:
@@ -124,4 +190,8 @@ def manifests_equivalent(sol_obj, user_obj):
     """
     Compare two manifest objects for structural equivalence, ignoring names.
     """
-    return _normalize_manifest(sol_obj) == _normalize_manifest(user_obj)
+    normalized_sol = _normalize_manifest(sol_obj)
+    normalized_user = _normalize_manifest(user_obj)
+    print(f"KUBELINGO DEBUG: normalized_sol: {normalized_sol}")
+    print(f"KUBELINGO DEBUG: normalized_user: {normalized_user}")
+    return normalized_sol == normalized_user
