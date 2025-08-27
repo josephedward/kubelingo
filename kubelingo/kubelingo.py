@@ -1,6 +1,5 @@
 import os
 import sys
-import requests
 import getpass
 import random
 if sys.stdin.isatty():
@@ -11,18 +10,23 @@ import argparse
 from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR, manifests_equivalent
 from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
 import kubelingo.question_generator as qg
-try:
-    import google.generativeai as genai
-    from google.api_core import exceptions as google_exceptions
-except ImportError:
-    genai = None
-    google_exceptions = None
-try:
-    import openai
-    from openai import AuthenticationError
-except ImportError:
-    openai = None
-    AuthenticationError = Exception
+import kubelingo.issue_manager as im
+
+# Import necessary modules for LLM handling from utils
+# These are now handled within _get_llm_model in utils.py
+# try:
+#     import google.generativeai as genai
+#     from google.api_core import exceptions as google_exceptions
+# except ImportError:
+#     genai = None
+#     google_exceptions = None
+# try:
+#     import openai
+#     from openai import AuthenticationError
+# except ImportError:
+#     openai = None
+#     AuthenticationError = Exception
+
 from thefuzz import fuzz
 import tempfile
 import subprocess
@@ -154,6 +158,9 @@ def load_performance_data():
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
         if data is None: # Handle empty file case
+            # Reinitialize the performance file with empty data
+            with open(PERFORMANCE_FILE, 'w') as f_init:
+                yaml.dump({}, f_init)
             return {}
         return data
     except yaml.YAMLError:
@@ -368,53 +375,7 @@ def update_question_source_in_yaml(topic, updated_question):
         else:
             print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
 
-def create_issue(question_dict, topic):
-    """Prompts user for an issue and saves it to a file."""
-    ensure_user_data_dir()
-    # Dynamically determine issues file based on current user data directory
-    issues_file = os.path.join(USER_DATA_DIR, "issues.yaml")
-    print("\nPlease describe the issue with the question.")
-    issue_desc = input("Description: ")
-    if issue_desc.strip():
-        # Add the entire question to the issue
-        question_dict['issue'] = issue_desc.strip()
-        question_dict['timestamp'] = time.asctime()
-        # Include topic in issue record
-        question_dict['topic'] = topic
 
-        issues = []
-        if os.path.exists(issues_file):
-            with open(issues_file, 'r') as f:
-                try:
-                    issues = yaml.safe_load(f) or []
-                except yaml.YAMLError:
-                    issues = []
-        
-        issues.append(question_dict)
-
-        with open(issues_file, 'w') as f:
-            yaml.dump(issues, f)
-        
-        # Remove the question from the topic file in QUESTIONS_DIR
-        topic_file = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-        try:
-            from pathlib import Path
-            if Path(topic_file).exists():
-                with open(topic_file, 'r') as f:
-                    data = yaml.safe_load(f) or {'questions': []}
-                if 'questions' in data:
-                    data['questions'] = [q for q in data['questions'] if get_normalized_question_text(q) != get_normalized_question_text(question_dict)]
-                with open(topic_file, 'w') as f:
-                    yaml.dump(data, f)
-        except Exception:
-            pass
-
-        # If a question is flagged with an issue, remove it from the missed questions list
-        remove_question_from_list(MISSED_QUESTIONS_FILE, question_dict)
-
-        print("\nIssue reported. Thank you!")
-    else:
-        print("\nIssue reporting cancelled.")
 
 def load_questions_from_list(list_file):
     """Loads questions from a specified list file."""
@@ -672,7 +633,8 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
 
 def handle_vim_edit(question):
     """
-    Handles the user editing a manifest in Vim."""
+    Handles the user editing a manifest in Vim.
+    """
     # Determine the canonical solution manifest
     if 'suggestion' in question and isinstance(question['suggestion'], list) and question['suggestion']:
         sol_manifest = question['suggestion'][0]
@@ -716,6 +678,7 @@ def handle_vim_edit(question):
     os.unlink(tmp_path)
 
     print(f"{Fore.YELLOW}\n--- User Submission (Raw) ---\n{user_manifest}{Style.RESET_ALL}")
+    # {user_manifest}{Style.RESET_ALL}")
     
     # Extract the YAML content after the header for validation
     if "# --- Start your YAML manifest below ---" in user_manifest:
@@ -935,7 +898,7 @@ def list_and_select_topic(performance_data):
     # Auto-select single topic with 100% completion (generate option) without prompting
     if not has_missed and len(available_topics) == 1:
         topic_name = available_topics[0]
-        topic_data = load_questions(topic_name, Fore, Style, genai)
+        topic_data = load_questions(topic_name, Fore, Style)
         total_q = len(topic_data.get('questions', [])) if topic_data else 0
         stats = performance_data.get(topic_name, {})
         num_correct = len(stats.get('correct_questions') or [])
@@ -955,7 +918,7 @@ def list_and_select_topic(performance_data):
     for i, topic_name in enumerate(available_topics):
         display_name = topic_name.replace('_', ' ').title()
 
-        question_data = load_questions(topic_name, Fore, Style, genai)
+        question_data = load_questions(topic_name, Fore, Style)
         num_questions = len(question_data.get('questions', [])) if question_data else 0
         
         stats = performance_data.get(topic_name, {})
@@ -981,7 +944,7 @@ def list_and_select_topic(performance_data):
         try:
             has_100_percent_complete_topic = False
             for i, topic_name in enumerate(available_topics):
-                question_data = load_questions(topic_name, Fore, Style, genai)
+                question_data = load_questions(topic_name, Fore, Style)
                 num_questions = len(question_data.get('questions', [])) if question_data else 0
                 stats = performance_data.get(topic_name, {})
                 num_correct = len(stats.get('correct_questions') or [])
@@ -1038,7 +1001,7 @@ def list_and_select_topic(performance_data):
                 selected_topic = available_topics[choice_index]
                 
                 # Load questions for the selected topic to get total count
-                topic_data = load_questions(selected_topic, Fore, Style, genai)
+                topic_data = load_questions(selected_topic, Fore, Style)
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
 
@@ -1151,7 +1114,8 @@ def get_user_input(allow_solution_command=True):
 
 def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """
-    Loads and runs questions for a given topic."""
+    Loads and runs questions for a given topic.
+    """
     dbg(f"run_topic: start topic={topic}, num_to_study={num_to_study}, questions_to_study_count={len(questions_to_study)}")
     
     dbg("run_topic: Before loading config")
@@ -1241,7 +1205,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
             # --- Process special actions that don't involve grading ---
             if special_action == 'issue':
-                create_issue(q, question_topic_context)
+                im.create_issue(q, question_topic_context)
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
             if special_action == 'source':
@@ -1257,11 +1221,11 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 new_q = qg.generate_more_questions(
                     topic, 
                     q, 
-                    _get_llm_model, 
-                    QUESTIONS_DIR, 
-                    Fore, 
-                    Style, 
-                    load_questions, 
+                    _get_llm_model,
+                    QUESTIONS_DIR,
+                    Fore,
+                    Style,
+                    load_questions,
                     get_normalized_question_text
                 )
                 if new_q:
@@ -1478,7 +1442,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     print(f"{Fore.YELLOW}Already at the first question.{Style.RESET_ALL}")
             elif choice == 'i':
                 # Mark question as problematic and remove from corpus
-                create_issue(current_question, question_topic_context)
+                im.create_issue(current_question, question_topic_context)
                 remove_question_from_corpus(current_question, question_topic_context)
                 # Also remove from current session's questions list to prevent it from being asked again
                 # This requires modifying the 'questions' list in the run_topic scope.
@@ -1511,8 +1475,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
 
 
-
-        
 
     
 
@@ -1593,7 +1555,7 @@ if __name__ == "__main__":
     if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
         # Non-interactive mode for answering a single question
         performance_data = load_performance_data()
-        topic_data = load_questions(args.cli_question_topic, Fore, Style, genai)
+        topic_data = load_questions(args.cli_question_topic, Fore, Style)
         if topic_data and 'questions' in topic_data:
             questions_to_study = [topic_data['questions'][args.cli_question_index]]
             # Temporarily override get_user_input for this specific run
