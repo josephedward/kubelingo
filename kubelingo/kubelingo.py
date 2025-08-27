@@ -1306,10 +1306,7 @@ def list_and_select_topic(performance_data):
             if has_missed:
                 prompt_options = f"0-{len(available_topics)}"
             
-            if has_100_percent_complete_topic:
-                prompt = f"\nEnter a number ({prompt_options}), 'c', 'g', or 'q': "
-            else:
-                prompt = f"\nEnter a number ({prompt_options}), 'c', or 'q': "
+            prompt = f"\nEnter a number ({prompt_options}), 'c', or 'q': "
             choice = input(prompt).lower()
 
             if choice == '0' and has_missed:
@@ -1358,6 +1355,8 @@ def list_and_select_topic(performance_data):
                 topic_perf = performance_data.get(selected_topic, {})
                 correct_questions_data = topic_perf.get('correct_questions', [])
                 correct_questions_normalized = set(correct_questions_data if correct_questions_data is not None else [])
+                # Track how many have been answered correctly for generation logic
+                num_correct = len(correct_questions_data)
 
                 incomplete_questions = [
                     q for q in all_questions 
@@ -1373,11 +1372,9 @@ def list_and_select_topic(performance_data):
                     prompt_suffix = ""
                     if num_incomplete > 0:
                         prompt_suffix = f", 'i' for incomplete ({num_incomplete})"
-                    
-                    # Check if the user has achieved 100% correctness and enable 'g' option only then
                     percent_correct = (num_correct / total_questions) * 100
-                    # The 'g' option is only available in the post-completion menu.
-                    # No 'g' option here.
+                    if percent_correct == 100:
+                        prompt_suffix += ", 'g' to generate new question"
                     options = f"1-{total_questions}{prompt_suffix}"
                     prompt = f"Enter number of questions to study ({options}), or press Enter for all: "
                     num_to_study_input = input(prompt).strip().lower()
