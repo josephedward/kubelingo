@@ -185,22 +185,18 @@ def load_performance_data():
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
         return {}
-    with open(PERFORMANCE_FILE, 'r') as f:
-        try:
+    try:
+        with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
-            if not isinstance(data, dict):
-                print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
-                # Overwrite with empty dict
-                with open(PERFORMANCE_FILE, 'w') as f_reset:
-                    yaml.dump({}, f_reset)
-                return {}
-            return data or {}
-        except yaml.YAMLError:
-            print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Resetting.{Style.RESET_ALL}")
-            # If file is corrupted, return empty dict and overwrite
-            with open(PERFORMANCE_FILE, 'w') as f_write:
-                yaml.dump({}, f_write)
-            return {}
+    except yaml.YAMLError:
+        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Using empty data.{Style.RESET_ALL}")
+        return {}
+    # Ensure the loaded data is a mapping; otherwise ignore and preserve file
+    if not isinstance(data, dict):
+        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' has unexpected format. Using empty data.{Style.RESET_ALL}")
+        return {}
+    # Return the loaded data, or empty dict if none
+    return data or {}
 
 def save_performance_data(data):
     """Saves performance data."""
@@ -1178,6 +1174,16 @@ def normalize_command(command_lines):
             normalized_lines.append("")
             continue
         
+        # Normalize quotes: remove leading/trailing single or double quotes
+        normalized_words = []
+        for word in words:
+            if (word.startswith('"') and word.endswith('"')) or \
+               (word.startswith("'" ) and word.endswith("'" )):
+                normalized_words.append(word[1:-1])
+            else:
+                normalized_words.append(word)
+        words = normalized_words
+
         # Handle 'k' alias (case-insensitive) for 'kubectl'
         if words and words[0].lower() == 'k':
             words[0] = 'kubectl'
@@ -1240,11 +1246,34 @@ def normalize_command(command_lines):
         grouped_flags.sort() # Sort the grouped flags
         
         # Reconstruct the command
-        normalized_command_parts = main_command + positional_args + grouped_flags
+        # Find the position of '--'
+        try:
+            dash_dash_index = words.index('--')
+            # Everything before '--' is handled as before
+            pre_dash_dash_words = words[:dash_dash_index]
+            # Everything after '--' is the command string, which needs special quote normalization
+            command_string_parts = words[dash_dash_index + 1:]
+
+            # Join the command string parts and then normalize quotes
+            full_command_string = ' '.join(command_string_parts)
+            
+            # Remove outer quotes from the full command string
+            if (full_command_string.startswith("'") and full_command_string.endswith("'")) or \
+               (full_command_string.startswith('"') and full_command_string.endswith('"')):
+                full_command_string = full_command_string[1:-1]
+            
+            # Reconstruct the command with the normalized command string
+            normalized_command_parts = pre_dash_dash_words + ['--'] + [full_command_string]
+            
+        except ValueError:
+            # No '--' found, proceed as before
+            normalized_command_parts = main_command + positional_args + grouped_flags
+        
         normalized_lines.append(' '.join(normalized_command_parts))
     return normalized_lines
 
 def list_and_select_topic(performance_data):
+    dbg("Entering list_and_select_topic")
 
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
@@ -1393,7 +1422,9 @@ def list_and_select_topic(performance_data):
                     prompt_suffix = f"1-{total_questions}"
                 if percent_correct == 100:
                     prompt_suffix += ", g to generate new question"
+                dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
                 inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
+                dbg(f"User input received: {inp}")
                 if inp == 'i' and num_incomplete > 0:
                     questions_to_study_list = incomplete_questions
                     num_to_study = num_incomplete
@@ -1417,8 +1448,14 @@ def list_and_select_topic(performance_data):
             print("\n\nStudy session ended. Goodbye!")
             return None, None, None
 
+_CLI_ANSWER_OVERRIDE = None # Global variable to hold the CLI provided answer
+
 def get_user_input(allow_solution_command=True):
     """Collects user commands until a terminating keyword is entered."""
+    if _CLI_ANSWER_OVERRIDE is not None:
+        # In CLI answer mode, return the pre-provided answer
+        return [_CLI_ANSWER_OVERRIDE], None
+
     user_commands = []
     special_action = None
     
@@ -1432,7 +1469,6 @@ def get_user_input(allow_solution_command=True):
         try:
             cmd = input(f"{Style.BRIGHT}{Fore.BLUE}> {Style.RESET_ALL}")
         except EOFError:
-            special_action = 'skip'
             break
         
         cmd_stripped = cmd.strip()
@@ -1449,55 +1485,38 @@ def get_user_input(allow_solution_command=True):
         elif cmd_lower == 'solution' and allow_solution_command:
             special_action = 'solution'
             break
-        elif cmd_lower in ['issue', 'generate', 'skip', 'vim', 'source', 'menu']:
+        elif cmd_lower in ['issue', 'generate', 'vim', 'source', 'menu']:
             special_action = cmd_lower
             break
         elif cmd.strip():
             user_commands.append(cmd.strip())
     return user_commands, special_action
- 
-# Preserve original get_user_input for fallback detection
-_ORIGINAL_GET_USER_INPUT = get_user_input
 
 def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """
     Loads and runs questions for a given topic."""
     dbg(f"run_topic: start topic={topic}, num_to_study={num_to_study}, questions_to_study_count={len(questions_to_study)}")
     
-    # Fallback simple mode when get_user_input is monkeypatched (e.g., in pytest)
-    if get_user_input is not _ORIGINAL_GET_USER_INPUT:
-        perf = performance_data.setdefault(topic, {})
-        perf.setdefault('correct_questions', [])
-        for q in questions_to_study:
-            try:
-                user_commands, special_action = get_user_input(True)
-            except Exception:
-                break
-            if special_action is not None or not user_commands:
-                continue
-            normalized_user = normalize_command(user_commands)
-            suggestions = q.get('suggestion')
-            if not suggestions:
-                suggestions = [q.get('solution')]
-            if suggestions is None:
-                suggestions = []
-            for sol in suggestions:
-                sol_lines = str(sol).strip().split('\n')
-                normalized_sol = normalize_command(sol_lines)
-                if ' '.join(normalized_user) == ' '.join(normalized_sol):
-                    normalized_q_text = get_normalized_question_text(q)
-                    if normalized_q_text not in perf['correct_questions']:
-                        perf['correct_questions'].append(normalized_q_text)
-                        if topic != '_missed':
-                            save_performance_data(performance_data)
-                    print()  # newline before feedback
-                    print("Correct")
-                    break
-        return
+    dbg("run_topic: Before loading config")
     config = dotenv_values(".env")
+    dbg("run_topic: After loading config")
     kubectl_dry_run_enabled = config.get("KUBELINGO_VALIDATION_KUBECTL_DRY_RUN", "True") == "True"
+    dbg("run_topic: After kubectl_dry_run_enabled")
     ai_feedback_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
+    dbg("run_topic: After ai_feedback_enabled")
     show_dry_run_logs = config.get("KUBELINGO_VALIDATION_SHOW_DRY_RUN_LOGS", "True") == "True"
+    dbg("run_topic: After show_dry_run_logs")
+    # In non-interactive CLI mode, show only the first question and exit immediately
+    if os.getenv('KUBELINGO_CLI_MODE') and not sys.stdin.isatty():
+        if questions_to_study:
+            q = questions_to_study[0]
+            context = q.get('original_topic', topic)
+            total = len(questions_to_study)
+            print(f"{Style.BRIGHT}{Fore.CYAN}Question 1/{total} (Topic: {context})", flush=True)
+            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+            print(q.get('question', ''), flush=True)
+            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+        return
     
 
     session_topic_name = topic
@@ -1534,8 +1553,10 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         question_index = 0
         session_correct = 0
         session_total = 0
+        dbg(f"run_topic: Number of questions to iterate: {len(questions)}")
         while question_index < len(questions):
             q = questions[question_index]
+            dbg(f"run_topic: Current question (q): {q}")
             # Determine canonical solution manifest for diff/display
             if 'solution' in q:
                 sol_manifest = q['solution']
@@ -1548,18 +1569,21 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             suggestion_shown_for_current_question = False  # New flag for this question attempt
 
             # For saving to lists, use original topic if reviewing, otherwise current topic
-        question_topic_context = q.get('original_topic', topic)
-        # Separate selection feedback from question display
-        print()
+            question_topic_context = q.get('original_topic', topic)
+            # Separate selection feedback from question display
+            dbg("Before printing question")
+            print(flush=True)
 
-        # Display the current question and prompt once
-        print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
-        print(f"{Fore.CYAN}{'-' * 40}")
-        print(q['question'])
-        print(f"{Fore.CYAN}{'-' * 40}")
-        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
-        if not user_commands and special_action is None:
-            special_action = 'skip'
+            # Display the current question and prompt once
+            print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})", flush=True)
+            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+            print(q['question'], flush=True)
+            print(f"{Fore.CYAN}{'-' * 40}", flush=True)
+            dbg("Before get_user_input")
+            user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+            dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
+            if not user_commands and special_action is None:
+                continue
 
             # Handle 'menu' command first, as it exits the topic
             if special_action == 'menu':
@@ -1596,30 +1620,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
             # --- Process actions that involve grading or showing solution ---
             solution_text = "" # Initialize solution_text for scope
-
-            if special_action == 'skip':
-                is_correct = False
-                user_answer_graded = True
-                print(f"{Fore.RED}Question skipped. Here's one possible suggestion:")
-                solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
-                # Print suggestion in YAML if it's a mapping/sequence or contains newlines
-                if isinstance(solution_text, (dict, list)):
-                    dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
-                    print(colorize_yaml(dumped))
-                elif '\n' in solution_text:
-                    print(colorize_yaml(solution_text))
-                else:
-                    print(f"{Fore.YELLOW}{solution_text}")
-                if q.get('source'):
-                    print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                if ai_feedback_enabled:
-                    print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
-                    ai_result = get_ai_verdict(q['question'], "skipped", solution_text)
-                    feedback = ai_result['feedback']
-                    print(feedback)
-                break # Exit inner loop, go to post-answer menu
-
-            elif special_action == 'solution':
+            if special_action == 'solution':
                 is_correct = False # Viewing solution means not correct by own answer
                 user_answer_graded = True
                 suggestion_shown_for_current_question = True
@@ -1634,7 +1635,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                     print(f"{Fore.YELLOW}{solution_text}")
                 if q.get('source'):
                     print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
-                break # Exit inner loop, go to post-answer menu
+                # Handled by outer loop logic
 
             elif special_action == 'vim':
                 user_manifest, result, sys_error = handle_vim_edit(q)
@@ -1666,8 +1667,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                         print(colorize_yaml(sol_text))
                     else:
                         print(f"{Fore.GREEN}\nCorrect! Well done.")
-                    if q.get('source'):
-                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+            if q.get('source'):
+                print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
                 user_answer_graded = True
                 break # Exit inner loop, go to post-answer menu
 
@@ -1778,6 +1779,41 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             else: # User typed 'done' without commands, or empty input
                 print("Please enter a command or a special action.")
                 continue # Re-display the same question prompt
+
+        # End of inner while question_index < len(questions) loop
+        question_index += 1 # Increment question_index after processing
+
+        # Post-answer menu (after a question has been answered or skipped)
+        if user_answer_graded:
+            # Save performance data after each graded question
+            save_performance_data(performance_data)
+
+        # If all questions in the current session are done, break the outer loop
+        if question_index >= len(questions):
+            break # Exit outer loop, all questions done
+
+        # Post-answer menu loop
+        while True:
+            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {question_index}/{len(questions)} ---" + Style.RESET_ALL)
+            print(f"{Style.BRIGHT}{Fore.CYAN}1. Next Question{Style.RESET_ALL}")
+            print(f"{Style.BRIGHT}{Fore.CYAN}2. Review Missed Questions{Style.RESET_ALL}")
+            print(f"{Style.BRIGHT}{Fore.CYAN}3. Return to Topic Menu{Style.RESET_ALL}")
+            print(f"{Style.BRIGHT}{Fore.CYAN}4. Quit{Style.RESET_ALL}")
+            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter your choice: {Style.RESET_ALL}").strip().lower()
+
+            if choice == '1':
+                break # Exit post-answer menu, go to next question
+            elif choice == '2':
+                # This will restart the outer loop with missed questions
+                topic = '_missed'
+                num_to_study = 0 # Study all missed questions
+                break # Exit post-answer menu, restart outer loop
+            elif choice == '3':
+                return # Exit run_topic function, go to main menu
+            elif choice == '4':
+                sys.exit(0) # Exit application
+            else:
+                print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
 
 
 
@@ -2155,9 +2191,9 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
         os.makedirs(QUESTIONS_DIR, exist_ok=True)
     ctx.ensure_object(dict)
-    ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
-    performance_data = ctx.obj['PERFORMANCE_DATA']
-    save_performance_data(performance_data)  # Ensure performance.yaml exists for backup
+    # Load existing performance data; do not overwrite existing progress on startup
+    performance_data = load_performance_data()
+    ctx.obj['PERFORMANCE_DATA'] = performance_data
     
     while True:
         dbg("cli: calling list_and_select_topic")
@@ -2181,6 +2217,32 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         time.sleep(2)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Kubelingo CLI tool for CKAD exam study.")
+    parser.add_argument('--cli-answer', type=str, help='Provide an answer directly for a single question in non-interactive mode.')
+    parser.add_argument('--cli-question-topic', type=str, help='Specify the topic for --cli-answer mode.')
+    parser.add_argument('--cli-question-index', type=int, help='Specify the 0-based index of the question within the topic for --cli-answer mode.')
+    args = parser.parse_args()
+
     # Mark CLI mode for run_topic to detect piped input
     os.environ['KUBELINGO_CLI_MODE'] = '1'
-    cli(obj={})
+
+    if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
+        # Non-interactive mode for answering a single question
+        performance_data = load_performance_data()
+        topic_data = load_questions(args.cli_question_topic)
+        if topic_data and 'questions' in topic_data:
+            questions_to_study = [topic_data['questions'][args.cli_question_index]]
+            # Temporarily override get_user_input for this specific run
+            _CLI_ANSWER_OVERRIDE = args.cli_answer # Set the global override variable
+            
+            print(f"Processing question from topic '{args.cli_question_topic}' at index {args.cli_question_index} with answer: '{args.cli_answer}'")
+            run_topic(args.cli_question_topic, 1, performance_data, questions_to_study)
+            save_performance_data(performance_data)
+            backup_performance_file()
+            sys.exit(0) # Exit after processing the single question
+        else:
+            print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Original interactive CLI mode
+        cli(obj={})
