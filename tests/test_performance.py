@@ -5,6 +5,8 @@ from unittest.mock import patch, mock_open, MagicMock, call
 from kubelingo.kubelingo import (
     load_performance_data,
     USER_DATA_DIR,
+    save_performance_data, # Added this import
+    ensure_user_data_dir # Added this import
 )
 
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
@@ -64,3 +66,31 @@ def test_load_performance_data_valid_file(mock_os_path_exists, mock_yaml_safe_lo
         mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
         mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'r')
         mock_yaml_safe_load.assert_called_once_with(mock_open_func.return_value)
+
+def test_load_performance_data_yaml_error(mocker):
+    mock_exists = mocker.patch('kubelingo.kubelingo.os.path.exists', return_value=True)
+    mock_ensure_dir = mocker.patch('kubelingo.kubelingo.ensure_user_data_dir')
+    mock_getsize = mocker.patch('kubelingo.kubelingo.os.path.getsize', return_value=100)
+    mock_load = mocker.patch('kubelingo.kubelingo.yaml.safe_load', side_effect=yaml.YAMLError)
+    mock_dump = mocker.patch('kubelingo.kubelingo.yaml.dump')
+    mock_open_func = mocker.patch('builtins.open', mocker.mock_open())
+
+    data = load_performance_data()
+
+    assert data == {}
+    mock_exists.assert_called_once_with(PERFORMANCE_FILE)
+    assert mock_open_func.call_args_list == [mocker.call(PERFORMANCE_FILE, 'r'), mocker.call(PERFORMANCE_FILE, 'w')]
+    mock_load.assert_called_once_with(mock_open_func.return_value.__enter__.return_value)
+    mock_dump.assert_called_once_with({}, mock_open_func.return_value.__enter__.return_value)
+
+def test_save_performance_data(mocker):
+    mock_ensure_dir = mocker.patch('kubelingo.kubelingo.ensure_user_data_dir')
+    mock_dump = mocker.patch('kubelingo.kubelingo.yaml.dump')
+    mock_open_func = mocker.patch('builtins.open', mocker.mock_open())
+
+    data_to_save = {'topic1': {'correct_questions': ['q1']}}
+    save_performance_data(data_to_save)
+
+    mock_ensure_dir.assert_called_once()
+    mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
+    mock_dump.assert_called_once_with(data_to_save, mock_open_func.return_value.__enter__.return_value)
