@@ -18,6 +18,7 @@ questions:
       containers:
       - name: nginx
         image: nginx
+  source: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
 - question: Pod manifest with one initContainer that waits 5s before starting app
     container.
   suggestion:
@@ -36,6 +37,7 @@ questions:
       containers:
       - name: nginx
         image: nginx
+  source: /search?num=3
 - question: Pod manifest with a sidecar that tails a shared log file.
   suggestion:
   - apiVersion: v1
@@ -65,6 +67,7 @@ questions:
       volumes:
       - emptyDir: {}
         name: logs
+  source: https://kubernetes.io/docs/concepts/cluster-administration/logging/
 - question: Run a pod named busybox with image busybox that runs indefinitely.
   suggestion:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
@@ -124,3 +127,4 @@ questions:
           volumes:
           - name: web-content
             emptyDir: {}
+  source: https://wiki.aaronhatcher.com/kubernetes/CKAD/Labs/killer/17-initcontainer

@@ -11,6 +11,7 @@ questions:
       containers:
       - name: nginx
         image: nginx
+  source: /search?num=3
 - question: Deployment manifest with nodeSelector disktype=ssd.
   suggestion:
   - apiVersion: apps/v1
@@ -32,6 +33,7 @@ questions:
           containers:
           - name: nginx
             image: nginx
+  source: /search?num=3
 - question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
   suggestion:
   - apiVersion: v1
@@ -51,3 +53,4 @@ questions:
         operator: Equal
         value: ml
         effect: NoSchedule
+  source: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/

@@ -2,15 +2,19 @@ questions:
 - question: Display documentation for the 'Pod' resource, including its fields.
   suggestion:
   - kubectl explain pod
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
 - question: List all available API resources in the cluster.
   suggestion:
   - kubectl api-resources
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_api-resources/
 - question: Command to list namespaced resources supporting 'list'.
   suggestion:
   - kubectl api-resources --verbs=list --namespaced
+  source: https://stackoverflow.com/questions/47691479/listing-all-resources-in-a-namespace
 - question: Command to view the fields under Deployment.spec.strategy.
   suggestion:
   - kubectl explain deployment.spec.strategy
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
 - question: Check the kubectl client and server versions.
   suggestion:
   - kubectl version

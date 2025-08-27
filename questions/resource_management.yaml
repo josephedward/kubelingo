@@ -5,6 +5,7 @@ questions:
   suggestion:
   - kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi
     --dry-run=client -o yaml
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_set/kubectl_set_resources/
 - question: Create a manifest for a Pod named 'resource-pod-manifest' that requests
     '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi'
     of memory.
@@ -24,13 +25,16 @@ questions:
           limits:
             cpu: 100m
             memory: 256Mi
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/
 - question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
     web.
   suggestion:
   - kubectl set resources deploy/web --requests=cpu=200m,memory=128Mi --limits=cpu=500m,memory=256Mi
+  source: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 - question: 'Command to create an HPA for web: min 2, max 5, target 50% CPU.'
   suggestion:
   - kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=50
+  source: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
 - question: 'In namespace limit create a Pod named resource-checker using image httpd:alpine
     with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m,
     memory=30Mi.'
@@ -51,3 +55,4 @@ questions:
           limits:
             cpu: 300m
             memory: 30Mi
+  source: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/

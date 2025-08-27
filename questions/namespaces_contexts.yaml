@@ -6,9 +6,11 @@ questions:
 - question: Switch your current context to use the 'development' namespace.
   suggestion:
   - kubectl config set-context --current --namespace=development
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: List all namespaces, and then delete the 'development' namespace.
   suggestion:
   - kubectl get namespaces && kubectl delete namespace development
+  source: https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces
 - question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the
     'development' namespace.
   suggestion:
@@ -21,15 +23,19 @@ questions:
       containers:
       - name: nginx
         image: nginx
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
 - question: Generate the YAML for a new namespace 'dev' without creating it.
   suggestion:
   - kubectl create namespace dev --dry-run=client -o yaml
+  source: https://kubernetes.io/docs/tutorials/cluster-management/namespaces-walkthrough/
 - question: Set the current context's default namespace to 'dev'.
   suggestion:
   - kubectl config set-context --current --namespace=dev
+  source: /search?num=3
 - question: Get the list of all Namespaces in the cluster and save it to a file.
   suggestion:
   - kubectl get namespaces > /path/to/namespaces.txt
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 - question: Verify which namespace is currently being used in your context.
   suggestion:
   - kubectl config view --minify | grep namespace: null
