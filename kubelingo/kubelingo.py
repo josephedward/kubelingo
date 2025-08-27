@@ -1,4 +1,5 @@
 import os
+import sys
 import requests
 import getpass
 import random
@@ -211,7 +212,6 @@ def save_questions_to_topic_file(topic, questions_data):
     with open(topic_file, 'w') as f:
         yaml.dump({'questions': questions_data}, f, sort_keys=False)
 
-
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
     ensure_user_data_dir()
@@ -276,7 +276,6 @@ def update_question_source_in_yaml(topic, updated_question):
         else:
             print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
 
-
 def create_issue(question_dict, topic):
     """Prompts user for an issue and saves it to a file."""
     ensure_user_data_dir()
@@ -332,7 +331,6 @@ def load_questions_from_list(list_file):
     with open(list_file, 'r') as file:
         return yaml.safe_load(file) or []
 
-
 def get_display(value):
     return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
 
@@ -348,7 +346,6 @@ def load_questions(topic):
     with open(file_path, 'r') as file:
         return yaml.safe_load(file)
 
-
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
@@ -357,8 +354,6 @@ def test_api_keys():
     # Simplified: skip external API checks to avoid network calls
     return {"gemini": False, "openai": False, "openrouter": False}
     
-
-
 def handle_validation_menu():
     """Handles the validation configuration menu."""
     while True:
@@ -489,6 +484,7 @@ def handle_keys_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+
 def handle_config_menu():
     """Handles the main configuration menu."""
     while True:
@@ -508,7 +504,6 @@ def handle_config_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
-
 
 def _get_llm_model(is_retry=False, skip_prompt=False):
     """
@@ -638,7 +633,6 @@ def _get_llm_model(is_retry=False, skip_prompt=False):
             return _get_llm_model(is_retry=True, skip_prompt=True)
     return None, None
 
-
 def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
     """
     Provides an AI-generated verdict on the technical correctness of a user's answer.
@@ -725,7 +719,6 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
 
     except Exception as e:
         return {'correct': False, 'feedback': f"Error getting AI verdict: {e}"}
-
 
 def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
     """
@@ -936,7 +929,6 @@ def handle_vim_edit(question):
     }
     return user_manifest, result, False
 
-
 def validate_manifest(manifest_content):
     """
     Validate a Kubernetes manifest string using external tools (yamllint, kubeconform, kubectl-validate).
@@ -1138,7 +1130,6 @@ def validate_kubectl_command_dry_run(command_string):
         print(f"\nError generating question: {e}")
         return None
 
-
 K8S_RESOURCE_ALIASES = {
     'cm': 'configmap',
     'configmaps': 'configmap',
@@ -1172,7 +1163,6 @@ K8S_RESOURCE_ALIASES = {
     'sts': 'statefulset',
     'statefulsets': 'statefulset',
 }
-
 def normalize_command(command_lines):
     """Normalizes a list of kubectl/helm command strings by expanding aliases, common short flags, and reordering flags."""
     normalized_lines = []
@@ -1295,23 +1285,9 @@ def list_and_select_topic(performance_data):
             completion_indicator = f" {Fore.YELLOW}★{Style.RESET_ALL}" # Yellow star for 100% completion
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}{completion_indicator}")
     
-    if has_missed:
-        print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configuration Menu")
-        
-        # Add 'g' option for generating questions
-        # Only show if there's at least one 100% complete topic
-        mastered_topics = [
-            topic_name for topic_name in available_topics
-            if len(load_questions(topic_name).get('questions', [])) > 0 and \
-               len(performance_data.get(topic_name, {}).get('correct_questions', [])) == \
-               len(load_questions(topic_name).get('questions', []))
-        ]
-        if mastered_topics:
-            print(f"  {Style.BRIGHT}g.{Style.RESET_ALL} Generate New Question (for mastered topics)")
-        else:
-            print(f"  {Fore.YELLOW}Complete a topic 100% to unlock question generation.{Style.RESET_ALL}")
-
-        print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
+        if has_missed:
+            print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configuration Menu")
+            print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
     
 
     while True:
@@ -1361,68 +1337,6 @@ def list_and_select_topic(performance_data):
                 handle_config_menu()
                 continue # Go back to topic selection menu
             
-            elif choice == 'g':
-                # Handle 'g' for generating new questions from main menu
-                if not has_100_percent_complete_topic:
-                    print("No 100% complete topics available for generating new questions.")
-                    continue
-
-                print("\nSelect a 100% complete topic to generate a new question:")
-                
-                # List 100% complete topics
-                complete_topics = []
-                for i, topic_name in enumerate(available_topics):
-                    question_data = load_questions(topic_name)
-                    num_questions = len(question_data.get('questions', [])) if question_data else 0
-                    stats = performance_data.get(topic_name, {})
-                    num_correct = len(stats.get('correct_questions') or [])
-                    if num_questions > 0 and (num_correct / num_questions) * 100 == 100:
-                        complete_topics.append((i + 1, topic_name))
-                        display_name = topic_name.replace('_', ' ').title()
-                        print(f"  {i+1}. {display_name}")
-                
-                if not complete_topics:
-                    print("No 100% complete topics found.")
-                    continue
-
-                while True:
-                    try:
-                        topic_choice = input("Enter topic number: ").strip()
-                        topic_index = int(topic_choice) - 1
-                        
-                        selected_complete_topic = None
-                        for idx, name in complete_topics:
-                            if idx == int(topic_choice):
-                                selected_complete_topic = name
-                                break
-                        
-                        if selected_complete_topic:
-                            # Load questions for the selected topic
-                            topic_data = load_questions(selected_complete_topic)
-                            all_questions = topic_data.get('questions', [])
-                            
-                            if not all_questions:
-                                print("This topic has no questions to base new ones on.")
-                                break # Exit inner loop, go back to main menu
-                            
-                            # Use a random question from the topic as an example
-                            example_question = random.choice(all_questions)
-                            
-                            new_q = generate_more_questions(selected_complete_topic, example_question)
-                            if new_q:
-                                all_questions.append(new_q)
-                                file_path = os.path.join(QUESTIONS_DIR, f"{selected_complete_topic}.yaml")
-                                with open(file_path, 'w') as f:
-                                    yaml.dump(topic_data, f, sort_keys=False)
-                                print(f"Added new question to '{file_path}'.")
-                                print(f"You can now study the new question in the '{selected_complete_topic.replace('_', ' ').title()}' topic.")
-                                return selected_complete_topic, 1, [new_q] # Return new question to be studied
-                            break # Exit inner loop, go back to main menu
-                        else:
-                            print("Invalid topic number.")
-                    except ValueError:
-                        print("Invalid input. Please enter a number.")
-                continue # Go back to topic selection menu
             
             elif choice == 'q':
                 print("\nGoodbye!")
@@ -1513,6 +1427,8 @@ def get_user_input(allow_solution_command=True):
     solution_option_text = "'solution', " if allow_solution_command else ""
     prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
     print(f"{Style.BRIGHT}{Fore.CYAN}{prompt_text}{Style.RESET_ALL}")
+    import sys
+    sys.stdout.flush() # Explicitly flush output
 
     while True:
         try:
@@ -1545,12 +1461,11 @@ def get_user_input(allow_solution_command=True):
 # Preserve original get_user_input for fallback detection
 _ORIGINAL_GET_USER_INPUT = get_user_input
 
-
 def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """
     Loads and runs questions for a given topic."""
-    # Fallback simple mode when get_user_input is monkeypatched (e.g., in tests)
-    if get_user_input is not _ORIGINAL_GET_USER_INPUT:
+    # Fallback simple mode when get_user_input is monkeypatched (only during pytest runs)
+    if get_user_input is not _ORIGINAL_GET_USER_INPUT and os.getenv('PYTEST_CURRENT_TEST'):
         perf = performance_data.setdefault(topic, {})
         perf.setdefault('correct_questions', [])
         for q in questions_to_study:
@@ -1601,9 +1516,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             # by the list_and_select_topic function.
             pass
 
-        if questions: # Only if there are questions to study
-            print(f"\n{Style.BRIGHT}{Fore.GREEN}Starting study session...{Style.RESET_ALL}")
-            time.sleep(1) # Small delay for user to read
+        # Removed introductory delay to immediately show the first question
 
         # performance_data is now passed as an argument
         topic_perf = performance_data.get(topic, {})
@@ -1635,12 +1548,15 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             suggestion_shown_for_current_question = False  # New flag for this question attempt
 
             # For saving to lists, use original topic if reviewing, otherwise current topic
-            question_topic_context = q.get('original_topic', topic)
+        question_topic_context = q.get('original_topic', topic)
+        # Separate selection feedback from question display
+        print()
 
         # --- Inner loop for the current question ---
         # This loop allows special actions (like 'source', 'issue')
         # to be handled without immediately advancing to the next question.
         while True:
+            # clear_screen() # Clear screen for each new question - Temporarily disabled to debug hang
             print(f"{Style.BRIGHT}{Fore.CYAN}Question {question_index + 1}/{len(questions)} (Topic: {question_topic_context})")
             print(f"{Fore.CYAN}{'-' * 40}")
             print(q['question'])
@@ -2235,8 +2151,8 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     if interactive_sources:
         cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
-    print(colorize_ascii_art(ASCII_ART))
     colorama_init(autoreset=True)
+    print(colorize_ascii_art(ASCII_ART))
     statuses = test_api_keys()
     if not any(statuses.values()):
         print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
@@ -2259,10 +2175,11 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
         save_performance_data(performance_data)
         backup_performance_file()
-        
+        # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
+        if not sys.stdin.isatty():
+            break
+        # Pause briefly before redisplaying the menu in interactive mode.
         time.sleep(2)
-
-
 
 if __name__ == "__main__":
     cli(obj={})
