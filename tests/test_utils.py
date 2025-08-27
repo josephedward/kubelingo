@@ -2,14 +2,7 @@ import pytest
 import os
 import yaml
 from unittest.mock import patch, mock_open, MagicMock, call
-from kubelingo.utils import (
-    save_question_to_list,
-    remove_question_from_list,
-    load_questions_from_list,
-    get_normalized_question_text,
-    update_question_source_in_yaml,
-)
-from kubelingo.kubelingo import MISSED_QUESTIONS_FILE, USER_DATA_DIR, QUESTIONS_DIR
+from kubelingo.kubelingo import MISSED_QUESTIONS_FILE, USER_DATA_DIR, QUESTIONS_DIR, update_question_source_in_yaml, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text
 
 # --- Fixtures for mocking file system ---
 
