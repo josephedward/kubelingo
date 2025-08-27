@@ -115,3 +115,99 @@ def test_generate_more_questions_duplicate_detected(mock_llm_response, mock_load
     question = {'question': 'Example Q', 'solution': 'example sol'}
     new_q = qg.generate_more_questions(topic, question)
     assert new_q is None # Expect None because a duplicate was detected
+
+# --- Tests for assign_source function ---
+
+@pytest.fixture
+def mock_googlesearch():
+    with patch('kubelingo.question_generator.search') as mock_search:
+        yield mock_search
+
+def test_assign_source_already_has_source(mock_googlesearch):
+    question = {'question': 'Test Q', 'source': 'http://example.com'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = MagicMock()
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert not assigned
+    assert question['source'] == 'http://example.com'
+    mock_googlesearch.assert_not_called()
+
+def test_assign_source_finds_source(mock_googlesearch):
+    mock_googlesearch.return_value = ['http://found-source.com']
+    question = {'question': 'Test Q'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = MagicMock()
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert assigned
+    assert question['source'] == 'http://found-source.com'
+    mock_googlesearch.assert_called_once_with('kubernetes Test Q', num_results=1)
+
+def test_assign_source_no_source_found(mock_googlesearch):
+    mock_googlesearch.return_value = []
+    question = {'question': 'Test Q'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = MagicMock()
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert not assigned
+    assert 'source' not in question
+    mock_googlesearch.assert_called_once_with('kubernetes Test Q', num_results=1)
+
+def test_assign_source_search_error(mock_googlesearch, capsys):
+    mock_googlesearch.side_effect = Exception("Network error")
+    question = {'question': 'Test Q'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = MagicMock()
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert not assigned
+    assert 'source' not in question
+    mock_googlesearch.assert_called_once_with('kubernetes Test Q', num_results=1)
+    # No print message expected when genai is enabled
+
+def test_assign_source_ai_disabled_no_search_results(mock_googlesearch, capsys):
+    mock_googlesearch.return_value = []
+    question = {'question': 'Test Q'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = None # Simulate genai disabled
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert not assigned
+    assert 'source' not in question
+    mock_googlesearch.assert_called_once_with('kubernetes Test Q', num_results=1)
+    captured = capsys.readouterr()
+    assert "Note: Could not find source for a question (AI disabled or search error: Network error)." not in captured.out # No error message for no results
+
+def test_assign_source_ai_disabled_search_error(mock_googlesearch, capsys):
+    mock_googlesearch.side_effect = Exception("Network error")
+    question = {'question': 'Test Q'}
+    topic = 'test_topic'
+    mock_fore = MagicMock()
+    mock_style = MagicMock()
+    mock_genai = None # Simulate genai disabled
+    assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+    assert not assigned
+    assert 'source' not in question
+    mock_googlesearch.assert_called_once_with('kubernetes Test Q', num_results=1)
+    captured = capsys.readouterr()
+    assert "Note: Could not find source for a question (AI disabled or search error: Network error)." in captured.out
+
+def test_assign_source_ai_disabled_googlesearch_not_installed(capsys):
+    with patch('kubelingo.question_generator.search', None): # Simulate googlesearch not installed
+        question = {'question': 'Test Q'}
+        topic = 'test_topic'
+        mock_fore = MagicMock()
+        mock_style = MagicMock()
+        mock_genai = None # Simulate genai disabled
+        assigned = qg.assign_source(question, topic, mock_fore, mock_style, mock_genai)
+        assert not assigned
+        assert 'source' not in question
+        captured = capsys.readouterr()
+        assert "Note: Could not find source for a question (googlesearch not installed and AI disabled)." in captured.out
