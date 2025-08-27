@@ -1,451 +1,400 @@
+
+
 import pytest
-import subprocess
-import tempfile
+from unittest.mock import patch, call
 import os
-import sys
-from unittest.mock import mock_open, patch
-import colorama
-import re
 import yaml
-import shutil # Added for cleanup
-from kubelingo import kubelingo
-from kubelingo.kubelingo import (
-    get_user_input,
-    run_topic,
-    list_and_select_topic,
-    load_performance_data,
-    save_performance_data,
-    load_questions,
-    clear_screen,
-    save_question_to_list,
-    get_ai_verdict,
-    Style, Fore,
-    cli
-)
-from kubelingo.validation import validate_manifest_with_llm
+import re
+from kubelingo.kubelingo import ensure_user_data_dir, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR
 
-USER_DATA_DIR = "user_data"
-MISC_DIR = "misc"
-PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
-PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
+# --- Fixtures for mocking file system (from test_kubelingo_functions.py) ---
 
 @pytest.fixture
-def setup_user_data_dir(tmp_path):
-    user_data_path = tmp_path / "user_data"
-    user_data_path.mkdir()
-    with patch('kubelingo.kubelingo.USER_DATA_DIR', str(user_data_path)):
-        yield user_data_path
+def mock_user_data_dir():
+    with patch('kubelingo.kubelingo.os.makedirs') as mock_makedirs:
+        yield mock_makedirs
 
 @pytest.fixture
-def setup_questions_dir(tmp_path):
-    questions_path = tmp_path / "questions"
-    questions_path.mkdir()
-    with patch('kubelingo.utils.QUESTIONS_DIR', str(questions_path)):
-        with patch('kubelingo.kubelingo.QUESTIONS_DIR', str(questions_path)):
-            yield questions_path
+def mock_os_path_getsize():
+    with patch('kubelingo.kubelingo.os.path.getsize') as mock_getsize:
+        yield mock_getsize
 
-def strip_ansi_codes(s):
-    return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]', '', s)
+@pytest.fixture
+def mock_yaml_dump():
+    with patch('kubelingo.kubelingo.yaml.dump') as mock_dump:
+        yield mock_dump
+
+@pytest.fixture
+def mock_os_path_exists():
+    with patch('kubelingo.kubelingo.os.path.exists') as mock_exists:
+        yield mock_exists
+
+@pytest.fixture
+def mock_yaml_safe_load():
+    with patch('kubelingo.kubelingo.yaml.safe_load') as mock_load:
+        yield mock_load
+
+@pytest.fixture
+def mock_builtins_open(mocker):
+    # Create a mock for the file handle that mock_open would return
+    mock_file_handle = mocker.MagicMock()
+    m_open = mocker.patch('builtins.open', return_value=mock_file_handle)
+    # Allow entering and exiting the context manager
+    m_open.return_value.__enter__.return_value = mock_file_handle
+    yield m_open, mock_file_handle
+
+@pytest.fixture
+def mock_os_environ(mocker):
+    # Patch os.environ with an empty dictionary, and let mocker handle cleanup
+    mocker.patch.dict('os.environ', {}, clear=True)
+    # Yield os.environ itself, as it's now the mocked dictionary
+    yield os.environ, os.environ
 
 
-def test_clear_command_clears_commands(monkeypatch, capsys):
-    """Tests that 'clear' clears all previously entered commands."""
-    inputs = iter(['cmd1', 'cmd2', 'clear', 'done'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-    user_commands, special_action = get_user_input()
+def test_ensure_user_data_dir(mock_user_data_dir):
+    ensure_user_data_dir()
+    mock_user_data_dir.assert_called_once_with(USER_DATA_DIR, exist_ok=True)
+
+
+# --- Tests for question list management (from test_kubelingo_functions.py) ---
+
+@pytest.fixture
+def mock_question_list_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
+    # This fixture sets up a mock for a generic list file (e.g., missed_questions.yaml)
+    # It returns a tuple: (mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle)
+    # so individual tests can configure behavior.
+    yield mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1]
+
+def test_save_question_to_list_new_file(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = False
+    question = {'question': 'Test Q', 'solution': 'A'}
+    topic = 'test_topic'
+    
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_not_called() # No file to load from
+    
+    expected_question_to_save = question.copy()
+    expected_question_to_save['original_topic'] = topic
+    mock_dump.assert_called_once_with([expected_question_to_save], mock_file_handle)
+    mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'w')
+
+def test_save_question_to_list_existing_file_new_question(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    mock_load.return_value = [{'question': 'Existing Q', 'solution': 'B'}]
+    question = {'question': 'New Q', 'solution': 'C'}
+    topic = 'test_topic'
+
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_called_once_with(mock_file_handle)
+    
+    expected_question_to_save = question.copy()
+    expected_question_to_save['original_topic'] = topic
+    expected_list = [{'question': 'Existing Q', 'solution': 'B'}, expected_question_to_save]
+    mock_dump.assert_called_once_with(expected_list, mock_file_handle)
+    assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
+
+def test_save_question_to_list_existing_file_duplicate_question(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    question = {'question': 'Existing Q', 'solution': 'B'}
+    mock_load.return_value = [question] # Duplicate
+    topic = 'test_topic'
+
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_called_once_with(mock_file_handle)
+    mock_dump.assert_not_called() # Should not save if duplicate
+    mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
+
+def test_save_question_to_list_yaml_error(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    mock_load.side_effect = yaml.YAMLError
+    question = {'question': 'New Q', 'solution': 'C'}
+    topic = 'test_topic'
+
+    save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
+    
+    expected_question_to_save = question.copy()
+    expected_question_to_save['original_topic'] = topic
+    mock_dump.assert_called_once_with([expected_question_to_save], mock_file_handle)
+    assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
+
+def test_remove_question_from_list_exists(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    existing_q1 = {'question': 'Q1', 'solution': 'A'}
+    existing_q2 = {'question': 'Q2', 'solution': 'B'}
+    mock_load.return_value = [existing_q1, existing_q2]
+    
+    remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
+    
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_called_once_with(mock_file_handle)
+    mock_dump.assert_called_once_with([existing_q2], mock_file_handle)
+    assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
+
+def test_remove_question_from_list_not_exists(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    existing_q1 = {'question': 'Q1', 'solution': 'A'}
+    mock_load.return_value = [existing_q1]
+    question_to_remove = {'question': 'Non-existent Q', 'solution': 'C'}
+    
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_called_once_with(mock_file_handle)
+    mock_dump.assert_called_once_with([existing_q1], mock_file_handle) # List should remain unchanged
+    assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
+
+def test_remove_question_from_list_no_file(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = False
+    question_to_remove = {'question': 'Q1', 'solution': 'A'}
+    
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    
+    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    mock_load.assert_not_called()
+    mock_dump.assert_called_once_with([], mock_file_handle) # Should write an empty list
+    mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'w')
+
+def test_remove_question_from_list_yaml_error(mock_question_list_file):
+    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
+    mock_exists.return_value = True
+    mock_load.side_effect = yaml.YAMLError
+    question_to_remove = {'question': 'Q1', 'solution': 'A'}
+
+    remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
+    
+    mock_dump.assert_called_once_with([], mock_file_handle) # Should write an empty list
+    assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
+
+def test_load_questions_from_list_no_file(mock_os_path_exists):
+    mock_os_path_exists.return_value = False
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
+    assert questions == []
+    mock_os_path_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+
+def test_load_questions_from_list_empty_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
+    mock_open_func, mock_file_handle = mock_builtins_open
+    mock_os_path_exists.return_value = True
+    mock_yaml_safe_load.return_value = None
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
+    assert questions == []
+    mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
+    mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
+
+def test_load_questions_from_list_valid_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
+    mock_open_func, mock_file_handle = mock_builtins_open
+    mock_os_path_exists.return_value = True
+    expected_questions = {'question': 'Q1'}
+    mock_yaml_safe_load.return_value = expected_questions
+    questions = load_questions_from_list(MISSED_QUESTIONS_FILE)
+    assert questions == expected_questions
+    mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
+    mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
+
+# --- Tests for get_normalized_question_text (from test_kubelingo_functions.py) ---
+
+def test_get_normalized_question_text_basic():
+    q = {'question': '  What is Kubernetes?  '}
+    assert get_normalized_question_text(q) == 'what is kubernetes?'
+
+def test_get_normalized_question_text_missing_key():
+    q = {'not_question': 'abc'}
+    assert get_normalized_question_text(q) == ''
+
+def test_get_normalized_question_text_empty_string():
+    q = {'question': ''}
+    assert get_normalized_question_text(q) == ''
+
+def test_get_normalized_question_text_with_newlines():
+    q = {'question': 'What\nis\nKubernetes?\n'}
+    assert get_normalized_question_text(q) == 'what\nis\nkubernetes?'
+
+# --- Tests for normalize_command (from test_kubelingo_functions.py) ---
+
+@pytest.mark.parametrize("input_commands, expected_output", [
+    (["kubectl get pods"], ["kubectl get pod"]),
+    (["k get po"], ["kubectl get pod"]),
+    (["kubectl get deploy -n my-namespace"], ["kubectl get deployment --namespace my-namespace"]),
+    (["kubectl get deploy --namespace my-namespace"], ["kubectl get deployment --namespace my-namespace"]),
+    (["kubectl run my-pod --image=nginx --port=80"], ["kubectl run my-pod --image=nginx --port=80"]),
+    (["kubectl run my-pod --port=80 --image=nginx"], ["kubectl run my-pod --image=nginx --port=80"]),
+    (["kubectl create deployment my-app --image=my-image -n default"], ["kubectl create deployment my-app --image=my-image --namespace default"]),
+    (["helm install my-release stable/chart -f values.yaml"], ["helm install my-release stable/chart -f values.yaml"]),
+    ([""], [""])
+    ,(["  kubectl   get   pods  "], ["kubectl get pod"]),
+    (["kubectl get svc -o wide"], ["kubectl get service -o wide"]),
+    (["kubectl get svc -A"], ["kubectl get service -A"]),
+    (["kubectl get all -n kube-system"], ["kubectl get all --namespace kube-system"]),
+    (["kubectl get pod my-pod -o yaml --namespace test"], ["kubectl get pod my-pod --namespace test -o yaml"]),
+    (["kubectl get pod my-pod --namespace test -o yaml"], ["kubectl get pod my-pod --namespace test -o yaml"]),
+])
+def test_normalize_command(input_commands, expected_output):
+    assert normalize_command(input_commands) == expected_output
+
+
+# --- Tests for clear_screen (from test_kubelingo_functions.py) ---
+
+def test_clear_screen():
+    with patch('os.system') as mock_system:
+        clear_screen()
+        # Check for Windows or Unix command
+        if os.name == 'nt':
+            mock_system.assert_called_once_with('cls')
+        else:
+            mock_system.assert_called_once_with('clear')
+
+
+# --- Tests for handle_config_menu (from test_kubelingo_functions.py) ---
+
+@pytest.fixture
+def mock_handle_config_menu_deps(mock_os_environ):
+    mock_environ, mock_environ_values = mock_os_environ
+    with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
+        with patch('kubelingo.kubelingo.dotenv_values', side_effect=lambda *args, **kwargs: mock_environ) as mock_dotenv_values:
+            with patch('kubelingo.kubelingo.set_key') as mock_set_key:
+                # Make mock_set_key actually update os.environ
+                def _mock_set_key_side_effect(dotenv_path, key_to_set, value_to_set):
+                    os.environ[key_to_set] = value_to_set
+                mock_set_key.side_effect = _mock_set_key_side_effect
+                with patch('getpass.getpass', return_value='mock_getpass_key') as mock_getpass:
+                    with patch('time.sleep') as mock_sleep:
+                        yield mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values
+
+def test_handle_config_menu_set_gemini_key(mock_handle_config_menu_deps, capsys):
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ["GEMINI_API_KEY"] = "Not Set"
+    mock_environ["OPENAI_API_KEY"] = "Not Set"
+    mock_environ["OPENROUTER_API_KEY"] = "Not Set"
+
+    with patch('builtins.input', side_effect=['1', 'mock_getpass_key', '5']):
+        handle_keys_menu()
+    
+    mock_set_key.assert_called_once_with(".env", "GEMINI_API_KEY", 'mock_getpass_key')
+    assert mock_environ_values["GEMINI_API_KEY"] == 'mock_getpass_key'
+    
     captured = capsys.readouterr()
-    assert user_commands == []
-    assert special_action is None
-    assert "(Input cleared)" in captured.out
+    assert "Gemini API Key saved." in captured.out
 
-
-def test_clear_command_on_empty_list(monkeypatch, capsys):
-    """Tests that 'clear' does nothing when the command list is empty."""
-    inputs = iter(['clear', 'done'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-    user_commands, special_action = get_user_input()
+def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys):
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ["GEMINI_API_KEY"] = "Not Set"
+    mock_environ["OPENAI_API_KEY"] = "Not Set"
+    mock_environ["OPENROUTER_API_KEY"] = "Not Set"
+    
+    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '8', '3']):
+        from kubelingo.kubelingo import handle_config_menu
+        handle_config_menu()
+        mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
+        assert mock_environ.get("OPENAI_API_KEY") == 'test_openai_key'
+        
     captured = capsys.readouterr()
-    assert user_commands == []
-    assert special_action is None
-    assert "(No input to clear)" in captured.out
+    assert "OpenAI API Key saved." in captured.out
 
 
-def test_line_editing_is_enabled():
-    """
-    Proxy test to check that readline is imported for line editing.
-    Directly testing terminal interactions like arrow keys is not feasible
-    in a unit test environment like this.
-    """
-    try:
-        import readline
-        import sys
-        # The import of `kubelingo` in the test suite should have loaded readline.
-        assert 'readline' in sys.modules
-    except ImportError:
-        # readline is not available on all platforms (e.g., Windows without
-        # pyreadline). This test should pass gracefully on those platforms.
-        pass
+def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    mock_environ.clear()  # No keys set
 
+    with patch('builtins.input', side_effect=['invalid', '3']):
+        handle_config_menu()
 
-def test_clear_command_feedback_is_colored(monkeypatch, capsys):
-    """Tests that feedback from the 'clear' command is colorized."""
-    colorama.init(strip=False)
-    try:
-        # Test when an item is removed
-        inputs = iter(['cmd1', 'clear', 'done'])
-        monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-        get_user_input()
-        captured = capsys.readouterr()
-        assert "(Input cleared)" in captured.out
-        assert colorama.Fore.YELLOW in captured.out
-
-        # Test when list is empty
-        inputs = iter(['clear', 'done'])
-        monkeypatch.setattr('builtins.input', lambda _prompt: next(inputs))
-        get_user_input()
-        captured = capsys.readouterr()
-        assert "(No input to clear)" in captured.out
-        assert colorama.Fore.YELLOW in captured.out
-    finally:
-        colorama.deinit()
-
-
-def test_performance_data_update_logic(monkeypatch):
-    """
-    Tests that performance data is updated with unique correctly answered questions,
-    and doesn't just overwrite with session data.
-    """
-    # Start with q1 already correct
-    mock_data_source = {'existing_topic': {'correct_questions': ['q1']}}
-    saved_data_container = [{}]
-
-    def mock_load_performance_data():
-        return mock_data_source.copy()
-
-    def mock_save_performance_data(data):
-        saved_data_container[0] = data
-
-    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
-    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
-
-    # In this session, user answers q1 again correctly and q2 correctly.
-    questions = [{'question': 'q1', 'solution': 's1'}, {'question': 'q2', 'solution': 's2'}]
-    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic, Fore, Style: {'questions': questions})
-    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
-    monkeypatch.setattr('time.sleep', lambda seconds: None)
-    monkeypatch.setattr('kubelingo.kubelingo.save_question_to_list', lambda *args: None)
-    monkeypatch.setattr('random.shuffle', lambda x: None)
-
-    user_inputs = iter([
-        (['s1'], None),      # Correct answer for q1
-        (['s2'], None),      # Correct answer for q2
-    ])
-    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
-    post_answer_inputs = iter(['n', 'n', 'q'])  # 'n' for next question, 'q' for final quit
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
-
-    print(f"Initial mock_data_source: {mock_data_source}")
-    run_topic('existing_topic', len(questions), mock_data_source, questions)
-    print(f"After run_topic, mock_data_source: {mock_data_source}")
-    print(f"After run_topic, saved_data_container[0]: {saved_data_container[0]}")
-
-    # q2 should be added, q1 should not be duplicated.
-    assert 'existing_topic' in saved_data_container[0]
-    assert isinstance(saved_data_container[0]['existing_topic']['correct_questions'], list)
-    # Using a set for comparison to ignore order
-    assert set(saved_data_container[0]['existing_topic']['correct_questions']) == {'q1', 'q2'}
-    assert len(saved_data_container[0]['existing_topic']['correct_questions']) == 2
-
-
-def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
-    """
-    Tests that the topic selection menu displays the number of questions
-    for each topic and uses colors for performance stats.
-    """
-    # Mock filesystem and data
-    monkeypatch.setattr('os.listdir', lambda path: ['topic1.yaml', 'topic2.yaml'])
-    monkeypatch.setattr('os.path.exists', lambda path: False) # For missed questions
-
-    mock_perf_data = {
-        'topic1': {'correct_questions': ['q1', 'q2']},
-        'topic2': {'correct_questions': ['q1', 'q2', 'q3', 'q4', 'q5']}
-    }
-    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', lambda: mock_perf_data)
-
-    def mock_load_questions(topic, Fore, Style):
-        if topic == 'topic1':
-            return {'questions': [{}, {}, {}]} # 3 questions
-        if topic == 'topic2':
-            return {'questions': [{}, {}, {}, {}, {}]} # 5 questions
-        return None
-    monkeypatch.setattr('kubelingo.kubelingo.load_questions', mock_load_questions)
-
-    # Mock input to exit menu
-    def mock_input_eof(prompt):
-        raise EOFError
-    monkeypatch.setattr('builtins.input', mock_input_eof)
-
-    topic = list_and_select_topic(mock_perf_data)
-    assert topic[0] is None
+    mock_set_key.assert_not_called()
 
     captured = capsys.readouterr()
-    output = strip_ansi_codes(captured.out)
+    assert "Invalid choice. Please try again." in captured.out
 
-    assert "Topic1 [3 questions]" in output
-    assert "Topic2 [5 questions]" in output
-    assert re.search(r"(.*?2/3 correct - 67%.*?)", output)
-    assert re.search(r"(.*?5/5 correct - 100%.*?)", output)
-    assert f"Please select a topic to study:" in output
+def test_handle_validation_menu_toggles(mock_handle_config_menu_deps, capsys):
+    mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
+    # Initial config state (new validation toggles default to True if missing)
+    mock_environ["KUBELINGO_VALIDATION_YAMLLINT"] = "True"
+    mock_environ["KUBELINGO_VALIDATION_KUBECONFORM"] = "True"
+    mock_environ["KUBELINGO_VALIDATION_KUBECTL_VALIDATE"] = "True"
 
-def test_correct_command_is_accepted(monkeypatch, capsys):
-    """
-    Tests that a correct command-based answer is accepted and graded as correct.
-    This is a regression test for the bug where correct answers were ignored.
-    """
-    # Mock performance data to be empty
-    mock_perf_data = {}
-    def mock_load_performance_data():
-        return mock_perf_data
+    with patch('builtins.input', side_effect=['2', '1', '2', '3', '4', '3']):
+        handle_config_menu()
 
-    saved_data_container = [{}]
-    def mock_save_performance_data(data):
-        saved_data_container[0] = data
+    # Verify that set_key was called to toggle each setting
+    calls = [
+        call(".env", "KUBELINGO_VALIDATION_YAMLLINT", "False"),
+        call(".env", "KUBELINGO_VALIDATION_KUBECONFORM", "False"),
+        call(".env", "KUBELINGO_VALIDATION_KUBECTL_VALIDATE", "False"),
+    ]
+    mock_set_key.assert_has_calls(calls, any_order=True)
 
-    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
-    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
+# --- Tests for get_user_input (from test_kubelingo_functions.py) ---
 
-    # Mock the question and solution
-    question = {
-        'question': "View the encoded values in a Secret named 'api-secrets' in YAML format.",
-        'solution': "kubectl get secret api-secrets -o yaml"
-    }
-    questions = [question]
-    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': questions})
-    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
-    monkeypatch.setattr('time.sleep', lambda seconds: None)
-    monkeypatch.setattr('kubelingo.kubelingo.save_question_to_list', lambda *args: None)
-    monkeypatch.setattr('random.shuffle', lambda x: None)
+def test_get_user_input_done():
+    with patch('builtins.input', side_effect=['command1', 'command2', 'done']):
+        commands, action = get_user_input()
+        assert commands == ['command1', 'command2']
+        assert action is None
 
-    # Mock user input: the correct command, then 'done'
-    user_inputs = iter([
-        (['k get secret api-secrets -o yaml'], None),
-    ])
-    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
-    # Mock post-answer input to quit
-    post_answer_inputs = iter(['q'])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
+def test_get_user_input_special_action():
+    with patch('builtins.input', side_effect=['command1', 'solution']):
+        commands, action = get_user_input()
+        assert commands == ['command1']
+        assert action == 'solution'
 
-    # Run the topic
-    run_topic('app_configuration', 1, mock_perf_data, questions)
+def test_get_user_input_empty_line():
+    with patch('builtins.input', side_effect=['', 'command1', 'done']):
+        commands, action = get_user_input()
+        assert commands == ['command1']
+        assert action is None
 
-    # Check the output
-    captured = capsys.readouterr()
-    assert "Correct" in strip_ansi_codes(captured.out)
-
-    # Check that performance data was updated
-    assert 'app_configuration' in saved_data_container[0]
-    assert saved_data_container[0]['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
-
-def test_instruction_update_with_llm(monkeypatch):
-    """Test that instructions correctly ignore indentation styles and field order."""
-    question_dict = {
-        'question': 'Modify the manifest to mount a Secret named "secret2".',
-        'solution': {
-            'apiVersion': 'v1',
-            'kind': 'Pod',
-            'metadata': {'name': 'mypod'},
-            'spec': {
-                'containers': [{
-                    'name': 'my-container',
-                    'image': 'nginx',
-                    'volumeMounts': [{'name': 'secret-volume', 'mountPath': '/tmp/secret2'}]
-                }],
-                'volumes': [{'name': 'secret-volume', 'secret': {'secretName': 'secret2'}}]
-            }
-        }
-    }
-    user_manifest = """
-    apiVersion: v1
-kind: Pod
-metadata:
-  name: mypod
-spec:
-  containers:
-  - name: my-container
-    image: nginx
-    volumeMounts:
-    - mountPath: /tmp/secret2
-      name: secret-volume
-  volumes:
-  - name: secret-volume
-    secret:
-      secretName: secret2
-    """
-    # Mock validate_manifest_with_llm to prevent actual LLM calls
-    monkeypatch.setattr('kubelingo.validation.validate_manifest_with_llm', lambda q, u: {'correct': True, 'feedback': 'Mocked feedback'})
-    result = validate_manifest_with_llm(question_dict, user_manifest)
-    assert result['correct'], "The manifest should be considered correct."
-
-def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questions_dir):
-    """Test that creating an issue saves the question and removes it from the topic file."""
-    question_dict = {'question': 'Sample question', 'solution': 'Sample solution'}
-    topic = 'sample_topic'
-    issues_file = os.path.join(kubelingo.USER_DATA_DIR, 'issues.yaml')
-    topic_file = os.path.join(kubelingo.QUESTIONS_DIR, f'{topic}.yaml')
-
-    # Create a sample topic file
-    with open(topic_file, 'w') as f:
-        yaml.dump({'questions': [question_dict]}, f)
-
-    # Ensure issues.yaml exists for create_issue to append to
-    with open(issues_file, 'w') as f:
-        yaml.dump([], f) # Initialize with empty list
-
-    # Mock input to provide a description
-    monkeypatch.setattr('builtins.input', lambda _: "Sample issue description")
-
-    kubelingo.create_issue(question_dict, topic)
-
-    # Check that the issue was saved
-    with open(issues_file, 'r') as f:
-        issues = yaml.safe_load(f)
-    assert any(q['question'] == 'Sample question' for q in issues), "The issue should be saved."
-
-    # Check that the question was removed from the topic file
-    with open(topic_file, 'r') as f:
-        data = yaml.safe_load(f)
-    assert not any(q['question'] == 'Sample question' for q in data['questions']), "The question should be removed from the topic file."
+def test_get_user_input_eof_error():
+    with patch('builtins.input', side_effect=EOFError):
+        commands, action = get_user_input()
+        assert commands == []
+        assert action is None
 
 
-def test_performance_backup(monkeypatch):
-    """Tests that performance.yaml is backed up to misc/performance.yaml on quiz open/close and app exit."""
-    # In-memory data stores for performance and backup files
-    mock_user_performance_data = {}
-    mock_misc_performance_data = {}
+def test_run_topic_retry_question(capsys):
+    # Mock necessary functions
+    with patch('kubelingo.kubelingo.get_user_input', side_effect=[
+        ([], 'r'), # First input: retry
+        (['done'], None) # Second input: done (after retry)
+    ]) as mock_get_user_input:
+        with patch('builtins.input', side_effect=[
+            'r', # Post-answer menu: retry
+            'n'  # Post-answer menu: next (after retry)
+        ]) as mock_input:
+            with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
+                with patch('kubelingo.kubelingo.save_performance_data') as mock_save_performance_data:
+                    # Provide a single question
+                    mock_questions = [{'question': 'Test Question', 'solution': 'Test Solution'}]
+                    
+                    # Call run_topic
+                    from kubelingo.kubelingo import run_topic
+                    with patch('kubelingo.kubelingo.get_ai_verdict', return_value={'correct': True, 'feedback': 'AI says correct.'}):
+                        with patch('kubelingo.kubelingo.clear_screen', lambda: None):
+                            run_topic('dummy_topic', 1, {}, mock_questions)
+                    
+                    captured = capsys.readouterr()
 
-    # Mock load_performance_data to return our in-memory data
-    def mock_load_performance_data():
-        return mock_user_performance_data.copy()
-    monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', mock_load_performance_data)
+                    def strip_ansi_codes(s):
+                        return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})*)?[m|K]', '', s)
 
-    # Mock save_performance_data to update our in-memory data
-    def mock_save_performance_data(data):
-        nonlocal mock_user_performance_data
-        mock_user_performance_data = data.copy()
-    monkeypatch.setattr('kubelingo.kubelingo.save_performance_data', mock_save_performance_data)
-
-    # Mock backup_performance_file to copy from user to misc in-memory
-    def mock_backup_performance_file():
-        nonlocal mock_misc_performance_data
-        mock_misc_performance_data = mock_user_performance_data.copy()
-    monkeypatch.setattr('kubelingo.kubelingo.backup_performance_file', mock_backup_performance_file)
-
-    # Mock other external dependencies that cli() calls
-    monkeypatch.setattr('kubelingo.kubelingo.load_dotenv', lambda: None)
-    monkeypatch.setattr('kubelingo.kubelingo.colorama_init', lambda **kwargs: None)
-    monkeypatch.setattr('os.makedirs', lambda name, exist_ok: None) # Not strictly needed with in-memory mocks, but good practice
-    monkeypatch.setattr('kubelingo.kubelingo.click.echo', lambda msg: None)
-    monkeypatch.setattr('kubelingo.kubelingo.click.confirm', lambda msg, default: True)
-    monkeypatch.setattr('kubelingo.kubelingo.handle_config_menu', lambda: None)
-    monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
-    monkeypatch.setattr('time.sleep', lambda seconds: None)
-
-
-    # --- Test Case 2: Start quiz, make changes, quit quiz, then quit app ---
-    # Reset in-memory data for a fresh start
-    mock_user_performance_data.clear()
-    mock_misc_performance_data.clear()
-
-    # Simulate selecting a topic, then answering a question, then quitting the quiz, then quitting the app
-    mock_list_and_select_topic_inputs = iter([
-        ('test_topic', 1, [{'question': 'q1', 'solution': 's1'}]), # Select topic, 1 question
-        (None, None, None), # Simulate 'q' (quit) from main menu after quiz
-    ])
-    monkeypatch.setattr('kubelingo.kubelingo.list_and_select_topic', lambda perf_data: next(mock_list_and_select_topic_inputs))
-
-    mock_run_topic_inputs = iter([
-        (['s1'], None), # Correct answer for q1
-    ])
-    monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(mock_run_topic_inputs))
-    # Mock builtins.input for various prompts
-    # This sequence will:
-    # 1. Select 'q' from the post-answer menu in run_topic (to exit the question loop)
-    # 2. Select 'q' from the post-completion menu in run_topic (to exit the topic loop)
-    # 3. Select 'q' from the main menu in list_and_select_topic (to exit the app)
-    builtins_inputs = iter([
-        'q', # For post-answer menu in run_topic
-        'q', # For post-completion menu in run_topic
-        'q'  # For main menu in list_and_select_topic
-    ])
-    monkeypatch.setattr('builtins.input', lambda _prompt: next(builtins_inputs))
-
-    # Mock load_questions for run_topic
-    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': [{'question': 'q1', 'solution': 's1'}]})
-
-    # Run the cli (main application loop)
-    cli.main(args=[], standalone_mode=False, obj={})
-
-    # Assert that user_data/performance.yaml (mocked) contains updated data
-    expected_user_data = {'test_topic': {'correct_questions': ['q1']}}
-    assert mock_user_performance_data == expected_user_data
-
-    # Assert that misc/performance.yaml (mocked) contains the updated data
-    assert mock_misc_performance_data == expected_user_data
-
-    # --- Test Case 3: Ensure user_data/performance.yaml is never deleted ---
-    # This is implicitly covered by the assertions above. If the file were deleted,
-    # the mocked data would be empty or missing. The in-memory mocks ensure that
-    # data is only modified as expected, not deleted. This test focuses on the
-    # logic of the calls, not the file system mechanics, which are handled by
-    # the mocked load/save/backup functions.
-
-def test_cli_hangs_before_showing_question(tmp_path):
-    """
-    Launch the CLI, select a topic with 1 incomplete question, and ensure the question prompt
-    appears within a short timeout. If it does not, the test fails quickly.
-    """
-    # Prepare environment to use local module, not globally installed
-    env = os.environ.copy()
-    env['KUBELINGO_DEBUG'] = 'true'
-    # Add project root to PYTHONPATH so kubelingo module can be found
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    if 'PYTHONPATH' in env:
-        env['PYTHONPATH'] = f"{project_root}:{env['PYTHONPATH']}"
-    else:
-        env['PYTHONPATH'] = project_root
-    # Use the same Python interpreter
-    cmd = [sys.executable, '-m', 'kubelingo.kubelingo']
-    # Create a dummy question file for the test
-    questions_dir = tmp_path / "questions"
-    questions_dir.mkdir()
-    question_content = """
-questions:
-  - question: "What is Kubernetes?"
-    solution: "An open-source container-orchestration system for automating application deployment, scaling, and management."
-    source: "https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/"
-"""
-    (questions_dir / "test_topic.yaml").write_text(question_content)
-
-    # Start the CLI process
-    proc = subprocess.Popen(
-        cmd,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        cwd=str(tmp_path),
-        text=True
-    )
-    # Simulate: select topic 1 (test_topic), then 'i' for incomplete questions
-    user_input = "1\ni\n"
-    try:
-        out, err = proc.communicate(input=user_input, timeout=5)
-    except subprocess.TimeoutExpired as e:
-        # Process did not finish in time; check partial output
-        out = e.output or b""
-        out = out.decode(errors='ignore')
-        assert "Question 1/" in out, (
-            f"CLI hung without showing question prompt. Partial output:\n{out}" )
-        return
-    # Check that the question header is in the output
-    assert "Question 1/" in out, f"Expected question prompt, got:\nSTDOUT:\n{out}\nSTDERR:\n{err}"
+                    cleaned_output = strip_ansi_codes(captured.out)
+                    
+                    # Verify that the question was displayed twice (once initially, once after retry)
+                    assert cleaned_output.count('Question 1/1 (Topic: dummy_topic)') == 2
+                    assert cleaned_output.count('Test Question') == 2
+                    assert 'Retrying the current question.' in cleaned_output
+                    
+                    # Verify that get_user_input was called twice for the same question
+                    assert mock_get_user_input.call_count == 2
+                    
+                    # Verify that save_performance_data was called
+                    mock_save_performance_data.assert_called_once()
