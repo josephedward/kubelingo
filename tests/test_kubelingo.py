@@ -141,10 +141,13 @@ def test_performance_data_update_logic(monkeypatch):
         (['s2'], None),      # Correct answer for q2
     ])
     monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
-    post_answer_inputs = iter(['1', '1', 'q'])  # '1' for first question, '1' for second question, 'q' for final quit
+    post_answer_inputs = iter(['n', 'n', 'q'])  # 'n' for next question, 'q' for final quit
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
+    print(f"Initial mock_data_source: {mock_data_source}")
     run_topic('existing_topic', len(questions), mock_data_source, questions)
+    print(f"After run_topic, mock_data_source: {mock_data_source}")
+    print(f"After run_topic, saved_data_container[0]: {saved_data_container[0]}")
 
     # q2 should be added, q1 should not be duplicated.
     assert 'existing_topic' in saved_data_container[0]
@@ -292,8 +295,11 @@ def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questio
 
     # Create a sample topic file
     with open(topic_file, 'w') as f:
-        yaml.dump({'questions': [question_dict]},
- f)
+        yaml.dump({'questions': [question_dict]}, f)
+
+    # Ensure issues.yaml exists for create_issue to append to
+    with open(issues_file, 'w') as f:
+        yaml.dump([], f) # Initialize with empty list
 
     # Mock input to provide a description
     monkeypatch.setattr('builtins.input', lambda _: "Sample issue description")
