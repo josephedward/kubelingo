@@ -466,8 +466,6 @@ def load_questions_from_list(list_file):
 def get_display(value):
     return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
 
-
-
 def test_api_keys():
     """Tests the validity of API keys and returns a dictionary with their statuses."""
     # Simplified: skip external API checks to avoid network calls
@@ -1093,88 +1091,6 @@ def validate_kubectl_command_dry_run(command_string):
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
 
-# --- Question Generation ---
-
-    """
-    Generates more questions based on an existing one."""
-    llm_type, model = _get_llm_model()
-    if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
-        return None
-
-    print("\nGenerating a new question... this might take a moment.")
-    try:
-        question_type = random.choice(['command', 'manifest'])
-        prompt = f'''
-        You are a Kubernetes expert creating questions for a CKAD study guide.
-        Based on the following example question about '{topic}', please generate one new, distinct but related question.
-
-        Example Question:
-        ---
-        {yaml.safe_dump({'questions': [question]})}
-        ---
-
-        Your new question should be a {question_type}-based question.
-        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
-        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.
-
-        The new question should be in the same topic area but test a slightly different aspect or use different parameters.
-        Provide the output in valid YAML format, as a single item in a 'questions' list.
-        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
-        The solution must be correct and working.
-        If a 'starter_manifest' is provided, it must use the literal block scalar style (e.g., 'starter_manifest: |').
-
-        Example for a manifest question:
-        questions:
-          - question: "Create a manifest for a Pod named 'new-pod'"
-            solution: |
-              apiVersion: v1
-              kind: Pod
-              ...
-            source: "https://kubernetes.io/docs/concepts/workloads/pods/"
-
-        Example for a command question:
-        questions:
-          - question: "Create a pod named 'new-pod' imperatively..."
-            solution: "kubectl run new-pod --image=nginx"
-            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
-        '''
-        if llm_type == "gemini":
-            response = model.generate_content(prompt)
-        elif llm_type == "openai" or llm_type == "openrouter":
-            response = model.chat.completions.create(
-                model="gpt-3.5-turbo", # Or another suitable model
-                messages=[
-                    {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            response.text = response.choices[0].message.content # Normalize response for consistent parsing
-
-        # Clean the response to only get the YAML part
-        cleaned_response = response.text.strip()
-        if cleaned_response.startswith('```yaml'):
-            cleaned_response = cleaned_response[7:]
-        if cleaned_response.endswith('```'):
-            cleaned_response = cleaned_response[:-3]
-
-        try:
-            new_question_data = yaml.safe_load(cleaned_response)
-        except yaml.YAMLError:
-            print("\nAI failed to generate a valid question. Please try again.")
-            return None
-        
-        if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
-            new_q = new_question_data['questions'][0]
-            print("\nNew question generated!")
-            return new_q
-        else:
-            print("\nAI failed to generate a valid question. Please try again.")
-            return None
-    except Exception as e:
-        print(f"\nError generating question: {e}")
-        return None
-
 K8S_RESOURCE_ALIASES = {
     'cm': 'configmap',
     'configmaps': 'configmap',
@@ -1599,6 +1515,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             is_correct = False  # Reset for each question attempt
             user_answer_graded = False  # Flag to indicate if an answer was submitted and graded
             suggestion_shown_for_current_question = False  # New flag for this question attempt
+            retry_current_question = False # Flag to indicate if the user wants to retry the current question
 
             # For saving to lists, use original topic if reviewing, otherwise current topic
             question_topic_context = q.get('original_topic', topic)
@@ -1823,6 +1740,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 continue # Re-display the same question prompt
 
         # End of inner while question_index < len(questions) loop
+        if retry_current_question: # Check the flag
+            retry_current_question = False # Reset the flag
+            continue # Continue the outer loop to re-display the current question
         question_index += 1 # Increment question_index after processing
 
         # Post-answer menu (after a question has been answered or skipped)
@@ -1882,7 +1802,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             elif choice == 'r':
                 # Reload/retry the current question
                 print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
-                # No break here, so the loop continues and re-displays the current question
+                retry_current_question = True # Set the flag
+                break # Exit post-answer menu
             elif choice == 'c':
                 # Go to configuration menu
                 handle_config_menu()
@@ -1899,8 +1820,6 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
 
     # No final session menu: simply return to main menu after completion
     return
-
-
 
 @click.command()
 @click.option('--add-sources', 'add_sources', is_flag=True, default=False,
