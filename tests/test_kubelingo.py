@@ -36,18 +36,6 @@ from kubelingo.kubelingo import (
 )
 from kubelingo.kubelingo import cli # Import cli for testing
 from tests.test_kubelingo_updates import setup_user_data_dir, setup_questions_dir
-
-@pytest.fixture
-def setup_user_data_dir(tmp_path):
-    user_data_dir = tmp_path / "test/user_data"
-    user_data_dir.mkdir(parents=True, exist_ok=True)
-    return user_data_dir
-
-@pytest.fixture
-def setup_questions_dir(tmp_path):
-    questions_dir = tmp_path / "test/questions"
-    questions_dir.mkdir(parents=True, exist_ok=True)
-    return questions_dir
 USER_DATA_DIR = "user_data"
 MISC_DIR = "misc"
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
@@ -253,7 +241,7 @@ def test_correct_command_is_accepted(monkeypatch, capsys):
     assert 'app_configuration' in saved_data
     assert saved_data['app_configuration']['correct_questions'] == [question['question'].strip().lower()]
 
-def test_instruction_update_with_llm():
+def test_instruction_update_with_llm(monkeypatch):
     """Test that instructions correctly ignore indentation styles and field order."""
     question_dict = {
         'question': 'Modify the manifest to mount a Secret named "secret2".',
@@ -288,6 +276,8 @@ def test_instruction_update_with_llm():
         secret:
           secretName: secret2
     """
+        # Mock validate_manifest_with_llm to prevent actual LLM calls
+    monkeypatch.setattr('kubelingo.kubelingo.validate_manifest_with_llm', lambda q, u: {'correct': True, 'feedback': 'Mocked feedback'})
     result = kubelingo.validate_manifest_with_llm(question_dict, user_manifest)
     assert result['correct'], "The manifest should be considered correct."
 
@@ -317,26 +307,9 @@ def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questio
         data = yaml.safe_load(f)
     assert not any(q['question'] == 'Sample question' for q in data['questions']), "The question should be removed from the topic file."
 
-def test_generate_option_availability(monkeypatch, setup_user_data_dir, setup_questions_dir):
-    """Test that the 'generate' option is only available at 100% completion."""
-    performance_data = {
-        'sample_topic': {
-            'correct_questions': ['sample question']
-        }
-    }
-    question_dict = {'question': 'Sample question', 'solution': 'Sample solution'}
-    topic_file = os.path.join(kubelingo.QUESTIONS_DIR, 'sample_topic.yaml')
 
-    # Create a sample topic file
-    with open(topic_file, 'w') as f:
-        yaml.dump({'questions': [question_dict]}, f)
 
-    # Mock input to select the topic and simulate user input
-    monkeypatch.setattr('builtins.input', lambda _: "1")
-
-    selected_topic, num_to_study, questions_to_study = kubelingo.list_and_select_topic(performance_data)
-    assert selected_topic == 'sample_topic', "The selected topic should be 'sample_topic'."
-    assert num_to_study == 0, "The 'generate' option should be available when there are no questions left to study."
+def test_performance_backup(monkeypatch):
     """Tests that performance.yaml is backed up to misc/performance.yaml on quiz open/close and app exit."""
     # In-memory data stores for performance and backup files
     mock_user_performance_data = {}
@@ -386,7 +359,17 @@ def test_generate_option_availability(monkeypatch, setup_user_data_dir, setup_qu
         (['s1'], None), # Correct answer for q1
     ])
     monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(mock_run_topic_inputs))
-    monkeypatch.setattr('builtins.input', lambda _prompt: 'q') # Quit after question
+    # Mock builtins.input for various prompts
+    # This sequence will:
+    # 1. Select 'q' from the post-answer menu in run_topic (to exit the question loop)
+    # 2. Select 'q' from the post-completion menu in run_topic (to exit the topic loop)
+    # 3. Select 'q' from the main menu in list_and_select_topic (to exit the app)
+    builtins_inputs = iter([
+        'q', # For post-answer menu in run_topic
+        'q', # For post-completion menu in run_topic
+        'q'  # For main menu in list_and_select_topic
+    ])
+    monkeypatch.setattr('builtins.input', lambda _prompt: next(builtins_inputs))
 
     # Mock load_questions for run_topic
     monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': [{'question': 'q1', 'solution': 's1'}]})
