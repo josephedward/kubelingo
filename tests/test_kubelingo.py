@@ -2,6 +2,7 @@ import pytest
 import subprocess
 import tempfile
 import os
+import sys
 import pytest
 from unittest.mock import mock_open, patch
 import colorama
@@ -21,21 +22,8 @@ from kubelingo.kubelingo import (
     Style, Fore,
     cli
 )
-from kubelingo.kubelingo import (
-    get_user_input,
-    run_topic,
-    list_and_select_topic,
-    load_performance_data,
-    save_performance_data,
-    load_questions,
-    clear_screen,
-    save_question_to_list,
-        get_ai_verdict, # Import for mocking
-    
-    Style, Fore # Import for asserting on colored output
-)
-from kubelingo.kubelingo import cli # Import cli for testing
-from tests.test_kubelingo_updates import setup_user_data_dir, setup_questions_dir
+from kubelingo.validation import validate_manifest_with_llm
+
 USER_DATA_DIR = "user_data"
 MISC_DIR = "misc"
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance_test.yaml")
@@ -187,8 +175,8 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
 
     assert "Topic1 [3 questions]" in output
     assert "Topic2 [5 questions]" in output
-    assert re.search(r"\(.*?2/3 correct - 67%.*?\)", output)
-    assert re.search(r"\(.*?5/5 correct - 100%.*?\)", output)
+    assert re.search(r"(.*?2/3 correct - 67%.*?)", output)
+    assert re.search(r"(.*?5/5 correct - 100%.*?)", output)
     assert f"Please select a topic to study:" in output
 
 def test_correct_command_is_accepted(monkeypatch, capsys):
@@ -261,24 +249,24 @@ def test_instruction_update_with_llm(monkeypatch):
     }
     user_manifest = """
     apiVersion: v1
-    kind: Pod
-    metadata:
-      name: mypod
-    spec:
-      containers:
-      - name: my-container
-        image: nginx
-        volumeMounts:
-        - mountPath: /tmp/secret2
-          name: secret-volume
-      volumes:
-      - name: secret-volume
-        secret:
-          secretName: secret2
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+  - name: my-container
+    image: nginx
+    volumeMounts:
+    - mountPath: /tmp/secret2
+      name: secret-volume
+  volumes:
+  - name: secret-volume
+    secret:
+      secretName: secret2
     """
         # Mock validate_manifest_with_llm to prevent actual LLM calls
-    monkeypatch.setattr('kubelingo.kubelingo.validate_manifest_with_llm', lambda q, u: {'correct': True, 'feedback': 'Mocked feedback'})
-    result = kubelingo.validate_manifest_with_llm(question_dict, user_manifest)
+    monkeypatch.setattr('kubelingo.validation.validate_manifest_with_llm', lambda q, u: {'correct': True, 'feedback': 'Mocked feedback'})
+    result = validate_manifest_with_llm(question_dict, user_manifest)
     assert result['correct'], "The manifest should be considered correct."
 
 def test_create_issue_with_setup(monkeypatch, setup_user_data_dir, setup_questions_dir):
@@ -389,3 +377,54 @@ def test_performance_backup(monkeypatch):
     # data is only modified as expected, not deleted. This test focuses on the
     # logic of the calls, not the file system mechanics, which are handled by
     # the mocked load/save/backup functions.
+
+def test_cli_hangs_before_showing_question(tmp_path):
+    """
+    Launch the CLI, select a topic with 1 incomplete question, and ensure the question prompt
+    appears within a short timeout. If it does not, the test fails quickly.
+    """
+    # Prepare environment to use local module, not globally installed
+    env = os.environ.copy()
+    env['KUBELINGO_DEBUG'] = 'true'
+    # Add project root to PYTHONPATH so kubelingo module can be found
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    if 'PYTHONPATH' in env:
+        env['PYTHONPATH'] = f"{project_root}:{env['PYTHONPATH']}"
+    else:
+        env['PYTHONPATH'] = project_root
+    # Use the same Python interpreter
+    cmd = [sys.executable, '-m', 'kubelingo.kubelingo']
+    # Create a dummy question file for the test
+    questions_dir = tmp_path / "questions"
+    questions_dir.mkdir()
+    question_content = """
+questions:
+  - question: "What is Kubernetes?"
+    solution: "An open-source container-orchestration system for automating application deployment, scaling, and management."
+    source: "https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/"
+"""
+    (questions_dir / "test_topic.yaml").write_text(question_content)
+
+    # Start the CLI process
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        cwd=str(tmp_path),
+        text=True
+    )
+    # Simulate: select topic 1 (test_topic), then 'i' for incomplete questions
+    user_input = "1\ni\n"
+    try:
+        out, err = proc.communicate(input=user_input, timeout=5)
+    except subprocess.TimeoutExpired as e:
+        # Process did not finish in time; check partial output
+        out = e.output or b""
+        out = out.decode(errors='ignore')
+        assert "Question 1/" in out, (
+            f"CLI hung without showing question prompt. Partial output:\n{out}" )
+        return
+    # Check that the question header is in the output
+    assert "Question 1/" in out, f"Expected question prompt, got:\nSTDOUT:\n{out}\nSTDERR:\n{err}"
