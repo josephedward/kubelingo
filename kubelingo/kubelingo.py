@@ -237,8 +237,7 @@ def create_issue(question_dict, topic):
     else:
         print("\nIssue reporting cancelled.")
 
-def get_normalized_question_text(question_dict):
-    return question_dict.get('question', '').strip().lower()
+
 
 def handle_config_menu():
     """Handles the configuration menu for API keys."""
@@ -293,6 +292,20 @@ def handle_config_menu():
     if not isinstance(data, dict):
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' has unexpected format. Using empty data.{Style.RESET_ALL}")
         return {}
+
+    # Sanitize correct_questions lists to ensure they only contain normalized strings
+    for topic, topic_data in data.items():
+        if isinstance(topic_data, dict) and 'correct_questions' in topic_data:
+            sanitized_questions = []
+            for q_item in topic_data['correct_questions']:
+                if isinstance(q_item, dict):
+                    # If it's a dict, normalize it
+                    sanitized_questions.append(get_normalized_question_text(q_item))
+                elif isinstance(q_item, str):
+                    # If it's already a string, keep it
+                    sanitized_questions.append(q_item)
+                # Else, ignore invalid entries
+            topic_data['correct_questions'] = list(set(sanitized_questions)) # Use set to remove duplicates and convert back to list
     return data
 
 def save_performance_data(data):
