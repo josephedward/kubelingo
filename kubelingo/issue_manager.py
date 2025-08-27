@@ -56,7 +56,7 @@ def create_issue(question_dict, topic):
                 except yaml.YAMLError:
                     issues = []
         
-        issues.append(question_dict)
+        issues.append(new_issue)
 
         with open(issues_file, 'w') as f:
             yaml.dump(issues, f)
