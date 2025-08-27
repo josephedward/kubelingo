@@ -85,7 +85,7 @@ def test_create_issue_with_setup(setup_user_data_dir, setup_questions_dir):
         data = yaml.safe_load(f)
     assert not any(q['question'] == 'Sample question' for q in data['questions']), "The question should be removed from the topic file."
 
-def test_generate_option_availability(setup_user_data_dir, setup_questions_dir, monkeypatch):
+def test_generate_option_availability(monkeypatch, setup_user_data_dir, setup_questions_dir):
     """Test that the 'generate' option is only available at 100% completion."""
     performance_data = {
         'sample_topic': {
@@ -99,7 +99,8 @@ def test_generate_option_availability(setup_user_data_dir, setup_questions_dir, 
     with open(topic_file, 'w') as f:
         yaml.dump({'questions': [question_dict]}, f)
 
-    monkeypatch.setattr('builtins.input', lambda _: '1')
+    # Mock input to select the topic and simulate user input
+    monkeypatch.setattr('builtins.input', lambda _: "1")
 
     selected_topic, num_to_study, questions_to_study = kubelingo.list_and_select_topic(performance_data)
     assert selected_topic == 'sample_topic', "The selected topic should be 'sample_topic'."
