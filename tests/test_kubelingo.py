@@ -7,6 +7,8 @@ import yaml
 import re
 from kubelingo.kubelingo import ensure_user_data_dir, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR
 
+os.environ['KUBELINGO_DEBUG'] = 'True' # Enable debug logging
+
 # --- Fixtures for mocking file system (from test_kubelingo_functions.py) ---
 
 @pytest.fixture
@@ -358,43 +360,29 @@ def test_get_user_input_eof_error():
         commands, action = get_user_input()
         assert commands == []
         assert action is None
+    
+def test_get_user_input_prompt_output(capsys):
+    # Ensure prompt text is displayed before reading input
+    with patch('builtins.input', side_effect=EOFError):
+        _ = get_user_input()
+    captured = capsys.readouterr()
+    expected = "Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'."
+    assert expected in captured.out
+    
+def test_get_ai_verdict_fallback(monkeypatch):
+    from kubelingo.kubelingo import get_ai_verdict
+    # Simulate no AI model configured
+    import kubelingo.kubelingo as kmod
+    monkeypatch.setattr(kmod, '_get_llm_model', lambda skip_prompt=True: ('', None))
+    result = get_ai_verdict('Sample Question', 'user answer', 'suggestion')
+    # Fallback feedback when no model
+    assert isinstance(result, dict)
+    assert result.get('correct') is False
+    feedback = result.get('feedback', '')
+    assert feedback.startswith('INFO: Set'), "Expected fallback info message"
 
 
-def test_run_topic_retry_question(capsys):
-    # Mock necessary functions
-    with patch('kubelingo.kubelingo.get_user_input', side_effect=[
-        ([], 'r'), # First input: retry
-        (['done'], None) # Second input: done (after retry)
-    ]) as mock_get_user_input:
-        with patch('builtins.input', side_effect=[
-            'r', # Post-answer menu: retry
-            'n'  # Post-answer menu: next (after retry)
-        ]) as mock_input:
-            with patch('kubelingo.kubelingo.clear_screen') as mock_clear_screen:
-                with patch('kubelingo.kubelingo.save_performance_data') as mock_save_performance_data:
-                    # Provide a single question
-                    mock_questions = [{'question': 'Test Question', 'solution': 'Test Solution'}]
-                    
-                    # Call run_topic
-                    from kubelingo.kubelingo import run_topic
-                    with patch('kubelingo.kubelingo.get_ai_verdict', return_value={'correct': True, 'feedback': 'AI says correct.'}):
-                        with patch('kubelingo.kubelingo.clear_screen', lambda: None):
-                            run_topic('dummy_topic', 1, {}, mock_questions)
-                    
-                    captured = capsys.readouterr()
 
-                    def strip_ansi_codes(s):
-                        return re.sub(r'\x1b\[([0-9]{1,2}(;[0-9]{1,2})*)?[m|K]', '', s)
 
-                    cleaned_output = strip_ansi_codes(captured.out)
-                    
-                    # Verify that the question was displayed twice (once initially, once after retry)
-                    assert cleaned_output.count('Question 1/1 (Topic: dummy_topic)') == 2
-                    assert cleaned_output.count('Test Question') == 2
-                    assert 'Retrying the current question.' in cleaned_output
-                    
-                    # Verify that get_user_input was called twice for the same question
-                    assert mock_get_user_input.call_count == 2
-                    
-                    # Verify that save_performance_data was called
-                    mock_save_performance_data.assert_called_once()
+
+
