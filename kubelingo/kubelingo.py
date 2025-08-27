@@ -8,7 +8,8 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR
+from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR, manifests_equivalent
+from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
 import kubelingo.question_generator as qg
 try:
     import google.generativeai as genai
@@ -30,39 +31,9 @@ import copy
 from colorama import Fore, Style, init as colorama_init
 
 
-
 def clear_screen():
     """Clears the terminal screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
-
-def _normalize_manifest(obj):
-    """
-    Deep-copy a manifest object and remove non-essential fields (names) for equivalence comparison.
-    """
-    m = copy.deepcopy(obj)
-    if isinstance(m, dict):
-        # Remove top-level metadata name
-        if 'metadata' in m and isinstance(m['metadata'], dict):
-            m['metadata'].pop('name', None)
-        # Remove container names
-        spec = m.get('spec')
-        if isinstance(spec, dict):
-            containers = spec.get('containers')
-            if isinstance(containers, list):
-                for c in containers:
-                    if isinstance(c, dict):
-                        c.pop('name', None)
-        return m
-    if isinstance(m, list):
-        return [_normalize_manifest(item) for item in m]
-    return m
-
-def manifests_equivalent(sol_obj, user_obj):
-    """
-    Compare two manifest objects for structural equivalence, ignoring names.
-    """
-    return _normalize_manifest(sol_obj) == _normalize_manifest(user_obj)
-
 
 def colorize_ascii_art(ascii_art_string):
     """Applies a green and cyan pattern to the ASCII art string."""
@@ -611,6 +582,7 @@ def handle_config_menu():
             print("Invalid choice. Please try again.")
             time.sleep(1)
 
+
 def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
     """
     Provides an AI-generated verdict on the technical correctness of a user's answer.
@@ -697,105 +669,6 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
 
     except Exception as e:
         return {'correct': False, 'feedback': f"Error getting AI verdict: {e}"}
-
-def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
-    """
-    Validates a user-submitted manifest using the LLM."""
-    # Extract solution manifest
-    solution_manifest = None
-    if isinstance(question_dict, dict):
-        if isinstance(question_dict.get('suggestion'), list) and question_dict['suggestion']:
-            solution_manifest = question_dict['suggestion'][0]
-        elif 'solution' in question_dict:
-            solution_manifest = question_dict['solution']
-    # Local structural check for dict/list solutions
-    if isinstance(solution_manifest, (dict, list)):
-        try:
-            user_obj = yaml.safe_load(user_manifest)
-            is_correct = manifests_equivalent(solution_manifest, user_obj)
-            return {'correct': is_correct, 'feedback': ''}
-        except Exception:
-            pass
-    # Fallback to AI-powered validation
-    llm_type, model = _get_llm_model(skip_prompt=True)
-    if not model:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
-
-    solution_manifest = None
-    if isinstance(question_dict, dict):
-        # Try to get from 'suggestion' first
-        suggestion_list = question_dict.get('suggestion')
-        if isinstance(suggestion_list, list) and suggestion_list:
-            solution_manifest = suggestion_list[0]
-        # If not found in 'suggestion', try 'solution'
-        elif 'solution' in question_dict:
-            solution_manifest = question_dict.get('solution')
-
-    if solution_manifest is None:
-        return {'correct': False, 'feedback': 'No solution found in question data.'}
-
-    # Compose prompt for validation
-    prompt = f'''
-    You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question.
-    The student was asked:
-    ---
-    Question: {question_dict['question']}
-    ---
-    The student provided this manifest:
-    ---
-    Student Manifest:\n{user_manifest}
-    ---
-    The canonical solution is:
-    ---
-    Solution Manifest:\n{solution_manifest}
-    ---
-    Your task is to determine if the student's manifest is functionally correct. The manifests do not need to be textually identical. Do not penalize differences in metadata.name, container names, indentation styles (so long as a 'kubectl apply' would accept the manifest), or the order of fields; focus on correct apiVersion, kind, relevant metadata fields (except names), and spec details.
-    First, on a line by itself, write "CORRECT" or "INCORRECT".
-    Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
-    '''
-    
-    # Use only the configured LLM
-    if llm_type == "gemini":
-        try:
-            response = model.generate_content(prompt)
-            text = response.text.strip()
-        except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
-    elif llm_type == "openai":
-        try:
-            resp = model.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            text = resp.choices[0].message.content.strip()
-        except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
-    elif llm_type == "openrouter":
-        try:
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=model["headers"],
-                json={
-                    "model": model["default_model"],
-                    "messages": [
-                        {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
-                        {"role": "user", "content": prompt}
-                    ]
-                }
-            )
-            response.raise_for_status()
-            text = response.json()['choices'][0]['message']['content'].strip()
-        except Exception as e:
-            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
-    else:
-        return {'correct': False, 'feedback': "No LLM configured"}
-    lines = text.split('\n')
-    is_correct = lines[0].strip().upper() == "CORRECT"
-    feedback = "\n".join(lines[1:]).strip()
-    return {'correct': is_correct, 'feedback': feedback}
 
 def handle_vim_edit(question):
     """
@@ -906,51 +779,6 @@ def handle_vim_edit(question):
         'ai_feedback': ai_result.get('feedback', '')
     }
     return user_manifest, result, False
-
-def validate_manifest(manifest_content):
-    """
-    Validate a Kubernetes manifest string using external tools (yamllint, kubeconform, kubectl-validate).
-    Returns a tuple: (success: bool, summary: str, details: str)."""
-    config = dotenv_values(".env")
-    validators = [
-        ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
-        ("kubeconform", ["kubeconform", "-strict", "-"], "Validating Kubernetes schema"),
-        ("kubectl-validate", ["kubectl-validate", "-f", "-"], "Validating with kubectl-validate"),
-    ]
-    overall = True
-    detail_lines = []
-    for key, cmd, desc in validators:
-        if config.get(f"KUBELINGO_VALIDATION_{key.upper()}", "True") != "True":
-            continue
-        detail_lines.append(f"=== {desc} ===")
-        try:
-            proc = subprocess.run(cmd, input=manifest_content, capture_output=True, text=True)
-            out = proc.stdout.strip()
-            err = proc.stderr.strip()
-            if proc.returncode != 0:
-                overall = False
-                detail_lines.append(f"{key} failed (exit {proc.returncode}):")
-                if out: detail_lines.append(out)
-                if err: detail_lines.append(err)
-            else:
-                detail_lines.append(f"{key} passed.")
-        except FileNotFoundError:
-            detail_lines.append(f"{key} not found; skipping.")
-        except Exception as e:
-            overall = False
-            detail_lines.append(f"Error running {key}: {e}")
-    summary = f"{Fore.GREEN}All validations passed!{Style.RESET_ALL}" if overall else f"{Fore.RED}Validation failed.{Style.RESET_ALL}"
-    return overall, summary, "\n".join(detail_lines)
-
-def validate_manifest_with_kubectl_dry_run(manifest):
-    """Placeholder function for validating a manifest with kubectl dry-run."""
-    # Implement the actual logic here
-    return True, "kubectl dry-run successful!", "Details of the dry-run"
-
-def validate_kubectl_command_dry_run(command_string):
-    """Placeholder function for validating a kubectl command with dry-run."""
-    # Implement the actual logic here
-    return True, "kubectl dry-run successful!", "Details of the dry-run"
 
 K8S_RESOURCE_ALIASES = {
     'cm': 'configmap',
@@ -1078,7 +906,7 @@ def normalize_command(command_lines):
             full_command_string = ' '.join(command_string_parts)
             
             # Remove outer quotes from the full command string
-            if (full_command_string.startswith("'") and full_command_string.endswith("'")) or \
+            if (full_command_string.startswith("'" ) and full_command_string.endswith("'" )) or \
                (full_command_string.startswith('"') and full_command_string.endswith('"')):
                 full_command_string = full_command_string[1:-1]
             
@@ -1249,7 +1077,16 @@ def list_and_select_topic(performance_data):
                     questions_to_study_list = incomplete_questions
                     num_to_study = num_incomplete
                 elif inp == 'g' and percent_correct == 100:
-                    new_q = qg.generate_more_questions(selected_topic, questions_to_study_list[0])
+                    new_q = qg.generate_more_questions(
+                        selected_topic, 
+                        questions_to_study_list[0],
+                        _get_llm_model,
+                        QUESTIONS_DIR,
+                        Fore,
+                        Style,
+                        load_questions,
+                        get_normalized_question_text
+                    )
                     if new_q:
                         questions_to_study_list.append(new_q)
                         save_questions_to_topic_file(selected_topic, questions_to_study_list)
@@ -1773,7 +1610,3 @@ if __name__ == "__main__":
     else:
         # Original interactive CLI mode
         cli(obj={})
-
-
-
-
