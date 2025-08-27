@@ -606,6 +606,16 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
     mock_environ["GEMINI_API_KEY"] = "Not Set"
     mock_environ["OPENAI_API_KEY"] = "Not Set"
     mock_environ["OPENROUTER_API_KEY"] = "Not Set"
+    
+    # Simulate user input: 1 (API Keys), 2 (set OpenAI), then a key, then 3 (back), 3 (back)
+    with patch('builtins.input', side_effect=['1', '2', 'test_openai_key', '8', '3']):
+        from kubelingo.kubelingo import handle_config_menu
+        handle_config_menu()
+        mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
+        assert mock_environ.get("OPENAI_API_KEY") == 'test_openai_key'
+        
+        captured = capsys.readouterr()
+        assert "OpenAI API Key saved." in captured.out
 
     # Simulate user input: 2 (set OpenAI), then a key, then 5 (back)
     with patch('builtins.input', side_effect=['2', 'test_openai_key', '5']):
@@ -620,24 +630,14 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
     mock_clear_screen, mock_dotenv_values, mock_set_key, mock_getpass, mock_environ, mock_sleep, mock_environ_values = mock_handle_config_menu_deps
-    mock_environ.clear() # No keys set
+    mock_environ.clear()  # No keys set
 
-    # Remove print statements after debugging
-    # print(f"\n--- test_handle_config_menu_invalid_choice START ---")
-    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
-    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
-
-    # Remove print statements after debugging
-    # print(f"\n--- test_handle_config_menu_invalid_choice START ---")
-    # print(f"Before handle_keys_menu - os.environ: {os.environ}")
-    # print(f"Before handle_keys_menu - mock_environ_values: {mock_environ_values}")
-    
     # Simulate user input: invalid, then 3 (back to main menu)
     with patch('builtins.input', side_effect=['invalid', '3']):
         handle_config_menu()
-    
+
     mock_set_key.assert_not_called()
-    
+
     captured = capsys.readouterr()
     assert "Invalid choice. Please try again." in captured.out
 
