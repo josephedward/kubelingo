@@ -60,7 +60,8 @@ import logging
 # Debug helper: enable by setting environment variable KUBELINGO_DEBUG=1 or true
 DEBUG = os.getenv('KUBELINGO_DEBUG', 'False').lower() in ('1', 'true')
 def dbg(msg):
-    print(f"[DEBUG] {msg}", file=sys.stderr)
+    if DEBUG:
+        print(f"[DEBUG] {msg}", file=sys.stderr)
 import webbrowser
 try:
     from googlesearch import search
