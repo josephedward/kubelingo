@@ -107,12 +107,11 @@ def test_clear_command_feedback_is_colored(monkeypatch, capsys):
         colorama.deinit()
 
 
-def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
     """
-    Tests that performance data is updated with unique correctly answered questions,
-    and doesn't just overwrite with session data.
-    """
-    # Start with q1 already correct
+        Tests that performance data is updated with unique correctly answered questions,
+        and doesn't just overwrite with session data.
+        """
+        # Start with q1 already correct
     mock_data_source = {'existing_topic': {'correct_questions': ['q1']}}
     saved_data = {}
 
@@ -139,7 +138,7 @@ def test_performance_data_updates_with_unique_correct_answers(monkeypatch):
         (['s2'], None),      # Correct answer for q2
     ])
     monkeypatch.setattr('kubelingo.kubelingo.get_user_input', lambda allow_solution_command: next(user_inputs))
-    post_answer_inputs = iter(['n', 'q']) # 'n' for first question, 'q' for second
+    post_answer_inputs = iter(['1', '1', 'q'])  # '1' for first question, '1' for second question, 'q' for final quit
     monkeypatch.setattr('builtins.input', lambda _prompt: next(post_answer_inputs))
 
     run_topic('existing_topic', len(questions), mock_data_source, questions)
