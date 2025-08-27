@@ -16,7 +16,7 @@ except ImportError:
 
 from kubelingo.utils import _get_llm_model, QUESTIONS_DIR, load_questions, get_normalized_question_text
 
-def assign_source(question_dict, topic, Fore, Style, genai):
+def assign_source(question_dict, topic, Fore, Style):
     """
     Searches for and assigns a source URL to a question if it's missing.
     Returns True if a source was assigned, False otherwise.
@@ -32,10 +32,12 @@ def assign_source(question_dict, topic, Fore, Style, genai):
                     return True
             except Exception as e:
                 # Handle potential errors during search (e.g., network issues)
-                if genai is None: # Check if AI is disabled
+                llm_type, model = _get_llm_model(skip_prompt=True)
+                if model is None: # Check if AI is disabled
                     print(f"{Fore.YELLOW}Note: Could not find source for a question (AI disabled or search error: {e}).{Style.RESET_ALL}")
         else:
-            if genai is None: # Check if AI is disabled
+            llm_type, model = _get_llm_model(skip_prompt=True)
+            if model is None: # Check if AI is disabled
                 print(f"{Fore.YELLOW}Note: Could not find source for a question (googlesearch not installed and AI disabled).{Style.RESET_ALL}")
     return False
 
@@ -51,7 +53,7 @@ def generate_more_questions(topic, question):
         question_type = random.choice(['command', 'manifest'])
         
         # Get all existing questions for the topic to include in the prompt for uniqueness
-        all_existing_questions = load_questions(topic, Fore, Style, None) # Pass Fore, Style, None for genai in load_questions
+        all_existing_questions = load_questions(topic, Fore, Style)
         existing_questions_list = all_existing_questions.get('questions', []) if all_existing_questions else []
         
         existing_questions_yaml = ""
@@ -107,7 +109,7 @@ def generate_more_questions(topic, question):
         '''
         if llm_type == "gemini":
             response = model.generate_content(prompt)
-        elif llm_type == "openai" or llm_type == "openrouter":
+        elif llm_type == "openai":
             response = model.chat.completions.create(
                 model="gpt-3.5-turbo", # Or another suitable model
                 messages=[
@@ -116,6 +118,20 @@ def generate_more_questions(topic, question):
                 ]
             )
             response.text = response.choices[0].message.content # Normalize response for consistent parsing
+        elif llm_type == "openrouter":
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=model["headers"],
+                json={
+                    "model": model["default_model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+            )
+            resp.raise_for_status()
+            response = type("obj", (object,), {'text': resp.json()['choices'][0]['message']['content']}) # Create a dummy object with .text attribute
 
         # Clean the response to only get the YAML part
         cleaned_response = response.text.strip()
@@ -140,36 +156,16 @@ def generate_more_questions(topic, question):
                     print(f"{Fore.YELLOW}\nGenerated question is a duplicate. Retrying...{Style.RESET_ALL}")
                     return None # Indicate failure to generate a unique question
 
-            # Normalize generated question: convert 'solution' to 'suggestion' list and clean whitespace
-            suggestion_list = []
-            if 'suggestion' in new_q:
-                raw_sug = new_q.pop('suggestion')
-                suggestion_list = raw_sug if isinstance(raw_sug, list) else [raw_sug]
-            elif 'solution' in new_q:
-                raw_sol = new_q.pop('solution')
-                suggestion_list = [raw_sol]
-            
-            cleaned_suggestion = []
-            for item in suggestion_list:
-                if isinstance(item, str):
-                    # Aggressively clean whitespace and newlines for command-like solutions
-                    cleaned_item = item.strip().replace('\n', ' ').replace('  ', ' ')
-                    cleaned_suggestion.append(cleaned_item)
-                else:
-                    cleaned_suggestion.append(item)
-            
-            if cleaned_suggestion:
-                new_q['suggestion'] = cleaned_suggestion
-            # Ensure 'solution' key is removed if it was present
-            if 'solution' in new_q:
-                new_q.pop('solution')
-            
             # Ensure 'source' field exists
             if not new_q.get('source'):
                 print(f"{Fore.YELLOW}\nGenerated question is missing a 'source' field. Attempting to find one...{Style.RESET_ALL}")
-                # This is where _find_and_assign_source would be called later
-                # For now, we'll just return None to indicate a problem
-                return None
+                if not assign_source(new_q, topic, Fore, Style):
+                    print(f"{Fore.RED}Failed to assign a source to the generated question.{Style.RESET_ALL}")
+                    return None
+            
+            # Normalize generated question: clean whitespace in solution
+            if 'solution' in new_q and isinstance(new_q['solution'], str):
+                new_q['solution'] = new_q['solution'].strip()
 
             print("\nNew question generated!")
             return new_q
