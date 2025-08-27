@@ -110,3 +110,5 @@ resource_reference:
   - what is the api version for daemonset?
   - what is the short name for storageclass?
   - what is the api version for persistentvolumeclaim?
+sample_topic:
+  correct_questions: []
