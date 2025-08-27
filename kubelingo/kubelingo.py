@@ -1483,7 +1483,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 # Go to configuration menu
                 handle_config_menu()
             elif choice == 'q':
-                sys.exit(0) # Exit application
+                return 'quit_app' # Signal to quit application
             else:
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
 
@@ -1546,7 +1546,11 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         selected_topic, num_to_study, questions_to_study = topic_info
         
         backup_performance_file()
-        run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
+        run_topic_result = run_topic(selected_topic, num_to_study, performance_data, questions_to_study)
+        if run_topic_result == 'quit_app':
+            save_performance_data(performance_data)
+            backup_performance_file()
+            sys.exit(0) # Exit application if run_topic signals quit
         save_performance_data(performance_data)
         backup_performance_file()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
