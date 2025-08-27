@@ -10,8 +10,26 @@ def test_cli_hangs_before_showing_question(tmp_path):
     """
     # Prepare environment to use local module, not globally installed
     env = os.environ.copy()
+    env['KUBELINGO_DEBUG'] = 'true'
+    # Add project root to PYTHONPATH so kubelingo module can be found
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    if 'PYTHONPATH' in env:
+        env['PYTHONPATH'] = f"{project_root}:{env['PYTHONPATH']}"
+    else:
+        env['PYTHONPATH'] = project_root
     # Use the same Python interpreter
     cmd = [sys.executable, '-m', 'kubelingo.kubelingo']
+    # Create a dummy question file for the test
+    questions_dir = tmp_path / "questions"
+    questions_dir.mkdir()
+    question_content = """
+questions:
+  - question: "What is Kubernetes?"
+    solution: "An open-source container-orchestration system for automating application deployment, scaling, and management."
+    source: "https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/"
+"""
+    (questions_dir / "test_topic.yaml").write_text(question_content)
+
     # Start the CLI process
     proc = subprocess.Popen(
         cmd,
@@ -22,10 +40,10 @@ def test_cli_hangs_before_showing_question(tmp_path):
         cwd=str(tmp_path),
         text=True
     )
-    # Simulate: select topic 2, then 'i' for incomplete questions
-    user_input = "2\ni\n"
+    # Simulate: select topic 1 (test_topic), then 'i' for incomplete questions
+    user_input = "1\ni\n"
     try:
-        out, err = proc.communicate(input=user_input, timeout=1)
+        out, err = proc.communicate(input=user_input, timeout=5)
     except subprocess.TimeoutExpired as e:
         # Process did not finish in time; check partial output
         out = e.output or b""

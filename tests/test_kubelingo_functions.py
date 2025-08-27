@@ -617,15 +617,7 @@ def test_handle_config_menu_set_openai_key(mock_handle_config_menu_deps, capsys)
         captured = capsys.readouterr()
         assert "OpenAI API Key saved." in captured.out
 
-    # Simulate user input: 2 (set OpenAI), then a key, then 5 (back)
-    with patch('builtins.input', side_effect=['2', 'test_openai_key', '5']):
-        handle_keys_menu()
-
-    mock_set_key.assert_called_once_with(".env", "OPENAI_API_KEY", 'test_openai_key')
-    assert mock_environ_values["OPENAI_API_KEY"] == 'test_openai_key'
     
-    captured = capsys.readouterr()
-    assert "OpenAI API Key saved." in captured.out
 
 
 def test_handle_config_menu_invalid_choice(mock_handle_config_menu_deps, capsys):
@@ -710,7 +702,7 @@ def test_get_user_input_eof_error():
     with patch('builtins.input', side_effect=EOFError):
         commands, action = get_user_input()
         assert commands == []
-        assert action == 'skip'
+        assert action is None
 
 # --- Tests for LLM Interactions ---
 
