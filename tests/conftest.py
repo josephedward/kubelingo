@@ -2,6 +2,101 @@ import pytest
 import os
 import yaml
 from unittest.mock import patch, MagicMock, mock_open
+import importlib
+import unittest.mock as _um
+
+# Provide pytest-mock style "mocker" fixture for tests
+class _SimpleMocker:
+    def __init__(self, monkeypatch):
+        self._monkeypatch = monkeypatch
+        self.patch = _Patch(self)
+    def _create_mock_and_patch(self, target, **kwargs):
+        parts = target.split('.')
+        # Find the longest importable module prefix
+        module = None
+        rest = []
+        for i in range(len(parts) - 1, 0, -1):
+            module_name = '.'.join(parts[:i])
+            try:
+                module = importlib.import_module(module_name)
+                rest = parts[i:]
+                break
+            except ModuleNotFoundError:
+                continue
+        if module is None:
+            raise ImportError(f"Cannot import module from target '{target}'")
+        # Traverse attributes to get parent object
+        obj = module
+        for attr in rest[:-1]:
+            obj = getattr(obj, attr)
+        attr_name = rest[-1]
+        # Create the mock
+        new_mock = MagicMock()
+        if 'return_value' in kwargs:
+            new_mock.return_value = kwargs['return_value']
+        if 'side_effect' in kwargs:
+            new_mock.side_effect = kwargs['side_effect']
+        # Patch the attribute on the object
+        self._monkeypatch.setattr(obj, attr_name, new_mock)
+        return new_mock
+    def mock_open(self, *args, **kwargs):
+        return mock_open(*args, **kwargs)
+    def MagicMock(self, *args, **kwargs):
+        return MagicMock(*args, **kwargs)
+    call = _um.call
+
+class _Patch:
+    def __init__(self, mocker):
+        self._mocker = mocker
+    def __call__(self, target, *args, **kwargs):
+        # Resolve target to object and attribute
+        parts = target.split('.')
+        module = None
+        rest = []
+        for i in range(len(parts) - 1, 0, -1):
+            module_name = '.'.join(parts[:i])
+            try:
+                module = importlib.import_module(module_name)
+                rest = parts[i:]
+                break
+            except ModuleNotFoundError:
+                continue
+        if module is None:
+            raise ImportError(f"Cannot import module from target '{target}'")
+        obj = module
+        for attr in rest[:-1]:
+            obj = getattr(obj, attr)
+        attr_name = rest[-1]
+        # Determine new object for patch
+        if args:
+            new_obj = args[0]
+        else:
+            new_obj = MagicMock()
+            if 'return_value' in kwargs:
+                new_obj.return_value = kwargs['return_value']
+            if 'side_effect' in kwargs:
+                new_obj.side_effect = kwargs['side_effect']
+        # Apply patch
+        self._mocker._monkeypatch.setattr(obj, attr_name, new_obj)
+        return new_obj
+    def dict(self, target, new_dict=None, clear=False):
+        parts = target.split('.')
+        module_name = '.'.join(parts[:-1])
+        attr_name = parts[-1]
+        module = importlib.import_module(module_name)
+        if clear:
+            setattr(module, attr_name, new_dict)
+        else:
+            existing = getattr(module, attr_name)
+            try:
+                existing.update(new_dict or {})
+            except Exception:
+                setattr(module, attr_name, new_dict)
+        return new_dict
+
+@pytest.fixture
+def mocker(monkeypatch):
+    return _SimpleMocker(monkeypatch)
 
 @pytest.fixture
 def mock_os_path_exists():
