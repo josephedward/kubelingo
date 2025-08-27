@@ -95,11 +95,12 @@ def test_clear_command_feedback_is_colored(monkeypatch, capsys):
         colorama.deinit()
 
 
+    def test_performance_data_update_logic(monkeypatch):
     """
-        Tests that performance data is updated with unique correctly answered questions,
-        and doesn't just overwrite with session data.
-        """
-        # Start with q1 already correct
+    Tests that performance data is updated with unique correctly answered questions,
+    and doesn't just overwrite with session data.
+    """
+    # Start with q1 already correct
     mock_data_source = {'existing_topic': {'correct_questions': ['q1']}}
     saved_data = {}
 
@@ -115,7 +116,7 @@ def test_clear_command_feedback_is_colored(monkeypatch, capsys):
 
     # In this session, user answers q1 again correctly and q2 correctly.
     questions = [{'question': 'q1', 'solution': 's1'}, {'question': 'q2', 'solution': 's2'}]
-    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic: {'questions': questions})
+    monkeypatch.setattr('kubelingo.kubelingo.load_questions', lambda topic, Fore, Style: {'questions': questions})
     monkeypatch.setattr('kubelingo.kubelingo.clear_screen', lambda: None)
     monkeypatch.setattr('time.sleep', lambda seconds: None)
     monkeypatch.setattr('kubelingo.kubelingo.save_question_to_list', lambda *args: None)
@@ -154,7 +155,7 @@ def test_topic_menu_shows_question_count_and_color(monkeypatch, capsys):
     }
     monkeypatch.setattr('kubelingo.kubelingo.load_performance_data', lambda: mock_perf_data)
 
-    def mock_load_questions(topic):
+    def mock_load_questions(topic, Fore, Style):
         if topic == 'topic1':
             return {'questions': [{}, {}, {}]} # 3 questions
         if topic == 'topic2':
