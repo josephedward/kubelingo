@@ -76,6 +76,12 @@ from pygments.formatters import TerminalFormatter
 from dotenv import load_dotenv, dotenv_values, set_key
 import click
 import sys
+import logging
+# Debug helper: enable by setting environment variable KUBELINGO_DEBUG=1 or true
+DEBUG = os.getenv('KUBELINGO_DEBUG', 'False').lower() in ('1', 'true')
+def dbg(msg):
+    if DEBUG:
+        print(f"[DEBUG] {msg}", file=sys.stderr)
 import webbrowser
 try:
     from googlesearch import search
@@ -1242,10 +1248,12 @@ def list_and_select_topic(performance_data):
 
     """Lists available topics and prompts the user to select one."""
     ensure_user_data_dir()
+    dbg(f"list_and_select_topic: perf_keys={list(performance_data.keys())}")
     # Determine missed questions file dynamically based on USER_DATA_DIR
     missed_file = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
     available_topics = sorted([f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')])
     has_missed = os.path.exists(missed_file) and os.path.getsize(missed_file) > 0
+    dbg(f"list_and_select_topic: available_topics={available_topics}, has_missed={has_missed}")
     
     # Auto-select single topic with 100% completion (generate option) without prompting
     if not has_missed and len(available_topics) == 1:
@@ -1262,6 +1270,7 @@ def list_and_select_topic(performance_data):
         return None
 
     print(f"\n{Style.BRIGHT}{Fore.CYAN}Please select a topic to study:{Style.RESET_ALL}")
+    dbg("list_and_select_topic: printed header and topics")
     if has_missed:
         missed_questions_count = len(load_questions_from_list(missed_file))
         print(f"  {Style.BRIGHT}0.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
@@ -1285,12 +1294,13 @@ def list_and_select_topic(performance_data):
             completion_indicator = f" {Fore.YELLOW}★{Style.RESET_ALL}" # Yellow star for 100% completion
         print(f"  {Style.BRIGHT}{i+1}.{Style.RESET_ALL} {display_name} [{num_questions} questions]{stats_str}{completion_indicator}")
     
-        if has_missed:
-            print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configuration Menu")
-            print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
-    
+    # After listing topics, show configuration and quit options once if missed-review is enabled
+    if has_missed:
+        print(f"  {Style.BRIGHT}c.{Style.RESET_ALL} Configuration Menu")
+        print(f"  {Style.BRIGHT}q.{Style.RESET_ALL} Quit")
 
     while True:
+        dbg("list_and_select_topic: awaiting user choice...")
         try:
             has_100_percent_complete_topic = False
             for i, topic_name in enumerate(available_topics):
@@ -1307,7 +1317,9 @@ def list_and_select_topic(performance_data):
                 prompt_options = f"0-{len(available_topics)}"
             
             prompt = f"\nEnter a number ({prompt_options}), 'c', or 'q': "
+            dbg(f"list_and_select_topic: prompt='{prompt.strip()}'")
             choice = input(prompt).lower()
+            dbg(f"list_and_select_topic: choice='{choice}'")
 
             if choice == '0' and has_missed:
                 missed_questions_count = len(load_questions_from_list(missed_file))
@@ -1317,6 +1329,13 @@ def list_and_select_topic(performance_data):
 
                 while True:
                     num_to_study_input = input(f"Enter number of missed questions to study (1-{missed_questions_count}, or press Enter for all): ").strip().lower()
+                    # Allow 'c' to configure, 'q' to quit at this prompt
+                    if num_to_study_input == 'c':
+                        handle_config_menu()
+                        continue
+                    if num_to_study_input == 'q':
+                        print("\nGoodbye!")
+                        return None, None, None
                     if num_to_study_input == 'all' or num_to_study_input == '':
                         num_to_study = missed_questions_count
                         break
@@ -1378,6 +1397,13 @@ def list_and_select_topic(performance_data):
                     options = f"1-{total_questions}{prompt_suffix}"
                     prompt = f"Enter number of questions to study ({options}), or press Enter for all: "
                     num_to_study_input = input(prompt).strip().lower()
+                    # Allow 'c' to configure, 'q' to quit at this prompt
+                    if num_to_study_input == 'c':
+                        handle_config_menu()
+                        continue
+                    if num_to_study_input == 'q':
+                        print("\nGoodbye!")
+                        return None, None, None
                     
                     if num_to_study_input == 'all' or num_to_study_input == '':
                         num_to_study = total_questions
@@ -1461,8 +1487,10 @@ _ORIGINAL_GET_USER_INPUT = get_user_input
 def run_topic(topic, num_to_study, performance_data, questions_to_study):
     """
     Loads and runs questions for a given topic."""
-    # Fallback simple mode when get_user_input is monkeypatched (only during pytest runs)
-    if get_user_input is not _ORIGINAL_GET_USER_INPUT and os.getenv('PYTEST_CURRENT_TEST'):
+    dbg(f"run_topic: start topic={topic}, num_to_study={num_to_study}, questions_to_study_count={len(questions_to_study)}")
+    
+    # Fallback simple mode when get_user_input is monkeypatched (e.g., in pytest)
+    if get_user_input is not _ORIGINAL_GET_USER_INPUT:
         perf = performance_data.setdefault(topic, {})
         perf.setdefault('correct_questions', [])
         for q in questions_to_study:
@@ -1560,6 +1588,9 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             print(f"{Fore.CYAN}{'-' * 40}")
             
             user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+            # If user just pressed Enter without commands, treat as skip
+            if not user_commands and special_action is None:
+                special_action = 'skip'
 
             # Handle 'menu' command first, as it exits the topic
             if special_action == 'menu':
@@ -2157,10 +2188,12 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     ctx.ensure_object(dict)
     ctx.obj['PERFORMANCE_DATA'] = load_performance_data()
     performance_data = ctx.obj['PERFORMANCE_DATA']
-    save_performance_data(performance_data) # Ensure performance.yaml exists for backup
+    save_performance_data(performance_data)  # Ensure performance.yaml exists for backup
     
     while True:
+        dbg("cli: calling list_and_select_topic")
         topic_info = list_and_select_topic(performance_data)
+        dbg(f"cli: list_and_select_topic returned {topic_info}")
         if topic_info is None or topic_info[0] is None:
             save_performance_data(performance_data)
             backup_performance_file()
@@ -2179,4 +2212,6 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         time.sleep(2)
 
 if __name__ == "__main__":
+    # Mark CLI mode for run_topic to detect piped input
+    os.environ['KUBELINGO_CLI_MODE'] = '1'
     cli(obj={})
