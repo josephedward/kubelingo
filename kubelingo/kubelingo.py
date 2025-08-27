@@ -8,7 +8,7 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus
+from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR
 import kubelingo.question_generator as qg
 try:
     import google.generativeai as genai
@@ -93,18 +93,7 @@ try:
 except ImportError:
     search = None
 
-# Determine questions directory: prefer project-root 'questions' when present, else package-relative
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, os.pardir))
-# Directory alongside project root (for local development)
-_ROOT_QUESTIONS = os.path.join(_PROJECT_ROOT, "questions")
-# Package-relative questions (if bundled in installation)
-_PKG_QUESTIONS = os.path.join(_SCRIPT_DIR, "questions")
-# Allow override via environment variable
-QUESTIONS_DIR = os.getenv(
-    "KUBELINGO_QUESTIONS_DIR",
-    _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
-)
+
 
 ASCII_ART = r"""
                                       bbbbbbbb
@@ -621,134 +610,6 @@ def handle_config_menu():
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
-
-def _get_llm_model(is_retry=False, skip_prompt=False):
-    """
-    Determines which LLM to use based on available API keys and returns the appropriate model.
-    Auto-detects in the order: OpenRouter, Gemini, OpenAI.
-    Prompts the user to configure keys if none are found.
-    """
-    import importlib
-
-    # Dynamic imports to respect test patches
-    try:
-        genai_mod = importlib.import_module('google.generativeai')
-    except ImportError:
-        genai_mod = None
-    try:
-        openai_mod = importlib.import_module('openai')
-    except ImportError:
-        openai_mod = None
-
-    # Retrieve API keys from environment
-    gemini_api_key = os.environ.get("GEMINI_API_KEY")
-    openai_api_key = os.environ.get("OPENAI_API_KEY")
-    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
-    # Check for explicit LLM provider override: openrouter, gemini, openai (disable if empty or unknown)
-    provider_override = os.environ.get("KUBELINGO_LLM_PROVIDER")
-    if provider_override:
-        # Only attempt the specified provider, no fallback
-        if provider_override == "openrouter":
-            try:
-                headers = {
-                    "Authorization": f"Bearer {openrouter_api_key}",
-                    "HTTP-Referer": "https://github.com/your-repo",
-                    "X-Title": "Kubelingo"
-                }
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers=headers,
-                    json={
-                        "model": "deepseek/deepseek-r1-0528:free",
-                        "messages": [{"role": "user", "content": "hello"}],
-                        "max_tokens": 5
-                    }
-                )
-                response.raise_for_status()
-                return "openrouter", {"api_key": openrouter_api_key, "headers": headers, "default_model": "deepseek/deepseek-r1-0528:free"}
-            except Exception:
-                return None, None
-        elif provider_override == "gemini":
-            if gemini_api_key and genai_mod:
-                try:
-                    genai_mod.configure(api_key=gemini_api_key)
-                    genai_mod.GenerativeModel('gemini-1.5-flash-latest').generate_content("hello", stream=False)
-                    model = genai_mod.GenerativeModel('gemini-1.5-flash-latest')
-                    return "gemini", model
-                except Exception:
-                    return None, None
-            return None, None
-        elif provider_override == "openai":
-            if openai_api_key and openai_mod:
-                try:
-                    client = openai_mod.OpenAI(api_key=openai_api_key)
-                    client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": "hello"}],
-                        max_tokens=5
-                    )
-                    return "openai", client
-                except Exception:
-                    return None, None
-            return None, None
-        # Unknown or empty override disables AI
-        return None, None
-
-    # Try OpenRouter
-    if openrouter_api_key:
-        try:
-            headers = {
-                "Authorization": f"Bearer {openrouter_api_key}",
-                "HTTP-Referer": "https://github.com/your-repo",
-                "X-Title": "Kubelingo"
-            }
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json={
-                    "model": "deepseek/deepseek-r1-0528:free",
-                    "messages": [{"role": "user", "content": "hello"}],
-                    "max_tokens": 5
-                }
-            )
-            response.raise_for_status()
-            return "openrouter", {
-                "api_key": openrouter_api_key,
-                "headers": headers,
-                "default_model": "deepseek/deepseek-r1-0528:free"
-            }
-        except Exception:
-            pass
-
-    # Try Gemini
-    if gemini_api_key and genai_mod:
-        try:
-            genai_mod.configure(api_key=gemini_api_key)
-            genai_mod.GenerativeModel('gemini-1.5-flash-latest').generate_content("hello", stream=False)
-            model = genai_mod.GenerativeModel('gemini-1.5-flash-latest')
-            return "gemini", model
-        except Exception:
-            pass
-
-    # Try OpenAI
-    if openai_api_key and openai_mod:
-        try:
-            client = openai_mod.OpenAI(api_key=openai_api_key)
-            client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": "hello"}],
-                max_tokens=5
-            )
-            return "openai", client
-        except Exception:
-            pass
-
-    # No valid LLM available: prompt user to configure
-    if not skip_prompt:
-        if click.confirm(f"{Fore.CYAN}Would you like to configure API keys now?{Style.RESET_ALL}", default=True):
-            handle_config_menu()
-            return _get_llm_model(is_retry=True, skip_prompt=True)
-    return None, None
 
 def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
     """
