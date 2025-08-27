@@ -91,7 +91,7 @@ def test_load_performance_data_no_file(mock_os_path_exists, mock_builtins_open, 
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         with patch('kubelingo.kubelingo.os.path.getsize'):
             data = load_performance_data()
-            assert data == {{}}
+            assert data == {}
             mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
             mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
             mock_yaml_dump.assert_called_once_with({}, mock_file_handle)
@@ -103,7 +103,7 @@ def test_load_performance_data_empty_file(mock_os_path_exists, mock_yaml_safe_lo
     mock_yaml_safe_load.return_value = None
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
-        assert data == {{}}
+        assert data == {}
         mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
         mock_yaml_safe_load.assert_called_once_with(mock_file_handle)
         mock_open_func.assert_has_calls([call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')])
@@ -112,7 +112,7 @@ def test_load_performance_data_empty_file(mock_os_path_exists, mock_yaml_safe_lo
 def test_load_performance_data_valid_file(mock_os_path_exists, mock_yaml_safe_load, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
     mock_os_path_exists.return_value = True
-    expected_data = {{'topic1': {{'correct_questions': ['q1']}}}}
+    expected_data = {'topic1': {'correct_questions': ['q1']}}
     mock_yaml_safe_load.return_value = expected_data
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
@@ -129,7 +129,7 @@ def test_load_performance_data_yaml_error(mock_os_path_exists, mock_os_path_gets
     mock_yaml_safe_load.side_effect = yaml.YAMLError
     with patch('kubelingo.kubelingo.ensure_user_data_dir'):
         data = load_performance_data()
-        assert data == {{}}
+        assert data == {}
         mock_os_path_exists.assert_called_once_with(PERFORMANCE_FILE)
         
         assert mock_open_func.call_args_list == [call(PERFORMANCE_FILE, 'r'), call(PERFORMANCE_FILE, 'w')]
@@ -139,7 +139,7 @@ def test_load_performance_data_yaml_error(mock_os_path_exists, mock_os_path_gets
 
 def test_save_performance_data(mock_user_data_dir, mock_yaml_dump, mock_builtins_open):
     mock_open_func, mock_file_handle = mock_builtins_open
-    data_to_save = {{'topic1': {{'correct_questions': ['q1']}}}}
+    data_to_save = {'topic1': {'correct_questions': ['q1']}}
     save_performance_data(data_to_save)
     mock_user_data_dir.assert_called_once()
     mock_open_func.assert_called_once_with(PERFORMANCE_FILE, 'w')
@@ -157,7 +157,7 @@ def mock_question_list_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_
 def test_save_question_to_list_new_file(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = False
-    question = {{'question': 'Test Q', 'solution': 'A'}}
+    question = {'question': 'Test Q', 'solution': 'A'}
     topic = 'test_topic'
     
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -173,8 +173,8 @@ def test_save_question_to_list_new_file(mock_question_list_file):
 def test_save_question_to_list_existing_file_new_question(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    mock_load.return_value = [{{'question': 'Existing Q', 'solution': 'B'}}]
-    question = {{'question': 'New Q', 'solution': 'C'}}
+    mock_load.return_value = [{'question': 'Existing Q', 'solution': 'B'}]
+    question = {'question': 'New Q', 'solution': 'C'}
     topic = 'test_topic'
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -184,14 +184,14 @@ def test_save_question_to_list_existing_file_new_question(mock_question_list_fil
     
     expected_question_to_save = question.copy()
     expected_question_to_save['original_topic'] = topic
-    expected_list = [{{'question': 'Existing Q', 'solution': 'B'}}, expected_question_to_save]
+    expected_list = [{'question': 'Existing Q', 'solution': 'B'}, expected_question_to_save]
     mock_dump.assert_called_once_with(expected_list, mock_file_handle)
     assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
 
 def test_save_question_to_list_existing_file_duplicate_question(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    question = {{'question': 'Existing Q', 'solution': 'B'}}
+    question = {'question': 'Existing Q', 'solution': 'B'}
     mock_load.return_value = [question] # Duplicate
     topic = 'test_topic'
 
@@ -206,7 +206,7 @@ def test_save_question_to_list_yaml_error(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
     mock_load.side_effect = yaml.YAMLError
-    question = {{'question': 'New Q', 'solution': 'C'}}
+    question = {'question': 'New Q', 'solution': 'C'}
     topic = 'test_topic'
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
@@ -219,8 +219,8 @@ def test_save_question_to_list_yaml_error(mock_question_list_file):
 def test_remove_question_from_list_exists(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    existing_q1 = {{'question': 'Q1', 'solution': 'A'}}
-    existing_q2 = {{'question': 'Q2', 'solution': 'B'}}
+    existing_q1 = {'question': 'Q1', 'solution': 'A'}
+    existing_q2 = {'question': 'Q2', 'solution': 'B'}
     mock_load.return_value = [existing_q1, existing_q2]
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
@@ -233,9 +233,9 @@ def test_remove_question_from_list_exists(mock_question_list_file):
 def test_remove_question_from_list_not_exists(mock_question_list_file):
     mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_question_list_file
     mock_exists.return_value = True
-    existing_q1 = {{'question': 'Q1', 'solution': 'A'}}
+    existing_q1 = {'question': 'Q1', 'solution': 'A'}
     mock_load.return_value = [existing_q1]
-    question_to_remove = {{'question': 'Non-existent Q', 'solution': 'C'}}
+    question_to_remove = {'question': 'Non-existent Q', 'solution': 'C'}
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
@@ -1010,7 +1010,7 @@ def test_generate_more_questions_gemini(mock_llm_deps, mock_builtins_open, mock_
         mock_response.text = "```yaml\nquestions:\n  - question: \"New Gemini Q\"\n    solution: \"New Gemini S\"\n    source: \"http://gemini.source.com\"\n```"
         mock_gemini_model_instance.generate_content.return_value = mock_response
         
-        mock_yaml_safe_load.side_effect = [{{'questions': [{{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}}}}, {{'questions': []}}]
+        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New Gemini Q', 'solution': 'New Gemini S', 'source': 'http://gemini.source.com'}]}, {'questions': []}]
         
         existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
@@ -1039,7 +1039,7 @@ def test_generate_more_questions_openai(mock_llm_deps, mock_builtins_open, mock_
         mock_response.choices[0].message.content = "```yaml\nquestions:\n  - question: \"New OpenAI Q\"\n    solution: \"New OpenAI S\"\n    source: \"http://openai.source.com\"\n```"
         mock_openai_client_instance.chat.completions.create.return_value = mock_response
         
-        mock_yaml_safe_load.side_effect = [{{'questions': [{{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}}}}, {{'questions': []}}]
+        mock_yaml_safe_load.side_effect = [{'questions': [{'question': 'New OpenAI Q', 'solution': 'New OpenAI S', 'source': 'http://openai.source.com'}]}, {'questions': []}]
         
         existing_question = {{'question': 'Old Q', 'solution': 'Old S'}}
         topic = 'test_topic'
