@@ -8,6 +8,8 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
+from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus
+import kubelingo.question_generator as qg
 try:
     import google.generativeai as genai
     from google.api_core import exceptions as google_exceptions
@@ -191,13 +193,131 @@ def load_performance_data():
     try:
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
+        if data is None: # Handle empty file case
+            return {}
+        return data
     except yaml.YAMLError:
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Reinitializing.{Style.RESET_ALL}")
         # Reinitialize the performance file with empty data
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
         return {}
-    # If file is empty (no data), initialize with empty dict
+
+def save_question_to_list(list_file, question, topic):
+    """Saves a question to a specified list file."""
+    ensure_user_data_dir()
+    questions = []
+    if os.path.exists(list_file):
+        with open(list_file, 'r') as f:
+            try:
+                questions = yaml.safe_load(f) or []
+            except yaml.YAMLError:
+                questions = []
+
+    # Avoid duplicates
+    normalized_new_question = get_normalized_question_text(question)
+    if not any(get_normalized_question_text(q_in_list) == normalized_new_question for q_in_list in questions):
+        question_to_save = question.copy()
+        question_to_save['original_topic'] = topic
+        questions.append(question_to_save)
+        with open(list_file, 'w') as f:
+            yaml.dump(questions, f)
+
+def remove_question_from_list(list_file, question):
+    """Removes a question from a specified list file."""
+    ensure_user_data_dir()
+    questions = []
+    if os.path.exists(list_file):
+        with open(list_file, 'r') as f:
+            try:
+                questions = yaml.safe_load(f) or []
+            except yaml.YAMLError:
+                questions = []
+
+    normalized_question_to_remove = get_normalized_question_text(question)
+    updated_questions = [q for q in questions if get_normalized_question_text(q) != normalized_question_to_remove]
+
+    with open(list_file, 'w') as f:
+        yaml.dump(updated_questions, f)
+
+def create_issue(question_dict, topic):
+    """Prompts user for an issue and saves it to a file."""
+    ensure_user_data_dir()
+    print("\nPlease describe the issue with the question.")
+    issue_desc = input("Description: ")
+    if issue_desc.strip():
+        new_issue = {
+            'topic': topic,
+            'question': question_dict['question'],
+            'issue': issue_desc.strip(),
+            'timestamp': time.asctime()
+        }
+
+        issues = []
+        if os.path.exists(ISSUES_FILE):
+            with open(ISSUES_FILE, 'r') as f:
+                try:
+                    issues = yaml.safe_load(f) or []
+                except yaml.YAMLError:
+                    issues = []
+        
+        issues.append(new_issue)
+
+        with open(ISSUES_FILE, 'w') as f:
+            yaml.dump(issues, f)
+        
+        print("\nIssue reported. Thank you!")
+    else:
+        print("\nIssue reporting cancelled.")
+
+def get_normalized_question_text(question_dict):
+    return question_dict.get('question', '').strip().lower()
+
+def handle_config_menu():
+    """Handles the configuration menu for API keys."""
+    clear_screen()
+    print(f"{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---{Style.RESET_ALL}")
+    
+    # Load existing .env values
+    config = dotenv_values()
+    gemini_key = config.get("GEMINI_API_KEY")
+    openai_key = config.get("OPENAI_API_KEY") # Assuming we might add OpenAI later
+
+    print("\nCurrent API Keys:")
+    print(f"  Gemini API Key: {gemini_key if gemini_key else 'Not Set'}")
+    print(f"  OpenAI API Key: {openai_key if openai_key else 'Not Set'} (Not currently used by Kubelingo)")
+
+    while True:
+        print("\nOptions:")
+        print("  [1] Set Gemini API Key")
+        print("  [2] Remove Gemini API Key")
+        print("  [b] Back to Main Menu")
+        
+        choice = input(f"{Style.BRIGHT}{Fore.BLUE}Enter your choice: {Style.RESET_ALL}").lower().strip()
+
+        if choice == '1':
+            new_key = input("Enter new Gemini API Key: ").strip()
+            if new_key:
+                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", new_key)
+                print("Gemini API Key set successfully.")
+                # Update in-memory environment variable as well
+                os.environ["GEMINI_API_KEY"] = new_key
+            else:
+                print("API Key cannot be empty.")
+        elif choice == '2':
+            if gemini_key:
+                set_key(os.path.join(os.getcwd(), '.env'), "GEMINI_API_KEY", "") # Set to empty string to remove
+                print("Gemini API Key removed.")
+                if "GEMINI_API_KEY" in os.environ:
+                    del os.environ["GEMINI_API_KEY"] # Remove from in-memory environment
+                gemini_key = None # Update local variable
+            else:
+                print("Gemini API Key is not set.")
+        elif choice == 'b':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+    input("Press Enter to continue...")
     if data is None:
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
@@ -346,20 +466,7 @@ def load_questions_from_list(list_file):
 def get_display(value):
     return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
 
-def load_questions(topic):
-    """Loads questions from a YAML file based on the topic."""
-    file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    if not os.path.exists(file_path):
-        print(f"Error: Question file not found at {file_path}")
-        available_topics = [f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')]
-        if available_topics:
-            print("Available topics: " + ", ".join(available_topics))
-        return None
-    with open(file_path, 'r') as file:
-        return yaml.safe_load(file)
 
-def get_normalized_question_text(question_dict):
-    return question_dict.get('question', '').strip().lower()
 
 def test_api_keys():
     """Tests the validity of API keys and returns a dictionary with their statuses."""
@@ -981,62 +1088,13 @@ def validate_manifest_with_kubectl_dry_run(manifest):
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
 
-
-
 def validate_kubectl_command_dry_run(command_string):
     """Placeholder function for validating a kubectl command with dry-run."""
     # Implement the actual logic here
     return True, "kubectl dry-run successful!", "Details of the dry-run"
-    
+
 # --- Question Generation ---
-def generate_more_questions(topic, existing_question):
-    """
-    Generates more questions based on an existing one.
-    """
-    llm_type, model = _get_llm_model()
-    if not model:
-        print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
-        return None
 
-    print("\nGenerating a new question... this might take a moment.")
-    try:
-        question_type = random.choice(['command', 'manifest'])
-        prompt = f'''  \
-        You are a Kubernetes expert creating questions for a CKAD study guide.\n+        Based on the following example question about '{topic}', please generate one new, distinct but related question.\n+\n+        Example Question:\n+        ---\n+        {yaml.safe_dump({'questions': [existing_question]})}\n+        ---\n+\n+        Your new question should be a {question_type}-based question.\n+        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).\n+        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.\n+\n+        The new question should be in the same topic area but test a slightly different aspect or use different parameters.\n+        Provide the output in valid YAML format, as a single item in a 'questions' list.\n+        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.\n+        The solution must be correct and working.\n+\n+        Example for a manifest question:\n+        questions:\n+          - question: "Create a manifest for a Pod named 'new-pod'"\n+            solution: |\n+              apiVersion: v1\n+              kind: Pod\n+              ...\n+            source: "https://kubernetes.io/docs/concepts/workloads/pods/"\n+\n+        Example for a command question:\n+        questions:\n+          - question: "Create a pod named 'new-pod' imperatively..."\n+            solution: "kubectl run new-pod --image=nginx"\n+            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"\n+        '''
-        if llm_type == "gemini":
-            response = model.generate_content(prompt)
-        elif llm_type in ("openai", "openrouter"):
-            response = model.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            response.text = response.choices[0].message.content
-
-        cleaned_response = response.text.strip()
-        if cleaned_response.startswith('```yaml'):
-            cleaned_response = cleaned_response[7:]
-        if cleaned_response.endswith('```'):
-            cleaned_response = cleaned_response[:-3]
-
-        try:
-            new_question_data = yaml.safe_load(cleaned_response)
-        except yaml.YAMLError:
-            print("\nAI failed to generate a valid question. Please try again.")
-            return None
-
-        if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
-            new_q = new_question_data['questions'][0]
-            print("\nNew question generated!")
-            return new_q
-        else:
-            print("\nAI failed to generate a valid question. Please try again.")
-            return None
-    except Exception as e:
-        print(f"\nError generating question: {e}")
-        return None
     """
     Generates more questions based on an existing one."""
     llm_type, model = _get_llm_model()
@@ -1272,7 +1330,7 @@ def list_and_select_topic(performance_data):
     # Auto-select single topic with 100% completion (generate option) without prompting
     if not has_missed and len(available_topics) == 1:
         topic_name = available_topics[0]
-        topic_data = load_questions(topic_name)
+        topic_data = load_questions(topic_name, Fore, Style, genai)
         total_q = len(topic_data.get('questions', [])) if topic_data else 0
         stats = performance_data.get(topic_name, {})
         num_correct = len(stats.get('correct_questions') or [])
@@ -1292,7 +1350,7 @@ def list_and_select_topic(performance_data):
     for i, topic_name in enumerate(available_topics):
         display_name = topic_name.replace('_', ' ').title()
 
-        question_data = load_questions(topic_name)
+        question_data = load_questions(topic_name, Fore, Style, genai)
         num_questions = len(question_data.get('questions', [])) if question_data else 0
         
         stats = performance_data.get(topic_name, {})
@@ -1318,7 +1376,7 @@ def list_and_select_topic(performance_data):
         try:
             has_100_percent_complete_topic = False
             for i, topic_name in enumerate(available_topics):
-                question_data = load_questions(topic_name)
+                question_data = load_questions(topic_name, Fore, Style, genai)
                 num_questions = len(question_data.get('questions', [])) if question_data else 0
                 stats = performance_data.get(topic_name, {})
                 num_correct = len(stats.get('correct_questions') or [])
@@ -1375,7 +1433,7 @@ def list_and_select_topic(performance_data):
                 selected_topic = available_topics[choice_index]
                 
                 # Load questions for the selected topic to get total count
-                topic_data = load_questions(selected_topic)
+                topic_data = load_questions(selected_topic, Fore, Style, genai)
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
 
@@ -1414,7 +1472,7 @@ def list_and_select_topic(performance_data):
                     questions_to_study_list = incomplete_questions
                     num_to_study = num_incomplete
                 elif inp == 'g' and percent_correct == 100:
-                    new_q = generate_more_questions(selected_topic, questions_to_study_list[0])
+                    new_q = qg.generate_more_questions(selected_topic, questions_to_study_list[0])
                     if new_q:
                         questions_to_study_list.append(new_q)
                         save_questions_to_topic_file(selected_topic, questions_to_study_list)
@@ -1546,6 +1604,8 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
             question_topic_context = q.get('original_topic', topic)
             # Separate selection feedback from question display
             dbg("Before printing question")
+            # Clear screen before displaying question
+            os.system('cls' if os.name == 'nt' else 'clear')
             print(flush=True)
 
             # Display the current question and prompt once
@@ -1579,7 +1639,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
                 input("Press Enter to continue...")
                 continue # Re-display the same question prompt
             if special_action == 'generate':
-                new_q = generate_more_questions(
+                new_q = qg.generate_more_questions(
                     topic, 
                     q, 
                     _get_llm_model, 
@@ -1786,22 +1846,47 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
         # Post-answer menu loop
         while True:
             print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {question_index}/{len(questions)} ---" + Style.RESET_ALL)
-            print(f"{Style.BRIGHT}{Fore.CYAN}1. Next Question{Style.RESET_ALL}")
-            print(f"{Style.BRIGHT}{Fore.CYAN}2. Review Missed Questions{Style.RESET_ALL}")
-            print(f"{Style.BRIGHT}{Fore.CYAN}3. Return to Topic Menu{Style.RESET_ALL}")
-            print(f"{Style.BRIGHT}{Fore.CYAN}4. Quit{Style.RESET_ALL}")
-            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter your choice: {Style.RESET_ALL}").strip().lower()
+            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]quit: {Style.RESET_ALL}").strip().lower()
 
-            if choice == '1':
+            if choice == 'n':
                 break # Exit post-answer menu, go to next question
-            elif choice == '2':
-                # This will restart the outer loop with missed questions
-                topic = '_missed'
-                num_to_study = 0 # Study all missed questions
-                break # Exit post-answer menu, restart outer loop
-            elif choice == '3':
-                return # Exit run_topic function, go to main menu
-            elif choice == '4':
+            elif choice == 'b':
+                # Go back to the previous question
+                if question_index > 0:
+                    question_index -= 1
+                    print(f"{Fore.GREEN}Going back to the previous question.{Style.RESET_ALL}")
+                    break # Break to re-render the previous question
+                else:
+                    print(f"{Fore.YELLOW}Already at the first question.{Style.RESET_ALL}")
+            elif choice == 'i':
+                # Mark question as problematic and remove from corpus
+                create_issue(current_question, question_topic_context)
+                remove_question_from_corpus(current_question, question_topic_context)
+                # Also remove from current session's questions list to prevent it from being asked again
+                # This requires modifying the 'questions' list in the run_topic scope.
+                # For now, I'll just print a message.
+                print(f"{Fore.YELLOW}Question removed from current session. It will not be asked again in this session.{Style.RESET_ALL}")
+                input("Press Enter to continue...")
+            elif choice == 's':
+                # Display source for the question
+                if 'source' in current_question:
+                    try:
+                        import webbrowser
+                        print(f"{Fore.CYAN}Opening source in your browser: {current_question['source']}{Style.RESET_ALL}")
+                        webbrowser.open(current_question['source'])
+                    except Exception as e:
+                        print(f"{Fore.RED}Could not open browser: {e}{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.YELLOW}No source available for this question.{Style.RESET_ALL}")
+                input("Press Enter to continue...")
+            elif choice == 'r':
+                # Reload/retry the current question
+                print(f"{Fore.GREEN}Retrying the current question.{Style.RESET_ALL}")
+                # No break here, so the loop continues and re-displays the current question
+            elif choice == 'c':
+                # Go to configuration menu
+                handle_config_menu()
+            elif choice == 'q':
                 sys.exit(0) # Exit application
             else:
                 print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
@@ -1815,125 +1900,7 @@ def run_topic(topic, num_to_study, performance_data, questions_to_study):
     # No final session menu: simply return to main menu after completion
     return
 
-# --- Source Management Commands ---
-def get_source_from_consolidated(item):
-    metadata = item.get('metadata', {}) or {}
-    for key in ('links', 'source', 'citation'):
-        if key in metadata and metadata[key]:
-            val = metadata[key]
-            return val[0] if isinstance(val, list) else val
-    return None
 
-def cmd_add_sources(consolidated_file, questions_dir=QUESTIONS_DIR):
-    """Add missing 'source' fields from consolidated YAML."""
-    print(f"Loading consolidated questions from '{consolidated_file}'...")
-    data = yaml.safe_load(open(consolidated_file)) or {}
-    mapping = {}
-    for item in data.get('questions', []):
-        prompt = item.get('prompt') or item.get('question')
-        src = get_source_from_consolidated(item)
-        if prompt and src:
-            mapping[prompt.strip()] = src
-    print(f"Found {len(mapping)} source mappings.")
-    for fname in os.listdir(questions_dir):
-        if not fname.endswith('.yaml'):
-            continue
-        path = os.path.join(questions_dir, fname)
-        topic = yaml.safe_load(open(path)) or {}
-        qs = topic.get('questions', [])
-        updated = 0
-        for q in qs:
-            if q.get('source'):
-                continue
-            text = q.get('question', '').strip()
-            best_src, best_score = None, 0
-            for prompt, src in mapping.items():
-                r = fuzz.ratio(text, prompt)
-                if r > best_score:
-                    best_src, best_score = src, r
-            if best_score > 95:
-                q['source'] = best_src
-                updated += 1
-                print(f"  + Added source to '{text[:50]}...' -> {best_src}")
-        if updated:
-            yaml.dump(topic, open(path, 'w'), sort_keys=False)
-            print(f"Updated {updated} entries in {fname}.")
-    print("Done adding sources.")
-
-def cmd_check_sources(questions_dir=QUESTIONS_DIR):
-    """Report questions missing a 'source' field."""
-    missing = 0
-    for fname in os.listdir(questions_dir):
-        if not fname.endswith('.yaml'):
-            continue
-        path = os.path.join(questions_dir, fname)
-        data = yaml.safe_load(open(path)) or {}
-        for i, q in enumerate(data.get('questions', []), start=1):
-            if not q.get('source'):
-                print(f"{fname}: question {i} missing 'source': {q.get('question','')[:80]}")
-                missing += 1
-    if missing == 0:
-        print("All questions have a source.")
-    else:
-        print(f"{missing} questions missing sources.")
-
-def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
-    """
-    Interactively search and assign sources to questions."""
-    for fname in os.listdir(questions_dir):
-        if not fname.endswith('.yaml'):
-            continue
-        path = os.path.join(questions_dir, fname)
-        data = yaml.safe_load(open(path)) or {}
-        qs = data.get('questions', [])
-        modified = False
-        for idx, q in enumerate(qs, start=1):
-            if q.get('source'):
-                continue
-            text = q.get('question','').strip()
-            print(f"\nFile: {fname} | Question {idx}: {text}")
-            if auto_approve:
-                if not search:
-                    print("  googlesearch not available.")
-                    continue
-                try:
-                    results = list(search(f"kubernetes {text}", num_results=1))
-                except Exception as e:
-                    print(f"  Search error: {e}")
-                    continue
-                if results:
-                    q['source'] = results[0]
-                    print(f"  Auto-set source: {results[0]}")
-                    modified = True
-                continue
-            if not search:
-                print("  Install googlesearch-python to enable search.")
-                return
-            print("  Searching for sources...")
-            try:
-                results = list(search(f"kubernetes {text}", num_results=5))
-            except Exception as e:
-                print(f"  Search error: {e}")
-                continue
-            if not results:
-                print("  No results found.")
-                continue
-            for i, url in enumerate(results, 1):
-                print(f"    {i}. {url}")
-            choice = input("  Choose default [1] or enter number, [o]pen all, [s]kip: ").strip().lower()
-            if choice == 'o':
-                for url in results:
-                    webbrowser.open(url)
-                choice = '1'
-            if choice.isdigit() and 1 <= int(choice) <= len(results):
-                sel = results[int(choice)-1]
-                q['source'] = sel
-                print(f"  Selected source: {sel}")
-                modified = True
-        if modified:
-            yaml.dump(data, open(path, 'w'), sort_keys=False)
-            print(f"Saved updates to {fname}.")
-    print("Interactive source session complete.")
 
 @click.command()
 @click.option('--add-sources', 'add_sources', is_flag=True, default=False,
@@ -1956,13 +1923,13 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         if not consolidated:
             click.echo("Error: --consolidated PATH is required with --add-sources.")
             sys.exit(1)
-        cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
+        qg.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
         return
     if check_sources:
-        cmd_check_sources(questions_dir=QUESTIONS_DIR)
+        qg.cmd_check_sources(questions_dir=QUESTIONS_DIR)
         return
     if interactive_sources:
-        cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
+        qg.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
@@ -2009,7 +1976,7 @@ if __name__ == "__main__":
     if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
         # Non-interactive mode for answering a single question
         performance_data = load_performance_data()
-        topic_data = load_questions(args.cli_question_topic)
+        topic_data = load_questions(args.cli_question_topic, Fore, Style, genai)
         if topic_data and 'questions' in topic_data:
             questions_to_study = [topic_data['questions'][args.cli_question_index]]
             # Temporarily override get_user_input for this specific run
@@ -2026,3 +1993,7 @@ if __name__ == "__main__":
     else:
         # Original interactive CLI mode
         cli(obj={})
+
+
+
+
