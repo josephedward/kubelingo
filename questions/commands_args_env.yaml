@@ -1,16 +1,9 @@
 questions:
-- question: 'Create a pod named ''env-pod'' with image ''busybox'' that runs the command
-    ''echo $(GREETING) $(NAME)!'' and has two environment variables: GREETING=Hello
-    and NAME=World. The pod should print ''Hello World!'' to its logs and should not
-    restart after completion.'
-  suggestion:
-  - kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello"
-    --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
-  source: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
 - question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
-    using the `busybox` image. Override the container's command to be `[`/bin/sh`,
-    `-c`]` and its arguments to be `[`echo Hello world`]` . The Pod should have a
+    using the `busybox` image. Override the container's command to be `[/bin/sh,
+    -c]` and its arguments to be `[echo Hello world]` . The Pod should have a
     `restartPolicy` of `Never`.
+  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -18,15 +11,14 @@ questions:
       name: args-pod
     spec:
       containers:
-      - name: busybox-container
-        image: busybox
+      - args:
+        - echo Hello world
         command:
         - /bin/sh
         - -c
-        args:
-        - echo Hello world
+        image: busybox
+        name: busybox-container
       restartPolicy: Never
-  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
 - question: '**Scenario:** In Kubernetes, you often need to run a container with a
     different command than the one specified in its Dockerfile. For example, you might
     want to run a one-off debugging script, or start a database container with a custom
@@ -43,6 +35,7 @@ questions:
     a string that first prints "hello" and then sleeps for a long time (e.g., `echo
     hello && sleep 3600`). The `sleep` command ensures the container remains in a
     `Running` state for inspection." '
+  source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -50,17 +43,17 @@ questions:
       name: cmd-args
     spec:
       containers:
-      - name: c
-        image: busybox
+      - args:
+        - echo hello && sleep 3600
         command:
         - sh
         - -c
-        args:
-        - echo hello && sleep 3600
-  source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
+        image: busybox
+        name: c
 - question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
     named 'c' that uses the 'busybox' image. Configure the container to import all
     key-value pairs from the ConfigMap named 'app-cm' as environment variables.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -68,9 +61,18 @@ questions:
       name: envfrom-cm
     spec:
       containers:
-      - name: c
-        image: busybox
-        envFrom:
+      - envFrom:
         - configMapRef:
             name: app-cm
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+        image: busybox
+        name: c
+- question: 'Create a pod named ''env-pod-2'' with image ''nginx'' that runs the command
+    ''echo $(FIRST) $(SECOND)!'' and defines two environment variables: FIRST=Welcome
+    and SECOND=CKAD. The pod should output ''Welcome CKAD!'' to its logs and should
+    be configured to run in the ''default'' namespace with a ''restartPolicy'' of
+    ''Never'''
+  rationale: This question tests the candidate's ability to define environment variables,
+    set a custom command, and work with pod configurations such as namespace and restart
+    policy in the context of a CKAD exam.
+  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: env-pod-2\n  namespace: default\nspec:\n  containers:\n  - name: nginx-container\n    image: nginx\n    command: [\"/bin/sh\", \"-c\"]\n    args: [\"echo $(FIRST) $(SECOND)!\"]\n    env:\n    - name: FIRST\n      value: Welcome\n    - name: SECOND\n      value: CKAD\n  restartPolicy: Never"
+  source: https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/
