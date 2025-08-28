@@ -19,6 +19,9 @@
 - Integrate Monokle visual editor components
 - Implement Trivy security scanning
 - Add AI-assisted generation (ChatGPT API)
+- Kube-score integration for best practice validation
+- yq/jq integration for YAML/JSON manipulation
+- Jsonnet support for advanced template generation
 
 ## Phase 3 - Advanced Features (5-8 Weeks)
 - Interactive visual editor components
