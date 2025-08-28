@@ -117,8 +117,15 @@ questions:
       - name: secret-volume
         secret:
           secretName: secret2
-  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n\
-    \  containers:\n    - name: my-container\n      image: nginx\n"
+  starter_manifest: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
   source: https://kubernetes.io/docs/concepts/configuration/secret/
 - question: You are given a basic Pod manifest. Modify it to add two environment variables,
     'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
@@ -143,6 +150,31 @@ questions:
             secretKeyRef:
               name: secret1
               key: pass
-  starter_manifest: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n\
-    \  containers:\n    - name: my-container\n      image: nginx\n"
+  starter_manifest: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
   source: /search?num=3
+- question: Create a Kubernetes ConfigMap named 'app-settings' containing key-value
+    pairs for 'logLevel' set to 'info', 'maxConnections' set to '100', and 'timeout'
+    set to '30s'.
+  suggestion: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-settings
+    data:
+      logLevel: info
+      maxConnections: "100"
+      timeout: 30s
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+  rationale: This question tests the candidate's ability to create a ConfigMap with
+    multiple key-value pairs, which is a common task when configuring applications
+    in Kubernetes pods. Understanding how to define ConfigMaps is crucial for managing
+    application configurations independently from pod definitions, a key concept in
+    Kubernetes application development.
