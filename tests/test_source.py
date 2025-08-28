@@ -11,6 +11,11 @@ def mock_os_path_exists():
         yield mock_exists
 
 @pytest.fixture
+def mock_os_makedirs():
+    with patch('kubelingo.kubelingo.os.makedirs') as mock_makedirs:
+        yield mock_makedirs
+
+@pytest.fixture
 def mock_yaml_safe_load():
     with patch('kubelingo.kubelingo.yaml.safe_load') as mock_load:
         yield mock_load
@@ -30,11 +35,11 @@ def mock_yaml_dump():
         yield mock_dump
 
 @pytest.fixture
-def mock_topic_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
-    yield mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1]
+def mock_topic_file(mock_os_path_exists, mock_os_makedirs, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
+    yield mock_os_path_exists, mock_os_makedirs, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1]
 
 def test_update_question_source_in_yaml_file_not_found(mock_topic_file, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
+    mock_exists, mock_makedirs, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = False
     
     topic = 'non_existent_topic'
@@ -52,7 +57,7 @@ def test_update_question_source_in_yaml_file_not_found(mock_topic_file, capsys):
     assert f"Error: Topic file not found at {expected_path}. Cannot update source." in captured.out
 
 def test_update_question_source_in_yaml_question_found(mock_topic_file, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
+    mock_exists, mock_makedirs, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = True
     
     initial_data = {
@@ -85,7 +90,7 @@ def test_update_question_source_in_yaml_question_found(mock_topic_file, capsys):
     assert f"Source for question 'Q1' updated in {topic}.yaml." in captured.out
 
 def test_update_question_source_in_yaml_question_not_found(mock_topic_file, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
+    mock_exists, mock_makedirs, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = True
     
     initial_data = {
@@ -110,7 +115,7 @@ def test_update_question_source_in_yaml_question_not_found(mock_topic_file, caps
     assert f"Warning: Question 'Non-existent Q' not found in {topic}.yaml. Source not updated." in captured.out
 
 def test_update_question_source_in_yaml_empty_file(mock_topic_file, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
+    mock_exists, mock_makedirs, mock_load, mock_dump, mock_open_func, mock_file_handle = mock_topic_file
     mock_exists.return_value = True
     mock_load.return_value = None # Empty YAML file
     
