@@ -1,111 +1,154 @@
-import pytest
 import os
 import yaml
-from unittest.mock import patch, mock_open, MagicMock, call
-from kubelingo.issue_manager import create_issue
-from kubelingo.kubelingo import USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE
+import time
+import pytest
 
-# --- Fixtures for mocking file system (copied from test_kubelingo_functions.py) ---
-@pytest.fixture
-def mock_os_path_exists():
-    with patch('kubelingo.kubelingo.os.path.exists') as mock_exists:
-        yield mock_exists
+from kubelingo import issue_manager
 
-@pytest.fixture
-def mock_yaml_dump():
-    with patch('kubelingo.kubelingo.yaml.dump') as mock_dump:
-        yield mock_dump
 
-@pytest.fixture
-def mock_yaml_safe_load():
-    with patch('kubelingo.kubelingo.yaml.safe_load') as mock_load:
-        yield mock_load
+def test_get_normalized_question_text():
+    assert issue_manager.get_normalized_question_text({'question': '  Hello World  '}) == 'hello world'
+    assert issue_manager.get_normalized_question_text({}) == ''
 
-@pytest.fixture
-def mock_builtins_open(mocker):
-    mock_file_handle = mocker.MagicMock()
-    m_open = mocker.patch('builtins.open', return_value=mock_file_handle)
-    m_open.return_value.__enter__.return_value = mock_file_handle
-    yield m_open, mock_file_handle
 
-# --- Fixture specific to create_issue ---
-@pytest.fixture
-def mock_create_issue_deps(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
-    with patch('kubelingo.issue_manager.remove_question_from_list') as mock_remove_question_from_list:
-        with patch('time.asctime', return_value='mock_timestamp') as mock_asctime:
-            yield mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open[0], mock_builtins_open[1], mock_remove_question_from_list, mock_asctime
+def test_ensure_user_data_dir(tmp_path, monkeypatch):
+    test_dir = tmp_path / "user_data_dir"
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(test_dir))
+    # Directory should not exist initially
+    assert not test_dir.exists()
+    issue_manager.ensure_user_data_dir()
+    assert test_dir.exists() and test_dir.is_dir()
 
-# --- Tests for create_issue ---
-def test_create_issue_valid_input(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
-    mock_exists.return_value = False # No existing issues file
 
-    original_question_dict = {'question': 'Test Question'}
-    topic = 'test_topic'
-    user_input = "This is a test issue."
+def test_remove_question_from_list_no_file(tmp_path, monkeypatch):
+    list_file = tmp_path / "list.yaml"
+    # Redirect USER_DATA_DIR so ensure_user_data_dir does not interfere
+    user_data = tmp_path / "dummy"
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Remove a question from a non-existent list
+    question = {'question': 'Q1'}
+    issue_manager.remove_question_from_list(str(list_file), question)
+    # File should be created with an empty list
+    assert list_file.exists()
+    data = yaml.safe_load(list_file.read_text())
+    assert data == []
 
-    with patch('builtins.input', return_value=user_input):
-        create_issue(original_question_dict, topic)
 
-    mock_exists.assert_called_once_with(ISSUES_FILE)
-    mock_load.assert_not_called()
+def test_remove_question_from_list_existing(tmp_path, monkeypatch):
+    list_file = tmp_path / "list.yaml"
+    user_data = tmp_path / "dummy"
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Write initial YAML with two questions
+    original = [{'question': 'Q1'}, {'question': 'Q2'}]
+    list_file.write_text(yaml.dump(original))
+    # Remove Q1 (case/whitespace insensitive)
+    issue_manager.remove_question_from_list(str(list_file), {'question': ' q1 '})
+    updated = yaml.safe_load(list_file.read_text())
+    assert updated == [{'question': 'Q2'}]
 
-    expected_saved_question = {
-        'question': 'Test Question',
-        'issue': user_input,
-        'timestamp': 'mock_timestamp',
-        'topic': topic
-    }
-    mock_dump.assert_called_once_with([expected_saved_question], mock_file_handle)
-    mock_open_func.assert_called_once_with(ISSUES_FILE, 'w')
-    mock_remove_question_from_list.assert_called_once_with(MISSED_QUESTIONS_FILE, original_question_dict)
 
-    captured = capsys.readouterr()
-    assert "Please describe the issue with the question." in captured.out
-    assert "Issue reported. Thank you!" in captured.out
+def test_remove_question_from_list_bad_yaml(tmp_path, monkeypatch):
+    list_file = tmp_path / "list.yaml"
+    user_data = tmp_path / "dummy"
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Write invalid YAML
+    list_file.write_text(":::")
+    # Should not raise, and file reset to empty list
+    issue_manager.remove_question_from_list(str(list_file), {'question': 'anything'})
+    data = yaml.safe_load(list_file.read_text())
+    assert data == []
 
-def test_create_issue_empty_input(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
-    mock_exists.return_value = False
 
-    question_dict = {'question': 'Test Question'}
-    topic = 'test_topic'
-    user_input = ""
+def test_create_issue_cancel(tmp_path, monkeypatch, capsys):
+    issues_file = tmp_path / "issues.yaml"
+    missed_file = tmp_path / "missed.yaml"
+    questions_dir = tmp_path / "questions"
+    user_data = tmp_path / "user_data"
+    monkeypatch.setattr(issue_manager, 'ISSUES_FILE', str(issues_file))
+    monkeypatch.setattr(issue_manager, 'MISSED_QUESTIONS_FILE', str(missed_file))
+    monkeypatch.setattr(issue_manager, 'QUESTIONS_DIR', str(questions_dir))
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Simulate empty input
+    monkeypatch.setattr('builtins.input', lambda prompt='': '   ')
+    issue_manager.create_issue({'question': 'Test'}, 'topic1')
+    out = capsys.readouterr().out
+    assert "Issue reporting cancelled" in out
+    assert not issues_file.exists()
 
-    with patch('builtins.input', return_value=user_input):
-        create_issue(question_dict, topic)
 
-    mock_exists.assert_not_called() # No file operations if input is empty
-    mock_load.assert_not_called()
-    mock_dump.assert_not_called()
-    mock_open_func.assert_not_called()
-    mock_remove_question_from_list.assert_not_called()
+def test_create_issue_success(tmp_path, monkeypatch, capsys):
+    issues_file = tmp_path / "issues.yaml"
+    missed_file = tmp_path / "missed.yaml"
+    questions_dir = tmp_path / "questions"
+    user_data = tmp_path / "user_data"
+    monkeypatch.setattr(issue_manager, 'ISSUES_FILE', str(issues_file))
+    monkeypatch.setattr(issue_manager, 'MISSED_QUESTIONS_FILE', str(missed_file))
+    monkeypatch.setattr(issue_manager, 'QUESTIONS_DIR', str(questions_dir))
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Prepare existing invalid issues file to hit YAML error branch
+    issues_file.write_text(":::")
+    # Prepare missed questions list
+    missed = [{'question': 'Test Q'}, {'question': 'Other Q'}]
+    missed_file.write_text(yaml.dump(missed))
+    # Prepare topic file with two questions
+    topic = 'topic1'
+    questions_dir.mkdir(parents=True, exist_ok=True)
+    topic_file = questions_dir / f"{topic}.yaml"
+    original = {'questions': [{'question': 'Test Q'}, {'question': 'Another Q'}]}
+    topic_file.write_text(yaml.dump(original))
+    # Monkey-patch input and timestamp
+    monkeypatch.setattr('builtins.input', lambda prompt='': 'My issue description')
+    monkeypatch.setattr(time, 'asctime', lambda: 'TESTTIME')
+    # Run
+    issue_manager.create_issue({'question': 'Test Q'}, topic)
+    # Verify issues file content
+    issues = yaml.safe_load(issues_file.read_text())
+    assert isinstance(issues, list) and len(issues) == 1
+    new = issues[0]
+    assert new['question'] == 'Test Q'
+    assert new['issue'] == 'My issue description'
+    assert new['timestamp'] == 'TESTTIME'
+    assert new['topic'] == topic
+    # Verify topic file updated
+    data = yaml.safe_load(topic_file.read_text())
+    assert data.get('questions') == [{'question': 'Another Q'}]
+    # Verify missed questions updated
+    updated_missed = yaml.safe_load(missed_file.read_text())
+    assert updated_missed == [{'question': 'Other Q'}]
+    # Verify output
+    out = capsys.readouterr().out
+    assert "Issue reported. Thank you!" in out
 
-    captured = capsys.readouterr()
-    assert "Issue reporting cancelled." in captured.out
 
-def test_create_issue_existing_issues(mock_create_issue_deps, capsys):
-    mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle, mock_remove_question_from_list, mock_asctime = mock_create_issue_deps
-    mock_exists.return_value = True
-    mock_load.return_value = [{'issue': 'Old Issue'}]
-
-    original_question_dict = {'question': 'Test Question'}
-    topic = 'test_topic'
-    user_input = "New issue."
-
-    with patch('builtins.input', return_value=user_input):
-        create_issue(original_question_dict, topic)
-
-    mock_exists.assert_called_once_with(ISSUES_FILE)
-    mock_load.assert_called_once_with(mock_file_handle)
-
-    expected_saved_question = {
-        'question': 'Test Question',
-        'issue': user_input,
-        'timestamp': 'mock_timestamp',
-        'topic': topic
-    }
-    expected_list = [{'issue': 'Old Issue'}, expected_saved_question]
-    mock_dump.assert_called_once_with(expected_list, mock_file_handle)
-    assert mock_open_func.call_args_list == [call(ISSUES_FILE, 'r'), call(ISSUES_FILE, 'w')]
-    mock_remove_question_from_list.assert_called_once_with(MISSED_QUESTIONS_FILE, original_question_dict)
+def test_create_issue_topic_removal_exception(tmp_path, monkeypatch, capsys):
+    issues_file = tmp_path / "issues.yaml"
+    missed_file = tmp_path / "missed.yaml"
+    questions_dir = tmp_path / "questions"
+    user_data = tmp_path / "user_data"
+    monkeypatch.setattr(issue_manager, 'ISSUES_FILE', str(issues_file))
+    monkeypatch.setattr(issue_manager, 'MISSED_QUESTIONS_FILE', str(missed_file))
+    monkeypatch.setattr(issue_manager, 'QUESTIONS_DIR', str(questions_dir))
+    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(user_data))
+    # Create a topic file
+    topic = 'topic2'
+    questions_dir.mkdir(parents=True, exist_ok=True)
+    topic_file = questions_dir / f"{topic}.yaml"
+    topic_file.write_text(yaml.dump({'questions': [{'question': 'QX'}]}))
+    # Simulate user input and timestamp
+    monkeypatch.setattr('builtins.input', lambda prompt='': 'Desc')
+    monkeypatch.setattr(time, 'asctime', lambda: 'TT')
+    # Monkey-patch YAML safe_load to raise exception for topic removal
+    def bad_safe_load(_):
+        raise Exception("boom")
+    monkeypatch.setattr(issue_manager.yaml, 'safe_load', bad_safe_load)
+    # Run; should not raise
+    issue_manager.create_issue({'question': 'QX'}, topic)
+    # Issues file should be written
+    # Use full_load here since safe_load was patched above
+    issues = yaml.full_load(issues_file.read_text())
+    assert issues[0]['question'] == 'QX'
+    # Topic file should remain (exception in removal is suppressed)
+    assert topic_file.exists()
+    # Output indicates success
+    out = capsys.readouterr().out
+    assert "Issue reported. Thank you!" in out
