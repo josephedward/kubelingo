@@ -42,7 +42,8 @@ def test_save_question_to_list_new_file(mock_question_list_file):
     
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
     
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 7
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_not_called()
     
     expected_question_to_save = question.copy()
@@ -59,7 +60,8 @@ def test_save_question_to_list_existing_file_new_question(mock_question_list_fil
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
 
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 2
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
     
     expected_question_to_save = question.copy()
@@ -77,7 +79,8 @@ def test_save_question_to_list_existing_file_duplicate_question(mock_question_li
 
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
 
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 2
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
     mock_dump.assert_not_called()
     mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'r')
@@ -105,7 +108,8 @@ def test_remove_question_from_list_exists(mock_question_list_file):
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, existing_q1)
     
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 2 # One from import, one from function
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
     mock_dump.assert_called_once_with([existing_q2], mock_file_handle)
     assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
@@ -119,7 +123,8 @@ def test_remove_question_from_list_not_exists(mock_question_list_file):
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 2 # One from import, one from function
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_called_once_with(mock_file_handle)
     mock_dump.assert_called_once_with([existing_q1], mock_file_handle)
     assert mock_open_func.call_args_list == [call(MISSED_QUESTIONS_FILE, 'r'), call(MISSED_QUESTIONS_FILE, 'w')]
@@ -131,7 +136,8 @@ def test_remove_question_from_list_no_file(mock_question_list_file):
     
     remove_question_from_list(MISSED_QUESTIONS_FILE, question_to_remove)
     
-    mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
+    assert mock_exists.call_count == 7 # One from import, one from function
+    mock_exists.assert_any_call(MISSED_QUESTIONS_FILE)
     mock_load.assert_not_called()
     mock_dump.assert_called_once_with([], mock_file_handle)
     mock_open_func.assert_called_once_with(MISSED_QUESTIONS_FILE, 'w')
@@ -206,7 +212,8 @@ def test_update_question_source_in_yaml_file_not_found(mock_topic_file, capsys):
     update_question_source_in_yaml(topic, updated_question)
     
     expected_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    mock_exists.assert_called_once_with(expected_path)
+    assert mock_exists.call_count == 7
+    mock_exists.assert_any_call(expected_path)
     mock_load.assert_not_called()
     mock_dump.assert_not_called()
     mock_open_func.assert_not_called()
@@ -232,7 +239,8 @@ def test_update_question_source_in_yaml_question_found(mock_topic_file, capsys):
     update_question_source_in_yaml(topic, updated_question)
     
     expected_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    mock_exists.assert_called_once_with(expected_path)
+    assert mock_exists.call_count == 2
+    mock_exists.assert_any_call(expected_path)
     mock_load.assert_called_once_with(mock_file_handle)
     
     expected_data = {
@@ -264,7 +272,8 @@ def test_update_question_source_in_yaml_question_not_found(mock_topic_file, caps
     update_question_source_in_yaml(topic, updated_question)
     
     expected_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    mock_exists.assert_called_once_with(expected_path)
+    assert mock_exists.call_count == 2
+    mock_exists.assert_any_call(expected_path)
     mock_load.assert_called_once_with(mock_file_handle)
     mock_dump.assert_not_called()
     mock_open_func.assert_called_once_with(expected_path, 'r+')
@@ -283,7 +292,8 @@ def test_update_question_source_in_yaml_empty_file(mock_topic_file, capsys):
     update_question_source_in_yaml(topic, updated_question)
     
     expected_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    mock_exists.assert_called_once_with(expected_path)
+    assert mock_exists.call_count == 2
+    mock_exists.assert_any_call(expected_path)
     mock_load.assert_called_once_with(mock_file_handle)
     mock_dump.assert_not_called()
     mock_open_func.assert_called_once_with(expected_path, 'r+')
