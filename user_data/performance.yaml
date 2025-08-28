@@ -5,6 +5,7 @@ api_discovery_docs:
   - list all available api resources in the cluster.
   - command to view the fields under deployment.spec.strategy.
   - display documentation for the 'pod' resource, including its fields.
+  - retrieve detailed information about the services running in the current namespace.
 app_configuration:
   correct_questions:
   - create a configmap named 'my-configmap' from all files in the '/configs' directory.
@@ -66,8 +67,43 @@ core_workloads:
     image and have a label 'app=webserver'.
   - create a new pod named 'nginx' using the 'nginx:alpine' image.
   - delete the 'nginx' pod and the 'nginx-service'.
+  - generate a yaml definition file for a pod named nginx, using the nginx image,
+    without creating it.
+  - scale the 'webapp' deployment to 5 replicas.
+  - edit the following pod manifest to change the image tag to '1.22-alpine' and add
+    the annotation 'owner=study-app'.
+  - roll back a deployment named 'webapp' to its previous version.
+  - check the rollout status of a deployment named 'frontend'.
+  - expose the 'nginx' pod on port 80 using a service named 'nginx-service'.
+  - create a temporary, interactive pod named 'my-shell' using the 'ubuntu' image.
+    the pod should automatically delete upon exit.
+  - print the status phase of pod 'pod1' in the default namespace using a jsonpath
+    query. you must use the `-o` flag for output formatting.
+  - view the history of a deployment named 'webapp'.
+  - create a pod named busybox using the busybox image that runs the command 'sleep
+    3600'.
+  - create a deployment named 'webapp' with image 'nginx:1.21' and 3 replicas.
+  - force delete a pod named 'webserver-sat-003' in the 'saturn' namespace. the deletion
+    should be immediate, without waiting for a grace period.
+  - update the image for the 'webapp' deployment to 'nginx:1.22'.
+helm_basics:
+  correct_questions:
+  - how do you add the prometheus community helm repository from `https://prometheus-community.github.io/helm-charts`
+    and name it `prometheus-community`?
+  - what command downloads the `wordpress` chart from the `bitnami` repository without
+    installing it?
+  - uninstall the helm release `internal-issue-report-apiv1` in the mercury namespace.
+  - how can you uninstall a helm release named `my-release`?
+  - upgrade the helm release `internal-issue-report-apiv2` in namespace mercury to
+    the latest nginx chart.
+  - what is the command to create a basic helm chart named `my-chart`?
+  - how do you install the `bitnami/node` chart as a release named `my-node`, setting
+    `replicacount` to 5?
 image_registry_use:
-  correct_questions: []
+  correct_questions:
+  - pod manifest with imagepullpolicy always and using imagepullsecrets regcred.
+  - create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0' from
+    a private registry. the pod should use an image pull secret named 'reg-secret'.
 linux_syntax:
   correct_questions:
   - in vim, how do you delete the current line?
@@ -110,5 +146,30 @@ resource_reference:
   - what is the api version for daemonset?
   - what is the short name for storageclass?
   - what is the api version for persistentvolumeclaim?
+  - is cronjob a namespaced resource?
+  - what is the short name for persistentvolume?
+  - is selfsubjectaccessreview a namespaced resource?
+  - what is the api version for namespace?
+  - is selfsubjectrulesreview a namespaced resource?
+  - what is the api version for componentstatus?
+  - what is the short name for service?
+  - is ingress a namespaced resource?
+  - is deployment a namespaced resource?
+  - what is the short name for certificatesigningrequest?
+  - what is the short name for node?
+  - what is the api version for resourcequota?
+  - what is the api version for node?
+  - is configmap a namespaced resource?
+  - what is the short name for deployment?
+  - what is the api version for endpoints?
+  - is event a namespaced resource?
+  - is pod a namespaced resource?
+  - what is the short name for persistentvolumeclaim?
+  - is poddisruptionbudget a namespaced resource?
+  - what is the api version for replicaset?
+  - what is the api version for endpointslice?
+  - is apiservice a namespaced resource?
+  - is daemonset a namespaced resource?
+  - is storageclass a namespaced resource?
 sample_topic:
   correct_questions: []
