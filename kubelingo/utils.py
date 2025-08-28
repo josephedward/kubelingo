@@ -1,6 +1,22 @@
 import os
 import yaml
-from colorama import Fore, Style
+from yaml import SafeDumper, Dumper
+
+# Represent multiline strings as literal blocks in YAML dumps
+def _str_presenter(dumper, data):
+    # Use literal block style for strings containing newlines
+    style = '|' if isinstance(data, str) and '\n' in data else None
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style=style)
+
+SafeDumper.add_representer(str, _str_presenter)
+Dumper.add_representer(str, _str_presenter)
+try:
+    from colorama import Fore, Style
+except ImportError:
+    class Fore:
+        RED = YELLOW = GREEN = CYAN = ''
+    class Style:
+        BRIGHT = RESET_ALL = DIM = ''
 import sys # For print statements
 try:
     import google.generativeai as genai
@@ -17,6 +33,10 @@ QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
+USER_DATA_DIR = os.path.join(_PROJECT_ROOT, "user_data")
+MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
+ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
+PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
 import openai
 import requests
@@ -162,36 +182,30 @@ def remove_question_from_corpus(question_to_remove, topic):
     else:
         print(f"{Fore.YELLOW}No questions found in {topic}.yaml. No changes made.{Style.RESET_ALL}")
 
-import copy
+def format_yaml_string(yaml_string):
+    """
+    Formats a YAML string, handling escaped newlines and ensuring proper indentation.
+    """
+    try:
+        # Unescape newlines
+        # Handle specific malformed document separators from user's example
+        unescaped_string = yaml_string.replace('nn ---nn', '\n---\n')
+        
+        # Remove comment lines before loading
+        lines = unescaped_string.splitlines()
+        cleaned_lines = [line for line in lines if not line.strip().startswith('#')]
+        cleaned_string = '\n'.join(cleaned_lines)
 
-def _normalize_manifest(obj):
-    """
-    Deep-copy a manifest object and remove non-essential fields (names) for equivalence comparison.
-    """
-    m = copy.deepcopy(obj)
-    if isinstance(m, dict):
-        # Remove top-level metadata name
-        if 'metadata' in m and isinstance(m['metadata'], dict):
-            m['metadata'].pop('name', None)
-        # Remove container names
-        spec = m.get('spec')
-        if isinstance(spec, dict):
-            containers = spec.get('containers')
-            if isinstance(containers, list):
-                for c in containers:
-                    if isinstance(c, dict):
-                        c.pop('name', None)
-        return m
-    if isinstance(m, list):
-        return [_normalize_manifest(item) for item in m]
-    return m
+        # Load and then dump to reformat
+        loaded_yamls = list(yaml.safe_load_all(cleaned_string))
+        formatted_parts = []
+        for doc in loaded_yamls:
+            if doc is not None: # Handle empty documents
+                formatted_parts.append(yaml.safe_dump(doc, indent=2, default_flow_style=False, sort_keys=False))
+                return "---".join(formatted_parts)
+    except yaml.YAMLError as e:
+        return f"Error: Invalid YAML string provided. {e}"
+    except Exception as e:
+        return f"An unexpected error occurred: {e}"
 
-def manifests_equivalent(sol_obj, user_obj):
-    """
-    Compare two manifest objects for structural equivalence, ignoring names.
-    """
-    normalized_sol = _normalize_manifest(sol_obj)
-    normalized_user = _normalize_manifest(user_obj)
-    print(f"KUBELINGO DEBUG: normalized_sol: {normalized_sol}")
-    print(f"KUBELINGO DEBUG: normalized_user: {normalized_user}")
-    return normalized_sol == normalized_user
+
