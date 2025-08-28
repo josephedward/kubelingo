@@ -28,16 +28,20 @@ def mock_llm_deps(mocker):
     with (
         patch.dict('sys.modules', {'google.generativeai': mock_genai_module, 'openai': mock_openai_module}),
         patch.dict('os.environ', mock_environ, clear=True),
-        patch('kubelingo.validation.requests.post') as mock_requests_post
+        patch('kubelingo.validation.requests.post') as mock_requests_post,
+        patch('kubelingo.validation.validate_kubectl_command_dry_run') as mock_validate_kubectl_command_dry_run
     ):
         # Configure mock response for OpenRouter health check
         mock_requests_post.return_value.status_code = 200
         mock_requests_post.return_value.json.return_value = {}
+        
+        # Configure mock for validate_kubectl_command_dry_run
+        mock_validate_kubectl_command_dry_run.return_value = (True, "apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod\n", "")
 
-        yield mock_genai_module.configure, mock_genai_module.GenerativeModel, mock_gemini_model_instance, mock_openai_module.OpenAI, mock_openai_client_instance, mock_environ, mock_requests_post
+        yield mock_genai_module.configure, mock_genai_module.GenerativeModel, mock_gemini_model_instance, mock_openai_module.OpenAI, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run
 
 def test_validate_manifest_with_llm_gemini(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.validation._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -55,7 +59,7 @@ def test_validate_manifest_with_llm_gemini(mock_llm_deps):
         assert result == {'correct': True, 'feedback': 'Manifest is valid.'}
 
 def test_validate_manifest_with_llm_openai(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.validation._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
@@ -74,7 +78,7 @@ def test_validate_manifest_with_llm_openai(mock_llm_deps):
         assert result == {'correct': False, 'feedback': 'Manifest is missing a field.'}
 
 def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run = mock_llm_deps
     
     # Patch _get_llm_model to return no model
     with patch('kubelingo.validation._get_llm_model', return_value=(None, None)) as mock_get_llm_model:
@@ -84,7 +88,7 @@ def test_validate_manifest_with_llm_no_llm(mock_llm_deps):
         assert result == {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
 
 def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run = mock_llm_deps
     
     # Patch _get_llm_model to return a configured Gemini model
     with patch('kubelingo.validation._get_llm_model', return_value=("gemini", mock_gemini_model_instance)) as mock_get_llm_model:
@@ -97,7 +101,7 @@ def test_validate_manifest_with_llm_gemini_error(mock_llm_deps):
         assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: Gemini manifest error"}
 
 def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
-    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post = mock_llm_deps
+    mock_gemini_configure, MockGenerativeModel_class, mock_gemini_model_instance, MockOpenAI_class, mock_openai_client_instance, mock_environ, mock_requests_post, mock_validate_kubectl_command_dry_run = mock_llm_deps
     
     # Patch _get_llm_model to return a configured OpenAI model
     with patch('kubelingo.validation._get_llm_model', return_value=("openai", mock_openai_client_instance)) as mock_get_llm_model:
