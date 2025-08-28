@@ -3,12 +3,7 @@ import time
 import yaml
 from colorama import Fore, Style
 
-# Assuming USER_DATA_DIR and ISSUES_FILE are defined elsewhere or passed in
-# For now, let's define them here, but they might need to be imported from utils or kubelingo.py
-USER_DATA_DIR = "user_data"
-ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
-MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
-QUESTIONS_DIR = "questions"
+from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
@@ -21,12 +16,21 @@ def remove_question_from_list(list_file, question):
     """Removes a question from a specified list file."""
     ensure_user_data_dir()
     questions = []
-    if os.path.exists(list_file):
-        with open(list_file, 'r') as f:
-            try:
-                questions = yaml.safe_load(f) or []
-            except yaml.YAMLError:
+    # Attempt to load existing questions, but ignore file errors or invalid YAML
+    try:
+        if os.path.exists(list_file):
+            with open(list_file, 'r') as f:
+                try:
+                    data = yaml.safe_load(f)
+                except yaml.YAMLError:
+                    data = []
+            # Only accept a list; otherwise reset to empty
+            if isinstance(data, list):
+                questions = data
+            else:
                 questions = []
+    except (OSError, IOError):
+        questions = []
 
     normalized_question_to_remove = get_normalized_question_text(question)
     updated_questions = [q for q in questions if get_normalized_question_text(q) != normalized_question_to_remove]
@@ -36,9 +40,9 @@ def remove_question_from_list(list_file, question):
 
 def create_issue(question_dict, topic):
     """Prompts user for an issue and saves it to a file."""
-    ensure_user_data_dir()
-    # Dynamically determine issues file based on current user data directory
-    issues_file = os.path.join(USER_DATA_DIR, "issues.yaml")
+    # Directory creation not required for issue reporting
+    # Use configured issues file path
+    issues_file = ISSUES_FILE
     print("\nPlease describe the issue with the question.")
     issue_desc = input("Description: ")
     if issue_desc.strip():
@@ -50,12 +54,16 @@ def create_issue(question_dict, topic):
 
         issues = []
         if os.path.exists(issues_file):
-            with open(issues_file, 'r') as f:
-                try:
-                    issues = yaml.safe_load(f) or []
-                except yaml.YAMLError:
-                    issues = []
-        
+            try:
+                with open(issues_file, 'r') as f:
+                    raw = yaml.safe_load(f)
+            except (yaml.YAMLError, OSError, IOError):
+                raw = []
+            # Only accept a list; otherwise reset
+            if isinstance(raw, list):
+                issues = raw
+            else:
+                issues = []
         issues.append(new_issue)
 
         with open(issues_file, 'w') as f:
