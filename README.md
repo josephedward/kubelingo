@@ -69,7 +69,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   
 ## Demo
 
-[![asciicast](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ.svg)](https://asciinema.org/a/HUZGlo91A8SfUPplgiPeQUDxJ)
+**General Usage**  
+[![General Usage Demo](https://asciinema.org/a/1PlDjt0xQuxwkLNpamLv3YsKU.svg)](https://asciinema.org/a/1PlDjt0xQuxwkLNpamLv3YsKU)
+
+**Question Generation**  
+[![Question Generation Demo](https://asciinema.org/a/QbWyRpf2vyBfXtXY61M91hmKv.svg)](https://asciinema.org/a/QbWyRpf2vyBfXtXY61M91hmKv)
 
 
 
