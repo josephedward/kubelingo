@@ -21,7 +21,22 @@ questions:
   source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server
 - question: Retrieve detailed information about the services running in the current
     namespace.
-  solution: 'kubectl get services --namespace=default -o wide
-
-    '
+  solution: |
+    kubectl get services --namespace=default -o wide
   source: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get
+- question: 'Create an ''api_discovery_docs'' ConfigMap in the ''development'' namespace
+    with key-value pairs for two API endpoints: ''/healthcheck'' and ''/metrics''.'
+  suggestion: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: api_discovery_docs
+      namespace: development
+    data:
+      healthcheck: /healthcheck
+      metrics: /metrics
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  rationale: This question tests the candidate's ability to create a ConfigMap in
+    a specific namespace to store information for API discovery purposes. Understanding
+    how to use ConfigMaps for storing configuration data is a key skill for CKAD exam
+    candidates.
