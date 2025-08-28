@@ -119,14 +119,31 @@ def validate_manifest_with_llm(question_dict, user_manifest, verbose=True):
 
 def validate_manifest(manifest_content):
     """
-    Validate a Kubernetes manifest string using external tools (yamllint, kubeconform, kubectl-validate).
+    Validate a Kubernetes manifest string using external tools with configurable levels.
     Returns a tuple: (success: bool, summary: str, details: str)."""
     config = dotenv_values(".env")
-    validators = [
-        ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
-        ("kubeconform", ["kubeconform", "-strict", "-"], "Validating Kubernetes schema"),
-        ("kubectl-validate", ["kubectl-validate", "-f", "-"], "Validating with kubectl-validate"),
-    ]
+    validation_level = config.get("KUBELINGO_VALIDATION_LEVEL", "moderate").lower()
+    
+    # Define validation tools by level
+    validation_tools = {
+        "permissive": [
+            ("yamllint", ["yamllint", "-"], "Validating basic YAML syntax")
+        ],
+        "moderate": [
+            ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
+            ("kubeconform", ["kubeconform", "-strict", "-schema-location", "default", "-"], 
+             "Validating Kubernetes schema with Kubeconform")
+        ],
+        "strict": [
+            ("yamllint", ["yamllint", "-"], "Validating YAML syntax"),
+            ("kubeconform", ["kubeconform", "-strict", "-schema-location", "default", "-"],
+             "Validating Kubernetes schema with Kubeconform"),
+            ("kubectl-validate", ["kubectl", "apply", "--dry-run=server", "-f", "-"],
+             "Validating with kubectl server-side dry-run")
+        ]
+    }
+    
+    validators = validation_tools.get(validation_level, validation_tools["moderate"])
     overall = True
     detail_lines = []
     for key, cmd, desc in validators:
@@ -153,11 +170,44 @@ def validate_manifest(manifest_content):
     return overall, summary, "\n".join(detail_lines)
 
 def validate_manifest_with_kubectl_dry_run(manifest):
-    """Placeholder function for validating a manifest with kubectl dry-run."""
-    # Implement the actual logic here
-    return True, "kubectl dry-run successful!", "Details of the dry-run"
+    """Validate a manifest with kubectl dry-run."""
+    try:
+        result = subprocess.run(
+            ["kubectl", "apply", "--dry-run=server", "-f", "-"],
+            input=manifest,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            return True, "kubectl server-side dry-run successful!", result.stdout
+        return False, "kubectl dry-run failed", result.stderr
+    except FileNotFoundError:
+        return False, "kubectl not found", "kubectl command is required for server-side validation"
+    except Exception as e:
+        return False, "Validation error", str(e)
 
 def validate_kubectl_command_dry_run(command_string):
-    """Placeholder function for validating a kubectl command with dry-run."""
-    # Implement the actual logic here
-    return True, "kubectl dry-run successful!", "Details of the dry-run"
+    """Validate a kubectl command with client-side dry-run."""
+    try:
+        # Extract command parts and insert dry-run flag
+        parts = command_string.split()
+        if "create" in parts or "apply" in parts:
+            if "--dry-run" not in parts:
+                parts.insert(-1, "--dry-run=client")
+        else:
+            return True, "Skipped", "Only create/apply commands support dry-run"
+            
+        result = subprocess.run(
+            parts + ["-o", "yaml"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            return True, "kubectl client-side dry-run successful!", result.stdout
+        return False, "kubectl dry-run failed", result.stderr
+    except Exception as e:
+        return False, "Validation error", str(e)
