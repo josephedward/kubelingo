@@ -139,7 +139,11 @@ def validate_manifest(manifest_content):
             ("kubeconform", ["kubeconform", "-strict", "-schema-location", "default", "-"],
              "Validating Kubernetes schema with Kubeconform"),
             ("kubectl-validate", ["kubectl", "apply", "--dry-run=server", "-f", "-"],
-             "Validating with kubectl server-side dry-run")
+             "Validating with kubectl server-side dry-run"),
+            ("kube-score", ["kube-score", "score", "-o", "human", "-"], 
+             "Checking Kubernetes best practices with kube-score"),
+            ("trivy", ["trivy", "config", "--severity", "HIGH,CRITICAL", "-"],
+             "Scanning for security vulnerabilities with Trivy")
         ]
     }
     
