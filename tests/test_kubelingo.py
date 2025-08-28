@@ -61,7 +61,7 @@ def test_ensure_user_data_dir(mock_user_data_dir):
 # --- Tests for question list management (from test_kubelingo_functions.py) ---
 
 @pytest.fixture
-def mock_question_list_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open):
+def mock_question_list_file(mock_os_path_exists, mock_yaml_safe_load, mock_yaml_dump, mock_builtins_open, mock_user_data_dir):
     # This fixture sets up a mock for a generic list file (e.g., missed_questions.yaml)
     # It returns a tuple: (mock_exists, mock_load, mock_dump, mock_open_func, mock_file_handle)
     # so individual tests can configure behavior.
@@ -73,6 +73,9 @@ def test_save_question_to_list_new_file(mock_question_list_file):
     question = {'question': 'Test Q', 'solution': 'A'}
     topic = 'test_topic'
     
+    # Reset mock calls before the function under test is called
+    mock_exists.reset_mock() 
+
     save_question_to_list(MISSED_QUESTIONS_FILE, question, topic)
     
     mock_exists.assert_called_once_with(MISSED_QUESTIONS_FILE)
