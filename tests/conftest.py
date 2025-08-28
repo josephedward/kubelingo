@@ -98,7 +98,7 @@ class _Patch:
 def mocker(monkeypatch):
     return _SimpleMocker(monkeypatch)
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_os_path_exists():
     with patch('os.path.exists') as mock_exists:
         yield mock_exists
