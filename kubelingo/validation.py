@@ -4,7 +4,13 @@ import requests
 import yaml
 import subprocess
 from dotenv import dotenv_values
-from colorama import Fore, Style
+try:
+    from colorama import Fore, Style
+except ImportError:
+    class Fore:
+        RED = YELLOW = GREEN = CYAN = ''
+    class Style:
+        BRIGHT = RESET_ALL = DIM = ''
 
 try:
     import google.generativeai as genai
