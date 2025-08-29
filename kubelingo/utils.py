@@ -178,7 +178,7 @@ def remove_question_from_corpus(question_to_remove, topic):
                 yaml.dump(data, file, sort_keys=False)
             print(f"{Fore.GREEN}Question removed from {topic}.yaml.{Style.RESET_ALL}")
         else:
-            print(f"{Fore.YELLOW}Question not found in {topic}.yaml. No changes made.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Question was not found in its original topic file ({topic}.yaml). No changes made to the topic file.{Style.RESET_ALL}")
     else:
         print(f"{Fore.YELLOW}No questions found in {topic}.yaml. No changes made.{Style.RESET_ALL}")
 

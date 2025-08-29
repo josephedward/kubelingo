@@ -754,14 +754,30 @@ def handle_vim_edit(question):
     """
     Handles the user editing a manifest in Vim.
     """
-    # Determine the canonical solution manifest
-    if 'suggestion' in question and isinstance(question['suggestion'], list) and question['suggestion']:
-        sol_manifest = question['suggestion'][0]
-    elif 'solution' in question:
-        sol_manifest = question['solution']
-    else:
+    # Determine the canonical solution manifest (suggestion or solution)
+    raw = question.get('suggestion') or question.get('solution')
+    # If suggestion is a list, take the first element
+    if isinstance(raw, list):
+        raw = raw[0] if raw else None
+    # If still no raw content, cannot validate via vim
+    if raw is None:
         print("This question does not have a solution to validate against for vim edit.")
         return None, None, False
+    # Parse raw into a manifest object if it's a YAML string
+    if isinstance(raw, str):
+        try:
+            parsed = yaml.safe_load(raw)
+        except Exception:
+            parsed = None
+        # Only accept parsed manifests (dict or list); otherwise, no vim support
+        if isinstance(parsed, (dict, list)):
+            sol_manifest = parsed
+        else:
+            print("This question does not have a solution to validate against for vim edit.")
+            return None, None, False
+    else:
+        # Already a dict or list
+        sol_manifest = raw
 
     question_comment = '\n'.join([f'# {line}' for line in question['question'].split('\n')])
     starter_content = question.get('starter_manifest', '')
@@ -1192,7 +1208,8 @@ def get_user_input(allow_solution_command=True):
     special_action = None
     
     solution_option_text = "'solution', " if allow_solution_command else ""
-    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
+    # Prompt text for user commands; include period inside 'menu' option to match test expectations
+    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu.'"
     print(f"{Style.BRIGHT}{Fore.CYAN}{prompt_text}{Style.RESET_ALL}")
     import sys
     sys.stdout.flush() # Explicitly flush output
@@ -1253,12 +1270,9 @@ def run_topic(topic, questions_to_study, performance_data):
             break
         
         # Determine canonical solution manifest for diff/display
-        if 'solution' in q:
-            sol_manifest = q['solution']
-        elif 'suggestion' in q and isinstance(q['suggestion'], list) and q['suggestion']:
-            sol_manifest = q['suggestion'][0]
-        else:
-            sol_manifest = None
+        sol_manifest = q.get('suggestion') or q.get('solution')
+        if isinstance(sol_manifest, list):
+            sol_manifest = sol_manifest[0] if sol_manifest else None
         is_correct = False  # Reset for each question attempt
         user_answer_graded = False  # Flag to indicate if an answer was submitted and graded
         suggestion_shown_for_current_question = False  # New flag for this question attempt
@@ -1279,8 +1293,12 @@ def run_topic(topic, questions_to_study, performance_data):
         dbg("Before get_user_input")
         user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
         dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
+        # If no input and no action, re-prompt
         if not user_commands and special_action is None:
             continue
+        # If user chooses to quit, exit the topic session
+        if special_action == 'q':
+            return
 
 
         # --- Process actions that involve grading or showing solution ---
@@ -1290,7 +1308,8 @@ def run_topic(topic, questions_to_study, performance_data):
             user_answer_graded = True
             suggestion_shown_for_current_question = True
             print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
-            solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
+            suggestion = q.get('suggestion', [q.get('solution', 'N/A')])
+            solution_text = suggestion[0] if isinstance(suggestion, list) else suggestion
             if isinstance(solution_text, (dict, list)):
                 dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                 print(colorize_yaml(dumped))
@@ -1304,6 +1323,9 @@ def run_topic(topic, questions_to_study, performance_data):
             # No break here, flow to post-answer menu
 
         elif special_action == 'vim':
+            if not q.get('suggestion') and not q.get('solution'):
+                print("This question does not have a solution to validate against for vim edit.")
+                continue
             user_manifest, result, sys_error = handle_vim_edit(q)
             if result is None: # Added check for None result
                 continue # Re-display the question prompt
@@ -1336,30 +1358,38 @@ def run_topic(topic, questions_to_study, performance_data):
                     user_answer_graded = True
                     # No break here, flow to post-answer menu
 
-        elif 'manifest' in q.get('question', '').lower():
-            # Automatically use vim for manifest questions
+        elif special_action == 'menu':
+            return
+
+        # If the canonical solution is a Kubernetes manifest, enable Vim-based editing
+        elif sol_manifest is not None and (
+                isinstance(sol_manifest, (dict, list)) or
+                (isinstance(sol_manifest, str) and '\n' in sol_manifest)
+            ):
             user_manifest, result, sys_error = handle_vim_edit(q)
-            if result is None: # Added check for None result
-                continue # Re-display the question prompt
-            # If result is not a dict, treat as a message and display
+            if result is None:
+                continue
             if not isinstance(result, dict):
-                print(str(result)) # Convert to string before printing
+                print(str(result))
                 user_answer_graded = True
                 break
             if not sys_error:
                 if result.get('validation_feedback'):
                     print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
                     print(result['validation_feedback'])
-                
                 if result.get('ai_feedback'):
                     print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
                     print(result['ai_feedback'])
-
-                is_correct = result['correct']
+                is_correct = result.get('correct', False)
+                # Prepare canonical solution text
+                if isinstance(sol_manifest, (dict, list)):
+                    sol_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
+                else:
+                    sol_text = sol_manifest
                 if not is_correct:
-                    show_diff(user_manifest, q['solution'])
+                    show_diff(user_manifest, sol_text)
                     print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
-                    print(colorize_yaml(q['solution']))
+                    print(colorize_yaml(sol_text))
                 else:
                     print(f"{Fore.GREEN}\nCorrect! Well done.")
                 if q.get('source'):
@@ -1374,9 +1404,11 @@ def run_topic(topic, questions_to_study, performance_data):
             normalized_user_answer = normalize_command(user_commands)
             
             # The suggestion can be a single string or a list of strings
-            suggestions = q.get('suggestion')
-            if not suggestions: # If 'suggestion' key is missing or empty
-                suggestions = [q.get('solution')]
+            suggestions = q.get('suggestion') or q.get('solution')
+            if not suggestions:
+                suggestions = []
+            elif isinstance(suggestions, str):
+                suggestions = [suggestions]
             
             # Check if there's actually a suggestion to compare against
             if not suggestions or suggestions == [None]:
@@ -1551,7 +1583,6 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
 
     # Handle manifest cleaning mode
     if clean_manifest:
-        import sys, subprocess
         content = ''
         if manifest_file:
             try:

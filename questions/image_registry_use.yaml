@@ -30,6 +30,11 @@ questions:
 - question: Create a pod named 'private-pod' that pulls images from a private repository
     'my-private-repo/my-image:latest' using an image pull secret named 'my-pull-secret'
     and sets the imagePullPolicy to IfNotPresent.
+  rationale: This question assesses the candidate's ability to create a Pod that pulls
+    images from a private repository using an image pull secret, which is a common
+    task in real-world Kubernetes deployments. Understanding how to manage image registries
+    securely is essential for CKAD-certified developers.
+  source: https://kubernetes.io/docs/concepts/containers/images/
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -37,93 +42,8 @@ questions:
       name: private-pod
     spec:
       containers:
-      - name: my-container
-        image: my-private-repo/my-image:latest
+      - image: my-private-repo/my-image:latest
+        name: my-container
+        imagePullPolicy: IfNotPresent
       imagePullSecrets:
       - name: my-pull-secret
-      imagePullPolicy: IfNotPresent
-  source: https://kubernetes.io/docs/concepts/containers/images/
-  rationale: This question assesses the candidate's ability to create a Pod that pulls
-    images from a private repository using an image pull secret, which is a common
-    task in real-world Kubernetes deployments. Understanding how to manage image registries
-    securely is essential for CKAD-certified developers.
-- question: Create a Kubernetes Secret named 'docker-secret' that contains Docker
-    Hub credentials with 'username' and 'password' keys. Then, create a Pod named
-    'private-pod' using the image 'nginx' from Docker Hub, and configure it to use
-    the 'docker-secret' as an image pull secret.
-  suggestion: |-
-    # Create a Kubernetes Secret with Docker Hub credentials
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: docker-secret
-    type: kubernetes.io/basic-auth
-    stringData:
-      username: my-docker-username
-      password: my-docker-password
-
-    ---
-
-    # Create a Pod using the 'docker-secret' as an image pull secret
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: private-pod
-    spec:
-      containers:
-      - name: main
-        image: nginx
-      imagePullSecrets:
-      - name: docker-secret
-  source: https://kubernetes.io/docs/concepts/containers/images/
-  rationale: This question assesses the candidate's ability to securely pull images
-    from Docker Hub by storing the credentials in a Secret and referencing it in a
-    Pod as an image pull secret. Understanding how to manage sensitive information
-    like container registry credentials is crucial for CKAD candidates.
-- question: Create a Pod named 'secure-pod' that pulls an image 'my-private-registry/my-app:latest'
-    from a private registry using an imagePullSecret, and limit image pulling to only
-    operate within the specified namespace.
-  suggestion: |-
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: secure-pod
-    spec:
-      containers:
-      - name: my-container
-        image: my-private-registry/my-app:latest
-      imagePullSecrets:
-      - name: my-pull-secret
-      automountServiceAccountToken: false
-      imagePolicyConfig:
-        names:
-          - my-private-registry/my-app:latest
-        policy: IfNotPresent
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-  rationale: This question evaluates the candidate's ability to utilize imagePullSecrets
-    to securely pull images from private registries in Kubernetes. It also tests their
-    knowledge of limiting image pulling policies to operate within a specific namespace,
-    which is important for achieving secure and isolated deployments.
-- question: Create a Pod named 'custom-image-pod' that pulls images from a private
-    repository 'my-custom-repo/my-image:tag123' using an image pull secret named 'my-pull-secret'
-    and defines resource limits of 0.5 CPU and 128Mi memory.
-  suggestion: |-
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: custom-image-pod
-    spec:
-      containers:
-      - name: my-container
-        image: my-custom-repo/my-image:tag123
-        resources:
-          limits:
-            cpu: "500m"
-            memory: "128Mi"
-      imagePullSecrets:
-      - name: my-pull-secret
-  source: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#define-container-resources
-  rationale: This question assesses the candidate's ability to specify resource limits
-    for containers in a Pod. Understanding how to manage resource constraints is essential
-    for optimizing resource utilization and ensuring application performance and stability
-    in Kubernetes, making it a relevant skill for CKAD candidates.
