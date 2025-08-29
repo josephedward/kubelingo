@@ -87,12 +87,9 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
     Validates a user-submitted manifest or kubectl command using the LLM and structural comparison.
     """
     # Extract solution manifest
-    solution_manifest = None
-    if isinstance(question_dict, dict):
-        if isinstance(question_dict.get('suggestion'), list) and question_dict['suggestion']:
-            solution_manifest = question_dict['suggestion'][0]
-        elif 'solution' in question_dict:
-            solution_manifest = question_dict['solution']
+    solution_manifest = question_dict.get('suggestion') or question_dict.get('solution')
+    if isinstance(solution_manifest, list):
+        solution_manifest = solution_manifest[0] if solution_manifest else None
 
     # If solution is a string, try to parse it as YAML
     if isinstance(solution_manifest, str):
@@ -161,8 +158,10 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
 
     # We need to re-extract the raw solution string for the prompt,
     # as solution_manifest might have been parsed.
-    raw_solution_for_prompt = question_dict.get('solution', '')
-    if isinstance(raw_solution_for_prompt, dict) or isinstance(raw_solution_for_prompt, list):
+    raw_solution_for_prompt = question_dict.get('suggestion') or question_dict.get('solution') or ''
+    if isinstance(raw_solution_for_prompt, list):
+        raw_solution_for_prompt = raw_solution_for_prompt[0] if raw_solution_for_prompt else ''
+    if isinstance(raw_solution_for_prompt, dict):
         raw_solution_for_prompt = yaml.dump(raw_solution_for_prompt)
 
 

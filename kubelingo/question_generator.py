@@ -148,6 +148,8 @@ def generate_more_questions(topic, base_question=None):
     if validation_details:
         print(f"{Style.DIM}Details:\n{validation_details}{Style.RESET_ALL}", flush=True)
 
+    # Previously, questions missing a suggestion were auto-rejected; now allow user to accept incomplete questions
+
     # Ask for user decision, adjusting the prompt based on validation status
     prompt_text = f"{Style.BRIGHT}{Fore.YELLOW}Accept this question? (y/n): {Style.RESET_ALL}"
     if not validation_passed:

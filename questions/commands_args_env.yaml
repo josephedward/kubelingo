@@ -1,8 +1,8 @@
 questions:
 - question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
-    using the `busybox` image. Override the container's command to be `[/bin/sh,
-    -c]` and its arguments to be `[echo Hello world]` . The Pod should have a
-    `restartPolicy` of `Never`.
+    using the `busybox` image. Override the container's command to be `[/bin/sh, -c]`
+    and its arguments to be `[echo Hello world]` . The Pod should have a `restartPolicy`
+    of `Never`.
   source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
   suggestion:
   - apiVersion: v1
@@ -66,13 +66,3 @@ questions:
             name: app-cm
         image: busybox
         name: c
-- question: 'Create a pod named ''env-pod-2'' with image ''nginx'' that runs the command
-    ''echo $(FIRST) $(SECOND)!'' and defines two environment variables: FIRST=Welcome
-    and SECOND=CKAD. The pod should output ''Welcome CKAD!'' to its logs and should
-    be configured to run in the ''default'' namespace with a ''restartPolicy'' of
-    ''Never'''
-  rationale: This question tests the candidate's ability to define environment variables,
-    set a custom command, and work with pod configurations such as namespace and restart
-    policy in the context of a CKAD exam.
-  solution: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: env-pod-2\n  namespace: default\nspec:\n  containers:\n  - name: nginx-container\n    image: nginx\n    command: [\"/bin/sh\", \"-c\"]\n    args: [\"echo $(FIRST) $(SECOND)!\"]\n    env:\n    - name: FIRST\n      value: Welcome\n    - name: SECOND\n      value: CKAD\n  restartPolicy: Never"
-  source: https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/
