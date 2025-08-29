@@ -1,11 +1,10 @@
-
-
 import pytest
 from unittest.mock import patch, call
 import os
 import yaml
 import re
-from kubelingo.kubelingo import ensure_user_data_dir, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR
+from kubelingo.kubelingo import ensure_user_data_dir, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR, run_topic
+from kubelingo.study_session import StudySession
 
 os.environ['KUBELINGO_DEBUG'] = 'True' # Enable debug logging
 
@@ -369,7 +368,7 @@ def test_get_user_input_prompt_output(capsys):
     with patch('builtins.input', side_effect=EOFError):
         _ = get_user_input()
     captured = capsys.readouterr()
-    expected = "Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu'."
+    expected = "Enter command(s). Type 'done' to check. Special commands: 'solution', 'vim', 'clear', 'menu.'"
     assert expected in captured.out
     
 def test_get_ai_verdict_fallback(monkeypatch):
@@ -384,8 +383,61 @@ def test_get_ai_verdict_fallback(monkeypatch):
     feedback = result.get('feedback', '')
     assert feedback.startswith('INFO: Set'), "Expected fallback info message"
 
+def test_run_topic_vim_on_question_without_solution(capsys):
+    """
+    Tests that using 'vim' on a question without a solution prints a message
+    and doesn't cause an infinite loop.
+    """
+    # 1. Create a question without a solution or suggestion
+    question_no_solution = {'question': 'This is a test question.'}
 
+    # 2. Mock the StudySession
+    mock_session = StudySession(
+        topic='test_topic',
+        questions=[question_no_solution],
+        performance_data={},
+        get_normalized_question_text_func=get_normalized_question_text
+    )
 
+    # 3. Mock user input to simulate typing 'vim' then 'q' to quit
+    with patch('kubelingo.kubelingo.get_user_input', side_effect=[([], 'vim'), ([], 'q')]):
+        # 4. Mock handle_vim_edit to ensure it's not called
+        with patch('kubelingo.kubelingo.handle_vim_edit') as mock_handle_vim_edit:
+            # 5. Call run_topic
+            run_topic('test_topic', [question_no_solution], {})
 
+            # 6. Assert that handle_vim_edit was not called
+            mock_handle_vim_edit.assert_not_called()
 
+            # 7. Assert that the correct message was printed
+            captured = capsys.readouterr()
+            assert "This question does not have a solution to validate against for vim edit." in captured.out
 
+def test_run_topic_menu_command(mocker):
+    """
+    Tests that when the user enters 'menu', run_topic returns,
+    effectively exiting to the main menu.
+    """
+    # Mock dependencies of run_topic
+    mocker.patch('kubelingo.kubelingo.os.system') # mock clear_screen
+    mocker.patch('builtins.print')
+    mocker.patch('kubelingo.kubelingo.dotenv_values', return_value={})
+    mocker.patch('kubelingo.kubelingo.save_performance_data')
+
+    # Mock get_user_input to return 'menu' as special_action
+    mock_get_user_input = mocker.patch('kubelingo.kubelingo.get_user_input', return_value=([], 'menu'))
+
+    # Mock StudySession
+    mock_session_instance = mocker.MagicMock()
+    mock_session_instance.is_session_complete.side_effect = [False, True] # Run once, then complete
+    mock_session_instance.get_current_question.return_value = {'question': 'A test question', 'solution': 'an answer'}
+    mocker.patch('kubelingo.kubelingo.study_session.StudySession', return_value=mock_session_instance)
+
+    # Call run_topic
+    result = run_topic('test_topic', [], {})
+
+    # Assertions
+    mock_get_user_input.assert_called_once()
+    # The function should return, so no more calls to session methods should happen after the loop starts
+    mock_session_instance.update_performance.assert_not_called()
+    assert result is None
