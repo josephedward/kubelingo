@@ -372,6 +372,7 @@ suggestion: |
   # If the solution is a command, provide it as a single string (e.g., 'kubectl get pods').
 source: "URL to official documentation."
 rationale: "Explanation of the question's purpose for CKAD study."
+section: "The specific section of the Kubernetes documentation the question is based on, e.g., 'Workloads', 'Networking', 'Storage'."
 ```
 
 Now, generate the new question.
