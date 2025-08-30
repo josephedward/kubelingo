@@ -4,12 +4,9 @@ import yaml
 from unittest.mock import patch, mock_open, MagicMock, call
 from kubelingo.kubelingo import (
     load_performance_data,
-    USER_DATA_DIR,
-    save_performance_data, # Added this import
-    ensure_user_data_dir # Added this import
+    save_performance_data
 )
-
-PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
+from kubelingo.utils import USER_DATA_DIR, PERFORMANCE_FILE, ensure_user_data_dir
 
 @pytest.fixture
 def mock_os_path_exists():
