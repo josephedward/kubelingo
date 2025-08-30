@@ -206,6 +206,7 @@ def _search_for_question_material(topic):
     search_results = []
     
     try:
+        try:
         response = requests.get(api_url, timeout=10)
         if response.status_code == 200:
             results = response.json()
@@ -215,11 +216,14 @@ def _search_for_question_material(topic):
                 for item in results.get('results', [])[:5]
                 if item.get('path')
             ]
+    except Exception as e:
+        print(f"{Fore.YELLOW}  - API request failed: {e}{Style.RESET_ALL}", flush=True)
+    
     if search_results:
-        print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
-        return search_results
-    else:
-        print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
+    print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
+    return search_results
+else:
+    print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
         return None
 
     return search_results
