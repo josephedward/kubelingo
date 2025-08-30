@@ -467,8 +467,8 @@ def _validate_generated_question(new_question, existing_questions):
 
     # Validate documentation source
     source_url = new_question.get('source', '')
-    if not source_url.startswith('https://kubernetes.io/docs/'):
-        raise MissingFieldsError(f"Invalid documentation source: {source_url} - Must be from kubernetes.io/docs")
+    if not (source_url.startswith('https://kubernetes.io/docs/') or source_url.startswith('https://helm.sh/docs/')):
+        raise MissingFieldsError(f"Invalid documentation source: {source_url} - Must be from kubernetes.io/docs or helm.sh/docs")
         
     # Verify documentation content was actually used
     doc_content = requests.get(source_url).text
@@ -477,7 +477,7 @@ def _validate_generated_question(new_question, existing_questions):
         raise MissingFieldsError("Question does not match documentation content")
         
     # Check for required fields
-    required_fields = ['question', 'suggestion', 'source', 'rationale', 'section']
+    required_fields = ['question', 'suggestion', 'source', 'rationale']
     missing_fields = [field for field in required_fields if not new_question.get(field)]
     
     # Try to infer section from topic if missing
