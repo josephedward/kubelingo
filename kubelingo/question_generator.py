@@ -62,68 +62,85 @@ def generate_more_questions(topic, base_question=None):
     """
     print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Starting New Question Generation for Topic: {topic} ---{Style.RESET_ALL}", flush=True)
 
-    # 1. Determine existing questions for context
-    print("  - Preparing context for question generation...", flush=True)
-    if base_question:
-        existing_questions = [base_question]
-    else:
-        existing_questions_data = load_questions(topic, Fore, Style)
-        existing_questions = existing_questions_data.get('questions', []) if existing_questions_data else []
-        if not existing_questions:
-            print(f"{Fore.YELLOW}  - Warning: No existing questions found for topic '{topic}'. Cannot generate a related question.{Style.RESET_ALL}", flush=True)
-            return None
-
+    # 1. NEW: Search for question material first
+    print("  - Attempting to find existing material from the web...", flush=True)
+    potential_sources = _search_for_question_material(topic)
     new_question = None
     validation_passed = False
     validation_summary = ""
     validation_details = ""
-    feedback_message = None
 
-    for retry_count in range(MAX_RETRIES):
-        print(f"\n{Style.BRIGHT}--- Attempt {retry_count + 1}/{MAX_RETRIES} ---{Style.RESET_ALL}", flush=True)
-        try:
-            # 2. Build a robust prompt for the LLM
-            print("  - Building a detailed prompt for the AI...", flush=True)
-            prompt = _build_generation_prompt(topic, existing_questions, feedback_message)
+    if potential_sources:
+        new_question = _create_question_from_sources(potential_sources, topic)
 
-            # 3. Call the LLM to generate a new question
-            print(f"  - Calling AI to generate a new question (this may take a moment)...", flush=True)
-            new_question_raw = _call_llm_for_generation(prompt)
-            new_question = new_question_raw
+    if new_question:
+        print(f"{Fore.GREEN}  - Successfully generated a question from a web source.{Style.RESET_ALL}", flush=True)
+        # Validate the generated question
+        print("  - Validating the generated question...", flush=True)
+        existing_questions_data = load_questions(topic, Fore, Style)
+        existing_questions = existing_questions_data.get('questions', []) if existing_questions_data else []
+        validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions)
+    else:
+        print(f"{Fore.YELLOW}  - Could not generate a question from web sources, falling back to LLM generation.{Style.RESET_ALL}", flush=True)
 
-            # Allow 'solution' key as alias for 'suggestion' when validating
-            if 'suggestion' not in new_question and 'solution' in new_question:
-                new_question['suggestion'] = new_question['solution']
+        # If no question from web source, proceed with existing generation logic
+        # 1. Determine existing questions for context
+        print("  - Preparing context for question generation...", flush=True)
+        if base_question:
+            existing_questions = [base_question]
+        else:
+            existing_questions_data = load_questions(topic, Fore, Style)
+            existing_questions = existing_questions_data.get('questions', []) if existing_questions_data else []
+            if not existing_questions:
+                print(f"{Fore.YELLOW}  - Warning: No existing questions found for topic '{topic}'. Cannot generate a related question.{Style.RESET_ALL}", flush=True)
+                return None
 
-            # 4. Attempt to assign a source if missing (so validation can check it)
-            if not new_question.get('source'):
-                print("  - AI did not provide a source. Attempting to find one automatically...", flush=True)
-                assign_source(new_question, topic)
+        feedback_message = None
+        for retry_count in range(MAX_RETRIES):
+            print(f"\n{Style.BRIGHT}--- Attempt {retry_count + 1}/{MAX_RETRIES} ---", flush=True)
+            try:
+                # 2. Build a robust prompt for the LLM
+                print("  - Building a detailed prompt for the AI...", flush=True)
+                prompt = _build_generation_prompt(topic, existing_questions, feedback_message)
 
-            # 5. Validate the generated question
-            print("  - Validating the generated question...", flush=True)
-            validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions)
+                # 3. Call the LLM to generate a new question
+                print(f"  - Calling AI to generate a new question (this may take a moment)...", flush=True)
+                new_question_raw = _call_llm_for_generation(prompt)
+                new_question = new_question_raw
 
-            print(f"DEBUG: validation_passed = {validation_passed}", flush=True)
-            if validation_passed:
-                print(f"{Fore.GREEN}  - Validation successful for this attempt.{Style.RESET_ALL}", flush=True)
-                break # Exit retry loop
-            else:
-                print(f"{Fore.YELLOW}  - Validation failed for this attempt. Preparing for retry...{Style.RESET_ALL}", flush=True)
-                feedback_message = f"Previous attempt failed validation. Details:\n{validation_summary}\n{validation_details}\nPlease generate a new question that addresses these issues."
+                # Allow 'solution' key as alias for 'suggestion' when validating
+                if 'suggestion' not in new_question and 'solution' in new_question:
+                    new_question['suggestion'] = new_question['solution']
 
-        except (GenerationError, DuplicateQuestionError, MissingFieldsError, LLMGenerationError) as e:
-            print(f"{Fore.RED}  - Generation attempt failed. Reason: {e}. Preparing for retry...{Style.RESET_ALL}", flush=True)
-            feedback_message = f"Previous attempt resulted in an error: {e}. Please generate a new question."
-            validation_summary = str(e) # Update validation_summary with the specific error
-            validation_passed = False # Mark validation as failed
-            # new_question is NOT reset to None here, so it can be inspected
-        except Exception as e:
-            print(f"{Fore.RED}  - An unexpected error occurred during generation attempt: {e}. Preparing for retry...{Style.RESET_ALL}", flush=True)
-            feedback_message = f"Previous attempt resulted in an unexpected error: {e}. Please generate a new question."
-            validation_summary = str(e) # Update validation_summary with the specific error
-            validation_passed = False # Mark validation as failed
-            # new_question is NOT reset to None here, so it can be inspected
+                # 4. Attempt to assign a source if missing (so validation can check it)
+                if not new_question.get('source'):
+                    print("  - AI did not provide a source. Attempting to find one automatically...", flush=True)
+                    assign_source(new_question, topic)
+
+                # 5. Validate the generated question
+                print("  - Validating the generated question...", flush=True)
+                validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions)
+
+                print(f"DEBUG: validation_passed = {validation_passed}", flush=True)
+                if validation_passed:
+                    print(f"{Fore.GREEN}  - Validation successful for this attempt.{Style.RESET_ALL}", flush=True)
+                    break # Exit retry loop
+                else:
+                    print(f"{Fore.YELLOW}  - Validation failed for this attempt. Preparing for retry...{Style.RESET_ALL}", flush=True)
+                    feedback_message = f"Previous attempt failed validation. Details:\n{validation_summary}\n{validation_details}\nPlease generate a new question that addresses these issues."
+
+            except (GenerationError, DuplicateQuestionError, MissingFieldsError, LLMGenerationError) as e:
+                print(f"{Fore.RED}  - Generation attempt failed. Reason: {e}. Preparing for retry...{Style.RESET_ALL}", flush=True)
+                feedback_message = f"Previous attempt resulted in an error: {e}. Please generate a new question."
+                validation_summary = str(e) # Update validation_summary with the specific error
+                validation_passed = False # Mark validation as failed
+                # new_question is NOT reset to None here, so it can be inspected
+            except Exception as e:
+                print(f"{Fore.RED}  - An unexpected error occurred during generation attempt: {e}. Preparing for retry...{Style.RESET_ALL}", flush=True)
+                feedback_message = f"Previous attempt resulted in an unexpected error: {e}. Please generate a new question."
+                validation_summary = str(e) # Update validation_summary with the specific error
+                validation_passed = False # Mark validation as failed
+                # new_question is NOT reset to None here, so it can be inspected
 
     # After retry loop, if no question was generated at all, print failure message
     if new_question is None:
@@ -168,15 +185,107 @@ def generate_more_questions(topic, base_question=None):
         if 'suggestion' in new_question and isinstance(new_question['suggestion'], str):
             new_question['suggestion'] = new_question['suggestion'].strip()
 
-        print(f"{Fore.GREEN}\n--- New Question Generated Successfully! ---\n{Style.RESET_ALL}", flush=True)
+        print(f"{Fore.GREEN}\n--- New Question Generated Successfully!---\n{Style.RESET_ALL}", flush=True)
         _print_question_yaml(new_question)
         print("DEBUG: Final return: new_question accepted by user.")
         return new_question
 
 
+
 # --- Helper Functions for Generation Flow ---
 
+def _search_for_question_material(topic):
+    """
+    Searches the web for existing question material from reliable sources.
+    """
+    if not search:
+        print(f"{Fore.YELLOW}  - Warning: 'googlesearch' library not installed. Cannot search for question material.{Style.RESET_ALL}\n")
+        return None
+
+    print(f"  - Searching the web for question material on topic: {topic}...", flush=True)
+    
+    # More targeted search query
+    search_query = f'site:kubernetes.io/docs/tasks "{topic}"'
+    
+    try:
+        search_results = list(search(search_query, num_results=5))
+        if search_results:
+            print(f"  {Fore.GREEN}- Found {len(search_results)} potential sources.{Style.RESET_ALL}")
+            return search_results
+        else:
+            print(f"{Fore.YELLOW}  - Web search did not return any results.{Style.RESET_ALL}", flush=True)
+            return None
+    except Exception as e:
+        print(f"{Fore.RED}  - An error occurred during web search: {e}{Style.RESET_ALL}", flush=True)
+        return None
+
+def _create_question_from_sources(sources, topic):
+    """
+    Attempts to create a question from a list of web sources.
+    """
+    print(f"  - Processing {len(sources)} potential sources...", flush=True)
+    for url in sources:
+        print(f"    - Fetching content from: {url}", flush=True)
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            content = response.text
+
+            prompt = _build_prompt_from_source(topic, content, url)
+            
+            new_question = _call_llm_for_generation(prompt)
+
+            if new_question and new_question.get('question') and new_question.get('suggestion'):
+                print(f"  {Fore.GREEN}- Successfully generated a question from source: {url}{Style.RESET_ALL}")
+                return new_question
+
+        except requests.exceptions.RequestException as e:
+            print(f"{Fore.YELLOW}    - Could not fetch source {url}: {e}{Style.RESET_ALL}", flush=True)
+            continue
+        except Exception as e:
+            print(f"{Fore.YELLOW}    - Could not process source {url}: {e}{Style.RESET_ALL}", flush=True)
+            continue
+    
+    return None
+
+
+def _build_prompt_from_source(topic, content, source_url):
+    """
+    Builds a prompt to generate a question from a given source content.
+    """
+    prompt = f'''You are a Kubernetes expert creating a practice question for a CKAD study guide.
+Your task is to create a question based on the following content from the official Kubernetes documentation.
+
+Topic: {topic}
+Source URL: {source_url}
+Source Content:
+---
+{content}
+---
+
+Generate ONE new question that meets the following criteria:
+1.  **Grounded in Source**: The question and answer MUST be directly based on the provided Source Content.
+2.  **CKAD Relevance**: It must test a skill relevant to the CKAD exam for the given topic.
+3.  **Type**: It can be a command-line question (using `kubectl`, `helm`, etc.) or a YAML manifest creation question.
+4.  **Completeness**: The question must contain all necessary information for the user to solve it. The `suggestion` should be a valid and correct answer.
+    If the `suggestion` is a Kubernetes YAML manifest, it MUST be a complete and valid Kubernetes object, including `apiVersion`, `kind`, `metadata`, and `spec` (if applicable).
+5.  **Source**: Use the provided Source URL for the `source` field.
+6.  **Rationale**: Include a brief `rationale` field explaining what skill the question tests and why it's relevant for the CKAD, based on the source material.
+
+Provide the output in a single, valid YAML block. The structure must be:
+```yaml
+question: "Your new, unique question text here."
+suggestion: |
+  # The solution, extracted and formatted from the source content.
+source: "{source_url}"
+rationale: "Explanation of the question's purpose for CKAD study."
+```
+
+Now, generate the new question.
+'''
+    return prompt
 def _build_generation_prompt(topic, existing_questions, feedback_message=None):
+
     """Constructs the LLM prompt using few-shot examples and existing section content."""
     # Select a few random examples from existing questions
     examples = random.sample(existing_questions, min(len(existing_questions), 3))
@@ -301,7 +410,6 @@ def _call_llm_for_generation(prompt):
         raise LLMGenerationError(f"Failed to parse LLM output as YAML. Error: {e}")
     except Exception as e:
         raise LLMGenerationError(f"An error occurred while communicating with the LLM: {e}")
-
 
 
 def _validate_generated_question(new_question, existing_questions):
@@ -468,4 +576,3 @@ def audit_question_files(output_file=os.path.join(USER_DATA_DIR, 'non_standard_q
         print(f"{Fore.GREEN}All questions conform to the standard format.{Style.RESET_ALL}")
 
     return non_standard_questions
-
