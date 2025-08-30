@@ -479,6 +479,17 @@ def _validate_generated_question(new_question, existing_questions):
     # Check for required fields
     required_fields = ['question', 'suggestion', 'source', 'rationale', 'section']
     missing_fields = [field for field in required_fields if not new_question.get(field)]
+    
+    # Try to infer section from topic if missing
+    if 'section' in missing_fields:
+        # Split topic on underscores and capitalize first letters
+        inferred_section = ' '.join([word.capitalize() for word in topic.split('_')])
+        # Remove any "Core" prefix that's common in topic names
+        inferred_section = inferred_section.replace('Core ', '')
+        new_question['section'] = inferred_section
+        missing_fields.remove('section')
+        print(f"{Fore.YELLOW}  - Inferred section from topic: {inferred_section}{Style.RESET_ALL}")
+
     if missing_fields:
         raise MissingFieldsError(f"Generated question is missing required fields: {', '.join(missing_fields)}")
 
