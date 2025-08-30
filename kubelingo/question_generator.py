@@ -206,7 +206,6 @@ def _search_for_question_material(topic):
     search_results = []
     
     try:
-        try:
         response = requests.get(api_url, timeout=10)
         if response.status_code == 200:
             results = response.json()
@@ -218,15 +217,36 @@ def _search_for_question_material(topic):
             ]
     except Exception as e:
         print(f"{Fore.YELLOW}  - API request failed: {e}{Style.RESET_ALL}", flush=True)
-    
+
     if search_results:
-    print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
-    return search_results
-else:
-    print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
+        print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
+        return search_results
+    else:
+        print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
+        # Fallback to general web search if curated sources are not enough or not found
+        if search:
+            print(f"  - Falling back to general web search for topic: {topic}...", flush=True)
+            try:
+                # Perform a general web search for the topic
+                general_search_query = f"kubernetes {topic} example"
+                # Limit to 5 results, and filter for reputable sources
+                web_search_results = []
+                for url in search(general_search_query, num_results=5):
+                    if url.startswith("https://kubernetes.io/docs/") or "github.com" in url or "medium.com" in url:
+                        web_search_results.append(url)
+
+                # Deduplicate and limit again, just in case
+                web_search_results = list(dict.fromkeys(web_search_results))[:5]
+
+                if web_search_results:
+                    print(f"  {Fore.GREEN}- Found {len(web_search_results)} general web sources.{Style.RESET_ALL}\n")
+                    return web_search_results
+                else:
+                    print(f"{Fore.YELLOW}  - No general web sources found for topic.{Style.RESET_ALL}\n", flush=True)
+            except Exception as e:
+                print(f"{Fore.YELLOW}  - Error during general web search: {e}{Style.RESET_ALL}\n", flush=True)
         return None
 
-    return search_results
 
 def _create_question_from_sources(sources, topic):
     """
