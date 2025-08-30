@@ -197,43 +197,24 @@ def generate_more_questions(topic, base_question=None):
 
 def _search_for_question_material(topic):
     """
-    Searches the web for existing question material from reliable sources.
+    Searches Kubernetes official API for relevant documentation content
     """
-    if not search:
-        print(f"{Fore.YELLOW}  - Warning: 'googlesearch' library not installed. Cannot search for question material.{Style.RESET_ALL}\n")
-        return None
-
-    print(f"  - Searching the web for question material on topic: {topic}...", flush=True)
+    print(f"  - Querying Kubernetes API for {topic} documentation...", flush=True)
     
-    # Curated list of official Kubernetes documentation sections
-    official_sources = [
-        "https://kubernetes.io/docs/tasks/",
-        "https://kubernetes.io/docs/concepts/",
-        "https://kubernetes.io/docs/reference/kubernetes-api/",
-        "https://kubernetes.io/docs/reference/kubectl/",
-        "https://kubernetes.io/docs/tutorials/",
-        "https://kubernetes.io/docs/setup/",
-        "https://kubernetes.io/docs/architecture/"
-    ]
-    
-    # Get documentation content directly from official sources
+    # Use Kubernetes official content API
+    api_url = f"https://kubernetes.io/api/v1/content/en/docs/search/?q={topic}"
     search_results = []
-    for base_url in official_sources:
-        try:
-            response = requests.get(base_url)
-            if response.status_code == 200:
-                # Extract links to specific documentation pages
-                soup = BeautifulSoup(response.text, 'html.parser')
-                for link in soup.find_all('a', href=True):
-                    href = link['href']
-                    if href.startswith('/docs/') and f"/{topic.lower()}" in href.lower():
-                        full_url = f"https://kubernetes.io{href}"
-                        search_results.append(full_url)
-        except Exception as e:
-            continue
     
-    # Deduplicate and limit results
-    search_results = list(dict.fromkeys(search_results))[:5]  # Preserve order while deduping
+    try:
+        response = requests.get(api_url, timeout=10)
+        if response.status_code == 200:
+            results = response.json()
+            # Get top 5 most relevant results from API
+            search_results = [
+                f"https://kubernetes.io{item['path']}"
+                for item in results.get('results', [])[:5]
+                if item.get('path')
+            ]
     if search_results:
         print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
         return search_results
@@ -241,40 +222,21 @@ def _search_for_question_material(topic):
         print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
         return None
 
-    # Fallback to general web search if curated sources are not enough or not found
-    if not search_results and search:
-        print(f"  - Falling back to general web search for topic: {topic}...", flush=True)
-        try:
-            # Perform a general web search for the topic
-            general_search_query = f"kubernetes {topic} example"
-            for url in search(general_search_query, num_results=5):
-                if url.startswith("https://kubernetes.io/docs/") or "github.com" in url or "medium.com" in url: # Prioritize official docs and reputable sources
-                    search_results.append(url)
-            search_results = list(dict.fromkeys(search_results))[:5] # Deduplicate and limit again
-            if search_results:
-                print(f"  {Fore.GREEN}- Found {len(search_results)} general web sources.{Style.RESET_ALL}")
-                return search_results
-            else:
-                print(f"{Fore.YELLOW}  - No general web sources found for topic.{Style.RESET_ALL}", flush=True)
-        except Exception as e:
-            print(f"{Fore.YELLOW}  - Error during general web search: {e}{Style.RESET_ALL}", flush=True)
-            return None
-    
     return search_results
 
 def _create_question_from_sources(sources, topic):
     """
-    Attempts to create a question from a list of web sources.
+    Creates questions from API-sourced documentation URLs
     """
-    print(f"  - Processing {len(sources)} potential sources...", flush=True)
+    print(f"  - Processing {len(sources)} API results...", flush=True)
     for url in sources:
-        print(f"    - Fetching content from: {url}", flush=True)
+        print(f"    - Fetching structured content from: {url}", flush=True)
         try:
-            response = requests.get(url, timeout=10)
+            # Get clean text content from API
+            response = requests.get(url.replace('/docs/', '/api/v1/content/en/docs/') + '.json')
             response.raise_for_status()
-            content = response.text
-
-            prompt = _build_prompt_from_source(topic, content, url)
+            content_data = response.json()
+            content = content_data.get('text', '')  # Get clean text without HTML
             
             new_question = _call_llm_for_generation(prompt)
 
