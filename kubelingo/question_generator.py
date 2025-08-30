@@ -204,22 +204,35 @@ def _search_for_question_material(topic):
 
     print(f"  - Searching the web for question material on topic: {topic}...", flush=True)
     
-    # More targeted search query
-    search_query = f'site:kubernetes.io/docs/tasks "{topic}"'
-    
-    # Curated list of official Kubernetes task documentation
+    # Curated list of official Kubernetes documentation sections
     official_sources = [
-        "https://kubernetes.io/docs/tasks/configure-pod-container/",
-        "https://kubernetes.io/docs/tasks/configmap-secret/", 
-        "https://kubernetes.io/docs/tasks/security/",
-        "https://kubernetes.io/docs/tasks/storage/",
-        "https://kubernetes.io/docs/tasks/network/",
-        "https://kubernetes.io/docs/tasks/administer-cluster/",
-        "https://kubernetes.io/docs/tasks/manage-kubernetes-objects/"
+        "https://kubernetes.io/docs/tasks/",
+        "https://kubernetes.io/docs/concepts/",
+        "https://kubernetes.io/docs/reference/kubernetes-api/",
+        "https://kubernetes.io/docs/reference/kubectl/",
+        "https://kubernetes.io/docs/tutorials/",
+        "https://kubernetes.io/docs/setup/",
+        "https://kubernetes.io/docs/architecture/"
     ]
-        
-    # Filter to topic-relevant docs
-    search_results = [url for url in official_sources if topic.lower() in url.lower()]
+    
+    # Get documentation content directly from official sources
+    search_results = []
+    for base_url in official_sources:
+        try:
+            response = requests.get(base_url)
+            if response.status_code == 200:
+                # Extract links to specific documentation pages
+                soup = BeautifulSoup(response.text, 'html.parser')
+                for link in soup.find_all('a', href=True):
+                    href = link['href']
+                    if href.startswith('/docs/') and f"/{topic.lower()}" in href.lower():
+                        full_url = f"https://kubernetes.io{href}"
+                        search_results.append(full_url)
+        except Exception as e:
+            continue
+    
+    # Deduplicate and limit results
+    search_results = list(dict.fromkeys(search_results))[:5]  # Preserve order while deduping
     if search_results:
         print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
         return search_results
@@ -273,8 +286,17 @@ def _build_prompt_from_source(topic, content, source_url):
     """
     Builds a prompt to generate a question from a given source content.
     """
-    prompt = f'''You are a Kubernetes expert creating a practice question for a CKAD study guide.
-Your task is to create a question based on the following content from the official Kubernetes documentation.
+    prompt = f'''You are a Kubernetes documentation analyst. Create an exam question DIRECTLY FROM this documentation content.
+You MUST follow these rules:
+1. Question MUST be answerable using ONLY the provided documentation content
+2. Answer MUST be a direct quote or paraphrase from the documentation
+3. Include the exact section header where the answer can be found
+4. Format YAML using documentation examples verbatim
+
+Documentation Content Rules:
+- Preserve technical details exactly
+- Use official terminology from the docs
+- Include kubectl commands exactly as shown
 
 Topic: {topic}
 Source URL: {source_url}
@@ -444,8 +466,19 @@ def _validate_generated_question(new_question, existing_questions):
     if not isinstance(new_question, dict):
         return False, "Generated output is not a valid question dictionary.", "The LLM did not return a dictionary."
 
+    # Validate documentation source
+    source_url = new_question.get('source', '')
+    if not source_url.startswith('https://kubernetes.io/docs/'):
+        raise MissingFieldsError(f"Invalid documentation source: {source_url} - Must be from kubernetes.io/docs")
+        
+    # Verify documentation content was actually used
+    doc_content = requests.get(source_url).text
+    question_text = new_question.get('question', '')
+    if not any(keyword in doc_content for keyword in question_text.split()[:5]):
+        raise MissingFieldsError("Question does not match documentation content")
+        
     # Check for required fields
-    required_fields = ['question', 'suggestion', 'source', 'rationale']
+    required_fields = ['question', 'suggestion', 'source', 'rationale', 'section']
     missing_fields = [field for field in required_fields if not new_question.get(field)]
     if missing_fields:
         raise MissingFieldsError(f"Generated question is missing required fields: {', '.join(missing_fields)}")

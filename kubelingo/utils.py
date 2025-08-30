@@ -131,8 +131,12 @@ def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
 def get_canonical_question_representation(question_dict):
-    # Create a consistent string representation for comparison
-    # Include question, suggestion, and source for uniqueness
+    """Create a consistent representation including documentation source validation."""
+    # Validate source URL first
+    source_url = question_dict.get('source', '')
+    if not source_url.startswith('https://kubernetes.io/docs/'):
+        raise ValueError("Question source must be from official Kubernetes documentation")
+        
     q_text = question_dict.get('question', '').strip().lower()
     suggestion = question_dict.get('suggestion', '')
     source = question_dict.get('source', '')
