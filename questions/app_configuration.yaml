@@ -1,81 +1,82 @@
 questions:
 - question: Create a ConfigMap named 'app-config' with data items 'app.color=blue'
     and 'app.environment=dev'.
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
   suggestion:
   - kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
-  source: https://kubernetes.io/docs/concepts/configuration/configmap/
 - question: Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'.
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
   suggestion:
   - kubectl create cm game-config --from-file=/configs/game.properties
-  source: https://kubernetes.io/docs/concepts/configuration/configmap/
 - question: Create a ConfigMap named 'my-configmap' from all files in the '/configs'
     directory.
-  suggestion:
-  - kubectl create cm my-configmap --from-file=/configs
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A
     %
+  suggestion:
+  - kubectl create cm my-configmap --from-file=/configs
 - question: Create a ConfigMap named 'my-env-config' from an env file named 'config.env'.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
   suggestion:
   - kubectl create cm my-env-config --from-env-file=config.env
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
 - question: View the detailed contents of a ConfigMap named 'db-config'.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
   suggestion:
   - kubectl describe cm db-config
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
 - question: List all ConfigMaps.
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
   suggestion:
   - kubectl get configmaps
-  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
 - question: Delete a ConfigMap named 'app-config'.
+  source: https://stackoverflow.com/questions/59300475/delete-a-configmap-itself-from-kubernetes
   suggestion:
   - kubectl delete configmap app-config
-  source: https://stackoverflow.com/questions/59300475/delete-a-configmap-itself-from-kubernetes
 - question: Create a manifest for a Secret named 'db-secret' containing a username
     'admin' and password 's3cur3p@ssw0rd'.
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
   suggestion:
   - apiVersion: v1
     kind: Secret
     metadata:
       name: db-secret
     stringData:
-      username: admin
       password: s3cur3p@ssw0rd
+      username: admin
     type: Opaque
-  source: https://kubernetes.io/docs/concepts/configuration/secret/
 - question: Create a Secret named 'db-creds' with username 'admin' and password 'password123'.
+  source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/
   suggestion:
   - kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123
-  source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/
 - question: 'Create a generic Secret named ''secret1'' in namespace ''moon'' with
     two keys: user=test and pass=pwd.'
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
   suggestion:
   - kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd
-  source: https://kubernetes.io/docs/concepts/configuration/secret/
 - question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
     and the private key is at `/etc/certs/tls.key`.
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_tls/
   suggestion:
   - kubectl create secret tls my-tls --cert=/etc/certs/tls.crt --key=/etc/certs/tls.key
-  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_tls/
 - question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the
     following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
     password=`P@ssw0rd!`, email=`user@example.com`.'
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
   suggestion:
   - kubectl create secret docker-registry regcred --docker-server='https://private.docker.io/v1/'
     --docker-username='my-user' --docker-password='P@ssw0rd!' --docker-email='user@example.com'
-  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
 - question: View the encoded values in a Secret named 'api-secrets' in YAML format.
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
   suggestion:
   - kubectl get secret api-secrets -o yaml
-  source: https://kubernetes.io/docs/concepts/configuration/secret/
 - question: The string 'ZW5jb2RlZF9zdHJpbmc=' is a base64 encoded Secret value. Decode
     it.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
   suggestion:
   - echo -n 'ZW5jb2RlZF9zdHJpbmc=' | base64 --decode
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
 - question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
     using the `nginx:alpine` image. The Pod should be configured to have an environment
     variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
     Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -83,24 +84,33 @@ questions:
       name: pod1
     spec:
       containers:
-      - name: nginx
-        image: nginx:alpine
-        env:
+      - env:
         - name: TREE1
           valueFrom:
             configMapKeyRef:
-              name: trauerweide
               key: tree
+              name: trauerweide
+        image: nginx:alpine
+        name: nginx
         volumeMounts:
-        - name: birke-volume
-          mountPath: /etc/birke
+        - mountPath: /etc/birke
+          name: birke-volume
       volumes:
-      - name: birke-volume
-        configMap:
+      - configMap:
           name: birke
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+        name: birke-volume
 - question: You are given a basic Pod manifest. Modify it to mount a Secret named
     'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
+  starter_manifest: |
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+        - name: my-container
+          image: nginx
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -108,8 +118,8 @@ questions:
       name: mypod
     spec:
       containers:
-      - name: my-container
-        image: nginx
+      - image: nginx
+        name: my-container
         volumeMounts:
         - mountPath: /tmp/secret2
           name: secret-volume
@@ -117,6 +127,10 @@ questions:
       - name: secret-volume
         secret:
           secretName: secret2
+- question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
+    key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.
+  source: /search?num=3
   starter_manifest: |
     apiVersion: v1
     kind: Pod
@@ -126,10 +140,6 @@ questions:
       containers:
         - name: my-container
           image: nginx
-  source: https://kubernetes.io/docs/concepts/configuration/secret/
-- question: You are given a basic Pod manifest. Modify it to add two environment variables,
-    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
-    key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.
   suggestion:
   - apiVersion: v1
     kind: Pod
@@ -137,44 +147,16 @@ questions:
       name: mypod
     spec:
       containers:
-      - name: my-container
-        image: nginx
-        env:
+      - env:
         - name: SECRET1_USER
           valueFrom:
             secretKeyRef:
-              name: secret1
               key: user
+              name: secret1
         - name: SECRET1_PASS
           valueFrom:
             secretKeyRef:
-              name: secret1
               key: pass
-  starter_manifest: |
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: mypod
-    spec:
-      containers:
-        - name: my-container
-          image: nginx
-  source: /search?num=3
-- question: Create a Kubernetes ConfigMap named 'app-settings' containing key-value
-    pairs for 'logLevel' set to 'info', 'maxConnections' set to '100', and 'timeout'
-    set to '30s'.
-  suggestion: |-
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: app-settings
-    data:
-      logLevel: info
-      maxConnections: "100"
-      timeout: 30s
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
-  rationale: This question tests the candidate's ability to create a ConfigMap with
-    multiple key-value pairs, which is a common task when configuring applications
-    in Kubernetes pods. Understanding how to define ConfigMaps is crucial for managing
-    application configurations independently from pod definitions, a key concept in
-    Kubernetes application development.
+              name: secret1
+        image: nginx
+        name: my-container
