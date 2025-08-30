@@ -1,0 +1,15 @@
+question: Update the existing ConfigMap 'app-settings' by adding a new data item 'env=production'.
+rationale: This question assesses the candidate's ability to update existing ConfigMaps
+  in Kubernetes. In real-world scenarios, it is common to need to add or modify configurations
+  dynamically without recreating resources. CKAD candidates should understand how
+  to perform these modifications efficiently.
+source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+suggestion: |-
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: app-settings
+  data:
+    app.color: blue
+    app.environment: dev
+    env: production
