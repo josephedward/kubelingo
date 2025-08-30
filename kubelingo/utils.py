@@ -2,6 +2,10 @@ import os
 import yaml
 from yaml import SafeDumper, Dumper
 
+def ensure_user_data_dir():
+    """Ensures the user_data directory exists."""
+    os.makedirs(USER_DATA_DIR, exist_ok=True)
+
 # Represent multiline strings as literal blocks in YAML dumps
 def _str_presenter(dumper, data):
     # Use literal block style for strings containing newlines
@@ -126,6 +130,23 @@ def _get_llm_model(skip_prompt=False):
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
 
+def get_canonical_question_representation(question_dict):
+    # Create a consistent string representation for comparison
+    # Include question, suggestion, and source for uniqueness
+    q_text = question_dict.get('question', '').strip().lower()
+    suggestion = question_dict.get('suggestion', '')
+    source = question_dict.get('source', '')
+
+    # Handle suggestion being a dict/list (YAML) or string (command)
+    if isinstance(suggestion, (dict, list)):
+        suggestion_str = yaml.safe_dump(suggestion, default_flow_style=False, sort_keys=True, indent=0).strip().lower()
+    elif isinstance(suggestion, str):
+        suggestion_str = suggestion.strip().lower()
+    else:
+        suggestion_str = ''
+
+    return f"{q_text}::{suggestion_str}::{source.strip().lower()}"
+
 def load_questions(topic, Fore, Style): # Removed genai as argument
     """Loads questions from a YAML file based on the topic."""
     file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
@@ -155,6 +176,10 @@ def load_questions(topic, Fore, Style): # Removed genai as argument
 
 def remove_question_from_corpus(question_to_remove, topic):
     """Removes a question from its source YAML file."""
+    # Debug: Write the question to a file
+    with open(os.path.join(USER_DATA_DIR, 'debug_question.yaml'), 'w') as f:
+        yaml.dump(question_to_remove, f)
+
     file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     if not os.path.exists(file_path):
         print(f"{Fore.RED}Error: Source file not found for topic {topic}. Cannot remove question.{Style.RESET_ALL}")
@@ -165,12 +190,12 @@ def remove_question_from_corpus(question_to_remove, topic):
 
     if data and 'questions' in data:
         original_num_questions = len(data['questions'])
-        normalized_q_to_remove = get_normalized_question_text(question_to_remove)
+        canonical_q_to_remove = get_canonical_question_representation(question_to_remove)
         
         # Filter out the question to remove
         data['questions'] = [
             q for q in data['questions']
-            if get_normalized_question_text(q) != normalized_q_to_remove
+            if get_canonical_question_representation(q) != canonical_q_to_remove
         ]
 
         if len(data['questions']) < original_num_questions:
@@ -209,3 +234,22 @@ def format_yaml_string(yaml_string):
         return f"An unexpected error occurred: {e}"
 
 
+import shutil
+
+def backup_performance_yaml():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    source_path = os.path.join(project_root, 'user_data', 'performance.yaml')
+    destination_dir = os.path.join(project_root, 'misc')
+    destination_path = os.path.join(destination_dir, 'performance.yaml')
+
+    if not os.path.exists(source_path):
+        print(f"Error: Source file not found at {source_path}")
+        return
+
+    os.makedirs(destination_dir, exist_ok=True)
+
+    try:
+        shutil.copyfile(source_path, destination_path)
+        print(f"Successfully backed up {source_path} to {destination_path}")
+    except Exception as e:
+        print(f"Error backing up file: {e}")
