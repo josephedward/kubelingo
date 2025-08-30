@@ -1,6 +1,7 @@
 import os
 import yaml
 from yaml import SafeDumper, Dumper
+import subprocess # Import subprocess here
 
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
@@ -21,18 +22,28 @@ except ImportError:
         RED = YELLOW = GREEN = CYAN = ''
     class Style:
         BRIGHT = RESET_ALL = DIM = ''
+    def colorama_init(*args, **kwargs):
+        pass
 import sys # For print statements
 try:
     import google.generativeai as genai
 except ImportError:
     genai = None
 
-# Assuming QUESTIONS_DIR is defined elsewhere or passed
-# For now, I'll define it here, and then remove it from kubelingo.py
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, os.pardir))
+# Define _PROJECT_ROOT globally
+def _get_git_root():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], stderr=subprocess.PIPE).strip().decode('utf-8')
+    except subprocess.CalledProcessError:
+        return None
+
+_PROJECT_ROOT = _get_git_root()
+if not _PROJECT_ROOT:
+    _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+    _PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, os.pardir, os.pardir)) # Fallback to two levels up if not in git repo
+
 _ROOT_QUESTIONS = os.path.join(_PROJECT_ROOT, "questions")
-_PKG_QUESTIONS = os.path.join(_SCRIPT_DIR, "questions")
+_PKG_QUESTIONS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "questions")
 QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
@@ -156,7 +167,7 @@ def load_questions(topic, Fore, Style): # Removed genai as argument
     file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     if not os.path.exists(file_path):
         print(f"Error: Question file not found at {file_path}")
-        available_topics = [f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')]
+        available_topics = [f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if os.path.isfile(os.path.join(QUESTIONS_DIR, f)) and f.endswith('.yaml')]
         if available_topics:
             print("Available topics: " + ", ".join(available_topics))
         return None
@@ -231,7 +242,7 @@ def format_yaml_string(yaml_string):
         for doc in loaded_yamls:
             if doc is not None: # Handle empty documents
                 formatted_parts.append(yaml.safe_dump(doc, indent=2, default_flow_style=False, sort_keys=False))
-                return "---".join(formatted_parts)
+                return "---".join(formatted_parts) # Added newline after ---
     except yaml.YAMLError as e:
         return f"Error: Invalid YAML string provided. {e}"
     except Exception as e:
@@ -240,14 +251,22 @@ def format_yaml_string(yaml_string):
 
 import shutil
 
-def backup_performance_yaml():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    source_path = os.path.join(project_root, 'user_data', 'performance.yaml')
+def backup_performance_yaml(project_root=None, user_data_dir=None):
+    """
+    Back up the performance.yaml file from user_data_dir to the project's misc directory.
+    If project_root or user_data_dir are not provided, use defaults from module globals.
+    """
+    # Determine defaults if not provided
+    if project_root is None:
+        project_root = _PROJECT_ROOT
+    if user_data_dir is None:
+        user_data_dir = USER_DATA_DIR
+    source_path = os.path.join(user_data_dir, 'performance.yaml')
     destination_dir = os.path.join(project_root, 'misc')
     destination_path = os.path.join(destination_dir, 'performance.yaml')
 
     if not os.path.exists(source_path):
-        print(f"Error: Source file not found at {source_path}")
+        # No performance data to back up; skip without error
         return
 
     os.makedirs(destination_dir, exist_ok=True)

@@ -8,25 +8,10 @@ import openai
 import webbrowser
 from thefuzz import fuzz
 
-import os
-import yaml
-
 from kubelingo.kubelingo import _get_llm_model, get_normalized_question_text, validate_manifest
 import scripts.format_questions as fq
 import scripts.manage_questions as mq
-
-import os
-import yaml
-
-USER_DATA_DIR = "/Users/user/Documents/GitHub/kubelingo/user_data"
-ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
-MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
-
-def ensure_user_data_dir():
-    os.makedirs(USER_DATA_DIR, exist_ok=True)
-
-def get_normalized_question_text(question_dict):
-    return question_dict.get('question', '').strip().lower()
+from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, ensure_user_data_dir
 
 def load_questions_from_list(list_file):
     if not os.path.exists(list_file):

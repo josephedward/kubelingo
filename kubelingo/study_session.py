@@ -1,5 +1,6 @@
 import random
 from collections import deque
+# Removed: from kubelingo.performance_tracker import _performance_data_changed
 
 class StudySession:
     def __init__(self, topic, questions, performance_data, get_normalized_question_text_func):
@@ -64,20 +65,26 @@ class StudySession:
             self.retry_queue.append(question)
 
     def update_performance(self, question, is_correct, get_normalized_question_text):
+        # Removed: global _performance_data_changed
+        changed = False
         normalized_q = get_normalized_question_text(question)
-        topic_perf = self.performance_data.get(self.topic, {})
-        if 'correct_questions' not in topic_perf:
-            topic_perf['correct_questions'] = []
+        topic_perf = self.performance_data.setdefault(self.topic, {'correct_questions': []})
         
+        # Use a set for efficient handling of unique questions
+        correct_questions_set = set(topic_perf.get('correct_questions', []))
+
         if is_correct:
-            if normalized_q not in topic_perf['correct_questions']:
-                topic_perf['correct_questions'].append(normalized_q)
+            if normalized_q not in correct_questions_set:
+                correct_questions_set.add(normalized_q)
+                changed = True
         else:
-            # If a question was answered incorrectly, ensure it's not marked as correct
-            if normalized_q in topic_perf['correct_questions']:
-                topic_perf['correct_questions'].remove(normalized_q)
+            if normalized_q in correct_questions_set:
+                correct_questions_set.discard(normalized_q)
+                changed = True
         
-        self.performance_data[self.topic] = topic_perf
+        # Update the performance data with the sorted list of unique correct questions
+        topic_perf['correct_questions'] = sorted(list(correct_questions_set))
+        return changed # Return True if performance data was changed, False otherwise
 
     def is_session_complete(self):
         # Session is complete when main questions have been exhausted and there are no retries

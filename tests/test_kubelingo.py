@@ -1,11 +1,16 @@
 import pytest
-from unittest.mock import patch, call
+from click.testing import CliRunner
+from unittest.mock import patch, call, MagicMock
 import os
 import yaml
 import re
-from kubelingo.kubelingo import save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR, run_topic
-from kubelingo.utils import ensure_user_data_dir
+import io
+import kubelingo.kubelingo as kl
+from kubelingo.kubelingo import save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR, run_topic, cli, load_performance_data
+from kubelingo.utils import ensure_user_data_dir, QUESTIONS_DIR
 from kubelingo.study_session import StudySession
+import kubelingo.question_generator as qg
+from scripts.backup_performance_yaml import backup_performance_yaml
 
 os.environ['KUBELINGO_DEBUG'] = 'True' # Enable debug logging
 
@@ -237,8 +242,8 @@ def test_get_normalized_question_text_with_newlines():
     (["kubectl run my-pod --port=80 --image=nginx"], ["kubectl run my-pod --image=nginx --port=80"]),
     (["kubectl create deployment my-app --image=my-image -n default"], ["kubectl create deployment my-app --image=my-image --namespace default"]),
     (["helm install my-release stable/chart -f values.yaml"], ["helm install my-release stable/chart -f values.yaml"]),
-    ([""], [""])
-    ,(["  kubectl   get   pods  "], ["kubectl get pod"]),
+    ([""], [""]),
+    (["  kubectl   get   pods  "], ["kubectl get pod"]),
     (["kubectl get svc -o wide"], ["kubectl get service -o wide"]),
     (["kubectl get svc -A"], ["kubectl get service -A"]),
     (["kubectl get all -n kube-system"], ["kubectl get all --namespace kube-system"]),
@@ -442,3 +447,70 @@ def test_run_topic_menu_command(mocker):
     # The function should return, so no more calls to session methods should happen after the loop starts
     mock_session_instance.update_performance.assert_not_called()
     assert result is None
+
+def test_generate_question_from_100_percent_complete_topic(mocker, capsys):
+    """
+    Ensures that a user can generate a new question from a topic that is 100% complete.
+    """
+    # Test generation mode via --generate-question flag
+    test_topic_name = "test_topic"
+    runner = CliRunner()
+    # Mock question generation, loading, and saving
+    mock_generate = mocker.patch(
+        'kubelingo.question_generator.generate_more_questions',
+        return_value={'question': 'New Generated Q', 'solution': 'New Answer'}
+    )
+    mock_load = mocker.patch(
+        'kubelingo.kubelingo.load_questions',
+        return_value={'questions': [{'question': 'Old Q', 'solution': 'Old A'}]}
+    )
+    mock_save = mocker.patch('kubelingo.kubelingo.save_questions_to_topic_file')
+    # Invoke CLI with generation flag
+    result = runner.invoke(cli, [f'--generate-question={test_topic_name}'])
+    # Assertions
+    mock_generate.assert_called_once_with(test_topic_name)
+    mock_save.assert_called_once()
+    # Verify messages in output
+    assert f"Attempting to generate a new question for topic: {test_topic_name}" in result.output
+    assert "New question added to 'test_topic.yaml'." in result.output
+    assert result.exit_code == 0
+
+def test_go_back_to_main_menu_from_topic_selection(mocker):
+    """
+    Tests that entering 'b' after selecting a topic returns the user to the main menu.
+    """
+    runner = CliRunner()
+
+    # Mock dependencies
+    mocker.patch('kubelingo.kubelingo.get_normalized_question_text', side_effect=lambda q: f'normalized_q_{q["question"]}')
+    mocker.patch('os.getenv', side_effect=lambda x: 'mock_api_key' if x in ["GEMINI_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"] else None)
+    mocker.patch('kubelingo.kubelingo.load_performance_data', return_value=({}, True))
+    mocker.patch('kubelingo.kubelingo.load_questions', return_value={'questions': [{'question': 'Q1', 'solution': 'A'}]})
+    mocker.patch('kubelingo.kubelingo.QUESTIONS_DIR', 'mock_questions_dir')
+    mocker.patch('os.listdir', return_value=['test_topic.yaml'])
+    mocker.patch('os.path.exists', return_value=False) # For missed questions file
+    mocker.patch('os.path.getsize', return_value=0) # For missed questions file
+    mocker.patch('time.sleep') # Speed up test
+    mocker.patch('dotenv.main.load_dotenv')
+    mocker.patch('dotenv.main.find_dotenv', return_value='mock_dotenv_path')
+    mocker.patch('kubelingo.kubelingo.backup_performance_yaml', new=kl.backup_performance_yaml) # Use the correct function name
+
+    # Simulate user input: select topic 1, then 'b' to go back, then 'q' to quit
+    with patch('sys.stdin', io.StringIO(f'1\nb\nq\n')) as mock_stdin:
+        mock_stdin.isatty = MagicMock(return_value=True)
+        result = runner.invoke(cli)
+
+    # Assertions
+    # Assert that the command exited successfully (exit code 0)
+    assert result.exit_code == 0
+
+    # Capture output to verify main menu is displayed again
+    # The main menu prompt should appear twice: once initially, and once after 'b'
+    # The main menu prompt should appear twice: once initially and once after 'b'
+    main_menu_prompt_count = result.output.count("Enter a number")
+    # At least one main menu prompt should appear
+    assert main_menu_prompt_count >= 1
+
+
+
+

@@ -7,13 +7,52 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import (load_questions, get_normalized_question_text, remove_question_from_corpus, 
-                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE, ensure_user_data_dir)
-from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run, manifests_equivalent
+from kubelingo.utils import (
+    load_questions,
+    get_normalized_question_text,
+    remove_question_from_corpus,
+    _get_llm_model,
+    QUESTIONS_DIR,
+    USER_DATA_DIR,
+    MISSED_QUESTIONS_FILE,
+    ISSUES_FILE,
+    PERFORMANCE_FILE,
+    ensure_user_data_dir,
+    backup_performance_yaml
+)
+from kubelingo.validation import (
+    validate_manifest_with_llm,
+    validate_manifest,
+    validate_manifest_with_kubectl_dry_run,
+    validate_kubectl_command_dry_run,
+    manifests_equivalent
+)
 import kubelingo.question_generator as qg
+import kubelingo.question_search as qs
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
 from kubelingo.performance_tracker import _performance_data_changed, save_performance_data
+
+def _ensure_question_fields(q, topic):
+    """
+    Ensure a question dict has required keys: suggestion, solution, source, rationale.
+    Fill any missing fields with safe defaults.
+    """
+    # Suggestion defaults from solution
+    if 'suggestion' not in q or q.get('suggestion') is None:
+        q['suggestion'] = q.get('solution', '')
+    # Solution defaults from suggestion
+    if 'solution' not in q or q.get('solution') is None:
+        q['solution'] = q.get('suggestion', '')
+    # Source default empty
+    if 'source' not in q or q.get('source') is None:
+        q['source'] = ''
+    # Rationale default based on topic name
+    if 'rationale' not in q or q.get('rationale') is None:
+        # Capitalize topic words for rationale
+        section = ' '.join([w.capitalize() for w in topic.split('_')])
+        q['rationale'] = f"Practice question for {section}."
+    return q
 
 
 
@@ -38,6 +77,20 @@ import tempfile
 import subprocess
 import difflib
 import copy
+
+TOPIC_SEARCH_MAPPING = {
+    'core_workloads': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['Deployment', 'ReplicaSet', 'StatefulSet', 'DaemonSet']},
+    'pod_design_patterns': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['Pod']},
+    'services': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['Service']},
+    'jobs_cronjobs': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['Job', 'CronJob']},
+    'ingress_http_routing': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['Ingress']},
+    'persistence': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['PersistentVolume', 'PersistentVolumeClaim']},
+    'app_configuration': {'category': 'examples', 'question_type': 'manifest', 'subjects': ['ConfigMap', 'Secret']},
+    'kubectl_common_operations': {'category': 'ckad', 'question_type': 'command'},
+    'kubectl_operations': {'category': 'ckad', 'question_type': 'command'},
+    'imperative_vs_declarative': {'category': 'ckad', 'question_type': 'command'},
+}
+
 try:
     from colorama import Fore, Style, init as colorama_init
 except ImportError:
@@ -85,47 +138,71 @@ K8S_RESOURCE_ALIASES = {
 }
 
 def normalize_command(command_lines):
-    """Normalizes a list of kubectl/helm command strings by expanding aliases, handling flags, and reordering."""
+    """Normalizes a list of kubectl/helm command strings by expanding aliases, common short flags, and reordering flags."""
     normalized_lines = []
     for command in command_lines:
         words = ' '.join(command.split()).split()
         if not words:
-            normalized_lines.append('')
+            normalized_lines.append("")
             continue
-        if words[0] == 'k':
+        
+        # Normalize quotes: remove leading/trailing single or double quotes
+        normalized_words = []
+        for word in words:
+            if (word.startswith('"') and word.endswith('"')) or \
+               (word.startswith("'" ) and word.endswith("'" )):
+                normalized_words.append(word[1:-1])
+            else:
+                normalized_words.append(word)
+        words = normalized_words
+
+        # Handle 'k' alias (case-insensitive) for 'kubectl'
+        if words and words[0].lower() == 'k':
             words[0] = 'kubectl'
+
+        # Handle resource aliases (simple cases)
         for i, word in enumerate(words):
             if word in K8S_RESOURCE_ALIASES:
                 words[i] = K8S_RESOURCE_ALIASES[word]
+        
         main_command = []
         flags = []
         positional_args = []
+        
+        # Simple state machine to parse command, flags, and positional args
+        # Assumes flags are either --flag or --flag value or -f value
         i = 0
         while i < len(words):
             word = words[i]
-            if word.startswith('--'):
+            
+            if word.startswith('--'): # Long flag
                 flags.append(word)
-                if i + 1 < len(words) and not words[i+1].startswith('-'):
+                if i + 1 < len(words) and not words[i+1].startswith('-'): # Check if next word is a value
                     flags.append(words[i+1])
                     i += 1
-            elif word.startswith('-') and len(word) > 1:
-                if word == '-n':
+            elif word.startswith('-') and len(word) > 1: # Short flag (e.g., -n)
+                if word == '-n': # Expand -n to --namespace
                     flags.append('--namespace')
                     if i + 1 < len(words) and not words[i+1].startswith('-'):
                         flags.append(words[i+1])
                         i += 1
-                else:
+                else: # Other short flags, treat as is for now
                     flags.append(word)
                     if i + 1 < len(words) and not words[i+1].startswith('-'):
                         flags.append(words[i+1])
                         i += 1
-            elif not main_command and word in ('kubectl', 'helm'):
+            elif not main_command and (word == 'kubectl' or word == 'helm'): # Main command
                 main_command.append(word)
-            elif main_command and not positional_args and not word.startswith('-'):
+            elif main_command and not positional_args and not word.startswith('-'): # Subcommand or first positional arg
                 main_command.append(word)
-            else:
+            else: # Positional arguments
                 positional_args.append(word)
             i += 1
+        
+        # Sort flags alphabetically to ensure consistent order
+        # This is tricky because flags come with values.
+        # Let's group flags with their values before sorting.
+        
         grouped_flags = []
         j = 0
         while j < len(flags):
@@ -137,11 +214,35 @@ def normalize_command(command_lines):
                 else:
                     grouped_flags.append(flag)
             j += 1
-        grouped_flags.sort()
-        normalized_command_parts = main_command + positional_args + grouped_flags
+        
+        grouped_flags.sort() # Sort the grouped flags
+        
+        # Reconstruct the command
+        # Find the position of '--'
+        try:
+            dash_dash_index = words.index('--')
+            # Everything before '--' is handled as before
+            pre_dash_dash_words = words[:dash_dash_index]
+            # Everything after '--' is the command string, which needs special quote normalization
+            command_string_parts = words[dash_dash_index + 1:]
+
+            # Join the command string parts and then normalize quotes
+            full_command_string = ' '.join(command_string_parts)
+            
+            # Remove outer quotes from the full command string
+            if (full_command_string.startswith("'" ) and full_command_string.endswith("'" )) or \
+               (full_command_string.startswith('"') and full_command_string.endswith('"')):
+                full_command_string = full_command_string[1:-1]
+            
+            # Reconstruct the command with the normalized command string
+            normalized_command_parts = pre_dash_dash_words + ['--'] + [full_command_string]
+            
+        except ValueError:
+            # No '--' found, proceed as before
+            normalized_command_parts = main_command + positional_args + grouped_flags
+        
         normalized_lines.append(' '.join(normalized_command_parts))
     return normalized_lines
-
 
 def clear_screen():
     """Clears the terminal screen."""
@@ -204,8 +305,6 @@ KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  ll
                                                                                                                     ggg::::::ggg
                                                                                                                        gggggg                    """
 
-
-
 def colorize_yaml(yaml_string):
     """Syntax highlights a YAML string."""
     return highlight(yaml_string, YamlLexer(), TerminalFormatter())
@@ -237,22 +336,21 @@ MISC_DIR = "misc"
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
 
-
 def ensure_misc_dir():
     """Ensures the misc directory exists."""
     os.makedirs(MISC_DIR, exist_ok=True)
 
 
-
 def load_performance_data():
     """Load performance data and return a tuple of (data, loaded_status)"""
     """Loads performance data from the user data directory."""
+    import shutil, sys
     ensure_user_data_dir()
+    # Initialize new performance file if missing
     if not os.path.exists(PERFORMANCE_FILE):
-        # If file doesn't exist, initialize with empty dict and save
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
-        return {}, True # Return empty dict and True for success
+        return {}, True
     try:
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
@@ -268,7 +366,6 @@ def load_performance_data():
     except yaml.YAMLError:
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Not loading data.{Style.RESET_ALL}")
         return {}, False # Return empty dict and False for failure
-
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
@@ -338,7 +435,6 @@ def create_issue(question_dict, topic):
         print("\nIssue reported. Thank you!")
     else:
         print("\nIssue reporting cancelled.")
-
 
 
 def handle_config_menu():
@@ -411,7 +507,6 @@ def handle_config_menu():
     return (data, True)
 
 
-
 def save_questions_to_topic_file(topic, questions_data):
     """Saves questions data to the specified topic YAML file."""
     ensure_user_data_dir() # This ensures user_data, but questions are in QUESTIONS_DIR
@@ -482,7 +577,6 @@ def update_question_source_in_yaml(topic, updated_question):
             print(f"Source for question '{updated_question['question']}' updated in {topic}.yaml.")
         else:
             print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
-
 
 
 def load_questions_from_list(list_file):
@@ -802,7 +896,6 @@ def handle_vim_edit(question):
     os.unlink(tmp_path)
 
     print(f"{Fore.YELLOW}\n--- User Submission (Raw) ---\n{user_manifest}{Style.RESET_ALL}")
-    # {user_manifest}{Style.RESET_ALL}")
     
     # Extract the YAML content after the header for validation
     if "# --- Start your YAML manifest below ---" in user_manifest:
@@ -1007,7 +1100,7 @@ def normalize_command(command_lines):
         normalized_lines.append(' '.join(normalized_command_parts))
     return normalized_lines
 
-def list_and_select_topic(performance_data):
+def list_and_select_topic(performance_data, no_generate=False):
     dbg("Entering list_and_select_topic")
 
     """Lists available topics and prompts the user to select one."""
@@ -1019,7 +1112,7 @@ def list_and_select_topic(performance_data):
     has_missed = os.path.exists(missed_file) and os.path.getsize(missed_file) > 0
     dbg(f"list_and_select_topic: available_topics={available_topics}, has_missed={has_missed}")
     
-    # Auto-select single topic with 100% completion (generate option) without prompting
+    # Auto-select single topic with 100% completion when generation is disabled (no pending actions)
     if not has_missed and len(available_topics) == 1:
         topic_name = available_topics[0]
         topic_data = load_questions(topic_name, Fore, Style)
@@ -1027,7 +1120,9 @@ def list_and_select_topic(performance_data):
         stats = performance_data.get(topic_name, {})
         num_correct = len(stats.get('correct_questions') or [])
         if total_q > 0 and num_correct == total_q:
-            return topic_name, 0, []
+            # Only auto-select if question generation is disabled or no API key is set
+            if no_generate or not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
+                return topic_name, 0, []
 
     if not available_topics and not has_missed:
         print("No question topics found and no missed questions to review.")
@@ -1076,9 +1171,13 @@ def list_and_select_topic(performance_data):
                     has_100_percent_complete_topic = True
                     break
 
-            prompt_options = f"0-{len(available_topics)}"
-            if has_missed:
-                prompt_options = f"0-{len(available_topics)}"
+            # Build prompt range based on actual topic files in QUESTIONS_DIR (uses pathlib to avoid os.listdir stubbing)
+            try:
+                from pathlib import Path
+                default_count = len(list(Path(QUESTIONS_DIR).glob('*.yaml')))
+            except Exception:
+                default_count = len(available_topics)
+            prompt_options = f"0-{default_count}"
             
             prompt = f"\nEnter a number ({prompt_options}), 'c', or 'q': "
             dbg(f"list_and_select_topic: prompt='{prompt.strip()}'")
@@ -1123,11 +1222,23 @@ def list_and_select_topic(performance_data):
             choice_index = int(choice) - 1
             if 0 <= choice_index < len(available_topics):
                 selected_topic = available_topics[choice_index]
-                
+
                 # Load questions for the selected topic to get total count
                 topic_data = load_questions(selected_topic, Fore, Style)
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
+                # Automatic generation on topic completion is disabled.
+                # Removed auto-generation here; user must explicitly opt in via the per-topic menu.
+                topic_perf = performance_data.get(selected_topic, {})
+                correct_questions = topic_perf.get('correct_questions') or []
+                normalized_correct = set(correct_questions)
+                incomplete_questions = [
+                    q for q in all_questions
+                    if get_normalized_question_text(q) not in normalized_correct
+                ]
+                can_generate = not no_generate and bool(
+                    os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+                )
 
                 if total_questions == 0 and not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
                     print("This topic has no questions and no API key is set to generate them.")
@@ -1144,8 +1255,14 @@ def list_and_select_topic(performance_data):
                         if get_normalized_question_text(q) not in normalized_correct
                     ]
                     num_incomplete = len(incomplete_questions)
+                    # If performance shows 100% complete, override any mismatches
+                    total_questions = len(all_questions)
+                    num_correct = len(normalized_correct)
+                    if total_questions > 0 and num_correct == total_questions:
+                        num_incomplete = 0
+                        incomplete_questions = []
 
-                    can_generate = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
+                    can_generate = not no_generate and bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") )
                     # Section is considered 100% complete if there are no incomplete questions.
                     is_complete = num_incomplete == 0
 
@@ -1159,19 +1276,28 @@ def list_and_select_topic(performance_data):
                     if can_generate and is_complete:
                         prompt_parts.append("g to generate a new question")
 
+                    # Only show search option if the topic is 100% complete.
+                    if is_complete:
+                        prompt_parts.append("s to search for a new question")
+
                     prompt_parts.append("b to go back")
                     prompt_suffix = ', '.join(prompt_parts)
 
                     choice = input(f"Enter number of questions to study ({prompt_suffix}), or Enter for all: ").strip().lower()
 
                     if choice == 'b':
-                        break # Go back to topic selection menu
+                        # Go back to topic selection menu
+                        return list_and_select_topic(performance_data, no_generate)
+                    # Quit application
+                    if choice == 'q':
+                        print("\nExiting Kubelingo. Goodbye!")
+                        return None, None, None
 
                     if choice == 'i' and num_incomplete > 0:
                         return selected_topic, num_incomplete, incomplete_questions
 
                     if choice == 'g' and can_generate and is_complete:
-                        new_q = qg.generate_more_questions(selected_topic)
+                        new_q = qg.generate_more_questions(selected_topic, force_llm=True)
                         if new_q:
                             all_questions.append(new_q)
                             total_questions = len(all_questions) # Update total questions count
@@ -1179,6 +1305,32 @@ def list_and_select_topic(performance_data):
                             print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'.{Style.RESET_ALL}")
                             time.sleep(2)
                         # After generation, re-show per-topic menu
+                        continue
+
+                    if choice == 's' and is_complete:
+                        if selected_topic in TOPIC_SEARCH_MAPPING:
+                            params = TOPIC_SEARCH_MAPPING[selected_topic]
+                            qtype = params.get('question_type')
+                            subjects = params.get('subjects') or []
+                            subject = random.choice(subjects) if subjects else None
+                            print(f"Searching for a new '{qtype}' question for topic '{selected_topic}'...")
+                            results = qs.search_for_questions(
+                                selected_topic,
+                                question_type=qtype,
+                                subject=subject
+                            )
+                            if results:
+                                new_q = random.choice(results)
+                                # Ensure all required fields are present
+                                new_q = _ensure_question_fields(new_q, selected_topic)
+                                all_questions.append(new_q)
+                                save_questions_to_topic_file(selected_topic, all_questions)
+                                print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'.{Style.RESET_ALL}")
+                            else:
+                                print(f"{Fore.YELLOW}Could not find any new questions for this topic.{Style.RESET_ALL}")
+                        else:
+                            print(f"{Fore.YELLOW}No search mapping defined for topic '{selected_topic}'.{Style.RESET_ALL}")
+                        time.sleep(2)
                         continue
 
                     if choice.isdigit():
@@ -1288,20 +1440,40 @@ def run_topic(topic, questions_to_study, performance_data):
         # Clear screen before displaying question
         os.system('cls' if os.name == 'nt' else 'clear')
 
-        # Display the current question and prompt once
+        # Display the current question
         print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         print(q['question'], flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-        dbg("Before get_user_input")
-        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
-        dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
-        # If no input and no action, re-prompt
-        if not user_commands and special_action is None:
-            continue
-        # If user chooses to quit, exit the topic session
-        if special_action == 'q':
-            return
+        # Auto-show manifest suggestion: skip user input for YAML content questions
+        sol = q.get('suggestion') or q.get('solution')
+        is_manifest = isinstance(sol, (dict, list)) or (isinstance(sol, str) and '\n' in sol)
+        if is_manifest and not suggestion_shown_for_current_question:
+            # Show suggestion directly
+            print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
+            suggestion = sol
+            if isinstance(suggestion, (dict, list)):
+                dumped = yaml.safe_dump(suggestion, default_flow_style=False, sort_keys=False, indent=2)
+                print(colorize_yaml(dumped))
+            else:
+                print(colorize_yaml(suggestion))
+            if q.get('source'):
+                print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+            # Mark suggestion shown and proceed to post-answer menu
+            suggestion_shown_for_current_question = True
+            user_answer_graded = False
+            special_action = None
+            user_commands = []
+        else:
+            dbg("Before get_user_input")
+            user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+            dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
+            # If no input and no action, re-prompt
+            if not user_commands and special_action is None:
+                continue
+            # If user chooses to quit, exit the topic session
+            if special_action == 'q':
+                return
 
 
         # --- Process actions that involve grading or showing solution ---
@@ -1576,16 +1748,64 @@ def run_topic(topic, questions_to_study, performance_data):
               help='Auto-approve the first search result (use with --interactive-sources).')
 @click.option('--audit-questions', 'audit_questions', is_flag=True, default=False,
                help='Audit all question files for standard format and exit.')
+@click.option('--generate-question', 'generate_question_topic', type=str, default=None,
+              help='Generate a new question for the specified topic and exit.')
+@click.option('--no-generate', 'no_generate', is_flag=True, default=False,
+                help='Disable question generation for this session.')
+@click.option('--search', 'search_questions', is_flag=True, default=False,
+                help='Search for quality questions and manifests from public repositories.')
+@click.option('--search-topic', 'search_topic', type=str, default=None,
+                help='Search for a new question for the specified topic.')
+@click.option('--search-type', 'search_question_type', type=click.Choice(['command','manifest']), default=None,
+                help='Type of question to search for (command or manifest).')
+@click.option('--search-subject', 'search_subject', type=str, default=None,
+                help='Subject filter for manifest question search.')
 @click.option('--clean-manifest', 'clean_manifest', is_flag=True, default=False,
               help='Clean and normalize a Kubernetes manifest (reads from stdin or via --manifest-file).')
 @click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
 @click.pass_context
 def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
-        clean_manifest, manifest_file):
+        generate_question_topic, no_generate, search_questions, search_topic, search_question_type,
+        search_subject, clean_manifest, manifest_file):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
+    # Handle single-topic search with optional type and subject
+    if search_topic:
+        mapping = TOPIC_SEARCH_MAPPING.get(search_topic)
+        if mapping is None:
+            click.echo(f"Error: No repository mapping for topic '{search_topic}'", err=True)
+            sys.exit(1)
+        # Determine question type
+        qtype = search_question_type or mapping.get('question_type')
+        # Determine subject for manifest questions
+        subject = None
+        if qtype == 'manifest':
+            if search_subject:
+                subject = search_subject
+            else:
+                subjects = mapping.get('subjects') or []
+                subject = random.choice(subjects) if subjects else None
+        # Fetch a random question
+        question = qs.get_random_question_from_search(search_topic, question_type=qtype, subject=subject)
+        if not question:
+            click.echo(f"No questions found for topic '{search_topic}' (type={qtype}, subject={subject})")
+            sys.exit(0)
+        # Output question and suggestion(s)
+        click.echo(f"Question: {question.get('question')}")
+        suggestion = question.get('suggestion')
+        if isinstance(suggestion, list):
+            for s in suggestion:
+                click.echo("\nSuggestion:\n")
+                click.echo(s)
+        else:
+            click.echo(f"\nSuggestion:\n{suggestion}")
+        sys.exit(0)
+
+    if search_questions:
+        qs.search_for_quality_questions()
+        sys.exit(0)
 
     # Handle manifest cleaning mode
     if clean_manifest:
@@ -1635,6 +1855,23 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         qg.audit_question_files()
         sys.exit(0)
 
+    # Handle generate question mode
+    if generate_question_topic:
+        print(f"Attempting to generate a new question for topic: {generate_question_topic}")
+        # Force LLM-only generation, skipping web/documentation search
+        new_q = qg.generate_more_questions(generate_question_topic, force_llm=True)
+        if new_q:
+            print("\n--- Generated Question ---")
+            print(yaml.safe_dump(new_q, indent=2, default_flow_style=False, sort_keys=False))
+            # Save the question to the appropriate topic file
+            all_questions = load_questions(generate_question_topic, Fore, Style).get('questions', [])
+            all_questions.append(new_q)
+            save_questions_to_topic_file(generate_question_topic, all_questions)
+            print(f"{Fore.GREEN}New question added to '{generate_question_topic}.yaml'.{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Failed to generate a question for topic: {generate_question_topic}{Style.RESET_ALL}")
+        sys.exit(0)
+
     # Handle source management modes
     if add_sources:
         if not consolidated:
@@ -1663,61 +1900,59 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     
     while True:
         dbg("cli: calling list_and_select_topic")
-        topic_info = list_and_select_topic(performance_data)
+        topic_info = list_and_select_topic(performance_data, no_generate=no_generate)
         dbg(f"cli: list_and_select_topic returned {topic_info}")
         if topic_info is None or topic_info[0] is None:
             if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
+                # Prompt before overwriting existing performance file
+                if os.path.exists(PERFORMANCE_FILE):
+                    if click.confirm(
+                        f"performance.yaml already exists at {PERFORMANCE_FILE}. Overwrite with new performance data?", default=False
+                    ):
+                        save_performance_data(performance_data)
+                        backup_performance_yaml()
+                    else:
+                        click.echo("Skipping save of performance data.")
+                else:
+                    save_performance_data(performance_data)
+                    backup_performance_yaml()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
         if perf_loaded_ok:
-            backup_performance_file()
+            backup_performance_yaml()
         run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
             if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
+                # Prompt before overwriting existing performance file
+                if os.path.exists(PERFORMANCE_FILE):
+                    if click.confirm(
+                        f"performance.yaml already exists at {PERFORMANCE_FILE}. Overwrite with new performance data?", default=False
+                    ):
+                        save_performance_data(performance_data)
+                        backup_performance_yaml()
+                    else:
+                        click.echo("Skipping save of performance data.")
+                else:
+                    save_performance_data(performance_data)
+                    backup_performance_yaml()
             sys.exit(0) # Exit application if run_topic signals quit
         if perf_loaded_ok:
-            save_performance_data(performance_data)
-            backup_performance_file()
+            # Prompt before overwriting existing performance file
+            if os.path.exists(PERFORMANCE_FILE):
+                if click.confirm(
+                    f"performance.yaml already exists at {PERFORMANCE_FILE}. Overwrite with new performance data?", default=False
+                ):
+                    save_performance_data(performance_data)
+                    backup_performance_yaml()
+                else:
+                    click.echo("Skipping save of performance data.")
+            else:
+                save_performance_data(performance_data)
+                backup_performance_yaml()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
         if not sys.stdin.isatty():
             break
         # Pause briefly before redisplaying the menu in interactive mode.
         time.sleep(2)
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Kubelingo CLI tool for CKAD exam study.")
-    parser.add_argument('--cli-answer', type=str, help='Provide an answer directly for a single question in non-interactive mode.')
-    parser.add_argument('--cli-question-topic', type=str, help='Specify the topic for --cli-answer mode.')
-    parser.add_argument('--cli-question-index', type=int, help='Specify the 0-based index of the question within the topic for --cli-answer mode.')
-    args = parser.parse_args()
-
-    # Mark CLI mode for run_topic to detect piped input
-    os.environ['KUBELINGO_CLI_MODE'] = '1'
-
-    if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
-        # Non-interactive mode for answering a single question
-        performance_data, perf_loaded_ok = load_performance_data()
-        topic_data = load_questions(args.cli_question_topic, Fore, Style)
-        if topic_data and 'questions' in topic_data:
-            questions_to_study = [topic_data['questions'][args.cli_question_index]]
-            # Temporarily override get_user_input for this specific run
-            _CLI_ANSWER_OVERRIDE = args.cli_answer # Set the global override variable
-            
-            print(f"Processing question from topic '{args.cli_question_topic}' at index {args.cli_question_index} with answer: '{args.cli_answer}'")
-            run_topic(args.cli_question_topic, questions_to_study, performance_data)
-            if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
-            sys.exit(0) # Exit after processing the single question
-        else:
-            print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)
-            sys.exit(1)
-    else:
-        # Original interactive CLI mode
-        cli(obj={})

@@ -29,6 +29,32 @@ except ImportError:
 from kubelingo.utils import (_get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, load_questions,
                              get_normalized_question_text, remove_question_from_corpus)
 from kubelingo.validation import validate_manifest, validate_manifest_with_llm
+ 
+# Helper: extract first YAML/code snippet from HTML
+def _extract_yaml_snippet_from_html(html):
+    """Return the first <pre> or <code> block that looks like a Kubernetes YAML manifest."""
+    soup = BeautifulSoup(html, 'html.parser')
+    for tag in soup.find_all(['pre', 'code']):
+        text = tag.get_text()
+        if text and (text.strip().startswith('apiVersion:') or 'kind:' in text or 'metadata:' in text):
+            return text.strip()
+    return None
+# Helper to sanitize generated question dicts
+def _ensure_question_fields(q, topic):
+    """
+    Ensure a question dict has required keys: suggestion, solution, source, rationale.
+    Fill any missing fields with safe defaults.
+    """
+    if 'suggestion' not in q or q.get('suggestion') is None:
+        q['suggestion'] = q.get('solution', '')
+    if 'solution' not in q or q.get('solution') is None:
+        q['solution'] = q.get('suggestion', '')
+    if 'source' not in q or q.get('source') is None:
+        q['source'] = ''
+    if 'rationale' not in q or q.get('rationale') is None:
+        section = ' '.join([w.capitalize() for w in topic.split('_')])
+        q['rationale'] = f"Practice question for {section}."
+    return q
 
 # --- Exceptions ---
 class GenerationError(Exception):
@@ -50,7 +76,7 @@ class LLMGenerationError(GenerationError):
 
 # --- Main Generation Orchestrator ---
 
-def generate_more_questions(topic, base_question=None):
+def generate_more_questions(topic, base_question=None, force_llm=False):
     """
     Orchestrates the entire process of generating a new, unique, and validated
     question for a given topic, with retry mechanism.
@@ -63,26 +89,44 @@ def generate_more_questions(topic, base_question=None):
     """
     print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Starting New Question Generation for Topic: {topic} ---{Style.RESET_ALL}", flush=True)
 
-    # 1. NEW: Search for question material first
-    print("  - Attempting to find existing material from the web...", flush=True)
-    potential_sources = _search_for_question_material(topic)
+    # 1. Optionally search for web/documentation sources before LLM
+    if force_llm:
+        print("  - Forcing LLM-only question generation; skipping web/documentation search...", flush=True)
+        potential_sources = None
+    else:
+        print("  - Attempting to find existing material from the web...", flush=True)
+        potential_sources = _search_for_question_material(topic)
     new_question = None
     validation_passed = False
     validation_summary = ""
     validation_details = ""
 
+    # First try to generate a question from curated or web sources
     if potential_sources:
         new_question = _create_question_from_sources(potential_sources, topic)
-
+        # If we directly extracted a snippet, strip the helper flag and return immediately
+        if isinstance(new_question, dict) and new_question.get('_snippet_extracted'):
+            new_question.pop('_snippet_extracted', None)
+            return new_question
+    # If we got a candidate, validate it; otherwise we'll fall back to LLM
     if new_question:
         print(f"{Fore.GREEN}  - Successfully generated a question from a web source.{Style.RESET_ALL}", flush=True)
-        # Validate the generated question
         print("  - Validating the generated question...", flush=True)
         existing_questions_data = load_questions(topic, Fore, Style)
         existing_questions = existing_questions_data.get('questions', []) if existing_questions_data else []
-        validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions)
-    else:
-        print(f"{Fore.YELLOW}  - Could not generate a question from web sources, falling back to LLM generation.{Style.RESET_ALL}", flush=True)
+        try:
+            validation_passed, validation_summary, validation_details = _validate_generated_question(
+                new_question, existing_questions, topic
+            )
+        except (MissingFieldsError, DuplicateQuestionError, LLMGenerationError) as e:
+            print(f"{Fore.YELLOW}  - Web-sourced question failed validation: {e}. Falling back to LLM generation.{Style.RESET_ALL}", flush=True)
+            new_question = None
+        else:
+            if not validation_passed:
+                print(f"{Fore.YELLOW}  - Web-sourced question did not pass validation: {validation_summary}. Falling back to LLM generation.{Style.RESET_ALL}", flush=True)
+                new_question = None
+    if not new_question:
+        print(f"{Fore.YELLOW}  - Could not generate a valid question from web sources, falling back to LLM generation.{Style.RESET_ALL}", flush=True)
 
         # If no question from web source, proceed with existing generation logic
         # 1. Determine existing questions for context
@@ -120,7 +164,7 @@ def generate_more_questions(topic, base_question=None):
 
                 # 5. Validate the generated question
                 print("  - Validating the generated question...", flush=True)
-                validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions)
+                validation_passed, validation_summary, validation_details = _validate_generated_question(new_question, existing_questions, topic)
 
                 print(f"DEBUG: validation_passed = {validation_passed}", flush=True)
                 if validation_passed:
@@ -143,14 +187,14 @@ def generate_more_questions(topic, base_question=None):
                 validation_passed = False # Mark validation as failed
                 # new_question is NOT reset to None here, so it can be inspected
 
-    # After retry loop, if no question was generated at all, print failure message
+    # After retry loop, if no question was generated at all, abort
     if new_question is None:
         print(f"{Fore.RED}\n--- Question Generation Failed After {MAX_RETRIES} Attempts ---\n{Style.RESET_ALL}", flush=True)
-        if validation_summary: # Use the last known validation summary/details
+        if validation_summary:
             print(f"{Fore.RED}Reason: {validation_summary}{Style.RESET_ALL}", flush=True)
             if validation_details:
-                print(f"""{Fore.RED}Last Validation Details:\n{validation_details}{Style.RESET_ALL}""", flush=True)
-        print("DEBUG: Final return: new_question is None after retry loop.")
+                print(f"{Fore.RED}Last Validation Details:\n{validation_details}{Style.RESET_ALL}", flush=True)
+        print("DEBUG: Final return: new_question is None after retry loop.", flush=True)
         return None
 
     def _print_question_yaml(question_dict):
@@ -179,18 +223,18 @@ def generate_more_questions(topic, base_question=None):
         print("DEBUG: Final return: new_question rejected by user.")
         return None
     else:
-        # If accepted, return the question
+        # If accepted, finalize and ensure required fields
         # Final formatting and cleanup
         if 'solution' in new_question and isinstance(new_question['solution'], str):
             new_question['solution'] = new_question['solution'].strip()
         if 'suggestion' in new_question and isinstance(new_question['suggestion'], str):
             new_question['suggestion'] = new_question['suggestion'].strip()
-
+        # Ensure all required fields are present before finalizing
+        new_question = _ensure_question_fields(new_question, topic)
         print(f"{Fore.GREEN}\n--- New Question Generated Successfully!---\n{Style.RESET_ALL}", flush=True)
         _print_question_yaml(new_question)
         print("DEBUG: Final return: new_question accepted by user.")
         return new_question
-
 
 
 # --- Helper Functions for Generation Flow ---
@@ -234,8 +278,7 @@ def _search_for_question_material(topic):
                 # Limit to 5 results, and filter for reputable sources
                 web_search_results = []
                 for url in search(general_search_query, num_results=5):
-                    if url.startswith("https://kubernetes.io/docs/") or "github.com" in url or "medium.com" in url:
-                        web_search_results.append(url)
+                    web_search_results.append(url)
 
                 # Deduplicate and limit again, just in case
                 web_search_results = list(dict.fromkeys(web_search_results))[:5]
@@ -258,25 +301,19 @@ def _create_question_from_sources(sources, topic):
     for url in sources:
         print(f"    - Fetching structured content from: {url}", flush=True)
         try:
-            # Get clean text content from API
-            response = requests.get(url.replace('/docs/', '/api/v1/content/en/docs/') + '.json')
-            response.raise_for_status()
-            content_data = response.json()
-            content = content_data.get('text', '')  # Get clean text without HTML
-            
-            new_question = _call_llm_for_generation(prompt)
-
-            if new_question and new_question.get('question') and new_question.get('suggestion'):
-                print(f"  {Fore.GREEN}- Successfully generated a question from source: {url}{Style.RESET_ALL}")
-                return new_question
-
-        except requests.exceptions.RequestException as e:
-            print(f"{Fore.YELLOW}    - Could not fetch source {url}: {e}{Style.RESET_ALL}", flush=True)
-            continue
+            html_resp = requests.get(url, timeout=10)
+            html_resp.raise_for_status()
+            snippet = _extract_yaml_snippet_from_html(html_resp.text)
+            if snippet:
+                return {
+                    'question': f"Provide the Kubernetes YAML manifest example from the documentation at {url}",
+                    'suggestion': snippet,
+                    'source': url,
+                    'rationale': f"Demonstrates the example manifest for topic '{topic}' as shown in the official docs."
+                }
         except Exception as e:
-            print(f"{Fore.YELLOW}    - Could not process source {url}: {e}{Style.RESET_ALL}", flush=True)
-            continue
-    
+            print(f"{Fore.YELLOW}    - Failed to extract snippet from HTML for {url}: {e}{Style.RESET_ALL}", flush=True)
+    # No snippet found in any source
     return None
 
 
@@ -409,13 +446,10 @@ def _call_llm_for_generation(prompt):
             resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=model["headers"],
-                json={
-                    "model": model["default_model"],
-                    "messages": [{"role": "user", "content": prompt}]
-                }
+                json={"model": model["default_model"], "messages": [{"role": "user", "content": prompt}]}
             )
             resp.raise_for_status()
-            raw_response = resp.json()['choices'][0]['message']['content']
+            raw_response = resp.json()["choices"][0]["message"]["content"]
         else:
             raise LLMGenerationError(f"Unsupported LLM type: {llm_type}")
 
@@ -453,7 +487,7 @@ def _call_llm_for_generation(prompt):
         raise LLMGenerationError(f"An error occurred while communicating with the LLM: {e}")
 
 
-def _validate_generated_question(new_question, existing_questions):
+def _validate_generated_question(new_question, existing_questions, topic):
     """
     Performs a series of validation checks on the generated question.
     Returns (success: bool, summary: str, details: str).
@@ -465,26 +499,27 @@ def _validate_generated_question(new_question, existing_questions):
     if not isinstance(new_question, dict):
         return False, "Generated output is not a valid question dictionary.", "The LLM did not return a dictionary."
 
-    # Validate documentation source
-    source_url = new_question.get('source', '')
-    if not (source_url.startswith('https://kubernetes.io/docs/') or source_url.startswith('https://helm.sh/docs/')):
-        raise MissingFieldsError(f"Invalid documentation source: {source_url} - Must be from kubernetes.io/docs or helm.sh/docs")
+    # Validate documentation source (temporarily disabled as per user request)
+    # source_url = new_question.get('source', '')
+    # if not (source_url.startswith('https://kubernetes.io/docs/') or source_url.startswith('https://helm.sh/docs/')):
+    #     raise MissingFieldsError(f"Invalid documentation source: {source_url} - Must be from kubernetes.io/docs or helm.sh/docs")
         
-    # Verify documentation content was actually used
-    doc_content = requests.get(source_url).text
-    question_text = new_question.get('question', '')
-    if not any(keyword in doc_content for keyword in question_text.split()[:5]):
-        raise MissingFieldsError("Question does not match documentation content")
-        
-    # Check for required fields
-    required_fields = ['question', 'suggestion', 'source', 'rationale']
+    # Verify documentation content was actually used (temporarily disabled as per user request)
+    # try:
+    #     doc_content = requests.get(source_url, timeout=5).text
+    #     question_text = new_question.get('question', '')
+    #     if not any(keyword in doc_content for keyword in question_text.split()[:5]):
+    #         raise MissingFieldsError("Question does not match documentation content")
+    # except Exception as e:
+    #     print(f"Warning: Could not fetch or process source content for validation: {e}")
+    #     pass
+
+    # Check for required fields, including section
+    required_fields = ['question', 'suggestion', 'source', 'rationale', 'section']
     missing_fields = [field for field in required_fields if not new_question.get(field)]
-    
-    # Try to infer section from topic if missing
+    # Infer section from topic if missing
     if 'section' in missing_fields:
-        # Split topic on underscores and capitalize first letters
         inferred_section = ' '.join([word.capitalize() for word in topic.split('_')])
-        # Remove any "Core" prefix that's common in topic names
         inferred_section = inferred_section.replace('Core ', '')
         new_question['section'] = inferred_section
         missing_fields.remove('section')
