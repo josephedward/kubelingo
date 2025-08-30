@@ -245,6 +245,7 @@ def ensure_misc_dir():
 
 
 def load_performance_data():
+    """Load performance data and return a tuple of (data, loaded_status)"""
     """Loads performance data from the user data directory."""
     ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE):
@@ -388,11 +389,11 @@ def handle_config_menu():
     if data is None:
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
-        return {}
+        return ({}, False)
     # Ensure the loaded data is a mapping; otherwise ignore and preserve file
     if not isinstance(data, dict):
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' has unexpected format. Using empty data.{Style.RESET_ALL}")
-        return {}
+        return ({}, False)
 
     # Sanitize correct_questions lists to ensure they only contain normalized strings
     for topic, topic_data in data.items():
@@ -407,7 +408,7 @@ def handle_config_menu():
                     sanitized_questions.append(q_item)
                 # Else, ignore invalid entries
             topic_data['correct_questions'] = list(set(sanitized_questions)) # Use set to remove duplicates and convert back to list
-    return data
+    return (data, True)
 
 
 
