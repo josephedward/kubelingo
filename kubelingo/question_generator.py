@@ -7,6 +7,7 @@ import os
 import random
 import yaml
 import requests
+from bs4 import BeautifulSoup
 from thefuzz import fuzz
 try:
     from colorama import Fore, Style
@@ -240,17 +241,8 @@ def _search_for_question_material(topic):
         print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
         return None
 
-    try: # Added try block
-        search_results = list(search(search_query, num_results=5))
-        if search_results:
-            print(f"  {Fore.GREEN}- Found {len(search_results)} potential sources.{Style.RESET_ALL}")
-            return search_results
-        else:
-            print(f"{Fore.YELLOW}  - Web search did not return any results.{Style.RESET_ALL}", flush=True)
-            return None
-    except Exception as e:
-        print(f"{Fore.RED}  - An error occurred during web search: {e}{Style.RESET_ALL}", flush=True)
-        return None
+    # Removed fallback web search since we're using direct documentation crawling
+    return None
 
 def _create_question_from_sources(sources, topic):
     """
