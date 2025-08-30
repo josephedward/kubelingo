@@ -207,14 +207,25 @@ def _search_for_question_material(topic):
     # More targeted search query
     search_query = f'site:kubernetes.io/docs/tasks "{topic}"'
     
-    try:
-        search_results = list(search(search_query, num_results=5))
-        if search_results:
-            print(f"  {Fore.GREEN}- Found {len(search_results)} potential sources.{Style.RESET_ALL}")
-            return search_results
-        else:
-            print(f"{Fore.YELLOW}  - Web search did not return any results.{Style.RESET_ALL}", flush=True)
-            return None
+    # Curated list of official Kubernetes task documentation
+    official_sources = [
+        "https://kubernetes.io/docs/tasks/configure-pod-container/",
+        "https://kubernetes.io/docs/tasks/configmap-secret/", 
+        "https://kubernetes.io/docs/tasks/security/",
+        "https://kubernetes.io/docs/tasks/storage/",
+        "https://kubernetes.io/docs/tasks/network/",
+        "https://kubernetes.io/docs/tasks/administer-cluster/",
+        "https://kubernetes.io/docs/tasks/manage-kubernetes-objects/"
+    ]
+        
+    # Filter to topic-relevant docs
+    search_results = [url for url in official_sources if topic.lower() in url.lower()]
+    if search_results:
+        print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
+        return search_results
+    else:
+        print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
+        return None
     except Exception as e:
         print(f"{Fore.RED}  - An error occurred during web search: {e}{Style.RESET_ALL}", flush=True)
         return None
