@@ -217,6 +217,8 @@ def _search_for_question_material(topic):
             ]
     except Exception as e:
         print(f"{Fore.YELLOW}  - API request failed: {e}{Style.RESET_ALL}", flush=True)
+    except Exception as e:
+        print(f"{Fore.YELLOW}  - API request failed: {e}{Style.RESET_ALL}", flush=True)
 
     if search_results:
         print(f"  {Fore.GREEN}- Found {len(search_results)} curated sources.{Style.RESET_ALL}")
