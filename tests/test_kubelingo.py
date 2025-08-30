@@ -3,7 +3,8 @@ from unittest.mock import patch, call
 import os
 import yaml
 import re
-from kubelingo.kubelingo import ensure_user_data_dir, save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR, run_topic
+from kubelingo.kubelingo import save_question_to_list, remove_question_from_list, load_questions_from_list, get_normalized_question_text, normalize_command, clear_screen, handle_keys_menu, handle_config_menu, get_user_input, MISSED_QUESTIONS_FILE, USER_DATA_DIR, run_topic
+from kubelingo.utils import ensure_user_data_dir
 from kubelingo.study_session import StudySession
 
 os.environ['KUBELINGO_DEBUG'] = 'True' # Enable debug logging
