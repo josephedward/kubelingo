@@ -241,8 +241,26 @@ def _search_for_question_material(topic):
         print(f"{Fore.YELLOW}  - No curated sources found for topic.{Style.RESET_ALL}", flush=True)
         return None
 
-    # Removed fallback web search since we're using direct documentation crawling
-    return None
+    # Fallback to general web search if curated sources are not enough or not found
+    if not search_results and search:
+        print(f"  - Falling back to general web search for topic: {topic}...", flush=True)
+        try:
+            # Perform a general web search for the topic
+            general_search_query = f"kubernetes {topic} example"
+            for url in search(general_search_query, num_results=5):
+                if url.startswith("https://kubernetes.io/docs/") or "github.com" in url or "medium.com" in url: # Prioritize official docs and reputable sources
+                    search_results.append(url)
+            search_results = list(dict.fromkeys(search_results))[:5] # Deduplicate and limit again
+            if search_results:
+                print(f"  {Fore.GREEN}- Found {len(search_results)} general web sources.{Style.RESET_ALL}")
+                return search_results
+            else:
+                print(f"{Fore.YELLOW}  - No general web sources found for topic.{Style.RESET_ALL}", flush=True)
+        except Exception as e:
+            print(f"{Fore.YELLOW}  - Error during general web search: {e}{Style.RESET_ALL}", flush=True)
+            return None
+    
+    return search_results
 
 def _create_question_from_sources(sources, topic):
     """
