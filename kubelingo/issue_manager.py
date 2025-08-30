@@ -3,11 +3,7 @@ import time
 import yaml
 from colorama import Fore, Style
 
-from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR
-
-def ensure_user_data_dir():
-    """Ensures the user_data directory exists."""
-    os.makedirs(USER_DATA_DIR, exist_ok=True)
+from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR, ensure_user_data_dir
 
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()
