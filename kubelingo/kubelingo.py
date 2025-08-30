@@ -8,11 +8,15 @@ import time
 import yaml
 import argparse
 from kubelingo.utils import (load_questions, get_normalized_question_text, remove_question_from_corpus, 
-                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE)
+                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE, ensure_user_data_dir)
 from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run, manifests_equivalent
 import kubelingo.question_generator as qg
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
+from kubelingo.performance_tracker import _performance_data_changed, save_performance_data
+
+
+
 
 # Import necessary modules for LLM handling from utils
 # These are now handled within _get_llm_model in utils.py
@@ -232,23 +236,13 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 MISC_DIR = "misc"
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
-def ensure_user_data_dir():
-    """Ensures the user_data directory exists."""
-    os.makedirs(USER_DATA_DIR, exist_ok=True)
+
 
 def ensure_misc_dir():
     """Ensures the misc directory exists."""
     os.makedirs(MISC_DIR, exist_ok=True)
 
-def backup_performance_file():
-    """Backs up the performance.yaml file to misc/performance.yaml."""
-    ensure_misc_dir()
-    if os.path.exists(PERFORMANCE_FILE):
-        try:
-            with open(PERFORMANCE_FILE, 'rb') as src, open(PERFORMANCE_BACKUP_FILE, 'wb') as dst:
-                dst.write(src.read())
-        except Exception as e:
-            print(f"Error backing up performance file: {e}")
+
 
 def load_performance_data():
     """Loads performance data from the user data directory."""
@@ -257,22 +251,23 @@ def load_performance_data():
         # If file doesn't exist, initialize with empty dict and save
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
-        return {}
+        return {}, True # Return empty dict and True for success
     try:
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
         if data is None: # Handle empty file case
-            # Reinitialize the performance file with empty data
-            with open(PERFORMANCE_FILE, 'w') as f_init:
-                yaml.dump({}, f_init)
-            return {}
-        return data
+            return {}, True # Return empty dict and True for success
+        
+        # Sanitize correct_questions lists to ensure they only contain unique entries
+        for topic, topic_data in data.items():
+            if isinstance(topic_data, dict) and 'correct_questions' in topic_data:
+                if isinstance(topic_data['correct_questions'], list):
+                    topic_data['correct_questions'] = sorted(list(set(topic_data['correct_questions'])))
+        return data, True # Return data and True for success
     except yaml.YAMLError:
-        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Reinitializing.{Style.RESET_ALL}")
-        # Reinitialize the performance file with empty data
-        with open(PERFORMANCE_FILE, 'w') as f_init:
-            yaml.dump({}, f_init)
-        return {}
+        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Not loading data.{Style.RESET_ALL}")
+        return {}, False # Return empty dict and False for failure
+
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
@@ -414,14 +409,7 @@ def handle_config_menu():
             topic_data['correct_questions'] = list(set(sanitized_questions)) # Use set to remove duplicates and convert back to list
     return data
 
-def save_performance_data(data):
-    """Saves performance data."""
-    ensure_user_data_dir()
-    try:
-        with open(PERFORMANCE_FILE, 'w') as f:
-            yaml.dump(data, f)
-    except Exception as e:
-        print(f"{Fore.RED}Error saving performance data to '{PERFORMANCE_FILE}': {e}{Style.RESET_ALL}")
+
 
 def save_questions_to_topic_file(topic, questions_data):
     """Saves questions data to the specified topic YAML file."""
@@ -1157,33 +1145,47 @@ def list_and_select_topic(performance_data):
                     num_incomplete = len(incomplete_questions)
 
                     can_generate = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
+                    # Section is considered 100% complete if there are no incomplete questions.
+                    is_complete = num_incomplete == 0
+
                     prompt_parts = []
                     if num_incomplete > 0:
                         prompt_parts.append(f"i for incomplete ({num_incomplete})")
                     elif total_questions > 0:
                         prompt_parts.append(f"1-{total_questions}")
-                    if can_generate:
+
+                    # Only show generate option if the topic is 100% complete and an API key is available.
+                    if can_generate and is_complete:
                         prompt_parts.append("g to generate a new question")
+
+                    prompt_parts.append("b to go back")
                     prompt_suffix = ', '.join(prompt_parts)
 
                     choice = input(f"Enter number of questions to study ({prompt_suffix}), or Enter for all: ").strip().lower()
 
+                    if choice == 'b':
+                        break # Go back to topic selection menu
+
                     if choice == 'i' and num_incomplete > 0:
                         return selected_topic, num_incomplete, incomplete_questions
-                    if choice == 'g' and can_generate:
+
+                    if choice == 'g' and can_generate and is_complete:
                         new_q = qg.generate_more_questions(selected_topic)
                         if new_q:
                             all_questions.append(new_q)
+                            total_questions = len(all_questions) # Update total questions count
                             save_questions_to_topic_file(selected_topic, all_questions)
                             print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'.{Style.RESET_ALL}")
                             time.sleep(2)
                         # After generation, re-show per-topic menu
                         continue
+
                     if choice.isdigit():
                         n = int(choice)
                         num_to_study = n if 1 <= n <= total_questions else total_questions
                         questions_to_study = incomplete_questions if num_incomplete > 0 else all_questions
                         return selected_topic, num_to_study, questions_to_study
+
                     # Default: study all
                     questions_to_study = incomplete_questions if num_incomplete > 0 else all_questions
                     return selected_topic, len(questions_to_study), questions_to_study
@@ -1496,7 +1498,10 @@ def run_topic(topic, questions_to_study, performance_data):
         # Post-answer menu (after a question has been answered or skipped)
         if user_answer_graded:
             # Update performance data with the graded result
-            session.update_performance(q, is_correct, get_normalized_question_text)
+            perf_changed = session.update_performance(q, is_correct, get_normalized_question_text)
+            if perf_changed:
+                global _performance_data_changed
+                _performance_data_changed = True
             # Save performance data after each graded question
             save_performance_data(performance_data)
 
@@ -1650,28 +1655,34 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         os.makedirs(QUESTIONS_DIR, exist_ok=True)
     ctx.ensure_object(dict)
     # Load existing performance data; do not overwrite existing progress on startup
-    performance_data = load_performance_data()
+    performance_data, perf_loaded_ok = load_performance_data()
     ctx.obj['PERFORMANCE_DATA'] = performance_data
+    global _performance_data_changed
+    _performance_data_changed = False # Reset flag on startup
     
     while True:
         dbg("cli: calling list_and_select_topic")
         topic_info = list_and_select_topic(performance_data)
         dbg(f"cli: list_and_select_topic returned {topic_info}")
         if topic_info is None or topic_info[0] is None:
-            save_performance_data(performance_data)
-            backup_performance_file()
+            if perf_loaded_ok:
+                save_performance_data(performance_data)
+                backup_performance_file()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
-        backup_performance_file()
+        if perf_loaded_ok:
+            backup_performance_file()
         run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
+            if perf_loaded_ok:
+                save_performance_data(performance_data)
+                backup_performance_file()
+            sys.exit(0) # Exit application if run_topic signals quit
+        if perf_loaded_ok:
             save_performance_data(performance_data)
             backup_performance_file()
-            sys.exit(0) # Exit application if run_topic signals quit
-        save_performance_data(performance_data)
-        backup_performance_file()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
         if not sys.stdin.isatty():
             break
@@ -1690,7 +1701,7 @@ if __name__ == "__main__":
 
     if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
         # Non-interactive mode for answering a single question
-        performance_data = load_performance_data()
+        performance_data, perf_loaded_ok = load_performance_data()
         topic_data = load_questions(args.cli_question_topic, Fore, Style)
         if topic_data and 'questions' in topic_data:
             questions_to_study = [topic_data['questions'][args.cli_question_index]]
@@ -1699,8 +1710,9 @@ if __name__ == "__main__":
             
             print(f"Processing question from topic '{args.cli_question_topic}' at index {args.cli_question_index} with answer: '{args.cli_answer}'")
             run_topic(args.cli_question_topic, questions_to_study, performance_data)
-            save_performance_data(performance_data)
-            backup_performance_file()
+            if perf_loaded_ok:
+                save_performance_data(performance_data)
+                backup_performance_file()
             sys.exit(0) # Exit after processing the single question
         else:
             print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)
