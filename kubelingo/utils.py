@@ -23,6 +23,10 @@ except ImportError:
         BRIGHT = RESET_ALL = DIM = ''
 import sys # For print statements
 try:
+    from googlesearch import search
+except ImportError:
+    search = None
+try:
     import google.generativeai as genai
 except ImportError:
     genai = None
@@ -151,7 +155,7 @@ def get_canonical_question_representation(question_dict):
 
     return f"{q_text}::{suggestion_str}::{source.strip().lower()}"
 
-def load_questions(topic, Fore, Style): # Removed genai as argument
+def load_questions(topic, Fore=Fore, Style=Style): # Removed genai as argument
     """Loads questions from a YAML file based on the topic."""
     file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
     if not os.path.exists(file_path):
@@ -167,7 +171,7 @@ def load_questions(topic, Fore, Style): # Removed genai as argument
     if data and 'questions' in data:
         updated = False
         # Import assign_source locally to avoid circular dependency
-        from kubelingo.question_generator import assign_source
+        
         for q in data['questions']:
             if assign_source(q, topic, Fore, Style): # Removed genai
                 updated = True
@@ -257,3 +261,35 @@ def backup_performance_yaml():
         print(f"Successfully backed up {source_path} to {destination_path}")
     except Exception as e:
         print(f"Error backing up file: {e}")
+
+def assign_source(question_dict, topic, Fore=Fore, Style=Style):
+    """
+    Searches for and assigns a source URL to a question if it's missing.
+    Uses googlesearch if available.
+    """
+    if 'source' in question_dict and question_dict['source']:
+        return False # Source already exists
+
+    if not search:
+        # googlesearch library not installed or AI disabled
+        # Print a warning when googlesearch is unavailable
+        print(f"{Fore.YELLOW}  - Warning: 'googlesearch' library not installed. Cannot automatically find a source.{Style.RESET_ALL}\n")
+        return False
+
+    search_query = f"kubernetes {question_dict['question'].splitlines()[0].strip()}"
+    try:
+        # Attempt to search for a source URL
+        # Attempt to search for a source URL
+        search_results = list(search(search_query, num_results=1))
+        if search_results:
+            source_url = search_results[0]
+            question_dict['source'] = source_url
+            print(f"  {Fore.GREEN}- Found and assigned source: {source_url}{Style.RESET_ALL}")
+            return True
+        else:
+            print(f"{Fore.YELLOW}  - Warning: Could not find a source for the generated question.{Style.RESET_ALL}")
+            return False
+    except Exception as e:
+        # On any error, bail out with a single informative message
+        print(f"Note: Could not find source for a question (AI disabled or search error: {e}).")
+        return False

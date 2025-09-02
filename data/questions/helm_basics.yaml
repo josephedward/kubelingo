@@ -1,0 +1,95 @@
+questions:
+- question: In namespace `mercury`, install a new Helm release named `internal-issue-report-apache`
+    from the `bitnami/apache` chart with 2 replicas.
+  suggestion:
+  - helm install internal-issue-report-apache bitnami/apache --namespace mercury --set
+    replicaCount=2
+  source: https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/
+- question: What is the command to create a basic Helm chart named `my-chart`?
+  suggestion:
+  - helm create my-chart
+  source: https://helm.sh/docs/helm/helm_create/
+- question: How do you install the Helm chart located in `./my-chart` with the release
+    name `my-release`?
+  suggestion:
+  - helm install my-release ./my-chart
+  source: https://helm.sh/docs/helm/helm_install/
+- question: How do you find all pending Helm deployments across all namespaces?
+  suggestion:
+  - helm list --pending -A
+  source: https://helm.sh/docs/helm/helm_list/
+- question: How can you uninstall a Helm release named `my-release`?
+  suggestion:
+  - helm uninstall my-release
+  source: https://helm.sh/docs/helm/helm_uninstall/
+- question: How do you upgrade an existing Helm release named `my-release` using the
+    chart in `./my-chart`?
+  suggestion:
+  - helm upgrade my-release ./my-chart
+  source: https://helm.sh/docs/helm/helm_upgrade/
+- question: How do you add the Prometheus community Helm repository from `https://prometheus-community.github.io/helm-charts`
+    and name it `prometheus-community`?
+  suggestion:
+  - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  source: https://github.com/prometheus-community/helm-charts
+- question: What command is used to list configured Helm chart repositories?
+  suggestion:
+  - helm repo list
+  source: https://helm.sh/docs/helm/helm_repo/
+- question: What command is used to remove a Helm chart repository named `stable`?
+  suggestion:
+  - helm repo remove stable
+  source: https://helm.sh/docs/helm/helm_repo/
+- question: What command is used to update information from chart repositories?
+  suggestion:
+  - helm repo update
+  source: https://helm.sh/docs/helm/helm_repo/
+- question: What command generates an index file for a chart repository in the current
+    directory?
+  suggestion:
+  - helm repo index .
+  source: https://helm.sh/docs/helm/helm_repo_index/
+- question: What command downloads the `wordpress` chart from the `bitnami` repository
+    without installing it?
+  suggestion:
+  - helm pull bitnami/wordpress
+  source: https://devopsvoyager.hashnode.dev/fetching-helm-charts-with-helm-fetch-command
+- question: How do you add the Bitnami chart repository from `https://charts.bitnami.com/bitnami`
+    and name it `bitnami`?
+  suggestion:
+  - helm repo add bitnami https://charts.bitnami.com/bitnami
+  source: https://charts.bitnami.com/
+- question: How do you print the contents of `values.yaml` for the `bitnami/node`
+    chart?
+  suggestion:
+  - helm show values bitnami/node
+  source: https://docs.bitnami.com/kubernetes/faq/administration/understand-helm-chart/
+- question: How do you install the `bitnami/node` chart as a release named `my-node`,
+    setting `replicaCount` to 5?
+  suggestion:
+  - helm install my-node bitnami/node --set replicaCount=5
+  source: https://artifacthub.io/packages/helm/bitnami/node
+- question: List all Helm releases in the mercury namespace.
+  suggestion:
+  - helm -n mercury ls
+  source: https://helm.sh/docs/helm/helm_list/
+- question: Uninstall the Helm release `internal-issue-report-apiv1` in the mercury
+    namespace.
+  suggestion:
+  - helm -n mercury uninstall internal-issue-report-apiv1
+  source: https://stackoverflow.com/questions/74050419/helm-release-stuck-in-uninstalling-state
+- question: Search the Bitnami repository for all available nginx chart versions.
+  suggestion:
+  - helm search repo bitnami/nginx --versions
+  source: https://stackoverflow.com/questions/55973901/how-can-i-list-all-available-charts-under-a-helm-repo
+- question: Upgrade the Helm release `internal-issue-report-apiv2` in namespace mercury
+    to the latest nginx chart.
+  suggestion:
+  - helm -n mercury upgrade internal-issue-report-apiv2 bitnami/nginx
+  source: https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/
+- question: Install the Bitnami Apache chart as release `internal-issue-report-apache`
+    in namespace mercury with 2 replicas and image debug enabled.
+  suggestion:
+  - helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2
+    --set image.debug=true
+  source: https://ettoreciarcia.com/killersh-simulations/CKAD.html

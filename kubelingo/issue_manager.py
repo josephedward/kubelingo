@@ -3,7 +3,10 @@ import time
 import yaml
 from colorama import Fore, Style
 
-from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR, ensure_user_data_dir
+from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR, ensure_user_data_dir as _ensure_user_data_dir
+# Override ensure_user_data_dir to use module-level USER_DATA_DIR for issue_manager
+def ensure_user_data_dir():
+    os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 def get_normalized_question_text(question_dict):
     return question_dict.get('question', '').strip().lower()

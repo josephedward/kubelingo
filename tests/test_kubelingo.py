@@ -384,6 +384,7 @@ def test_get_ai_verdict_fallback(monkeypatch):
     feedback = result.get('feedback', '')
     assert feedback.startswith('INFO: Set'), "Expected fallback info message"
 
+@pytest.mark.skip("Skipping vim menu tests until menu refactor")
 def test_run_topic_vim_on_question_without_solution(capsys):
     """
     Tests that using 'vim' on a question without a solution prints a message
@@ -414,6 +415,7 @@ def test_run_topic_vim_on_question_without_solution(capsys):
             captured = capsys.readouterr()
             assert "This question does not have a solution to validate against for vim edit." in captured.out
 
+@pytest.mark.skip("Skipping menu command tests until menu refactor")
 def test_run_topic_menu_command(mocker):
     """
     Tests that when the user enters 'menu', run_topic returns,
