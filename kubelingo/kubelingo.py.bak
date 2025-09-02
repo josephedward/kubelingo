@@ -7,15 +7,12 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR, manifests_equivalent
-from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
-import kubelingo.source_manager as sm
+from kubelingo.utils import (load_questions, get_normalized_question_text, remove_question_from_corpus, 
+                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE)
+from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run, manifests_equivalent
+import kubelingo.question_generator as qg
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
-from kubelingo.performance_tracker import _performance_data_changed, save_performance_data
-
-
-
 
 # Import necessary modules for LLM handling from utils
 # These are now handled within _get_llm_model in utils.py
@@ -37,15 +34,7 @@ import tempfile
 import subprocess
 import difflib
 import copy
-try:
-    from colorama import Fore, Style, init as colorama_init
-except ImportError:
-    class Fore:
-        RED = YELLOW = GREEN = CYAN = ''
-    class Style:
-        BRIGHT = RESET_ALL = DIM = ''
-    def colorama_init(*args, **kwargs):
-        pass
+from colorama import Fore, Style, init as colorama_init
 
 # Mapping of common Kubernetes resource aliases to their canonical names.
 K8S_RESOURCE_ALIASES = {
@@ -235,43 +224,51 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 MISC_DIR = "misc"
 PERFORMANCE_BACKUP_FILE = os.path.join(MISC_DIR, "performance.yaml")
 
-
+def ensure_user_data_dir():
+    """Ensures the user_data directory exists."""
+    os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 def ensure_misc_dir():
     """Ensures the misc directory exists."""
     os.makedirs(MISC_DIR, exist_ok=True)
 
-
+def backup_performance_file():
+    """Backs up the performance.yaml file to misc/performance.yaml."""
+    ensure_misc_dir()
+    if os.path.exists(PERFORMANCE_FILE):
+        try:
+            with open(PERFORMANCE_FILE, 'rb') as src, open(PERFORMANCE_BACKUP_FILE, 'wb') as dst:
+                dst.write(src.read())
+        except Exception as e:
+            print(f"Error backing up performance file: {e}")
 
 def load_performance_data():
-    """Load performance data and return a tuple of (data, loaded_status)"""
     """Loads performance data from the user data directory."""
     ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE):
         # If file doesn't exist, initialize with empty dict and save
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
-        return {}, True # Return empty dict and True for success
+        return {}
     try:
         with open(PERFORMANCE_FILE, 'r') as f:
             data = yaml.safe_load(f)
         if data is None: # Handle empty file case
-            return {}, True # Return empty dict and True for success
-        
-        # Sanitize correct_questions lists to ensure they only contain unique entries
-        for topic, topic_data in data.items():
-            if isinstance(topic_data, dict) and 'correct_questions' in topic_data:
-                if isinstance(topic_data['correct_questions'], list):
-                    topic_data['correct_questions'] = sorted(list(set(topic_data['correct_questions'])))
-        return data, True # Return data and True for success
+            # Reinitialize the performance file with empty data
+            with open(PERFORMANCE_FILE, 'w') as f_init:
+                yaml.dump({}, f_init)
+            return {}
+        return data
     except yaml.YAMLError:
-        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Not loading data.{Style.RESET_ALL}")
-        return {}, False # Return empty dict and False for failure
-
+        print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' is corrupted or invalid. Reinitializing.{Style.RESET_ALL}")
+        # Reinitialize the performance file with empty data
+        with open(PERFORMANCE_FILE, 'w') as f_init:
+            yaml.dump({}, f_init)
+        return {}
 
 def save_question_to_list(list_file, question, topic):
     """Saves a question to a specified list file."""
-    # Directory creation is handled elsewhere; skip to file check
+    ensure_user_data_dir()
     questions = []
     if os.path.exists(list_file):
         with open(list_file, 'r') as f:
@@ -291,9 +288,7 @@ def save_question_to_list(list_file, question, topic):
 
 def remove_question_from_list(list_file, question):
     """Removes a question from a specified list file."""
-    # Directory creation is handled elsewhere; skip to file checks
-    # Count existence check twice for test expectations
-    os.path.exists(list_file)
+    ensure_user_data_dir()
     questions = []
     if os.path.exists(list_file):
         with open(list_file, 'r') as f:
@@ -388,11 +383,11 @@ def handle_config_menu():
     if data is None:
         with open(PERFORMANCE_FILE, 'w') as f_init:
             yaml.dump({}, f_init)
-        return ({}, False)
+        return {}
     # Ensure the loaded data is a mapping; otherwise ignore and preserve file
     if not isinstance(data, dict):
         print(f"{Fore.YELLOW}Warning: Performance data file '{PERFORMANCE_FILE}' has unexpected format. Using empty data.{Style.RESET_ALL}")
-        return ({}, False)
+        return {}
 
     # Sanitize correct_questions lists to ensure they only contain normalized strings
     for topic, topic_data in data.items():
@@ -407,9 +402,16 @@ def handle_config_menu():
                     sanitized_questions.append(q_item)
                 # Else, ignore invalid entries
             topic_data['correct_questions'] = list(set(sanitized_questions)) # Use set to remove duplicates and convert back to list
-    return (data, True)
+    return data
 
-
+def save_performance_data(data):
+    """Saves performance data."""
+    ensure_user_data_dir()
+    try:
+        with open(PERFORMANCE_FILE, 'w') as f:
+            yaml.dump(data, f)
+    except Exception as e:
+        print(f"{Fore.RED}Error saving performance data to '{PERFORMANCE_FILE}': {e}{Style.RESET_ALL}")
 
 def save_questions_to_topic_file(topic, questions_data):
     """Saves questions data to the specified topic YAML file."""
@@ -742,30 +744,14 @@ def handle_vim_edit(question):
     """
     Handles the user editing a manifest in Vim.
     """
-    # Determine the canonical solution manifest (suggestion or solution)
-    raw = question.get('suggestion') or question.get('solution')
-    # If suggestion is a list, take the first element
-    if isinstance(raw, list):
-        raw = raw[0] if raw else None
-    # If still no raw content, cannot validate via vim
-    if raw is None:
+    # Determine the canonical solution manifest
+    if 'suggestion' in question and isinstance(question['suggestion'], list) and question['suggestion']:
+        sol_manifest = question['suggestion'][0]
+    elif 'solution' in question:
+        sol_manifest = question['solution']
+    else:
         print("This question does not have a solution to validate against for vim edit.")
         return None, None, False
-    # Parse raw into a manifest object if it's a YAML string
-    if isinstance(raw, str):
-        try:
-            parsed = yaml.safe_load(raw)
-        except Exception:
-            parsed = None
-        # Only accept parsed manifests (dict or list); otherwise, no vim support
-        if isinstance(parsed, (dict, list)):
-            sol_manifest = parsed
-        else:
-            print("This question does not have a solution to validate against for vim edit.")
-            return None, None, False
-    else:
-        # Already a dict or list
-        sol_manifest = raw
 
     question_comment = '\n'.join([f'# {line}' for line in question['question'].split('\n')])
     starter_content = question.get('starter_manifest', '')
@@ -1132,80 +1118,58 @@ def list_and_select_topic(performance_data):
                     print("This topic has no questions and no API key is set to generate them.")
                     continue
 
-                # Per-topic loop: allow generating new questions or selecting questions to study
-                while True:
-                    # Compute incomplete questions
-                    topic_perf = performance_data.get(selected_topic, {})
-                    correct_questions = topic_perf.get('correct_questions') or []
-                    normalized_correct = set(correct_questions)
-                    incomplete_questions = [
-                        q for q in all_questions
-                        if get_normalized_question_text(q) not in normalized_correct
-                    ]
-                    num_incomplete = len(incomplete_questions)
+                topic_perf = performance_data.get(selected_topic, {})
+                correct_questions_data = topic_perf.get('correct_questions', [])
+                correct_questions_normalized = set(correct_questions_data if correct_questions_data is not None else [])
+                num_correct = len(correct_questions_data)
 
-                    can_generate = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
-                    # Section is considered 100% complete if there are no incomplete questions.
-                    is_complete = num_incomplete == 0
+                incomplete_questions = [
+                    q for q in all_questions 
+                    if get_normalized_question_text(q) not in correct_questions_normalized
+                ]
+                num_incomplete = len(incomplete_questions)
 
-                    prompt_parts = []
-                    if num_incomplete > 0:
-                        prompt_parts.append(f"i for incomplete ({num_incomplete})")
-                    elif total_questions > 0:
-                        prompt_parts.append(f"1-{total_questions}")
+                # Determine if generation is a primary option
+                can_generate = (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
+                percent_correct = (num_correct / total_questions) * 100 if total_questions > 0 else 0
 
-                # Single prompt for number of questions to study
-                percent_correct = (num_correct / total_questions) * 100
+                # Build the prompt for user
+                prompt_parts = []
                 if num_incomplete > 0:
-                    prompt_suffix = f"i for incomplete ({num_incomplete})"
-                else:
-                    prompt_suffix = f"1-{total_questions}"
-                # if percent_correct == 100:
-                #     prompt_suffix += ", g to generate new question, s to search for a new question"
-                dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
-                inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
-                dbg(f"User input received: {inp}")
+                    prompt_parts.append(f"i for incomplete ({num_incomplete})")
+                elif total_questions > 0:
+                     prompt_parts.append(f"1-{total_questions}")
+
+                if can_generate:
+                    prompt_parts.append("g to generate a new question")
+
+                prompt_suffix = ', '.join(prompt_parts)
+                
+                inp = input(f"Enter number of questions to study ({prompt_suffix}), or Enter for all: ").strip().lower()
+                
                 if inp == 'i' and num_incomplete > 0:
-                    questions_to_study_list = incomplete_questions
-                    num_to_study = num_incomplete
-                # elif inp == 'g' and percent_correct == 100:
-                #     # Generate a new question via LLM/tool
-                #     new_q = sm.generate_more_questions(
-                #         selected_topic,
-                #         questions_to_study_list[0],
-                #         _get_llm_model,
-                #         QUESTIONS_DIR,
-                #         Fore,
-                #         Style,
-                #         load_questions,
-                #         get_normalized_question_text
-                #     )
-                #     if new_q:
-                #         questions_to_study_list.append(new_q)
-                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
-                #     num_to_study = len(questions_to_study_list)
-                # elif inp == 's' and percent_correct == 100:
-                #     # Alias for search/generation fallback
-                #     new_q = sm.generate_more_questions(
-                #         selected_topic,
-                #         questions_to_study_list[0],
-                #         _get_llm_model,
-                #         QUESTIONS_DIR,
-                #         Fore,
-                #         Style,
-                #         load_questions,
-                #         get_normalized_question_text
-                #     )
-                #     if new_q:
-                #         questions_to_study_list.append(new_q)
-                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
-                #     num_to_study = len(questions_to_study_list)
+                    return selected_topic, num_incomplete, incomplete_questions
+                
+                elif inp == 'g' and can_generate:
+                    new_q = qg.generate_more_questions(selected_topic)
+                    if new_q:
+                        all_questions.append(new_q)
+                        save_questions_to_topic_file(selected_topic, all_questions)
+                        print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'. Returning to menu.{Style.RESET_ALL}")
+                        time.sleep(2)
+                    # Always continue to the main menu to show the refreshed topic list
+                    continue
+
                 elif inp.isdigit():
                     n = int(inp)
                     num_to_study = n if 1 <= n <= total_questions else total_questions
-                else:
-                    num_to_study = total_questions
-                return selected_topic, num_to_study, questions_to_study_list
+                    questions_to_study_list = incomplete_questions if num_incomplete > 0 else all_questions
+                    return selected_topic, num_to_study, questions_to_study_list
+                
+                else: # Default to all (or all incomplete)
+                    questions_to_study_list = incomplete_questions if num_incomplete > 0 else all_questions
+                    num_to_study = len(questions_to_study_list)
+                    return selected_topic, num_to_study, questions_to_study_list
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
@@ -1227,8 +1191,7 @@ def get_user_input(allow_solution_command=True):
     special_action = None
     
     solution_option_text = "'solution', " if allow_solution_command else ""
-    # Prompt text for user commands; include period inside 'menu' option to match test expectations
-    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu.'"
+    prompt_text = f"Enter command(s). Type 'done' to check. Special commands: {solution_option_text}'vim', 'clear', 'menu'."
     print(f"{Style.BRIGHT}{Fore.CYAN}{prompt_text}{Style.RESET_ALL}")
     import sys
     sys.stdout.flush() # Explicitly flush output
@@ -1261,7 +1224,7 @@ def get_user_input(allow_solution_command=True):
     return user_commands, special_action
 
 def run_topic(topic, questions_to_study, performance_data):
-    
+    print("DEBUG: run_topic entered", file=sys.stderr)
     """
     Loads and runs questions for a given topic.
     """
@@ -1289,9 +1252,12 @@ def run_topic(topic, questions_to_study, performance_data):
             break
         
         # Determine canonical solution manifest for diff/display
-        sol_manifest = q.get('suggestion') or q.get('solution')
-        if isinstance(sol_manifest, list):
-            sol_manifest = sol_manifest[0] if sol_manifest else None
+        if 'solution' in q:
+            sol_manifest = q['solution']
+        elif 'suggestion' in q and isinstance(q['suggestion'], list) and q['suggestion']:
+            sol_manifest = q['suggestion'][0]
+        else:
+            sol_manifest = None
         is_correct = False  # Reset for each question attempt
         user_answer_graded = False  # Flag to indicate if an answer was submitted and graded
         suggestion_shown_for_current_question = False  # New flag for this question attempt
@@ -1304,25 +1270,16 @@ def run_topic(topic, questions_to_study, performance_data):
         # Clear screen before displaying question
         os.system('cls' if os.name == 'nt' else 'clear')
 
-        # Display the current question
+        # Display the current question and prompt once
         print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         print(q['question'], flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-        dbg("Before suggestion or input prompt")
-        # Auto-show solution on first display to avoid hanging on blank input
-        if not suggestion_shown_for_current_question:
-            special_action = 'solution'
-            user_commands = []
-        else:
-            user_commands, special_action = get_user_input(allow_solution_command=True)
-        dbg(f"After suggestion/input: user_commands={user_commands}, special_action={special_action}")
-        # If still no action, skip to next iteration
+        dbg("Before get_user_input")
+        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+        dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
         if not user_commands and special_action is None:
             continue
-        # If user chooses to quit, exit the topic session
-        if special_action == 'q':
-            return
 
 
         # --- Process actions that involve grading or showing solution ---
@@ -1332,8 +1289,7 @@ def run_topic(topic, questions_to_study, performance_data):
             user_answer_graded = True
             suggestion_shown_for_current_question = True
             print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
-            suggestion = q.get('suggestion', [q.get('solution', 'N/A')])
-            solution_text = suggestion[0] if isinstance(suggestion, list) else suggestion
+            solution_text = q.get('suggestion', [q.get('solution', 'N/A')])[0]
             if isinstance(solution_text, (dict, list)):
                 dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
                 print(colorize_yaml(dumped))
@@ -1347,9 +1303,6 @@ def run_topic(topic, questions_to_study, performance_data):
             # No break here, flow to post-answer menu
 
         elif special_action == 'vim':
-            if not q.get('suggestion') and not q.get('solution'):
-                print("This question does not have a solution to validate against for vim edit.")
-                continue
             user_manifest, result, sys_error = handle_vim_edit(q)
             if result is None: # Added check for None result
                 continue # Re-display the question prompt
@@ -1382,38 +1335,30 @@ def run_topic(topic, questions_to_study, performance_data):
                     user_answer_graded = True
                     # No break here, flow to post-answer menu
 
-        elif special_action == 'menu':
-            return
-
-        # If the canonical solution is a Kubernetes manifest, enable Vim-based editing
-        elif sol_manifest is not None and (
-                isinstance(sol_manifest, (dict, list)) or
-                (isinstance(sol_manifest, str) and '\n' in sol_manifest)
-            ):
+        elif 'manifest' in q.get('question', '').lower():
+            # Automatically use vim for manifest questions
             user_manifest, result, sys_error = handle_vim_edit(q)
-            if result is None:
-                continue
+            if result is None: # Added check for None result
+                continue # Re-display the question prompt
+            # If result is not a dict, treat as a message and display
             if not isinstance(result, dict):
-                print(str(result))
+                print(str(result)) # Convert to string before printing
                 user_answer_graded = True
                 break
             if not sys_error:
                 if result.get('validation_feedback'):
                     print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
                     print(result['validation_feedback'])
+                
                 if result.get('ai_feedback'):
                     print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
                     print(result['ai_feedback'])
-                is_correct = result.get('correct', False)
-                # Prepare canonical solution text
-                if isinstance(sol_manifest, (dict, list)):
-                    sol_text = yaml.safe_dump(sol_manifest, default_flow_style=False, sort_keys=False, indent=2)
-                else:
-                    sol_text = sol_manifest
+
+                is_correct = result['correct']
                 if not is_correct:
-                    show_diff(user_manifest, sol_text)
+                    show_diff(user_manifest, q['solution'])
                     print(f"{Fore.RED}\nThat wasn't quite right. Here is the suggestion:")
-                    print(colorize_yaml(sol_text))
+                    print(colorize_yaml(q['solution']))
                 else:
                     print(f"{Fore.GREEN}\nCorrect! Well done.")
                 if q.get('source'):
@@ -1428,11 +1373,9 @@ def run_topic(topic, questions_to_study, performance_data):
             normalized_user_answer = normalize_command(user_commands)
             
             # The suggestion can be a single string or a list of strings
-            suggestions = q.get('suggestion') or q.get('solution')
-            if not suggestions:
-                suggestions = []
-            elif isinstance(suggestions, str):
-                suggestions = [suggestions]
+            suggestions = q.get('suggestion')
+            if not suggestions: # If 'suggestion' key is missing or empty
+                suggestions = [q.get('solution')]
             
             # Check if there's actually a suggestion to compare against
             if not suggestions or suggestions == [None]:
@@ -1520,10 +1463,7 @@ def run_topic(topic, questions_to_study, performance_data):
         # Post-answer menu (after a question has been answered or skipped)
         if user_answer_graded:
             # Update performance data with the graded result
-            perf_changed = session.update_performance(q, is_correct, get_normalized_question_text)
-            if perf_changed:
-                global _performance_data_changed
-                _performance_data_changed = True
+            session.update_performance(q, is_correct, get_normalized_question_text)
             # Save performance data after each graded question
             save_performance_data(performance_data)
 
@@ -1596,60 +1536,12 @@ def run_topic(topic, questions_to_study, performance_data):
 @click.option('--auto-approve', 'auto_approve', is_flag=True, default=False,
               help='Auto-approve the first search result (use with --interactive-sources).')
 @click.option('--audit-questions', 'audit_questions', is_flag=True, default=False,
-               help='Audit all question files for standard format and exit.')
-@click.option('--clean-manifest', 'clean_manifest', is_flag=True, default=False,
-              help='Clean and normalize a Kubernetes manifest (reads from stdin or via --manifest-file).')
-@click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
-              help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
+                help='Audit all question files for standard format and exit.')
 @click.pass_context
-def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
-        clean_manifest, manifest_file):
+def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
-
-    # Handle manifest cleaning mode
-    if clean_manifest:
-        content = ''
-        if manifest_file:
-            try:
-                with open(manifest_file, 'r') as mf:
-                    content = mf.read()
-            except Exception as e:
-                click.echo(f"Error reading manifest file: {e}", err=True)
-                sys.exit(1)
-        else:
-            # Read from stdin
-            content = sys.stdin.read()
-        content = content.strip()
-        if not content:
-            click.echo("Error: No manifest content provided to clean.", err=True)
-            sys.exit(1)
-        # Optionally validate YAML syntax and schema first
-        try:
-            from kubelingo.validation import validate_manifest
-            ok, summary, details = validate_manifest(content)
-            click.echo(summary)
-            if details:
-                click.echo(details)
-        except Exception:
-            # proceed even if validation tools are not available
-            pass
-        # Run kubectl apply --dry-run=client to normalize
-        cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', '-']
-        try:
-            proc = subprocess.run(cmd, input=content, capture_output=True, text=True, check=True)
-            click.echo(proc.stdout)
-            sys.exit(0)
-        except subprocess.CalledProcessError as e:
-            err = e.stderr.strip() or e.stdout.strip()
-            click.echo(f"Error cleaning manifest: {err}", err=True)
-            sys.exit(e.returncode)
-        except FileNotFoundError:
-            click.echo("Error: 'kubectl' not found in PATH. Cannot clean manifest.", err=True)
-            sys.exit(1)
-        # unreachable
-        return
 
     # Handle audit mode
     if audit_questions:
@@ -1661,13 +1553,13 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         if not consolidated:
             click.echo("Error: --consolidated PATH is required with --add-sources.")
             sys.exit(1)
-        sm.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
+        qg.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
         return
     if check_sources:
-        sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
+        qg.cmd_check_sources(questions_dir=QUESTIONS_DIR)
         return
     if interactive_sources:
-        sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
+        qg.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
@@ -1677,34 +1569,28 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         os.makedirs(QUESTIONS_DIR, exist_ok=True)
     ctx.ensure_object(dict)
     # Load existing performance data; do not overwrite existing progress on startup
-    performance_data, perf_loaded_ok = load_performance_data()
+    performance_data = load_performance_data()
     ctx.obj['PERFORMANCE_DATA'] = performance_data
-    global _performance_data_changed
-    _performance_data_changed = False # Reset flag on startup
     
     while True:
         dbg("cli: calling list_and_select_topic")
         topic_info = list_and_select_topic(performance_data)
         dbg(f"cli: list_and_select_topic returned {topic_info}")
         if topic_info is None or topic_info[0] is None:
-            if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
+            save_performance_data(performance_data)
+            backup_performance_file()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
-        if perf_loaded_ok:
-            backup_performance_file()
+        backup_performance_file()
         run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
-            if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
-            sys.exit(0) # Exit application if run_topic signals quit
-        if perf_loaded_ok:
             save_performance_data(performance_data)
             backup_performance_file()
+            sys.exit(0) # Exit application if run_topic signals quit
+        save_performance_data(performance_data)
+        backup_performance_file()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
         if not sys.stdin.isatty():
             break
@@ -1723,7 +1609,7 @@ if __name__ == "__main__":
 
     if args.cli_answer and args.cli_question_topic is not None and args.cli_question_index is not None:
         # Non-interactive mode for answering a single question
-        performance_data, perf_loaded_ok = load_performance_data()
+        performance_data = load_performance_data()
         topic_data = load_questions(args.cli_question_topic, Fore, Style)
         if topic_data and 'questions' in topic_data:
             questions_to_study = [topic_data['questions'][args.cli_question_index]]
@@ -1732,9 +1618,8 @@ if __name__ == "__main__":
             
             print(f"Processing question from topic '{args.cli_question_topic}' at index {args.cli_question_index} with answer: '{args.cli_answer}'")
             run_topic(args.cli_question_topic, questions_to_study, performance_data)
-            if perf_loaded_ok:
-                save_performance_data(performance_data)
-                backup_performance_file()
+            save_performance_data(performance_data)
+            backup_performance_file()
             sys.exit(0) # Exit after processing the single question
         else:
             print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)

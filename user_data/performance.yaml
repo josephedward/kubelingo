@@ -22,7 +22,7 @@ app_configuration:
   - 'create a secret of type `docker-registry` named ''regcred''. use the following
     details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
     password=`p@ssw0rd!`, email=`user@example.com`.'
-  - the string 'zw5jb2rlzf9zdhjpbmc=' is a base64 encoded secret value. decode it.
+  - the string 'zw5jb2Rlzf9zdhjpbmc=' is a base64 encoded secret value. decode it.
   - view the encoded values in a secret named 'api-secrets' in yaml format.
   - view the detailed contents of a configmap named 'db-config'.
   - create a manifest for a pod named 'pod1'. the pod must have a single container
@@ -101,9 +101,13 @@ helm_basics:
     `replicacount` to 5?
 image_registry_use:
   correct_questions:
-  - pod manifest with imagepullpolicy always and using imagepullsecrets regcred.
   - create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0' from
-    a private registry. the pod should use an image pull secret named 'reg-secret'.
+    a private registry. The pod should use an image pull secret named 'reg-secret'.
+  - command to generate a docker-registry pull secret named 'regcred' for 'myregistry.com'
+    with username 'myuser', password 'mypassword', and email 'myuser@example.com'
+    (output yaml).
+  - pod manifest with imagepullpolicy always and using imagepullsecrets regcred.
+  - generate the kubernetes manifest for topic 'image_registry_use' using the cli.
 linux_syntax:
   correct_questions:
   - in vim, how do you delete the current line?
@@ -172,4 +176,6 @@ resource_reference:
   - is daemonset a namespaced resource?
   - is storageclass a namespaced resource?
 sample_topic:
+  correct_questions: []
+services:
   correct_questions: []
