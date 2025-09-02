@@ -8,7 +8,7 @@ with varying difficulty levels for training and assessment purposes.
 
 import random
 import json
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from enum import Enum
 
 class DifficultyLevel(Enum):
@@ -148,7 +148,7 @@ class QuestionGenerator:
         if topic is None:
             topic = random.choice(list(KubernetesTopics)).value
         if difficulty is None:
-            difficulty = random.choice(list(DifficulityLevel)).value
+            difficulty = random.choice(list(DifficultyLevel)).value
             
         # Get question template
         templates = self.question_templates.get(topic, {}).get(difficulty, [])
