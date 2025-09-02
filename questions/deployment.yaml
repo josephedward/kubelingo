@@ -1,0 +1,271 @@
+questions:
+- question: Create a Deployment named 'api-server-deploy' with 3 replicas of the image
+    'mysql:5.7'.
+  suggestion:
+  - kubectl create deployment api-server-deploy --image=mysql:5.7 --replicas=3
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-server-deploy
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: api-server-deploy
+      template:
+        metadata:
+          labels:
+            app: api-server-deploy
+        spec:
+          containers:
+          - name: api-server-deploy
+            image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: api-server-deploy
+    image: mysql:5.7
+    replicas: 3
+- question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
+    'redis:6.2'.
+  suggestion:
+  - kubectl create deployment api-server-deploy --image=redis:6.2 --replicas=5
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-server-deploy
+    spec:
+      replicas: 5
+      selector:
+        matchLabels:
+          app: api-server-deploy
+      template:
+        metadata:
+          labels:
+            app: api-server-deploy
+        spec:
+          containers:
+          - name: api-server-deploy
+            image: redis:6.2
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: api-server-deploy
+    image: redis:6.2
+    replicas: 5
+- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+    'nginx:1.20'.
+  suggestion:
+  - kubectl create deployment worker-deploy --image=nginx:1.20 --replicas=3
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: worker-deploy
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: worker-deploy
+      template:
+        metadata:
+          labels:
+            app: worker-deploy
+        spec:
+          containers:
+          - name: worker-deploy
+            image: nginx:1.20
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: worker-deploy
+    image: nginx:1.20
+    replicas: 3
+- question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
+    'redis:6.2'.
+  suggestion:
+  - kubectl create deployment worker-deploy --image=redis:6.2 --replicas=5
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: worker-deploy
+    spec:
+      replicas: 5
+      selector:
+        matchLabels:
+          app: worker-deploy
+      template:
+        metadata:
+          labels:
+            app: worker-deploy
+        spec:
+          containers:
+          - name: worker-deploy
+            image: redis:6.2
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: worker-deploy
+    image: redis:6.2
+    replicas: 5
+- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+    'mysql:5.7'.
+  suggestion:
+  - kubectl create deployment worker-deploy --image=mysql:5.7 --replicas=3
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: worker-deploy
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: worker-deploy
+      template:
+        metadata:
+          labels:
+            app: worker-deploy
+        spec:
+          containers:
+          - name: worker-deploy
+            image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: worker-deploy
+    image: mysql:5.7
+    replicas: 3
+- question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
+    'mysql:5.7'.
+  suggestion:
+  - kubectl create deployment worker-deploy --image=mysql:5.7 --replicas=5
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: worker-deploy
+    spec:
+      replicas: 5
+      selector:
+        matchLabels:
+          app: worker-deploy
+      template:
+        metadata:
+          labels:
+            app: worker-deploy
+        spec:
+          containers:
+          - name: worker-deploy
+            image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: worker-deploy
+    image: mysql:5.7
+    replicas: 5
+- question: Create a Deployment named 'nginx-deploy' with 3 replicas of the image
+    'mysql:5.7'.
+  suggestion:
+  - kubectl create deployment nginx-deploy --image=mysql:5.7 --replicas=3
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-deploy
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: nginx-deploy
+      template:
+        metadata:
+          labels:
+            app: nginx-deploy
+        spec:
+          containers:
+          - name: nginx-deploy
+            image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: nginx-deploy
+    image: mysql:5.7
+    replicas: 3
+- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+    'redis:6.2'.
+  suggestion:
+  - kubectl create deployment worker-deploy --image=redis:6.2 --replicas=3
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: worker-deploy
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: worker-deploy
+      template:
+        metadata:
+          labels:
+            app: worker-deploy
+        spec:
+          containers:
+          - name: worker-deploy
+            image: redis:6.2
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: worker-deploy
+    image: redis:6.2
+    replicas: 3
+- question: Create a Deployment named 'api-server-deploy' with 1 replicas of the image
+    'nginx:1.20'.
+  suggestion:
+  - kubectl create deployment api-server-deploy --image=nginx:1.20 --replicas=1
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-server-deploy
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: api-server-deploy
+      template:
+        metadata:
+          labels:
+            app: api-server-deploy
+        spec:
+          containers:
+          - name: api-server-deploy
+            image: nginx:1.20
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: api-server-deploy
+    image: nginx:1.20
+    replicas: 1
+- question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
+    'nginx:1.20'.
+  suggestion:
+  - kubectl create deployment api-server-deploy --image=nginx:1.20 --replicas=5
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api-server-deploy
+    spec:
+      replicas: 5
+      selector:
+        matchLabels:
+          app: api-server-deploy
+      template:
+        metadata:
+          labels:
+            app: api-server-deploy
+        spec:
+          containers:
+          - name: api-server-deploy
+            image: nginx:1.20
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+  requirements:
+    kind: Deployment
+    name: api-server-deploy
+    image: nginx:1.20
+    replicas: 5

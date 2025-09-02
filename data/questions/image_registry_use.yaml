@@ -1,0 +1,51 @@
+questions:
+- question: Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0'
+    from a private registry. The pod should use an image pull secret named 'reg-secret'.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  suggestion:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: private-pod
+    spec:
+      containers:
+      - image: my-registry/my-app:1.0
+        name: main
+      imagePullSecrets:
+      - name: reg-secret
+- question: Command to generate a docker-registry pull secret named 'regcred' for
+    'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com'
+    (output YAML).
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
+  suggestion:
+  - kubectl create secret docker-registry regcred --docker-server=registry.example.com
+    --docker-username=USER --docker-password=PASS --docker-email=user@example.com
+    --dry-run=client -o yaml
+- question: Pod manifest with imagePullPolicy Always and using imagePullSecrets regcred.
+  source: https://kubernetes.io/docs/concepts/containers/images/
+  suggestion:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: c
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: main
+      imagePullSecrets:
+      - name: regcred
+- question: Generate the Kubernetes manifest for topic 'image_registry_use' using
+    the CLI.
+  rationale: Tests ability to create a docker-registry secret for private image pulls.
+  section: Security
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  suggestion: "apiVersion: v1\ndata:\n  .dockerconfigjson: eyJhdXRocyI6eyJteXJlZ2lzdHJ5LmNvbSI6eyJ1c2VybmFtZSI6Im15dXNlciIsInBhc3N3b3JkIjoibXlwYXNzd29yZCIsImVtYWlsIjoibXl1c2VyQGV4YW1wbGUuY29tIiwiYXV0aCI6ImJYbDFjMlZ5T00xNWNHRnpjM2R2Y21RPSJ9fX0=\n\
+    kind: Secret\nmetadata: creationTimestamp: null name: regcred type: kubernetes.io/dockerconfigjson"
+- question: Generate the Kubernetes manifest for topic 'image_registry_use' using
+    the CLI.
+  rationale: Tests ability to create a docker-registry secret for private image pulls.
+  section: Security
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  suggestion: "apiVersion: v1\ndata:\n  .dockerconfigjson: eyJhdXRocyI6eyJteXJlZ2lzdHJ5LmNvbSI6eyJ1c2VybmFtZSI6Im15dXNlciIsInBhc3N3b3JkIjoibXlwYXNzd29yZCIsImVtYWlsIjoibXl1c2VyQGV4YW1wbGUuY29tIiwiYXV0aCI6ImJYbDFjMlZ5T20xNWNHRnpjM2R2Y21RPSJ9fX0=\n\
+    kind: Secret\nmetadata:\n  name: regcred\ntype: kubernetes.io/dockerconfigjson"

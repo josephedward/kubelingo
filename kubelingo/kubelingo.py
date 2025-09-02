@@ -1,4 +1,5 @@
 import os
+import kubelingo.utils as _utils
 import sys
 import getpass
 import random
@@ -7,10 +8,19 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import (load_questions, get_normalized_question_text, remove_question_from_corpus, 
-                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE, ensure_user_data_dir)
-from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run, manifests_equivalent
-import kubelingo.question_generator as qg
+from kubelingo.utils import (
+    load_questions,
+    get_normalized_question_text,
+    remove_question_from_corpus,
+    _get_llm_model,
+    QUESTIONS_DIR,
+    USER_DATA_DIR,
+    MISSED_QUESTIONS_FILE,
+    ensure_user_data_dir,
+    backup_performance_yaml,
+)
+from kubelingo.validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
+import kubelingo.source_manager as sm
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
 from kubelingo.performance_tracker import _performance_data_changed, save_performance_data
@@ -247,7 +257,7 @@ def ensure_misc_dir():
 def load_performance_data():
     """Load performance data and return a tuple of (data, loaded_status)"""
     """Loads performance data from the user data directory."""
-    ensure_user_data_dir()
+    _utils.ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE):
         # If file doesn't exist, initialize with empty dict and save
         with open(PERFORMANCE_FILE, 'w') as f_init:
@@ -482,8 +492,6 @@ def update_question_source_in_yaml(topic, updated_question):
             print(f"Source for question '{updated_question['question']}' updated in {topic}.yaml.")
         else:
             print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
-
-
 
 def load_questions_from_list(list_file):
     """Loads questions from a specified list file."""
@@ -1155,41 +1163,58 @@ def list_and_select_topic(performance_data):
                     elif total_questions > 0:
                         prompt_parts.append(f"1-{total_questions}")
 
-                    # Only show generate option if the topic is 100% complete and an API key is available.
-                    if can_generate and is_complete:
-                        prompt_parts.append("g to generate a new question")
-
-                    prompt_parts.append("b to go back")
-                    prompt_suffix = ', '.join(prompt_parts)
-
-                    choice = input(f"Enter number of questions to study ({prompt_suffix}), or Enter for all: ").strip().lower()
-
-                    if choice == 'b':
-                        break # Go back to topic selection menu
-
-                    if choice == 'i' and num_incomplete > 0:
-                        return selected_topic, num_incomplete, incomplete_questions
-
-                    if choice == 'g' and can_generate and is_complete:
-                        new_q = qg.generate_more_questions(selected_topic)
-                        if new_q:
-                            all_questions.append(new_q)
-                            total_questions = len(all_questions) # Update total questions count
-                            save_questions_to_topic_file(selected_topic, all_questions)
-                            print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'.{Style.RESET_ALL}")
-                            time.sleep(2)
-                        # After generation, re-show per-topic menu
-                        continue
-
-                    if choice.isdigit():
-                        n = int(choice)
-                        num_to_study = n if 1 <= n <= total_questions else total_questions
-                        questions_to_study = incomplete_questions if num_incomplete > 0 else all_questions
-                        return selected_topic, num_to_study, questions_to_study
-
-                    # Default: study all
-                    questions_to_study = incomplete_questions if num_incomplete > 0 else all_questions
-                    return selected_topic, len(questions_to_study), questions_to_study
+                # Single prompt for number of questions to study
+                percent_correct = (num_correct / total_questions) * 100
+                if num_incomplete > 0:
+                    prompt_suffix = f"i for incomplete ({num_incomplete})"
+                else:
+                    prompt_suffix = f"1-{total_questions}"
+                # if percent_correct == 100:
+                #     prompt_suffix += ", g to generate new question, s to search for a new question"
+                dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
+                inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
+                dbg(f"User input received: {inp}")
+                if inp == 'i' and num_incomplete > 0:
+                    questions_to_study_list = incomplete_questions
+                    num_to_study = num_incomplete
+                # elif inp == 'g' and percent_correct == 100:
+                #     # Generate a new question via LLM/tool
+                #     new_q = sm.generate_more_questions(
+                #         selected_topic,
+                #         questions_to_study_list[0],
+                #         _get_llm_model,
+                #         QUESTIONS_DIR,
+                #         Fore,
+                #         Style,
+                #         load_questions,
+                #         get_normalized_question_text
+                #     )
+                #     if new_q:
+                #         questions_to_study_list.append(new_q)
+                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
+                #     num_to_study = len(questions_to_study_list)
+                # elif inp == 's' and percent_correct == 100:
+                #     # Alias for search/generation fallback
+                #     new_q = sm.generate_more_questions(
+                #         selected_topic,
+                #         questions_to_study_list[0],
+                #         _get_llm_model,
+                #         QUESTIONS_DIR,
+                #         Fore,
+                #         Style,
+                #         load_questions,
+                #         get_normalized_question_text
+                #     )
+                #     if new_q:
+                #         questions_to_study_list.append(new_q)
+                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
+                #     num_to_study = len(questions_to_study_list)
+                elif inp.isdigit():
+                    n = int(inp)
+                    num_to_study = n if 1 <= n <= total_questions else total_questions
+                else:
+                    num_to_study = total_questions
+                return selected_topic, num_to_study, questions_to_study_list
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
@@ -1288,15 +1313,20 @@ def run_topic(topic, questions_to_study, performance_data):
         # Clear screen before displaying question
         os.system('cls' if os.name == 'nt' else 'clear')
 
-        # Display the current question and prompt once
+        # Display the current question
         print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         print(q['question'], flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-        dbg("Before get_user_input")
-        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
-        dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
-        # If no input and no action, re-prompt
+        dbg("Before suggestion or input prompt")
+        # Auto-show solution on first display to avoid hanging on blank input
+        if not suggestion_shown_for_current_question:
+            special_action = 'solution'
+            user_commands = []
+        else:
+            user_commands, special_action = get_user_input(allow_solution_command=True)
+        dbg(f"After suggestion/input: user_commands={user_commands}, special_action={special_action}")
+        # If still no action, skip to next iteration
         if not user_commands and special_action is None:
             continue
         # If user chooses to quit, exit the topic session
@@ -1507,63 +1537,61 @@ def run_topic(topic, questions_to_study, performance_data):
             save_performance_data(performance_data)
 
         # Post-answer menu loop
+        # Post-answer menu - use question_manager for actions
+        import kubelingo.question_manager as qm
         while True:
-            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {session.current_question_index + 1}/{len(session.questions_in_session)} ---" + Style.RESET_ALL)
-            # Prompt user for post-answer action
-            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]quit: {Style.RESET_ALL}").strip().lower()
-
-            if choice == 'n':
+            qm.show_menu()
+            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter choice: {Style.RESET_ALL}").strip().upper()
+            if choice == 'F' or choice == 'N':  # Forward/Next
                 next_q = session.next_question()
                 if next_q is None:
-                    return # Session complete
-                break # Exit post-answer menu, go to next question
-            elif choice == 'b':
+                    return  # Session complete
+                break
+            elif choice == 'B':  # Backward
                 prev_q = session.previous_question()
                 if prev_q:
-                    print(f"{Fore.GREEN}Going back to the previous question.{Style.RESET_ALL}")
-                    break # Break to re-render the previous question
+                    print(f"{Fore.GREEN}Returning to previous question.{Style.RESET_ALL}")
+                    break
                 else:
-                    print(f"{Fore.YELLOW}Already at the first question or no history.{Style.RESET_ALL}")
-            elif choice == 'i':
-                # Mark question as problematic and remove from corpus
-                im.create_issue(q, question_topic_context)
-                remove_question_from_corpus(q, question_topic_context)
-                # Also remove from current session's questions list to prevent it from being asked again
-                # This requires modifying the 'questions' list in the run_topic scope.
-                # For now, I'll just print a message.
-                print(f"{Fore.YELLOW}Question removed from current session. It will not be asked again in this session.{Style.RESET_ALL}")
-                input("Press Enter to continue...")
-            elif choice == 's':
-                # Display source for the question
-                if 'source' in q:
-                    try:
-                        import webbrowser
-                        print(f"{Fore.CYAN}Opening source in your browser: {q['source']}{Style.RESET_ALL}")
-                        webbrowser.open(q['source'])
-                    except Exception as e:
-                        print(f"{Fore.RED}Could not open browser: {e}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.YELLOW}No source available for this question.{Style.RESET_ALL}")
-                input("Press Enter to continue...")
-            elif choice == 'r':
+                    print(f"{Fore.YELLOW}No previous question.{Style.RESET_ALL}")
+            elif choice == 'C':  # Correct
+                qm.mark_correct(session, q, performance_data, get_normalized_question_text)
+            elif choice == 'I':  # Incorrect
+                qm.mark_incorrect(q, topic)
+            elif choice == 'R':  # Revisit
+                qm.mark_revisit(q, topic)
+            elif choice == 'D':  # Delete
+                qm.mark_delete(q, topic)
+                # Remove from current session
+                try:
+                    session.questions_in_session.remove(q)
+                except ValueError:
+                    pass
+                return  # Exit after deletion
+            elif choice == 'V':  # Visit source
+                qm.open_source(q)
+            elif choice == 'A':  # Again (retry)
                 session.add_to_retry_queue(q)
-                print(f"{Fore.GREEN}Question added to retry queue.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Added to retry queue.{Style.RESET_ALL}")
                 next_q = session.next_question()
                 if next_q is None:
-                    return # Session complete
-                break # Exit post-answer menu
-            elif choice == 'c':
-                # Go to configuration menu
+                    return
+                break
+            elif choice == 'S':  # Settings
                 handle_config_menu()
-            elif choice == 'q':
-                return 'quit_app' # Signal to quit application
+            elif choice == 'Q':  # Quit
+                return 'quit_app'
             else:
-                print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
+                print(f"{Fore.RED}Invalid choice '{choice}'. Please try again.{Style.RESET_ALL}")
 
     # No final session menu: simply return to main menu after completion
     return
 
 @click.command()
+@click.option('--generate-kind', 'gen_kind', type=str,
+              help='Generate new questions of the specified KIND (pod, deployment, service, pvc, configmap, secret, job).')
+@click.option('--generate-count', 'gen_count', type=int, default=1,
+              help='Number of questions to generate (default: 1).')
 @click.option('--add-sources', 'add_sources', is_flag=True, default=False,
               help='Add missing sources from a consolidated YAML file.')
 @click.option('--consolidated', 'consolidated', type=click.Path(), default=None,
@@ -1581,73 +1609,100 @@ def run_topic(topic, questions_to_study, performance_data):
 @click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
 @click.pass_context
-def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
+def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
         clean_manifest, manifest_file):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
 
-    # Handle manifest cleaning mode
-    if clean_manifest:
-        content = ''
-        if manifest_file:
-            try:
-                with open(manifest_file, 'r') as mf:
-                    content = mf.read()
-            except Exception as e:
-                click.echo(f"Error reading manifest file: {e}", err=True)
-                sys.exit(1)
-        else:
-            # Read from stdin
-            content = sys.stdin.read()
-        content = content.strip()
-        if not content:
-            click.echo("Error: No manifest content provided to clean.", err=True)
-            sys.exit(1)
-        # Optionally validate YAML syntax and schema first
+    # Handle static question generation
+    if gen_kind:
         try:
-            from kubelingo.validation import validate_manifest
-            ok, summary, details = validate_manifest(content)
-            click.echo(summary)
-            if details:
-                click.echo(details)
-        except Exception:
-            # proceed even if validation tools are not available
-            pass
-        # Run kubectl apply --dry-run=client to normalize
-        cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', '-']
-        try:
-            proc = subprocess.run(cmd, input=content, capture_output=True, text=True, check=True)
-            click.echo(proc.stdout)
-            sys.exit(0)
-        except subprocess.CalledProcessError as e:
-            err = e.stderr.strip() or e.stdout.strip()
-            click.echo(f"Error cleaning manifest: {err}", err=True)
-            sys.exit(e.returncode)
-        except FileNotFoundError:
-            click.echo("Error: 'kubectl' not found in PATH. Cannot clean manifest.", err=True)
-            sys.exit(1)
-        # unreachable
+            from kubelingo.question_generator import generate_questions
+            # Ensure questions directory exists
+            os.makedirs(QUESTIONS_DIR, exist_ok=True)
+            # Generate questions
+            new_qs = generate_questions(gen_kind, gen_count)
+            # File to append into
+            out_file = os.path.join(QUESTIONS_DIR, f"{gen_kind}.yaml")
+            data = {'questions': []}
+            if os.path.exists(out_file):
+                try:
+                    data = yaml.safe_load(open(out_file)) or {'questions': []}
+                except Exception:
+                    data = {'questions': []}
+            # Append and save
+            data.setdefault('questions', [])
+            data['questions'].extend(new_qs)
+            with open(out_file, 'w') as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            print(f"Generated {len(new_qs)} questions for kind '{gen_kind}' -> {out_file}")
+        except Exception as e:
+            print(f"Error generating questions: {e}")
         return
 
-    # Handle audit mode
-    if audit_questions:
-        qg.audit_question_files()
-        sys.exit(0)
+    # # Handle manifest cleaning mode
+    # if clean_manifest:
+    #     content = ''
+    #     if manifest_file:
+    #         try:
+    #             with open(manifest_file, 'r') as mf:
+    #                 content = mf.read()
+    #         except Exception as e:
+    #             click.echo(f"Error reading manifest file: {e}", err=True)
+    #             sys.exit(1)
+    #     else:
+    #         # Read from stdin
+    #         content = sys.stdin.read()
+    #     content = content.strip()
+    #     if not content:
+    #         click.echo("Error: No manifest content provided to clean.", err=True)
+    #         sys.exit(1)
+    #     # Optionally validate YAML syntax and schema first
+    #     try:
+    #         from kubelingo.validation import validate_manifest
+    #         ok, summary, details = validate_manifest(content)
+    #         click.echo(summary)
+    #         if details:
+    #             click.echo(details)
+    #     except Exception:
+    #         # proceed even if validation tools are not available
+    #         pass
+    #     # Run kubectl apply --dry-run=client to normalize
+    #     cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', '-']
+    #     try:
+    #         proc = subprocess.run(cmd, input=content, capture_output=True, text=True, check=True)
+    #         click.echo(proc.stdout)
+    #         sys.exit(0)
+    #     except subprocess.CalledProcessError as e:
+    #         err = e.stderr.strip() or e.stdout.strip()
+    #         click.echo(f"Error cleaning manifest: {err}", err=True)
+    #         sys.exit(e.returncode)
+    #     except FileNotFoundError:
+    #         click.echo("Error: 'kubectl' not found in PATH. Cannot clean manifest.", err=True)
+    #         sys.exit(1)
+    #     # unreachable
+    #     return
 
-    # Handle source management modes
-    if add_sources:
-        if not consolidated:
-            click.echo("Error: --consolidated PATH is required with --add-sources.")
-            sys.exit(1)
-        qg.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
-        return
-    if check_sources:
-        qg.cmd_check_sources(questions_dir=QUESTIONS_DIR)
-        return
-    if interactive_sources:
-        qg.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
-        return
+    # # Handle audit mode
+    # if audit_questions:
+    #     qg.audit_question_files()
+    #     sys.exit(0)
+
+    # # Handle source management modes
+    # if add_sources:
+    #     if not consolidated:
+    #         click.echo("Error: --consolidated PATH is required with --add-sources.")
+    #         sys.exit(1)
+    #     sm.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
+    #     return
+    # if check_sources:
+    #     sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
+    #     return
+    # # interactive_sources flag handling removed, call to cmd_interactive_sources disabled
+    # if interactive_sources:
+    #     sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
+    #     return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
     statuses = test_api_keys()
@@ -1668,22 +1723,22 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         if topic_info is None or topic_info[0] is None:
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
         if perf_loaded_ok:
-            backup_performance_file()
+            backup_performance_yaml()
         run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             sys.exit(0) # Exit application if run_topic signals quit
         if perf_loaded_ok:
             save_performance_data(performance_data)
-            backup_performance_file()
+            backup_performance_yaml()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
         if not sys.stdin.isatty():
             break
@@ -1713,7 +1768,7 @@ if __name__ == "__main__":
             run_topic(args.cli_question_topic, questions_to_study, performance_data)
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             sys.exit(0) # Exit after processing the single question
         else:
             print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)
