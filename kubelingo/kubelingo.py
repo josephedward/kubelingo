@@ -17,6 +17,7 @@ from kubelingo.utils import (
     USER_DATA_DIR,
     MISSED_QUESTIONS_FILE,
     ensure_user_data_dir,
+    backup_performance_yaml,
 )
 from kubelingo.validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
 import kubelingo.source_manager as sm
@@ -1608,7 +1609,7 @@ def run_topic(topic, questions_to_study, performance_data):
 @click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
 @click.pass_context
-def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
+def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
         clean_manifest, manifest_file):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
@@ -1722,22 +1723,22 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
         if topic_info is None or topic_info[0] is None:
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             break
         
         selected_topic, num_to_study, questions_to_study = topic_info
         
         if perf_loaded_ok:
-            backup_performance_file()
+            backup_performance_yaml()
         run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
         if run_topic_result == 'quit_app':
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             sys.exit(0) # Exit application if run_topic signals quit
         if perf_loaded_ok:
             save_performance_data(performance_data)
-            backup_performance_file()
+            backup_performance_yaml()
         # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
         if not sys.stdin.isatty():
             break
@@ -1767,7 +1768,7 @@ if __name__ == "__main__":
             run_topic(args.cli_question_topic, questions_to_study, performance_data)
             if perf_loaded_ok:
                 save_performance_data(performance_data)
-                backup_performance_file()
+                backup_performance_yaml()
             sys.exit(0) # Exit after processing the single question
         else:
             print(f"Error: Topic '{args.cli_question_topic}' not found or has no questions.", file=sys.stderr)
