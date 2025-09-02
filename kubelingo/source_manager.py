@@ -467,37 +467,7 @@ def cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=False):
 
 # --- Source Management ---
 
-def assign_source(question_dict, topic, Fore=Fore, Style=Style):
-    """
-    Searches for and assigns a source URL to a question if it's missing.
-    Uses googlesearch if available.
-    """
-    if 'source' in question_dict and question_dict['source']:
-        return False # Source already exists
 
-    if not search:
-        # googlesearch library not installed or AI disabled
-        # Print a warning when googlesearch is unavailable
-        print(f"{Fore.YELLOW}  - Warning: 'googlesearch' library not installed. Cannot automatically find a source.{Style.RESET_ALL}\n")
-        return False
-
-    search_query = f"kubernetes {question_dict['question'].splitlines()[0].strip()}"
-    try:
-        # Attempt to search for a source URL
-        # Attempt to search for a source URL
-        search_results = list(search(search_query, num_results=1))
-        if search_results:
-            source_url = search_results[0]
-            question_dict['source'] = source_url
-            print(f"  {Fore.GREEN}- Found and assigned source: {source_url}{Style.RESET_ALL}")
-            return True
-        else:
-            print(f"{Fore.YELLOW}  - Warning: Could not find a source for the generated question.{Style.RESET_ALL}")
-            return False
-    except Exception as e:
-        # On any error, bail out with a single informative message
-        print(f"Note: Could not find source for a question (AI disabled or search error: {e}).")
-        return False
 
 
 # --- Audit and Maintenance ---
