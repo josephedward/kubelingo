@@ -1,4 +1,5 @@
 import os
+import kubelingo.utils as _utils
 import sys
 import getpass
 import random
@@ -7,8 +8,17 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR, manifests_equivalent
-from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
+from kubelingo.utils import (
+    load_questions,
+    get_normalized_question_text,
+    remove_question_from_corpus,
+    _get_llm_model,
+    QUESTIONS_DIR,
+    USER_DATA_DIR,
+    MISSED_QUESTIONS_FILE,
+    ensure_user_data_dir,
+)
+from kubelingo.validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
 import kubelingo.source_manager as sm
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
@@ -246,7 +256,7 @@ def ensure_misc_dir():
 def load_performance_data():
     """Load performance data and return a tuple of (data, loaded_status)"""
     """Loads performance data from the user data directory."""
-    ensure_user_data_dir()
+    _utils.ensure_user_data_dir()
     if not os.path.exists(PERFORMANCE_FILE):
         # If file doesn't exist, initialize with empty dict and save
         with open(PERFORMANCE_FILE, 'w') as f_init:
@@ -1664,9 +1674,10 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     # if check_sources:
     #     sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
     #     return
+    # # interactive_sources flag handling removed, call to cmd_interactive_sources disabled
     # if interactive_sources:
-        sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
-        return
+    #     sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
+    #     return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
     statuses = test_api_keys()
