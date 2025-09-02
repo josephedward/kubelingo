@@ -1,0 +1,79 @@
+questions:
+- question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
+    'db.example.com'.
+  suggestion:
+  - kubectl create configmap app-config --from-literal=LOG_LEVEL=db.example.com
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-config
+    data:
+      LOG_LEVEL: db.example.com
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    name: app-config
+    data:
+      LOG_LEVEL: db.example.com
+- question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
+    'DEBUG'.
+  suggestion:
+  - kubectl create configmap app-config --from-literal=LOG_LEVEL=DEBUG
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-config
+    data:
+      LOG_LEVEL: DEBUG
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    name: app-config
+    data:
+      LOG_LEVEL: DEBUG
+- question: Create a ConfigMap named 'db-config' with data key 'LOG_LEVEL' set to
+    'DEBUG'.
+  suggestion:
+  - kubectl create configmap db-config --from-literal=LOG_LEVEL=DEBUG
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: db-config
+    data:
+      LOG_LEVEL: DEBUG
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    name: db-config
+    data:
+      LOG_LEVEL: DEBUG
+- question: Create a ConfigMap named 'db-config' with data key 'DB_HOST' set to 'DEBUG'.
+  suggestion:
+  - kubectl create configmap db-config --from-literal=DB_HOST=DEBUG
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: db-config
+    data:
+      DB_HOST: DEBUG
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    name: db-config
+    data:
+      DB_HOST: DEBUG
+- question: Create a ConfigMap named 'app-config' with data key 'DB_HOST' set to 'db.example.com'.
+  suggestion:
+  - kubectl create configmap app-config --from-literal=DB_HOST=db.example.com
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-config
+    data:
+      DB_HOST: db.example.com
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    name: app-config
+    data:
+      DB_HOST: db.example.com
