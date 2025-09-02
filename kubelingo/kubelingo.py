@@ -1587,6 +1587,10 @@ def run_topic(topic, questions_to_study, performance_data):
     return
 
 @click.command()
+@click.option('--generate-kind', 'gen_kind', type=str,
+              help='Generate new questions of the specified KIND (pod, deployment, service, pvc, configmap, secret, job).')
+@click.option('--generate-count', 'gen_count', type=int, default=1,
+              help='Number of questions to generate (default: 1).')
 @click.option('--add-sources', 'add_sources', is_flag=True, default=False,
               help='Add missing sources from a consolidated YAML file.')
 @click.option('--consolidated', 'consolidated', type=click.Path(), default=None,
@@ -1609,6 +1613,32 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
+
+    # Handle static question generation
+    if gen_kind:
+        try:
+            from kubelingo.question_generator import generate_questions
+            # Ensure questions directory exists
+            os.makedirs(QUESTIONS_DIR, exist_ok=True)
+            # Generate questions
+            new_qs = generate_questions(gen_kind, gen_count)
+            # File to append into
+            out_file = os.path.join(QUESTIONS_DIR, f"{gen_kind}.yaml")
+            data = {'questions': []}
+            if os.path.exists(out_file):
+                try:
+                    data = yaml.safe_load(open(out_file)) or {'questions': []}
+                except Exception:
+                    data = {'questions': []}
+            # Append and save
+            data.setdefault('questions', [])
+            data['questions'].extend(new_qs)
+            with open(out_file, 'w') as f:
+                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+            print(f"Generated {len(new_qs)} questions for kind '{gen_kind}' -> {out_file}")
+        except Exception as e:
+            print(f"Error generating questions: {e}")
+        return
 
     # # Handle manifest cleaning mode
     # if clean_manifest:
