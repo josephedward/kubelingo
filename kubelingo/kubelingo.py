@@ -1536,58 +1536,52 @@ def run_topic(topic, questions_to_study, performance_data):
             save_performance_data(performance_data)
 
         # Post-answer menu loop
+        # Post-answer menu - use question_manager for actions
+        import kubelingo.question_manager as qm
         while True:
-            print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Question {session.current_question_index + 1}/{len(session.questions_in_session)} ---" + Style.RESET_ALL)
-            # Prompt user for post-answer action
-            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Options: [n]ext, [b]ack, [i]ssue, [s]ource, [r]etry, [c]onfigure, [q]quit: {Style.RESET_ALL}").strip().lower()
-
-            if choice == 'n':
+            qm.show_menu()
+            choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter choice: {Style.RESET_ALL}").strip().upper()
+            if choice == 'F' or choice == 'N':  # Forward/Next
                 next_q = session.next_question()
                 if next_q is None:
-                    return # Session complete
-                break # Exit post-answer menu, go to next question
-            elif choice == 'b':
+                    return  # Session complete
+                break
+            elif choice == 'B':  # Backward
                 prev_q = session.previous_question()
                 if prev_q:
-                    print(f"{Fore.GREEN}Going back to the previous question.{Style.RESET_ALL}")
-                    break # Break to re-render the previous question
+                    print(f"{Fore.GREEN}Returning to previous question.{Style.RESET_ALL}")
+                    break
                 else:
-                    print(f"{Fore.YELLOW}Already at the first question or no history.{Style.RESET_ALL}")
-            elif choice == 'i':
-                # Mark question as problematic and remove from corpus
-                im.create_issue(q, question_topic_context)
-                remove_question_from_corpus(q, question_topic_context)
-                # Also remove from current session's questions list to prevent it from being asked again
-                # This requires modifying the 'questions' list in the run_topic scope.
-                # For now, I'll just print a message.
-                print(f"{Fore.YELLOW}Question removed from current session. It will not be asked again in this session.{Style.RESET_ALL}")
-                input("Press Enter to continue...")
-            elif choice == 's':
-                # Display source for the question
-                if 'source' in q:
-                    try:
-                        import webbrowser
-                        print(f"{Fore.CYAN}Opening source in your browser: {q['source']}{Style.RESET_ALL}")
-                        webbrowser.open(q['source'])
-                    except Exception as e:
-                        print(f"{Fore.RED}Could not open browser: {e}{Style.RESET_ALL}")
-                else:
-                    print(f"{Fore.YELLOW}No source available for this question.{Style.RESET_ALL}")
-                input("Press Enter to continue...")
-            elif choice == 'r':
+                    print(f"{Fore.YELLOW}No previous question.{Style.RESET_ALL}")
+            elif choice == 'C':  # Correct
+                qm.mark_correct(session, q, performance_data, get_normalized_question_text)
+            elif choice == 'I':  # Incorrect
+                qm.mark_incorrect(q, topic)
+            elif choice == 'R':  # Revisit
+                qm.mark_revisit(q, topic)
+            elif choice == 'D':  # Delete
+                qm.mark_delete(q, topic)
+                # Remove from current session
+                try:
+                    session.questions_in_session.remove(q)
+                except ValueError:
+                    pass
+                return  # Exit after deletion
+            elif choice == 'V':  # Visit source
+                qm.open_source(q)
+            elif choice == 'A':  # Again (retry)
                 session.add_to_retry_queue(q)
-                print(f"{Fore.GREEN}Question added to retry queue.{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}Added to retry queue.{Style.RESET_ALL}")
                 next_q = session.next_question()
                 if next_q is None:
-                    return # Session complete
-                break # Exit post-answer menu
-            elif choice == 'c':
-                # Go to configuration menu
+                    return
+                break
+            elif choice == 'S':  # Settings
                 handle_config_menu()
-            elif choice == 'q':
-                return 'quit_app' # Signal to quit application
+            elif choice == 'Q':  # Quit
+                return 'quit_app'
             else:
-                print(f"{Fore.RED}Invalid choice. Please try again.{Style.RESET_ALL}")
+                print(f"{Fore.RED}Invalid choice '{choice}'. Please try again.{Style.RESET_ALL}")
 
     # No final session menu: simply return to main menu after completion
     return
