@@ -1,3 +1,4 @@
+
 import os
 import sys
 import requests
@@ -390,3 +391,54 @@ def validate_manifest(manifest_content):
 #                 os.unlink(tmp_path)
 #             except Exception:
 #                 pass
+# --- kubectl dry-run validators ----------------------------------------------
+# def validate_manifest_with_kubectl_dry_run(manifest: str):
+#     """Dry-run a Kubernetes manifest via kubectl to check validity."""
+#     # Quick skip for non-Kubernetes manifests
+#     skip_msg = 'Skipping kubectl dry-run: Not a Kubernetes YAML manifest.'
+#     if not any(k in manifest for k in ('apiVersion:', 'kind:', 'metadata:')):
+#         return False, skip_msg, f'Skipped: {skip_msg.split(": ",1)[1]}'
+#     import tempfile, subprocess, os
+#     tmp = tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False)
+#     try:
+#         tmp.write(manifest)
+#         tmp.flush()
+#         tmp.close()
+#         cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', tmp.name]
+#         try:
+#             proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+#         except FileNotFoundError:
+#             return False, "Error: 'kubectl' command not found.", "kubectl not found"
+#         if proc.returncode == 0:
+#             return True, 'kubectl dry-run successful!', proc.stdout.strip()
+#         return False, 'kubectl dry-run failed. Please check your manifest.', proc.stderr or proc.stdout
+#     finally:
+#         try:
+#             os.unlink(tmp.name)
+#         except Exception:
+#             pass
+
+# def validate_kubectl_command_dry_run(command_string: str):
+#     """Dry-run a kubectl command via kubectl to check validity."""
+#     import subprocess
+#     parts = command_string.strip().split()
+#     skip_msg = 'Skipping kubectl dry-run: Command type not typically dry-runnable client-side.'
+#     if not parts or parts[0] != 'kubectl' or len(parts) < 2:
+#         return True, skip_msg, f'Skipped: {skip_msg.split(": ",1)[1]}'
+#     cmd_type = parts[1]
+#     if cmd_type in ('get', 'describe', 'logs', 'version', 'wait'):
+#         return True, skip_msg, f'Skipped: {skip_msg.split(": ",1)[1]}'
+#     cmd = parts.copy()
+#     # Ensure dry-run flag
+#     if not any(p.startswith('--dry-run') for p in cmd):
+#         cmd.append('--dry-run=client')
+#     # Ensure output flag
+#     if not any(p in ('-o', '--output') for p in cmd):
+#         cmd.extend(['-o', 'yaml'])
+#     try:
+#         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+#     except FileNotFoundError:
+#         return False, "Error: 'kubectl' command not found.", "kubectl not found"
+#     if proc.returncode == 0:
+#         return True, 'kubectl dry-run successful!', proc.stdout.strip()
+#     return False, 'kubectl dry-run failed. Please check your command syntax.', proc.stderr or proc.stdout
