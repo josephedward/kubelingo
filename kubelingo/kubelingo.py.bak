@@ -7,9 +7,10 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
-from kubelingo.utils import load_questions, get_normalized_question_text, remove_question_from_corpus, _get_llm_model, QUESTIONS_DIR, manifests_equivalent
-from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run
-import kubelingo.source_manager as sm
+from kubelingo.utils import (load_questions, get_normalized_question_text, remove_question_from_corpus, 
+                             _get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, MISSED_QUESTIONS_FILE, ISSUES_FILE, PERFORMANCE_FILE)
+from kubelingo.validation import validate_manifest_with_llm, validate_manifest, validate_manifest_with_kubectl_dry_run, validate_kubectl_command_dry_run, manifests_equivalent
+import kubelingo.question_generator as qg
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
 
@@ -191,7 +192,7 @@ KKKKKKKKK    KKKKKKK    uuuuuuuu  uuuu bbbbbbbbbbbbbbbb       eeeeeeeeeeeeee  ll
                                                                                                                     ggg::::::ggg
                                                                                                                        gggggg                    """
 
-USER_DATA_DIR = "user_data"
+
 
 def colorize_yaml(yaml_string):
     """Syntax highlights a YAML string."""
@@ -1113,14 +1114,13 @@ def list_and_select_topic(performance_data):
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
 
-                if total_questions == 0:
-                    print("This topic has no questions.")
-                    continue # Go back to topic selection
+                if total_questions == 0 and not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
+                    print("This topic has no questions and no API key is set to generate them.")
+                    continue
 
                 topic_perf = performance_data.get(selected_topic, {})
                 correct_questions_data = topic_perf.get('correct_questions', [])
                 correct_questions_normalized = set(correct_questions_data if correct_questions_data is not None else [])
-                # Track how many have been answered correctly for generation logic
                 num_correct = len(correct_questions_data)
 
                 incomplete_questions = [
@@ -1129,62 +1129,47 @@ def list_and_select_topic(performance_data):
                 ]
                 num_incomplete = len(incomplete_questions)
 
-                questions_to_study_list = all_questions  # Default to all questions
-                # Determine default total to study: incomplete if any, otherwise full set
-                current_total_questions = num_incomplete if num_incomplete > 0 else total_questions
+                # Determine if generation is a primary option
+                can_generate = (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
+                percent_correct = (num_correct / total_questions) * 100 if total_questions > 0 else 0
 
-                # Single prompt for number of questions to study
-                percent_correct = (num_correct / total_questions) * 100
+                # Build the prompt for user
+                prompt_parts = []
                 if num_incomplete > 0:
-                    prompt_suffix = f"i for incomplete ({num_incomplete})"
-                else:
-                    prompt_suffix = f"1-{total_questions}"
-                # if percent_correct == 100:
-                #     prompt_suffix += ", g to generate new question, s to search for a new question"
-                dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
-                inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
-                dbg(f"User input received: {inp}")
+                    prompt_parts.append(f"i for incomplete ({num_incomplete})")
+                elif total_questions > 0:
+                     prompt_parts.append(f"1-{total_questions}")
+
+                if can_generate:
+                    prompt_parts.append("g to generate a new question")
+
+                prompt_suffix = ', '.join(prompt_parts)
+                
+                inp = input(f"Enter number of questions to study ({prompt_suffix}), or Enter for all: ").strip().lower()
+                
                 if inp == 'i' and num_incomplete > 0:
-                    questions_to_study_list = incomplete_questions
-                    num_to_study = num_incomplete
-                # elif inp == 'g' and percent_correct == 100:
-                #     # Generate a new question via LLM/tool
-                #     new_q = sm.generate_more_questions(
-                #         selected_topic,
-                #         questions_to_study_list[0],
-                #         _get_llm_model,
-                #         QUESTIONS_DIR,
-                #         Fore,
-                #         Style,
-                #         load_questions,
-                #         get_normalized_question_text
-                #     )
-                #     if new_q:
-                #         questions_to_study_list.append(new_q)
-                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
-                #     num_to_study = len(questions_to_study_list)
-                # elif inp == 's' and percent_correct == 100:
-                #     # Alias for search/generation fallback
-                #     new_q = sm.generate_more_questions(
-                #         selected_topic,
-                #         questions_to_study_list[0],
-                #         _get_llm_model,
-                #         QUESTIONS_DIR,
-                #         Fore,
-                #         Style,
-                #         load_questions,
-                #         get_normalized_question_text
-                #     )
-                #     if new_q:
-                #         questions_to_study_list.append(new_q)
-                #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
-                #     num_to_study = len(questions_to_study_list)
+                    return selected_topic, num_incomplete, incomplete_questions
+                
+                elif inp == 'g' and can_generate:
+                    new_q = qg.generate_more_questions(selected_topic)
+                    if new_q:
+                        all_questions.append(new_q)
+                        save_questions_to_topic_file(selected_topic, all_questions)
+                        print(f"{Fore.GREEN}New question added to '{selected_topic}.yaml'. Returning to menu.{Style.RESET_ALL}")
+                        time.sleep(2)
+                    # Always continue to the main menu to show the refreshed topic list
+                    continue
+
                 elif inp.isdigit():
                     n = int(inp)
                     num_to_study = n if 1 <= n <= total_questions else total_questions
-                else:
-                    num_to_study = total_questions
-                return selected_topic, num_to_study, questions_to_study_list
+                    questions_to_study_list = incomplete_questions if num_incomplete > 0 else all_questions
+                    return selected_topic, num_to_study, questions_to_study_list
+                
+                else: # Default to all (or all incomplete)
+                    questions_to_study_list = incomplete_questions if num_incomplete > 0 else all_questions
+                    num_to_study = len(questions_to_study_list)
+                    return selected_topic, num_to_study, questions_to_study_list
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
@@ -1192,6 +1177,7 @@ def list_and_select_topic(performance_data):
         except (KeyboardInterrupt, EOFError):
             print("\n\nStudy session ended. Goodbye!")
             return None, None, None
+
 
 _CLI_ANSWER_OVERRIDE = None # Global variable to hold the CLI provided answer
 
@@ -1284,20 +1270,14 @@ def run_topic(topic, questions_to_study, performance_data):
         # Clear screen before displaying question
         os.system('cls' if os.name == 'nt' else 'clear')
 
-        # Display the current question
+        # Display the current question and prompt once
         print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         print(q['question'], flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
-        dbg("Before suggestion or input prompt")
-        # Auto-show solution on first display to avoid hanging on blank input
-        if not suggestion_shown_for_current_question:
-            special_action = 'solution'
-            user_commands = []
-        else:
-            user_commands, special_action = get_user_input(allow_solution_command=True)
-        dbg(f"After suggestion/input: user_commands={user_commands}, special_action={special_action}")
-        # If still no action, skip to next iteration
+        dbg("Before get_user_input")
+        user_commands, special_action = get_user_input(allow_solution_command=not suggestion_shown_for_current_question)
+        dbg(f"After get_user_input: user_commands={user_commands}, special_action={special_action}")
         if not user_commands and special_action is None:
             continue
 
@@ -1555,23 +1535,31 @@ def run_topic(topic, questions_to_study, performance_data):
               help='Interactively search and assign sources to questions.')
 @click.option('--auto-approve', 'auto_approve', is_flag=True, default=False,
               help='Auto-approve the first search result (use with --interactive-sources).')
+@click.option('--audit-questions', 'audit_questions', is_flag=True, default=False,
+                help='Audit all question files for standard format and exit.')
 @click.pass_context
-def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve):
+def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
+
+    # Handle audit mode
+    if audit_questions:
+        qg.audit_question_files()
+        sys.exit(0)
+
     # Handle source management modes
     if add_sources:
         if not consolidated:
             click.echo("Error: --consolidated PATH is required with --add-sources.")
             sys.exit(1)
-        sm.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
+        qg.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
         return
     if check_sources:
-        sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
+        qg.cmd_check_sources(questions_dir=QUESTIONS_DIR)
         return
     if interactive_sources:
-        sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
+        qg.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
