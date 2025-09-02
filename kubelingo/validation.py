@@ -237,8 +237,8 @@ def validate_manifest(manifest_content):
     Validate a Kubernetes manifest string using external tools with configurable levels.
     Returns a tuple: (success: bool, summary: str, details: str)."""
     config = dotenv_values(".env")
-    validation_level = config.get("KUBELINGO_VALIDATION_LEVEL", "moderate").lower()
-    
+    validation_level = config.get("KUBELINGO_VALIDATION_LEVEL", "permissive").lower()
+
     # Define validation tools by level
     validation_tools = {
         "permissive": [
@@ -261,7 +261,7 @@ def validate_manifest(manifest_content):
              "Scanning for security vulnerabilities with Trivy")
         ]
     }
-    
+
     validators = validation_tools.get(validation_level, validation_tools["moderate"])
     overall = True
     detail_lines = []
@@ -288,105 +288,105 @@ def validate_manifest(manifest_content):
     summary = f"{Fore.GREEN}All validations passed!{Style.RESET_ALL}" if overall else f"{Fore.RED}Validation failed.{Style.RESET_ALL}"
     return overall, summary, "\n".join(detail_lines)
 
-def validate_manifest_with_kubectl_dry_run(manifest):
-    """Validate a manifest with kubectl dry-run."""
-    # Skip dry-run for non-Kubernetes manifests (missing apiVersion or kind)
-    try:
-        data = yaml.safe_load(manifest)
-        if not isinstance(data, dict) or 'apiVersion' not in data or 'kind' not in data:
-            return False, "Skipping kubectl dry-run: Not a Kubernetes YAML manifest.", "Skipped: Not a Kubernetes YAML manifest."
-    except yaml.YAMLError:
-        return False, "Skipping kubectl dry-run: Not a Kubernetes YAML manifest.", "Skipped: Not a Kubernetes YAML manifest."
-    import tempfile
-    import os
-    tmp_path = None
-    success = False
-    feedback = ''
-    ai_feedback = ''
-    try:
-        # Write manifest to a temporary file
-        with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tmp:
-            tmp.write(manifest)
-            tmp_path = tmp.name
-        # Run kubectl server-side dry-run
-        result = subprocess.run(
-            ["kubectl", "apply", "--dry-run=server", "-f", tmp_path],
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        if result.returncode == 0:
-            success = True
-            feedback = "kubectl dry-run successful!"
-            ai_feedback = result.stdout
-        else:
-            success = False
-            feedback = "kubectl dry-run failed. Please check your manifest."
-            ai_feedback = result.stderr
-    except FileNotFoundError:
-        # kubectl not found
-        success = False
-        feedback = "Error: 'kubectl' command not found."
-        ai_feedback = "kubectl not found"
-    except Exception as e:
-        success = False
-        feedback = "Validation error"
-        ai_feedback = str(e)
-    finally:
-        # Clean up temporary file if created
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
-    return success, feedback, ai_feedback
+# def validate_manifest_with_kubectl_dry_run(manifest):
+#     """Validate a manifest with kubectl dry-run."""
+#     # Skip dry-run for non-Kubernetes manifests (missing apiVersion or kind)
+#     try:
+#         data = yaml.safe_load(manifest)
+#         if not isinstance(data, dict) or 'apiVersion' not in data or 'kind' not in data:
+#             return False, "Skipping kubectl dry-run: Not a Kubernetes YAML manifest.", "Skipped: Not a Kubernetes YAML manifest."
+#     except yaml.YAMLError:
+#         return False, "Skipping kubectl dry-run: Not a Kubernetes YAML manifest.", "Skipped: Not a Kubernetes YAML manifest."
+#     import tempfile
+#     import os
+#     tmp_path = None
+#     success = False
+#     feedback = ''
+#     ai_feedback = ''
+#     try:
+#         # Write manifest to a temporary file
+#         with tempfile.NamedTemporaryFile(mode='w+', suffix='.yaml', delete=False) as tmp:
+#             tmp.write(manifest)
+#             tmp_path = tmp.name
+#         # Run kubectl server-side dry-run
+#         result = subprocess.run(
+#             ["kubectl", "apply", "--dry-run=server", "-f", tmp_path],
+#             capture_output=True,
+#             text=True,
+#             check=False
+#         )
+#         if result.returncode == 0:
+#             success = True
+#             feedback = "kubectl dry-run successful!"
+#             ai_feedback = result.stdout
+#         else:
+#             success = False
+#             feedback = "kubectl dry-run failed. Please check your manifest."
+#             ai_feedback = result.stderr
+#     except FileNotFoundError:
+#         # kubectl not found
+#         success = False
+#         feedback = "Error: 'kubectl' command not found."
+#         ai_feedback = "kubectl not found"
+#     except Exception as e:
+#         success = False
+#         feedback = "Validation error"
+#         ai_feedback = str(e)
+#     finally:
+#         # Clean up temporary file if created
+#         if tmp_path:
+#             try:
+#                 os.unlink(tmp_path)
+#             except Exception:
+#                 pass
+#     return success, feedback, ai_feedback
 
-def validate_kubectl_command_dry_run(command_string):
-    """Validate a kubectl command with client-side dry-run."""
-    import tempfile, os
-    tmp_path = None
-    try:
-        # Extract command parts and insert dry-run flag for create/apply/run
-        parts = command_string.split()
-        if any(cmd in parts for cmd in ("create", "apply", "run")):
-            if not any(p.startswith("--dry-run") for p in parts):
-                # Insert dry-run flag after the image flag if present, else at end
-                insert_index = None
-                for idx, p in enumerate(parts):
-                    if p.startswith("--image") or p == "--image":
-                        insert_index = idx + 1
-                if insert_index is None:
-                    insert_index = len(parts)
-                parts.insert(insert_index, "--dry-run=client")
-        else:
-            msg = "Command type not typically dry-runnable client-side."
-            return True, f"Skipping kubectl dry-run: {msg}", f"Skipped: {msg}"
-        # Append default output format if not already specified
-        if not any(p == "-o" or p.startswith("--output") for p in parts):
-            parts += ["-o", "yaml"]
-        # Create a temp file to satisfy test cleanup expectations
-        tmp = tempfile.NamedTemporaryFile(mode='w+', suffix='.tmp', delete=False)
-        tmp_path = tmp.name
-        tmp.close()
-        # Execute the dry-run command
-        result = subprocess.run(
-            parts,
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        if result.returncode == 0:
-            return True, "kubectl dry-run successful!", result.stdout
-        return False, "kubectl dry-run failed. Please check your command syntax.", result.stderr
-    except FileNotFoundError:
-        # kubectl or related binary not found
-        return False, "Error: 'kubectl' command not found.", "kubectl not found"
-    except Exception as e:
-        return False, "Validation error", str(e)
-    finally:
-        # Clean up temporary file if created
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
+# def validate_kubectl_command_dry_run(command_string):
+#     """Validate a kubectl command with client-side dry-run."""
+#     import tempfile, os
+#     tmp_path = None
+#     try:
+#         # Extract command parts and insert dry-run flag for create/apply/run
+#         parts = command_string.split()
+#         if any(cmd in parts for cmd in ("create", "apply", "run")):
+#             if not any(p.startswith("--dry-run") for p in parts):
+#                 # Insert dry-run flag after the image flag if present, else at end
+#                 insert_index = None
+#                 for idx, p in enumerate(parts):
+#                     if p.startswith("--image") or p == "--image":
+#                         insert_index = idx + 1
+#                 if insert_index is None:
+#                     insert_index = len(parts)
+#                 parts.insert(insert_index, "--dry-run=client")
+#         else:
+#             msg = "Command type not typically dry-runnable client-side."
+#             return True, f"Skipping kubectl dry-run: {msg}", f"Skipped: {msg}"
+#         # Append default output format if not already specified
+#         if not any(p == "-o" or p.startswith("--output") for p in parts):
+#             parts += ["-o", "yaml"]
+#         # Create a temp file to satisfy test cleanup expectations
+#         tmp = tempfile.NamedTemporaryFile(mode='w+', suffix='.tmp', delete=False)
+#         tmp_path = tmp.name
+#         tmp.close()
+#         # Execute the dry-run command
+#         result = subprocess.run(
+#             parts,
+#             capture_output=True,
+#             text=True,
+#             check=False
+#         )
+#         if result.returncode == 0:
+#             return True, "kubectl dry-run successful!", result.stdout
+#         return False, "kubectl dry-run failed. Please check your command syntax.", result.stderr
+#     except FileNotFoundError:
+#         # kubectl or related binary not found
+#         return False, "Error: 'kubectl' command not found.", "kubectl not found"
+#     except Exception as e:
+#         return False, "Validation error", str(e)
+#     finally:
+#         # Clean up temporary file if created
+#         if tmp_path:
+#             try:
+#                 os.unlink(tmp_path)
+#             except Exception:
+#                 pass
