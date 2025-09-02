@@ -482,8 +482,6 @@ def update_question_source_in_yaml(topic, updated_question):
         else:
             print(f"Warning: Question '{updated_question['question']}' not found in {topic}.yaml. Source not updated.")
 
-
-
 def load_questions_from_list(list_file):
     """Loads questions from a specified list file."""
     if not os.path.exists(list_file):
@@ -1608,65 +1606,65 @@ def cli(ctx, add_sources, consolidated, check_sources, interactive_sources, auto
     # Load environment variables from .env file
     load_dotenv()
 
-    # Handle manifest cleaning mode
-    if clean_manifest:
-        content = ''
-        if manifest_file:
-            try:
-                with open(manifest_file, 'r') as mf:
-                    content = mf.read()
-            except Exception as e:
-                click.echo(f"Error reading manifest file: {e}", err=True)
-                sys.exit(1)
-        else:
-            # Read from stdin
-            content = sys.stdin.read()
-        content = content.strip()
-        if not content:
-            click.echo("Error: No manifest content provided to clean.", err=True)
-            sys.exit(1)
-        # Optionally validate YAML syntax and schema first
-        try:
-            from kubelingo.validation import validate_manifest
-            ok, summary, details = validate_manifest(content)
-            click.echo(summary)
-            if details:
-                click.echo(details)
-        except Exception:
-            # proceed even if validation tools are not available
-            pass
-        # Run kubectl apply --dry-run=client to normalize
-        cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', '-']
-        try:
-            proc = subprocess.run(cmd, input=content, capture_output=True, text=True, check=True)
-            click.echo(proc.stdout)
-            sys.exit(0)
-        except subprocess.CalledProcessError as e:
-            err = e.stderr.strip() or e.stdout.strip()
-            click.echo(f"Error cleaning manifest: {err}", err=True)
-            sys.exit(e.returncode)
-        except FileNotFoundError:
-            click.echo("Error: 'kubectl' not found in PATH. Cannot clean manifest.", err=True)
-            sys.exit(1)
-        # unreachable
-        return
+    # # Handle manifest cleaning mode
+    # if clean_manifest:
+    #     content = ''
+    #     if manifest_file:
+    #         try:
+    #             with open(manifest_file, 'r') as mf:
+    #                 content = mf.read()
+    #         except Exception as e:
+    #             click.echo(f"Error reading manifest file: {e}", err=True)
+    #             sys.exit(1)
+    #     else:
+    #         # Read from stdin
+    #         content = sys.stdin.read()
+    #     content = content.strip()
+    #     if not content:
+    #         click.echo("Error: No manifest content provided to clean.", err=True)
+    #         sys.exit(1)
+    #     # Optionally validate YAML syntax and schema first
+    #     try:
+    #         from kubelingo.validation import validate_manifest
+    #         ok, summary, details = validate_manifest(content)
+    #         click.echo(summary)
+    #         if details:
+    #             click.echo(details)
+    #     except Exception:
+    #         # proceed even if validation tools are not available
+    #         pass
+    #     # Run kubectl apply --dry-run=client to normalize
+    #     cmd = ['kubectl', 'apply', '--dry-run=client', '-o', 'yaml', '-f', '-']
+    #     try:
+    #         proc = subprocess.run(cmd, input=content, capture_output=True, text=True, check=True)
+    #         click.echo(proc.stdout)
+    #         sys.exit(0)
+    #     except subprocess.CalledProcessError as e:
+    #         err = e.stderr.strip() or e.stdout.strip()
+    #         click.echo(f"Error cleaning manifest: {err}", err=True)
+    #         sys.exit(e.returncode)
+    #     except FileNotFoundError:
+    #         click.echo("Error: 'kubectl' not found in PATH. Cannot clean manifest.", err=True)
+    #         sys.exit(1)
+    #     # unreachable
+    #     return
 
-    # Handle audit mode
-    if audit_questions:
-        qg.audit_question_files()
-        sys.exit(0)
+    # # Handle audit mode
+    # if audit_questions:
+    #     qg.audit_question_files()
+    #     sys.exit(0)
 
-    # Handle source management modes
-    if add_sources:
-        if not consolidated:
-            click.echo("Error: --consolidated PATH is required with --add-sources.")
-            sys.exit(1)
-        sm.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
-        return
-    if check_sources:
-        sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
-        return
-    if interactive_sources:
+    # # Handle source management modes
+    # if add_sources:
+    #     if not consolidated:
+    #         click.echo("Error: --consolidated PATH is required with --add-sources.")
+    #         sys.exit(1)
+    #     sm.cmd_add_sources(consolidated, questions_dir=QUESTIONS_DIR)
+    #     return
+    # if check_sources:
+    #     sm.cmd_check_sources(questions_dir=QUESTIONS_DIR)
+    #     return
+    # if interactive_sources:
         sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
         return
     colorama_init(autoreset=True)
