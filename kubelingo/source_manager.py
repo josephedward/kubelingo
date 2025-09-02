@@ -40,6 +40,20 @@ class MissingFieldsError(GenerationError):
 class LLMGenerationError(GenerationError):
     """Raised when the LLM fails to generate a valid question."""
     pass
+    
+# Static mapping of Kubernetes resource kinds to official documentation URLs
+QUESTION_SOURCES = {
+    "Pod": "https://kubernetes.io/docs/concepts/workloads/pods/",
+    "Deployment": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+    "Service": "https://kubernetes.io/docs/concepts/services-networking/service/",
+    "PersistentVolumeClaim": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "ConfigMap": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+    "Secret": "https://kubernetes.io/docs/concepts/configuration/secret/",
+    "Job": "https://kubernetes.io/docs/concepts/workloads/controllers/job/",
+}
+def get_source_for_kind(kind: str) -> str:
+    """Return the official Kubernetes documentation URL for a given resource kind."""
+    return QUESTION_SOURCES.get(kind, "https://kubernetes.io/docs/")
 
 
 # --- Main Generation Orchestrator ---
