@@ -1,0 +1,56 @@
+questions:
+- question: Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'.
+  suggestion:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: main
+    spec:
+      nodeSelector:
+        disktype: ssd
+      containers:
+      - name: nginx
+        image: nginx
+  source: /search?num=3
+- question: Deployment manifest with nodeSelector disktype=ssd.
+  suggestion:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: app
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: scheduled
+      template:
+        metadata:
+          labels:
+            app: scheduled
+        spec:
+          nodeSelector:
+            disktype: ssd
+          containers:
+          - name: nginx
+            image: nginx
+  source: /search?num=3
+- question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
+  suggestion:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: app
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+        - sh
+        - -c
+        - sleep 3600
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: ml
+        effect: NoSchedule
+  source: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/

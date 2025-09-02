@@ -1,0 +1,82 @@
+questions:
+- question: Create a Pod named 'cache-server' that runs a container with the image
+    'nginx:1.20'.
+  suggestion:
+  - kubectl run cache-server --image=nginx:1.20
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: cache-server
+    spec:
+      containers:
+      - name: cache-server
+        image: nginx:1.20
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+  requirements:
+    kind: Pod
+    name: cache-server
+    image: nginx:1.20
+- question: Create a Pod named 'web-server' that runs a container with the image 'mysql:5.7'.
+  suggestion:
+  - kubectl run web-server --image=mysql:5.7
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: web-server
+    spec:
+      containers:
+      - name: web-server
+        image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+  requirements:
+    kind: Pod
+    name: web-server
+    image: mysql:5.7
+- question: Create a Pod named 'db-pod' that runs a container with the image 'mysql:5.7'.
+  suggestion:
+  - kubectl run db-pod --image=mysql:5.7
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: db-pod
+    spec:
+      containers:
+      - name: db-pod
+        image: mysql:5.7
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+  requirements:
+    kind: Pod
+    name: db-pod
+    image: mysql:5.7
+- question: Create a Pod named 'web-server' that runs a container with the image 'nginx:1.20'.
+  suggestion:
+  - kubectl run web-server --image=nginx:1.20
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: web-server
+    spec:
+      containers:
+      - name: web-server
+        image: nginx:1.20
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+  requirements:
+    kind: Pod
+    name: web-server
+    image: nginx:1.20
+- question: Create a Pod named 'db-pod' that runs a container with the image 'redis:6.2'.
+  suggestion:
+  - kubectl run db-pod --image=redis:6.2
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: db-pod
+    spec:
+      containers:
+      - name: db-pod
+        image: redis:6.2
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+  requirements:
+    kind: Pod
+    name: db-pod
+    image: redis:6.2

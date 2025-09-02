@@ -1,0 +1,607 @@
+- issue: this should be considered correct, all values in this question are example
+    placeholders
+  question: Create the objects defined in all files within a directory.
+  timestamp: Wed Aug 20 14:30:10 2025
+  topic: kubectl_common_operations
+- issue: the image it is asking for is not listed in the question
+  question: Create a manifest for a Deployment named `nginx-deployment` with 3 replicas.
+  timestamp: Wed Aug 20 15:55:23 2025
+  topic: core_workloads
+- issue: 1. nginx:alpine is not specified in question, 2. the last line does not have
+    a a typo but the diff says it does
+  question: Create a manifest for a Pod 'pod1' that uses an environment variable 'TREE1'
+    from a ConfigMap 'trauerweide' (key 'tree') and mounts a ConfigMap 'birke' to
+    '/etc/birke'.
+  timestamp: Thu Aug 21 09:37:21 2025
+  topic: app_configuration
+- issue: this question is asking for far too many flags for the information contained
+    in the question - it needs to be specifing all of those fields.
+  question: Create a docker-registry Secret 'regcred'.
+  timestamp: Thu Aug 21 09:41:00 2025
+  topic: app_configuration
+- issue: partial manifests are misleading - does the CKAD ever ask for those? We should
+    probably give them the pod template in this scenario, then they can edit the partial
+    bit.
+  question: Create a manifest for a pod that mounts a secret 'secret2' as a volume
+    at /tmp/secret2.
+  timestamp: Thu Aug 21 09:42:11 2025
+  topic: app_configuration
+- issue: No partial manifests - we need to provide that pods template if you are asking
+    for a pod manifest, it is misleading otherwise.
+  question: Create a manifest for a pod that adds environment variables 'SECRET1_USER'
+    and 'SECRET1_PASS' from a secret 'secret1'.
+  timestamp: Thu Aug 21 09:44:15 2025
+  topic: app_configuration
+- issue: the paths must be specified if the answer is going to be evaluated against
+    that path
+  question: Create a TLS Secret 'my-tls' from a certificate and key file.
+  timestamp: Thu Aug 21 09:44:51 2025
+  topic: app_configuration
+- issue: must specify all these fields if they really want them on the answer
+  question: Pod manifest loading env from a ConfigMap named app-cm.
+  timestamp: Thu Aug 21 09:49:43 2025
+  topic: commands_args_env
+- issue: lacks the details I will be evaluated one
+  question: Pod manifest overriding command and args to print 'hello'.
+  timestamp: Thu Aug 21 10:08:11 2025
+  topic: commands_args_env
+- issue: question makes no mention of ensuring immediate deletion
+  question: Force delete a pod named 'webserver-sat-003' in the 'saturn' namespace.
+  timestamp: Thu Aug 21 10:11:19 2025
+  topic: core_workloads
+- issue: I think this question needs slightly more detail in it for the fields needed
+  question: Create an interactive temporary pod named 'my-shell' using the Ubuntu
+    image to troubleshoot cluster issues.
+  timestamp: Thu Aug 21 10:16:20 2025
+  topic: core_workloads
+- issue: this question did not have the level of detail needed to accurately answer.
+    Shouldnt the selector and the template be looking for nginx-deployment??
+  question: Create a manifest for a Deployment named `nginx-deployment` with 3 replicas.
+  timestamp: Thu Aug 21 10:19:26 2025
+  topic: core_workloads
+- issue: my answer was functinally correct
+  question: Print the status phase of pod 'pod1' in the default namespace using a
+    jsonpath query.
+  timestamp: Thu Aug 21 10:28:51 2025
+  topic: core_workloads
+- issue: AI feedback does not make sense with the default answer given
+  question: Create a temporary, interactive pod named 'curl1' using 'curlimages/curl'
+    to run a curl command against an internal service at 10.244.0.4.
+  timestamp: Thu Aug 21 10:41:31 2025
+  topic: core_workloads
+- issue: the fields needed are not specified in the question
+  question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
+    that imports all key-value pairs from the ConfigMap named 'app-cm' as environment
+    variables.
+  timestamp: Thu Aug 21 12:42:42 2025
+  topic: commands_args_env
+- issue: dont you think the URL needs to be in the question?
+  question: How do you add the Bitnami chart repository and name it `bitnami`?
+  timestamp: Fri Aug 22 12:50:51 2025
+  topic: helm_basics
+- issue: as far as I can see, these are at the correct scope in the nested yaml
+  question: |
+    **Scenario:**
+
+    In Kubernetes, you often need to run a container with a different command than the one specified in its Dockerfile. For example, you might want to run a one-off debugging script, or start a database container with a custom configuration flag.
+
+    You can override a container's default startup instruction (`ENTRYPOINT`) and its default arguments (`CMD`) directly in the Pod manifest.
+
+    *   `spec.containers.command` overrides the image's `ENTRYPOINT`.
+    *   `spec.containers.args` overrides the image's `CMD`.
+
+    **Your Task:**
+
+    Create a Pod manifest for a container that uses the `busybox` image. Your goal is to override its default command to make it print the word "hello" to its standard output and then remain running.
+
+    **Requirements:**
+
+    1.  **Pod Name:** The Pod should be named `cmd-args`.
+    2.  **Image:** Use the `busybox` image.
+    3.  **Command:** The container should execute a shell. Use the `command` field to set this to `["sh", "-c"]`.
+    4.  **Arguments:** The shell should be given a command string to execute. Use the `args` field to provide a string that first prints "hello" and then sleeps for a long time (e.g., `echo hello && sleep 3600`). The `sleep` command ensures the container remains in a `Running` state for inspection."
+  timestamp: Fri Aug 22 13:05:38 2025
+  topic: commands_args_env
+- issue: it has the arguments it asked for wrong?
+  question: Create a Pod manifest for a container named 'c' using the 'busybox' image.
+    Override the container's command to be `['sh', '-c']` and its arguments to be
+    `['echo hello && sleep 3600']`.
+  timestamp: Fri Aug 22 13:19:20 2025
+  topic: commands_args_env
+- issue: question/answer mismatch
+  question: Create a Pod manifest for a container named 'c' using the 'busybox' image.
+    Override the container's command to be `['sh', '-c']` and its arguments to be
+    `['echo hello && sleep 3600']`.
+  timestamp: Fri Aug 22 13:23:53 2025
+  topic: commands_args_env
+- issue: this should have been considered correct
+  question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
+    named 'c' that uses the 'busybox' image. Configure the container to import all
+    key-value pairs from the ConfigMap named 'app-cm' as environment variables.
+  timestamp: Fri Aug 22 13:28:25 2025
+  topic: commands_args_env
+- issue: doesnt need two answers
+  question: What are the short names for CustomResourceDefinition?
+  timestamp: Fri Aug 22 14:58:30 2025
+  topic: resource_reference
+- issue: I gave the exact answer correctly
+  question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  timestamp: Sat Aug 23 12:27:33 2025
+  topic: app_configuration
+- issue: quotes would have made this valid
+  question: Decode a base64 encoded Secret value.
+  timestamp: Sat Aug 23 12:30:27 2025
+  topic: app_configuration
+- issue: yaml given incorrectly
+  question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  timestamp: Sat Aug 23 12:31:45 2025
+  topic: app_configuration
+- issue: answer too vague
+  question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the
+    following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
+    password=`P@ssw0rd!`, email=`user@example.com`.'
+  timestamp: Sat Aug 23 12:33:50 2025
+  topic: app_configuration
+- issue: my indentation was valid
+  question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  timestamp: Sat Aug 23 12:41:43 2025
+  topic: app_configuration
+- issue: even if I gave you the corret yaml you would error out because you are showing
+    it flattened
+  question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
+  timestamp: Sat Aug 23 12:46:25 2025
+  topic: app_configuration
+- issue: gave correct answer
+  question: In Vim, how do you exit without saving changes?
+  timestamp: Sat Aug 23 12:50:27 2025
+  topic: linux_syntax
+- issue: redundant, if its just expecting 'secret'
+  question: List secrets using the short alias.
+  timestamp: Sat Aug 23 12:51:24 2025
+  topic: linux_syntax
+- issue: duplicate question
+  question: Create the `k` alias for `kubectl`.
+  timestamp: Sat Aug 23 12:51:56 2025
+  topic: linux_syntax
+- issue: gave one correct answer
+  question: In Vim, how do you save the file and quit?
+  timestamp: Sat Aug 23 12:53:10 2025
+  topic: linux_syntax
+- issue: gave a correct answer
+  question: In Vim, how do you go to line 10?
+  timestamp: Sat Aug 23 12:54:09 2025
+  topic: linux_syntax
+- issue: not sure all of that was asked for
+  question: Enable kubectl autocomplete in your shell for the `k` alias.
+  timestamp: Sat Aug 23 12:56:24 2025
+  topic: linux_syntax
+- issue: gave valid answer
+  question: In Vim, how do you exit insert mode?
+  timestamp: Sat Aug 23 12:57:29 2025
+  topic: linux_syntax
+- issue: duplicate question
+  question: In Vim, how do you save the file and quit?
+  timestamp: Sat Aug 23 12:59:01 2025
+  topic: linux_syntax
+- issue: incorrect wording
+  question: View the contents of a ConfigMap named 'db-config'.
+  timestamp: Mon Aug 25 19:48:35 2025
+  topic: app_configuration
+- issue: cant use vim
+  question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  timestamp: Mon Aug 25 20:02:37 2025
+  topic: app_configuration
+- issue: cant use vim
+  question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
+  timestamp: Mon Aug 25 20:02:56 2025
+  topic: app_configuration
+- issue: cant use vim
+  question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  timestamp: Mon Aug 25 20:04:50 2025
+  topic: app_configuration
+- issue: obviously, the question and answer do not match
+  question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
+    and the private key is at `/etc/certs/tls.key`.
+  timestamp: Mon Aug 25 20:06:02 2025
+  topic: app_configuration
+- issue: solution given in json??
+  question: Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0'
+    from a private registry. The pod should use an image pull secret named 'reg-secret'.
+  timestamp: Mon Aug 25 23:56:45 2025
+  topic: image_registry_use
+- issue: keys not mentioned in question
+  question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'.
+  timestamp: Tue Aug 26 09:10:47 2025
+  topic: app_configuration
+- issue: should have been considered correct
+  question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  timestamp: Tue Aug 26 09:19:03 2025
+  topic: app_configuration
+- issue: volume name and config map name should probably not be the exact same
+  question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  timestamp: Tue Aug 26 09:23:54 2025
+  topic: app_configuration
+- issue: its literally a different path than what was specified, im just copypasting
+  question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
+    and the private key is at `/etc/certs/tls.key`.
+  timestamp: Tue Aug 26 09:28:20 2025
+  topic: app_configuration
+- issue: I had this one word for word and you still marked it wrong
+  question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  timestamp: Tue Aug 26 10:07:39 2025
+  topic: app_configuration
+- issue: I have you the correct answer
+  question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
+    key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.
+  timestamp: Tue Aug 26 12:11:54 2025
+  topic: app_configuration
+- issue: incorrect indentation in answer?
+  question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  timestamp: Tue Aug 26 12:15:04 2025
+  topic: app_configuration
+- issue: will not accept your own solution as correct?
+  question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  timestamp: Tue Aug 26 12:17:54 2025
+  topic: app_configuration
+- issue: once again, you will not accept your own solution as correct
+  question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  timestamp: Tue Aug 26 12:19:24 2025
+  topic: app_configuration
+- issue: same thing, your own answer is now considered incorrect
+  question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
+    named 'c' that uses the 'busybox' image. Configure the container to import all
+    key-value pairs from the ConfigMap named 'app-cm' as environment variables.
+  timestamp: Tue Aug 26 12:25:20 2025
+  topic: commands_args_env
+- issue: alt formatting should have been considered correct
+  question: '**Scenario:** In Kubernetes, you often need to run a container with a
+    different command than the one specified in its Dockerfile. For example, you might
+    want to run a one-off debugging script, or start a database container with a custom
+    configuration flag. You can override a container''s default startup instruction
+    (`ENTRYPOINT`) and its default arguments (`CMD`) directly in the Pod manifest.
+    *   `spec.containers.command` overrides the image''s `ENTRYPOINT`. *   `spec.containers.args`
+    overrides the image''s `CMD`. **Your Task:** Create a Pod manifest for a container
+    that uses the `busybox` image. Your goal is to override its default command to
+    make it print the word "hello" to its standard output and then remain running.
+    **Requirements:** 1.  **Pod Name:** The Pod should be named `cmd-args`. 2.  **Image:**
+    Use the `busybox` image. 3.  **Command:** The container should execute a shell.
+    Use the `command` field to set this to `["sh", "-c"]`. 4.  **Arguments:** The
+    shell should be given a command string to execute. Use the `args` field to provide
+    a string that first prints "hello" and then sleeps for a long time (e.g., `echo
+    hello && sleep 3600`). The `sleep` command ensures the container remains in a
+    `Running` state for inspection." '
+  timestamp: Tue Aug 26 12:27:50 2025
+  topic: commands_args_env
+- issue: I literally just copied and pasted the answer you said was correct
+  question: '**Scenario:** In Kubernetes, you often need to run a container with a
+    different command than the one specified in its Dockerfile. For example, you might
+    want to run a one-off debugging script, or start a database container with a custom
+    configuration flag. You can override a container''s default startup instruction
+    (`ENTRYPOINT`) and its default arguments (`CMD`) directly in the Pod manifest.
+    *   `spec.containers.command` overrides the image''s `ENTRYPOINT`. *   `spec.containers.args`
+    overrides the image''s `CMD`. **Your Task:** Create a Pod manifest for a container
+    that uses the `busybox` image. Your goal is to override its default command to
+    make it print the word "hello" to its standard output and then remain running.
+    **Requirements:** 1.  **Pod Name:** The Pod should be named `cmd-args`. 2.  **Image:**
+    Use the `busybox` image. 3.  **Command:** The container should execute a shell.
+    Use the `command` field to set this to `["sh", "-c"]`. 4.  **Arguments:** The
+    shell should be given a command string to execute. Use the `args` field to provide
+    a string that first prints "hello" and then sleeps for a long time (e.g., `echo
+    hello && sleep 3600`). The `sleep` command ensures the container remains in a
+    `Running` state for inspection." '
+  timestamp: Tue Aug 26 12:32:49 2025
+  topic: commands_args_env
+- issue: needs more detail in question, it at least should mention something about
+    not restarting if it needs that flag, right?
+  question: Run a curl command against an internal service at 10.244.0.4 in a temporary
+    pod named 'curl1' using 'curlimages/curl'.
+  timestamp: Tue Aug 26 12:56:36 2025
+  topic: core_workloads
+- issue: :x is a valid answer
+  question: In Vim, how do you save the file and quit?
+  timestamp: Tue Aug 26 13:23:14 2025
+  topic: linux_syntax
+- issue: what I gave was technically valid
+  question: Delete all pods and services with a specific label.
+  timestamp: Tue Aug 26 13:45:08 2025
+  topic: kubectl_common_operations
+- issue: this should have been correct because the name was not specified
+  question: Display the details of a node.
+  timestamp: Tue Aug 26 13:46:24 2025
+  topic: kubectl_common_operations
+- issue: that was not correct
+  question: What is the API version for NetworkPolicy?
+  timestamp: Tue Aug 26 14:59:25 2025
+  topic: resource_reference
+- issue: the suggestion for this question has indentation that  causes it to be interpreted
+    as wrong
+  question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  timestamp: Tue Aug 26 15:24:08 2025
+  topic: app_configuration
+- issue: this is a copy of another question
+  question: 'Create a pod named ''env-pod'' with image ''busybox'' that runs the command
+    ''echo $(GREETING) $(NAME)!'' and has two environment variables: GREETING=Hello
+    and NAME=World. The pod should print ''Hello World!'' to its logs and should not
+    restart after completion.'
+  source: https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/
+  suggestion:
+  - kubectl run env-pod --image=busybox --restart=Never -it --rm --env="GREETING=Hello"
+    --env="NAME=World" -- /bin/sh -c 'echo $(GREETING) $(NAME)!'
+  timestamp: Thu Aug 28 09:31:05 2025
+  topic: commands_args_env
+- issue: according to my research, '-i -t' is the same thing as '--it'
+  question: Run a curl command against an internal service at 10.244.0.4 in a temporary
+    pod named 'curl1' using 'curlimages/curl'.
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+  suggestion:
+  - kubectl run curl1 --image=curlimages/curl -i -t --rm --restart=Never -- curl 10.244.0.4
+  timestamp: Thu Aug 28 10:18:31 2025
+  topic: core_workloads
+- issue: I gave a technically correct answer that would have completed the goal
+  question: 'Create a pod named ''env-pod-2'' with image ''nginx'' that runs the command
+    ''echo $(FIRST) $(SECOND)!'' and defines two environment variables: FIRST=Welcome
+    and SECOND=CKAD. The pod should output ''Welcome CKAD!'' to its logs and should
+    be configured to run in the ''default'' namespace with a ''restartPolicy'' of
+    ''Never'''
+  rationale: This question tests the candidate's ability to define environment variables,
+    set a custom command, and work with pod configurations such as namespace and restart
+    policy in the context of a CKAD exam.
+  solution: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: env-pod-2
+      namespace: default
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx
+        command: ["/bin/sh", "-c"]
+        args: ["echo $(FIRST) $(SECOND)!"]
+        env:
+        - name: FIRST
+          value: Welcome
+        - name: SECOND
+          value: CKAD
+      restartPolicy: Never
+  source: https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/
+  timestamp: Thu Aug 28 12:36:52 2025
+  topic: commands_args_env
+- issue: did not ask for what it needed, did not provide adequate detail
+  question: Command to generate a docker-registry pull secret named 'regcred' for
+    'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com'
+    (output YAML).
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
+  suggestion:
+  - kubectl create secret docker-registry regcred --docker-server=registry.example.com
+    --docker-username=USER --docker-password=PASS --docker-email=user@example.com
+    --dry-run=client -o yaml
+  timestamp: Thu Aug 28 13:20:34 2025
+  topic: image_registry_use
+- issue: couldnt answer
+  question: Create a Pod named 'custom-image-pod' that pulls images from a private
+    repository 'my-custom-repo/my-image:tag123' using an image pull secret named 'my-pull-secret'
+    and defines resource limits of 0.5 CPU and 128Mi memory.
+  rationale: This question assesses the candidate's ability to specify resource limits
+    for containers in a Pod. Understanding how to manage resource constraints is essential
+    for optimizing resource utilization and ensuring application performance and stability
+    in Kubernetes, making it a relevant skill for CKAD candidates.
+  source: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#define-container-resources
+  suggestion: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: custom-image-pod
+    spec:
+      containers:
+      - name: my-container
+        image: my-custom-repo/my-image:tag123
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "128Mi"
+      imagePullSecrets:
+      - name: my-pull-secret
+  timestamp: Fri Aug 29 15:30:08 2025
+  topic: image_registry_use
+- issue: cant answer
+  question: Create a Kubernetes Secret named 'docker-secret' that contains Docker
+    Hub credentials with 'username' and 'password' keys. Then, create a Pod named
+    'private-pod' using the image 'nginx' from Docker Hub, and configure it to use
+    the 'docker-secret' as an image pull secret.
+  rationale: This question assesses the candidate's ability to securely pull images
+    from Docker Hub by storing the credentials in a Secret and referencing it in a
+    Pod as an image pull secret. Understanding how to manage sensitive information
+    like container registry credentials is crucial for CKAD candidates.
+  source: https://kubernetes.io/docs/concepts/containers/images/
+  suggestion: |-
+    # Create a Kubernetes Secret with Docker Hub credentials
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: docker-secret
+    type: kubernetes.io/basic-auth
+    stringData:
+      username: my-docker-username
+      password: my-docker-password
+
+    ---
+
+    # Create a Pod using the 'docker-secret' as an image pull secret
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: private-pod
+    spec:
+      containers:
+      - name: main
+        image: nginx
+      imagePullSecrets:
+      - name: docker-secret
+  timestamp: Fri Aug 29 15:30:21 2025
+  topic: image_registry_use
+- issue: cant answser
+  question: Create a Pod named 'secure-pod' that pulls an image 'my-private-registry/my-app:latest'
+    from a private registry using an imagePullSecret, and limit image pulling to only
+    operate within the specified namespace.
+  rationale: This question evaluates the candidate's ability to utilize imagePullSecrets
+    to securely pull images from private registries in Kubernetes. It also tests their
+    knowledge of limiting image pulling policies to operate within a specific namespace,
+    which is important for achieving secure and isolated deployments.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  suggestion: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: secure-pod
+    spec:
+      containers:
+      - name: my-container
+        image: my-private-registry/my-app:latest
+      imagePullSecrets:
+      - name: my-pull-secret
+      automountServiceAccountToken: false
+      imagePolicyConfig:
+        names:
+          - my-private-registry/my-app:latest
+        policy: IfNotPresent
+  timestamp: Fri Aug 29 15:30:34 2025
+  topic: image_registry_use
+- issue: did not have enough in question to answer
+  question: You are tasked with creating a Kubernetes Pod that runs a container using
+    a custom command and environment variables. The container should be based on the
+    'nginx' image. The custom command should output the values of the environment
+    variables defined for the container. Create a Pod manifest that fulfills these
+    requirements.
+  rationale: This question assesses the candidate's ability to create a Pod manifest
+    with a custom command, utilize environment variables within the container, and
+    understand how to output the values of environment variables. These are essential
+    skills for a CKAD candidate working with Pod configurations and application containerization.
+  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+  suggestion: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: custom-command-pod
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx
+        command: [ "/bin/sh", "-c" ]
+        args: [ 'echo "Welcome $FIRST $SECOND!"' ]
+        env:
+        - name: FIRST
+          value: Welcome
+        - name: SECOND
+          value: CKAD
+    restartPolicy: Never
+  timestamp: Fri Aug 29 16:16:46 2025
+  topic: commands_args_env
+- issue: question is too similar
+  question: 'Create a pod named ''env-pod-2'' with image ''nginx'' that runs the command
+    ''echo $(FIRST) $(SECOND)!'' and defines two environment variables: FIRST=Welcome
+    and SECOND=CKAD. The pod should output ''Welcome CKAD!'' to its logs and should
+    be configured to run in the ''default'' namespace with a ''restartPolicy'' of
+    ''Never'''
+  rationale: This question tests the candidate's ability to define environment variables,
+    set a custom command, and work with pod configurations such as namespace and restart
+    policy in the context of a CKAD exam.
+  solution: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: env-pod-2
+      namespace: default
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx
+        command: ["/bin/sh", "-c"]
+        args: ["echo $(FIRST) $(SECOND)!"]
+        env:
+        - name: FIRST
+          value: Welcome
+        - name: SECOND
+          value: CKAD
+      restartPolicy: Never
+  source: https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/
+  timestamp: Fri Aug 29 16:17:39 2025
+  topic: commands_args_env
+- issue: 100 connections should be interpretable as an integer
+  question: Create a Kubernetes ConfigMap named 'app-settings' containing key-value
+    pairs for 'logLevel' set to 'info', 'maxConnections' set to '100', and 'timeout'
+    set to '30s'.
+  rationale: This question tests the candidate's ability to create a ConfigMap with
+    multiple key-value pairs, which is a common task when configuring applications
+    in Kubernetes pods. Understanding how to define ConfigMaps is crucial for managing
+    application configurations independently from pod definitions, a key concept in
+    Kubernetes application development.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+  suggestion: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-settings
+    data:
+      logLevel: info
+      maxConnections: "100"
+      timeout: 30s
+  timestamp: Sat Aug 30 12:26:05 2025
+  topic: app_configuration
+- issue: this command would have worked, right?
+  question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+  suggestion:
+  - kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
+  timestamp: Sat Aug 30 13:07:45 2025
+  topic: services
+- issue: the alias will be correct, if its not I will quickly create it
+  question: Describe service frontend-svc.
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)
+  suggestion:
+  - kubectl describe service frontend-svc
+  timestamp: Sat Aug 30 13:10:41 2025
+  topic: services
+- issue: this does not have a starting manifest to put into vim
+  question: Update the existing ConfigMap 'app-settings' by adding a new data item
+    'env=production'.
+  rationale: This question assesses the candidate's ability to update existing ConfigMaps
+    in Kubernetes. In real-world scenarios, it is common to need to add or modify
+    configurations dynamically without recreating resources. CKAD candidates should
+    understand how to perform these modifications efficiently.
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+  suggestion: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: app-settings
+    data:
+      app.color: blue
+      app.environment: dev
+      env: production
+  timestamp: Sat Aug 30 15:44:59 2025
+  topic: app_configuration

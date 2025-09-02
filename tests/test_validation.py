@@ -113,7 +113,7 @@ def test_validate_manifest_with_llm_openai_error(mock_llm_deps):
         mock_openai_client_instance.chat.completions.create.assert_called_once()
         assert result == {'correct': False, 'feedback': "Error validating manifest with LLM: OpenAI manifest error"}
 
-class XTestKubectlValidation:
+class TestKubectlValidation:
     @pytest.fixture(autouse=True)
     def setup_mocks(self):
         # Mock tempfile.NamedTemporaryFile to control file creation

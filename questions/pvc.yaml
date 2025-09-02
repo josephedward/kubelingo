@@ -1,0 +1,106 @@
+questions:
+- question: Create a PersistentVolumeClaim named 'data-pvc' that requests 5Gi of storage
+    with access mode ReadWriteOnce. Use the default storage class.
+  suggestion:
+  - kubectl create pvc data-pvc --storage=5Gi --access-mode=ReadWriteOnce
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    name: data-pvc
+    storage: 5Gi
+    access_modes:
+    - ReadWriteOnce
+- question: Create a PersistentVolumeClaim named 'data-pvc' that requests 1Gi of storage
+    with access mode ReadOnlyMany. Use the default storage class.
+  suggestion:
+  - kubectl create pvc data-pvc --storage=1Gi --access-mode=ReadOnlyMany
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data-pvc
+    spec:
+      accessModes:
+      - ReadOnlyMany
+      resources:
+        requests:
+          storage: 1Gi
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    name: data-pvc
+    storage: 1Gi
+    access_modes:
+    - ReadOnlyMany
+- question: Create a PersistentVolumeClaim named 'data-pvc' that requests 1Gi of storage
+    with access mode ReadWriteOnce. Use the default storage class.
+  suggestion:
+  - kubectl create pvc data-pvc --storage=1Gi --access-mode=ReadWriteOnce
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: data-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    name: data-pvc
+    storage: 1Gi
+    access_modes:
+    - ReadWriteOnce
+- question: Create a PersistentVolumeClaim named 'cache-pvc' that requests 5Gi of
+    storage with access mode ReadWriteOnce. Use the default storage class.
+  suggestion:
+  - kubectl create pvc cache-pvc --storage=5Gi --access-mode=ReadWriteOnce
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: cache-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    name: cache-pvc
+    storage: 5Gi
+    access_modes:
+    - ReadWriteOnce
+- question: Create a PersistentVolumeClaim named 'cache-pvc' that requests 1Gi of
+    storage with access mode ReadWriteOnce. Use the default storage class.
+  suggestion:
+  - kubectl create pvc cache-pvc --storage=1Gi --access-mode=ReadWriteOnce
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: cache-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    name: cache-pvc
+    storage: 1Gi
+    access_modes:
+    - ReadWriteOnce

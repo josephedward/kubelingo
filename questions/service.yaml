@@ -1,0 +1,236 @@
+questions:
+- question: Create a Service of type ClusterIP named 'cache-svc' that exposes port
+    6379 targeting port 80 for Pods labeled app=cache.
+  suggestion:
+  - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=80
+    --type=ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: cache-svc
+    spec:
+      type: ClusterIP
+      selector: &id001
+        app: cache
+      ports:
+      - port: 6379
+        targetPort: 80
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: cache-svc
+    service_type: ClusterIP
+    port: 6379
+    targetPort: 80
+    selector: *id001
+- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+    6379 targeting port 6379 for Pods labeled app=cache.
+  suggestion:
+  - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=6379
+    --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: cache-svc
+    spec:
+      type: NodePort
+      selector: &id002
+        app: cache
+      ports:
+      - port: 6379
+        targetPort: 6379
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: cache-svc
+    service_type: NodePort
+    port: 6379
+    targetPort: 6379
+    selector: *id002
+- question: Create a Service of type ClusterIP named 'db-svc' that exposes port 6379
+    targeting port 6379 for Pods labeled app=db.
+  suggestion:
+  - kubectl expose deployment db --name=db-svc --port=6379 --target-port=6379 --type=ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: db-svc
+    spec:
+      type: ClusterIP
+      selector: &id003
+        app: db
+      ports:
+      - port: 6379
+        targetPort: 6379
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: db-svc
+    service_type: ClusterIP
+    port: 6379
+    targetPort: 6379
+    selector: *id003
+- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+    443 targeting port 443 for Pods labeled app=cache.
+  suggestion:
+  - kubectl expose deployment cache --name=cache-svc --port=443 --target-port=443
+    --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: cache-svc
+    spec:
+      type: NodePort
+      selector: &id004
+        app: cache
+      ports:
+      - port: 443
+        targetPort: 443
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: cache-svc
+    service_type: NodePort
+    port: 443
+    targetPort: 443
+    selector: *id004
+- question: Create a Service of type NodePort named 'web-svc' that exposes port 80
+    targeting port 443 for Pods labeled app=web.
+  suggestion:
+  - kubectl expose deployment web --name=web-svc --port=80 --target-port=443 --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: web-svc
+    spec:
+      type: NodePort
+      selector: &id005
+        app: web
+      ports:
+      - port: 80
+        targetPort: 443
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: web-svc
+    service_type: NodePort
+    port: 80
+    targetPort: 443
+    selector: *id005
+- question: Create a Service of type ClusterIP named 'db-svc' that exposes port 80
+    targeting port 80 for Pods labeled app=db.
+  suggestion:
+  - kubectl expose deployment db --name=db-svc --port=80 --target-port=80 --type=ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: db-svc
+    spec:
+      type: ClusterIP
+      selector: &id006
+        app: db
+      ports:
+      - port: 80
+        targetPort: 80
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: db-svc
+    service_type: ClusterIP
+    port: 80
+    targetPort: 80
+    selector: *id006
+- question: Create a Service of type ClusterIP named 'web-svc' that exposes port 6379
+    targeting port 443 for Pods labeled app=web.
+  suggestion:
+  - kubectl expose deployment web --name=web-svc --port=6379 --target-port=443 --type=ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: web-svc
+    spec:
+      type: ClusterIP
+      selector: &id007
+        app: web
+      ports:
+      - port: 6379
+        targetPort: 443
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: web-svc
+    service_type: ClusterIP
+    port: 6379
+    targetPort: 443
+    selector: *id007
+- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+    80 targeting port 6379 for Pods labeled app=cache.
+  suggestion:
+  - kubectl expose deployment cache --name=cache-svc --port=80 --target-port=6379
+    --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: cache-svc
+    spec:
+      type: NodePort
+      selector: &id008
+        app: cache
+      ports:
+      - port: 80
+        targetPort: 6379
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: cache-svc
+    service_type: NodePort
+    port: 80
+    targetPort: 6379
+    selector: *id008
+- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+    6379 targeting port 80 for Pods labeled app=cache.
+  suggestion:
+  - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=80
+    --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: cache-svc
+    spec:
+      type: NodePort
+      selector: &id009
+        app: cache
+      ports:
+      - port: 6379
+        targetPort: 80
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: cache-svc
+    service_type: NodePort
+    port: 6379
+    targetPort: 80
+    selector: *id009
+- question: Create a Service of type NodePort named 'web-svc' that exposes port 6379
+    targeting port 80 for Pods labeled app=web.
+  suggestion:
+  - kubectl expose deployment web --name=web-svc --port=6379 --target-port=80 --type=NodePort
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: web-svc
+    spec:
+      type: NodePort
+      selector: &id010
+        app: web
+      ports:
+      - port: 6379
+        targetPort: 80
+  source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    name: web-svc
+    service_type: NodePort
+    port: 6379
+    targetPort: 80
+    selector: *id010

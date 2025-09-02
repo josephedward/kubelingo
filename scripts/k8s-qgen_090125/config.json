@@ -1,0 +1,36 @@
+{
+  "sources": {
+    "github_repos": [
+      "https://github.com/kubernetes/examples",
+      "https://github.com/ContainerSolutions/kubernetes-examples", 
+      "https://github.com/dennyzhang/kubernetes-yaml-templates",
+      "https://github.com/dgkanatsios/CKAD-exercises"
+    ],
+    "documentation_urls": [
+      "https://kubernetes.io/docs/reference/kubectl/cheatsheet/",
+      "https://kubernetes.io/docs/concepts/",
+      "https://kubernetes.io/docs/tutorials/"
+    ]
+  },
+  "question_generation": {
+    "categories": ["pod", "deployment", "service", "configmap", "secret", "namespace"],
+    "difficulty_levels": ["easy", "medium", "hard"],
+    "max_questions_per_category": 20,
+    "include_yaml_manifests": true,
+    "include_kubectl_commands": true
+  },
+  "ai_enhancement": {
+    "enabled": false,
+    "provider": "openai",
+    "model": "gpt-3.5-turbo",
+    "budget_limit": 5.00,
+    "enhance_question_text": true,
+    "generate_explanations": false
+  },
+  "output": {
+    "format": "json",
+    "include_solutions": true,
+    "include_difficulty": true,
+    "include_source": true
+  }
+}
