@@ -9,6 +9,16 @@ questions:
   suggestions:
   - kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80
   source: https://stackoverflow.com/questions/62964958/expose-a-web-app-on-port-80-using-kubernetes-and-minikube
+  requirements:
+    kind: Service
+    metadata:
+      name: webapp-svc
+    spec:
+      ports:
+      - port: 80
+        targetPort: 80
+      selector:
+        app: webapp
 - id: daca4b87
   question: Create a manifest for a NodePort service named 'webapp-nodeport'. The
     service should forward traffic from a port on the node to port 80 on pods with
@@ -23,14 +33,21 @@ questions:
     metadata:
       name: webapp-nodeport
     spec:
-      ports:
+      ports: &id002
       - port: 80
         protocol: TCP
         targetPort: 80
-      selector:
+      selector: &id001
         app: webapp
       type: NodePort
   source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    metadata:
+      name: webapp-nodeport
+    spec:
+      selector: *id001
+      ports: *id002
 - id: feb58902
   question: Service manifest (ClusterIP) exposing app=web on port 80 to targetPort
     8080.
@@ -44,12 +61,19 @@ questions:
     metadata:
       name: web
     spec:
-      ports:
+      ports: &id004
       - port: 80
         targetPort: 8080
-      selector:
+      selector: &id003
         app: web
   source: https://kubernetes.io/docs/concepts/services-networking/service/
+  requirements:
+    kind: Service
+    metadata:
+      name: web
+    spec:
+      selector: *id003
+      ports: *id004
 - id: 6c9bbdba
   question: Headless Service manifest for app=db on port 5432.
   success_criteria:
@@ -63,12 +87,19 @@ questions:
       name: db
     spec:
       clusterIP: None
-      ports:
+      ports: &id006
       - port: 5432
         targetPort: 5432
-      selector:
+      selector: &id005
         app: db
   source: https://stackoverflow.com/questions/69611827/kubernetes-is-there-any-way-to-get-headless-service-endpoint-info-in-container
+  requirements:
+    kind: Service
+    metadata:
+      name: db
+    spec:
+      selector: *id005
+      ports: *id006
 - id: 319fc60e
   question: Expose deployment frontend on port 80 as a ClusterIP service named frontend-svc.
   success_criteria:
@@ -78,6 +109,16 @@ questions:
   suggestions:
   - kubectl expose deployment frontend --port=80 --type=ClusterIP --name=frontend-svc
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000
+  requirements:
+    kind: Service
+    metadata:
+      name: frontend-svc
+    spec:
+      ports:
+      - port: 80
+      type: ClusterIP
+      selector:
+        app: frontend
 - id: 240252c4
   question: List all services.
   success_criteria:
@@ -118,10 +159,17 @@ questions:
     metadata:
       name: my-service
     spec:
-      ports:
+      ports: &id008
       - port: 80
         protocol: TCP
         targetPort: 8080
-      selector:
+      selector: &id007
         app: MyApp
   source: https://kubernetes.io/docs/tutorials/services/connect-applications-service/
+  requirements:
+    kind: Service
+    metadata:
+      name: my-service
+    spec:
+      selector: *id007
+      ports: *id008

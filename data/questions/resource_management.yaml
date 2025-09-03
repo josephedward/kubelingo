@@ -11,6 +11,14 @@ questions:
   - kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi
     --dry-run=client -o yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_set/kubectl_set_resources/
+  requirements:
+    kind: Pod
+    metadata:
+      name: resource-pod
+    spec:
+      containers:
+      - name: resource-pod
+        image: nginx
 - id: e1f43d16
   question: Create a manifest for a Pod named 'resource-pod-manifest' that requests
     '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi'
@@ -36,6 +44,14 @@ questions:
             cpu: 100m
             memory: 256Mi
   source: https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/
+  requirements:
+    kind: Pod
+    metadata:
+      name: resource-pod-manifest
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
 - id: 14c5a949
   question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
     web.
@@ -81,3 +97,11 @@ questions:
             cpu: 300m
             memory: 30Mi
   source: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  requirements:
+    kind: Pod
+    metadata:
+      name: resource-checker
+    spec:
+      containers:
+      - name: my-container
+        image: httpd:alpine

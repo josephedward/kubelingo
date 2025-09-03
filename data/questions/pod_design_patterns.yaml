@@ -24,6 +24,14 @@ questions:
       - name: nginx
         image: nginx
   source: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+  requirements:
+    kind: Pod
+    metadata:
+      name: pod-with-init
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
 - id: c009d10e
   question: Pod manifest with one initContainer that waits 5s before starting app
     container.
@@ -48,6 +56,14 @@ questions:
       - name: nginx
         image: nginx
   source: /search?num=3
+  requirements:
+    kind: Pod
+    metadata:
+      name: wait
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
 - id: 184a2783
   question: Pod manifest with a sidecar that tails a shared log file.
   success_criteria:
@@ -83,6 +99,16 @@ questions:
       - emptyDir: {}
         name: logs
   source: https://kubernetes.io/docs/concepts/cluster-administration/logging/
+  requirements:
+    kind: Pod
+    metadata:
+      name: app-with-sidecar
+    spec:
+      containers:
+      - name: app
+        image: busybox
+      - name: log-tailer
+        image: busybox
 - id: bb1c52ca
   question: Run a pod named busybox with image busybox that runs indefinitely.
   success_criteria:
@@ -92,6 +118,14 @@ questions:
   suggestions:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
+  requirements:
+    kind: Pod
+    metadata:
+      name: busybox
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
 - id: 6816cee1
   question: List all pods.
   success_criteria:
@@ -138,7 +172,7 @@ questions:
       namespace: mars
     spec:
       replicas: 1
-      selector:
+      selector: &id001
         matchLabels:
           app: test-init-container
       template:
@@ -168,3 +202,10 @@ questions:
           - name: web-content
             emptyDir: {}
   source: https://wiki.aaronhatcher.com/kubernetes/CKAD/Labs/killer/17-initcontainer
+  requirements:
+    kind: Deployment
+    metadata:
+      name: test-init-container
+    spec:
+      replicas: 1
+      selector: *id001

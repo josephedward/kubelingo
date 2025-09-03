@@ -8,6 +8,9 @@ questions:
   suggestions:
   - kubectl apply -f example-service.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  requirements:
+    command: apply
+    filename: example-service.yaml
 - id: 35d9ad7f
   question: Create a replication controller using the definition in example-controller.yaml.
   success_criteria:
@@ -17,6 +20,9 @@ questions:
   suggestions:
   - kubectl apply -f example-controller.yaml
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  requirements:
+    command: apply
+    filename: example-controller.yaml
 - id: 6c20ac9d
   question: Create the Kubernetes objects defined in all YAML files located in the
     absolute path `/path/to/manifests`.
@@ -27,6 +33,9 @@ questions:
   suggestions:
   - kubectl apply -f /path/to/manifests
   source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+  requirements:
+    command: apply
+    filename: /path/to/manifests
 - id: 991eec4f
   question: List all pods in plain-text output format.
   success_criteria:

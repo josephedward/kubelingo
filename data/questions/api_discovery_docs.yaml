@@ -61,6 +61,17 @@ questions:
   - Required Kubernetes resources are defined
   - Resource specifications are complete
   suggestions:
-  - "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: api_discovery_docs\n  namespace:\
-    \ development\ndata:\n  healthcheck: /healthcheck\n  metrics: /metrics"
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: api_discovery_docs
+      namespace: development
+    data: &id001
+      healthcheck: /healthcheck
+      metrics: /metrics
   source: https://kubernetes.io/docs/concepts/configuration/configmap/
+  requirements:
+    kind: ConfigMap
+    metadata:
+      name: api_discovery_docs
+    data: *id001

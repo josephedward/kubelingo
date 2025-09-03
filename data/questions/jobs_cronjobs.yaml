@@ -11,6 +11,14 @@ questions:
   - kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" --
     /bin/sh -c 'date; echo Hello from the Kubernetes cluster'
   source: https://www.baeldung.com/ops/kubernetes-run-cron-jobs
+  requirements:
+    kind: Cronjob
+    metadata:
+      name: hello-cron
+    spec:
+      containers:
+      - name: hello-cron
+        image: busybox
 - id: c29dd41b
   question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places
     using the 'perl' image. The container should run the command perl -Mbignum=bpi
@@ -38,6 +46,10 @@ questions:
             - print bpi(2000)
           restartPolicy: Never
   source: /search?num=3
+  requirements:
+    kind: Job
+    metadata:
+      name: pi
 - id: ef98399e
   question: Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.
   success_criteria:
@@ -62,6 +74,10 @@ questions:
             - sleep 10
           restartPolicy: Never
   source: https://kubernetes.io/docs/concepts/workloads/controllers/job/
+  requirements:
+    kind: Job
+    metadata:
+      name: c
 - id: d2e12d7f
   question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes,
     output YAML.
@@ -73,6 +89,14 @@ questions:
   - kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh
     -c 'echo hi' --dry-run=client -o yaml
   source: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+  requirements:
+    kind: Cronjob
+    metadata:
+      name: hello
+    spec:
+      containers:
+      - name: hello
+        image: busybox
 - id: c094b587
   question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`.
     It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions,
@@ -105,3 +129,7 @@ questions:
             - sleep 2 && echo done
           restartPolicy: OnFailure
   source: https://ettoreciarcia.com/killersh-simulations/CKAD.html
+  requirements:
+    kind: Job
+    metadata:
+      name: neb-new-job

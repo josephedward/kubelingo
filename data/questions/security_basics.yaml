@@ -22,6 +22,14 @@ questions:
           readOnlyRootFilesystem: true
           runAsUser: 1000
   source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  requirements:
+    kind: Pod
+    metadata:
+      name: secure-pod
+    spec:
+      containers:
+      - name: main
+        image: busybox
 - id: a206f5a0
   question: Pod manifest running as non-root user 1000 with fsGroup 2000.
   success_criteria:
@@ -46,6 +54,14 @@ questions:
         - -c
         - sleep 3600
   source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  requirements:
+    kind: Pod
+    metadata:
+      name: app
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
 - id: 4476168e
   question: Container securityContext dropping all capabilities and readOnlyRootFilesystem.
   success_criteria:
@@ -71,6 +87,14 @@ questions:
             - ALL
           readOnlyRootFilesystem: true
   source: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  requirements:
+    kind: Pod
+    metadata:
+      name: app
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
 - id: 7064aa45
   question: List all secrets.
   success_criteria:
