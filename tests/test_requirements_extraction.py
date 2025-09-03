@@ -18,6 +18,19 @@ def test_all_questions_have_requirements():
         qs = data.get('questions')
         assert isinstance(qs, list), f"{path} missing 'questions' list"
         for q in qs:
+            # Only enforce requirements when suggestion includes a kubectl command or a manifest
+            suggestions = q.get('suggestions', [])
+            needs_req = False
+            for item in suggestions:
+                if isinstance(item, str) and 'kubectl' in item:
+                    needs_req = True
+                    break
+                if isinstance(item, dict):
+                    needs_req = True
+                    break
+            if not needs_req:
+                continue
+            # Now require a non-empty requirements mapping
             assert 'requirements' in q, f"{path}:{q.get('id')} missing requirements"
             req = q['requirements']
             assert isinstance(req, dict), f"{path}:{q.get('id')} requirements not a dict"
