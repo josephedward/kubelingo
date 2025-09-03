@@ -1,13 +1,7 @@
 import os
 import time
 import yaml
-try:
-    from colorama import Fore, Style
-except ImportError:
-    class Fore:
-        RED = YELLOW = GREEN = CYAN = ''
-    class Style:
-        BRIGHT = RESET_ALL = DIM = ''
+from colorama import Fore, Style
 
 from kubelingo.utils import USER_DATA_DIR, ISSUES_FILE, MISSED_QUESTIONS_FILE, QUESTIONS_DIR, ensure_user_data_dir as _ensure_user_data_dir
 # Override ensure_user_data_dir to use module-level USER_DATA_DIR for issue_manager
