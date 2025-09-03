@@ -5,11 +5,11 @@ from InquirerPy import inquirer
 from rich.console import Console
 
 from question_generator import QuestionGenerator, DifficultyLevel, KubernetesTopics
+from k8s_manifest_generator import ManifestGenerator
 
 console = Console()
 
 def generate_question():
-    topic = inquirer.select(
         message="Select topic:",
         choices=[t.value for t in KubernetesTopics]
     ).execute()
@@ -24,20 +24,30 @@ def generate_question():
     gen = QuestionGenerator()
     q = gen.generate_question(topic=topic, difficulty=difficulty, include_context=include_context)
     console.print_json(q)
+    console.print()  # blank line for spacing
 
 def main():
-    console.rule("[bold cyan]Kubelingo AI[/bold cyan]")
+    console.print("[bold cyan]Kubelingo AI[/bold cyan]\n")
     while True:
         choice = inquirer.select(
             message="Select an action:",
             choices=[
                 "Generate Question",
+                "Generate Manifest",
                 "Exit"
             ],
             default="Generate Question"
         ).execute()
         if choice == "Generate Question":
             generate_question()
+        elif choice == "Generate Manifest":
+            # Generate Kubernetes manifest via AI
+            prompt = inquirer.text(message="Enter manifest prompt:").execute()
+            console.print("[bold yellow]Generating manifest...[/bold yellow]\n")
+            mg = ManifestGenerator()
+            yaml_text = mg.generate_with_openai(prompt)
+            console.print(yaml_text)
+            console.print()  # spacing
         else:
             console.print("[bold red]Goodbye![/bold red]")
             sys.exit(0)
