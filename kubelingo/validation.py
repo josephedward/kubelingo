@@ -4,11 +4,7 @@ import sys
 import requests
 import yaml
 import subprocess
-try:
-    from dotenv import dotenv_values
-except ImportError:
-    def dotenv_values(*args, **kwargs):
-        return {}
+from dotenv import dotenv_values
 try:
     from colorama import Fore, Style
 except ImportError:
