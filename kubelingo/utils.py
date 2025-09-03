@@ -46,7 +46,7 @@ MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
-import openai
+   # import openai lazily when needed in get_llm_model
 import requests
 from dotenv import load_dotenv, dotenv_values
 
@@ -77,6 +77,8 @@ def _get_llm_model(skip_prompt=False):
                 print(f"{Fore.RED}Error initializing Gemini model: {e}{Style.RESET_ALL}")
             return None, None
     elif llm_provider == "openai":
+        # Lazy import to avoid numpy load in tests
+        import openai
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             if not skip_prompt:
