@@ -18,6 +18,10 @@ questions:
         requests:
           storage: 1Gi
   source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  requirements:
+    kind: PersistentVolumeClaim
+    metadata:
+      name: my-pvc
 - id: ee6a6fa4
   question: Create a Pod named `cache-user` with a `busybox` container. The pod should
     have an `emptyDir` volume named `cache` mounted at `/cache`.
@@ -41,6 +45,14 @@ questions:
       - name: cache
         emptyDir: {}
   source: https://kubernetes.io/docs/concepts/storage/volumes/
+  requirements:
+    kind: Pod
+    metadata:
+      name: cache-user
+    spec:
+      containers:
+      - name: cache-user
+        image: busybox
 - id: 8cac3545
   question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
     3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
@@ -68,3 +80,11 @@ questions:
       - name: workdir
         emptyDir: {}
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-volume-storage/
+  requirements:
+    kind: Pod
+    metadata:
+      name: my-pod-with-volume
+    spec:
+      containers:
+      - name: my-container
+        image: busybox

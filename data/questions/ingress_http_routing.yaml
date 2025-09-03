@@ -10,6 +10,10 @@ questions:
   suggestions:
   - kubectl create ingress app-ingress --rule="app.example.com/*=webapp-svc:80"
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  requirements:
+    kind: Ingre
+    metadata:
+      name: app-ingress
 - id: 77142f4f
   question: Create a manifest for an Ingress resource named 'app-ingress-manifest'.
     It should route traffic for the host 'app.example.com' with path '/' to a service
@@ -36,6 +40,10 @@ questions:
                 port:
                   number: 80
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  requirements:
+    kind: Ingress
+    metadata:
+      name: app-ingress-manifest
 - id: 51b88c31
   question: Ingress manifest routing '/' to Service web:80.
   success_criteria:
@@ -59,6 +67,10 @@ questions:
                 port:
                   number: 80
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  requirements:
+    kind: Ingress
+    metadata:
+      name: web
 - id: 7dce9020
   question: 'Ingress manifest with two paths: ''/api'' -> api-svc:80 and ''/'' ->
     web-svc:80.'
@@ -90,6 +102,10 @@ questions:
                 port:
                   number: 80
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  requirements:
+    kind: Ingress
+    metadata:
+      name: routes
 - id: cabd863b
   question: Create a Kubernetes Ingress manifest named 'secure-app-ingress' that routes
     traffic for the host 'secure.example.com' to the service 'secure-svc' on port
@@ -120,3 +136,7 @@ questions:
                 port:
                   number: 443
   source: https://kubernetes.io/docs/concepts/services-networking/ingress/
+  requirements:
+    kind: Ingress
+    metadata:
+      name: secure-app-ingress

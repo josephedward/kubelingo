@@ -24,6 +24,14 @@ questions:
         name: busybox-container
       restartPolicy: Never
   source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+  requirements:
+    kind: Pod
+    metadata:
+      name: args-pod
+    spec:
+      containers:
+      - name: busybox-container
+        image: busybox
 - id: b1602732
   question: '**Scenario:** In Kubernetes, you often need to run a container with a
     different command than the one specified in its Dockerfile. For example, you might
@@ -60,6 +68,14 @@ questions:
         image: busybox
         name: c
   source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
+  requirements:
+    kind: Pod
+    metadata:
+      name: cmd-args
+    spec:
+      containers:
+      - name: c
+        image: busybox
 - id: 0da5a3e1
   question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
     named 'c' that uses the 'busybox' image. Configure the container to import all
@@ -81,3 +97,11 @@ questions:
         image: busybox
         name: c
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+  requirements:
+    kind: Pod
+    metadata:
+      name: envfrom-cm
+    spec:
+      containers:
+      - name: c
+        image: busybox

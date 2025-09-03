@@ -37,6 +37,14 @@ questions:
       - name: nginx
         image: nginx
   source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  requirements:
+    kind: Pod
+    metadata:
+      name: labeled-pod
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
 - id: 0a43c092
   question: Command to label Namespace prod with tier=backend (overwrite if exists).
   success_criteria:
