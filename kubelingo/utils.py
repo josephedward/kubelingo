@@ -49,15 +49,7 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
    # import openai lazily when needed in get_llm_model
 import requests
-try:
-    from dotenv import load_dotenv, dotenv_values, set_key
-except ImportError:
-    def load_dotenv(*args, **kwargs):
-        pass
-    def dotenv_values(*args, **kwargs):
-        return {}
-    def set_key(*args, **kwargs):
-        pass
+from dotenv import load_dotenv, dotenv_values, set_key
 
 def _get_llm_model(skip_prompt=False):
     """
