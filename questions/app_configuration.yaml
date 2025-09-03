@@ -1,0 +1,229 @@
+questions:
+- id: 061a5709
+  question: Create a ConfigMap named 'app-config' with data items 'app.color=blue'
+    and 'app.environment=dev'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+- id: 35c695fd
+  question: Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create cm game-config --from-file=/configs/game.properties
+  source: https://kubernetes.io/docs/concepts/configuration/configmap/
+- id: 46c038b6
+  question: Create a ConfigMap named 'my-configmap' from all files in the '/configs'
+    directory.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create cm my-configmap --from-file=/configs
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=files%3A
+    %
+- id: 7ef3c424
+  question: Create a ConfigMap named 'my-env-config' from an env file named 'config.env'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create cm my-env-config --from-env-file=config.env
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+- id: 841bdbf2
+  question: View the detailed contents of a ConfigMap named 'db-config'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl describe cm db-config
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data
+- id: 29fdf2c8
+  question: List all ConfigMaps.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get configmaps
+  source: https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints
+- id: d148610d
+  question: Delete a ConfigMap named 'app-config'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl delete configmap app-config
+  source: https://stackoverflow.com/questions/59300475/delete-a-configmap-itself-from-kubernetes
+- id: e55649f0
+  question: Create a manifest for a Secret named 'db-secret' containing a username
+    'admin' and password 's3cur3p@ssw0rd'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: db-secret
+    stringData:
+      password: s3cur3p@ssw0rd
+      username: admin
+    type: Opaque
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
+- id: '13492657'
+  question: Create a Secret named 'db-creds' with username 'admin' and password 'password123'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create secret generic db-creds --from-literal=username=admin --from-literal=password=password123
+  source: https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/
+- id: 6533a51e
+  question: 'Create a generic Secret named ''secret1'' in namespace ''moon'' with
+    two keys: user=test and pass=pwd.'
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
+- id: 94b47fa5
+  question: Create a TLS Secret named 'my-tls'. The certificate is located at `/etc/certs/tls.crt`
+    and the private key is at `/etc/certs/tls.key`.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create secret tls my-tls --cert=/etc/certs/tls.crt --key=/etc/certs/tls.key
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_tls/
+- id: 60c1ff82
+  question: 'Create a Secret of type `docker-registry` named ''regcred''. Use the
+    following details for the secret: server=`https://private.docker.io/v1/`, username=`my-user`,
+    password=`P@ssw0rd!`, email=`user@example.com`.'
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create secret docker-registry regcred --docker-server='https://private.docker.io/v1/'
+    --docker-username='my-user' --docker-password='P@ssw0rd!' --docker-email='user@example.com'
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/
+- id: e5824c3c
+  question: View the encoded values in a Secret named 'api-secrets' in YAML format.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get secret api-secrets -o yaml
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
+- id: 740c72ea
+  question: The string 'ZW5jb2RlZF9zdHJpbmc=' is a base64 encoded Secret value. Decode
+    it.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - echo -n 'ZW5jb2RlZF9zdHJpbmc=' | base64 --decode
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap
+- id: bb3c1e54
+  question: Create a manifest for a Pod named 'pod1'. The Pod must have a single container
+    using the `nginx:alpine` image. The Pod should be configured to have an environment
+    variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'.
+    Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod1
+    spec:
+      containers:
+      - env:
+        - name: TREE1
+          valueFrom:
+            configMapKeyRef:
+              key: tree
+              name: trauerweide
+        image: nginx:alpine
+        name: nginx
+        volumeMounts:
+        - mountPath: /etc/birke
+          name: birke-volume
+      volumes:
+      - configMap:
+          name: birke
+        name: birke-volume
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+- id: 20217f93
+  question: You are given a basic Pod manifest. Modify it to mount a Secret named
+    'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+      - image: nginx
+        name: my-container
+        volumeMounts:
+        - mountPath: /tmp/secret2
+          name: secret-volume
+      volumes:
+      - name: secret-volume
+        secret:
+          secretName: secret2
+  source: https://kubernetes.io/docs/concepts/configuration/secret/
+- id: 22b4599e
+  question: You are given a basic Pod manifest. Modify it to add two environment variables,
+    'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The
+    key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: mypod
+    spec:
+      containers:
+      - env:
+        - name: SECRET1_USER
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: secret1
+        - name: SECRET1_PASS
+          valueFrom:
+            secretKeyRef:
+              key: pass
+              name: secret1
+        image: nginx
+        name: my-container
+  source: /search?num=3

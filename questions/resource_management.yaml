@@ -1,15 +1,25 @@
 questions:
-- question: Generate the manifest for a pod named 'resource-pod' with image 'nginx'.
+- id: dfddb02f
+  question: Generate the manifest for a pod named 'resource-pod' with image 'nginx'.
     Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m'
     and memory limits to '512Mi'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi
     --dry-run=client -o yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_set/kubectl_set_resources/
-- question: Create a manifest for a Pod named 'resource-pod-manifest' that requests
+- id: e1f43d16
+  question: Create a manifest for a Pod named 'resource-pod-manifest' that requests
     '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi'
     of memory.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -26,19 +36,34 @@ questions:
             cpu: 100m
             memory: 256Mi
   source: https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/
-- question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
+- id: 14c5a949
+  question: Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment
     web.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl set resources deploy/web --requests=cpu=200m,memory=128Mi --limits=cpu=500m,memory=256Mi
   source: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-- question: 'Command to create an HPA for web: min 2, max 5, target 50% CPU.'
-  suggestion:
+- id: 0adaeeeb
+  question: 'Command to create an HPA for web: min 2, max 5, target 50% CPU.'
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=50
   source: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
-- question: 'In namespace limit create a Pod named resource-checker using image httpd:alpine
+- id: 72216c5d
+  question: 'In namespace limit create a Pod named resource-checker using image httpd:alpine
     with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m,
     memory=30Mi.'
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:

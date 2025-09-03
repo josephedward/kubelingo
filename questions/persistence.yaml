@@ -1,7 +1,12 @@
 questions:
-- question: Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage
+- id: 0eee1c4c
+  question: Create a PersistentVolumeClaim named 'my-pvc' that requests 1Gi of storage
     with the 'ReadWriteOnce' access mode.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: PersistentVolumeClaim
     metadata:
@@ -13,9 +18,14 @@ questions:
         requests:
           storage: 1Gi
   source: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
-- question: Create a Pod named `cache-user` with a `busybox` container. The pod should
+- id: ee6a6fa4
+  question: Create a Pod named `cache-user` with a `busybox` container. The pod should
     have an `emptyDir` volume named `cache` mounted at `/cache`.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -31,9 +41,14 @@ questions:
       - name: cache
         emptyDir: {}
   source: https://kubernetes.io/docs/concepts/storage/volumes/
-- question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
+- id: 8cac3545
+  question: Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep
     3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:

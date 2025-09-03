@@ -1,6 +1,11 @@
 questions:
-- question: Create a Job named 'db-backup' that runs a pod with the image 'alpine'.
-  suggestion:
+- id: 045c5d70
+  question: Create a Job named 'db-backup' that runs a pod with the image 'alpine'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create job db-backup --image=alpine
   - apiVersion: batch/v1
     kind: Job

@@ -1,15 +1,25 @@
 questions:
-- question: Create a CronJob named 'hello-cron' that runs every minute. The job should
+- id: a7fc28aa
+  question: Create a CronJob named 'hello-cron' that runs every minute. The job should
     use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from
     the Kubernetes cluster'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create cronjob hello-cron --image=busybox --schedule="*/1 * * * *" --
     /bin/sh -c 'date; echo Hello from the Kubernetes cluster'
   source: https://www.baeldung.com/ops/kubernetes-run-cron-jobs
-- question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places
+- id: c29dd41b
+  question: Create a manifest for a Job named 'pi' that calculates pi to 2000 places
     using the 'perl' image. The container should run the command perl -Mbignum=bpi
     -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: batch/v1
     kind: Job
     metadata:
@@ -28,8 +38,13 @@ questions:
             - print bpi(2000)
           restartPolicy: Never
   source: /search?num=3
-- question: Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.
-  suggestion:
+- id: ef98399e
+  question: Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: batch/v1
     kind: Job
     metadata:
@@ -47,17 +62,27 @@ questions:
             - sleep 10
           restartPolicy: Never
   source: https://kubernetes.io/docs/concepts/workloads/controllers/job/
-- question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes,
+- id: d2e12d7f
+  question: Command to generate a CronJob hello that echoes 'hi' every 5 minutes,
     output YAML.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh
     -c 'echo hi' --dry-run=client -o yaml
   source: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
-- question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`.
+- id: c094b587
+  question: 'Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`.
     It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions,
     and 2 running in parallel. Pods must have the label `id: awesome-job`, and the
     container must be named `neb-new-job-container`.'
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: batch/v1
     kind: Job
     metadata:

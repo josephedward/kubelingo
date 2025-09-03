@@ -1,0 +1,228 @@
+questions:
+- id: f442231e
+  question: Create a service using the definition in example-service.yaml.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl apply -f example-service.yaml
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 35d9ad7f
+  question: Create a replication controller using the definition in example-controller.yaml.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl apply -f example-controller.yaml
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 6c20ac9d
+  question: Create the Kubernetes objects defined in all YAML files located in the
+    absolute path `/path/to/manifests`.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl apply -f /path/to/manifests
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 991eec4f
+  question: List all pods in plain-text output format.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 70e8e4fd
+  question: List all pods and include additional information such as node name.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods -o wide
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 1062078e
+  question: List the replication controller with a specified name using an alias.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get rc <rc-name>
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/
+- id: f907e422
+  question: List all replication controllers and services together.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get rc,services
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: a346ab27
+  question: List all daemon sets.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get ds
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: b633b7fb
+  question: List all pods running on node server01.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods --field-selector=spec.nodeName=server01
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: e7e1dcfb
+  question: Display the details of a node, ensuring to use the full 'kubectl' command
+    and the standard placeholder for the node name.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl describe nodes <node-name>
+  source: https://kubernetes.io/docs/reference/kubectl/
+- id: a30cc10b
+  question: Display the details of a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl describe pod <pod-name>
+  source: https://kubernetes.io/docs/tutorials/kubernetes-basics/explore/explore-intro/
+- id: 7e936309
+  question: Display the details of all pods managed by a replication controller.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl describe pods <rc-name>
+  source: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/
+- id: b16b89d4
+  question: Describe all pods.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl describe pods
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: d40029cb
+  question: Delete a pod using the definition in pod.yaml.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl delete -f pod.yaml
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: bb063361
+  question: Delete all pods and services with a specific label.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl delete pods,services -l <label-key>=<label-value>
+  source: https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces
+- id: 9987c0c8
+  question: Delete all pods, including uninitialized ones.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl delete pods --all
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 186a0e2f
+  question: Get the output of 'date' from a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl exec <pod-name> -- date
+  source: https://kubernetes.io/docs/reference/kubectl/
+- id: 7956950f
+  question: Get the output of 'date' from a specific container in a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl exec <pod-name> -c <container-name> -- date
+  source: https://stackoverflow.com/questions/45851945/how-to-get-the-status-of-a-particular-pod-or-container-kubectl-get-pods-using
+- id: ca517f4b
+  question: Open an interactive bash shell in a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl exec -ti <pod-name> -- /bin/bash
+  source: https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/
+- id: d01e4874
+  question: Return a snapshot of logs from a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl logs <pod-name>
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/
+- id: 578eb05e
+  question: Stream logs from a pod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl logs -f <pod-name>
+  source: https://stackoverflow.com/questions/39454962/kubectl-logs-continuously
+- id: 7060afdd
+  question: View a diff of resources in pod.json.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl diff -f pod.json
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations
+- id: 034cd117
+  question: View a diff reading from stdin.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - cat pod.json | kubectl diff -f -
+  source: /search?num=3
+- id: a548dac9
+  question: Invoke a kubectl plugin named 'hello'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl hello
+  source: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+- id: 40d4e553
+  question: List available kubectl-compatible plugins.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl plugin list
+  source: https://kubernetes.io/docs/reference/kubectl/#examples-common-operations

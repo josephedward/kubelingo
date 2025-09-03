@@ -1,7 +1,12 @@
 questions:
-- question: Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness
+- id: 1f17c854
+  question: Create a pod manifest for 'probe-pod' using image 'nginx' that has a liveness
     probe. The probe should perform an HTTP GET request on port 80 at the path '/'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -15,8 +20,13 @@ questions:
             path: /
             port: 80
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-- question: Pod manifest with HTTP liveness probe on /healthz port 8080.
-  suggestion:
+- id: 6251bb38
+  question: Pod manifest with HTTP liveness probe on /healthz port 8080.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -32,8 +42,13 @@ questions:
           initialDelaySeconds: 5
           periodSeconds: 10
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-- question: Pod manifest with readiness exec probe checking /tmp/ready exists.
-  suggestion:
+- id: 99253c41
+  question: Pod manifest with readiness exec probe checking /tmp/ready exists.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -53,11 +68,16 @@ questions:
             - -c
             - test -f /tmp/ready
   source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
-- question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`.
+- id: cee0e72b
+  question: Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`.
     The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness
     probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a
     `periodSeconds` of 10.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -79,10 +99,15 @@ questions:
           initialDelaySeconds: 5
           periodSeconds: 10
   source: https://quizlet.com/nz/874288597/ckad-exam-questions-answers-readiness-probes-pods-namespaces-flash-cards/
-- question: Create a Deployment named space-alien-welcome-message-generator using
+- id: e3e684a9
+  question: Create a Deployment named space-alien-welcome-message-generator using
     image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready'
     with initialDelaySeconds=10 and periodSeconds=5.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
