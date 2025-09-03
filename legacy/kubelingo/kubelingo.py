@@ -48,7 +48,10 @@ from kubelingo.performance_tracker import _performance_data_changed, save_perfor
 #     openai = None
 #     AuthenticationError = Exception
 
-from thefuzz import fuzz
+try:
+    from thefuzz import fuzz
+except ImportError:
+    fuzz = None
 import tempfile
 import subprocess
 import difflib
@@ -176,7 +179,18 @@ def colorize_ascii_art(ascii_art_string):
 from pygments import highlight
 from pygments.lexers import YamlLexer
 from pygments.formatters import TerminalFormatter
-from dotenv import load_dotenv, dotenv_values, set_key
+try:
+    from dotenv import load_dotenv, dotenv_values, set_key
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        """No-op dotenv loader if python-dotenv is not installed."""
+        return {}
+    def dotenv_values(*args, **kwargs):
+        """Return empty config if python-dotenv is not installed."""
+        return {}
+    def set_key(*args, **kwargs):
+        """No-op set_key if python-dotenv is not installed."""
+        return None
 import click
 import sys
 import logging
@@ -510,8 +524,57 @@ def get_display(value):
 
 def test_api_keys():
     """Tests the validity of API keys and returns a dictionary with their statuses."""
-    # Simplified: skip external API checks to avoid network calls
-    return {"gemini": False, "openai": False, "openrouter": False}
+    load_dotenv()
+    statuses = {"gemini": False, "openai": False, "openrouter": False}
+
+    # Test Gemini
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if gemini_key:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_key)
+            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+            model.generate_content("hello", safety_settings={'HARASSMENT': 'BLOCK_NONE'})
+            statuses["gemini"] = True
+        except Exception:
+            pass
+
+    # Test OpenAI
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if openai_key:
+        try:
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            client.models.list()
+            statuses["openai"] = True
+        except Exception as e:
+            # To help with debugging, you might want to log the error
+            print(f"OpenAI key validation failed: {e}")
+            pass
+
+    # Test OpenRouter
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        try:
+            import requests
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "HTTP-Referer": "https://github.com/yonahd/kubelingo",
+                    "X-Title": "Kubelingo",
+                },
+                json={
+                    "model": "deepseek/deepseek-chat",
+                    "messages": [{"role": "user", "content": "hi"}],
+                }
+            )
+            response.raise_for_status()
+            statuses["openrouter"] = True
+        except Exception:
+            pass
+
+    return statuses
     
 def handle_validation_menu():
     """Handles the validation configuration menu."""
@@ -551,34 +614,34 @@ def handle_validation_menu():
 
 def handle_keys_menu():
     """Handles the API key configuration menu."""
-    statuses = test_api_keys()
-    if not any(statuses.values()):
-        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
-    
-    print(f"\n{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---")
-    # Load existing config to display current state
-    config = dotenv_values(".env")
-    gemini_key = config.get("GEMINI_API_KEY", "Not Set")
-    openai_key = config.get("OPENAI_API_KEY", "Not Set")
-    openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
-
-    statuses = test_api_keys()
-    gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["gemini"] else f"{Fore.RED}****{gemini_key[-4:]} (Invalid){Style.RESET_ALL}"
-    openai_display = f"{Fore.GREEN}****{openai_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openai"] else f"{Fore.RED}****{openai_key[-4:]} (Invalid){Style.RESET_ALL}"
-    openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openrouter"] else f"{Fore.RED}****{openrouter_key[-4:]} (Invalid){Style.RESET_ALL}"
-
-    print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
-    print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
-    print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
-    # Get current AI provider setting
-    provider = config.get("KUBELINGO_LLM_PROVIDER", "")
-    provider_display = f"{Fore.GREEN}{provider}{Style.RESET_ALL}" if provider else f"{Fore.RED}None{Style.RESET_ALL}"
-
-    print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Provider Selection ---")
-    print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Choose AI Provider (current: {provider_display})")
-    print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back")
-
     while True:
+        statuses = test_api_keys()
+        if not any(statuses.values()):
+            print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
+        
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- API Key Configuration ---")
+        # Load existing config to display current state
+        config = dotenv_values(".env")
+        gemini_key = config.get("GEMINI_API_KEY", "Not Set")
+        openai_key = config.get("OPENAI_API_KEY", "Not Set")
+        openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
+
+        statuses = test_api_keys()
+        gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["gemini"] else f"{Fore.RED}****{gemini_key[-4:]} (Invalid){Style.RESET_ALL}"
+        openai_display = f"{Fore.GREEN}****{openai_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openai"] else f"{Fore.RED}****{openai_key[-4:]} (Invalid){Style.RESET_ALL}"
+        openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openrouter"] else f"{Fore.RED}****{openrouter_key[-4:]} (Invalid){Style.RESET_ALL}"
+
+        print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
+        print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
+        print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
+        # Get current AI provider setting
+        provider = config.get("KUBELINGO_LLM_PROVIDER", "")
+        provider_display = f"{Fore.GREEN}{provider}{Style.RESET_ALL}" if provider else f"{Fore.RED}None{Style.RESET_ALL}"
+
+        print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Provider Selection ---")
+        print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Choose AI Provider (current: {provider_display})")
+        print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back")
+
         choice = input("Enter your choice: ").strip()
 
         if choice == '1':
@@ -594,7 +657,6 @@ def handle_keys_menu():
             else:
                 print("\nNo key entered.")
             time.sleep(1)
-            break
         elif choice == '2':
             key = input("Enter your OpenAI API Key: ").strip()
             if key:
@@ -607,7 +669,6 @@ def handle_keys_menu():
             else:
                 print("\nNo key entered.")
             time.sleep(1)
-            break
         elif choice == '3':
             key = input("Enter your OpenRouter API Key: ").strip()
             if key:
@@ -620,7 +681,6 @@ def handle_keys_menu():
             else:
                 print("\nNo key entered.")
             time.sleep(1)
-            break
         elif choice == '4':
             print("\nSelect AI Provider:")
             print("  1. openrouter")
@@ -637,12 +697,12 @@ def handle_keys_menu():
             else:
                 print("\nInvalid selection.")
             time.sleep(1)
-            break
         elif choice == '5':
             return
         else:
             print("Invalid choice. Please try again.")
             time.sleep(1)
+
 
 def handle_config_menu():
     """Handles the main configuration menu."""
@@ -848,47 +908,23 @@ def handle_vim_edit(question):
         print("Manifest is empty. Marking as incorrect.")
         return user_manifest, {'correct': False, 'feedback': 'The submitted manifest was empty.'}, False
 
-    # Check YAML parseability; skip local lint/schema validation if parseable
-    try:
-        yaml.safe_load(cleaned_user_manifest)
-        parse_success = True
-    except yaml.YAMLError:
-        parse_success = False
-    # Only run external validators on parse errors; hide validation by default
-    if not parse_success:
-        print(f"{Fore.CYAN}\nRunning manifest validations...")
-        success, summary, details = validate_manifest(cleaned_user_manifest)
-        print(summary)
-    else:
-        success = True
-        details = ""
-    # Enforce structured requirements from question
-    reqs = question.get('requirements')
-    if success and reqs:
-        try:
-            user_obj = yaml.safe_load(cleaned_user_manifest)
-            ok_req, req_errors = __import__('kubelingo.validation', fromlist=['validate_requirements'])
-            ok_req, req_errors = validate_requirements(user_obj, reqs)
-            if not ok_req:
-                success = False
-                details += "\nRequirement checks failed:\n" + "\n".join(req_errors)
-        except Exception as e:
-            details += f"\nError checking requirements: {e}"
-
-    ai_result = {'correct': False, 'feedback': ''}
-    config = dotenv_values(".env")
-    ai_feedback_enabled = config.get("KUBELINGO_VALIDATION_AI_ENABLED", "True") == "True"
-    if ai_feedback_enabled:
-        ai_result = validate_manifest_with_llm(question, cleaned_user_manifest)
-
-    # If local validation passed, trust the AI's correctness assessment.
-    # Otherwise, the answer is definitely incorrect.
-    final_success = success and ai_result.get('correct', False)
-
+    # Grade the user's manifest using AI and static validators
+    from kubelingo.generation.grader import KubernetesGrader, GraderType
+    grader = KubernetesGrader(grading_mode=GraderType.HYBRID)
+    grade_res = grader.grade(
+        cleaned_user_manifest,
+        question.get('question', ''),
+        goal=question.get('question', '')
+    )
+    # Determine correctness: passing if score >= 70
+    correct = grade_res.overall_score >= 70
+    # Prepare feedback
+    validation_feedback = grade_res.summary
+    ai_feedback = grade_res.ai_result.explanation if grade_res.ai_result else ''
     result = {
-        'correct': final_success,
-        'validation_feedback': details,
-        'ai_feedback': ai_result.get('feedback', '')
+        'correct': correct,
+        'validation_feedback': validation_feedback,
+        'ai_feedback': ai_feedback
     }
     return user_manifest, result, False
 
@@ -1040,7 +1076,13 @@ def list_and_select_topic(performance_data):
     dbg(f"list_and_select_topic: perf_keys={list(performance_data.keys())}")
     # Determine missed questions file dynamically based on USER_DATA_DIR
     missed_file = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
-    available_topics = sorted([f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')])
+    # Require a valid LLM provider; no offline fallback supported
+    llm_type, llm_model = _get_llm_model(skip_prompt=False)
+    if not llm_model:
+        print(f"{Fore.RED}No valid LLM provider configured. Please set KUBELINGO_LLM_PROVIDER and ensure the corresponding API key is set.{Style.RESET_ALL}", file=sys.stderr)
+        sys.exit(1)
+    from kubelingo.generation.difficulty import KubernetesTopics
+    available_topics = [t.value for t in KubernetesTopics]
     has_missed = os.path.exists(missed_file) and os.path.getsize(missed_file) > 0
     dbg(f"list_and_select_topic: available_topics={available_topics}, has_missed={has_missed}")
     
@@ -1154,10 +1196,17 @@ def list_and_select_topic(performance_data):
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
 
-                if total_questions == 0 and not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
-                    print("This topic has no questions and no API key is set to generate them.")
-                    continue
-
+                # If no static questions exist
+                if total_questions == 0:
+                    # Require API key for AI generation
+                    if not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
+                        print("This topic has no questions and no API key is set to generate them.")
+                        continue
+                    # Generate one AI-driven question by default
+                    from kubelingo.generation.generator import QuestionGenerator
+                    qg = QuestionGenerator()
+                    ai_questions = qg.generate_question_set(count=1, topic=selected_topic)
+                    return selected_topic, 1, ai_questions
                 # Per-topic loop: allow generating new questions or selecting questions to study
                 while True:
                     # Compute incomplete questions
@@ -1180,20 +1229,20 @@ def list_and_select_topic(performance_data):
                     elif total_questions > 0:
                         prompt_parts.append(f"1-{total_questions}")
 
-                # Single prompt for number of questions to study
-                percent_correct = (num_correct / total_questions) * 100
-                if num_incomplete > 0:
-                    prompt_suffix = f"i for incomplete ({num_incomplete})"
-                else:
-                    prompt_suffix = f"1-{total_questions}"
-                # if percent_correct == 100:
-                #     prompt_suffix += ", g to generate new question, s to search for a new question"
-                dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
-                inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
-                dbg(f"User input received: {inp}")
-                if inp == 'i' and num_incomplete > 0:
-                    questions_to_study_list = incomplete_questions
-                    num_to_study = num_incomplete
+                    # Single prompt for number of questions to study
+                    percent_correct = (num_correct / total_questions) * 100
+                    if num_incomplete > 0:
+                        prompt_suffix = f"i for incomplete ({num_incomplete})"
+                    else:
+                        prompt_suffix = f"1-{total_questions}"
+                    # if percent_correct == 100:
+                    #     prompt_suffix += ", g to generate new question, s to search for a new question"
+                    dbg(f"Prompting user with: Enter number of questions to study ({prompt_suffix}), Enter for all: ")
+                    inp = input(f"Enter number of questions to study ({prompt_suffix}), Enter for all: ").strip().lower()
+                    dbg(f"User input received: {inp}")
+                    if inp == 'i' and num_incomplete > 0:
+                        questions_to_study_list = incomplete_questions
+                        num_to_study = num_incomplete
                 # elif inp == 'g' and percent_correct == 100:
                 #     # Generate a new question via LLM/tool
                 #     new_q = sm.generate_more_questions(
@@ -1226,12 +1275,15 @@ def list_and_select_topic(performance_data):
                 #         questions_to_study_list.append(new_q)
                 #         save_questions_to_topic_file(selected_topic, questions_to_study_list)
                 #     num_to_study = len(questions_to_study_list)
-                elif inp.isdigit():
-                    n = int(inp)
-                    num_to_study = n if 1 <= n <= total_questions else total_questions
-                else:
-                    num_to_study = total_questions
-                return selected_topic, num_to_study, questions_to_study_list
+                    elif inp.isdigit():
+                        n = int(inp)
+                        num_to_study = n if 1 <= n <= total_questions else total_questions
+                        questions_to_study_list = all_questions[:num_to_study]
+                    else:
+                        num_to_study = total_questions
+                        questions_to_study_list = all_questions[:total_questions]
+                    # Return static questions for study
+                    return selected_topic, num_to_study, questions_to_study_list
             else:
                 print("Invalid selection. Please try again.")
         except ValueError:
@@ -1287,10 +1339,58 @@ def get_user_input(allow_solution_command=True):
     return user_commands, special_action
 
 def run_topic(topic, questions_to_study, performance_data):
-    
     """
-    Loads and runs questions for a given topic.
+    Runs AI-driven generated questions for a given topic using the refactored engine.
+    Falls back to legacy flow if questions_to_study are not AI questions.
     """
+    from kubelingo.generation.generator import Question as AIQuestion
+    # If questions are generated by the new AI engine, use the new grading flow
+    if questions_to_study and isinstance(questions_to_study[0], AIQuestion):
+        performance_data.setdefault(topic, {}).setdefault('attempts', [])
+        performance_data[topic].setdefault('correct_questions', [])
+        # Initialize AI grader
+        from kubelingo.generation.grader import KubernetesGrader, GraderType, AIEvaluator, StaticValidator
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            print(f"Error: OPENAI_API_KEY not set. Cannot perform AI grading.", file=sys.stderr)
+            return None
+        ai_evaluator = AIEvaluator(api_key)
+        grader = KubernetesGrader(static_validator=StaticValidator(), ai_evaluator=ai_evaluator,
+                                  grading_mode=GraderType.HYBRID)
+        # Iterate through AI-generated questions
+        for q in questions_to_study:
+            print(f"\nQuestion: {q.question}\n")
+            if q.hints:
+                print("Hints:")
+                for h in q.hints:
+                    print(f"  - {h}")
+                print()
+            # Collect user answer (manifest) via CLI
+            user_commands, special_action = get_user_input(allow_solution_command=False)
+            if special_action in ('q', 'menu'):
+                return 'quit_app'
+            manifest_input = '\n'.join(user_commands)
+            # Grade the user's answer
+            grade_res = grader.grade(manifest_input, q.question, goal=q.question)
+            # Display results
+            print(grade_res.summary)
+            if grade_res.ai_result:
+                print(f"AI Feedback: {grade_res.ai_result.explanation}")
+            # Record performance
+            from time import asctime
+            passed = grade_res.overall_score >= 70
+            performance_data[topic]['attempts'].append({
+                'id': q.id,
+                'question': q.question,
+                'difficulty': getattr(q.difficulty, 'value', None),
+                'timestamp': asctime(),
+                'score': grade_res.overall_score,
+                'passed': passed
+            })
+            if passed:
+                performance_data[topic]['correct_questions'].append(q.id)
+        return None
+    # Legacy flow
     session_topic_name = topic
     dbg(f"run_topic: start topic={topic}, questions_to_study_count={len(questions_to_study)}")
     
@@ -1336,12 +1436,7 @@ def run_topic(topic, questions_to_study, performance_data):
         print(q['question'], flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         dbg("Before suggestion or input prompt")
-        # Auto-show solution on first display to avoid hanging on blank input
-        if not suggestion_shown_for_current_question:
-            special_action = 'solution'
-            user_commands = []
-        else:
-            user_commands, special_action = get_user_input(allow_solution_command=True)
+        user_commands, special_action = get_user_input(allow_solution_command=True)
         dbg(f"After suggestion/input: user_commands={user_commands}, special_action={special_action}")
         # If still no action, skip to next iteration
         if not user_commands and special_action is None:
@@ -1412,7 +1507,7 @@ def run_topic(topic, questions_to_study, performance_data):
             return
 
         # If the canonical solution is a Kubernetes manifest, enable Vim-based editing
-        elif sol_manifest is not None and (
+        elif os.getenv('KUBELINGO_CLI_MODE') != '1' and sol_manifest is not None and (
                 isinstance(sol_manifest, (dict, list)) or
                 (isinstance(sol_manifest, str) and '\n' in sol_manifest)
             ):
@@ -1447,9 +1542,18 @@ def run_topic(topic, questions_to_study, performance_data):
             user_answer_graded = True
             # No break here, flow to post-answer menu
         elif user_commands:
+            # CLI non-interactive: direct command matching
+            if os.getenv('KUBELINGO_CLI_MODE') == '1':
+                sol_list = q.get('suggestion') or q.get('solution')
+                if isinstance(sol_list, list) and sol_list:
+                    first_sol = sol_list[0]
+                else:
+                    first_sol = sol_list
+                is_correct = (user_commands[0].strip() == str(first_sol).strip())
+                print(f"\n{Fore.GREEN}Correct" if is_correct else f"\n{Fore.RED}Incorrect")
+                return 'quit_app'
             user_answer_graded = True
             user_answer_str = "\n".join(user_commands)
-            
             # Normalize both user answer and suggestion for comparison
             normalized_user_answer = normalize_command(user_commands)
             
@@ -1537,6 +1641,9 @@ def run_topic(topic, questions_to_study, performance_data):
                 print(f"\n{Fore.GREEN}Correct")
             else:
                 print(f"\n{Fore.RED}Incorrect")
+            # In CLI non-interactive mode, exit after single grading
+            if os.getenv('KUBELINGO_CLI_MODE') == '1':
+                return 'quit_app'
 
             # No break here, flow to post-answer menu
         else: # User typed 'done' without commands, or empty input
@@ -1605,10 +1712,20 @@ def run_topic(topic, questions_to_study, performance_data):
     return
 
 @click.command()
+@click.option('--cli-answer', 'cli_answer', type=str,
+              help='Provide an answer directly for a single question in non-interactive mode.')
+@click.option('--cli-question-topic', 'cli_question_topic', type=str,
+              help='Specify the topic for --cli-answer mode.')
+@click.option('--cli-question-index', 'cli_question_index', type=int,
+              help='Specify the 0-based index of the question within the topic for --cli-answer mode.')
 @click.option('--generate-kind', 'gen_kind', type=str,
               help='Generate new questions of the specified KIND (pod, deployment, service, pvc, configmap, secret, job).')
 @click.option('--generate-count', 'gen_count', type=int, default=1,
-              help='Number of questions to generate (default: 1).')
+              help='Number of AI questions to generate (default: 1).')
+@click.option('--study-kind', 'study_kind', type=str, default=None,
+              help='AI topic to study immediately (e.g., pods, deployments).')
+@click.option('--study-count', 'study_count', type=int, default=1,
+              help='Number of AI questions to study (default: 1).')
 @click.option('--add-sources', 'add_sources', is_flag=True, default=False,
               help='Add missing sources from a consolidated YAML file.')
 @click.option('--consolidated', 'consolidated', type=click.Path(), default=None,
@@ -1626,37 +1743,96 @@ def run_topic(topic, questions_to_study, performance_data):
 @click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
 @click.pass_context
-def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
+def cli(ctx,
+        cli_answer, cli_question_topic, cli_question_index,
+        gen_kind, gen_count, study_kind, study_count,
+        add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
         clean_manifest, manifest_file):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
-
-    # Handle static question generation
+    colorama_init(autoreset=True)
+    print(colorize_ascii_art(ASCII_ART))
+    # Handle CLI answer mode (direct command grading)
+    if cli_answer is not None and cli_question_topic and cli_question_index is not None:
+        # Load the specific question
+        topic_data = load_questions(cli_question_topic, Fore, Style)
+        if not topic_data or 'questions' not in topic_data or not (0 <= cli_question_index < len(topic_data['questions'])):
+            print(f"Error: Topic '{cli_question_topic}' not found or index {cli_question_index} out of range.", file=sys.stderr)
+            sys.exit(1)
+        q = topic_data['questions'][cli_question_index]
+        # Extract suggestion/solution
+        sol = q.get('suggestion') or q.get('solution') or ''
+        if isinstance(sol, list):
+            sol = sol[0] if sol else ''
+        # Compare CLI answer to canonical suggestion
+        sol_text = str(sol).strip()
+        ans = cli_answer.strip()
+        # Direct substring match for simplicity
+        if sol_text and (sol_text in ans or ans in sol_text):
+            print(f"{Fore.GREEN}Correct{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Incorrect{Style.RESET_ALL}")
+        sys.exit(0)
+    # Handle quick AI-based study session
+    if study_kind:
+        # Load or initialize performance data
+        performance_data, perf_loaded_ok = load_performance_data()
+        performance_data.setdefault(study_kind, {}).setdefault('attempts', [])
+        try:
+            from kubelingo.generation.generator import QuestionGenerator
+            qg = QuestionGenerator()
+            questions = qg.generate_question_set(count=study_count, topic=study_kind)
+        except Exception as e:
+            print(f"Error generating study questions: {e}", file=sys.stderr)
+            sys.exit(1)
+        # Iterate through AI questions and record performance
+        for idx, q in enumerate(questions, start=1):
+            # Record generation attempt
+            performance_data[study_kind]['attempts'].append({
+                'id': q.id,
+                'question': q.question,
+                'difficulty': getattr(q.difficulty, 'value', None),
+                'timestamp': time.asctime()
+            })
+            print(f"\nQuestion {idx}/{len(questions)}: {q.question}\n")
+            if q.hints:
+                print("Hints:")
+                for h in q.hints:
+                    print(f"  - {h}")
+                print()
+            if idx < len(questions):
+                input("Press Enter for next question...")
+        # Save updated performance data
+        if perf_loaded_ok:
+            save_performance_data(performance_data)
+        return
+    # Handle AI-based question generation before pre-flight
     if gen_kind:
         try:
-            from kubelingo.question_generator import generate_questions
-            # Ensure questions directory exists
-            os.makedirs(QUESTIONS_DIR, exist_ok=True)
-            # Generate questions
-            new_qs = generate_questions(gen_kind, gen_count)
-            # File to append into
-            out_file = os.path.join(QUESTIONS_DIR, f"{gen_kind}.yaml")
-            data = {'questions': []}
-            if os.path.exists(out_file):
-                try:
-                    data = yaml.safe_load(open(out_file)) or {'questions': []}
-                except Exception:
-                    data = {'questions': []}
-            # Append and save
-            data.setdefault('questions', [])
-            data['questions'].extend(new_qs)
-            with open(out_file, 'w') as f:
-                yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-            print(f"Generated {len(new_qs)} questions for kind '{gen_kind}' -> {out_file}")
+            from kubelingo.generation.generator import QuestionGenerator
+            # Determine output directory, prefer env override
+            out_dir = os.getenv('KUBELINGO_QUESTIONS_DIR', QUESTIONS_DIR)
+            os.makedirs(out_dir, exist_ok=True)
+            qg = QuestionGenerator()
+            questions = qg.generate_question_set(count=gen_count, topic=gen_kind)
+            out_file = os.path.join(out_dir, f"{gen_kind}.json")
+            qg.save_questions_to_file(questions, out_file)
+            print(f"Generated {len(questions)} AI questions for topic '{gen_kind}' -> {out_file}")
         except Exception as e:
-            print(f"Error generating questions: {e}")
+            print(f"Error generating AI questions: {e}")
         return
+    # Pre-flight API key check: require a configured LLM provider
+    llm_type, llm_model = _get_llm_model(skip_prompt=False)
+    if not llm_model:
+        print(f"{Fore.RED}No valid LLM provider configured; exiting. Please set KUBELINGO_LLM_PROVIDER to a valid provider (gemini, openai, openrouter) and ensure the corresponding API key is set.{Style.RESET_ALL}")
+        sys.exit(1)
+    # Default to immediate AI study if no other flags and in TTY
+    if sys.stdin.isatty() and cli_answer is None and gen_kind is None and study_kind is None:
+        # Default topic to pods
+        study_kind = 'pods'
+        study_count = 1
+
 
     # # Handle manifest cleaning mode
     # if clean_manifest:
@@ -1720,12 +1896,7 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
     # if interactive_sources:
     #     sm.cmd_interactive_sources(questions_dir=QUESTIONS_DIR, auto_approve=auto_approve)
     #     return
-    colorama_init(autoreset=True)
-    print(colorize_ascii_art(ASCII_ART))
-    statuses = test_api_keys()
-    if not any(statuses.values()):
-        print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
-        os.makedirs(QUESTIONS_DIR, exist_ok=True)
+    os.makedirs(QUESTIONS_DIR, exist_ok=True)
     ctx.ensure_object(dict)
     # Load existing performance data; do not overwrite existing progress on startup
     performance_data, perf_loaded_ok = load_performance_data()

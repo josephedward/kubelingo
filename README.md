@@ -1,79 +1,26 @@
-# Kubelingo
+<!-- Root README for Kubelingo AI -->
+# Kubelingo AI
 
-[![CI Status](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml/badge.svg)](https://github.com/josephedward/kubelingo/actions/workflows/ci.yml)
-
-
-## CKAD Studying Tool
-
-
-
-
-Kubelingo is a command-line interface (CLI) tool designed to help you study for the Certified Kubernetes Application Developer (CKAD) exam. It provides interactive questions and scenarios to test your knowledge of Kubernetes concepts and `kubectl` commands.
-
-## Features
-
-*   **Interactive Quizzes:** Test your knowledge with a variety of Kubernetes-related questions.
-*   **Scenario-Based Learning:** Practice common `kubectl` operations in simulated environments.
-*   **Comprehensive Coverage:** Questions cover key CKAD exam topics.
-*   **User-Friendly Interface:** Simple and intuitive CLI for an efficient study experience.
+Interactive CLI tool to generate Kubernetes questions, manifests, and perform grading with AI integrations.
 
 ## Installation
 
-Kubelingo can be installed directly from PyPI using `pip`:
-
-```bash
-pip install kubelingo
-```
+1. Ensure you have Python 3.8+ installed.
+2. Clone this repository and navigate to its root directory.
+3. Install dependencies:
+   ```shell
+   pip install -r requirements.txt
+   ```
 
 ## Usage
 
-Once installed, you can run Kubelingo from your terminal:
-
-```bash
-kubelingo
+Run the CLI:
+```shell
+python cli.py
 ```
 
-## Managing Question Sources
+Use the arrow keys to navigate menus, select actions, and generate Kubernetes questions interactively.
 
-You can manage `source` fields directly via the `kubelingo` CLI using the following options:
+## Roadmap
 
-### Add sources from a consolidated file
-```bash
-kubelingo --add-sources --consolidated /path/to/consolidated_questions.yaml
-```
-
-### Check for missing sources
-```bash
-kubelingo --check-sources
-```
-
-### Interactively find and assign sources
-```bash
-kubelingo --interactive-sources
-```
-
-### Auto-approve first search result
-```bash
-kubelingo --interactive-sources --auto-approve
-```
-
-Follow the on-screen prompts to navigate through the questions and scenarios.
-
-## Contributing
-
-Contributions are welcome! If you have suggestions for new questions, features, or improvements, please feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/josephedward/kubelingo).
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-  
-## Demo
-
-**General Usage**  
-[![General Usage Demo](https://asciinema.org/a/1PlDjt0xQuxwkLNpamLv3YsKU.svg)](https://asciinema.org/a/1PlDjt0xQuxwkLNpamLv3YsKU)
-
-**Question Generation**  
-[![Question Generation Demo](https://asciinema.org/a/QbWyRpf2vyBfXtXY61M91hmKv.svg)](https://asciinema.org/a/QbWyRpf2vyBfXtXY61M91hmKv)
-
-
-
+See [docs/ROADMAP.md](docs/ROADMAP.md) for planned features and development phases.
