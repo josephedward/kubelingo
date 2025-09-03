@@ -78,7 +78,6 @@ def _get_llm_model(skip_prompt=False):
             return None, None
     elif llm_provider == "openai":
         # Lazy import to avoid numpy load in tests
-        import openai
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             if not skip_prompt:
@@ -247,7 +246,8 @@ def format_yaml_string(yaml_string):
 import shutil
 
 def backup_performance_yaml():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    # Use module-level _PROJECT_ROOT to allow overriding in tests
+    project_root = globals().get('_PROJECT_ROOT', os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
     source_path = os.path.join(project_root, 'user_data', 'performance.yaml')
     destination_dir = os.path.join(project_root, 'misc')
     destination_path = os.path.join(destination_dir, 'performance.yaml')
