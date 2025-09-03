@@ -18,10 +18,6 @@ try:
 except ImportError:
     genai = None
 
-try:
-    import openai
-except ImportError:
-    openai = None
 
 import copy
 from kubelingo.utils import _get_llm_model
@@ -82,6 +78,71 @@ def manifests_equivalent(sol_obj, user_obj):
     normalized_sol = _normalize_manifest(sol_obj)
     normalized_user = _normalize_manifest(user_obj)
     return normalized_sol == normalized_user
+
+def validate_requirements(manifest: dict, reqs: dict) -> tuple[bool, list[str]]:
+    """
+    Enforce structured requirements on a Kubernetes manifest object.
+    Returns (passed: bool, errors: List[str]).
+    """
+    errors: list[str] = []
+    # Kind
+    if 'kind' in reqs:
+        got = manifest.get('kind')
+        if got != reqs['kind']:
+            errors.append(f"Expected kind='{reqs['kind']}', got '{got}'")
+    # Metadata name
+    md = manifest.get('metadata', {}) or {}
+    if 'metadata' in reqs:
+        want = reqs['metadata'].get('name')
+        if want is not None and md.get('name') != want:
+            errors.append(f"Expected metadata.name='{want}', got '{md.get('name')}'")
+    # Replicas
+    spec = manifest.get('spec', {}) or {}
+    if 'replicas' in reqs:
+        want = reqs['replicas']
+        if spec.get('replicas') != want:
+            errors.append(f"Expected replicas={want}, got {spec.get('replicas')}")
+    # Container checks
+    containers = spec.get('containers', []) or []
+    if 'container' in reqs and containers:
+        cr = reqs['container']
+        c0 = containers[0] or {}
+        if cr.get('name') and c0.get('name') != cr['name']:
+            errors.append(f"Expected container.name='{cr['name']}', got '{c0.get('name')}'")
+        if cr.get('image') and c0.get('image') != cr['image']:
+            errors.append(f"Expected container.image='{cr['image']}', got '{c0.get('image')}'")
+    # Resources
+    if containers:
+        res = containers[0].get('resources', {}) or {}
+        for side in ('requests', 'limits'):
+            if side in reqs:
+                want = reqs[side] or {}
+                got = res.get(side, {}) or {}
+                for k,v in want.items():
+                    if got.get(k) != v:
+                        errors.append(f"Expected resources.{side}.{k}='{v}', got '{got.get(k)}'")
+    # Service ports & selector
+    if manifest.get('kind') == 'Service':
+        if 'ports' in reqs:
+            ports = spec.get('ports', []) or []
+            if not ports:
+                errors.append("Service has no ports defined")
+            else:
+                for pk,pv in (reqs.get('ports') or {}).items():
+                    if ports[0].get(pk) != pv:
+                        errors.append(f"Expected service.ports[0].{pk}={pv}, got {ports[0].get(pk)}")
+        if 'selector' in reqs:
+            sel = spec.get('selector', {}) or {}
+            for sk,sv in (reqs.get('selector') or {}).items():
+                if sel.get(sk) != sv:
+                    errors.append(f"Expected service.selector.{sk}='{sv}', got '{sel.get(sk)}'")
+    # ConfigMap data
+    if manifest.get('kind') == 'ConfigMap' and 'data' in reqs:
+        dm = manifest.get('data', {}) or {}
+        for dk,dv in reqs.get('data', {}).items():
+            if dm.get(dk) != dv:
+                errors.append(f"Expected configmap.data.{dk}='{dv}', got '{dm.get(dk)}'")
+    return (len(errors) == 0, errors)
 
 def validate_manifest_with_llm(question_dict, user_input, verbose=True):
     """
