@@ -1,0 +1,38 @@
+questions:
+- id: 043376fb
+  question: View the logs for a pod named 'my-pod'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl logs my-pod
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/
+- id: 2b7d39b7
+  question: If 'my-pod' has multiple containers ('app' and 'sidecar'), how do you
+    view logs for the 'sidecar' container?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl logs my-pod -c sidecar
+  source: https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+- id: 9e173f04
+  question: Command to get the last 100 log lines from Pod web-0.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl logs web-0 --tail=100
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/
+- id: 43d20ce6
+  question: Command to add an ephemeral debug container to Pod web-0 and open a shell.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl debug pod/web-0 -it --image=busybox
+  source: https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/

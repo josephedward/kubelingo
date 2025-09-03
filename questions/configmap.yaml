@@ -1,7 +1,12 @@
 questions:
-- question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
+- id: d8ccef0a
+  question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
     'db.example.com'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create configmap app-config --from-literal=LOG_LEVEL=db.example.com
   - apiVersion: v1
     kind: ConfigMap
@@ -15,9 +20,14 @@ questions:
     name: app-config
     data:
       LOG_LEVEL: db.example.com
-- question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
+- id: e2aed916
+  question: Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to
     'DEBUG'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create configmap app-config --from-literal=LOG_LEVEL=DEBUG
   - apiVersion: v1
     kind: ConfigMap
@@ -31,9 +41,14 @@ questions:
     name: app-config
     data:
       LOG_LEVEL: DEBUG
-- question: Create a ConfigMap named 'db-config' with data key 'LOG_LEVEL' set to
+- id: 801c6c4e
+  question: Create a ConfigMap named 'db-config' with data key 'LOG_LEVEL' set to
     'DEBUG'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create configmap db-config --from-literal=LOG_LEVEL=DEBUG
   - apiVersion: v1
     kind: ConfigMap
@@ -47,8 +62,13 @@ questions:
     name: db-config
     data:
       LOG_LEVEL: DEBUG
-- question: Create a ConfigMap named 'db-config' with data key 'DB_HOST' set to 'DEBUG'.
-  suggestion:
+- id: 86cb98f4
+  question: Create a ConfigMap named 'db-config' with data key 'DB_HOST' set to 'DEBUG'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create configmap db-config --from-literal=DB_HOST=DEBUG
   - apiVersion: v1
     kind: ConfigMap
@@ -62,8 +82,13 @@ questions:
     name: db-config
     data:
       DB_HOST: DEBUG
-- question: Create a ConfigMap named 'app-config' with data key 'DB_HOST' set to 'db.example.com'.
-  suggestion:
+- id: f2e67874
+  question: Create a ConfigMap named 'app-config' with data key 'DB_HOST' set to 'db.example.com'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create configmap app-config --from-literal=DB_HOST=db.example.com
   - apiVersion: v1
     kind: ConfigMap

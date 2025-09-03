@@ -1,7 +1,12 @@
 questions:
-- question: Create a Pod named 'cache-server' that runs a container with the image
+- id: a849dbdf
+  question: Create a Pod named 'cache-server' that runs a container with the image
     'nginx:1.20'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run cache-server --image=nginx:1.20
   - apiVersion: v1
     kind: Pod
@@ -16,8 +21,13 @@ questions:
     kind: Pod
     name: cache-server
     image: nginx:1.20
-- question: Create a Pod named 'web-server' that runs a container with the image 'mysql:5.7'.
-  suggestion:
+- id: 6ae28077
+  question: Create a Pod named 'web-server' that runs a container with the image 'mysql:5.7'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run web-server --image=mysql:5.7
   - apiVersion: v1
     kind: Pod
@@ -32,8 +42,13 @@ questions:
     kind: Pod
     name: web-server
     image: mysql:5.7
-- question: Create a Pod named 'db-pod' that runs a container with the image 'mysql:5.7'.
-  suggestion:
+- id: 8da0eccf
+  question: Create a Pod named 'db-pod' that runs a container with the image 'mysql:5.7'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run db-pod --image=mysql:5.7
   - apiVersion: v1
     kind: Pod
@@ -48,8 +63,13 @@ questions:
     kind: Pod
     name: db-pod
     image: mysql:5.7
-- question: Create a Pod named 'web-server' that runs a container with the image 'nginx:1.20'.
-  suggestion:
+- id: 756ac56e
+  question: Create a Pod named 'web-server' that runs a container with the image 'nginx:1.20'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run web-server --image=nginx:1.20
   - apiVersion: v1
     kind: Pod
@@ -64,8 +84,13 @@ questions:
     kind: Pod
     name: web-server
     image: nginx:1.20
-- question: Create a Pod named 'db-pod' that runs a container with the image 'redis:6.2'.
-  suggestion:
+- id: 07b6bb22
+  question: Create a Pod named 'db-pod' that runs a container with the image 'redis:6.2'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run db-pod --image=redis:6.2
   - apiVersion: v1
     kind: Pod

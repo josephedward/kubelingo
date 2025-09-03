@@ -1,0 +1,195 @@
+questions:
+- id: fcf5835c
+  question: In namespace `mercury`, install a new Helm release named `internal-issue-report-apache`
+    from the `bitnami/apache` chart with 2 replicas.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm install internal-issue-report-apache bitnami/apache --namespace mercury --set
+    replicaCount=2
+  source: https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/
+- id: 4349976d
+  question: What is the command to create a basic Helm chart named `my-chart`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm create my-chart
+  source: https://helm.sh/docs/helm/helm_create/
+- id: 0f33d94e
+  question: How do you install the Helm chart located in `./my-chart` with the release
+    name `my-release`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm install my-release ./my-chart
+  source: https://helm.sh/docs/helm/helm_install/
+- id: b5bee8e5
+  question: How do you find all pending Helm deployments across all namespaces?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm list --pending -A
+  source: https://helm.sh/docs/helm/helm_list/
+- id: 5b1972f7
+  question: How can you uninstall a Helm release named `my-release`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm uninstall my-release
+  source: https://helm.sh/docs/helm/helm_uninstall/
+- id: 8971ed1f
+  question: How do you upgrade an existing Helm release named `my-release` using the
+    chart in `./my-chart`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm upgrade my-release ./my-chart
+  source: https://helm.sh/docs/helm/helm_upgrade/
+- id: 37d5c02b
+  question: How do you add the Prometheus community Helm repository from `https://prometheus-community.github.io/helm-charts`
+    and name it `prometheus-community`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  source: https://github.com/prometheus-community/helm-charts
+- id: dcdc9466
+  question: What command is used to list configured Helm chart repositories?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo list
+  source: https://helm.sh/docs/helm/helm_repo/
+- id: b7ca601e
+  question: What command is used to remove a Helm chart repository named `stable`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo remove stable
+  source: https://helm.sh/docs/helm/helm_repo/
+- id: '72667680'
+  question: What command is used to update information from chart repositories?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo update
+  source: https://helm.sh/docs/helm/helm_repo/
+- id: 9ce61505
+  question: What command generates an index file for a chart repository in the current
+    directory?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo index .
+  source: https://helm.sh/docs/helm/helm_repo_index/
+- id: 39d11600
+  question: What command downloads the `wordpress` chart from the `bitnami` repository
+    without installing it?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm pull bitnami/wordpress
+  source: https://devopsvoyager.hashnode.dev/fetching-helm-charts-with-helm-fetch-command
+- id: 657540f5
+  question: How do you add the Bitnami chart repository from `https://charts.bitnami.com/bitnami`
+    and name it `bitnami`?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm repo add bitnami https://charts.bitnami.com/bitnami
+  source: https://charts.bitnami.com/
+- id: 7e9c100c
+  question: How do you print the contents of `values.yaml` for the `bitnami/node`
+    chart?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm show values bitnami/node
+  source: https://docs.bitnami.com/kubernetes/faq/administration/understand-helm-chart/
+- id: 6f29cfb8
+  question: How do you install the `bitnami/node` chart as a release named `my-node`,
+    setting `replicaCount` to 5?
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm install my-node bitnami/node --set replicaCount=5
+  source: https://artifacthub.io/packages/helm/bitnami/node
+- id: fd522f14
+  question: List all Helm releases in the mercury namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm -n mercury ls
+  source: https://helm.sh/docs/helm/helm_list/
+- id: df03f771
+  question: Uninstall the Helm release `internal-issue-report-apiv1` in the mercury
+    namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm -n mercury uninstall internal-issue-report-apiv1
+  source: https://stackoverflow.com/questions/74050419/helm-release-stuck-in-uninstalling-state
+- id: b3700f9d
+  question: Search the Bitnami repository for all available nginx chart versions.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm search repo bitnami/nginx --versions
+  source: https://stackoverflow.com/questions/55973901/how-can-i-list-all-available-charts-under-a-helm-repo
+- id: 6b1794b7
+  question: Upgrade the Helm release `internal-issue-report-apiv2` in namespace mercury
+    to the latest nginx chart.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm -n mercury upgrade internal-issue-report-apiv2 bitnami/nginx
+  source: https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/
+- id: fee62d3d
+  question: Install the Bitnami Apache chart as release `internal-issue-report-apache`
+    in namespace mercury with 2 replicas and image debug enabled.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2
+    --set image.debug=true
+  source: https://ettoreciarcia.com/killersh-simulations/CKAD.html

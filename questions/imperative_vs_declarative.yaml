@@ -1,13 +1,23 @@
 questions:
-- question: Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without
+- id: 172001fc
+  question: Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without
     creating it. Save it to a file named 'pod.yaml'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml
   source: https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f
-- question: Create a manifest for a Deployment named 'declarative-deployment' with
+- id: 9e9f5cd7
+  question: Create a manifest for a Deployment named 'declarative-deployment' with
     image 'nginx' and 2 replicas. This manifest will be used to apply the configuration
     declaratively.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -26,25 +36,50 @@ questions:
           - name: nginx
             image: nginx
   source: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
-- question: Command to generate a Pod manifest named web-pod using image nginx without
+- id: 93436d06
+  question: Command to generate a Pod manifest named web-pod using image nginx without
     creating the resource and output in YAML format.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run web-pod --image=nginx --restart=Never --dry-run=client -o yaml
   source: https://medium.com/@muppedaanvesh/deploying-nginx-on-kubernetes-a-quick-guide-04d533414967
-- question: Command to declaratively apply all manifests in ./manifests.
-  suggestion:
+- id: b6ad08a0
+  question: Command to declaratively apply all manifests in ./manifests.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl apply -f ./manifests
   source: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
-- question: Apply the configuration in deployment.yaml.
-  suggestion:
+- id: 24aca7c9
+  question: Apply the configuration in deployment.yaml.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl apply -f deployment.yaml
   source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20be%20usadas
-- question: Use kubectl to edit deployment frontend.
-  suggestion:
+- id: e2697557
+  question: Use kubectl to edit deployment frontend.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl edit deployment frontend
   source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment
-- question: Generate a YAML file for a deployment with nginx image without creating
+- id: 0380ca5c
+  question: Generate a YAML file for a deployment with nginx image without creating
     it.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment nginx --image=nginx --dry-run=client -o yaml > deploy.yaml
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_deployment/#:~:text=)

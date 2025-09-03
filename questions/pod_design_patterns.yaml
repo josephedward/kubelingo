@@ -1,8 +1,13 @@
 questions:
-- question: Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer.
+- id: 5066bd1e
+  question: Create a Pod manifest for a pod named 'pod-with-init' that has an initContainer.
     The initContainer should use the 'busybox' image and run the command 'sleep 2'.
     The main container should use the 'nginx' image.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -19,9 +24,14 @@ questions:
       - name: nginx
         image: nginx
   source: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-- question: Pod manifest with one initContainer that waits 5s before starting app
+- id: c009d10e
+  question: Pod manifest with one initContainer that waits 5s before starting app
     container.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -38,8 +48,13 @@ questions:
       - name: nginx
         image: nginx
   source: /search?num=3
-- question: Pod manifest with a sidecar that tails a shared log file.
-  suggestion:
+- id: 184a2783
+  question: Pod manifest with a sidecar that tails a shared log file.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -68,29 +83,54 @@ questions:
       - emptyDir: {}
         name: logs
   source: https://kubernetes.io/docs/concepts/cluster-administration/logging/
-- question: Run a pod named busybox with image busybox that runs indefinitely.
-  suggestion:
+- id: bb1c52ca
+  question: Run a pod named busybox with image busybox that runs indefinitely.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c "sleep 3600"
   source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever
-- question: List all pods.
-  suggestion:
+- id: 6816cee1
+  question: List all pods.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl get pods
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace
-- question: Describe pod busybox.
-  suggestion:
+- id: 3e1df3b7
+  question: Describe pod busybox.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl describe pod busybox
   source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)
-- question: Delete pod busybox.
-  suggestion:
+- id: d1a3f60b
+  question: Delete pod busybox.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl delete pod busybox
   source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std
-- question: Create a Deployment named `test-init-container` in namespace `mars`. It
+- id: 39598cdc
+  question: Create a Deployment named `test-init-container` in namespace `mars`. It
     should have one replica. The Pods should have an `nginx:1.17.3-alpine` container
     and an `initContainer` named `init-con` using `busybox:1.31.0`. An `emptyDir`
     volume `web-content` should be mounted to `/usr/share/nginx/html` in the nginx
     container and `/tmp/web-content` in the init container. The init container should
     run `echo 'check this out!' > /tmp/web-content/index.html`.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:

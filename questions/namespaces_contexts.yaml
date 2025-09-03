@@ -1,0 +1,109 @@
+questions:
+- id: 70dc44f9
+  question: Create a new namespace called 'development'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create namespace development
+  source: https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace
+- id: 06287052
+  question: Switch your current context to use the 'development' namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl config set-context --current --namespace=development
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+- id: 722913ae
+  question: List all namespaces, and then delete the 'development' namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get namespaces && kubectl delete namespace development
+  source: https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces
+- id: fc14fa89
+  question: Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the
+    'development' namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: pod-in-ns
+      namespace: development
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+  source: https://kubernetes.io/docs/concepts/workloads/pods/
+- id: 3e979225
+  question: Generate the YAML for a new namespace 'dev' without creating it.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create namespace dev --dry-run=client -o yaml
+  source: https://kubernetes.io/docs/tutorials/cluster-management/namespaces-walkthrough/
+- id: 602d733c
+  question: Set the current context's default namespace to 'dev'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl config set-context --current --namespace=dev
+  source: /search?num=3
+- id: 51f398e2
+  question: Get the list of all Namespaces in the cluster and save it to a file.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get namespaces > /path/to/namespaces.txt
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+- id: d0cab816
+  question: Verify which namespace is currently being used in your context.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl config view --minify | grep namespace: null
+  source: https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f
+- id: fd6d3a24
+  question: List all resources across all namespaces.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get all -A
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=A%20note%20on%20%60
+- id: ff018dcf
+  question: List all pods in the 'kube-system' namespace.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods -n kube-system
+  source: https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20nginx%20,in%20the%20namespace%20of%20mynamespace
+- id: 03482227
+  question: Create a resource quota for a namespace, limiting it to 10 pods.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl create quota ns-quota --hard=pods=10 -n development
+  source: https://kubernetes.io/docs/concepts/policy/resource-quotas/#:~:text=kubectl%20create%20namespace%20myspace

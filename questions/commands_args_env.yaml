@@ -1,10 +1,14 @@
 questions:
-- question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
+- id: 00b1fe3b
+  question: Create a Pod manifest named `args-pod` with a container named `busybox-container`
     using the `busybox` image. Override the container's command to be `[/bin/sh, -c]`
     and its arguments to be `[echo Hello world]` . The Pod should have a `restartPolicy`
     of `Never`.
-  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -19,7 +23,9 @@ questions:
         image: busybox
         name: busybox-container
       restartPolicy: Never
-- question: '**Scenario:** In Kubernetes, you often need to run a container with a
+  source: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+- id: b1602732
+  question: '**Scenario:** In Kubernetes, you often need to run a container with a
     different command than the one specified in its Dockerfile. For example, you might
     want to run a one-off debugging script, or start a database container with a custom
     configuration flag. You can override a container''s default startup instruction
@@ -34,9 +40,12 @@ questions:
     shell should be given a command string to execute. Use the `args` field to provide
     a string that first prints "hello" and then sleeps for a long time (e.g., `echo
     hello && sleep 3600`). The `sleep` command ensures the container remains in a
-    `Running` state for inspection." '
-  source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
-  suggestion:
+    `Running` state for inspection."'
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -50,11 +59,16 @@ questions:
         - -c
         image: busybox
         name: c
-- question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
+  source: https://stackoverflow.com/questions/28976455/start-kubernetes-container-with-specific-command
+- id: 0da5a3e1
+  question: Create a Pod manifest named 'envfrom-cm'. The Pod should have a container
     named 'c' that uses the 'busybox' image. Configure the container to import all
     key-value pairs from the ConfigMap named 'app-cm' as environment variables.
-  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -66,3 +80,4 @@ questions:
             name: app-cm
         image: busybox
         name: c
+  source: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/

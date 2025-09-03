@@ -1,7 +1,12 @@
 questions:
-- question: Create a Deployment named 'api-server-deploy' with 3 replicas of the image
+- id: 5b00ba63
+  question: Create a Deployment named 'api-server-deploy' with 3 replicas of the image
     'mysql:5.7'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment api-server-deploy --image=mysql:5.7 --replicas=3
   - apiVersion: apps/v1
     kind: Deployment
@@ -26,9 +31,14 @@ questions:
     name: api-server-deploy
     image: mysql:5.7
     replicas: 3
-- question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
+- id: 9c1589d3
+  question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
     'redis:6.2'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment api-server-deploy --image=redis:6.2 --replicas=5
   - apiVersion: apps/v1
     kind: Deployment
@@ -53,9 +63,14 @@ questions:
     name: api-server-deploy
     image: redis:6.2
     replicas: 5
-- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+- id: 98aeddee
+  question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
     'nginx:1.20'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment worker-deploy --image=nginx:1.20 --replicas=3
   - apiVersion: apps/v1
     kind: Deployment
@@ -80,9 +95,14 @@ questions:
     name: worker-deploy
     image: nginx:1.20
     replicas: 3
-- question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
+- id: e52b6163
+  question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
     'redis:6.2'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment worker-deploy --image=redis:6.2 --replicas=5
   - apiVersion: apps/v1
     kind: Deployment
@@ -107,9 +127,14 @@ questions:
     name: worker-deploy
     image: redis:6.2
     replicas: 5
-- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+- id: cf8b4c0b
+  question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
     'mysql:5.7'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment worker-deploy --image=mysql:5.7 --replicas=3
   - apiVersion: apps/v1
     kind: Deployment
@@ -134,9 +159,14 @@ questions:
     name: worker-deploy
     image: mysql:5.7
     replicas: 3
-- question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
+- id: 6255a104
+  question: Create a Deployment named 'worker-deploy' with 5 replicas of the image
     'mysql:5.7'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment worker-deploy --image=mysql:5.7 --replicas=5
   - apiVersion: apps/v1
     kind: Deployment
@@ -161,9 +191,14 @@ questions:
     name: worker-deploy
     image: mysql:5.7
     replicas: 5
-- question: Create a Deployment named 'nginx-deploy' with 3 replicas of the image
+- id: c14965fd
+  question: Create a Deployment named 'nginx-deploy' with 3 replicas of the image
     'mysql:5.7'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment nginx-deploy --image=mysql:5.7 --replicas=3
   - apiVersion: apps/v1
     kind: Deployment
@@ -188,9 +223,14 @@ questions:
     name: nginx-deploy
     image: mysql:5.7
     replicas: 3
-- question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
+- id: ab8539fe
+  question: Create a Deployment named 'worker-deploy' with 3 replicas of the image
     'redis:6.2'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment worker-deploy --image=redis:6.2 --replicas=3
   - apiVersion: apps/v1
     kind: Deployment
@@ -215,9 +255,14 @@ questions:
     name: worker-deploy
     image: redis:6.2
     replicas: 3
-- question: Create a Deployment named 'api-server-deploy' with 1 replicas of the image
+- id: ae38846f
+  question: Create a Deployment named 'api-server-deploy' with 1 replicas of the image
     'nginx:1.20'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment api-server-deploy --image=nginx:1.20 --replicas=1
   - apiVersion: apps/v1
     kind: Deployment
@@ -242,9 +287,14 @@ questions:
     name: api-server-deploy
     image: nginx:1.20
     replicas: 1
-- question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
+- id: c9a96bb3
+  question: Create a Deployment named 'api-server-deploy' with 5 replicas of the image
     'nginx:1.20'.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl create deployment api-server-deploy --image=nginx:1.20 --replicas=5
   - apiVersion: apps/v1
     kind: Deployment

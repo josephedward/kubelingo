@@ -1,0 +1,93 @@
+questions:
+- id: 3f08d5f8
+  question: Add a label 'env=prod' to the pod named 'my-pod'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl label pod my-pod env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- id: a3406724
+  question: Get all pods with the label 'env=prod'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods -l env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- id: 3bbea237
+  question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx''
+    that has two labels: ''env=prod'' and ''app=frontend''.'
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: labeled-pod
+      labels:
+        env: prod
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- id: 0a43c092
+  question: Command to label Namespace prod with tier=backend (overwrite if exists).
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl label ns prod tier=backend --overwrite
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- id: 6000c3c9
+  question: Command to list Pod names only using jsonpath.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl get pods -o jsonpath='{.items[*].metadata.name}'
+  source: https://kubernetes.io/docs/reference/kubectl/jsonpath/
+- id: '33184011'
+  question: Label pod busybox with env=prod.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl label pod busybox env=prod
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: e38c996e
+  question: Remove the label 'env' from pod busybox.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl label pod busybox env-
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: 72fe52e4
+  question: Annotate deployment frontend with description=test.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl annotate deployment frontend description=test
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- id: 7ac9a89f
+  question: Remove the annotation 'description' from deployment frontend.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl annotate deployment frontend description-
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng

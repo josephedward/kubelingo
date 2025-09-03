@@ -1,6 +1,11 @@
 questions:
-- question: Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'.
-  suggestion:
+- id: 34b4c351
+  question: Create a pod that will only be scheduled on nodes with the label 'disktype=ssd'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:
@@ -12,8 +17,13 @@ questions:
       - name: nginx
         image: nginx
   source: /search?num=3
-- question: Deployment manifest with nodeSelector disktype=ssd.
-  suggestion:
+- id: 8fca000e
+  question: Deployment manifest with nodeSelector disktype=ssd.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -34,8 +44,13 @@ questions:
           - name: nginx
             image: nginx
   source: /search?num=3
-- question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
-  suggestion:
+- id: 52c956c7
+  question: Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - apiVersion: v1
     kind: Pod
     metadata:

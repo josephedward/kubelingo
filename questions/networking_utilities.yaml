@@ -1,0 +1,28 @@
+questions:
+- id: 9be61ad6
+  question: Forward local port 8080 to port 80 on a pod named 'webapp-pod-123'.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl port-forward pod/webapp-pod-123 8080:80
+  source: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
+- id: d565bc38
+  question: Command to port-forward Service web port 80 to local 8080.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl port-forward svc/web 8080:80
+  source: https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/
+- id: f558aa7c
+  question: Command to exec into a Pod named nginx-abc with a shell.
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
+  - kubectl exec -it nginx-abc -- sh
+  source: https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/

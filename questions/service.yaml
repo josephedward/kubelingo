@@ -1,7 +1,12 @@
 questions:
-- question: Create a Service of type ClusterIP named 'cache-svc' that exposes port
+- id: a5415624
+  question: Create a Service of type ClusterIP named 'cache-svc' that exposes port
     6379 targeting port 80 for Pods labeled app=cache.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=80
     --type=ClusterIP
   - apiVersion: v1
@@ -23,9 +28,14 @@ questions:
     port: 6379
     targetPort: 80
     selector: *id001
-- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+- id: 756621a7
+  question: Create a Service of type NodePort named 'cache-svc' that exposes port
     6379 targeting port 6379 for Pods labeled app=cache.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=6379
     --type=NodePort
   - apiVersion: v1
@@ -47,9 +57,14 @@ questions:
     port: 6379
     targetPort: 6379
     selector: *id002
-- question: Create a Service of type ClusterIP named 'db-svc' that exposes port 6379
+- id: 85e78308
+  question: Create a Service of type ClusterIP named 'db-svc' that exposes port 6379
     targeting port 6379 for Pods labeled app=db.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment db --name=db-svc --port=6379 --target-port=6379 --type=ClusterIP
   - apiVersion: v1
     kind: Service
@@ -70,9 +85,14 @@ questions:
     port: 6379
     targetPort: 6379
     selector: *id003
-- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+- id: 3b3f40d0
+  question: Create a Service of type NodePort named 'cache-svc' that exposes port
     443 targeting port 443 for Pods labeled app=cache.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment cache --name=cache-svc --port=443 --target-port=443
     --type=NodePort
   - apiVersion: v1
@@ -94,9 +114,14 @@ questions:
     port: 443
     targetPort: 443
     selector: *id004
-- question: Create a Service of type NodePort named 'web-svc' that exposes port 80
+- id: 4b7f9d0d
+  question: Create a Service of type NodePort named 'web-svc' that exposes port 80
     targeting port 443 for Pods labeled app=web.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment web --name=web-svc --port=80 --target-port=443 --type=NodePort
   - apiVersion: v1
     kind: Service
@@ -117,9 +142,14 @@ questions:
     port: 80
     targetPort: 443
     selector: *id005
-- question: Create a Service of type ClusterIP named 'db-svc' that exposes port 80
+- id: 6ac45891
+  question: Create a Service of type ClusterIP named 'db-svc' that exposes port 80
     targeting port 80 for Pods labeled app=db.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment db --name=db-svc --port=80 --target-port=80 --type=ClusterIP
   - apiVersion: v1
     kind: Service
@@ -140,9 +170,14 @@ questions:
     port: 80
     targetPort: 80
     selector: *id006
-- question: Create a Service of type ClusterIP named 'web-svc' that exposes port 6379
+- id: 505e0431
+  question: Create a Service of type ClusterIP named 'web-svc' that exposes port 6379
     targeting port 443 for Pods labeled app=web.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment web --name=web-svc --port=6379 --target-port=443 --type=ClusterIP
   - apiVersion: v1
     kind: Service
@@ -163,9 +198,14 @@ questions:
     port: 6379
     targetPort: 443
     selector: *id007
-- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+- id: 964b95d9
+  question: Create a Service of type NodePort named 'cache-svc' that exposes port
     80 targeting port 6379 for Pods labeled app=cache.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment cache --name=cache-svc --port=80 --target-port=6379
     --type=NodePort
   - apiVersion: v1
@@ -187,9 +227,14 @@ questions:
     port: 80
     targetPort: 6379
     selector: *id008
-- question: Create a Service of type NodePort named 'cache-svc' that exposes port
+- id: abc21cce
+  question: Create a Service of type NodePort named 'cache-svc' that exposes port
     6379 targeting port 80 for Pods labeled app=cache.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=80
     --type=NodePort
   - apiVersion: v1
@@ -211,9 +256,14 @@ questions:
     port: 6379
     targetPort: 80
     selector: *id009
-- question: Create a Service of type NodePort named 'web-svc' that exposes port 6379
+- id: c8f53034
+  question: Create a Service of type NodePort named 'web-svc' that exposes port 6379
     targeting port 80 for Pods labeled app=web.
-  suggestion:
+  success_criteria:
+  - YAML syntax is valid
+  - Required Kubernetes resources are defined
+  - Resource specifications are complete
+  suggestions:
   - kubectl expose deployment web --name=web-svc --port=6379 --target-port=80 --type=NodePort
   - apiVersion: v1
     kind: Service
