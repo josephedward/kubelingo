@@ -20,7 +20,8 @@ except ImportError:
 
 
 import copy
-from kubelingo.utils import _get_llm_model
+import kubelingo.utils as utils
+_get_llm_model = utils._get_llm_model
 
 def _normalize_manifest(obj):
     """
@@ -211,8 +212,6 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
     elif solution_manifest is None:
         return {'correct': False, 'feedback': 'No solution found in question data.'}
 
-    # Compose the validation prompt and invoke the configured LLM
-
     # Fallback to AI-powered validation
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
@@ -251,6 +250,8 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
     Then, on a new line, provide a brief, one or two-sentence explanation for your decision.
     '''
     
+    # Determine LLM provider dynamically to allow monkeypatching
+    llm_type, model = _get_llm_model(skip_prompt=True)
     # Use only the configured LLM
     if llm_type == "gemini":
         try:
