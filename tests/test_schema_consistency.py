@@ -10,11 +10,11 @@ SCRIPT_DIR = os.path.dirname(__file__)
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
 QUESTIONS_DIR = os.path.join(REPO_ROOT, 'questions')
 
-# Required and optional fields for static questions
-REQUIRED = {'id', 'question', 'suggestions', 'success_criteria', 'source'}
-OPTIONAL = {'difficulty', 'requirements'}
+# Required and optional fields for static questions (canonical schema)
+REQUIRED = {'id', 'topic', 'question', 'requirements', 'source'}
+OPTIONAL = {'difficulty'}
 ALLOWED = REQUIRED.union(OPTIONAL)
-FORBIDDEN = {'expected_resources', 'hints', 'scenario_context'}
+FORBIDDEN = {'suggestions', 'success_criteria', 'expected_resources', 'hints', 'scenario_context'}
 
 @pytest.mark.parametrize('fpath', glob.glob(os.path.join(QUESTIONS_DIR, '*.yaml')))
 def test_file_contains_questions_list(fpath):
@@ -34,9 +34,7 @@ def test_questions_match_canonical_schema(fpath):
         assert not missing, f"{fpath}: missing fields {missing}"
         assert not extra, f"{fpath}: unexpected fields {extra}"
         assert not forbidden, f"{fpath}: forbidden fields {forbidden}"
-        assert isinstance(q['suggestions'], list), (
-            f"{fpath}: 'suggestions' must be a list"
-        )
-        assert isinstance(q['success_criteria'], list), (
-            f"{fpath}: 'success_criteria' must be a list"
+        # requirements must be a mapping
+        assert isinstance(q['requirements'], dict), (
+            f"{fpath}: 'requirements' must be a mapping"
         )
