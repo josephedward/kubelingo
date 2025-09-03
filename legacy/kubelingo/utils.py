@@ -49,7 +49,19 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
    # import openai lazily when needed in get_llm_model
 import requests
-from dotenv import load_dotenv, dotenv_values, set_key
+# Fallback for python-dotenv: make environment loading no-op if missing
+try:
+    from dotenv import load_dotenv, dotenv_values, set_key
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        """No-op dotenv loader when python-dotenv is not installed."""
+        return {}
+    def dotenv_values(*args, **kwargs):
+        """Return empty config when python-dotenv is not installed."""
+        return {}
+    def set_key(*args, **kwargs):
+        """No-op set_key when python-dotenv is not installed."""
+        return None
 
 def _get_llm_model(skip_prompt=False):
     """
@@ -159,29 +171,35 @@ def get_canonical_question_representation(question_dict):
 
 def load_questions(topic, Fore=Fore, Style=Style): # Removed genai as argument
     """Loads questions from a YAML file based on the topic."""
-    file_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
-    if not os.path.exists(file_path):
-        print(f"Error: Question file not found at {file_path}")
-        available_topics = [f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')]
-        if available_topics:
-            print("Available topics: " + ", ".join(available_topics))
-        return None
-    
-    with open(file_path, 'r') as file:
-        data = yaml.safe_load(file)
-    
-    if data and 'questions' in data:
+    # Support both YAML and JSON question sources
+    yaml_path = os.path.join(QUESTIONS_DIR, f"{topic}.yaml")
+    json_path = os.path.join(QUESTIONS_DIR, f"{topic}.json")
+    data = None
+    # Try YAML first
+    if os.path.exists(yaml_path):
+        with open(yaml_path, 'r') as f:
+            data = yaml.safe_load(f) or {'questions': []}
+    # Fallback to JSON
+    elif os.path.exists(json_path):
+        try:
+            import json as _json
+            raw = _json.load(open(json_path, 'r'))
+            data = {'questions': raw or []}
+        except Exception:
+            data = {'questions': []}
+    # No static file
+    else:
+        return {'questions': []}
+
+    # If loaded mapping with questions, optionally update YAML sources
+    if isinstance(data, dict) and 'questions' in data and os.path.exists(yaml_path):
         updated = False
-        # Import assign_source locally to avoid circular dependency
-        
         for q in data['questions']:
-            if assign_source(q, topic, Fore, Style): # Removed genai
+            if assign_source(q, topic, Fore, Style):
                 updated = True
-        
         if updated:
-            with open(file_path, 'w') as file:
-                yaml.dump(data, file, sort_keys=False)
-    
+            with open(yaml_path, 'w') as f:
+                yaml.dump(data, f, sort_keys=False)
     return data
 
 def remove_question_from_corpus(question_to_remove, topic):

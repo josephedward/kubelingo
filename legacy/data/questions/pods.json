@@ -1,0 +1,122 @@
+[
+  {
+    "id": "89538a2f",
+    "topic": "pods",
+    "difficulty": "intermediate",
+    "question": "Deploy a Pod with a sidecar container for logging using 'fluent/fluent-bit:1.8'",
+    "context_variables": {
+      "pod_name": "cache-211",
+      "deployment_name": "nodejs-app-deployment",
+      "image": "python:3.9",
+      "port": 80,
+      "replicas": 10,
+      "cpu_limit": "100m",
+      "memory_limit": "1Gi",
+      "env_var": "PORT",
+      "env_value": "debug",
+      "sidecar_image": "fluent/fluent-bit:1.8"
+    },
+    "expected_resources": [
+      "Pod"
+    ],
+    "success_criteria": [
+      "YAML syntax is valid",
+      "Required Kubernetes resources are defined",
+      "Resource specifications are complete",
+      "Best practices are followed",
+      "Resource limits and requests are specified",
+      "Labels and selectors are properly configured"
+    ],
+    "hints": [],
+    "scenario_context": {
+      "environment": "testing",
+      "industry": "iot",
+      "team_size": "small startup",
+      "constraints": "Cost optimization is critical"
+    }
+  },
+  {
+    "id": "56d773db",
+    "topic": "pods",
+    "difficulty": "advanced",
+    "question": "Create a multi-container Pod with shared volumes and inter-container communication",
+    "context_variables": {
+      "pod_name": "web-943",
+      "deployment_name": "nginx-deployment",
+      "image": "nginx:1.21",
+      "port": 8000,
+      "replicas": 10,
+      "cpu_limit": "2",
+      "memory_limit": "1Gi",
+      "env_var": "API_KEY",
+      "env_value": "info",
+      "sidecar_image": "fluent/fluent-bit:1.8"
+    },
+    "expected_resources": [
+      "Pod"
+    ],
+    "success_criteria": [
+      "YAML syntax is valid",
+      "Required Kubernetes resources are defined",
+      "Resource specifications are complete",
+      "Best practices are followed",
+      "Resource limits and requests are specified",
+      "Labels and selectors are properly configured",
+      "Security contexts are properly configured",
+      "Advanced features are correctly implemented",
+      "Solution demonstrates deep Kubernetes knowledge"
+    ],
+    "hints": [
+      "Remember to specify resource requests and limits",
+      "Don't forget to set appropriate security contexts"
+    ],
+    "scenario_context": {
+      "environment": "testing",
+      "industry": "gaming",
+      "team_size": "open source project",
+      "constraints": "High availability is required"
+    }
+  },
+  {
+    "id": "dd9e32fe",
+    "topic": "pods",
+    "difficulty": "advanced",
+    "question": "Create a Pod with init containers, security context, and custom service account",
+    "context_variables": {
+      "pod_name": "cache-82",
+      "deployment_name": "python-api-deployment",
+      "image": "node:16",
+      "port": 8000,
+      "replicas": 2,
+      "cpu_limit": "200m",
+      "memory_limit": "512Mi",
+      "env_var": "LOG_LEVEL",
+      "env_value": "debug",
+      "sidecar_image": "grafana/promtail:2.4.0"
+    },
+    "expected_resources": [
+      "Pod"
+    ],
+    "success_criteria": [
+      "YAML syntax is valid",
+      "Required Kubernetes resources are defined",
+      "Resource specifications are complete",
+      "Best practices are followed",
+      "Resource limits and requests are specified",
+      "Labels and selectors are properly configured",
+      "Security contexts are properly configured",
+      "Advanced features are correctly implemented",
+      "Solution demonstrates deep Kubernetes knowledge"
+    ],
+    "hints": [
+      "Remember to specify resource requests and limits",
+      "Consider adding readiness and liveness probes"
+    ],
+    "scenario_context": {
+      "environment": "testing",
+      "industry": "e-commerce",
+      "team_size": "mid-size company",
+      "constraints": "Cost optimization is critical"
+    }
+  }
+]
