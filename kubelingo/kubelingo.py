@@ -19,7 +19,12 @@ from kubelingo.utils import (
     ensure_user_data_dir,
     backup_performance_yaml,
 )
-from kubelingo.validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
+from kubelingo.validation import (
+    manifests_equivalent,
+    validate_manifest,
+    validate_manifest_with_llm,
+    validate_requirements,
+)
 import kubelingo.source_manager as sm
 import kubelingo.issue_manager as im
 import kubelingo.study_session as study_session
@@ -857,6 +862,18 @@ def handle_vim_edit(question):
     else:
         success = True
         details = ""
+    # Enforce structured requirements from question
+    reqs = question.get('requirements')
+    if success and reqs:
+        try:
+            user_obj = yaml.safe_load(cleaned_user_manifest)
+            ok_req, req_errors = __import__('kubelingo.validation', fromlist=['validate_requirements'])
+            ok_req, req_errors = validate_requirements(user_obj, reqs)
+            if not ok_req:
+                success = False
+                details += "\nRequirement checks failed:\n" + "\n".join(req_errors)
+        except Exception as e:
+            details += f"\nError checking requirements: {e}"
 
     ai_result = {'correct': False, 'feedback': ''}
     config = dotenv_values(".env")
