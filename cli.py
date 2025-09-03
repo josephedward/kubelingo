@@ -3,6 +3,8 @@
 import sys
 from InquirerPy import inquirer
 from rich.console import Console
+import tempfile
+import subprocess
 import os
 
 from question_generator import QuestionGenerator, DifficultyLevel, KubernetesTopics
@@ -56,14 +58,21 @@ def answer_question():
     for crit in q['success_criteria']:
         console.print(f"  - {crit}")
     console.print()  # blank line
-    # Prompt for answer file
-    path = inquirer.text(message="Enter path to your YAML answer file:").execute()
-    if not os.path.isfile(path):
-        console.print(f"[bold red]Error: File '{path}' not found[/bold red]")
-        console.print()
-        return
-    with open(path, 'r') as f:
+    # Open editor for your answer manifest
+    editor = os.environ.get('EDITOR', 'vim')
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".yaml") as tmp:
+        tmp_path = tmp.name
+        header = (
+            f"# Question: {q['question']}\n"
+            f"# Topic: {q['topic']}, Difficulty: {q['difficulty']}\n"
+            "# Write your Kubernetes YAML manifest below.\n\n"
+        )
+        tmp.write(header.encode('utf-8'))
+    console.print(f"[bold yellow]Opening {editor} to edit your answer...[/bold yellow]")
+    subprocess.run([editor, tmp_path])
+    with open(tmp_path, 'r') as f:
         yaml_content = f.read()
+    os.unlink(tmp_path)
     mg = ManifestGenerator()
     grading = mg.grade_manifest(yaml_content, q['question'])
     console.print("[bold green]Grading Results:[/bold green]")
