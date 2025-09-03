@@ -1,5 +1,11 @@
 import yaml
-from colorama import Fore, Style
+try:
+    from colorama import Fore, Style
+except ImportError:
+    class Fore:
+        RED = YELLOW = GREEN = CYAN = ''
+    class Style:
+        BRIGHT = RESET_ALL = DIM = ''
 import kubelingo.utils as _utils
 from kubelingo.utils import USER_DATA_DIR, PERFORMANCE_FILE
 
