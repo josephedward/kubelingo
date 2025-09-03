@@ -35,7 +35,8 @@ except ImportError:
 # For now, I'll define it here, and then remove it from kubelingo.py
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, os.pardir))
-_ROOT_QUESTIONS = os.path.join(_PROJECT_ROOT, "questions")
+# Default location for static question YAML files
+_ROOT_QUESTIONS = os.path.join(_PROJECT_ROOT, "data", "questions")
 _PKG_QUESTIONS = os.path.join(_SCRIPT_DIR, "questions")
 QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
@@ -48,7 +49,15 @@ PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
 
    # import openai lazily when needed in get_llm_model
 import requests
-from dotenv import load_dotenv, dotenv_values
+try:
+    from dotenv import load_dotenv, dotenv_values, set_key
+except ImportError:
+    def load_dotenv(*args, **kwargs):
+        pass
+    def dotenv_values(*args, **kwargs):
+        return {}
+    def set_key(*args, **kwargs):
+        pass
 
 def _get_llm_model(skip_prompt=False):
     """
@@ -56,7 +65,6 @@ def _get_llm_model(skip_prompt=False):
     Returns a tuple: (llm_type_string, model_object) or (None, None)
     """
     load_dotenv() # Ensure .env is loaded
-    config = dotenv_values()
     llm_provider = os.getenv("KUBELINGO_LLM_PROVIDER", "").lower()
 
     if llm_provider == "gemini":
@@ -84,6 +92,7 @@ def _get_llm_model(skip_prompt=False):
                 print(f"{Fore.RED}OPENAI_API_KEY not found in environment variables.{Style.RESET_ALL}")
             return None, None
         try:
+            import openai
             openai.api_key = api_key
             model = openai.OpenAI()
             # Test model availability

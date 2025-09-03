@@ -12,7 +12,13 @@ try:
     from thefuzz import fuzz
 except ImportError:
     fuzz = None
-from colorama import Fore, Style
+try:
+    from colorama import Fore, Style
+except ImportError:
+    class Fore:
+        RED = YELLOW = GREEN = CYAN = ''
+    class Style:
+        BRIGHT = RESET_ALL = DIM = ''
 import webbrowser # Added for cmd_interactive_sources
 
 try:
