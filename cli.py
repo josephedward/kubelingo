@@ -3,6 +3,7 @@
 import sys
 from InquirerPy import inquirer
 from rich.console import Console
+import os
 
 from question_generator import QuestionGenerator, DifficultyLevel, KubernetesTopics
 from k8s_manifest_generator import ManifestGenerator
@@ -30,9 +31,15 @@ def generate_question():
 
 def generate_manifest():
     """Interactive manifest generator"""
+def generate_manifest():
     prompt = inquirer.text(message="Enter manifest prompt:").execute()
     console.print("[bold yellow]Generating manifest...[/bold yellow]\n")
     mg = ManifestGenerator()
+    # Require at least one AI API key for manifest generation
+    if not any(mg.env_vars.get(k) for k in ("OPENAI_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY")):
+        console.print("[bold red]Error: No AI API key found. Please configure OPENAI_API_KEY, GEMINI_API_KEY, or XAI_API_KEY.[/bold red]")
+        console.print()
+        return
     yaml_text = mg.generate_with_openai(prompt)
     console.print(yaml_text)
     console.print()  # blank line
@@ -45,6 +52,7 @@ def main():
             message="Select an action:",
             choices=[
                 "Generate Question",
+                "Answer Question",
                 "Generate Manifest",
                 "Exit"
             ],
@@ -52,6 +60,8 @@ def main():
         ).execute()
         if choice == "Generate Question":
             generate_question()
+        elif choice == "Answer Question":
+            answer_question()
         elif choice == "Generate Manifest":
             generate_manifest()
         else:
