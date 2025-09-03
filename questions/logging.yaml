@@ -1,0 +1,92 @@
+questions:
+  - id: log-kubectl-retrieve
+    question: Retrieve the last 5 lines of logs from a pod named 'web-server' that crashed previously
+    suggestions:
+      - kubectl logs web-server --previous --tail=5
+      - kubectl logs -p web-server --tail 5
+    success_criteria:
+      - Uses --previous flag to access crashed container logs
+      - Limits output to 5 most recent lines
+      - Correct pod name reference
+    source: https://kubernetes.io/docs/concepts/cluster-administration/logging
+    difficulty: beginner
+
+  - id: log-sidecar-manifest
+    question: Create a pod manifest that writes logs to files and streams them via sidecar containers
+    suggestions: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: logging-app
+      spec:
+        containers:
+        - name: app
+          image: busybox:1.28
+          args: 
+          - /bin/sh
+          - -c
+          - >
+            i=0;
+            while true;
+            do
+              echo "$i: $(date)" >> /var/log/app.log;
+              i=$((i+1));
+              sleep 1;
+            done
+          volumeMounts:
+          - name: varlog
+            mountPath: /var/log
+        - name: log-tailer
+          image: busybox:1.28
+          args: [/bin/sh, -c, 'tail -F /var/log/app.log']
+          volumeMounts:
+          - name: varlog
+            mountPath: /var/log
+        volumes:
+        - name: varlog
+          emptyDir: {}
+    success_criteria:
+      - Shared volume for log storage
+      - Sidecar container with tail command
+      - Proper log file path references
+    source: https://kubernetes.io/docs/concepts/cluster-administration/logging
+    difficulty: intermediate
+
+  - id: log-rotation-settings
+    question: Configure kubelet to rotate logs when they reach 100MB keeping 10 files
+    suggestions:
+      - Set containerLogMaxSize: "100Mi" in kubelet config
+      - Set containerLogMaxFiles: 10
+      - Configure containerLogMaxWorkers for rotation concurrency
+    success_criteria:
+      - Correct size limit configuration
+      - Appropriate file retention count
+      - Consideration for rotation performance
+    source: https://kubernetes.io/docs/concepts/cluster-administration/logging
+    difficulty: advanced
+
+  - id: log-node-agent-trivia
+    question: Which component is typically deployed as a DaemonSet for cluster-level logging?
+    suggestions:
+      - Node logging agent (e.g., Fluentd, Filebeat)
+      - Cluster must use a sidecar container pattern
+      - Application directly pushes to logging backend
+    success_criteria:
+      - Identifies DaemonSet deployment pattern
+      - Recognizes node-level logging architecture
+      - Distinguishes from alternative approaches
+    source: https://kubernetes.io/docs/concepts/cluster-administration/logging
+    difficulty: beginner
+
+  - id: log-locations-trivia
+    question: Where does kubelet store pod logs by default on Linux nodes?
+    suggestions:
+      - /var/log/pods
+      - /var/lib/docker/containers
+      - /opt/kubelet/logs
+    success_criteria:
+      - Correct default directory path
+      - Understands CRI-based storage
+      - Knows Windows default differs
+    source: https://kubernetes.io/docs/concepts/cluster-administration/logging
+    difficulty: intermediate
