@@ -10,6 +10,138 @@ import sys
 import yaml
 import hashlib
 
+def derive_from_kubectl(cmd: str) -> dict:
+    """Parse a kubectl command string into a requirements dict."""
+    parts = cmd.split()
+    if len(parts) < 3 or parts[0] != 'kubectl':
+        return {}
+    action = parts[1]
+    req = {}
+    if action == 'run':
+        # kubectl run <name> --image=<image>
+        name = parts[2]
+        req['kind'] = 'Pod'
+        req.setdefault('metadata', {})['name'] = name
+        # parse flags
+        for p in parts[3:]:
+            if p.startswith('--image='):
+                image = p.split('=', 1)[1]
+                req.setdefault('spec', {})['containers'] = [{'name': name, 'image': image}]
+        return req
+    if action == 'create':
+        # kubectl create <kind> <name> [--flags]
+        if len(parts) < 4:
+            return {}
+        kind = parts[2].rstrip('s').capitalize()
+        name = parts[3]
+        req['kind'] = kind
+        req.setdefault('metadata', {})['name'] = name
+        for p in parts[4:]:
+            if p.startswith('--image='):
+                image = p.split('=', 1)[1]
+                req.setdefault('spec', {})['containers'] = [{'name': name, 'image': image}]
+            if p.startswith('--replicas='):
+                try:
+                    req.setdefault('spec', {})['replicas'] = int(p.split('=', 1)[1])
+                except ValueError:
+                    pass
+        return req
+    if action == 'expose':
+        # kubectl expose deployment <target> --name=<svc> --port=<p> --target-port=<t> --type=<T>
+        if len(parts) < 5:
+            return {}
+        target_kind = parts[2]
+        target_name = parts[3]
+        req['kind'] = 'Service'
+        # parse flags
+        svc_name = None
+        spec = {}
+        for p in parts[4:]:
+            if p.startswith('--name='):
+                svc_name = p.split('=', 1)[1]
+            if p.startswith('--port='):
+                try:
+                    spec.setdefault('ports', [{}])[0].update({'port': int(p.split('=',1)[1])})
+                except ValueError:
+                    pass
+            if p.startswith('--target-port='):
+                try:
+                    spec.setdefault('ports', [{}])[0].update({'targetPort': int(p.split('=',1)[1])})
+                except ValueError:
+                    pass
+            if p.startswith('--type='):
+                spec['type'] = p.split('=',1)[1]
+        if svc_name:
+            req.setdefault('metadata', {})['name'] = svc_name
+        # infer selector from target deployment
+        spec.setdefault('selector', {})['app'] = target_name
+        req['spec'] = spec
+        return req
+    if action == 'apply':
+        # kubectl apply -f <path>
+        req = {'command': 'apply'}
+        parts_iter = iter(parts[2:])
+        for p in parts_iter:
+            if p in ('-f', '--filename'):
+                try:
+                    fn = next(parts_iter)
+                    req['filename'] = fn
+                except StopIteration:
+                    pass
+            elif p.startswith('-f=') or p.startswith('--filename='):
+                fn = p.split('=', 1)[1]
+                req['filename'] = fn
+        return req
+    if action == 'edit':
+        # kubectl edit <kind> <name>
+        if len(parts) >= 4:
+            kind = parts[2].rstrip('s').capitalize()
+            name = parts[3]
+            req = {'kind': kind, 'metadata': {'name': name}}
+            return req
+    return {}
+
+def derive_from_manifest(data: dict) -> dict:
+    """Extract key fields from a Kubernetes manifest dict into requirements."""
+    req = {}
+    # kind
+    if 'kind' in data:
+        req['kind'] = data['kind']
+    # metadata.name
+    meta = data.get('metadata', {})
+    if 'name' in meta:
+        req.setdefault('metadata', {})['name'] = meta['name']
+    # spec
+    spec = data.get('spec', {})
+    s = {}
+    if 'replicas' in spec:
+        s['replicas'] = spec['replicas']
+    # containers
+    if 'containers' in spec:
+        ctrs = spec['containers']
+        lst = []
+        for c in ctrs:
+            e = {}
+            if 'name' in c:
+                e['name'] = c['name']
+            if 'image' in c:
+                e['image'] = c['image']
+            lst.append(e)
+        if lst:
+            s['containers'] = lst
+    # selector
+    if 'selector' in spec:
+        s['selector'] = spec['selector']
+    # ports
+    if 'ports' in spec:
+        s['ports'] = spec['ports']
+    if s:
+        req['spec'] = s
+    # configmap data
+    if data.get('kind') == 'ConfigMap' and 'data' in data:
+        req['data'] = data['data']
+    return req
+
 BASE_CRITERIA = [
     "YAML syntax is valid",
     "Required Kubernetes resources are defined",
@@ -83,67 +215,34 @@ def normalize_question(q: dict) -> dict:
     # Optional difficulty and requirements forwarded if present
     if 'difficulty' in q:
         new_q['difficulty'] = q['difficulty']
-    # Preserve existing structured requirements, or auto-derive from the first YAML suggestion
+    # Preserve existing requirements, else derive from suggestions
     if 'requirements' in q and isinstance(q['requirements'], dict):
         new_q['requirements'] = q['requirements']
     else:
-        # Attempt to parse requirements from YAML suggestion
-        derived = {}
+        # first try kubectl commands
+        req = {}
         for item in normalized:
-            # Determine if this suggestion is structured data or YAML string
-            data = None
-            if isinstance(item, dict) or isinstance(item, list):
-                data = item
-            elif isinstance(item, str):
-                # Only parse strings that look like YAML manifests
-                if item.strip().startswith(('apiVersion:', 'kind:')):
+            if isinstance(item, str) and item.strip().startswith('kubectl'):
+                r = derive_from_kubectl(item.strip())
+                if r:
+                    req = r
+                    break
+        # next try manifest suggestions
+        if not req:
+            for item in normalized:
+                data = None
+                if isinstance(item, dict):
+                    data = item
+                elif isinstance(item, str) and item.strip().startswith(('apiVersion:', 'kind:')):
                     try:
                         data = yaml.safe_load(item)
                     except Exception:
-                        continue
-            if not isinstance(data, dict):
-                continue
-                # Top-level kind
-                if 'kind' in data:
-                    derived['kind'] = data['kind']
-                # Metadata.name
-                meta = data.get('metadata', {})
-                if 'name' in meta:
-                    derived.setdefault('metadata', {})['name'] = meta['name']
-                # spec
-                spec = data.get('spec', {})
-                # replicas
-                if 'replicas' in spec:
-                    derived['replicas'] = spec['replicas']
-                # containers (first)
-                containers = spec.get('containers', [])
-                if containers:
-                    c = containers[0]
-                    derived.setdefault('container', {})['name'] = c.get('name')
-                    if 'image' in c:
-                        derived['container']['image'] = c.get('image')
-                    # resources
-                    res = c.get('resources', {})
-                    if 'requests' in res:
-                        derived['requests'] = res.get('requests', {})
-                    if 'limits' in res:
-                        derived['limits'] = res.get('limits', {})
-                # Service-specific
-                if data.get('kind') == 'Service':
-                    ports = spec.get('ports', [])
-                    if ports:
-                        p0 = ports[0]
-                        derived.setdefault('ports', {})['port'] = p0.get('port')
-                        if 'targetPort' in p0:
-                            derived['ports']['targetPort'] = p0.get('targetPort')
-                    if 'selector' in spec:
-                        derived['selector'] = spec.get('selector')
-                # ConfigMap-specific
-                if data.get('kind') == 'ConfigMap' and 'data' in data:
-                    derived['data'] = data.get('data')
-                break
-        if derived:
-            new_q['requirements'] = derived
+                        data = None
+                if isinstance(data, dict):
+                    req = derive_from_manifest(data)
+                    break
+        if req:
+            new_q['requirements'] = req
     # Return normalized question
     return new_q
 
