@@ -15,15 +15,19 @@ import argparse
 import time
 from typing import Dict, List, Optional, Any
 from difflib import unified_diff
-from dotenv import load_dotenv
+# dotenv may not be installed in all environments
+try:
+    from dotenv import load_dotenv
+    # Load environment variables from .env file
+    load_dotenv()
+except ImportError:
+    pass
 
 # Import our custom modules
 from backend_integrator import BackendIntegrator, BackendType
 from grader import KubernetesGrader, AIEvaluator, GraderType
 from question_generator import QuestionGenerator
 
-# Load environment variables
-load_dotenv()
 
 class ManifestGenerator:
     def __init__(self, env_file_path: str = ".env"):
