@@ -93,11 +93,11 @@ def _get_llm_model(skip_prompt=False):
             return None, None
         try:
             import openai
-            openai.api_key = api_key
-            model = openai.OpenAI()
+            # Instantiate client with API key
+            client = openai.OpenAI(api_key=api_key)
             # Test model availability
-            model.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "hi"}])
-            return "openai", model
+            client.models.list()
+            return "openai", client
         except Exception as e:
             if not skip_prompt:
                 print(f"{Fore.RED}Error initializing OpenAI model: {e}{Style.RESET_ALL}")
