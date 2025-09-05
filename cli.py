@@ -19,6 +19,12 @@ from k8s_manifest_generator import ManifestGenerator
 import requests
 import yaml
 import uuid
+from enum import Enum
+
+class DifficultyLevel(Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
 
 console = Console()
 
@@ -76,18 +82,67 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
     # Build per-topic manifests
     if topic == KubernetesTopics.PODS.value:
         # Pod manifests
-        lines = [
-            'apiVersion: v1',
-            'kind: Pod',
-            'metadata:',
-            f'  name: {pod_name}',
-            'spec:',
-            '  containers:',
-            '  - name: main',
-            f'    image: {image}',
-        ]
-        if port:
-            lines += ['    ports:', f'    - containerPort: {port}']
+        if difficulty == DifficultyLevel.BEGINNER.value:
+            lines = [
+                'apiVersion: v1',
+                'kind: Pod',
+                'metadata:',
+                f'  name: {pod_name}',
+                'spec:',
+                '  containers:',
+                '  - name: main',
+                f'    image: {image}',
+            ]
+            if port:
+                lines += ['    ports:', f'    - containerPort: {port}']
+        elif difficulty == DifficultyLevel.INTERMEDIATE.value:
+            lines = [
+                'apiVersion: v1',
+                'kind: Pod',
+                'metadata:',
+                f'  name: {pod_name}',
+                'spec:',
+                '  containers:',
+                '  - name: main',
+                f'    image: {image}',
+            ]
+            if cpu and mem:
+                lines += [
+                    '    resources:',
+                    '      limits:',
+                    f'        cpu: {cpu}',
+                    f'        memory: {mem}',
+                ]
+            if env_var and env_val:
+                lines += [
+                    '    env:',
+                    f'    - name: {env_var}',
+                    f'      value: {env_val}',
+                ]
+        else:
+            # Advanced: sidecar and resources
+            lines = [
+                'apiVersion: v1',
+                'kind: Pod',
+                'metadata:',
+                f'  name: {pod_name}',
+                'spec:',
+                '  containers:',
+                '  - name: main',
+                f'    image: {image}',
+            ]
+            if cpu and mem:
+                lines += [
+                    '    resources:',
+                    '      limits:',
+                    f'        cpu: {cpu}',
+                    f'        memory: {mem}',
+                ]
+            if sidecar:
+                lines += [
+                    '  - name: sidecar',
+                    f'    image: {sidecar}',
+                ]
         return '\n'.join(lines) + '\n'
     elif topic == KubernetesTopics.DEPLOYMENTS.value:
         # Deployment manifests
@@ -233,8 +288,8 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
         return '\n'.join(lines) + '\n'
     elif topic == KubernetesTopics.VOLUMES.value:
         # Fallback to original volumes manifest for all difficulties
-        pv_name = vars.get('pv_name', 'pv-demo')
-        pvc_name = vars.get('pvc_name', 'pvc-demo')
+        pv_name = vars.get('pv_name', 'demo-pv')
+        pvc_name = vars.get('pvc_name', 'demo-pvc')
         storage_capacity = vars.get('storage_capacity', '1Gi')
         access_mode = vars.get('access_mode', 'ReadWriteOnce')
         mount_path = vars.get('mount_path', '/data')
@@ -320,8 +375,6 @@ def _display_post_answer_menu():
             console.print("[red]Unknown command. Please try again.[/red]")
 
 
-
-
 def answer_question(topic: str = None, difficulty: str = None):
     """Interactive question answering and grading"""
     if topic is None:
@@ -382,7 +435,7 @@ def _open_manifest_editor(q):
     if recs:
         console.print("[bold yellow]Recommendations:[/bold yellow]")
         for rec in recs:
-            console.print(f"  - [yellow]{rec}[/yellow]")
+            console.print(f"    - [yellow]{rec}[/yellow]")
     # Optional static details
     details = grading.get('details', {})
     static_results = details.get('static_results', [])
@@ -508,7 +561,7 @@ def quiz_session():
             continue
         # Handle list of questions: split into individual files
         if isinstance(q, list):
-            console.print(f"[bold yellow]{path} contains {len(q)} questions. Splitting into individual files...[/bold yellow]")
+            console.print(f"[bold yellow]{path} contains {len(q)} questions. Splitting into individual files...")
             folder = os.path.dirname(path)
             for item in q:
                 if not isinstance(item, dict):
@@ -556,12 +609,19 @@ def quiz_session():
         # Unknown command: repeat
     console.print()
 
-def generate_trivia(topic: str = None):
-    """Generate a reverse trivia (give description, ask for term)"""
+def generate_trivia(topic: str = None, difficulty: str = None):
+    """Generate a beginner-level reverse trivia (give description, ask for term)
+    or an advanced freeform definition question.
+    """
     if topic is None:
         topic = inquirer.select(
             message="Select topic:",
             choices=[t.value for t in KubernetesTopics]
+        ).execute()
+    if difficulty is None:
+        difficulty = inquirer.select(
+            message="Select difficulty:",
+            choices=[lvl.value for lvl in DifficultyLevel]
         ).execute()
     gen = QuestionGenerator()
     qid = gen._generate_question_id()
@@ -809,19 +869,23 @@ def quiz_menu():
     if quiz_type == "Back":
         return
 
-    # Select topic once for continuous quiz
+    # Select topic and difficulty once for continuous quiz
     topic = inquirer.select(
         message="Select topic:",
         choices=[t.value for t in KubernetesTopics]
     ).execute()
+    difficulty = inquirer.select(
+        message="Select difficulty:",
+        choices=[lvl.value for lvl in DifficultyLevel]
+    ).execute()
 
     while True:
         if quiz_type == "Manifest":
-            generate_question(topic=topic)
+            generate_question(topic=topic, difficulty=difficulty)
         elif quiz_type == "Trivia":
-            generate_trivia(topic=topic)
+            generate_trivia(topic=topic, difficulty=difficulty)
         elif quiz_type == "Command":
-            generate_command(topic=topic)
+            generate_command(topic=topic, difficulty=difficulty)
 
         # Ask if the user wants another question of the same type, topic, and difficulty
         continue_quiz = inquirer.select(
@@ -930,7 +994,7 @@ def review_correct():
             if is_mapping:
                 data["user_answer"] = user_ans
                 with open(path, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(data, f, sort_keys=False)
+                    yaml.safe_dump(data, f, indent=2, ensure_ascii=False)
         data_objs.append({
             "filename": fname,
             "raw": raw,
@@ -1012,7 +1076,7 @@ def review_incorrect():
             if is_mapping:
                 data["user_answer"] = user_ans
                 with open(path, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(data, f, sort_keys=False)
+                    yaml.safe_dump(data, f, indent=2, ensure_ascii=False)
         data_objs.append({
             "filename": fname,
             "raw": raw,
@@ -1168,7 +1232,7 @@ def import_from_file():
     console.print()
 
 def subject_matter_menu(message="Select subject matter:"):
-    """Subject Matter submenu"""
+    """Select subject matter submenu"""
     choice = inquirer.select(
         message=message,
         choices=[t.value for t in KubernetesTopics] + ["Back"]
@@ -1206,7 +1270,7 @@ def handle_keys_menu():
     while True:
         statuses = test_api_keys()
         if not any(statuses.values()):
-            console.print("[bold red]Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.[/bold red]")
+            console.print("[bold red]Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.")
 
         console.print("\n[bold cyan]--- API Key Configuration ---[/bold cyan]")
         # Load existing config to display current state
