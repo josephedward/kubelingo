@@ -95,7 +95,7 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
             ]
             if port:
                 lines += ['    ports:', f'    - containerPort: {port}']
-        elif difficulty == DifficultyLevel.INTERMEDIATE.value:
+        else:
             lines = [
                 'apiVersion: v1',
                 'kind: Pod',
@@ -199,7 +199,7 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
                     f'            cpu: {cpu}',
                     f'            memory: {mem}',
                 ]
-        elif difficulty == DifficultyLevel.ADVANCED.value:
+        else:
             lines = [
                 'apiVersion: apps/v1',
                 'kind: Deployment',
@@ -383,10 +383,6 @@ def answer_question(topic: str = None, difficulty: str = None):
             choices=[t.value for t in KubernetesTopics]
         ).execute()
     if difficulty is None:
-        difficulty = inquirer.select(
-            message="Select difficulty:",
-            choices=[lvl.value for lvl in DifficultyLevel]
-        ).execute()
     gen = QuestionGenerator()
     q = gen.generate_question(topic=topic, difficulty=difficulty, include_context=True)
     console.print(f"[bold cyan]Question:[/bold cyan] {q['question']}")
@@ -394,6 +390,7 @@ def answer_question(topic: str = None, difficulty: str = None):
         console.print(f"[bold cyan]Documentation:[/bold cyan] [link={q['documentation_link']}]{q['documentation_link']}[/link]")
     console.print(f"[bold cyan]Topic:[/bold cyan] {q['topic']}, [bold cyan]Difficulty:[/bold cyan] {q['difficulty']}")
     # scenario_context and success_criteria outputs are deprecated and removed
+    user_input = inquirer.text(message="? ").execute().strip()
     if user_input.lower() == 'vim':
         user_ans = _open_manifest_editor(q)
     # Open editor for your answer manifest
@@ -625,7 +622,7 @@ def generate_trivia(topic: str = None, difficulty: str = None):
         ).execute()
     gen = QuestionGenerator()
     qid = gen._generate_question_id()
-    if difficulty == DifficultyLevel.BEGINNER.value:
+    if True:  # Simplified without difficulty levels
         desc = TRIVIA_DESCRIPTIONS.get(topic, f"A Kubernetes {topic}.")
         term = TRIVIA_TERMS.get(topic, topic.rstrip('s').capitalize())
         console.print(f"[bold cyan]Description:[/bold cyan] {desc}")
