@@ -19,12 +19,9 @@ from k8s_manifest_generator import ManifestGenerator
 import requests
 import yaml
 import uuid
-from enum import Enum
 
-class DifficultyLevel(Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+
+
 
 console = Console()
 
@@ -65,7 +62,7 @@ last_generated_q = None
 last_generated_q = None
 
 def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
-    """Build a suggested Kubernetes manifest based on topic, difficulty, context variables, or via AI fallback."""
+    """Build a suggested Kubernetes manifest based on topic, context variables, or via AI fallback."""
     # Helper values
     pod_name = vars.get('pod_name', 'demo-pod')
     image = vars.get('image', 'nginx:latest')
@@ -81,124 +78,71 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
     svc_name = f"svc-{svc_dep}" if svc_dep else None
     # Build per-topic manifests
     if topic == KubernetesTopics.PODS.value:
-        # Pod manifests
-        if difficulty == DifficultyLevel.BEGINNER.value:
-            lines = [
-                'apiVersion: v1',
-                'kind: Pod',
-                'metadata:',
-                f'  name: {pod_name}',
-                'spec:',
-                '  containers:',
-                '  - name: main',
-                f'    image: {image}',
+        lines = [
+            'apiVersion: v1',
+            'kind: Pod',
+            'metadata:',
+            f'  name: {pod_name}',
+            'spec:',
+            '  containers:',
+            '  - name: main',
+            f'    image: {image}',
+        ]
+        if port:
+            lines += ['    ports:', f'    - containerPort: {port}']
+        if cpu and mem:
+            lines += [
+                '    resources:',
+                '      limits:',
+                f'        cpu: {cpu}',
+                f'        memory: {mem}',
             ]
-            if port:
-                lines += ['    ports:', f'    - containerPort: {port}']
-        else:
-            lines = [
-                'apiVersion: v1',
-                'kind: Pod',
-                'metadata:',
-                f'  name: {pod_name}',
-                'spec:',
-                '  containers:',
-                '  - name: main',
-                f'    image: {image}',
+        if env_var and env_val:
+            lines += [
+                '    env:',
+                f'    - name: {env_var}',
+                f'      value: {env_val}',
             ]
-            if cpu and mem:
-                lines += [
-                    '    resources:',
-                    '      limits:',
-                    f'        cpu: {cpu}',
-                    f'        memory: {mem}',
-                ]
-            if env_var and env_val:
-                lines += [
-                    '    env:',
-                    f'    - name: {env_var}',
-                    f'      value: {env_val}',
-                ]
-        else:
-            # Advanced: sidecar and resources
-            lines = [
-                'apiVersion: v1',
-                'kind: Pod',
-                'metadata:',
-                f'  name: {pod_name}',
-                'spec:',
-                '  containers:',
-                '  - name: main',
-                f'    image: {image}',
+        if sidecar:
+            lines += [
+                '  - name: sidecar',
+                f'    image: {sidecar}',
             ]
-            if cpu and mem:
-                lines += [
-                    '    resources:',
-                    '      limits:',
-                    f'        cpu: {cpu}',
-                    f'        memory: {mem}',
-                ]
-            if sidecar:
-                lines += [
-                    '  - name: sidecar',
-                    f'    image: {sidecar}',
-                ]
         return '\n'.join(lines) + '\n'
     elif topic == KubernetesTopics.DEPLOYMENTS.value:
         # Deployment manifests
-        if difficulty == DifficultyLevel.BEGINNER.value:
-            lines = [
-                'apiVersion: apps/v1',
-                'kind: Deployment',
-                'metadata:',
-                f'  name: {dep_name}',
-                'spec:',
-                f'  replicas: {replicas}',
-                '  selector:',
-                '    matchLabels:',
-                f'      app: {dep_name}',
-                '  template:',
-                '    metadata:',
-                '      labels:',
-                f'        app: {dep_name}',
-                '    spec:',
-                '      containers:',
-                '      - name: main',
-                f'        image: {image}',
+        lines = [
+            'apiVersion: apps/v1',
+            'kind: Deployment',
+            'metadata:',
+            f'  name: {dep_name}',
+            'spec:',
+            f'  replicas: {replicas}',
+            '  selector:',
+            '    matchLabels:',
+            f'      app: {dep_name}',
+            '  template:',
+            '    metadata:',
+            '      labels:',
+            f'        app: {dep_name}',
+            '    spec:',
+            '      containers:',
+            '      - name: main',
+            f'        image: {image}',
+        ]
+        if env_var and env_val:
+            lines += [
+                '        env:',
+                f'        - name: {env_var}',
+                f'          value: {env_val}',
             ]
-        elif difficulty == DifficultyLevel.INTERMEDIATE.value:
-            lines = [
-                'apiVersion: apps/v1',
-                'kind: Deployment',
-                'metadata:',
-                f'  name: {dep_name}',
-                'spec:',
-                f'  replicas: {replicas}',
-                '  selector:',
-                '    matchLabels:',
-                f'      app: {dep_name}',
-                '  template:',
-                '    metadata:',
-                '      labels:',
-                f'        app: {dep_name}',
-                '    spec:',
-                '      containers:',
-                '      - name: main',
-                f'        image: {image}',
+        if cpu and mem:
+            lines += [
+                '        resources:',
+                '          limits:',
+                f'            cpu: {cpu}',
+                f'            memory: {mem}',
             ]
-            if env_var and env_val:
-                lines += [
-                    '        env:',
-                    f'        - name: {env_var}',
-                    f'          value: {env_val}',
-                ]
-            if cpu and mem:
-                lines += [
-                    '        resources:',
-                    '          limits:',
-                    f'            cpu: {cpu}',
-                    f'            memory: {mem}',
-                ]
         else:
             lines = [
                 'apiVersion: apps/v1',
@@ -375,20 +319,19 @@ def _display_post_answer_menu():
             console.print("[red]Unknown command. Please try again.[/red]")
 
 
-def answer_question(topic: str = None, difficulty: str = None):
+def answer_question(topic: str = None):
     """Interactive question answering and grading"""
     if topic is None:
         topic = inquirer.select(
             message="Select topic:",
             choices=[t.value for t in KubernetesTopics]
         ).execute()
-    if difficulty is None:
     gen = QuestionGenerator()
-    q = gen.generate_question(topic=topic, difficulty=difficulty, include_context=True)
+    q = gen.generate_question(topic=topic, include_context=True)
     console.print(f"[bold cyan]Question:[/bold cyan] {q['question']}")
     if q.get('documentation_link'):
         console.print(f"[bold cyan]Documentation:[/bold cyan] [link={q['documentation_link']}]{q['documentation_link']}[/link]")
-    console.print(f"[bold cyan]Topic:[/bold cyan] {q['topic']}, [bold cyan]Difficulty:[/bold cyan] {q['difficulty']}")
+    console.print(f"[bold cyan]Topic:[/bold cyan] {q['topic']}")
     # scenario_context and success_criteria outputs are deprecated and removed
     user_input = inquirer.text(message="? ").execute().strip()
     if user_input.lower() == 'vim':
@@ -400,7 +343,7 @@ def _open_manifest_editor(q):
         tmp_path = tmp.name
         header = (
             f"# Question: {q['question']}\n"
-            f"# Topic: {q['topic']}, Difficulty: {q['difficulty']}\n"
+            f"# Topic: {q['topic']}\n"
             "# Write your Kubernetes YAML manifest below.\n\n"
         )
         tmp.write(header.encode('utf-8'))
@@ -446,9 +389,9 @@ def _open_manifest_editor(q):
                 console.print(f"    - [red]{issue}[/red]")
     console.print()
     
-def generate_question(topic: str = None, difficulty: str = None):
+def generate_question(topic: str = None):
     """Interactive manifest question generator (alias for answer_question)"""
-    return answer_question(topic, difficulty)
+    return answer_question(topic)
 
 
 def generate_manifest():
@@ -606,67 +549,18 @@ def quiz_session():
         # Unknown command: repeat
     console.print()
 
-def generate_trivia(topic: str = None, difficulty: str = None):
-    """Generate a beginner-level reverse trivia (give description, ask for term)
-    or an advanced freeform definition question.
-    """
+def generate_trivia(topic: str = None):
+    """Generate a reverse trivia (give description, ask for term) question."""
     if topic is None:
         topic = inquirer.select(
             message="Select topic:",
             choices=[t.value for t in KubernetesTopics]
         ).execute()
-    if difficulty is None:
-        difficulty = inquirer.select(
-            message="Select difficulty:",
-            choices=[lvl.value for lvl in DifficultyLevel]
-        ).execute()
     gen = QuestionGenerator()
     qid = gen._generate_question_id()
-    if True:  # Simplified without difficulty levels
-        desc = TRIVIA_DESCRIPTIONS.get(topic, f"A Kubernetes {topic}.")
-        term = TRIVIA_TERMS.get(topic, topic.rstrip('s').capitalize())
-        console.print(f"[bold cyan]Description:[/bold cyan] {desc}")
-        # Display Post Question Menu for Trivia
-        console.print("\n[bold]# Post Question Menu[/bold]")
-        console.print("  vim      - opens vim for manifest-based questions")
-        console.print("  backward - previous question")
-        console.print("  forward  - skip to next question")
-        console.print("  solution - shows solution and the post-answer menu")
-        console.print("  visit    - source (opens browser at source)")
-        console.print("  quit     - back to main menu")
-        user_ans = inquirer.text(message="Name this Kubernetes resource:").execute()
-        norm_user = user_ans.strip().lower().rstrip('s')
-        norm_term = term.strip().lower().rstrip('s')
-        correct = norm_user == norm_term
-        # Only show feedback and metadata when answer is incorrect
-        if not correct:
-            feedback = f"Expected '{term}', but got '{user_ans}'."
-            console.print(f"[bold red]{feedback}[/bold red]")
-        # Build output JSON without redundant fields on correct answer
-        out = {
-            'id': qid,
-            'topic': topic,
-            'difficulty': difficulty,
-            'description': desc,
-            'expected_answer': term,
-            'user_answer': user_ans,
-        }
-        if not correct:
-            out['correct'] = False
-            out['feedback'] = feedback
-        console.print_json(data=out)
-        console.print()
-        # Display Post Answer Menu for Trivia
-        console.print("[bold]# Post Answer Menu[/bold]")
-        console.print("  again - try again (formerly 'retry')")
-        console.print("  correct")
-        console.print("  missed")
-        console.print("  remove question")
-        return
-    # True/False trivia questions for intermediate and advanced levels
     desc = TRIVIA_DESCRIPTIONS.get(topic, f"A Kubernetes {topic}.")
-    question_text = f"True or False: {desc}"
-    console.print(f"[bold cyan]Question (True/False):[/bold cyan] {question_text}")
+    term = TRIVIA_TERMS.get(topic, topic.rstrip('s').capitalize())
+    console.print(f"[bold cyan]Description:[/bold cyan] {desc}")
     # Display Post Question Menu for Trivia
     console.print("\n[bold]# Post Question Menu[/bold]")
     console.print("  vim      - opens vim for manifest-based questions")
@@ -675,23 +569,20 @@ def generate_trivia(topic: str = None, difficulty: str = None):
     console.print("  solution - shows solution and the post-answer menu")
     console.print("  visit    - source (opens browser at source)")
     console.print("  quit     - back to main menu")
-    user_ans = inquirer.select(
-        message="Your answer:",
-        choices=["True", "False"]
-    ).execute()
-    expected_answer = "True"
-    correct = (user_ans == expected_answer)
+    user_ans = inquirer.text(message="Name this Kubernetes resource:").execute()
+    norm_user = user_ans.strip().lower().rstrip('s')
+    norm_term = term.strip().lower().rstrip('s')
+    correct = norm_user == norm_term
     # Only show feedback and metadata when answer is incorrect
     if not correct:
-        feedback = f"Expected '{expected_answer}', but got '{user_ans}'."
+        feedback = f"Expected '{term}', but got '{user_ans}'."
         console.print(f"[bold red]{feedback}[/bold red]")
     # Build output JSON without redundant fields on correct answer
     out = {
         'id': qid,
         'topic': topic,
-        'difficulty': difficulty,
-        'question': question_text,
-        'expected_answer': expected_answer,
+        'description': desc,
+        'expected_answer': term,
         'user_answer': user_ans,
     }
     if not correct:
@@ -707,92 +598,50 @@ def generate_trivia(topic: str = None, difficulty: str = None):
     console.print("  remove question")
     return
 
-def generate_command(topic: str = None, difficulty: str = None):
+
+def generate_command(topic: str = None):
     """Generate a command-line question and collect the user's command."""
     if topic is None:
         topic = inquirer.select(
             message="Select topic:",
             choices=[t.value for t in KubernetesTopics]
         ).execute()
-    if difficulty is None:
-        difficulty = inquirer.select(
-            message="Select difficulty:",
-            choices=[lvl.value for lvl in DifficultyLevel]
-        ).execute()
     gen = QuestionGenerator()
     # include_context=True to access context variables for command suggestions
-    q = gen.generate_question(topic=topic, difficulty=difficulty, include_context=True)
+    q = gen.generate_question(topic=topic, include_context=True)
     vars = q.get('context_variables', {})
-    # Build kubectl command suggestion based on topic and difficulty
+    # Build kubectl command suggestion based on topic
     topic_key = q['topic']
-    diff = q['difficulty']
+    suggested = ""
     # Pods commands
     if topic_key == KubernetesTopics.PODS.value:
-        if diff == DifficultyLevel.BEGINNER.value:
-            suggested = f"kubectl run {vars['pod_name']} --image={vars['image']}"
-        elif diff == DifficultyLevel.INTERMEDIATE.value:
-            flags = []
-            if vars.get('port'):
-                flags.append(f"--port={vars['port']}")
-            if vars.get('env_var') and vars.get('env_value'):
-                flags.append(f"--env={vars['env_var']}={vars['env_value']}")
-            if vars.get('cpu_limit') and vars.get('memory_limit'):
-                flags.append(f"--limits=cpu={vars['cpu_limit']},memory={vars['memory_limit']}")
-            suggested = f"kubectl run {vars['pod_name']} --image={vars['image']}" + (" " + " ".join(flags) if flags else "")
-        elif diff == DifficultyLevel.ADVANCED.value:
-            flags = ["--restart=Never"]
-            if vars.get('port'):
-                flags.append(f"--port={vars['port']}")
-            if vars.get('env_var') and vars.get('env_value'):
-                flags.append(f"--env={vars['env_var']}={vars['env_value']}")
-            suggested = f"kubectl run {vars['pod_name']} --image={vars['image']} " + " ".join(flags)
-        else:
-            suggested = f"kubectl apply -f {vars['pod_name']}-pod.yaml"
+        flags = []
+        if vars.get('port'):
+            flags.append(f"--port={vars['port']}")
+        if vars.get('env_var') and vars.get('env_value'):
+            flags.append(f"--env={vars['env_var']}={vars['env_value']}")
+        if vars.get('cpu_limit') and vars.get('memory_limit'):
+            flags.append(f"--limits=cpu={vars['cpu_limit']},memory={vars['memory_limit']}")
+        if vars.get('sidecar_image'):
+            flags.append(f"--sidecar-image={vars['sidecar_image']}") # Assuming a flag for sidecar
+        suggested = f"kubectl run {vars['pod_name']} --image={vars['image']}" + (" " + " ".join(flags) if flags else "")
     # Deployments commands
     elif topic_key == KubernetesTopics.DEPLOYMENTS.value:
-        if diff == DifficultyLevel.BEGINNER.value:
-            suggested = f"kubectl create deployment {vars['deployment_name']} --image={vars['image']} --replicas={vars['replicas']}"
-        elif diff == DifficultyLevel.INTERMEDIATE.value:
-            flags = [f"--replicas={vars['replicas']}"]
-            if vars.get('port'):
-                flags.append(f"--port={vars['port']}")
-            if vars.get('env_var') and vars.get('env_value'):
-                flags.append(f"--env={vars['env_var']}={vars['env_value']}")
-            suggested = f"kubectl create deployment {vars['deployment_name']} --image={vars['image']}" + (" " + " ".join(flags) if flags else "")
-        elif diff == DifficultyLevel.ADVANCED.value:
-            flags = [f"--replicas={vars['replicas']}"]
-            if vars.get('port'):
-                flags.append(f"--port={vars['port']}")
-            if vars.get('env_var') and vars.get('env_value'):
-                flags.append(f"--env={vars['env_var']}={vars['env_value']}")
-            suggested = (
-                f"kubectl create deployment {vars['deployment_name']} --image={vars['image']} "
-                + " ".join(flags)
-                + f" && kubectl set resources deployment/{vars['deployment_name']} --limits=cpu={vars['cpu_limit']},memory={vars['memory_limit']}"
-            )
-        else:
-            suggested = f"kubectl apply -f {vars['deployment_name']}-deployment.yaml"
+        flags = [f"--replicas={vars['replicas']}"]
+        if vars.get('port'):
+            flags.append(f"--port={vars['port']}")
+        if vars.get('env_var') and vars.get('env_value'):
+            flags.append(f"--env={vars['env_var']}={vars['env_value']}")
+        if vars.get('cpu_limit') and vars.get('memory_limit'):
+            flags.append(f"--limits=cpu={vars['cpu_limit']},memory={vars['memory_limit']}")
+        suggested = f"kubectl create deployment {vars['deployment_name']} --image={vars['image']}" + (" " + " ".join(flags) if flags else "")
     # Services commands
     elif topic_key == KubernetesTopics.SERVICES.value:
-        if diff == DifficultyLevel.BEGINNER.value:
-            suggested = f"kubectl expose deployment {vars['deployment_name']} --port={vars['port']}"
-        elif diff == DifficultyLevel.INTERMEDIATE.value:
-            suggested = f"kubectl expose deployment {vars['deployment_name']} --port={vars['port']} --type=NodePort"
-        elif diff == DifficultyLevel.ADVANCED.value:
-            suggested = f"kubectl expose deployment {vars['deployment_name']} --port={vars['port']} --type=LoadBalancer --name=svc-{vars['deployment_name']}"
-        else:
-            suggested = f"kubectl apply -f svc-{vars['deployment_name']}.yaml"
+        suggested = f"kubectl expose deployment {vars['deployment_name']} --port={vars['port']} --type=ClusterIP"
     # ConfigMaps commands
     elif topic_key == KubernetesTopics.CONFIGMAPS.value:
-        if diff == DifficultyLevel.BEGINNER.value:
-            suggested = f"kubectl create configmap {vars['configmap_name']} --from-literal={vars['configmap_key']}={vars['configmap_value']}"
-        elif diff == DifficultyLevel.INTERMEDIATE.value:
-            suggested = f"kubectl run {vars['pod_name']} --image={vars['image']} --env-from=configmap/{vars['configmap_name']}"
-        elif diff == DifficultyLevel.ADVANCED.value:
-            suggested = f"kubectl edit configmap {vars['configmap_name']}"
-        else:
-            suggested = "" # Fallback for expert or unknown difficulty
-    # Fallback for other topics or expert level
+        suggested = f"kubectl create configmap {vars['configmap_name']} --from-literal={vars['configmap_key']}={vars['configmap_value']}"
+    # Fallback for other topics
     else:
         suggested = ""
     console.print(f"[bold cyan]Question:[/bold cyan] {q['question']}")
@@ -819,11 +668,11 @@ def generate_command(topic: str = None, difficulty: str = None):
     elif user_input.lower() == 'backward':
         console.print("[yellow]No previous question available in this mode.[/yellow]")
         # Re-prompt for command/menu action
-        return generate_command(topic=topic, difficulty=difficulty) # This will regenerate a new question, not go back. Need to fix this later if true backward navigation is desired.
+        return generate_command(topic=topic) # This will regenerate a new question, not go back. Need to fix this later if true backward navigation is desired.
     elif user_input.lower() == 'forward':
         console.print("[yellow]No next question available in this mode.[/yellow]")
         # Re-prompt for command/menu action
-        return generate_command(topic=topic, difficulty=difficulty) # This will regenerate a new question, not go forward. Need to fix this later if true forward navigation is desired.
+        return generate_command(topic=topic) # This will regenerate a new question, not go forward. Need to fix this later if true forward navigation is desired.
     elif user_input.lower() == 'visit':
         if q.get('documentation_link'):
             webbrowser.open(q['documentation_link'])
@@ -842,7 +691,6 @@ def generate_command(topic: str = None, difficulty: str = None):
     out = {
         'id': q['id'],
         'topic': q['topic'],
-        'difficulty': q['difficulty'],
         'question': q['question'],
         'documentation_link': q.get('documentation_link'),
         'suggested_answer': suggested,
@@ -856,6 +704,7 @@ def generate_command(topic: str = None, difficulty: str = None):
     # Call the new post-answer menu
     _display_post_answer_menu()
 
+
 def quiz_menu():
     """Interactive Quiz submenu"""
     quiz_type = inquirer.select(
@@ -866,27 +715,23 @@ def quiz_menu():
     if quiz_type == "Back":
         return
 
-    # Select topic and difficulty once for continuous quiz
+    # Select topic once for continuous quiz
     topic = inquirer.select(
         message="Select topic:",
         choices=[t.value for t in KubernetesTopics]
     ).execute()
-    difficulty = inquirer.select(
-        message="Select difficulty:",
-        choices=[lvl.value for lvl in DifficultyLevel]
-    ).execute()
 
     while True:
         if quiz_type == "Manifest":
-            generate_question(topic=topic, difficulty=difficulty)
+            generate_question(topic=topic)
         elif quiz_type == "Trivia":
-            generate_trivia(topic=topic, difficulty=difficulty)
+            generate_trivia(topic=topic)
         elif quiz_type == "Command":
-            generate_command(topic=topic, difficulty=difficulty)
+            generate_command(topic=topic)
 
-        # Ask if the user wants another question of the same type, topic, and difficulty
+        # Ask if the user wants another question of the same type and topic?
         continue_quiz = inquirer.select(
-            message="Generate another question of the same type, topic, and difficulty?",
+            message="Generate another question of the same type and topic?",
             choices=["Yes", "No"]
         ).execute()
 

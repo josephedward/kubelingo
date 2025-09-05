@@ -32,6 +32,11 @@ class KubernetesTopics(Enum):
     SECURITY = "security"
     TROUBLESHOOTING = "troubleshooting"
 
+class DifficultyLevel(Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
 class QuestionGenerator:
     def __init__(self):
         self.question_templates = self._init_question_templates()
@@ -209,7 +214,7 @@ class QuestionGenerator:
             "team_sizes": ["small startup", "enterprise", "mid-size company", "open source project"]
         }
     
-    def generate_question(self,
+    def generate_question(self, 
                          topic: Optional[str] = None,
                          question_type: Optional[str] = None,
                          include_context: bool = True) -> Dict[str, Any]:
@@ -494,9 +499,9 @@ def main():
     # Generate single questions
     print("=== Single Question Examples ===")
     
-    # Beginner deployment question with horizontal scaling
+    # Deployment question with horizontal scaling
     question1 = generator.generate_question(topic="deployments")
-    print(f"Beginner Deployment Question: {question1['question']}")
+    print(f"Deployment Question: {question1['question']}")
     print()
     
     # Generate a question set for deployments
