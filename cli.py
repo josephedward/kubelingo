@@ -1019,7 +1019,7 @@ def import_from_url():
         return
     sys_prompt = (
         "You are a Kubernetes expert. Based on the following file content, generate a Kubernetes question and a model answer. "
-        "Provide the output as JSON with keys: id, topic, difficulty, question, suggested_answer."
+        "Provide the output as JSON with keys: id, topic, question, suggested_answer."
     )
     console.print("[bold yellow]Generating question from URL content...[/bold yellow]")
     ai_resp = ai_chat(sys_prompt, raw)
@@ -1056,7 +1056,7 @@ def import_from_file():
     sys_prompt = (
         "You are a Kubernetes expert. "
         "Based on the following file content, generate a Kubernetes question and a model answer. "
-        "Provide the output as JSON with keys: id, topic, difficulty, question, suggested_answer."
+        "Provide the output as JSON with keys: id, topic, question, suggested_answer."
     )
     console.print("[bold yellow]Generating question from file...[/bold yellow]")
     resp = ai_chat(sys_prompt, raw)
