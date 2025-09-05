@@ -556,19 +556,12 @@ def quiz_session():
         # Unknown command: repeat
     console.print()
 
-def generate_trivia(topic: str = None, difficulty: str = None):
-    """Generate a beginner-level reverse trivia (give description, ask for term)
-    or an advanced freeform definition question.
-    """
+def generate_trivia(topic: str = None):
+    """Generate a reverse trivia (give description, ask for term)"""
     if topic is None:
         topic = inquirer.select(
             message="Select topic:",
             choices=[t.value for t in KubernetesTopics]
-        ).execute()
-    if difficulty is None:
-        difficulty = inquirer.select(
-            message="Select difficulty:",
-            choices=[lvl.value for lvl in DifficultyLevel]
         ).execute()
     gen = QuestionGenerator()
     qid = gen._generate_question_id()
@@ -816,23 +809,19 @@ def quiz_menu():
     if quiz_type == "Back":
         return
 
-    # Select topic and difficulty once for continuous quiz
+    # Select topic once for continuous quiz
     topic = inquirer.select(
         message="Select topic:",
         choices=[t.value for t in KubernetesTopics]
     ).execute()
-    difficulty = inquirer.select(
-        message="Select difficulty:",
-        choices=[lvl.value for lvl in DifficultyLevel]
-    ).execute()
 
     while True:
         if quiz_type == "Manifest":
-            generate_question(topic=topic, difficulty=difficulty)
+            generate_question(topic=topic)
         elif quiz_type == "Trivia":
-            generate_trivia(topic=topic, difficulty=difficulty)
+            generate_trivia(topic=topic)
         elif quiz_type == "Command":
-            generate_command(topic=topic, difficulty=difficulty)
+            generate_command(topic=topic)
 
         # Ask if the user wants another question of the same type, topic, and difficulty
         continue_quiz = inquirer.select(
