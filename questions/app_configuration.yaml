@@ -160,3 +160,30 @@ questions:
               name: secret1
         image: nginx
         name: my-container
+- question: Provide the Kubernetes YAML manifest example from the documentation at
+    https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-azure-kubernetes-service
+  suggestion: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: aspnetapp-demo
+      labels:
+        app: aspnetapp-demo
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: aspnetapp-demo
+      template:
+        metadata:
+          labels:
+            app: aspnetapp-demo
+        spec:
+          containers:
+          - name: aspnetapp
+            image: myregistry.azurecr.io/aspnetapp:v1
+            ports:
+            - containerPort: 80
+  source: https://learn.microsoft.com/en-us/azure/azure-app-configuration/quickstart-azure-kubernetes-service
+  rationale: Demonstrates the example manifest for topic 'app_configuration' as shown
+    in the official docs.

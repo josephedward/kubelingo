@@ -19,7 +19,7 @@ def test_load_performance_data_sanitizes_duplicates():
         yaml.dump(dummy_data, f)
 
     # Load the performance data
-    loaded_data = load_performance_data()
+    loaded_data, _ = load_performance_data()
 
     # Assert that the duplicates have been removed
     correct_questions = loaded_data.get('commands_args_env', {}).get('correct_questions', [])

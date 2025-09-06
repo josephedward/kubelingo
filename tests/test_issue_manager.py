@@ -3,7 +3,9 @@ import yaml
 import time
 import pytest
 
+import kubelingo.utils
 from kubelingo import issue_manager
+from kubelingo.utils import ensure_user_data_dir
 
 
 def test_get_normalized_question_text():
@@ -13,10 +15,10 @@ def test_get_normalized_question_text():
 
 def test_ensure_user_data_dir(tmp_path, monkeypatch):
     test_dir = tmp_path / "user_data_dir"
-    monkeypatch.setattr(issue_manager, 'USER_DATA_DIR', str(test_dir))
+    monkeypatch.setattr(kubelingo.utils, 'USER_DATA_DIR', str(test_dir))
     # Directory should not exist initially
     assert not test_dir.exists()
-    issue_manager.ensure_user_data_dir()
+    ensure_user_data_dir()
     assert test_dir.exists() and test_dir.is_dir()
 
 

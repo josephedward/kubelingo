@@ -693,8 +693,8 @@ def test_validate_generated_question_manifest_validation_success(mock_validate_m
     existing_questions = []
 
     try:
-        qg._validate_generated_question(mock_question, existing_questions)
-        mock_validate_manifest.assert_called_once() # validate_manifest is called for YAML
+        qg._validate_generated_question(mock_question, existing_questions, 'test_topic')
+        mock_validate_manifest.assert_called_once()  # validate_manifest is called for YAML
     except GenerationError as e:
         pytest.fail(f"Validation unexpectedly failed: {e}")
 
@@ -708,7 +708,7 @@ def test_validate_generated_question_manifest_validation_failure(mock_validate_m
     existing_questions = []
 
     mock_validate_manifest.return_value = (False, 'Validation failed.', 'Details...')
-    success, summary, details = qg._validate_generated_question(mock_question, existing_questions)
+    success, summary, details = qg._validate_generated_question(mock_question, existing_questions, 'test_topic')
     assert not success
     assert summary == 'Validation failed.'
     assert details == 'Details...'
@@ -727,8 +727,8 @@ def test_validate_generated_question_command_type(mock_validate_manifest_with_ll
 
     # For command type questions, validate_manifest_with_llm should be called
     try:
-        qg._validate_generated_question(mock_question, existing_questions)
-        mock_validate_manifest_with_llm.assert_called_once() # validate_manifest_with_llm is called for commands
+        qg._validate_generated_question(mock_question, existing_questions, 'test_topic')
+        mock_validate_manifest_with_llm.assert_called_once()  # validate_manifest_with_llm is called for commands
     except GenerationError as e:
         pytest.fail(f"Validation unexpectedly failed for command type: {e}")
 
@@ -742,7 +742,7 @@ def test_validate_generated_question_empty_suggestion():
     existing_questions = []
 
     with pytest.raises(MissingFieldsError) as excinfo:
-        qg._validate_generated_question(mock_question, existing_questions)
+        qg._validate_generated_question(mock_question, existing_questions, 'test_topic')
     assert "Generated question is missing required fields: suggestion" in str(excinfo.value)
 
 def test_validate_generated_question_missing_source_or_rationale():
@@ -755,7 +755,7 @@ def test_validate_generated_question_missing_source_or_rationale():
     existing_questions = []
 
     with pytest.raises(MissingFieldsError) as excinfo:
-        qg._validate_generated_question(mock_question, existing_questions)
+        qg._validate_generated_question(mock_question, existing_questions, 'test_topic')
     assert "Generated question is missing required fields: source" in str(excinfo.value)
 
     mock_question_2 = {
@@ -765,5 +765,5 @@ def test_validate_generated_question_missing_source_or_rationale():
         # 'rationale': 'Test rationale'
     }
     with pytest.raises(MissingFieldsError) as excinfo:
-        qg._validate_generated_question(mock_question_2, existing_questions)
+        qg._validate_generated_question(mock_question_2, existing_questions, 'test_topic')
     assert "Generated question is missing required fields: rationale" in str(excinfo.value)
