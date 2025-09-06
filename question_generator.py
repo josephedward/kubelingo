@@ -202,13 +202,13 @@ class QuestionGenerator:
                 ]
             }
         }
-        }
     
     def _init_contexts(self) -> Dict[str, List[str]]:
         """Initialize context scenarios for more realistic questions"""
         return {
             "applications": ["nginx", "redis", "mysql", "nodejs-app", "python-api", "react-frontend"],
             "environments": ["development", "staging", "production", "testing"],
+        }
             "industries": ["e-commerce", "fintech", "healthcare", "gaming", "iot"],
             "scaling_scenarios": ["Black Friday traffic", "viral social media post", "planned maintenance", "disaster recovery"],
             "team_sizes": ["small startup", "enterprise", "mid-size company", "open source project"]
