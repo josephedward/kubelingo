@@ -202,19 +202,7 @@ class QuestionGenerator:
                 ]
             }
         }
-        return {
-            KubernetesTopics.PODS.value: [
-                "Create a simple Pod named '{pod_name}' running '{image}' image",
-                "Deploy a Pod with '{image}' that exposes port {port}",
-                "Create a Pod that runs '{image}' with environment variable {env_var}='{env_value}'",
-                "Create a Pod with resource limits: CPU {cpu_limit} and memory {memory_limit}",
-                "Deploy a Pod with a sidecar container for logging using '{sidecar_image}'",
-                "Create a Pod with both resource requests and limits, and readiness probe",
-                "Create a Pod with init containers, security context, and custom service account",
-                "Deploy a Pod with affinity rules, tolerations, and custom DNS policy",
-                "Create a multi-container Pod with shared volumes and inter-container communication"
-            ],
-            # ... rest of the template dictionary ...
+        }
     
     def _init_contexts(self) -> Dict[str, List[str]]:
         """Initialize context scenarios for more realistic questions"""
