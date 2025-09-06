@@ -143,67 +143,12 @@ def _build_manifest(topic: str, vars: dict, question: str = None) -> str:
                 f'            cpu: {cpu}',
                 f'            memory: {mem}',
             ]
-        else:
-            lines = [
-                'apiVersion: apps/v1',
-                'kind: Deployment',
-                'metadata:',
-                f'  name: {dep_name}',
-                'spec:',
-                f'  replicas: {replicas}',
-                '  strategy:',
-                '    type: RollingUpdate',
-                '    rollingUpdate:',
-                '      maxSurge: 1',
-                '      maxUnavailable: 0',
-                '  selector:',
-                '    matchLabels:',
-                f'      app: {dep_name}',
-                '  template:',
-                '    metadata:',
-                '      labels:',
-                f'        app: {dep_name}',
-                '    spec:',
-                '      containers:',
-                '      - name: main',
-                f'        image: {image}',
-            ]
-            if cpu and mem:
-                lines += [
-                    '        resources:',
-                    '          limits:',
-                    f'            cpu: {cpu}',
-                    f'            memory: {mem}',
-                ]
-            if port:
-                lines += [
-                    '        readinessProbe:',
-                    '          httpGet:',
-                    '            path: /',
-                    f'            port: {port}',
-                ]
-        else:
-            # Expert: include affinity stub
-            lines = [
-                'apiVersion: apps/v1',
-                'kind: Deployment',
-                'metadata:',
-                f'  name: {dep_name}',
-                'spec:',
-                f'  replicas: {replicas}',
-                '  selector:',
-                '    matchLabels:',
-                f'      app: {dep_name}',
-                '  template:',
-                '    metadata:',
-                '      labels:',
-                f'        app: {dep_name}',
-                '    spec:',
-                '      affinity:',
-                '        podAntiAffinity: {}',
-                '      containers:',
-                '      - name: main',
-                f'        image: {image}',
+        if port:
+            lines += [
+                '        readinessProbe:',
+                '          httpGet:',
+                '            path: /',
+                f'            port: {port}',
             ]
         return '\n'.join(lines) + '\n'
     elif topic == KubernetesTopics.SERVICES.value:
