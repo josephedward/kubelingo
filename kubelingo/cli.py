@@ -11,6 +11,7 @@ from InquirerPy import inquirer
 from InquirerPy.utils import get_style
 from rich.console import Console
 from rich.text import Text
+from kubelingo.importer import import_from_file
 
 
 # ASCII art banner for Kubelingo (disabled for now)
@@ -93,8 +94,19 @@ def import_menu() -> None:
     ).execute()
     if choice == 'Back':
         return
-    # TODO: Implement import logic
-    pass
+    elif choice == "File/Folder Path":
+        path = inquirer.text(message="Enter the file path:").execute()
+        try:
+            questions = import_from_file(path)
+            if questions:
+                print(f"Successfully imported {len(questions)} questions.")
+                for q in questions:
+                    print(f"  - {q['question']}")
+            else:
+                print("No questions imported. The file might be empty or in an unsupported format.")
+        except FileNotFoundError:
+            print("File not found. Please enter a valid path.")
+    # TODO: Implement URL import
 
 def settings_menu() -> None:
     """Display the Settings submenu for API keys and provider."""
