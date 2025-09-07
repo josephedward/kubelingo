@@ -1,0 +1,10 @@
+{
+  "id": "63db47e9",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you move to the end of the line?",
+  "source": "https://stackoverflow.com/questions/105721/how-do-i-move-to-end-of-line-in-vim",
+  "suggested_answer": "$",
+  "user_answer": "",
+  "ai_feedback": ""
+}

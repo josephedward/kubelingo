@@ -1,0 +1,10 @@
+{
+  "id": "af944f0e",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is ResourceQuota a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/policy/resource-quotas/",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

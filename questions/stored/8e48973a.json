@@ -1,0 +1,10 @@
+{
+  "id": "8e48973a",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Delete the 'nginx' pod and the 'nginx-service'.",
+  "source": "https://stackoverflow.com/questions/57014430/kubernetes-cleanup-of-pods-service-deployment-etc",
+  "suggested_answer": "kubectl delete pod nginx\nkubectl delete service nginx-service",
+  "user_answer": "",
+  "ai_feedback": ""
+}

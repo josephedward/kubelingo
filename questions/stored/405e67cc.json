@@ -1,0 +1,10 @@
+{
+  "id": "405e67cc",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Configure application resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl set",
+  "user_answer": "",
+  "ai_feedback": ""
+}

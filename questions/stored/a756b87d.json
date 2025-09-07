@@ -1,0 +1,10 @@
+{
+  "id": "a756b87d",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "Enable kubectl autocompletion in your shell, ensuring it also works for the `k` alias.",
+  "source": "https://spacelift.io/blog/kubectl-auto-completion",
+  "suggested_answer": "source <(kubectl completion bash) && complete -F __start_kubectl k",
+  "user_answer": "",
+  "ai_feedback": ""
+}

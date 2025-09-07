@@ -1,0 +1,10 @@
+{
+  "id": "8971ed1f",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you upgrade an existing Helm release named `my-release` using the chart in `./my-chart`?",
+  "source": "https://helm.sh/docs/helm/helm_upgrade/",
+  "suggested_answer": "helm upgrade my-release ./my-chart",
+  "user_answer": "",
+  "ai_feedback": ""
+}

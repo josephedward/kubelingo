@@ -1,0 +1,10 @@
+{
+  "id": "e78f3c19",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Automatically scale the set of pods managed by a replication controller.",
+  "source": "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/",
+  "suggested_answer": "kubectl autoscale",
+  "user_answer": "",
+  "ai_feedback": ""
+}

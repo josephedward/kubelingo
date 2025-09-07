@@ -1,0 +1,10 @@
+{
+  "id": "14d2656c",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Run a proxy to the Kubernetes API server.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl proxy",
+  "user_answer": "",
+  "ai_feedback": ""
+}

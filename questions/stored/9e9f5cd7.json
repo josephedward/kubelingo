@@ -1,0 +1,10 @@
+{
+  "id": "9e9f5cd7",
+  "topic": "imperative_vs_declarative",
+  "type": "declarative",
+  "question": "Create a manifest for a Deployment named 'declarative-deployment' with image 'nginx' and 2 replicas. This manifest will be used to apply the configuration declaratively.",
+  "source": "https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/",
+  "suggested_answer": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: declarative-deployment\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n      - name: nginx\n        image: nginx",
+  "user_answer": "",
+  "ai_feedback": ""
+}

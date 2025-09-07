@@ -1,0 +1,10 @@
+{
+  "id": "a3406724",
+  "topic": "labels_annotations_selectors",
+  "type": "imperative",
+  "question": "Get all pods with the label 'env=prod'.",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/",
+  "suggested_answer": "kubectl get pods -l env=prod",
+  "user_answer": "",
+  "ai_feedback": ""
+}

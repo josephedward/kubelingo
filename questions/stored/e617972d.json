@@ -1,0 +1,10 @@
+{
+  "id": "e617972d",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Print the logs for a container in a pod.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl logs",
+  "user_answer": "",
+  "ai_feedback": ""
+}

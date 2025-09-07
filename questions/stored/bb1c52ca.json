@@ -1,0 +1,10 @@
+{
+  "id": "bb1c52ca",
+  "topic": "pod_design_patterns",
+  "type": "imperative",
+  "question": "Run a pod named busybox with image busybox that runs indefinitely.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever",
+  "suggested_answer": "kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c \"sleep 3600\"",
+  "user_answer": "",
+  "ai_feedback": ""
+}

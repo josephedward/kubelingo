@@ -1,0 +1,10 @@
+{
+  "id": "ec2e6074",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is PodTemplate a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

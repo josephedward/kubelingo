@@ -1,0 +1,10 @@
+{
+  "id": "ef98399e",
+  "topic": "jobs_cronjobs",
+  "type": "declarative",
+  "question": "Job manifest that runs busybox 'sleep 10' once with backoffLimit 2.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/",
+  "suggested_answer": "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: c\nspec:\n  backoffLimit: 2\n  template:\n    spec:\n      containers:\n      - name: busybox\n        image: busybox\n        command:\n        - sh\n        - -c\n        - sleep 10\n      restartPolicy: Never",
+  "user_answer": "",
+  "ai_feedback": ""
+}

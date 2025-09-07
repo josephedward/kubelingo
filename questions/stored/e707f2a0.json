@@ -1,0 +1,10 @@
+{
+  "id": "e707f2a0",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Add or update the annotations of one or more resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl annotate",
+  "user_answer": "",
+  "ai_feedback": ""
+}

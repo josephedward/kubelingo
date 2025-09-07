@@ -1,0 +1,10 @@
+{
+  "id": "b5bee8e5",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you find all pending Helm deployments across all namespaces?",
+  "source": "https://helm.sh/docs/helm/helm_list/",
+  "suggested_answer": "helm list --pending -A",
+  "user_answer": "",
+  "ai_feedback": ""
+}

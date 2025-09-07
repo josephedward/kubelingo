@@ -1,0 +1,10 @@
+{
+  "id": "cee0e72b",
+  "topic": "probes_health",
+  "type": "declarative",
+  "question": "Create a single Pod named `pod6` in namespace `default` with image `busybox:1.31.0`. The pod should run the command `touch /tmp/ready && sleep 1d`. Configure a readiness probe that executes `cat /tmp/ready`, with an `initialDelaySeconds` of 5 and a `periodSeconds` of 10.",
+  "source": "https://quizlet.com/nz/874288597/ckad-exam-questions-answers-readiness-probes-pods-namespaces-flash-cards/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod6\n  namespace: default\nspec:\n  containers:\n  - name: pod6\n    image: busybox:1.31.0\n    command:\n    - sh\n    - -c\n    - touch /tmp/ready && sleep 1d\n    readinessProbe:\n      exec:\n        command:\n        - cat\n        - /tmp/ready\n      initialDelaySeconds: 5\n      periodSeconds: 10",
+  "user_answer": "",
+  "ai_feedback": ""
+}

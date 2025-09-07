@@ -1,0 +1,10 @@
+{
+  "id": "d0015d81",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Update the image for the 'webapp' deployment to 'nginx:1.22'.",
+  "source": "https://stackoverflow.com/questions/40366192/kubernetes-how-to-make-deployment-to-update-image",
+  "suggested_answer": "kubectl set image deployment/webapp webapp=nginx:1.22",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "6ac45891",
+  "topic": "service",
+  "type": "declarative",
+  "question": "Create a Service of type ClusterIP named 'db-svc' that exposes port 80 targeting port 80 for Pods labeled app=db.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+  "suggested_answer": "kubectl expose deployment db --name=db-svc --port=80 --target-port=80 --type=ClusterIP\n\napiVersion: v1\nkind: Service\nmetadata:\n  name: db-svc\nspec:\n  type: ClusterIP\n  selector:\n    app: db\n  ports:\n  - port: 80\n    targetPort: 80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

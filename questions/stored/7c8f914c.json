@@ -1,0 +1,10 @@
+{
+  "id": "7c8f914c",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is PersistentVolume a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

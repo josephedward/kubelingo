@@ -1,0 +1,10 @@
+{
+  "id": "ca517f4b",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Open an interactive bash shell in a pod.",
+  "source": "https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/",
+  "suggested_answer": "kubectl exec -ti <pod-name> -- /bin/bash",
+  "user_answer": "",
+  "ai_feedback": ""
+}

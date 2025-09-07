@@ -1,0 +1,10 @@
+{
+  "id": "38cb4d57",
+  "topic": "service_accounts_in_apps",
+  "type": "imperative",
+  "question": "Delete serviceaccount default-sa.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service",
+  "suggested_answer": "kubectl delete serviceaccount default-sa",
+  "user_answer": "",
+  "ai_feedback": ""
+}

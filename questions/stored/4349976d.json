@@ -1,0 +1,10 @@
+{
+  "id": "4349976d",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What is the command to create a basic Helm chart named `my-chart`?",
+  "source": "https://helm.sh/docs/helm/helm_create/",
+  "suggested_answer": "helm create my-chart",
+  "user_answer": "",
+  "ai_feedback": ""
+}

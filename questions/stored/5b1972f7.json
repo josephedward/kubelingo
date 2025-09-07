@@ -1,0 +1,10 @@
+{
+  "id": "5b1972f7",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How can you uninstall a Helm release named `my-release`?",
+  "source": "https://helm.sh/docs/helm/helm_uninstall/",
+  "suggested_answer": "helm uninstall my-release",
+  "user_answer": "",
+  "ai_feedback": ""
+}

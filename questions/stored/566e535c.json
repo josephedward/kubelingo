@@ -1,0 +1,10 @@
+{
+  "id": "566e535c",
+  "topic": "logging",
+  "type": "imperative",
+  "question": "Retrieve the last 5 lines of logs from a pod named 'web-server' that crashed previously",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging",
+  "suggested_answer": "kubectl logs web-server --previous --tail=5\n\nkubectl logs -p web-server --tail 5",
+  "user_answer": "",
+  "ai_feedback": ""
+}

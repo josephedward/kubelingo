@@ -1,0 +1,10 @@
+{
+  "id": "b6ad08a0",
+  "topic": "imperative_vs_declarative",
+  "type": "imperative",
+  "question": "Command to declaratively apply all manifests in ./manifests.",
+  "source": "https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/",
+  "suggested_answer": "kubectl apply -f ./manifests",
+  "user_answer": "",
+  "ai_feedback": ""
+}

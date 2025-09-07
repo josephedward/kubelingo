@@ -1,0 +1,10 @@
+{
+  "id": "89538a2f",
+  "topic": "pods",
+  "type": "declarative",
+  "question": "Deploy a Pod with a sidecar container for logging using 'fluent/fluent-bit:1.8'",
+  "source": "",
+  "suggested_answer": "",
+  "user_answer": "",
+  "ai_feedback": ""
+}

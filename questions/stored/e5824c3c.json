@@ -1,0 +1,10 @@
+{
+  "id": "e5824c3c",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "View the encoded values in a Secret named 'api-secrets' in YAML format.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "kubectl get secret api-secrets -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

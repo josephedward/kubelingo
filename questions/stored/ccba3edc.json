@@ -1,0 +1,10 @@
+{
+  "id": "ccba3edc",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "Add kubectl autocompletion to ~/.bashrc.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=source%20%3C%28kubectl%20completion%20bash%29%20,permanently%20to%20your%20bash%20shell",
+  "suggested_answer": "echo \"source <(kubectl completion bash)\" >> ~/.bashrc",
+  "user_answer": "",
+  "ai_feedback": ""
+}

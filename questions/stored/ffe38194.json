@@ -1,0 +1,10 @@
+{
+  "id": "ffe38194",
+  "topic": "ingress_http_routing",
+  "type": "imperative",
+  "question": "Create an Ingress resource named 'app-ingress'. It should route traffic for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on port 80.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+  "suggested_answer": "kubectl create ingress app-ingress --rule=\"app.example.com/*=webapp-svc:80\"",
+  "user_answer": "",
+  "ai_feedback": ""
+}

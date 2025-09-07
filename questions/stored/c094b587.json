@@ -1,0 +1,10 @@
+{
+  "id": "c094b587",
+  "topic": "jobs_cronjobs",
+  "type": "declarative",
+  "question": "Create a Job manifest for a Job named `neb-new-job` in namespace `neptune`. It should run `sleep 2 && echo done` with image `busybox:1.31.0`, have 3 completions, and 2 running in parallel. Pods must have the label `id: awesome-job`, and the container must be named `neb-new-job-container`.",
+  "source": "https://ettoreciarcia.com/killersh-simulations/CKAD.html",
+  "suggested_answer": "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: neb-new-job\n  namespace: neptune\nspec:\n  completions: 3\n  parallelism: 2\n  template:\n    metadata:\n      labels:\n        id: awesome-job\n    spec:\n      containers:\n      - name: neb-new-job-container\n        image: busybox:1.31.0\n        command:\n        - sh\n        - -c\n        - sleep 2 && echo done\n      restartPolicy: OnFailure",
+  "user_answer": "",
+  "ai_feedback": ""
+}

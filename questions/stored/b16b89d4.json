@@ -1,0 +1,10 @@
+{
+  "id": "b16b89d4",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Describe all pods.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl describe pods",
+  "user_answer": "",
+  "ai_feedback": ""
+}

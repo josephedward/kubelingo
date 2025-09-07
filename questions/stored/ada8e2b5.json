@@ -1,0 +1,10 @@
+{
+  "id": "ada8e2b5",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is PodDisruptionBudget a namespaced resource?",
+  "source": "https://kubernetes.io/docs/tasks/run-application/configure-pdb/",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

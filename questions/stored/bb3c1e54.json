@@ -1,0 +1,10 @@
+{
+  "id": "bb3c1e54",
+  "topic": "app_configuration",
+  "type": "declarative",
+  "question": "Create a manifest for a Pod named 'pod1'. The Pod must have a single container using the `nginx:alpine` image. The Pod should be configured to have an environment variable 'TREE1' sourced from the 'tree' key in a ConfigMap named 'trauerweide'. Additionally, it should mount the ConfigMap 'birke' as a volume to the path '/etc/birke'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod1\nspec:\n  containers:\n  - env:\n    - name: TREE1\n      valueFrom:\n        configMapKeyRef:\n          key: tree\n          name: trauerweide\n    image: nginx:alpine\n    name: nginx\n    volumeMounts:\n    - mountPath: /etc/birke\n      name: birke-volume\n  volumes:\n  - configMap:\n      name: birke\n    name: birke-volume",
+  "user_answer": "",
+  "ai_feedback": ""
+}

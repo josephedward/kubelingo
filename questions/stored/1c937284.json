@@ -1,0 +1,10 @@
+{
+  "id": "1c937284",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Drain node in preparation for maintenance.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl drain",
+  "user_answer": "",
+  "ai_feedback": ""
+}

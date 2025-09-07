@@ -1,0 +1,10 @@
+{
+  "id": "24aca7c9",
+  "topic": "imperative_vs_declarative",
+  "type": "imperative",
+  "question": "Apply the configuration in deployment.yaml.",
+  "source": "https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Manifestos%20Kubernetes%20podem%20ser%20definidos,podem%20be%20usadas",
+  "suggested_answer": "kubectl apply -f deployment.yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

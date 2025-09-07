@@ -1,0 +1,10 @@
+{
+  "id": "d8ccef0a",
+  "topic": "configmap",
+  "type": "declarative",
+  "question": "Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to 'db.example.com'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create configmap app-config --from-literal=LOG_LEVEL=db.example.com\n\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  LOG_LEVEL: db.example.com",
+  "user_answer": "",
+  "ai_feedback": ""
+}

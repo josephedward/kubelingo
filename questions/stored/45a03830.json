@@ -1,0 +1,10 @@
+{
+  "id": "45a03830",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you move to the next word?",
+  "source": "https://stackoverflow.com/questions/12488348/move-to-end-of-the-current-word-in-vim",
+  "suggested_answer": "w",
+  "user_answer": "",
+  "ai_feedback": ""
+}

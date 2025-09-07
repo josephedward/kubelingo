@@ -1,0 +1,10 @@
+{
+  "id": "d692c1f4",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is CSINode a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

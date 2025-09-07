@@ -1,0 +1,10 @@
+{
+  "id": "fd722432",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you find the next search occurrence?",
+  "source": "https://stackoverflow.com/questions/4408719/find-the-next-occurrence-of-a-variable-in-vim",
+  "suggested_answer": "n",
+  "user_answer": "",
+  "ai_feedback": ""
+}

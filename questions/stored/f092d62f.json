@@ -1,0 +1,10 @@
+{
+  "id": "f092d62f",
+  "topic": "services",
+  "type": "imperative",
+  "question": "You have a deployment named 'webapp' with label 'app=webapp'. Create a ClusterIP service named 'webapp-svc' to expose the deployment on port 80.",
+  "source": "https://stackoverflow.com/questions/62964958/expose-a-web-app-on-port-80-using-kubernetes-and-minikube",
+  "suggested_answer": "kubectl expose deployment webapp --name=webapp-svc --port=80 --target-port=80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

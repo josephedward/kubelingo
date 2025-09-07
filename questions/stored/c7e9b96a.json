@@ -1,0 +1,10 @@
+{
+  "id": "c7e9b96a",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "List events.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl events",
+  "user_answer": "",
+  "ai_feedback": ""
+}

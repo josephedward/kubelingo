@@ -1,0 +1,10 @@
+{
+  "id": "a206f5a0",
+  "topic": "security_basics",
+  "type": "declarative",
+  "question": "Pod manifest running as non-root user 1000 with fsGroup 2000.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/security-context/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  securityContext:\n    fsGroup: 2000\n    runAsNonRoot: true\n    runAsUser: 1000\n  containers:\n  - name: busybox\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 3600",
+  "user_answer": "",
+  "ai_feedback": ""
+}

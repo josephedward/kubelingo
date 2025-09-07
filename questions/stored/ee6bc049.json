@@ -1,0 +1,10 @@
+{
+  "id": "ee6bc049",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is ClusterRole a namespaced resource?",
+  "source": "https://kubernetes.io/docs/reference/access-authn-authz/rbac/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "ad9f9197",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you enter visual mode?",
+  "source": "https://stackoverflow.com/questions/12399572/vim-how-to-insert-in-visual-block-mode",
+  "suggested_answer": "v",
+  "user_answer": "",
+  "ai_feedback": ""
+}

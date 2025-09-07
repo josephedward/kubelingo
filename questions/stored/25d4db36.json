@@ -1,0 +1,10 @@
+{
+  "id": "25d4db36",
+  "topic": "services",
+  "type": "declarative",
+  "question": "Create a Service `my-service` that selects pods with label `app: MyApp`. The service should expose TCP port 80 and target port 8080 on the pods.",
+  "source": "https://kubernetes.io/docs/tutorials/services/connect-applications-service/",
+  "suggested_answer": "apiVersion: v1\nkind: Service\nmetadata:\n  name: my-service\nspec:\n  ports:\n  - port: 80\n    protocol: TCP\n    targetPort: 8080\n  selector:\n    app: MyApp",
+  "user_answer": "",
+  "ai_feedback": ""
+}

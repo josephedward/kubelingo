@@ -1,0 +1,10 @@
+{
+  "id": "172001fc",
+  "topic": "imperative_vs_declarative",
+  "type": "imperative",
+  "question": "Generate the YAML for a pod named 'nginx' with image 'nginx:latest' without creating it. Save it to a file named 'pod.yaml'.",
+  "source": "https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f",
+  "suggested_answer": "kubectl run nginx --image=nginx:latest --dry-run=client -o yaml > pod.yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

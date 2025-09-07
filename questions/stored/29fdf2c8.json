@@ -1,0 +1,10 @@
+{
+  "id": "29fdf2c8",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "List all ConfigMaps.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Endpoints",
+  "suggested_answer": "kubectl get configmaps",
+  "user_answer": "",
+  "ai_feedback": ""
+}

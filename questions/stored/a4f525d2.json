@@ -1,0 +1,10 @@
+{
+  "id": "a4f525d2",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "List the API versions that are available.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl api-versions",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "034cd117",
+  "topic": "kubectl_common_operations",
+  "type": "declarative",
+  "question": "View a diff reading from stdin.",
+  "source": "/search?num=3",
+  "suggested_answer": "cat pod.json | kubectl diff -f -",
+  "user_answer": "",
+  "ai_feedback": ""
+}

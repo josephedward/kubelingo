@@ -1,0 +1,10 @@
+{
+  "id": "d0cab816",
+  "topic": "namespaces_contexts",
+  "type": "declarative",
+  "question": "Verify which namespace is currently being used in your context.",
+  "source": "https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=kn%20para%20definir%20namespace,%3B%20f",
+  "suggested_answer": "kubectl config view --minify | grep namespace: null",
+  "user_answer": "",
+  "ai_feedback": ""
+}

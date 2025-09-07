@@ -1,0 +1,10 @@
+{
+  "id": "f558aa7c",
+  "topic": "networking_utilities",
+  "type": "imperative",
+  "question": "Command to exec into a Pod named nginx-abc with a shell.",
+  "source": "https://kubernetes.io/docs/tasks/debug/debug-application/get-shell-running-container/",
+  "suggested_answer": "kubectl exec -it nginx-abc -- sh",
+  "user_answer": "",
+  "ai_feedback": ""
+}

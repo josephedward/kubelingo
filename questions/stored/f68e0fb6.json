@@ -1,0 +1,10 @@
+{
+  "id": "f68e0fb6",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for Lease?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "coordination.k8s.io/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

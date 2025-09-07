@@ -1,0 +1,10 @@
+{
+  "id": "6f29cfb8",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you install the `bitnami/node` chart as a release named `my-node`, setting `replicaCount` to 5?",
+  "source": "https://artifacthub.io/packages/helm/bitnami/node",
+  "suggested_answer": "helm install my-node bitnami/node --set replicaCount=5",
+  "user_answer": "",
+  "ai_feedback": ""
+}

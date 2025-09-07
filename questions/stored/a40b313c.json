@@ -1,0 +1,10 @@
+{
+  "id": "a40b313c",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you go to line 10?",
+  "source": "https://ptuladhar3.medium.com/%EF%B8%8F-must-know-5-vim-tricks-with-gif-for-kubernetes-certification-68a27c261faa",
+  "suggested_answer": ":10",
+  "user_answer": "",
+  "ai_feedback": ""
+}

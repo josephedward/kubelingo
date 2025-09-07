@@ -1,0 +1,10 @@
+{
+  "id": "e55649f0",
+  "topic": "app_configuration",
+  "type": "declarative",
+  "question": "Create a manifest for a Secret named 'db-secret' containing a username 'admin' and password 's3cur3p@ssw0rd'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "apiVersion: v1\nkind: Secret\nmetadata:\n  name: db-secret\nstringData:\n  password: s3cur3p@ssw0rd\n  username: admin\ntype: Opaque",
+  "user_answer": "",
+  "ai_feedback": ""
+}

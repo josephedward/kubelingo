@@ -1,0 +1,10 @@
+{
+  "id": "afb54b1b",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Attach to a running container.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_attach/",
+  "suggested_answer": "kubectl attach",
+  "user_answer": "",
+  "ai_feedback": ""
+}

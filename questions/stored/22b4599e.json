@@ -1,0 +1,10 @@
+{
+  "id": "22b4599e",
+  "topic": "app_configuration",
+  "type": "declarative",
+  "question": "You are given a basic Pod manifest. Modify it to add two environment variables, 'SECRET1_USER' and 'SECRET1_PASS', sourced from the Secret named 'secret1'. The key for 'SECRET1_USER' is 'user' and the key for 'SECRET1_PASS' is 'pass'.",
+  "source": "/search?num=3",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n  - env:\n    - name: SECRET1_USER\n      valueFrom:\n        secretKeyRef:\n          key: user\n          name: secret1\n    - name: SECRET1_PASS\n      valueFrom:\n        secretKeyRef:\n          key: pass\n          name: secret1\n    image: nginx\n    name: my-container",
+  "user_answer": "",
+  "ai_feedback": ""
+}

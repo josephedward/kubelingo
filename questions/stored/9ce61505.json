@@ -1,0 +1,10 @@
+{
+  "id": "9ce61505",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What command generates an index file for a chart repository in the current directory?",
+  "source": "https://helm.sh/docs/helm/helm_repo_index/",
+  "suggested_answer": "helm repo index .",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "70dc44f9",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Create a new namespace called 'development'.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_namespace/#:~:text=,namespace",
+  "suggested_answer": "kubectl create namespace development",
+  "user_answer": "",
+  "ai_feedback": ""
+}

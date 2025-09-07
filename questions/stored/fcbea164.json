@@ -1,0 +1,10 @@
+{
+  "id": "fcbea164",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Mark node as unschedulable.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl cordon",
+  "user_answer": "",
+  "ai_feedback": ""
+}

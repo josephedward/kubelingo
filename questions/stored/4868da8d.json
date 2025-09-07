@@ -1,0 +1,10 @@
+{
+  "id": "4868da8d",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Get documentation for a resource.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/",
+  "suggested_answer": "kubectl explain",
+  "user_answer": "",
+  "ai_feedback": ""
+}

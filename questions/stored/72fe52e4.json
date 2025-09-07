@@ -1,0 +1,10 @@
+{
+  "id": "72fe52e4",
+  "topic": "labels_annotations_selectors",
+  "type": "imperative",
+  "question": "Annotate deployment frontend with description=test.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20",
+  "suggested_answer": "kubectl annotate deployment frontend description=test",
+  "user_answer": "",
+  "ai_feedback": ""
+}

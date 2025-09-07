@@ -1,0 +1,10 @@
+{
+  "id": "70e8e4fd",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "List all pods and include additional information such as node name.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl get pods -o wide",
+  "user_answer": "",
+  "ai_feedback": ""
+}

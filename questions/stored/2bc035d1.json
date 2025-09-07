@@ -1,0 +1,10 @@
+{
+  "id": "2bc035d1",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Modify certificate resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl certificate",
+  "user_answer": "",
+  "ai_feedback": ""
+}

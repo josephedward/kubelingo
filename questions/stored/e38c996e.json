@@ -1,0 +1,10 @@
+{
+  "id": "e38c996e",
+  "topic": "labels_annotations_selectors",
+  "type": "imperative",
+  "question": "Remove the label 'env' from pod busybox.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20",
+  "suggested_answer": "kubectl label pod busybox env-",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "a26dcd6f",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the short name for NetworkPolicy?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "netpol",
+  "user_answer": "",
+  "ai_feedback": ""
+}

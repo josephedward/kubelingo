@@ -1,0 +1,10 @@
+{
+  "id": "b422e8b1",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you append text after the cursor?",
+  "source": "https://stackoverflow.com/questions/56702211/insert-chunk-of-text-after-cursor-from-vimscript",
+  "suggested_answer": "a",
+  "user_answer": "",
+  "ai_feedback": ""
+}

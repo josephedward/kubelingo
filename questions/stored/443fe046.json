@@ -1,0 +1,10 @@
+{
+  "id": "443fe046",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you exit without saving changes?",
+  "source": "https://stackoverflow.com/questions/11828270/how-do-i-exit-vim",
+  "suggested_answer": ":q!",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "0adaeeeb",
+  "topic": "resource_management",
+  "type": "imperative",
+  "question": "Command to create an HPA for web: min 2, max 5, target 50% CPU.",
+  "source": "https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/",
+  "suggested_answer": "kubectl autoscale deployment web --min=2 --max=5 --cpu-percent=50",
+  "user_answer": "",
+  "ai_feedback": ""
+}

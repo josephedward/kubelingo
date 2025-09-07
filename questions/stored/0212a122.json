@@ -1,0 +1,10 @@
+{
+  "id": "0212a122",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you open a new line below the current line?",
+  "source": "https://stackoverflow.com/questions/18139047/create-new-line-while-in-insert-mode",
+  "suggested_answer": "o",
+  "user_answer": "",
+  "ai_feedback": ""
+}

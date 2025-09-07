@@ -1,0 +1,10 @@
+{
+  "id": "d56000e9",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Copy files and directories to and from containers.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl cp",
+  "user_answer": "",
+  "ai_feedback": ""
+}

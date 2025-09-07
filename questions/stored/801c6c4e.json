@@ -1,0 +1,10 @@
+{
+  "id": "801c6c4e",
+  "topic": "configmap",
+  "type": "declarative",
+  "question": "Create a ConfigMap named 'db-config' with data key 'LOG_LEVEL' set to 'DEBUG'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create configmap db-config --from-literal=LOG_LEVEL=DEBUG\n\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: db-config\ndata:\n  LOG_LEVEL: DEBUG",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "cf87f503",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you undo the last change?",
+  "source": "https://stackoverflow.com/questions/18500352/how-to-undo-up-to-last-write-in-vim",
+  "suggested_answer": "u",
+  "user_answer": "",
+  "ai_feedback": ""
+}

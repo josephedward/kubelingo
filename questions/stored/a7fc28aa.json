@@ -1,0 +1,10 @@
+{
+  "id": "a7fc28aa",
+  "topic": "jobs_cronjobs",
+  "type": "imperative",
+  "question": "Create a CronJob named 'hello-cron' that runs every minute. The job should use the 'busybox' image and run the command '/bin/sh -c date; echo Hello from the Kubernetes cluster'.",
+  "source": "https://www.baeldung.com/ops/kubernetes-run-cron-jobs",
+  "suggested_answer": "kubectl create cronjob hello-cron --image=busybox --schedule=\"*/1 * * * *\" -- /bin/sh -c 'date; echo Hello from the Kubernetes cluster'",
+  "user_answer": "",
+  "ai_feedback": ""
+}

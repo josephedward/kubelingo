@@ -1,0 +1,10 @@
+{
+  "id": "e548b14b",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Mark node as schedulable.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl uncordon",
+  "user_answer": "",
+  "ai_feedback": ""
+}

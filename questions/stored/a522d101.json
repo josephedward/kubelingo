@@ -1,0 +1,10 @@
+{
+  "id": "a522d101",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "List the API resources that are available.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl api-resources",
+  "user_answer": "",
+  "ai_feedback": ""
+}

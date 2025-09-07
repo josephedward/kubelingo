@@ -1,0 +1,10 @@
+{
+  "id": "f53213c0",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for NetworkPolicy?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "networking.k8s.io/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

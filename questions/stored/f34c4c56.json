@@ -1,0 +1,10 @@
+{
+  "id": "f34c4c56",
+  "topic": "api_discovery_docs",
+  "type": "declarative",
+  "question": "Create an 'api_discovery_docs' ConfigMap in the 'development' namespace with key-value pairs for two API endpoints: '/healthcheck' and '/metrics'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: api_discovery_docs\n  namespace: development\ndata:\n  healthcheck: /healthcheck\n  metrics: /metrics",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "72216c5d",
+  "topic": "resource_management",
+  "type": "declarative",
+  "question": "In namespace limit create a Pod named resource-checker using image httpd:alpine with container name my-container; requests: cpu=30m, memory=30Mi; limits: cpu=300m, memory=30Mi.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: resource-checker\n  namespace: limit\nspec:\n  containers:\n  - name: my-container\n    image: httpd:alpine\n    resources:\n      requests:\n        cpu: 30m\n        memory: 30Mi\n      limits:\n        cpu: 300m\n        memory: 30Mi",
+  "user_answer": "",
+  "ai_feedback": ""
+}

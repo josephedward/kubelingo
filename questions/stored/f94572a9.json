@@ -1,0 +1,10 @@
+{
+  "id": "f94572a9",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you enter visual block mode?",
+  "source": "https://stackoverflow.com/questions/63899874/how-to-enter-in-visual-block-mode-in-vim-by-command",
+  "suggested_answer": "<C-v>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

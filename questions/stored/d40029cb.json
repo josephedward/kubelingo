@@ -1,0 +1,10 @@
+{
+  "id": "d40029cb",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Delete a pod using the definition in pod.yaml.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl delete -f pod.yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

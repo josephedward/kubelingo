@@ -1,0 +1,10 @@
+{
+  "id": "c54499a1",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Create one or more resources from a file or stdin.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl create",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "f442231e",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Create a service using the definition in example-service.yaml.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl apply -f example-service.yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

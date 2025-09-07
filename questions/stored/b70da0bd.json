@@ -1,0 +1,10 @@
+{
+  "id": "b70da0bd",
+  "topic": "core_workloads",
+  "type": "declarative",
+  "question": "Create a ConfigMap named 'app-config' with the following key-value pairs: 'DB_HOST=db.example.com', 'DB_PORT=5432', 'DB_NAME=mydb'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/",
+  "suggested_answer": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  DB_HOST: db.example.com\n  DB_PORT: '5432'\n  DB_NAME: mydb",
+  "user_answer": "",
+  "ai_feedback": ""
+}

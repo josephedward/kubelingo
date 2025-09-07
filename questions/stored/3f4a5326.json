@@ -1,0 +1,10 @@
+{
+  "id": "3f4a5326",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you redo the last undone change?",
+  "source": "https://stackoverflow.com/questions/47521923/redo-all-undone-changes",
+  "suggested_answer": "<C-r>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "72e99aa5",
+  "topic": "service_accounts_in_apps",
+  "type": "declarative",
+  "question": "Pod manifest using serviceAccountName app-sa and not auto-mounting token.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  serviceAccountName: app-sa\n  automountServiceAccountToken: false\n  containers:\n  - name: busybox\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 3600",
+  "user_answer": "",
+  "ai_feedback": ""
+}

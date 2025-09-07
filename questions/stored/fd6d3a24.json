@@ -1,0 +1,10 @@
+{
+  "id": "fd6d3a24",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "List all resources across all namespaces.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=A%20note%20on%20%60",
+  "suggested_answer": "kubectl get all -A",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "c76cef13",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for EndpointSlice?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "discovery.k8s.io/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

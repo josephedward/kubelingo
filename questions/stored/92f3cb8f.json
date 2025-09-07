@@ -1,0 +1,10 @@
+{
+  "id": "92f3cb8f",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you search forward for 'pattern'?",
+  "source": "https://vi.stackexchange.com/questions/4372/how-to-search-forward-for-pattern-in-the-current-line-like-and-but-stop",
+  "suggested_answer": "/pattern",
+  "user_answer": "",
+  "ai_feedback": ""
+}

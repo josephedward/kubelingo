@@ -1,0 +1,10 @@
+{
+  "id": "4476168e",
+  "topic": "security_basics",
+  "type": "declarative",
+  "question": "Container securityContext dropping all capabilities and readOnlyRootFilesystem.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/security-context/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  containers:\n  - name: busybox\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 3600\n    securityContext:\n      capabilities:\n        drop:\n        - ALL\n      readOnlyRootFilesystem: true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "0a5f66e5",
+  "topic": "security_basics",
+  "type": "declarative",
+  "question": "Create a pod manifest that runs a container with user ID 1000 and has a read-only root filesystem.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/security-context/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: secure-pod\nspec:\n  containers:\n  - command:\n    - sleep\n    - '3600'\n    image: busybox\n    name: main\n    securityContext:\n      readOnlyRootFilesystem: true\n      runAsUser: 1000",
+  "user_answer": "",
+  "ai_feedback": ""
+}

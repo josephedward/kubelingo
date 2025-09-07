@@ -1,0 +1,10 @@
+{
+  "id": "436d6eae",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Delete resources from a file, stdin, or by selectors.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_delete/",
+  "suggested_answer": "kubectl delete",
+  "user_answer": "",
+  "ai_feedback": ""
+}

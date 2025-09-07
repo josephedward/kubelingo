@@ -1,0 +1,10 @@
+{
+  "id": "fc14fa89",
+  "topic": "namespaces_contexts",
+  "type": "declarative",
+  "question": "Create a manifest for a Pod named 'pod-in-ns' with image 'nginx' in the 'development' namespace.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: pod-in-ns\n  namespace: development\nspec:\n  containers:\n  - name: nginx\n    image: nginx",
+  "user_answer": "",
+  "ai_feedback": ""
+}

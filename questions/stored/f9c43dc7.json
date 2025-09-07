@@ -1,0 +1,10 @@
+{
+  "id": "f9c43dc7",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is Namespace a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "df03f771",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "Uninstall the Helm release `internal-issue-report-apiv1` in the mercury namespace.",
+  "source": "https://stackoverflow.com/questions/74050419/helm-release-stuck-in-uninstalling-state",
+  "suggested_answer": "helm -n mercury uninstall internal-issue-report-apiv1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

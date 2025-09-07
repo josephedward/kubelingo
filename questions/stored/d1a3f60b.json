@@ -1,0 +1,10 @@
+{
+  "id": "d1a3f60b",
+  "topic": "pod_design_patterns",
+  "type": "imperative",
+  "question": "Delete pod busybox.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=cat%20pod.json%20,JSON%20%C4%91%C6%B0%E1%BB%A3c%20truy%E1%BB%81n%20v%C3%A0o%20std",
+  "suggested_answer": "kubectl delete pod busybox",
+  "user_answer": "",
+  "ai_feedback": ""
+}

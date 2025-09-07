@@ -1,0 +1,10 @@
+{
+  "id": "99253c41",
+  "topic": "probes_health",
+  "type": "declarative",
+  "question": "Pod manifest with readiness exec probe checking /tmp/ready exists.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  containers:\n  - name: busybox\n    image: busybox\n    command:\n    - sh\n    - -c\n    - touch /tmp/ready; sleep 3600\n    readinessProbe:\n      exec:\n        command:\n        - sh\n        - -c\n        - test -f /tmp/ready",
+  "user_answer": "",
+  "ai_feedback": ""
+}

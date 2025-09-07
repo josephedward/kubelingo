@@ -1,0 +1,10 @@
+{
+  "id": "184a2783",
+  "topic": "pod_design_patterns",
+  "type": "declarative",
+  "question": "Pod manifest with a sidecar that tails a shared log file.",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app-with-sidecar\nspec:\n  containers:\n  - command:\n    - sh\n    - -c\n    - while true; do date >> /var/log/app/app.log; sleep 2; done\n    image: busybox\n    name: app\n    volumeMounts:\n    - mountPath: /var/log/app\n      name: logs\n  - command:\n    - sh\n    - -c\n    - tail -n+1 -F /var/log/app/app.log\n    image: busybox\n    name: log-tailer\n    volumeMounts:\n    - mountPath: /var/log/app\n      name: logs\n  volumes:\n  - emptyDir: {}\n    name: logs",
+  "user_answer": "",
+  "ai_feedback": ""
+}

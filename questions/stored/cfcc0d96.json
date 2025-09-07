@@ -1,0 +1,10 @@
+{
+  "id": "cfcc0d96",
+  "topic": "service_accounts_in_apps",
+  "type": "declarative",
+  "question": "Create a manifest for a Pod that uses the service account 'app-sa'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: sa-pod\nspec:\n  containers:\n  - command:\n    - sleep\n    - '3600'\n    image: busybox\n    name: main\n  serviceAccountName: app-sa",
+  "user_answer": "",
+  "ai_feedback": ""
+}

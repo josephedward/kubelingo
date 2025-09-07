@@ -1,0 +1,10 @@
+{
+  "id": "39d11600",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What command downloads the `wordpress` chart from the `bitnami` repository without installing it?",
+  "source": "https://devopsvoyager.hashnode.dev/fetching-helm-charts-with-helm-fetch-command",
+  "suggested_answer": "helm pull bitnami/wordpress",
+  "user_answer": "",
+  "ai_feedback": ""
+}

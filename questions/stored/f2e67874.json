@@ -1,0 +1,10 @@
+{
+  "id": "f2e67874",
+  "topic": "configmap",
+  "type": "declarative",
+  "question": "Create a ConfigMap named 'app-config' with data key 'DB_HOST' set to 'db.example.com'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create configmap app-config --from-literal=DB_HOST=db.example.com\n\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  DB_HOST: db.example.com",
+  "user_answer": "",
+  "ai_feedback": ""
+}

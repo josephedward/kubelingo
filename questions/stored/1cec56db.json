@@ -1,0 +1,10 @@
+{
+  "id": "1cec56db",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you exit insert mode?",
+  "source": "https://vi.stackexchange.com/questions/300/other-ways-to-exit-insert-mode-besides-escape",
+  "suggested_answer": "<Esc>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

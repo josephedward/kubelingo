@@ -1,0 +1,10 @@
+{
+  "id": "b1836d5f",
+  "topic": "api_discovery_docs",
+  "type": "imperative",
+  "question": "Display documentation for the 'Pod' resource, including its fields.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+  "suggested_answer": "kubectl explain pod",
+  "user_answer": "",
+  "ai_feedback": ""
+}

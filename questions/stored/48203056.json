@@ -1,0 +1,10 @@
+{
+  "id": "48203056",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Display resource usage of pods or nodes.",
+  "source": "https://stackoverflow.com/questions/54531646/checking-kubernetes-pod-cpu-and-memory-utilization",
+  "suggested_answer": "kubectl top",
+  "user_answer": "",
+  "ai_feedback": ""
+}

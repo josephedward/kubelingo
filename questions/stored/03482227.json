@@ -1,0 +1,10 @@
+{
+  "id": "03482227",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Create a resource quota for a namespace, limiting it to 10 pods.",
+  "source": "https://kubernetes.io/docs/concepts/policy/resource-quotas/#:~:text=kubectl%20create%20namespace%20myspace",
+  "suggested_answer": "kubectl create quota ns-quota --hard=pods=10 -n development",
+  "user_answer": "",
+  "ai_feedback": ""
+}

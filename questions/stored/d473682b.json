@@ -1,0 +1,10 @@
+{
+  "id": "d473682b",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for CSIStorageCapacity?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "storage.k8s.io/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

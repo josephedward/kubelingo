@@ -1,0 +1,10 @@
+{
+  "id": "7956950f",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Get the output of 'date' from a specific container in a pod.",
+  "source": "https://stackoverflow.com/questions/45851945/how-to-get-the-status-of-a-particular-pod-or-container-kubectl-get-pods-using",
+  "suggested_answer": "kubectl exec <pod-name> -c <container-name> -- date",
+  "user_answer": "",
+  "ai_feedback": ""
+}

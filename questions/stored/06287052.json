@@ -1,0 +1,10 @@
+{
+  "id": "06287052",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Switch your current context to use the 'development' namespace.",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "kubectl config set-context --current --namespace=development",
+  "user_answer": "",
+  "ai_feedback": ""
+}

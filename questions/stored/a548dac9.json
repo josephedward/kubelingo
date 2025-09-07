@@ -1,0 +1,10 @@
+{
+  "id": "a548dac9",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Invoke a kubectl plugin named 'hello'.",
+  "source": "https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/",
+  "suggested_answer": "kubectl hello",
+  "user_answer": "",
+  "ai_feedback": ""
+}

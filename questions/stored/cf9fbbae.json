@@ -1,0 +1,10 @@
+{
+  "id": "cf9fbbae",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Edit a resource on the server.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_edit/",
+  "suggested_answer": "kubectl edit",
+  "user_answer": "",
+  "ai_feedback": ""
+}

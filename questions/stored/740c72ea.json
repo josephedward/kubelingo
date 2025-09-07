@@ -1,0 +1,10 @@
+{
+  "id": "740c72ea",
+  "topic": "app_configuration",
+  "type": "declarative",
+  "question": "The string 'ZW5jb2RlZF9zdHJpbmc=' is a base64 encoded Secret value. Decode it.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=1,value%20pair%20in%20a%20ConfigMap",
+  "suggested_answer": "echo -n 'ZW5jb2RlZF9zdHJpbmc=' | base64 --decode",
+  "user_answer": "",
+  "ai_feedback": ""
+}

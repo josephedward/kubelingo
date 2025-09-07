@@ -1,0 +1,10 @@
+{
+  "id": "bb063361",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Delete all pods and services with a specific label.",
+  "source": "https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces",
+  "suggested_answer": "kubectl delete pods,services -l <label-key>=<label-value>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

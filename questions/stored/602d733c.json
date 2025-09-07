@@ -1,0 +1,10 @@
+{
+  "id": "602d733c",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Set the current context's default namespace to 'dev'.",
+  "source": "/search?num=3",
+  "suggested_answer": "kubectl config set-context --current --namespace=dev",
+  "user_answer": "",
+  "ai_feedback": ""
+}

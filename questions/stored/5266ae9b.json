@@ -1,0 +1,10 @@
+{
+  "id": "5266ae9b",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you jump to a matching bracket?",
+  "source": "https://stackoverflow.com/questions/743053/how-to-make-the-jump-to-matching-bracket-key-ignore-commented-out-code-in-vi",
+  "suggested_answer": "%",
+  "user_answer": "",
+  "ai_feedback": ""
+}

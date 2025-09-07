@@ -1,0 +1,10 @@
+{
+  "id": "5679ea56",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Output shell completion code for the specified shell (bash or zsh).",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl completion",
+  "user_answer": "",
+  "ai_feedback": ""
+}

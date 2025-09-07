@@ -1,0 +1,10 @@
+{
+  "id": "465bf51b",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Check the rollout status of a deployment named 'frontend'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=You%20can%20check%20if%20a,returns%20a%20zero%20exit%20code",
+  "suggested_answer": "kubectl rollout status deployment/frontend",
+  "user_answer": "",
+  "ai_feedback": ""
+}

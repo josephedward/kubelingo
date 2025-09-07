@@ -1,0 +1,10 @@
+{
+  "id": "7662e971",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Apply a configuration change to a resource from a file or stdin.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl apply",
+  "user_answer": "",
+  "ai_feedback": ""
+}

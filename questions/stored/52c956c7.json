@@ -1,0 +1,10 @@
+{
+  "id": "52c956c7",
+  "topic": "scheduling_hints",
+  "type": "declarative",
+  "question": "Pod manifest tolerating taint 'dedicated=ml:NoSchedule'.",
+  "source": "https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  containers:\n  - name: busybox\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 3600\n  tolerations:\n  - key: dedicated\n    operator: Equal\n    value: ml\n    effect: NoSchedule",
+  "user_answer": "",
+  "ai_feedback": ""
+}

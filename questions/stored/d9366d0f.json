@@ -1,0 +1,10 @@
+{
+  "id": "d9366d0f",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Scale the 'webapp' deployment to 5 replicas.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_scale/",
+  "suggested_answer": "kubectl scale deployment webapp --replicas=5",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "9efcafca",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Force delete a pod named 'webserver-sat-003' in the 'saturn' namespace. The deletion should be immediate, without waiting for a grace period.",
+  "source": "https://stackoverflow.com/questions/50336665/how-do-i-force-delete-kubernetes-pods",
+  "suggested_answer": "kubectl -n saturn delete pod webserver-sat-003 --force --grace-period=0",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "2fd467c3",
+  "topic": "core_workloads",
+  "type": "declarative",
+  "question": "Create a manifest for a Pod named 'simple-pod'. The pod should use the 'nginx:1.21-alpine' image and have a label 'app=webserver'.",
+  "source": "https://medium.com/@janita.gw13/how-to-deploy-kubernetes-pods-with-a-custom-html-on-a-nginx-web-server-cafdd9e965f",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  labels:\n    app: webserver\n  name: simple-pod\nspec:\n  containers:\n  - image: nginx:1.21-alpine\n    name: nginx-container",
+  "user_answer": "",
+  "ai_feedback": ""
+}

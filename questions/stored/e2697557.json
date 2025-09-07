@@ -1,0 +1,10 @@
+{
+  "id": "e2697557",
+  "topic": "imperative_vs_declarative",
+  "type": "imperative",
+  "question": "Use kubectl to edit deployment frontend.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#:~:text=3,the%20Deployment",
+  "suggested_answer": "kubectl edit deployment frontend",
+  "user_answer": "",
+  "ai_feedback": ""
+}

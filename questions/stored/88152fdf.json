@@ -1,0 +1,10 @@
+{
+  "id": "88152fdf",
+  "topic": "pvc",
+  "type": "declarative",
+  "question": "Create a PersistentVolumeClaim named 'data-pvc' that requests 5Gi of storage with access mode ReadWriteOnce. Use the default storage class.",
+  "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+  "suggested_answer": "kubectl create pvc data-pvc --storage=5Gi --access-mode=ReadWriteOnce\n\napiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: data-pvc\nspec:\n  accessModes:\n  - ReadWriteOnce\n  resources:\n    requests:\n      storage: 5Gi",
+  "user_answer": "",
+  "ai_feedback": ""
+}

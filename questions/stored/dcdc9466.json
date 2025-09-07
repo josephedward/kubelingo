@@ -1,0 +1,10 @@
+{
+  "id": "dcdc9466",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What command is used to list configured Helm chart repositories?",
+  "source": "https://helm.sh/docs/helm/helm_repo/",
+  "suggested_answer": "helm repo list",
+  "user_answer": "",
+  "ai_feedback": ""
+}

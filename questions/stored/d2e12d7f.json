@@ -1,0 +1,10 @@
+{
+  "id": "d2e12d7f",
+  "topic": "jobs_cronjobs",
+  "type": "imperative",
+  "question": "Command to generate a CronJob hello that echoes 'hi' every 5 minutes, output YAML.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/",
+  "suggested_answer": "kubectl create cronjob hello --image=busybox --schedule='*/5 * * * *' -- /bin/sh -c 'echo hi' --dry-run=client -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

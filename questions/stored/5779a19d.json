@@ -1,0 +1,10 @@
+{
+  "id": "5779a19d",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "Set the KUBECONFIG environment variable to /home/user/config.",
+  "source": "https://kubernetes.io/pt-br/docs/reference/kubectl/cheatsheet/#:~:text=Define%20com%20qual%20cluster%20Kubernetes,detalhadas%20do%20arquivo%20de%20configura%C3%A7%C3%A3o",
+  "suggested_answer": "export KUBECONFIG=/home/user/config",
+  "user_answer": "",
+  "ai_feedback": ""
+}

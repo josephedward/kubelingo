@@ -1,0 +1,10 @@
+{
+  "id": "fee62d3d",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "Install the Bitnami Apache chart as release `internal-issue-report-apache` in namespace mercury with 2 replicas and image debug enabled.",
+  "source": "https://ettoreciarcia.com/killersh-simulations/CKAD.html",
+  "suggested_answer": "helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2 --set image.debug=true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

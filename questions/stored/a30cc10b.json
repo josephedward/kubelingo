@@ -1,0 +1,10 @@
+{
+  "id": "a30cc10b",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Display the details of a pod.",
+  "source": "https://kubernetes.io/docs/tutorials/kubernetes-basics/explore/explore-intro/",
+  "suggested_answer": "kubectl describe pod <pod-name>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

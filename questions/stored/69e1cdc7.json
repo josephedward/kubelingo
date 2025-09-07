@@ -1,0 +1,10 @@
+{
+  "id": "69e1cdc7",
+  "topic": "logging",
+  "type": "declarative",
+  "question": "Which component is typically deployed as a DaemonSet for cluster-level logging?",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging",
+  "suggested_answer": "Node logging agent (e.g., Fluentd, Filebeat)\n\nCluster must use a sidecar container pattern\n\nApplication directly pushes to logging backend",
+  "user_answer": "",
+  "ai_feedback": ""
+}

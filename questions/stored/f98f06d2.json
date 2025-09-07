@@ -1,0 +1,10 @@
+{
+  "id": "f98f06d2",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Inspect authorization.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl auth",
+  "user_answer": "",
+  "ai_feedback": ""
+}

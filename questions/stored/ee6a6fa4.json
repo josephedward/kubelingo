@@ -1,0 +1,10 @@
+{
+  "id": "ee6a6fa4",
+  "topic": "persistence",
+  "type": "declarative",
+  "question": "Create a Pod named `cache-user` with a `busybox` container. The pod should have an `emptyDir` volume named `cache` mounted at `/cache`.",
+  "source": "https://kubernetes.io/docs/concepts/storage/volumes/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: cache-user\nspec:\n  containers:\n  - image: busybox\n    name: cache-user\n    volumeMounts:\n    - mountPath: /cache\n      name: cache\n  volumes:\n  - name: cache\n    emptyDir: {}",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "cae1f52a",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is MutatingWebhookConfiguration a namespaced resource?",
+  "source": "https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

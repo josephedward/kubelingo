@@ -1,0 +1,10 @@
+{
+  "id": "8cac3545",
+  "topic": "persistence",
+  "type": "declarative",
+  "question": "Create a Pod `my-pod-with-volume` with a `busybox` container running `sleep 3600`. Mount an `emptyDir` volume named `workdir` at `/app/data`.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-volume-storage/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod-with-volume\nspec:\n  containers:\n  - name: my-container\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 3600\n    volumeMounts:\n    - name: workdir\n      mountPath: /app/data\n  volumes:\n  - name: workdir\n    emptyDir: {}",
+  "user_answer": "",
+  "ai_feedback": ""
+}

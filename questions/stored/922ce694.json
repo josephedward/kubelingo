@@ -1,0 +1,10 @@
+{
+  "id": "922ce694",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is CSIStorageCapacity a namespaced resource?",
+  "source": "/search?num=3",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

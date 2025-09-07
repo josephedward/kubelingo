@@ -1,0 +1,10 @@
+{
+  "id": "8a1fd12f",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Update one or more fields of a resource.",
+  "source": "https://stackoverflow.com/questions/40142242/updating-the-deployment-need-to-change-multiple-values",
+  "suggested_answer": "kubectl patch",
+  "user_answer": "",
+  "ai_feedback": ""
+}

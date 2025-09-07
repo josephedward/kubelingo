@@ -1,0 +1,10 @@
+{
+  "id": "c5492365",
+  "topic": "service_accounts_in_apps",
+  "type": "imperative",
+  "question": "List all ServiceAccounts.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service",
+  "suggested_answer": "kubectl get serviceaccounts",
+  "user_answer": "",
+  "ai_feedback": ""
+}

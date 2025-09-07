@@ -1,0 +1,10 @@
+{
+  "id": "00b1fe3b",
+  "topic": "commands_args_env",
+  "type": "declarative",
+  "question": "Create a Pod manifest named `args-pod` with a container named `busybox-container` using the `busybox` image. Override the container's command to be `[/bin/sh, -c]` and its arguments to be `[echo Hello world]` . The Pod should have a `restartPolicy` of `Never`.",
+  "source": "https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: args-pod\nspec:\n  containers:\n  - args:\n    - echo Hello world\n    command:\n    - /bin/sh\n    - -c\n    image: busybox\n    name: busybox-container\n  restartPolicy: Never",
+  "user_answer": "",
+  "ai_feedback": ""
+}

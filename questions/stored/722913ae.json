@@ -1,0 +1,10 @@
+{
+  "id": "722913ae",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "List all namespaces, and then delete the 'development' namespace.",
+  "source": "https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces",
+  "suggested_answer": "kubectl get namespaces && kubectl delete namespace development",
+  "user_answer": "",
+  "ai_feedback": ""
+}

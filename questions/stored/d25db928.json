@@ -1,0 +1,10 @@
+{
+  "id": "d25db928",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you paste after the cursor?",
+  "source": "https://stackoverflow.com/questions/9383709/how-to-paste-in-the-line-where-the-cursor-is",
+  "suggested_answer": "p",
+  "user_answer": "",
+  "ai_feedback": ""
+}

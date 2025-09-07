@@ -1,0 +1,10 @@
+{
+  "id": "b3700f9d",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "Search the Bitnami repository for all available nginx chart versions.",
+  "source": "https://stackoverflow.com/questions/55973901/how-can-i-list-all-available-charts-under-a-helm-repo",
+  "suggested_answer": "helm search repo bitnami/nginx --versions",
+  "user_answer": "",
+  "ai_feedback": ""
+}

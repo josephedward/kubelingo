@@ -1,0 +1,10 @@
+{
+  "id": "fcf5835c",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "In namespace `mercury`, install a new Helm release named `internal-issue-report-apache` from the `bitnami/apache` chart with 2 replicas.",
+  "source": "https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/",
+  "suggested_answer": "helm install internal-issue-report-apache bitnami/apache --namespace mercury --set replicaCount=2",
+  "user_answer": "",
+  "ai_feedback": ""
+}

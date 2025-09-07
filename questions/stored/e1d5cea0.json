@@ -1,0 +1,10 @@
+{
+  "id": "e1d5cea0",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for CronJob?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "batch/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

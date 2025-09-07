@@ -1,0 +1,10 @@
+{
+  "id": "35c695fd",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "Create a ConfigMap named 'game-config' from a file located at '/configs/game.properties'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create cm game-config --from-file=/configs/game.properties",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "cb4b3a44",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Provides utilities for interacting with plugins.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl plugin",
+  "user_answer": "",
+  "ai_feedback": ""
+}

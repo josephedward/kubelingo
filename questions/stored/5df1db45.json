@@ -1,0 +1,10 @@
+{
+  "id": "5df1db45",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you copy the current line (yank)?",
+  "source": "https://stackoverflow.com/questions/7774015/how-to-yank-the-text-on-a-line-and-paste-it-inline-in-vim",
+  "suggested_answer": "yy",
+  "user_answer": "",
+  "ai_feedback": ""
+}

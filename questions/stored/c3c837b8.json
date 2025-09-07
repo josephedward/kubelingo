@@ -1,0 +1,10 @@
+{
+  "id": "c3c837b8",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "Create an alias 'k' for 'kubectl'.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=You%20can%20also%20use%20a,that%20also%20works%20with%20completion",
+  "suggested_answer": "alias k=kubectl",
+  "user_answer": "",
+  "ai_feedback": ""
+}

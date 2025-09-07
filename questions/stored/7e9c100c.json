@@ -1,0 +1,10 @@
+{
+  "id": "7e9c100c",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you print the contents of `values.yaml` for the `bitnami/node` chart?",
+  "source": "https://docs.bitnami.com/kubernetes/faq/administration/understand-helm-chart/",
+  "suggested_answer": "helm show values bitnami/node",
+  "user_answer": "",
+  "ai_feedback": ""
+}

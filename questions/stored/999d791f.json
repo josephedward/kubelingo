@@ -1,0 +1,10 @@
+{
+  "id": "999d791f",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Build a set of Kustomize resources.",
+  "source": "https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/",
+  "suggested_answer": "kubectl kustomize",
+  "user_answer": "",
+  "ai_feedback": ""
+}

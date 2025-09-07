@@ -1,0 +1,10 @@
+{
+  "id": "2a66d4ba",
+  "topic": "service_accounts_in_apps",
+  "type": "imperative",
+  "question": "Command to generate a ServiceAccount app-sa (output YAML) without creating the resource.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+  "suggested_answer": "kubectl create serviceaccount app-sa --dry-run=client -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "fa897e08",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you delete the current line?",
+  "source": "https://stackoverflow.com/questions/8124315/how-i-can-delete-in-vim-all-text-from-current-line-to-end-of-file",
+  "suggested_answer": "dd",
+  "user_answer": "",
+  "ai_feedback": ""
+}

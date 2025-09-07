@@ -1,0 +1,10 @@
+{
+  "id": "aedda6f7",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is Endpoints a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

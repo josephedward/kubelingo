@@ -1,0 +1,10 @@
+{
+  "id": "16105fd7",
+  "topic": "security_basics",
+  "type": "imperative",
+  "question": "Describe secret db-secret.",
+  "source": "https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-config-file/#:~:text=Managing%20Secrets%20using%20Configuration%20File,yaml",
+  "suggested_answer": "kubectl describe secret db-secret",
+  "user_answer": "",
+  "ai_feedback": ""
+}

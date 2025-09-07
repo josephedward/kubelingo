@@ -1,0 +1,10 @@
+{
+  "id": "75a4da22",
+  "topic": "image_registry_use",
+  "type": "declarative",
+  "question": "Create a pod named 'private-pod' that uses an image 'my-registry/my-app:1.0' from a private registry. The pod should use an image pull secret named 'reg-secret'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: private-pod\nspec:\n  containers:\n  - image: my-registry/my-app:1.0\n    name: main\n  imagePullSecrets:\n  - name: reg-secret",
+  "user_answer": "",
+  "ai_feedback": ""
+}

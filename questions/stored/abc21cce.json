@@ -1,0 +1,10 @@
+{
+  "id": "abc21cce",
+  "topic": "service",
+  "type": "declarative",
+  "question": "Create a Service of type NodePort named 'cache-svc' that exposes port 6379 targeting port 80 for Pods labeled app=cache.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+  "suggested_answer": "kubectl expose deployment cache --name=cache-svc --port=6379 --target-port=80 --type=NodePort\n\napiVersion: v1\nkind: Service\nmetadata:\n  name: cache-svc\nspec:\n  type: NodePort\n  selector:\n    app: cache\n  ports:\n  - port: 6379\n    targetPort: 80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

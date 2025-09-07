@@ -1,0 +1,10 @@
+{
+  "id": "657540f5",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you add the Bitnami chart repository from `https://charts.bitnami.com/bitnami` and name it `bitnami`?",
+  "source": "https://charts.bitnami.com/",
+  "suggested_answer": "helm repo add bitnami https://charts.bitnami.com/bitnami",
+  "user_answer": "",
+  "ai_feedback": ""
+}

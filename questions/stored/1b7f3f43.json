@@ -1,0 +1,10 @@
+{
+  "id": "1b7f3f43",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the short name for PersistentVolumeClaim?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "pvc",
+  "user_answer": "",
+  "ai_feedback": ""
+}

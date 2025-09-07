@@ -1,0 +1,10 @@
+{
+  "id": "e52b6163",
+  "topic": "deployment",
+  "type": "declarative",
+  "question": "Create a Deployment named 'worker-deploy' with 5 replicas of the image 'redis:6.2'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+  "suggested_answer": "kubectl create deployment worker-deploy --image=redis:6.2 --replicas=5\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: worker-deploy\nspec:\n  replicas: 5\n  selector:\n    matchLabels:\n      app: worker-deploy\n  template:\n    metadata:\n      labels:\n        app: worker-deploy\n    spec:\n      containers:\n      - name: worker-deploy\n        image: redis:6.2",
+  "user_answer": "",
+  "ai_feedback": ""
+}

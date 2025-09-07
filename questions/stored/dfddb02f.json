@@ -1,0 +1,10 @@
+{
+  "id": "dfddb02f",
+  "topic": "resource_management",
+  "type": "imperative",
+  "question": "Generate the manifest for a pod named 'resource-pod' with image 'nginx'. Set CPU requests to '100m' and memory requests to '256Mi'. Set CPU limits to '200m' and memory limits to '512Mi'.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_set/kubectl_set_resources/",
+  "suggested_answer": "kubectl run resource-pod --image=nginx --requests=cpu=100m,memory=256Mi --limits=cpu=200m,memory=512Mi --dry-run=client -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

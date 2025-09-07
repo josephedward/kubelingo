@@ -1,0 +1,10 @@
+{
+  "id": "643177d5",
+  "topic": "logging",
+  "type": "declarative",
+  "question": "Create a pod manifest that writes logs to files and streams them via sidecar containers",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: logging-app\nspec:\n  containers:\n  - name: app\n    image: busybox:1.28\n    args:\n    - /bin/sh\n    - -c\n    - \"i=0;\\nwhile true;\\ndo\\n  echo \\\"$i: $(date)\\\" >> /var/log/app.log;\\n  i=$((i+1));\\n\\\n      \\  sleep 1;\\ndone\\n\"\n    volumeMounts:\n    - name: varlog\n      mountPath: /var/log\n  - name: log-tailer\n    image: busybox:1.28\n    args:\n    - /bin/sh\n    - -c\n    - tail -F /var/log/app.log\n    volumeMounts:\n    - name: varlog\n      mountPath: /var/log\nvolumes:\n- name: varlog\n  emptyDir: {}",
+  "user_answer": "",
+  "ai_feedback": ""
+}

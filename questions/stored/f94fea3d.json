@@ -1,0 +1,10 @@
+{
+  "id": "f94fea3d",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the short name for Node?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "no",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "75d46dfa",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is SelfSubjectRulesReview a namespaced resource?",
+  "source": "https://kubernetes.io/docs/reference/access-authn-authz/authorization/",
+  "suggested_answer": "false",
+  "user_answer": "",
+  "ai_feedback": ""
+}

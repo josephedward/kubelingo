@@ -1,0 +1,10 @@
+{
+  "id": "c01ae14f",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Display endpoint information about the master and services in the cluster.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl cluster-info",
+  "user_answer": "",
+  "ai_feedback": ""
+}

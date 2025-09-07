@@ -1,0 +1,10 @@
+{
+  "id": "c8f53034",
+  "topic": "service",
+  "type": "declarative",
+  "question": "Create a Service of type NodePort named 'web-svc' that exposes port 6379 targeting port 80 for Pods labeled app=web.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+  "suggested_answer": "kubectl expose deployment web --name=web-svc --port=6379 --target-port=80 --type=NodePort\n\napiVersion: v1\nkind: Service\nmetadata:\n  name: web-svc\nspec:\n  type: NodePort\n  selector:\n    app: web\n  ports:\n  - port: 6379\n    targetPort: 80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

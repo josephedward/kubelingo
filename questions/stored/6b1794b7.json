@@ -1,0 +1,10 @@
+{
+  "id": "6b1794b7",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "Upgrade the Helm release `internal-issue-report-apiv2` in namespace mercury to the latest nginx chart.",
+  "source": "https://quizlet.com/nz/866124440/ckad-exam-questions-answers-helm-flash-cards/",
+  "suggested_answer": "helm -n mercury upgrade internal-issue-report-apiv2 bitnami/nginx",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "ae38846f",
+  "topic": "deployment",
+  "type": "declarative",
+  "question": "Create a Deployment named 'api-server-deploy' with 1 replicas of the image 'nginx:1.20'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+  "suggested_answer": "kubectl create deployment api-server-deploy --image=nginx:1.20 --replicas=1\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api-server-deploy\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: api-server-deploy\n  template:\n    metadata:\n      labels:\n        app: api-server-deploy\n    spec:\n      containers:\n      - name: api-server-deploy\n        image: nginx:1.20",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "37d5c02b",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you add the Prometheus community Helm repository from `https://prometheus-community.github.io/helm-charts` and name it `prometheus-community`?",
+  "source": "https://github.com/prometheus-community/helm-charts",
+  "suggested_answer": "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts",
+  "user_answer": "",
+  "ai_feedback": ""
+}

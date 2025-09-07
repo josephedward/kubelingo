@@ -1,0 +1,10 @@
+{
+  "id": "e7e1dcfb",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Display the details of a node, ensuring to use the full 'kubectl' command and the standard placeholder for the node name.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/",
+  "suggested_answer": "kubectl describe nodes <node-name>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

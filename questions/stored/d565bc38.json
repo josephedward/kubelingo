@@ -1,0 +1,10 @@
+{
+  "id": "d565bc38",
+  "topic": "networking_utilities",
+  "type": "imperative",
+  "question": "Command to port-forward Service web port 80 to local 8080.",
+  "source": "https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/",
+  "suggested_answer": "kubectl port-forward svc/web 8080:80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

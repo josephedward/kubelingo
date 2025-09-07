@@ -1,0 +1,10 @@
+{
+  "id": "16d9a31c",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Create a temporary, interactive pod named 'my-shell' using the 'ubuntu' image. The pod should automatically delete upon exit.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,restart%3DNever",
+  "suggested_answer": "kubectl run my-shell --image=ubuntu -i -t --rm --restart=Never",
+  "user_answer": "",
+  "ai_feedback": ""
+}

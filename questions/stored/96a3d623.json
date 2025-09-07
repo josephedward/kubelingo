@@ -1,0 +1,10 @@
+{
+  "id": "96a3d623",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Execute a command against a container in a pod.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl exec",
+  "user_answer": "",
+  "ai_feedback": ""
+}

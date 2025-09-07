@@ -1,0 +1,10 @@
+{
+  "id": "af4303a3",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you move to the previous word?",
+  "source": "https://stackoverflow.com/questions/5125270/in-vim-vi-how-do-you-move-the-cursor-to-the-end-of-the-previous-word",
+  "suggested_answer": "b",
+  "user_answer": "",
+  "ai_feedback": ""
+}

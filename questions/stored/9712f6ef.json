@@ -1,0 +1,10 @@
+{
+  "id": "9712f6ef",
+  "topic": "service_accounts_in_apps",
+  "type": "imperative",
+  "question": "Describe serviceaccount default-sa.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=,you%20want%20to%20assign%20to",
+  "suggested_answer": "kubectl describe serviceaccount default-sa",
+  "user_answer": "",
+  "ai_feedback": ""
+}

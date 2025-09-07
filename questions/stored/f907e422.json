@@ -1,0 +1,10 @@
+{
+  "id": "f907e422",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "List all replication controllers and services together.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl get rc,services",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "51f398e2",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Get the list of all Namespaces in the cluster and save it to a file.",
+  "source": "https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+  "suggested_answer": "kubectl get namespaces > /path/to/namespaces.txt",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "646caecc",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Print the status phase of pod 'pod1' in the default namespace using a jsonpath query. You must use the `-o` flag for output formatting.",
+  "source": "https://stackoverflow.com/questions/36211618/how-to-parse-json-format-output-of-kubectl-get-pods-using-jsonpath",
+  "suggested_answer": "kubectl -n default get pod pod1 -o jsonpath=\"{.status.phase}\"",
+  "user_answer": "",
+  "ai_feedback": ""
+}

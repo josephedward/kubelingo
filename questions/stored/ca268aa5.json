@@ -1,0 +1,10 @@
+{
+  "id": "ca268aa5",
+  "topic": "service_accounts_in_apps",
+  "type": "imperative",
+  "question": "Create a ServiceAccount named default-sa.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service",
+  "suggested_answer": "kubectl create serviceaccount default-sa",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "ff018dcf",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "List all pods in the 'kube-system' namespace.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20run%20nginx%20,in%20the%20namespace%20of%20mynamespace",
+  "suggested_answer": "kubectl get pods -n kube-system",
+  "user_answer": "",
+  "ai_feedback": ""
+}

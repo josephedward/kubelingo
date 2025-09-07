@@ -1,0 +1,10 @@
+{
+  "id": "6533a51e",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "Create a generic Secret named 'secret1' in namespace 'moon' with two keys: user=test and pass=pwd.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "kubectl -n moon create secret generic secret1 --from-literal=user=test --from-literal=pass=pwd",
+  "user_answer": "",
+  "ai_feedback": ""
+}

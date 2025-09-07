@@ -1,0 +1,10 @@
+{
+  "id": "72667680",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What command is used to update information from chart repositories?",
+  "source": "https://helm.sh/docs/helm/helm_repo/",
+  "suggested_answer": "helm repo update",
+  "user_answer": "",
+  "ai_feedback": ""
+}

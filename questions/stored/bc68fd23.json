@@ -1,0 +1,10 @@
+{
+  "id": "bc68fd23",
+  "topic": "logging",
+  "type": "declarative",
+  "question": "Where does kubelet store pod logs by default on Linux nodes?",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging",
+  "suggested_answer": "/var/log/pods\n\n/var/lib/docker/containers\n\n/opt/kubelet/logs",
+  "user_answer": "",
+  "ai_feedback": ""
+}

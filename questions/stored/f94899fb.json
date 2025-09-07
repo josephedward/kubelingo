@@ -1,0 +1,10 @@
+{
+  "id": "f94899fb",
+  "topic": "api_discovery_docs",
+  "type": "imperative",
+  "question": "Check the kubectl client and server versions.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,on%20the%20client%20and%20server",
+  "suggested_answer": "kubectl version",
+  "user_answer": "",
+  "ai_feedback": ""
+}

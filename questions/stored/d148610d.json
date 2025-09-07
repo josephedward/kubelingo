@@ -1,0 +1,10 @@
+{
+  "id": "d148610d",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "Delete a ConfigMap named 'app-config'.",
+  "source": "https://stackoverflow.com/questions/59300475/delete-a-configmap-itself-from-kubernetes",
+  "suggested_answer": "kubectl delete configmap app-config",
+  "user_answer": "",
+  "ai_feedback": ""
+}

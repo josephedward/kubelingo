@@ -1,0 +1,10 @@
+{
+  "id": "a849dbdf",
+  "topic": "pod",
+  "type": "declarative",
+  "question": "Create a Pod named 'cache-server' that runs a container with the image 'nginx:1.20'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+  "suggested_answer": "kubectl run cache-server --image=nginx:1.20\n\napiVersion: v1\nkind: Pod\nmetadata:\n  name: cache-server\nspec:\n  containers:\n  - name: cache-server\n    image: nginx:1.20",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "3e1df3b7",
+  "topic": "pod_design_patterns",
+  "type": "imperative",
+  "question": "Describe pod busybox.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=,pod)",
+  "suggested_answer": "kubectl describe pod busybox",
+  "user_answer": "",
+  "ai_feedback": ""
+}

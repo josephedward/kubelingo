@@ -1,0 +1,10 @@
+{
+  "id": "12e89f9e",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Modify kubeconfig files.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/",
+  "suggested_answer": "kubectl config",
+  "user_answer": "",
+  "ai_feedback": ""
+}

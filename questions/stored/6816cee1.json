@@ -1,0 +1,10 @@
+{
+  "id": "6816cee1",
+  "topic": "pod_design_patterns",
+  "type": "imperative",
+  "question": "List all pods.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/quick-reference/#:~:text=kubectl%20get%20pods%20,all%20pods%20in%20the%20namespace",
+  "suggested_answer": "kubectl get pods",
+  "user_answer": "",
+  "ai_feedback": ""
+}

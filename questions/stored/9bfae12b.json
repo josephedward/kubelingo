@@ -1,0 +1,10 @@
+{
+  "id": "9bfae12b",
+  "topic": "services",
+  "type": "imperative",
+  "question": "Delete service frontend-svc.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,port%3D8000",
+  "suggested_answer": "kubectl delete service frontend-svc",
+  "user_answer": "",
+  "ai_feedback": ""
+}

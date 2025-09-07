@@ -1,0 +1,10 @@
+{
+  "id": "f292a1ae",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "Is Secret a namespaced resource?",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "true",
+  "user_answer": "",
+  "ai_feedback": ""
+}

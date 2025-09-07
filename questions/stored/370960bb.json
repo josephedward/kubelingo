@@ -1,0 +1,10 @@
+{
+  "id": "370960bb",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Run a specified image on the cluster.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl run",
+  "user_answer": "",
+  "ai_feedback": ""
+}

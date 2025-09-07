@@ -1,0 +1,10 @@
+{
+  "id": "a346ab27",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "List all daemon sets.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl get ds",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "061a5709",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "Create a ConfigMap named 'app-config' with data items 'app.color=blue' and 'app.environment=dev'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create configmap app-config --from-literal=app.color=blue --from-literal=app.environment=dev",
+  "user_answer": "",
+  "ai_feedback": ""
+}

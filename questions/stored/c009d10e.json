@@ -1,0 +1,10 @@
+{
+  "id": "c009d10e",
+  "topic": "pod_design_patterns",
+  "type": "declarative",
+  "question": "Pod manifest with one initContainer that waits 5s before starting app container.",
+  "source": "/search?num=3",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: wait\nspec:\n  initContainers:\n  - name: init\n    image: busybox\n    command:\n    - sh\n    - -c\n    - sleep 5\n  containers:\n  - name: nginx\n    image: nginx",
+  "user_answer": "",
+  "ai_feedback": ""
+}

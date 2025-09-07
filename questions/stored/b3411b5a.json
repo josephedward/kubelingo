@@ -1,0 +1,10 @@
+{
+  "id": "b3411b5a",
+  "topic": "core_workloads",
+  "type": "declarative",
+  "question": "Edit the following Pod manifest to change the image tag to '1.22-alpine' and add the annotation 'owner=study-app'.",
+  "source": "https://stackoverflow.com/questions/40366192/kubernetes-how-to-make-deployment-to-update-image",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  annotations:\n    owner: study-app\n  labels:\n    app: webserver\n  name: simple-pod\nspec:\n  containers:\n  - image: nginx:1.22-alpine\n    name: nginx-container",
+  "user_answer": "",
+  "ai_feedback": ""
+}

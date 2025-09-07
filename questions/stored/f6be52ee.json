@@ -1,0 +1,10 @@
+{
+  "id": "f6be52ee",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you save a file without exiting?",
+  "source": "https://stackoverflow.com/questions/37304535/how-to-save-a-file-in-vim-editor-without-quit",
+  "suggested_answer": ":w",
+  "user_answer": "",
+  "ai_feedback": ""
+}

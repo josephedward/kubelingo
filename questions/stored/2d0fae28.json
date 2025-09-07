@@ -1,0 +1,10 @@
+{
+  "id": "2d0fae28",
+  "topic": "api_discovery_docs",
+  "type": "declarative",
+  "question": "Retrieve detailed information about the services running in the current namespace.",
+  "source": "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#get",
+  "suggested_answer": "",
+  "user_answer": "",
+  "ai_feedback": ""
+}

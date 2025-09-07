@@ -1,0 +1,10 @@
+{
+  "id": "8fca000e",
+  "topic": "scheduling_hints",
+  "type": "declarative",
+  "question": "Deployment manifest with nodeSelector disktype=ssd.",
+  "source": "/search?num=3",
+  "suggested_answer": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: app\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: scheduled\n  template:\n    metadata:\n      labels:\n        app: scheduled\n    spec:\n      nodeSelector:\n        disktype: ssd\n      containers:\n      - name: nginx\n        image: nginx",
+  "user_answer": "",
+  "ai_feedback": ""
+}

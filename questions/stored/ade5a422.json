@@ -1,0 +1,10 @@
+{
+  "id": "ade5a422",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the API version for RoleBinding?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "rbac.authorization.k8s.io/v1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

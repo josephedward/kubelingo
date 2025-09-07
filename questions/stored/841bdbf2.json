@@ -1,0 +1,10 @@
+{
+  "id": "841bdbf2",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "View the detailed contents of a ConfigMap named 'db-config'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#:~:text=Define%20container%20environment%20variables%20using,ConfigMap%20data",
+  "suggested_answer": "kubectl describe cm db-config",
+  "user_answer": "",
+  "ai_feedback": ""
+}

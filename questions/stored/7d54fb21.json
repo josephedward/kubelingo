@@ -1,0 +1,10 @@
+{
+  "id": "7d54fb21",
+  "topic": "secret",
+  "type": "declarative",
+  "question": "Create a Secret named 'app-secret' of type Generic with data key 'USERNAME' set to 'pass123'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "kubectl create secret generic app-secret --from-literal=USERNAME=pass123\n\napiVersion: v1\nkind: Secret\nmetadata:\n  name: app-secret\ntype: Opaque\nstringData:\n  USERNAME: pass123",
+  "user_answer": "",
+  "ai_feedback": ""
+}

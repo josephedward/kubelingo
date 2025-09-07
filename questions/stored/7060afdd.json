@@ -1,0 +1,10 @@
+{
+  "id": "7060afdd",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "View a diff of resources in pod.json.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl diff -f pod.json",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "39598cdc",
+  "topic": "pod_design_patterns",
+  "type": "declarative",
+  "question": "Create a Deployment named `test-init-container` in namespace `mars`. It should have one replica. The Pods should have an `nginx:1.17.3-alpine` container and an `initContainer` named `init-con` using `busybox:1.31.0`. An `emptyDir` volume `web-content` should be mounted to `/usr/share/nginx/html` in the nginx container and `/tmp/web-content` in the init container. The init container should run `echo 'check this out!' > /tmp/web-content/index.html`.",
+  "source": "https://wiki.aaronhatcher.com/kubernetes/CKAD/Labs/killer/17-initcontainer",
+  "suggested_answer": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test-init-container\n  namespace: mars\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: test-init-container\n  template:\n    metadata:\n      labels:\n        app: test-init-container\n    spec:\n      initContainers:\n      - name: init-con\n        image: busybox:1.31.0\n        command:\n        - sh\n        - -c\n        - echo 'check this out!' > /tmp/web-content/index.html\n        volumeMounts:\n        - name: web-content\n          mountPath: /tmp/web-content\n      containers:\n      - name: nginx\n        image: nginx:1.17.3-alpine\n        ports:\n        - containerPort: 80\n        volumeMounts:\n        - name: web-content\n          mountPath: /usr/share/nginx/html\n      volumes:\n      - name: web-content\n        emptyDir: {}",
+  "user_answer": "",
+  "ai_feedback": ""
+}

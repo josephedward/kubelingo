@@ -1,0 +1,10 @@
+{
+  "id": "20217f93",
+  "topic": "app_configuration",
+  "type": "declarative",
+  "question": "You are given a basic Pod manifest. Modify it to mount a Secret named 'secret2' as a volume at the path `/tmp/secret2`. The volume should be named 'secret-volume'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: mypod\nspec:\n  containers:\n  - image: nginx\n    name: my-container\n    volumeMounts:\n    - mountPath: /tmp/secret2\n      name: secret-volume\n  volumes:\n  - name: secret-volume\n    secret:\n      secretName: secret2",
+  "user_answer": "",
+  "ai_feedback": ""
+}

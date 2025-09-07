@@ -1,0 +1,10 @@
+{
+  "id": "6b5b8850",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Create a new pod named 'nginx' using the 'nginx:alpine' image.",
+  "source": "https://medium.com/@tanmaybhandge/deploying-a-custom-nginx-pod-on-kubernetes-using-github-repository-4976fb84510b",
+  "suggested_answer": "kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx.yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

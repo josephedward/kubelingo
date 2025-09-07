@@ -1,0 +1,10 @@
+{
+  "id": "2b7d39b7",
+  "topic": "observability_troubleshooting",
+  "type": "imperative",
+  "question": "If 'my-pod' has multiple containers ('app' and 'sidecar'), how do you view logs for the 'sidecar' container?",
+  "source": "https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/",
+  "suggested_answer": "kubectl logs my-pod -c sidecar",
+  "user_answer": "",
+  "ai_feedback": ""
+}

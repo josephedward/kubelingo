@@ -1,0 +1,10 @@
+{
+  "id": "3e979225",
+  "topic": "namespaces_contexts",
+  "type": "imperative",
+  "question": "Generate the YAML for a new namespace 'dev' without creating it.",
+  "source": "https://kubernetes.io/docs/tutorials/cluster-management/namespaces-walkthrough/",
+  "suggested_answer": "kubectl create namespace dev --dry-run=client -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

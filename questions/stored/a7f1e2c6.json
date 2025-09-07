@@ -1,0 +1,10 @@
+{
+  "id": "a7f1e2c6",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you save the file and quit?",
+  "source": "https://stackoverflow.com/questions/14613451/how-do-i-save-my-changes-and-exit-vim",
+  "suggested_answer": ":x",
+  "user_answer": "",
+  "ai_feedback": ""
+}

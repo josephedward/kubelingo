@@ -1,0 +1,10 @@
+{
+  "id": "98aeddee",
+  "topic": "deployment",
+  "type": "declarative",
+  "question": "Create a Deployment named 'worker-deploy' with 3 replicas of the image 'nginx:1.20'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+  "suggested_answer": "kubectl create deployment worker-deploy --image=nginx:1.20 --replicas=3\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: worker-deploy\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: worker-deploy\n  template:\n    metadata:\n      labels:\n        app: worker-deploy\n    spec:\n      containers:\n      - name: worker-deploy\n        image: nginx:1.20",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "9be61ad6",
+  "topic": "networking_utilities",
+  "type": "imperative",
+  "question": "Forward local port 8080 to port 80 on a pod named 'webapp-pod-123'.",
+  "source": "https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/",
+  "suggested_answer": "kubectl port-forward pod/webapp-pod-123 8080:80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

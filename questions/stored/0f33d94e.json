@@ -1,0 +1,10 @@
+{
+  "id": "0f33d94e",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "How do you install the Helm chart located in `./my-chart` with the release name `my-release`?",
+  "source": "https://helm.sh/docs/helm/helm_install/",
+  "suggested_answer": "helm install my-release ./my-chart",
+  "user_answer": "",
+  "ai_feedback": ""
+}

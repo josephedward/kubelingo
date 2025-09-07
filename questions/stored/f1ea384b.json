@@ -1,0 +1,10 @@
+{
+  "id": "f1ea384b",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the short name for Pod?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "po",
+  "user_answer": "",
+  "ai_feedback": ""
+}

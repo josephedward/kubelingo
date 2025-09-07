@@ -1,0 +1,10 @@
+{
+  "id": "8da0eccf",
+  "topic": "pod",
+  "type": "declarative",
+  "question": "Create a Pod named 'db-pod' that runs a container with the image 'mysql:5.7'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/pods/",
+  "suggested_answer": "kubectl run db-pod --image=mysql:5.7\n\napiVersion: v1\nkind: Pod\nmetadata:\n  name: db-pod\nspec:\n  containers:\n  - name: db-pod\n    image: mysql:5.7",
+  "user_answer": "",
+  "ai_feedback": ""
+}

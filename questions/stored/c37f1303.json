@@ -1,0 +1,10 @@
+{
+  "id": "c37f1303",
+  "topic": "resource_reference",
+  "type": "declarative",
+  "question": "What is the short name for PriorityClass?",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#resource-types",
+  "suggested_answer": "pc",
+  "user_answer": "",
+  "ai_feedback": ""
+}

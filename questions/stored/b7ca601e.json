@@ -1,0 +1,10 @@
+{
+  "id": "b7ca601e",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "What command is used to remove a Helm chart repository named `stable`?",
+  "source": "https://helm.sh/docs/helm/helm_repo/",
+  "suggested_answer": "helm repo remove stable",
+  "user_answer": "",
+  "ai_feedback": ""
+}

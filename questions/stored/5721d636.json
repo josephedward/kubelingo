@@ -1,0 +1,10 @@
+{
+  "id": "5721d636",
+  "topic": "security_basics",
+  "type": "imperative",
+  "question": "Delete secret db-secret.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng",
+  "suggested_answer": "kubectl delete secret db-secret",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "c29dd41b",
+  "topic": "jobs_cronjobs",
+  "type": "declarative",
+  "question": "Create a manifest for a Job named 'pi' that calculates pi to 2000 places using the 'perl' image. The container should run the command perl -Mbignum=bpi -wle 'print bpi(2000)', set restartPolicy to Never, and set backoffLimit to 4.",
+  "source": "/search?num=3",
+  "suggested_answer": "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: pi\nspec:\n  backoffLimit: 4\n  template:\n    spec:\n      containers:\n      - name: pi\n        image: perl\n        command:\n        - perl\n        - -Mbignum=bpi\n        - -wle\n        - print bpi(2000)\n      restartPolicy: Never",
+  "user_answer": "",
+  "ai_feedback": ""
+}

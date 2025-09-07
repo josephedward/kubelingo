@@ -1,0 +1,10 @@
+{
+  "id": "6c9bbdba",
+  "topic": "services",
+  "type": "declarative",
+  "question": "Headless Service manifest for app=db on port 5432.",
+  "source": "https://stackoverflow.com/questions/69611827/kubernetes-is-there-any-way-to-get-headless-service-endpoint-info-in-container",
+  "suggested_answer": "apiVersion: v1\nkind: Service\nmetadata:\n  name: db\nspec:\n  clusterIP: None\n  ports:\n  - port: 5432\n    targetPort: 5432\n  selector:\n    app: db",
+  "user_answer": "",
+  "ai_feedback": ""
+}

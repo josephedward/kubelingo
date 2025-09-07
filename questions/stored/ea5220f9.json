@@ -1,0 +1,10 @@
+{
+  "id": "ea5220f9",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Display the detailed state of one or more resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl describe",
+  "user_answer": "",
+  "ai_feedback": ""
+}

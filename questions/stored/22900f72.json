@@ -1,0 +1,10 @@
+{
+  "id": "22900f72",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "List one or more resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl get",
+  "user_answer": "",
+  "ai_feedback": ""
+}

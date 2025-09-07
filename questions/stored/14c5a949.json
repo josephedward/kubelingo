@@ -1,0 +1,10 @@
+{
+  "id": "14c5a949",
+  "topic": "resource_management",
+  "type": "imperative",
+  "question": "Command to set requests (200m,128Mi) and limits (500m,256Mi) on Deployment web.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+  "suggested_answer": "kubectl set resources deploy/web --requests=cpu=200m,memory=128Mi --limits=cpu=500m,memory=256Mi",
+  "user_answer": "",
+  "ai_feedback": ""
+}

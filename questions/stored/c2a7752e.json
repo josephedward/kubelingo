@@ -1,0 +1,10 @@
+{
+  "id": "c2a7752e",
+  "topic": "secret",
+  "type": "declarative",
+  "question": "Create a Secret named 'db-secret' of type Generic with data key 'PASSWORD' set to 'user1'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/secret/",
+  "suggested_answer": "kubectl create secret generic db-secret --from-literal=PASSWORD=user1\n\napiVersion: v1\nkind: Secret\nmetadata:\n  name: db-secret\ntype: Opaque\nstringData:\n  PASSWORD: user1",
+  "user_answer": "",
+  "ai_feedback": ""
+}

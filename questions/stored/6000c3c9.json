@@ -1,0 +1,10 @@
+{
+  "id": "6000c3c9",
+  "topic": "labels_annotations_selectors",
+  "type": "imperative",
+  "question": "Command to list Pod names only using jsonpath.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/jsonpath/",
+  "suggested_answer": "kubectl get pods -o jsonpath='{.items[*].metadata.name}'",
+  "user_answer": "",
+  "ai_feedback": ""
+}

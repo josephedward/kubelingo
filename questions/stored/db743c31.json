@@ -1,0 +1,10 @@
+{
+  "id": "db743c31",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Replace a resource from a file or stdin.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl replace",
+  "user_answer": "",
+  "ai_feedback": ""
+}

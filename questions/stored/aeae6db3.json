@@ -1,0 +1,10 @@
+{
+  "id": "aeae6db3",
+  "topic": "logging",
+  "type": "declarative",
+  "question": "Configure kubelet to rotate logs when they reach 100MB keeping 10 files",
+  "source": "https://kubernetes.io/docs/concepts/cluster-administration/logging",
+  "suggested_answer": "Set containerLogMaxSize: \"100Mi\" in kubelet config\n\nSet containerLogMaxFiles: 10\n\nConfigure containerLogMaxWorkers for rotation concurrency",
+  "user_answer": "",
+  "ai_feedback": ""
+}

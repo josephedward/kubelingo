@@ -1,0 +1,10 @@
+{
+  "id": "dd9e32fe",
+  "topic": "pods",
+  "type": "declarative",
+  "question": "Create a Pod with init containers, security context, and custom service account",
+  "source": "",
+  "suggested_answer": "",
+  "user_answer": "",
+  "ai_feedback": ""
+}

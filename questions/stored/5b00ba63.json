@@ -1,0 +1,10 @@
+{
+  "id": "5b00ba63",
+  "topic": "deployment",
+  "type": "declarative",
+  "question": "Create a Deployment named 'api-server-deploy' with 3 replicas of the image 'mysql:5.7'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+  "suggested_answer": "kubectl create deployment api-server-deploy --image=mysql:5.7 --replicas=3\n\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api-server-deploy\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: api-server-deploy\n  template:\n    metadata:\n      labels:\n        app: api-server-deploy\n    spec:\n      containers:\n      - name: api-server-deploy\n        image: mysql:5.7",
+  "user_answer": "",
+  "ai_feedback": ""
+}

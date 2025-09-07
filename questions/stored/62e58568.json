@@ -1,0 +1,10 @@
+{
+  "id": "62e58568",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Wait for a specific condition on one or many resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_wait/",
+  "suggested_answer": "kubectl wait",
+  "user_answer": "",
+  "ai_feedback": ""
+}

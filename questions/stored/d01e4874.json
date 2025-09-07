@@ -1,0 +1,10 @@
+{
+  "id": "d01e4874",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Return a snapshot of logs from a pod.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_logs/",
+  "suggested_answer": "kubectl logs <pod-name>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

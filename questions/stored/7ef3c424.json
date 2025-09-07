@@ -1,0 +1,10 @@
+{
+  "id": "7ef3c424",
+  "topic": "app_configuration",
+  "type": "imperative",
+  "question": "Create a ConfigMap named 'my-env-config' from an env file named 'config.env'.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/",
+  "suggested_answer": "kubectl create cm my-env-config --from-env-file=config.env",
+  "user_answer": "",
+  "ai_feedback": ""
+}

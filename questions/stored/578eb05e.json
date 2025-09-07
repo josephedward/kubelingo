@@ -1,0 +1,10 @@
+{
+  "id": "578eb05e",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Stream logs from a pod.",
+  "source": "https://stackoverflow.com/questions/39454962/kubectl-logs-continuously",
+  "suggested_answer": "kubectl logs -f <pod-name>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

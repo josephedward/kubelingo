@@ -1,0 +1,10 @@
+{
+  "id": "6251bb38",
+  "topic": "probes_health",
+  "type": "declarative",
+  "question": "Pod manifest with HTTP liveness probe on /healthz port 8080.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: app\nspec:\n  containers:\n  - name: app\n    image: nginx\n    livenessProbe:\n      httpGet:\n        path: /healthz\n        port: 8080\n      initialDelaySeconds: 5\n      periodSeconds: 10",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "6e65d4ef",
+  "topic": "services",
+  "type": "imperative",
+  "question": "Describe service frontend-svc.",
+  "source": "https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=,pod)",
+  "suggested_answer": "kubectl describe service frontend-svc",
+  "user_answer": "",
+  "ai_feedback": ""
+}

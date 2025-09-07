@@ -1,0 +1,10 @@
+{
+  "id": "df137ae2",
+  "topic": "linux_syntax",
+  "type": "declarative",
+  "question": "In Vim, how do you enter insert mode at the cursor?",
+  "source": "https://stackoverflow.com/questions/13178874/how-do-i-switch-between-command-and-insert-mode-in-vim",
+  "suggested_answer": "i",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "daca4b87",
+  "topic": "services",
+  "type": "declarative",
+  "question": "Create a manifest for a NodePort service named 'webapp-nodeport'. The service should forward traffic from a port on the node to port 80 on pods with the label 'app=webapp'.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/service/",
+  "suggested_answer": "apiVersion: v1\nkind: Service\nmetadata:\n  name: webapp-nodeport\nspec:\n  ports:\n  - port: 80\n    protocol: TCP\n    targetPort: 80\n  selector:\n    app: webapp\n  type: NodePort",
+  "user_answer": "",
+  "ai_feedback": ""
+}

@@ -1,0 +1,10 @@
+{
+  "id": "77142f4f",
+  "topic": "ingress_http_routing",
+  "type": "declarative",
+  "question": "Create a manifest for an Ingress resource named 'app-ingress-manifest'. It should route traffic for the host 'app.example.com' with path '/' to a service named 'webapp-svc' on port 80.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+  "suggested_answer": "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: app-ingress-manifest\nspec:\n  rules:\n  - host: app.example.com\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: webapp-svc\n            port:\n              number: 80",
+  "user_answer": "",
+  "ai_feedback": ""
+}

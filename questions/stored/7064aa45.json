@@ -1,0 +1,10 @@
+{
+  "id": "7064aa45",
+  "topic": "security_basics",
+  "type": "imperative",
+  "question": "List all secrets.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#:~:text=,v1%20true%20Service",
+  "suggested_answer": "kubectl get secrets",
+  "user_answer": "",
+  "ai_feedback": ""
+}

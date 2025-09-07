@@ -1,0 +1,10 @@
+{
+  "id": "34e6da2d",
+  "topic": "image_registry_use",
+  "type": "imperative",
+  "question": "Command to generate a docker-registry pull secret named 'regcred' for 'myregistry.com' with username 'myuser', password 'mypassword', and email 'myuser@example.com' (output YAML).",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_docker-registry/",
+  "suggested_answer": "kubectl create secret docker-registry regcred --docker-server=registry.example.com --docker-username=USER --docker-password=PASS --docker-email=user@example.com --dry-run=client -o yaml",
+  "user_answer": "",
+  "ai_feedback": ""
+}

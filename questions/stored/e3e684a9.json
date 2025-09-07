@@ -1,0 +1,10 @@
+{
+  "id": "e3e684a9",
+  "topic": "probes_health",
+  "type": "declarative",
+  "question": "Create a Deployment named space-alien-welcome-message-generator using image httpd:alpine with 1 replica and a readinessProbe running 'stat /tmp/ready' with initialDelaySeconds=10 and periodSeconds=5.",
+  "source": "https://www.reddit.com/r/kubernetes/comments/1ka02oz/rate_this_kubernetes_interview_question/",
+  "suggested_answer": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: space-alien-welcome-message-generator\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: space-alien-welcome-message-generator\n  template:\n    metadata:\n      labels:\n        app: space-alien-welcome-message-generator\n    spec:\n      containers:\n      - name: httpd\n        image: httpd:alpine\n        readinessProbe:\n          exec:\n            command:\n            - stat\n            - /tmp/ready\n          initialDelaySeconds: 10\n          periodSeconds: 5",
+  "user_answer": "",
+  "ai_feedback": ""
+}

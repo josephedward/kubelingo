@@ -1,0 +1,10 @@
+{
+  "id": "b633b7fb",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "List all pods running on node server01.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#examples-common-operations",
+  "suggested_answer": "kubectl get pods --field-selector=spec.nodeName=server01",
+  "user_answer": "",
+  "ai_feedback": ""
+}

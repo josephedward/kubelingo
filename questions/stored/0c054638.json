@@ -1,0 +1,10 @@
+{
+  "id": "0c054638",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Create a pod named busybox using the busybox image that runs the command 'sleep 3600'.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_run/#:~:text=,argN)",
+  "suggested_answer": "kubectl run busybox --image=busybox -- sleep 3600",
+  "user_answer": "",
+  "ai_feedback": ""
+}

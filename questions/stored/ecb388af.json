@@ -1,0 +1,10 @@
+{
+  "id": "ecb388af",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Diff file or stdin against live configuration.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl diff",
+  "user_answer": "",
+  "ai_feedback": ""
+}

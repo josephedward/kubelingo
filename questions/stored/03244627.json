@@ -1,0 +1,10 @@
+{
+  "id": "03244627",
+  "topic": "service_accounts_in_apps",
+  "type": "declarative",
+  "question": "In namespace `neptune`, find the Secret associated with the ServiceAccount `neptune-sa-v2` and write its decoded token to a file.",
+  "source": "https://wiki.aaronhatcher.com/kubernetes/CKAD/Labs/killer/5-sa-secrets",
+  "suggested_answer": "SECRET_NAME=$(kubectl -n neptune get secret -o jsonpath=\"{.items[?(@.metadata.annotations['kubernetes\\.io/service-account\\.name']=='neptune-sa-v2')].metadata.name}\") && kubectl -n neptune get secret $SECRET_NAME -o jsonpath='{.data.token}' | base64 --decode > /path/to/token",
+  "user_answer": "",
+  "ai_feedback": ""
+}

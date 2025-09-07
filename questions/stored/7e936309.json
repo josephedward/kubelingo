@@ -1,0 +1,10 @@
+{
+  "id": "7e936309",
+  "topic": "kubectl_common_operations",
+  "type": "imperative",
+  "question": "Display the details of all pods managed by a replication controller.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/",
+  "suggested_answer": "kubectl describe pods <rc-name>",
+  "user_answer": "",
+  "ai_feedback": ""
+}

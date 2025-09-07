@@ -1,0 +1,10 @@
+{
+  "id": "fd522f14",
+  "topic": "helm_basics",
+  "type": "declarative",
+  "question": "List all Helm releases in the mercury namespace.",
+  "source": "https://helm.sh/docs/helm/helm_list/",
+  "suggested_answer": "helm -n mercury ls",
+  "user_answer": "",
+  "ai_feedback": ""
+}

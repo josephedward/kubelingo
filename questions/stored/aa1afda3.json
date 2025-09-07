@@ -1,0 +1,10 @@
+{
+  "id": "aa1afda3",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Convert config files between different API versions.",
+  "source": "https://jamesdefabia.github.io/docs/user-guide/kubectl/kubectl_convert/",
+  "suggested_answer": "kubectl convert",
+  "user_answer": "",
+  "ai_feedback": ""
+}

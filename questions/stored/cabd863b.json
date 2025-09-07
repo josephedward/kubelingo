@@ -1,0 +1,10 @@
+{
+  "id": "cabd863b",
+  "topic": "ingress_http_routing",
+  "type": "declarative",
+  "question": "Create a Kubernetes Ingress manifest named 'secure-app-ingress' that routes traffic for the host 'secure.example.com' to the service 'secure-svc' on port 443 using HTTPS.  The Ingress should use the TLS secret named 'secure-tls-secret'.",
+  "source": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+  "suggested_answer": "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: secure-app-ingress\nspec:\n  tls:\n  - hosts:\n    - secure.example.com\n    secretName: secure-tls-secret\n  rules:\n  - host: secure.example.com\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: secure-svc\n            port:\n              number: 443",
+  "user_answer": "",
+  "ai_feedback": ""
+}

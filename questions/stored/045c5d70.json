@@ -1,0 +1,10 @@
+{
+  "id": "045c5d70",
+  "topic": "job",
+  "type": "declarative",
+  "question": "Create a Job named 'db-backup' that runs a pod with the image 'alpine'.",
+  "source": "https://kubernetes.io/docs/concepts/workloads/controllers/job/",
+  "suggested_answer": "kubectl create job db-backup --image=alpine\n\napiVersion: batch/v1\nkind: Job\nmetadata:\n  name: db-backup\nspec:\n  template:\n    spec:\n      containers:\n      - name: db-backup\n        image: alpine\n      restartPolicy: OnFailure",
+  "user_answer": "",
+  "ai_feedback": ""
+}

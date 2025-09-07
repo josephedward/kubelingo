@@ -1,0 +1,10 @@
+{
+  "id": "5e310961",
+  "topic": "kubectl_operations",
+  "type": "imperative",
+  "question": "Add or update the labels of one or more resources.",
+  "source": "https://kubernetes.io/docs/reference/kubectl/#operations",
+  "suggested_answer": "kubectl label",
+  "user_answer": "",
+  "ai_feedback": ""
+}

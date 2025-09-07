@@ -1,0 +1,10 @@
+{
+  "id": "ee88d647",
+  "topic": "core_workloads",
+  "type": "imperative",
+  "question": "Expose the 'nginx' pod on port 80 using a service named 'nginx-service'.",
+  "source": "https://kubernetes.io/docs/tutorials/services/connect-applications-service/",
+  "suggested_answer": "kubectl expose pod nginx --port=80 --name=nginx-service",
+  "user_answer": "",
+  "ai_feedback": ""
+}

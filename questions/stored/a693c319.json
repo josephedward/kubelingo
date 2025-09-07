@@ -1,0 +1,10 @@
+{
+  "id": "a693c319",
+  "topic": "api_discovery_docs",
+  "type": "imperative",
+  "question": "Command to list namespaced resources supporting 'list'.",
+  "source": "https://stackoverflow.com/questions/47691479/listing-all-resources-in-a-namespace",
+  "suggested_answer": "kubectl api-resources --verbs=list --namespaced",
+  "user_answer": "",
+  "ai_feedback": ""
+}

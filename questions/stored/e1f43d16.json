@@ -1,0 +1,10 @@
+{
+  "id": "e1f43d16",
+  "topic": "resource_management",
+  "type": "declarative",
+  "question": "Create a manifest for a Pod named 'resource-pod-manifest' that requests '50m' of CPU and '128Mi' of memory, and has a limit of '100m' CPU and '256Mi' of memory.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/",
+  "suggested_answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: resource-pod-manifest\nspec:\n  containers:\n  - name: nginx\n    image: nginx\n    resources:\n      requests:\n        cpu: 50m\n        memory: 128Mi\n      limits:\n        cpu: 100m\n        memory: 256Mi",
+  "user_answer": "",
+  "ai_feedback": ""
+}

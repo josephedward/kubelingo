@@ -1,0 +1,10 @@
+{
+  "id": "3ad58b22",
+  "topic": "image_registry_use",
+  "type": "declarative",
+  "question": "Generate the Kubernetes manifest for topic 'image_registry_use' using the CLI.",
+  "source": "https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/",
+  "suggested_answer": "apiVersion: v1\ndata:\n  .dockerconfigjson: eyJhdXRocyI6eyJteXJlZ2lzdHJ5LmNvbSI6eyJ1c2VybmFtZSI6Im15dXNlciIsInBhc3N3b3JkIjoibXlwYXNzd29yZCIsImVtYWlsIjoibXl1c2VyQGV4YW1wbGUuY29tIiwiYXV0aCI6ImJYbDFjMlZ5T20xNWNHRnpjM2R2Y21RPSJ9fX0=\nkind: Secret\nmetadata:\n  name: regcred\ntype: kubernetes.io/dockerconfigjson",
+  "user_answer": "",
+  "ai_feedback": ""
+}

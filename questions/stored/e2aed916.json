@@ -1,0 +1,10 @@
+{
+  "id": "e2aed916",
+  "topic": "configmap",
+  "type": "declarative",
+  "question": "Create a ConfigMap named 'app-config' with data key 'LOG_LEVEL' set to 'DEBUG'.",
+  "source": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "suggested_answer": "kubectl create configmap app-config --from-literal=LOG_LEVEL=DEBUG\n\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  LOG_LEVEL: DEBUG",
+  "user_answer": "",
+  "ai_feedback": ""
+}
