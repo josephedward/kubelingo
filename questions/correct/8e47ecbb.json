@@ -1,0 +1,9 @@
+{
+    "question": "Provide the Kubernetes term that matches the following definition: Package manager for Kubernetes that helps in managing applications and their dependencies.",
+    "answer": "Helm",
+    "suggested_answer": "Helm",
+    "id": "8e47ecbb",
+    "topic": "helm_basics",
+    "question_type": "vocabulary",
+    "user_answer": "helm"
+}

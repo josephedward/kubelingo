@@ -1,0 +1,11 @@
+{
+    "question": "How can you check the logs of a specific container within a pod named 'mypod' in the 'mynamespace' namespace using kubectl?",
+    "answer": "kubectl logs -n mynamespace mypod -c <container_name>",
+    "explanation": "This command allows you to view the logs of a specific container within a pod. Replace '<container_name>' with the name of the container whose logs you want to check.",
+    "suggested_answer": "kubectl logs -n mynamespace mypod -c <container_name>",
+    "id": "7677078c",
+    "topic": "observability_troubleshooting",
+    "question_type": "command",
+    "user_answer": "k logs mypod -n mynamespace",
+    "ai_feedback": "Your answer is almost correct, but it is missing the container name parameter. The correct command should include the container name parameter as shown in the suggested answer:\n```\nkubectl logs -n mynamespace mypod -c <container_name>\n```\nMake sure to include the `-c <container_name>` part to specify the specific container whose logs you want to check."
+}

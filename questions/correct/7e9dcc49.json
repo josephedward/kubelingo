@@ -1,0 +1,9 @@
+{
+    "question": "Provide the Kubernetes term that matches the following definition: A package manager for Kubernetes that helps you define, install, and upgrade applications on a Kubernetes cluster.",
+    "answer": "Helm",
+    "suggested_answer": "Helm",
+    "id": "7e9dcc49",
+    "topic": "helm_basics",
+    "question_type": "vocabulary",
+    "user_answer": "helm"
+}

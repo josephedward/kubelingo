@@ -1,0 +1,11 @@
+{
+    "question": "If you suspect that a Kubernetes pod is not receiving incoming traffic, how can you troubleshoot this using kubectl?",
+    "answer": "kubectl describe pod <pod_name>",
+    "explanation": "The 'kubectl describe pod' command provides detailed information about the pod, including its current status, events, and any relevant conditions that might be affecting its network connectivity.",
+    "suggested_answer": "kubectl describe pod <pod_name>",
+    "id": "54ccba93",
+    "topic": "observability_troubleshooting",
+    "question_type": "command",
+    "user_answer": "k describe pod my-pod",
+    "ai_feedback": "Your answer is almost correct, but you missed the \"kubectl\" command at the beginning of the command. The correct command should start with \"kubectl describe pod my-pod\". Make sure to include \"kubectl\" before the \"describe\" command to interact with the Kubernetes cluster."
+}

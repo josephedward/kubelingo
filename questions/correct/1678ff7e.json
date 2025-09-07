@@ -1,0 +1,9 @@
+{
+    "question": "Using kubectl, it is possible to scale the number of replicas for a deployment running in a Kubernetes cluster.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "1678ff7e",
+    "topic": "kubectl_common_operations",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

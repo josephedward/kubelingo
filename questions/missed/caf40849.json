@@ -1,0 +1,10 @@
+{
+    "question": "Using kubectl, it is possible to update the image of a pod in a Kubernetes cluster without restarting the pod.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "caf40849",
+    "topic": "kubectl_common_operations",
+    "question_type": "true/false",
+    "user_answer": "false",
+    "ai_feedback": "Your answer is incorrect. The correct answer is true. With Kubernetes, you can update the image of a pod without restarting the pod by using the `kubectl set image` command or by updating the pod's YAML file with the new image version and then applying the changes with `kubectl apply`. This allows you to perform rolling updates to pods in a controlled manner without causing downtime."
+}

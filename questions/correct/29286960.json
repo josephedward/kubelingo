@@ -1,0 +1,15 @@
+{
+    "question": "What Kubernetes resource is used to provide persistent storage to pods?",
+    "options": [
+        "Pod",
+        "Service",
+        "PersistentVolume",
+        "Deployment"
+    ],
+    "answer": "PersistentVolume",
+    "suggested_answer": "PersistentVolume",
+    "id": "29286960",
+    "topic": "persistence",
+    "question_type": "multiple choice",
+    "user_answer": "persistentvolume"
+}

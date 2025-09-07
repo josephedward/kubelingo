@@ -1,0 +1,11 @@
+{
+    "question": "Given a Pod named 'my-pod' is experiencing high CPU usage, how can you troubleshoot this issue using kubectl?",
+    "answer": "kubectl top pod my-pod",
+    "explanation": "The 'kubectl top' command allows you to view the resource usage of pods, nodes, and namespaces in a Kubernetes cluster. By running 'kubectl top pod my-pod', you can check the CPU and memory usage of the 'my-pod' pod to troubleshoot high CPU usage.",
+    "suggested_answer": "kubectl top pod my-pod",
+    "id": "01e01d75",
+    "topic": "observability_troubleshooting",
+    "question_type": "command",
+    "user_answer": "k describe pod my-pod",
+    "ai_feedback": "Your answer is partially correct. Using `kubectl describe pod my-pod` can provide you with detailed information about the Pod, including its configuration and events, but it does not directly show the CPU usage. The suggested answer `kubectl top pod my-pod` specifically provides real-time CPU and memory usage for the Pod, which is more relevant for troubleshooting high CPU usage. So, in addition to describing the Pod, you should also use `kubectl top pod my-pod` to check the CPU usage."
+}

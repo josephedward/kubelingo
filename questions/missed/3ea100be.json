@@ -1,0 +1,10 @@
+{
+    "question": "Using kubectl, it is possible to directly modify the YAML definition of a running pod in a Kubernetes cluster.",
+    "answer": "false",
+    "suggested_answer": "false",
+    "id": "3ea100be",
+    "topic": "kubectl_common_operations",
+    "question_type": "true/false",
+    "user_answer": "true",
+    "ai_feedback": "Your answer is incorrect. It is not possible to directly modify the YAML definition of a running pod in a Kubernetes cluster using kubectl. Instead, you should update the YAML file that defines the pod and then apply the changes using kubectl apply or kubectl replace. This ensures that the changes are applied safely and consistently."
+}

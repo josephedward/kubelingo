@@ -1,0 +1,15 @@
+{
+    "question": "Which Kubernetes resource is used to define the storage that can be dynamically provisioned and attached to pods?",
+    "options": [
+        "PersistentVolumeClaim",
+        "PodVolume",
+        "StorageClass",
+        "PersistentStorage"
+    ],
+    "answer": "PersistentVolumeClaim",
+    "suggested_answer": "PersistentVolumeClaim",
+    "id": "b27ea0da",
+    "topic": "persistence",
+    "question_type": "multiple choice",
+    "user_answer": "persistentvolumeclaim"
+}
