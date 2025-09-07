@@ -36,6 +36,8 @@ class QuestionGenerator:
             question_type = llm_utils.ai_chat(type_prompt, "").strip().lower()
             if not question_type:
                 question_type = ""
+        # Human-readable topic for prompts (e.g., 'helm_basics' -> 'Helm Basics')
+        pretty_topic = topic.replace('_', ' ').strip().title() if topic else ''
 
         """Generates a Kubernetes question using AI"""
         if question_type == "true/false":
@@ -53,8 +55,18 @@ Format your response as a JSON object with the following keys:
 "answer": "true" or "false"
 """
         elif question_type == "vocabulary":
-            system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes vocabulary question about {topic}.
+            # Ensure vocabulary questions are diverse and human-friendly
+            exclude_instruction = ""
+            if exclude_question_texts:
+                escaped = [txt.replace("'", "\\'") for txt in exclude_question_texts]
+                exclude_instruction = (
+                    f"Ensure this question is semantically and structurally significantly different from these: {escaped}."
+                )
+            # Make topic human-readable
+            pretty_topic = topic.replace('_', ' ').strip().title() if topic else ''
+            system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes vocabulary question about {pretty_topic}.
 The question should ask for a single Kubernetes term given a concise definition.
+{exclude_instruction}
 Respond with only the JSON object using the following keys:
   "question": "Provide the Kubernetes term that matches the following definition: ...",
   "answer": "the-term"
@@ -122,7 +134,11 @@ Format your response as a JSON object with the following keys:
 "hints": ["List", "of", "hints"]
 """
 
-        user_prompt = f"Generate a {question_type} question about {topic}."
+        # Craft user prompt, using human-friendly topic for vocabulary questions
+        if question_type == "vocabulary":
+            user_prompt = f"Generate a vocabulary question about {pretty_topic}."
+        else:
+            user_prompt = f"Generate a {question_type} question about {topic}."
 
         try:
             
