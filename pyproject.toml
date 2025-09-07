@@ -32,7 +32,7 @@ dependencies = [
 "Homepage" = "https://github.com/josephedward/kubelingo"
 
 [project.scripts]
-kubelingo = "cli:main"
+kubelingo = "kubelingo.cli:main"
 
 [tool.pytest.ini_options]
 markers = [
