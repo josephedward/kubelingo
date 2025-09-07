@@ -2,6 +2,7 @@ import pytest
 from InquirerPy import inquirer
 
 import kubelingo.cli as cli
+import builtins
 
 class DummyPrompt:
     """Mimics InquirerPy prompt responses."""
@@ -26,6 +27,7 @@ def test_delete_generates_new_question(monkeypatch, capsys, mock_ai_chat):
     """Deleting a question should trigger a new, different AI-generated question."""
     # Sequence of select inputs: quiz type, topic, difficulty, count, post-answer action (delete)
     selects = iter([
+        'Quiz',        # Main Menu: Quiz
         'True/False',  # Quiz type
         'pods',        # Topic
         'beginner',    # Difficulty
@@ -39,8 +41,13 @@ def test_delete_generates_new_question(monkeypatch, capsys, mock_ai_chat):
         'quit'         # Quit quiz session
     ])
     monkeypatch.setattr(inquirer, 'text', lambda message: DummyPrompt(next(texts)))
+    input_choices = iter([
+        'a', # Answer the question
+        'q'  # Quit the quiz session
+    ])
+    monkeypatch.setattr(builtins, 'input', lambda: next(input_choices))
     # Mock QuestionGenerator._generate_question_id to return a fixed ID
-    monkeypatch.setattr(cli.QuestionGenerator, "_generate_question_id", lambda: "test_id")
+    monkeypatch.setattr(cli.QuestionGenerator, "_generate_question_id", lambda self: "test_id")
     # Run the quiz session
     cli.quiz_menu()
     out = capsys.readouterr().out

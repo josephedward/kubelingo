@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from InquirerPy import inquirer
+import json
 
 import kubelingo.cli as cli
 import builtins
@@ -111,10 +112,11 @@ def test_trivia_flow_correct_answer_and_quit(
 
     # Assert correct message and post-answer menu options are displayed
     assert "Correct!" in captured.out
-    assert "r) retry" in captured.out
-    assert "c) correct" in captured.out
-    assert "m) missed" in captured.out
-    assert "d) delete" in captured.out # New label
+    assert "r)etry" in captured.out
+    assert "c)orrect" in captured.out
+    assert "m)issed" in captured.out
+    assert "s)ource" in captured.out
+    assert "d)elete question" in captured.out
 
     # Assert last_generated_q is recorded (correctness tracked via output)
     assert cli.last_generated_q is not None
@@ -242,7 +244,6 @@ def test_trivia_flow_no_question_menu_after_answer(
     assert "s) visit" not in segment
     assert "q) quit" not in segment
 
-@pytest.mark.skip(reason="Function _open_manifest_editor not implemented yet.")
 @patch('kubelingo.cli._open_manifest_editor')
 def test_manifest_quiz_vim_editor(
     mock_open_manifest_editor, capsys, mock_inquirer_select, mock_inquirer_text
@@ -330,3 +331,7 @@ def test_mcq_quiz_flow_correct_answer(
 
     assert "Question: Which of the following is NOT a core Kubernetes object?" in captured.out
     assert "Correct!" in captured.out
+
+
+
+    

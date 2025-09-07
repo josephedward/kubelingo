@@ -66,3 +66,19 @@ def test_fallback_on_unknown_topic_or_difficulty(monkeypatch):
     assert q["topic"] == "nonexistent"
     # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
     # We don't assert its absence here as AI might include it.
+
+def test_multiple_choice_options_uniqueness(mock_ai_chat):
+    gen = QuestionGenerator()
+    
+    # Configure mock_ai_chat to return a response with duplicate options
+    mock_ai_chat.side_effect = [
+        '{"question": "Test MC Question", "options": ["A", "B", "A", "C"], "answer": "B"}'
+    ]
+    
+    q = gen.generate_question(question_type="multiple choice", topic="test")
+    
+    assert "options" in q
+    options = q["options"]
+    
+    # Assert that there are no duplicate options
+    assert len(options) == len(set(options)), "Multiple choice options should be unique"
