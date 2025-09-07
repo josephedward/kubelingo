@@ -1,7 +1,47 @@
-#!/usr/bin/env python3
-"""
-Utilities for importing and formatting questions into the canonical schema.
-"""
+import uuid
+import json
+import yaml
+import os
+
+def import_from_file(file_path: str) -> list:
+    """Import questions from a file."""
+    _, extension = os.path.splitext(file_path)
+    if extension == '.json':
+        return _parse_json(file_path)
+    elif extension == '.yaml' or extension == '.yml':
+        return _parse_yaml(file_path)
+    else:
+        # For now, we'll just return an empty list for unsupported file types.
+        return []
+
+def _parse_json(file_path: str) -> list:
+    """Parse a JSON file for questions."""
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    questions = []
+    for item in data:
+        questions.append(format_question(
+            topic=item.get('topic'),
+            question=item.get('question'),
+            suggested_answer=item.get('suggested_answer'),
+            source=item.get('source')
+        ))
+    return questions
+
+def _parse_yaml(file_path: str) -> list:
+    """Parse a YAML file for questions."""
+    with open(file_path, 'r') as f:
+        data = yaml.safe_load(f)
+    questions = []
+    for item in data:
+        questions.append(format_question(
+            topic=item.get('topic'),
+            question=item.get('question'),
+            suggested_answer=item.get('suggested_answer'),
+            source=item.get('source')
+        ))
+    return questions
+
 import uuid
 
 def format_question(
