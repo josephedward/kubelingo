@@ -20,7 +20,8 @@ class FakeAnswer:
 def test_quiz_menu_generates_ai_question(monkeypatch, capsys):
     # Mock inquirer.select for quiz type, topic, and difficulty
     select_choices = iter([
-        "Start AI Quiz"  # Quiz type
+        "True/False",  # Quiz type selection
+        "pods"         # Topic selection
     ])
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
 
