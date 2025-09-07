@@ -138,3 +138,80 @@ def test_quiz_flow_correct_answer_consistency(
     assert "d)elete question" in captured.out
     # Assert that the "Your answer differs" message is NOT displayed for correct answers
     assert "(Your answer differs from the suggested answer.)" not in captured.out
+
+
+@pytest.mark.parametrize("vim_content, expected_output_message, expected_validation_message", [
+    ("", "Manifest edited:", "No manifest content provided."), # Empty content
+    ("invalid: yaml:", "Manifest edited:", "Error parsing YAML:"), # Invalid YAML
+    ("apiVersion: v1\nkind: Pod\nmetadata:\n  name: test-pod", "Manifest edited:", "Manifest is valid."), # Valid YAML
+])
+@patch('kubelingo.cli._open_manifest_editor')
+def test_manifest_quiz_vim_editor_scenarios(
+    mock_open_manifest_editor,
+    capsys,
+    mock_inquirer_select,
+    mock_inquirer_text,
+    monkeypatch,
+    mock_ai_chat_generic, # Ensure a manifest question is generated
+    vim_content,
+    expected_output_message,
+    expected_validation_message
+):
+    mock_open_manifest_editor.return_value = vim_content
+
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Declarative (Manifests)"), # Quiz type selection
+        DummyPrompt("pods"), # Topic selection
+    ]
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("v"), # User types 'v' for vim
+        DummyPrompt("quit") # User types 'quit' to exit the quiz loop
+    ]
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    mock_open_manifest_editor.assert_called_once()
+    assert expected_output_message in captured.out
+    assert vim_content in captured.out # The content should be printed
+    assert expected_validation_message in captured.out # Check for validation message
+
+@patch('kubelingo.cli._open_manifest_editor')
+def test_manifest_quiz_vim_editor_then_answer(
+    mock_open_manifest_editor,
+    capsys,
+    mock_inquirer_select,
+    mock_inquirer_text,
+    monkeypatch,
+    mock_ai_chat_generic
+):
+    # Simulate user opening vim, saving valid content, then answering correctly
+    valid_manifest = "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-nginx\nspec:\n  containers:\n  - name: nginx\n    image: nginx"
+    mock_open_manifest_editor.return_value = valid_manifest
+
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Declarative (Manifests)"), # Quiz type selection
+        DummyPrompt("pods"), # Topic selection
+        DummyPrompt("do not save question") # Post-answer menu action
+    ]
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("v"), # User types 'v' for vim
+        DummyPrompt(valid_manifest) # User provides the correct answer after vim
+    ]
+
+    input_choices = iter([
+        "a", # Answer the question
+        "q"  # Quit the quiz session
+    ])
+    monkeypatch.setattr(builtins, 'input', lambda: next(input_choices))
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    mock_open_manifest_editor.assert_called_once()
+    assert "Manifest edited:" in captured.out
+    assert valid_manifest in captured.out
+    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
