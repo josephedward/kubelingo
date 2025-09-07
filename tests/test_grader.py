@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 # Load grader module
-module_path = Path(__file__).parent.parent / "grader.py"
+module_path = Path(__file__).parent.parent / "kubelingo" / "grader.py"
 spec = importlib.util.spec_from_file_location("grader", str(module_path))
 grad_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(grad_module)
@@ -56,3 +56,11 @@ def test_parse_ai_response_with_code_block():
     assert res.suggestions == ["suggestion1"]
     assert res.rewritten_manifest is None
     assert abs(res.confidence - 0.85) < 1e-6
+
+def test_grade_simple_answer():
+    assert grad_module.grade_simple_answer("  pod  ", "Pod") is True
+    assert grad_module.grade_simple_answer("deployment", "Deployment") is True
+    assert grad_module.grade_simple_answer("service", "Service") is True
+    assert grad_module.grade_simple_answer("wrong", "correct") is False
+    assert grad_module.grade_simple_answer("  true", "True") is True
+    assert grad_module.grade_simple_answer("false  ", "False") is True

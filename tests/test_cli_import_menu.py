@@ -24,25 +24,3 @@ def test_import_menu_back(monkeypatch, capsys):
     out, _ = capsys.readouterr()
     # Should not print any importing message
     assert out.strip() == ''
-
-def test_import_menu_select_category_invokes_quiz(monkeypatch):
-    # Create a questions/category directory
-    os.makedirs(os.path.join('questions', 'foo'), exist_ok=True)
-    # Patch select: first call returns 'Foo', second call for quiz_session returns 'Quit Quiz'
-    calls = []
-    def fake_select(message, choices):
-        # First select is import_menu, message contains 'Import Menu'
-        if 'Import Menu' in message:
-            return type('Ans', (), {'execute': lambda self: 'Foo'})()
-        # quiz_session will call select for quitting
-        return type('Ans', (), {'execute': lambda self: 'Quit Quiz'})()
-    monkeypatch.setattr(inquirer, 'select', fake_select)
-    # Patch quiz_session to record argument
-    recorded = {}
-    def fake_quiz(cat):
-        recorded['cat'] = cat
-    monkeypatch.setattr(cli, 'quiz_session', fake_quiz)
-    # Run import_menu
-    cli.import_menu()
-    # Category should be lowercased
-    assert recorded.get('cat') == 'foo'

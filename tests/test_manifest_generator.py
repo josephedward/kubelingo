@@ -1,19 +1,6 @@
-import importlib.util
-from pathlib import Path
-
 import pytest
-import sys
-from pathlib import Path
 import yaml as yaml_lib
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-# Load k8s_manifest_generator module
-module_path = Path(__file__).parent.parent / "k8s_manifest_generator.py"
-spec = importlib.util.spec_from_file_location("k8s_manifest_generator", str(module_path))
-mg_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mg_module)
-
-ManifestGenerator = mg_module.ManifestGenerator
+from kubelingo.k8s_manifest_generator import ManifestGenerator
 
 @pytest.fixture(autouse=True)
 def no_api_keys(monkeypatch):
