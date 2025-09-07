@@ -82,3 +82,41 @@ def test_import_unsupported_file(test_files_dir):
 def test_import_non_existent_file():
     with pytest.raises(FileNotFoundError):
         import_from_file('non_existent_file.json')
+import pytest
+from unittest.mock import MagicMock, patch
+
+@patch('requests.get')
+def test_import_from_url_json(mock_get):
+    # Mock HTTP JSON response
+    content = '[{"id":"abcd1234","topic":"pods","question":"What is a pod?","suggested_answer":"desc","source":"http://example.com"}]'
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = content
+    mock_resp.raise_for_status = MagicMock()
+    mock_get.return_value = mock_resp
+    questions = import_from_file('http://example.com/questions.json')
+    assert len(questions) == 1
+    q = questions[0]
+    assert q['id'] == 'abcd1234'
+    assert q['topic'] == 'pods'
+    assert q['question'] == 'What is a pod?'
+    assert q['suggested_answer'] == 'desc'
+    assert q['source'] == 'http://example.com'
+
+@patch('requests.get')
+def test_import_from_url_yaml(mock_get):
+    # Mock HTTP YAML response
+    yaml_text = "- id: efgh5678\n  topic: services\n  question: What is a service?\n  suggested_answer: desc2\n  source: http://example.org"
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = yaml_text
+    mock_resp.raise_for_status = MagicMock()
+    mock_get.return_value = mock_resp
+    questions = import_from_file('https://example.org/q.yaml')
+    assert len(questions) == 1
+    q = questions[0]
+    assert q['id'] == 'efgh5678'
+    assert q['topic'] == 'services'
+    assert q['question'] == 'What is a service?'
+    assert q['suggested_answer'] == 'desc2'
+    assert q['source'] == 'http://example.org'
