@@ -22,7 +22,7 @@ def test_format_question_default_id_and_fields():
     # Check keys
     assert set(q.keys()) == EXPECTED_KEYS
     # ID is 8 hex chars
-    assert re.fullmatch(r"[0-9a-f]{8}", q["id"])), f"Unexpected id: {q['id']}"
+    assert re.fullmatch(r"[0-9a-f]{8}", q["id"]), f"Unexpected id: {q['id']}"
     assert q["topic"] == "pods"
     assert q["question"] == "What is a pod?"
     assert q["source"] == "http://example.com/pods"
