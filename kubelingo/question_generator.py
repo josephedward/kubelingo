@@ -11,7 +11,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 from enum import Enum
-from kubelingo.llm_utils import ai_chat
+import kubelingo.llm_utils as llm_utils
 
 class QuestionGenerator:
     def __init__(self, manifest_generator=None):
