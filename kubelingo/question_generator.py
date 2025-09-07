@@ -8,8 +8,10 @@ with varying difficulty levels for training and assessment purposes.
 
 import random
 import json
+import os
 from typing import Any, Dict, List, Optional
 from enum import Enum
+from kubelingo.llm_utils import ai_chat
 
 class DifficultyLevel(Enum):
     BEGINNER = "beginner"
@@ -32,115 +34,57 @@ class KubernetesTopics(Enum):
     TROUBLESHOOTING = "troubleshooting"
 
 class QuestionGenerator:
-    def __init__(self):
-        self.question_templates = self._init_question_templates()
-        self.contexts = self._init_contexts()
+    def __init__(self, manifest_generator=None):
+        # These will be removed or refactored as AI takes over
+        self.question_templates = {}
+        self.contexts = {}
+        # placeholder for an external manifest generator interface
+        self.manifest_generator = manifest_generator
     
-    def _init_question_templates(self) -> Dict[str, Dict[str, List[str]]]:
-        """Initialize question templates organized by topic and difficulty"""
-        return {
-            KubernetesTopics.PODS.value: {
-                DifficultyLevel.BEGINNER.value: [
-                    "Create a simple Pod named '{pod_name}' running '{image}' image",
-                    "Deploy a Pod with '{image}' that exposes port {port}",
-                    "Create a Pod that runs '{image}' with environment variable {env_var}='{env_value}'"
-                ],
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Create a Pod with resource limits: CPU {cpu_limit} and memory {memory_limit}",
-                    "Deploy a Pod with a sidecar container for logging using '{sidecar_image}'",
-                    "Create a Pod with both resource requests and limits, and readiness probe"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Create a Pod with init containers, security context, and custom service account",
-                    "Deploy a Pod with affinity rules, tolerations, and custom DNS policy",
-                    "Create a multi-container Pod with shared volumes and inter-container communication"
-                ]
-            },
-            KubernetesTopics.DEPLOYMENTS.value: {
-                DifficultyLevel.BEGINNER.value: [
-                    "Create a Deployment named '{deployment_name}' with {replicas} replicas of '{image}'",
-                    "Deploy an application with horizontal scaling capabilities",
-                    "Create a Deployment with rolling update strategy"
-                ],
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Create a Deployment with custom rolling update parameters and health checks",
-                    "Deploy an application with HorizontalPodAutoscaler based on CPU utilization",
-                    "Create a Deployment with persistent storage and ConfigMap integration"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Create a blue-green deployment strategy with custom labels and selectors",
-                    "Deploy a stateful application with ordered deployment and persistent volumes",
-                    "Create a Deployment with advanced scheduling, resource quotas, and network policies"
-                ]
-            },
-            KubernetesTopics.SERVICES.value: {
-                DifficultyLevel.BEGINNER.value: [
-                    "Create a ClusterIP Service to expose '{deployment_name}' on port {port}",
-                    "Create a NodePort Service for external access to your application",
-                    "Expose a Deployment using a LoadBalancer Service"
-                ],
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Create a Service with multiple ports and custom endpoint configuration",
-                    "Deploy a headless Service for StatefulSet communication",
-                    "Create a Service with session affinity and custom timeout settings"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Create an ExternalName Service with custom DNS configuration",
-                    "Deploy a Service mesh integration with Istio sidecar injection",
-                    "Create Services with advanced traffic routing and load balancing"
-                ]
-            },
-            KubernetesTopics.INGRESS.value: {
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Create an Ingress resource to route traffic to multiple services",
-                    "Configure SSL/TLS termination with custom certificates",
-                    "Set up path-based routing with custom headers and annotations"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Create an Ingress with advanced features: rate limiting, authentication, and CORS",
-                    "Deploy a multi-tenant Ingress setup with namespace isolation",
-                    "Configure Ingress with custom error pages and advanced rewrite rules"
-                ]
-            },
-            KubernetesTopics.SECURITY.value: {
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Create a Pod with security context: non-root user, read-only filesystem",
-                    "Deploy an application with Pod Security Standards enforcement",
-                    "Create RBAC rules for service account with minimal permissions"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Implement Network Policies for micro-segmentation and zero-trust",
-                    "Create a comprehensive security setup with admission controllers",
-                    "Deploy applications with OPA Gatekeeper policy enforcement"
-                ]
-            },
-            KubernetesTopics.TROUBLESHOOTING.value: {
-                DifficultyLevel.INTERMEDIATE.value: [
-                    "Debug a failing Pod that keeps restarting due to configuration issues",
-                    "Troubleshoot service connectivity issues between microservices",
-                    "Resolve resource constraints causing Pod scheduling failures"
-                ],
-                DifficultyLevel.ADVANCED.value: [
-                    "Debug complex networking issues in a multi-cluster setup",
-                    "Troubleshoot performance bottlenecks in a high-traffic application",
-                    "Resolve storage and persistence issues in a StatefulSet"
-                ]
+    def generate_ai_question(self, 
+                             topic: str, 
+                             difficulty: str, 
+                             question_type: str) -> Dict[str, Any]:
+        """Generates a Kubernetes question using AI"""
+        system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a {difficulty} level Kubernetes question about {topic} in a {question_type} format.
+The question should be clear, concise, and test practical Kubernetes knowledge.
+Provide the question, expected resources (e.g., Pod, Deployment), success criteria, and hints.
+Format your response as a JSON object with the following keys:
+"question": "The generated question text",
+"expected_resources": ["List", "of", "resources"],
+"success_criteria": ["List", "of", "criteria"],
+"hints": ["List", "of", "hints"]
+"""
+        user_prompt = f"Generate a {difficulty} level {question_type} question about {topic}."
+        
+        try:
+            response_text = ai_chat(system_prompt, user_prompt)
+            question_data = json.loads(response_text)
+            
+            # Add ID and other metadata
+            question_data["id"] = self._generate_question_id()
+            question_data["topic"] = topic
+            question_data["difficulty"] = difficulty
+            question_data["question_type"] = question_type
+            
+            return question_data
+        except Exception as e:
+            print(f"Error generating AI question: {e}")
+            return {
+                "id": self._generate_question_id(),
+                "topic": topic,
+                "difficulty": difficulty,
+                "question_type": question_type,
+                "question": f"Failed to generate AI question for {topic} ({difficulty}, {question_type}). Error: {e}",
+                "expected_resources": [],
+                "success_criteria": [],
+                "hints": []
             }
-        }
-    
-    def _init_contexts(self) -> Dict[str, List[str]]:
-        """Initialize context scenarios for more realistic questions"""
-        return {
-            "applications": ["nginx", "redis", "mysql", "nodejs-app", "python-api", "react-frontend"],
-            "environments": ["development", "staging", "production", "testing"],
-            "industries": ["e-commerce", "fintech", "healthcare", "gaming", "iot"],
-            "scaling_scenarios": ["Black Friday traffic", "viral social media post", "planned maintenance", "disaster recovery"],
-            "team_sizes": ["small startup", "enterprise", "mid-size company", "open source project"]
-        }
-    
+
     def generate_question(self, 
                          topic: Optional[str] = None, 
                          difficulty: Optional[str] = None,
+                         question_type: str = "tf", # Default to true/false for now
                          include_context: bool = True) -> Dict[str, Any]:
         """Generate a Kubernetes question with specified parameters"""
         
@@ -150,131 +94,13 @@ class QuestionGenerator:
         if difficulty is None:
             difficulty = random.choice(list(DifficultyLevel)).value
             
-        # Get question template
-        templates = self.question_templates.get(topic, {}).get(difficulty, [])
-        if not templates:
-            # Fallback to beginner pods if topic/difficulty combo doesn't exist
-            templates = self.question_templates[KubernetesTopics.PODS.value][DifficultyLevel.BEGINNER.value]
-            topic = KubernetesTopics.PODS.value
-            difficulty = DifficultyLevel.BEGINNER.value
+        # Use AI to generate the question
+        question = self.generate_ai_question(topic, difficulty, question_type)
         
-        template = random.choice(templates)
+        # The AI-generated question already includes context, resources, criteria, and hints
+        # The original _generate_context_variables, _get_expected_resources, _generate_success_criteria, _generate_hints, _generate_scenario_context will be removed or refactored.
         
-        # Generate context variables
-        context_vars = self._generate_context_variables()
-        
-        # Fill template with context
-        try:
-            question_text = template.format(**context_vars)
-        except KeyError:
-            # If template has variables we don't have, use as-is
-            question_text = template
-            
-        question = {
-            "id": self._generate_question_id(),
-            "topic": topic,
-            "difficulty": difficulty,
-            "question": question_text,
-            "context_variables": context_vars,
-            "expected_resources": self._get_expected_resources(topic),
-            "success_criteria": self._generate_success_criteria(topic, difficulty),
-            "hints": self._generate_hints(topic, difficulty) if difficulty in [DifficultyLevel.ADVANCED.value, DifficultyLevel.EXPERT.value] else []
-        }
-        
-        if include_context:
-            question["scenario_context"] = self._generate_scenario_context()
-            
         return question
-    
-    def _generate_context_variables(self) -> Dict[str, str]:
-        """Generate realistic context variables for question templates"""
-        return {
-            "pod_name": f"{random.choice(['web', 'api', 'worker', 'cache'])}-{random.randint(1, 999)}",
-            "deployment_name": f"{random.choice(self.contexts['applications'])}-deployment",
-            "image": random.choice(["nginx:1.21", "redis:6.2", "mysql:8.0", "node:16", "python:3.9"]),
-            "port": random.choice([80, 8080, 3000, 5000, 8000, 9000]),
-            "replicas": random.choice([2, 3, 5, 8, 10]),
-            "cpu_limit": random.choice(["100m", "200m", "500m", "1", "2"]),
-            "memory_limit": random.choice(["128Mi", "256Mi", "512Mi", "1Gi", "2Gi"]),
-            "env_var": random.choice(["DATABASE_URL", "API_KEY", "LOG_LEVEL", "PORT", "NODE_ENV"]),
-            "env_value": random.choice(["production", "development", "info", "debug", "8080"]),
-            "sidecar_image": random.choice(["fluent/fluent-bit:1.8", "grafana/promtail:2.4.0"])
-        }
-    
-    def _get_expected_resources(self, topic: str) -> List[str]:
-        """Return expected Kubernetes resources for a given topic"""
-        resource_mapping = {
-            KubernetesTopics.PODS.value: ["Pod"],
-            KubernetesTopics.DEPLOYMENTS.value: ["Deployment"],
-            KubernetesTopics.SERVICES.value: ["Service"],
-            KubernetesTopics.INGRESS.value: ["Ingress"],
-            KubernetesTopics.CONFIGMAPS.value: ["ConfigMap"],
-            KubernetesTopics.SECRETS.value: ["Secret"],
-            KubernetesTopics.RBAC.value: ["Role", "RoleBinding", "ServiceAccount"],
-            KubernetesTopics.VOLUMES.value: ["PersistentVolume", "PersistentVolumeClaim"],
-            KubernetesTopics.NETWORKING.value: ["NetworkPolicy"],
-            KubernetesTopics.MONITORING.value: ["ServiceMonitor", "PodMonitor"],
-        }
-        return resource_mapping.get(topic, ["Pod"])
-    
-    def _generate_success_criteria(self, topic: str, difficulty: str) -> List[str]:
-        """Generate success criteria for grading"""
-        base_criteria = [
-            "YAML syntax is valid",
-            "Required Kubernetes resources are defined",
-            "Resource specifications are complete"
-        ]
-        
-        if difficulty in [DifficultyLevel.INTERMEDIATE.value, DifficultyLevel.ADVANCED.value]:
-            base_criteria.extend([
-                "Best practices are followed",
-                "Resource limits and requests are specified",
-                "Labels and selectors are properly configured"
-            ])
-            
-        if difficulty == DifficultyLevel.ADVANCED.value:
-            base_criteria.extend([
-                "Security contexts are properly configured",
-                "Advanced features are correctly implemented",
-                "Solution demonstrates deep Kubernetes knowledge"
-            ])
-            
-        return base_criteria
-    
-    def _generate_hints(self, topic: str, difficulty: str) -> List[str]:
-        """Generate hints for complex questions"""
-        hints = {
-            KubernetesTopics.PODS.value: [
-                "Remember to specify resource requests and limits",
-                "Consider adding readiness and liveness probes",
-                "Don't forget to set appropriate security contexts"
-            ],
-            KubernetesTopics.DEPLOYMENTS.value: [
-                "Configure rolling update strategy parameters",
-                "Add proper labels for service selection",
-                "Consider pod disruption budgets for availability"
-            ],
-            KubernetesTopics.SECURITY.value: [
-                "Use non-root users when possible",
-                "Implement principle of least privilege",
-                "Consider network policies for traffic control"
-            ]
-        }
-        return random.sample(hints.get(topic, hints[KubernetesTopics.PODS.value]), min(2, len(hints.get(topic, []))))
-    
-    def _generate_scenario_context(self) -> Dict[str, str]:
-        """Generate realistic scenario context"""
-        return {
-            "environment": random.choice(self.contexts["environments"]),
-            "industry": random.choice(self.contexts["industries"]),
-            "team_size": random.choice(self.contexts["team_sizes"]),
-            "constraints": random.choice([
-                "Cost optimization is critical",
-                "High availability is required",
-                "Security compliance is mandatory",
-                "Fast deployment is essential"
-            ])
-        }
     
     def _generate_question_id(self) -> str:
         """Generate unique question ID"""
@@ -294,6 +120,68 @@ class QuestionGenerator:
         """Save generated questions to JSON file"""
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(questions, f, indent=2, ensure_ascii=False)
+    # Static definitions for TF and vocab questions
+    VOCAB_DEFINITIONS = {
+        "pod": "the smallest deployable unit in Kubernetes",
+        "deployment": "an abstraction for managing a set of identical Pods",
+        "service": "an abstraction which defines a logical set of Pods and a policy to access them",
+        "configmap": "a key-value store for configuration data",
+        "secret": "an object to store sensitive information securely",
+        "ingress": "a collection of rules that allow inbound connections to reach cluster services",
+        "namespace": "a virtual cluster for logical partitioning",
+        "volume": "a directory containing data accessible to containers in a Pod",
+        "node": "a worker machine in Kubernetes",
+        "statefulset": "a controller for stateful applications"
+    }
+
+    def generate_tf_questions(self, topic: str, count: int, correct_folder: str = None) -> List[Dict[str, Any]]:
+        """Generate True/False questions based on static vocabulary definitions"""
+        # Build all possible statements
+        terms = list(self.VOCAB_DEFINITIONS.items())
+        tf_items = []
+        for idx, (term, definition) in enumerate(terms):
+            tf_items.append((f"True or False: {term} is {definition}", "true"))
+            wrong_def = terms[(idx + 1) % len(terms)][1]
+            tf_items.append((f"True or False: {term} is {wrong_def}", "false"))
+        # Exclude used questions
+        used = set()
+        if correct_folder:
+            for root, _, files in os.walk(correct_folder):
+                for file in files:
+                    if file.endswith('.json'):
+                        try:
+                            data = json.load(open(os.path.join(root, file)))
+                            used.add(data.get('question', ''))
+                        except Exception:
+                            pass
+        available = [(q, a) for q, a in tf_items if q not in used]
+        random.shuffle(available)
+        selected = available[:count]
+        return [{"id": self._generate_question_id(), "topic": topic, "type": "tf", "question": q, "answer": a} for q, a in selected]
+
+    def generate_vocab_questions(self, count: int, correct_folder: str = None, topic: str = None) -> List[Dict[str, Any]]:
+        """Generate vocabulary questions based on static definitions"""
+        defs = dict(self.VOCAB_DEFINITIONS)
+        if correct_folder:
+            used = set()
+            for root, _, files in os.walk(correct_folder):
+                for file in files:
+                    if file.endswith('.json'):
+                        try:
+                            data = json.load(open(os.path.join(root, file)))
+                            used.add(data.get('answer', ''))
+                        except Exception:
+                            pass
+            for term in used:
+                defs.pop(term, None)
+        items = list(defs.items())
+        random.shuffle(items)
+        selected = items[:count]
+        return [{"id": self._generate_question_id(), "topic": term, "type": "vocab", "question": f"Which Kubernetes term matches the following definition: '{definition}'?", "answer": term} for term, definition in selected]
+
+    def generate_mcq_questions(self, topic: str, count: int) -> List[Dict[str, Any]]:
+        """Generate multiple-choice questions (stub implementation)"""
+        return [self.generate_question(topic=topic) for _ in range(count)]
 
 def main():
     """Demo usage of the question generator"""
@@ -303,23 +191,23 @@ def main():
     print("=== Single Question Examples ===")
     
     # Beginner pod question
-    question1 = generator.generate_question(topic="pods", difficulty="beginner")
+    question1 = generator.generate_question(topic="pods", difficulty="beginner", question_type="true/false")
     print(f"Beginner Pod Question: {question1['question']}")
     print(f"Success Criteria: {question1['success_criteria']}")
     print()
     
     # Advanced deployment question  
-    question2 = generator.generate_question(topic="deployments", difficulty="advanced")
+    question2 = generator.generate_question(topic="deployments", difficulty="advanced", question_type="multiple choice")
     print(f"Advanced Deployment Question: {question2['question']}")
     print(f"Hints: {question2['hints']}")
     print()
     
     # Generate a question set
     print("=== Question Set Generation ===")
-    question_set = generator.generate_question_set(count=5, difficulty="intermediate")
+    question_set = generator.generate_question_set(count=2, difficulty="intermediate", question_type="short answer")
     
     for i, q in enumerate(question_set, 1):
-        print(f"{i}. [{q['topic'].title()}] {q['question']}")
+        print(f"{i}. [{q['topic'].title()}] {q['question']}\n   Expected Resources: {q['expected_resources']}\n   Success Criteria: {q['success_criteria']}\n   Hints: {q['hints']}")
     
     # Save to file
     generator.save_questions_to_file(question_set, "sample_questions.json")
