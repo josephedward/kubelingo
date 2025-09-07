@@ -1,0 +1,8 @@
+{
+    "question": "In Kubernetes, the `kubectl port-forward` command is used to expose a pod's port to the local machine for direct access.",
+    "answer": "true",
+    "id": "de5928cf",
+    "topic": "networking_utilities",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

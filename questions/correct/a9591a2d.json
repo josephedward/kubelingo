@@ -1,0 +1,8 @@
+{
+    "question": "In Kubernetes, the 'net-tools' package is commonly used for troubleshooting network-related issues within pods.",
+    "answer": "false",
+    "id": "a9591a2d",
+    "topic": "networking_utilities",
+    "question_type": "true/false",
+    "user_answer": "false"
+}

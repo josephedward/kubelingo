@@ -1,0 +1,8 @@
+{
+    "question": "In Kubernetes, the 'kubectl port-forward' command can be used to forward traffic from a local machine to a pod running in the cluster.",
+    "answer": "true",
+    "id": "75fbf92b",
+    "topic": "networking_utilities",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

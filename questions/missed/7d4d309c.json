@@ -1,0 +1,7 @@
+{
+    "question": "In Kubernetes, a resource_reference is a way to specify a resource within the same namespace or in a different namespace. What is the term used to refer to this specific resource identifier?",
+    "answer": "Name",
+    "id": "7d4d309c",
+    "topic": "resource_reference",
+    "question_type": "vocabulary"
+}
