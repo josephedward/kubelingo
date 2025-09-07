@@ -33,7 +33,7 @@ def mock_ai_chat_tf(monkeypatch):
             "success_criteria": ["Answer is true"],
             "hints": []
         })
-    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+    monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
 
 @pytest.fixture
 def mock_ai_chat_vocab(monkeypatch):
@@ -49,7 +49,7 @@ def mock_ai_chat_vocab(monkeypatch):
             "success_criteria": ["Definition is accurate"],
             "hints": []
         })
-    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+    monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
 
 @pytest.fixture
 def mock_ai_chat_mcq(monkeypatch):
@@ -343,7 +343,7 @@ def mock_ai_chat_imperative(monkeypatch):
             "difficulty": "easy",
             "explanation": "This command lists all pods in the default namespace."
         })
-    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+    monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
 
 @pytest.fixture
 def mock_ai_chat_declarative(monkeypatch):
@@ -357,7 +357,7 @@ def mock_ai_chat_declarative(monkeypatch):
             "difficulty": "medium",
             "explanation": "This manifest defines a simple Pod."
         })
-    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+    monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
 
 
 def test_imperative_quiz_flow_correct_answer(
