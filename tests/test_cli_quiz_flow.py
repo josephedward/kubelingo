@@ -67,6 +67,9 @@ def mock_ai_chat_mcq(monkeypatch):
             "hints": []
         })
     monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
+
+@pytest.fixture
+def mock_inquirer_select(monkeypatch):
     # Mock inquirer.select for topic selection and post-answer menu
     mock_select = MagicMock()
     monkeypatch.setattr(inquirer, 'select', mock_select)
