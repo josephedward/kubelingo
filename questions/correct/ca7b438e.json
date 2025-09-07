@@ -1,0 +1,9 @@
+{
+    "question": "In Kubernetes, using imperative commands is the recommended approach for managing resources over the declarative approach.",
+    "answer": "false",
+    "suggested_answer": "false",
+    "id": "ca7b438e",
+    "topic": "imperative_vs_declarative",
+    "question_type": "true/false",
+    "user_answer": "false"
+}

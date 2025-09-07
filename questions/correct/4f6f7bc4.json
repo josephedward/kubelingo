@@ -1,0 +1,11 @@
+{
+    "question": "How can you list all services in the 'development' namespace in Kubernetes?",
+    "answer": "kubectl get services -n development",
+    "explanation": "This command uses 'kubectl get services' to list all services in the specified namespace '-n development'.",
+    "suggested_answer": "kubectl get services -n development",
+    "id": "4f6f7bc4",
+    "topic": "services",
+    "question_type": "command",
+    "user_answer": "k get services -n development",
+    "ai_feedback": "Your answer is almost correct, but it is missing the `kubectl` command at the beginning. Remember that `kubectl` is the command-line tool used to interact with Kubernetes clusters. So the correct command should be `kubectl get services -n development`. Make sure to include `kubectl` at the beginning of your command to ensure it runs successfully."
+}

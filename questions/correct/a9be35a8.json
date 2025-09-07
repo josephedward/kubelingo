@@ -1,0 +1,16 @@
+{
+    "question": "Which Kubernetes resource is used to group objects based on key-value pairs and is primarily used for querying and selecting resources?",
+    "options": [
+        "Pods",
+        "Services",
+        "Deployments",
+        "Labels"
+    ],
+    "answer": "Labels",
+    "suggested_answer": "Labels",
+    "id": "a9be35a8",
+    "topic": "labels_annotations_selectors",
+    "question_type": "multiple choice",
+    "user_answer": "4. labels",
+    "ai_feedback": "Your answer is partially correct as you mentioned \"labels,\" but it lacks context and explanation. It would be more accurate and complete if you had provided a brief description of labels in Kubernetes, such as how they are key-value pairs attached to objects and used for grouping, querying, and selecting resources. Additionally, the numbering \"4.\" is unnecessary in this context. Remember to always provide clear and concise explanations in your responses."
+}
