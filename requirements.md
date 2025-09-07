@@ -125,3 +125,10 @@ question_flow:
 	• Parse the JSON response into your question dicts with keys id, topic, type: 'tf', question (starting “True or False: …”) and answer ('true' or 'false')
 	• Filter out any questions already in correct_folder
 
+question_generator
+- vocab definitions are repeated twice 
+- vocab definitions are far too simple; to truly cover the k8s API would require thousands and thousands of entries
+- difficulty is not even a concept in the current implementation of the quiz
+- static rules are going to produce results that are far too simplisitic
+- all of these functions must use AI to get the proper level of detail  
+- use advanced tooling specfied in docs/general_instructions.md
