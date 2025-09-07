@@ -25,18 +25,19 @@
 	+  all providers must work across all types and topics
 
 
-- Quiz Menu
+- Type Menu
 	+ True/False
 	+ Vocab
 	+ Multiple Choice 
 	+ Imperative (Commands)
 	+ Declarative (Manifests)
 	+ Stored 
+	+ Back
 
 - Subject Matters
  	+ api_discovery_docs, app_configuration, commands_args_env, configmap, core_workloads, deployment, helm_basics, image_registry_use, imperative_vs_declarative ingress_http_routing, jobs_cronjobs, kubectl_common_operations, kubectl_operations, labels_annotations_selectors, linux_commands_syntax, logging, namespaces_contexts, networking_utilities, observability_troubleshooting, persistence, pod_design_patterns, probes_health, pvc, resource_management, resource_reference, scheduling_hints, secrets, security_basics, service_accounts_in_apps, services, rbac, monitoring, troubleshooting
 	+ questions need to be more specific to the domain, and more detailed - individual flags for resources, low-level 
-
+	+ should also have a 'back' option
 
 - Questions must be complex and varied; cannot be repetitive 
 
