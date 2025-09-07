@@ -16,9 +16,9 @@ except ImportError:
     pass
 
 try:
-    from cli import ai_chat
+    from kubelingo.cli import ai_chat
 except ImportError:
-    print("Error: Cannot import ai_chat from cli.py. Run this script from the project root.")
+    print("Error: Cannot import ai_chat from kubelingo.cli. Run this script from the project root.")
     sys.exit(1)
 
 def main():
