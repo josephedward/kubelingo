@@ -46,7 +46,7 @@ def test_generate_trivia_ai_fallback_message(monkeypatch, capsys):
     # Capture output
     captured = capsys.readouterr().out
     # Expect generic fallback message
-    assert "AI generation failed. Please try the static quiz mode via 'Static' option." in captured
+    assert "AI generation failed. Please try the stored quiz mode via 'Stored' option." in captured
     # Should not mention any provider name such as 'gemini' or 'openai'
     lower = captured.lower()
     assert 'gemini' not in lower
@@ -112,4 +112,4 @@ def test_generate_trivia_ai_malformed_json_fallback(monkeypatch, capsys):
     captured = capsys.readouterr().out
 
     # Assert that the AI generation failed message is present
-    assert "AI generation failed. Please try the static quiz mode via 'Static' option." in captured
+    assert "AI generation failed. Please try the stored quiz mode via 'Stored' option." in captured
