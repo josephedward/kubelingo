@@ -1,6 +1,6 @@
 import os
 import pytest
-import cli
+import kubelingo.cli as cli
 from InquirerPy import inquirer
 
 @pytest.fixture(autouse=True)

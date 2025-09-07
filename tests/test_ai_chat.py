@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import MagicMock, patch
-from cli import ai_chat
+from kubelingo.llm_utils import ai_chat
 
 @patch('requests.post')
 def test_ai_chat_gemini_url(mock_post, monkeypatch):

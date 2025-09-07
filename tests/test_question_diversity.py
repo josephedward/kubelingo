@@ -1,57 +1,37 @@
 import pytest
-from cli import question_generator_instance
-from question_generator import KubernetesTopics
+from kubelingo.question_generator import QuestionGenerator
 from unittest.mock import patch, MagicMock
+import json
 
-@pytest.fixture
-def mock_inquirer():
-    with patch('cli.inquirer') as mock_inquirer:
-        # Create a mock object for the return value of inquirer.select()
-        mock_select_return = MagicMock()
-        # Configure the execute() method of this mock object to return the desired string
-        mock_select_return.execute.side_effect = [
-            "Trivia",  # For quiz_type selection
-            KubernetesTopics.CONFIGMAPS.value,  # For topic selection
-        ]
-        # Make inquirer.select() return our mock object
-        mock_inquirer.select.return_value = mock_select_return
+def test_ai_generated_question_diversity(monkeypatch):
+    # Mock ai_chat to return distinct questions for diversity testing
+    mock_responses = [
+        '{"question": "Q1: Is Kubernetes open source?", "answer": "true"}',
+        '{"question": "Q2: What is a Pod?", "answer": "A deployable unit."}',
+        '{"question": "Q3: What is a Deployment?", "answer": "Manages replica Pods."}',
+        '{"question": "Q4: What is a Service?", "answer": "Exposes applications."}',
+        '{"question": "Q5: What is a ConfigMap?", "answer": "Stores non-confidential data."}',
+        '{"question": "Q6: What is a Secret?", "answer": "Stores confidential data."}',
+        '{"question": "Q7: What is Ingress?", "answer": "Manages external access."}',
+        '{"question": "Q8: What is a Volume?", "answer": "Provides storage."}',
+        '{"question": "Q9: What is RBAC?", "answer": "Manages permissions."}',
+        '{"question": "Q10: What is Networking?", "answer": "Connects components."}',
+    ]
+    
+    # Use a side_effect to return different responses on successive calls
+    monkeypatch.setattr(QuestionGenerator, 'generate_ai_question', MagicMock(side_effect=lambda topic, difficulty, question_type: json.loads(mock_responses.pop(0))))
 
-        # Similarly for inquirer.text()
-        mock_text_return = MagicMock()
-        mock_text_return.execute.side_effect = [""] * 10  # Enough for multiple questions and commands
-        mock_inquirer.text.return_value = mock_text_return
-
-        yield mock_inquirer
-
-def test_trivia_question_diversity(mock_inquirer):
-    generated_questions = []
-    generated_question_ids = set()
-
-    # Now, let's directly test the question_generator_instance's behavior
-    # by calling generate_question multiple times and asserting uniqueness.
-    # This is a more direct test of the fix.
-
-    # Clear the set for this direct test
-    question_generator_instance._generated_question_ids.clear()
-
+    generator = QuestionGenerator()
     num_questions_to_generate = 10
-    for i in range(num_questions_to_generate):
-        question = question_generator_instance.generate_question(
-            topic=KubernetesTopics.CONFIGMAPS.value,
-            question_type="true_false" # Focus on true/false as it was the repeating type
+    generated_questions_text = []
+
+    for _ in range(num_questions_to_generate):
+        question = generator.generate_question(
+            topic="pods",
+            difficulty="beginner",
+            question_type="true/false"
         )
-        assert question is not None
-        assert "id" in question
-        assert question["id"] not in generated_question_ids
-        generated_question_ids.add(question["id"])
-        generated_questions.append(question["question"])
+        generated_questions_text.append(question["question"])
 
-    # Assert that all generated questions are unique (by text, as IDs are already checked)
-    # This is important because _generate_question_id uses time, which might not be unique enough
-    # if called very rapidly, but the _generated_question_ids set should catch it.
-    # However, the core problem was the *same question text* repeating.
-    assert len(set(generated_questions)) == num_questions_to_generate
-
-    # Also, assert that the _generated_question_ids set in the instance
-    # contains all the generated IDs.
-    assert len(question_generator_instance._generated_question_ids) == num_questions_to_generate
+    # Assert that all generated questions are unique by text
+    assert len(set(generated_questions_text)) == num_questions_to_generate

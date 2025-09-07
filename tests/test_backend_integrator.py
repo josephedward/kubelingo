@@ -1,17 +1,9 @@
-import importlib.util
-from pathlib import Path
-
 import pytest
 import yaml as yaml_lib
+from kubelingo import backend_integrator
 
-# Load backend_integrator module
-module_path = Path(__file__).parent.parent / "backend_integrator.py"
-spec = importlib.util.spec_from_file_location("backend_integrator", str(module_path))
-bi_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(bi_module)
-
-BackendIntegrator = bi_module.BackendIntegrator
-BackendType = bi_module.BackendType
+BackendIntegrator = backend_integrator.BackendIntegrator
+BackendType = backend_integrator.BackendType
 
 @pytest.fixture
 def temp_env_file(tmp_path, monkeypatch):

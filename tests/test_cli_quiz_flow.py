@@ -2,8 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from InquirerPy import inquirer
 
-import cli
-from question_generator import KubernetesTopics
+import kubelingo.cli as cli
 
 class DummyPrompt:
     def __init__(self, value):
@@ -98,7 +97,7 @@ def test_trivia_flow_correct_answer_and_quit(
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
         DummyPrompt("True/False"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("pods"), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action (label for 'd')
     ]
     # Simulate user answering 'True'
@@ -141,7 +140,7 @@ def test_trivia_flow_incorrect_answer_and_retry(
     # Then selecting 'do not save question' to exit
     mock_inquirer_select.side_effect = [
         DummyPrompt("True/False"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("pods"), # Topic selection
         DummyPrompt("retry"), # Post-answer menu action
         DummyPrompt("do not save question") # Post-answer menu action to quit
     ]
@@ -175,7 +174,7 @@ def test_trivia_flow_question_menu_before_answer_and_help(
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
         DummyPrompt("True/False"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("pods"), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action
     ]
     mock_inquirer_text.side_effect = [
@@ -211,7 +210,7 @@ def test_trivia_flow_no_question_menu_after_answer(
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
         DummyPrompt("True/False"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("pods"), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action
     ]
     mock_inquirer_text.return_value = DummyPrompt("True")
@@ -255,7 +254,7 @@ def test_manifest_quiz_vim_editor(
     # then typing 'v' for vim, and 'quit' to exit the quiz loop.
     mock_inquirer_select.side_effect = [
         DummyPrompt("Manifest"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.DEPLOYMENTS.value) # Topic selection
+        DummyPrompt("deployment") # Topic selection
     ]
     mock_inquirer_text.side_effect = [
         DummyPrompt("v"), # User types 'v' for vim
@@ -282,7 +281,7 @@ def test_vocab_quiz_flow_correct_answer(
     # Simulate user selecting 'Vocab' and 'pods'
     mock_inquirer_select.side_effect = [
         DummyPrompt("Vocab"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("pods"), # Topic selection
         DummyPrompt("1"), # How many questions
         DummyPrompt("do not save question") # Post-answer menu action
     ]
@@ -309,7 +308,7 @@ def test_mcq_quiz_flow_correct_answer(
     # Simulate user selecting 'Multiple Choice' and 'general'
     mock_inquirer_select.side_effect = [
         DummyPrompt("Multiple Choice"), # Quiz type selection
-        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection (can be any, as mock_ai_chat_mcq is generic)
+        DummyPrompt("pods"), # Topic selection (can be any, as mock_ai_chat_mcq is generic)
         DummyPrompt("1"), # How many questions
         DummyPrompt("do not save question") # Post-answer menu action
     ]

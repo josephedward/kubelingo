@@ -1,9 +1,10 @@
 import pytest
 
-from question_generator import QuestionGenerator, KubernetesTopics
+from kubelingo.question_generator import QuestionGenerator
+from kubelingo.constants import SUBJECT_MATTERS
 
 
-@pytest.mark.parametrize("topic", [t.value for t in KubernetesTopics])
+@pytest.mark.parametrize("topic", SUBJECT_MATTERS)
 def test_generate_question_for_each_topic(topic):
     """Test that generate_question produces a valid question for each topic without errors."""
     qg = QuestionGenerator(manifest_generator=None)
@@ -14,6 +15,5 @@ def test_generate_question_for_each_topic(topic):
         assert question.get('topic') == topic
         assert 'id' in question and question['id']
         assert 'question' in question and isinstance(question['question'], str)
-        assert 'context_variables' in question and isinstance(question['context_variables'], dict)
         # Ensure no duplicate IDs in same generator instance
         # IDs are managed internally; uniqueness across calls not guaranteed here

@@ -4,16 +4,10 @@ import shutil
 import glob
 import pytest
 
-import cli
+import kubelingo.cli as cli
 
 
-class FakePrompt:
-    """Mimics InquirerPy prompt object with execute()"""
-    def __init__(self, value):
-        self.value = value
 
-    def execute(self):
-        return self.value
 
 
 def setup_inquirer(monkeypatch, select_vals, text_vals):

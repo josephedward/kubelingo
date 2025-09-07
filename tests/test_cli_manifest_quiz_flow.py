@@ -1,6 +1,6 @@
 import pytest
 import webbrowser
-import cli
+import kubelingo.cli as cli
 
 class FakeAnswer:
     """Fake answer for InquirerPy prompts."""
@@ -10,8 +10,8 @@ class FakeAnswer:
         return self._value
 
 def test_manifest_quiz_flow(monkeypatch, capsys):
-    # Stub generate_question to print a known manifest question and return fixed data
-    def fake_generate_question(topic, gen=None):
+    # Mock QuestionGenerator.generate_question to return fixed data
+    def mock_generate_question(topic, difficulty, question_type, include_context=True):
         # Simulate printing question with context variables
         print(f"Question: Test manifest question for {topic} [test-id]")
         print("Documentation: https://example.com/doc")
@@ -21,27 +21,29 @@ def test_manifest_quiz_flow(monkeypatch, capsys):
         return {
             'id': 'test-id',
             'topic': topic,
+            'difficulty': difficulty,
+            'question_type': question_type,
             'question': f"Test manifest question for {topic} [test-id]",
             'documentation_link': 'https://example.com/doc',
             'context_variables': {'foo': 'bar'},
             'suggested_answer': 'expected-manifest'
         }
-    monkeypatch.setattr(cli, 'generate_question', fake_generate_question)
+    monkeypatch.setattr(cli.QuestionGenerator, 'generate_question', mock_generate_question)
     # Prevent actual browser opens
     monkeypatch.setattr(webbrowser, 'open', lambda url: None)
-    # Prepare inquirer responses: select quiz type 'Manifest', select topic 'pods', then 'a' for answer, then 'c' to exit
-    select_responses = ['Manifest', 'pods']
-    text_responses = ['a', 'c']
-    def fake_select(message, *args, **kwargs):
-        if not select_responses:
-            pytest.fail(f"No more select responses for prompt: {message}")
-        return FakeAnswer(select_responses.pop(0))
-    def fake_text(message, *args, **kwargs):
-        if not text_responses:
-            pytest.fail(f"No more text responses for prompt: {message}")
-        return FakeAnswer(text_responses.pop(0))
-    monkeypatch.setattr(cli.inquirer, 'select', fake_select)
-    monkeypatch.setattr(cli.inquirer, 'text', fake_text)
+    # Prepare inquirer responses: select quiz type 'Declarative (Manifests)', select topic 'pods', difficulty 'beginner', count '1', then 'a' for answer, then 'c' to exit
+    select_responses = iter([
+        'Declarative (Manifests)', # Quiz type
+        'pods',                    # Topic
+        'beginner',                # Difficulty
+        'c'                        # Post-answer menu action (save as correct)
+    ])
+    text_responses = iter([
+        '1',                       # Number of questions
+        'a'                        # Answer
+    ])
+    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: FakeAnswer(next(select_responses)))
+    monkeypatch.setattr(cli.inquirer, 'text', lambda message: FakeAnswer(next(text_responses)))
     # Capture console.print outputs
     printed = []
     monkeypatch.setattr(cli.console, 'print', lambda *args, **kwargs: printed.append(" ".join(str(a) for a in args)))

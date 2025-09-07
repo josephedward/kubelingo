@@ -1,7 +1,7 @@
 import json
 import pytest
 
-import cli
+import kubelingo.cli as cli
 
 
 class DummyPrompt:
@@ -25,14 +25,23 @@ def test_generate_trivia_ai_fallback_message(monkeypatch, capsys):
     When ai_chat returns non-JSON, generate_trivia should print a generic fallback message
     and not include any provider-specific name.
     """
-    # Simulate selecting 'pods' topic
-    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices: DummyPrompt('pods'))
+    # Simulate user selecting quiz type, topic, difficulty, and number of questions
+    select_choices = iter([
+        "True/False",  # Quiz type
+        "pods",        # Topic
+        "beginner"     # Difficulty
+    ])
+    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
+    monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt("1")) # Number of questions
+
     # Simulate ai_chat returning an empty string (failure to parse)
-    monkeypatch.setattr(cli, 'ai_chat', lambda *args, **kwargs: "")
-    # Simulate answering 'q' to exit static fallback mode
-    monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt('q'))
-    # Run trivia generation
-    cli.generate_trivia(topic='pods')
+    monkeypatch.setattr(cli.llm_utils, 'ai_chat', lambda *args, **kwargs: "")
+
+    # Simulate answering 'q' to exit quiz session
+    monkeypatch.setattr(cli, 'post_answer_menu', lambda: 'q')
+
+    # Run the quiz menu
+    cli.quiz_menu()
     # Capture output
     captured = capsys.readouterr().out
     # Expect generic fallback message
@@ -81,15 +90,23 @@ def test_generate_trivia_ai_malformed_json_fallback(monkeypatch, capsys):
     """
     When ai_chat returns malformed JSON, generate_trivia should print the AI generation failed message.
     """
-    # Simulate selecting 'pods' topic
-    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices: DummyPrompt('pods'))
-    # Simulate ai_chat returning malformed JSON
-    monkeypatch.setattr(cli, 'ai_chat', lambda *args, **kwargs: "{invalid_json")
-    # Simulate answering 'q' to exit static fallback mode
-    monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt('q'))
+    # Simulate user selecting quiz type, topic, difficulty, and number of questions
+    select_choices = iter([
+        "True/False",  # Quiz type
+        "pods",        # Topic
+        "beginner"     # Difficulty
+    ])
+    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
+    monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt("1")) # Number of questions
 
-    # Run trivia generation
-    cli.generate_trivia(topic='pods')
+    # Simulate ai_chat returning malformed JSON
+    monkeypatch.setattr(cli.llm_utils, 'ai_chat', lambda *args, **kwargs: "{invalid_json")
+
+    # Simulate answering 'q' to exit quiz session
+    monkeypatch.setattr(cli, 'post_answer_menu', lambda: 'q')
+
+    # Run the quiz menu
+    cli.quiz_menu()
 
     # Capture output
     captured = capsys.readouterr().out

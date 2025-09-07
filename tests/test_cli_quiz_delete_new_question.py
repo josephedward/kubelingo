@@ -1,7 +1,7 @@
 import pytest
 from InquirerPy import inquirer
 
-import cli
+import kubelingo.cli as cli
 
 class DummyPrompt:
     """Mimics InquirerPy prompt responses."""
@@ -23,13 +23,24 @@ def mock_ai_chat(monkeypatch):
     return _mock_ai
 
 def test_delete_generates_new_question(monkeypatch, capsys, mock_ai_chat):
-    """Deleting a question should trigger a new, different trivia question."""
-    # Sequence of select inputs: quiz type, topic, post-answer action (delete)
-    selects = ['Trivia', 'pods', 'delete']
-    monkeypatch.setattr(inquirer, 'select', lambda *args, **kwargs: DummyPrompt(selects.pop(0)))
-    # Sequence of text inputs: first answer, then quit to end session
-    texts = ['wrong', 'quit']
-    monkeypatch.setattr(inquirer, 'text', lambda *args, **kwargs: DummyPrompt(texts.pop(0)))
+    """Deleting a question should trigger a new, different AI-generated question."""
+    # Sequence of select inputs: quiz type, topic, difficulty, count, post-answer action (delete)
+    selects = iter([
+        'True/False',  # Quiz type
+        'pods',        # Topic
+        'beginner',    # Difficulty
+        'delete'       # Post-answer menu action
+    ])
+    monkeypatch.setattr(inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(selects)))
+    # Sequence of text inputs: number of questions, user answer, then quit to end session
+    texts = iter([
+        '1',           # Number of questions
+        'wrong',       # User answer
+        'quit'         # Quit quiz session
+    ])
+    monkeypatch.setattr(inquirer, 'text', lambda message: DummyPrompt(next(texts)))
+    # Mock QuestionGenerator._generate_question_id to return a fixed ID
+    monkeypatch.setattr(cli.QuestionGenerator, "_generate_question_id", lambda: "test_id")
     # Run the quiz session
     cli.quiz_menu()
     out = capsys.readouterr().out

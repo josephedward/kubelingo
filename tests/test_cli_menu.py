@@ -1,52 +1,69 @@
-import pytest
-import cli
+import kubelingo.cli as cli
+from kubelingo import llm_utils
+from kubelingo.question_generator import QuestionGenerator
+import builtins
+
+class DummyPrompt:
+    def __init__(self, value):
+        self.value = value
+
+    def execute(self):
+        return self.value
 
 class FakeAnswer:
-    """Fake answer for InquirerPy text prompt."""
     def __init__(self, value):
-        self._value = value
+        self.value = value
+
     def execute(self):
-        return self._value
+        return self.value
 
-def test_print_question_menu_entries_only(monkeypatch):
-    # Capture console.print outputs
-    printed = []
-    monkeypatch.setattr(cli.console, 'print', lambda x: printed.append(x))
-    # Invoke the post-question menu print
-    cli.print_question_menu()
-    # Expect a single-line flattened menu
-    expected = [cli.QUESTION_MENU_LINE]
-    assert printed == expected
+def test_quiz_menu_generates_ai_question(monkeypatch, capsys):
+    # Mock inquirer.select for quiz type, topic, and difficulty
+    select_choices = iter([
+        "Start AI Quiz"  # Quiz type
+    ])
+    monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
 
-def test_generate_trivia_shows_menu_after_answer(monkeypatch):
-    # Prevent actual console output and JSON printing
-    monkeypatch.setattr(cli.console, 'print', lambda *args, **kwargs: None)
-    monkeypatch.setattr(cli.console, 'print_json', lambda *args, **kwargs: None)
+    # Mock inquirer.text for number of questions
+    monkeypatch.setattr(cli.inquirer, 'text', lambda message: FakeAnswer("1"))
+
+    # Mock input() for quiz_session
+    input_choices = iter([
+        "a", # Answer the question
+        "s", # Select source option
+        "q"  # Quit the quiz session
+    ])
+    monkeypatch.setattr(builtins, 'input', lambda: next(input_choices))
 
     # Mock ai_chat to return a valid question
     def mock_ai_chat(system_prompt, user_prompt):
-        return '{"type": "tf", "question": "Test question", "answer": "true"}'
-    monkeypatch.setattr(cli, "ai_chat", mock_ai_chat)
+        return '{"question": "Is Kubernetes an open-source container orchestration system?", "expected_resources": ["None"], "success_criteria": ["Answer is true"], "hints": ["Think about its origin"]}'
+    monkeypatch.setattr(llm_utils, "ai_chat", mock_ai_chat)
 
-    # Record call order for text prompt and menu print
-    order = []
-    # Fake text prompt to simulate user entering 'true'
-    def fake_text(message):
-        order.append('text')
-        return FakeAnswer('true')
-    monkeypatch.setattr(cli.inquirer, 'text', fake_text)
+    # Mock QuestionGenerator
+    class MockQuestionGenerator:
+        def generate_question_set(self, count):
+            return [{
+                "question": "Is Kubernetes an open-source container orchestration system?",
+                "choices": [],
+                "answer": "True",
+                "suggested_answer": "True",
+                "source": "generated",
+                "id": "test_id"
+            }]
+        def _generate_question_id(self):
+            return "test_id"
 
-    # Fake post-answer menu selection via inquirer.select
-    def fake_select(message, choices):
-        order.append('menu')
-        class DummySelect:
-            def execute(self):
-                return 'retry'
-        return DummySelect()
-    monkeypatch.setattr(cli.inquirer, 'select', fake_select)
+    monkeypatch.setattr(cli, "QuestionGenerator", MockQuestionGenerator)
 
-    # Run trivia generator with a known topic to skip topic selection
-    cli.generate_trivia(topic='pods')
+    # Mock QuestionGenerator._generate_question_id to return a fixed ID
+    monkeypatch.setattr(cli.QuestionGenerator, "_generate_question_id", lambda: "test_id")
 
-    # Ensure the answer prompt occurred before the menu was shown
-    assert order[:2] == ['text', 'menu'], f"Expected text before menu, got {order}"
+    # Run the quiz menu
+    cli.quiz_menu()
+
+    # Capture output
+    captured = capsys.readouterr().out
+
+    # Assert that the question is displayed
+    assert "Question: Is Kubernetes an open-source container orchestration system?" in captured

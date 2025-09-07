@@ -1,4 +1,3 @@
-
 import pytest
 from unittest.mock import patch, MagicMock
 from kubelingo import cli
@@ -9,6 +8,13 @@ MOCK_QUESTION = {
     'suggested_answer': 'The smallest deployable unit in Kubernetes.',
     'source': 'Kubernetes Docs'
 }
+
+class DummyPrompt:
+    """Simple dummy to simulate InquirerPy prompt execution."""
+    def __init__(self, value):
+        self.value = value
+    def execute(self):
+        return self.value
 
 @pytest.mark.parametrize("menu_choice", [
     "True/False",
@@ -37,8 +43,15 @@ def test_quiz_menu_flow_standardization(menu_choice):
 
         # Configure mocks
         mock_select_instance = MagicMock()
-        mock_select_instance.execute.return_value = menu_choice
-        mock_select.return_value = mock_select_instance
+        # Simulate the sequence of select calls: quiz type, topic, difficulty
+        if menu_choice in ["True/False", "Vocab", "Multiple Choice", "Imperative (Commands)", "Declarative (Manifests)"]:
+            mock_select.side_effect = [
+                DummyPrompt(menu_choice), # Quiz type
+                DummyPrompt('some_topic'), # Topic
+                DummyPrompt('beginner')    # Difficulty
+            ]
+        else:
+            mock_select.return_value = DummyPrompt(menu_choice)
         
         mock_inquirer_text_instance = MagicMock()
         mock_inquirer_text_instance.execute.return_value = '1'
@@ -46,9 +59,7 @@ def test_quiz_menu_flow_standardization(menu_choice):
         
         # Mock the question generator to return a single question
         mock_generator_instance = MagicMock()
-        mock_generator_instance.generate_tf_questions.return_value = [MOCK_QUESTION]
-        mock_generator_instance.generate_vocab_questions.return_value = [MOCK_QUESTION]
-        mock_generator_instance.generate_mcq_questions.return_value = [MOCK_QUESTION]
+        mock_generator_instance.generate_question_set.return_value = [MOCK_QUESTION]
         mock_qg.return_value = mock_generator_instance
 
         # Call the function under test

@@ -1,19 +1,12 @@
-import json
-import importlib.util
-from pathlib import Path
-
 import pytest
+import json
+import yaml as yaml_lib
+from kubelingo import grader
 
-# Load grader module
-module_path = Path(__file__).parent.parent / "grader.py"
-spec = importlib.util.spec_from_file_location("grader", str(module_path))
-grad_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(grad_module)
-
-StaticValidator = grad_module.StaticValidator
-AIEvaluator = grad_module.AIEvaluator
-StaticValidationResult = grad_module.StaticValidationResult
-AIEvaluationResult = grad_module.AIEvaluationResult
+StaticValidator = grader.StaticValidator
+AIEvaluator = grader.AIEvaluator
+StaticValidationResult = grader.StaticValidationResult
+AIEvaluationResult = grader.AIEvaluationResult
 
 def test_validate_yaml_syntax_valid():
     validator = StaticValidator()

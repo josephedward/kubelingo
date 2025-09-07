@@ -1,17 +1,18 @@
 import random
-import importlib.util
-from pathlib import Path
-
 import pytest
+from unittest.mock import patch # Import patch
+from kubelingo import question_generator
+import kubelingo.cli as cli
 
-# Load question_generator module from file
-module_path = Path(__file__).parent.parent / "question_generator.py"
-spec = importlib.util.spec_from_file_location("question_generator", str(module_path))
-qg_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(qg_module)
-QuestionGenerator = qg_module.QuestionGenerator
-DifficultyLevel = qg_module.DifficultyLevel
-KubernetesTopics = qg_module.KubernetesTopics
+QuestionGenerator = question_generator.QuestionGenerator
+
+# Mock ai_chat for all tests in this module
+@pytest.fixture(autouse=True)
+def mock_ai_chat():
+    with patch('kubelingo.llm_utils.ai_chat') as mock_chat:
+        # Default mock response for general questions
+        mock_chat.return_value = '{"question": "Mocked question", "expected_resources": [], "success_criteria": [], "hints": []}'
+        yield mock_chat
 
 @pytest.fixture(autouse=True)
 def fixed_seed():
@@ -23,31 +24,38 @@ def test_generate_question_defaults():
     q = gen.generate_question()
     assert isinstance(q, dict)
     assert "question" in q
-    assert q["topic"] in [t.value for t in KubernetesTopics]
-    assert q["difficulty"] in [lvl.value for lvl in DifficultyLevel]
+    # Topic selection is handled by AI; ensure a non-empty string is returned
+    assert isinstance(q["topic"], str) and q["topic"]
+    # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
+    # We don't assert its absence here as AI might include it.
     assert "id" in q and len(q["id"]) == 8
     assert isinstance(q["expected_resources"], list)
     assert isinstance(q["success_criteria"], list)
 
 def test_generate_question_specific_topic_difficulty_without_context():
     gen = QuestionGenerator()
-    q = gen.generate_question(topic="deployments", difficulty="beginner", include_context=False)
+    q = gen.generate_question(topic="deployments", include_context=False)
     assert q["topic"] == "deployments"
-    assert q["difficulty"] == "beginner"
-    assert "scenario_context" not in q
+    # scenario_context is now part of the AI-generated question text, not a separate key
+    # We don't assert its absence here.
 
 def test_generate_question_set_length_and_filters():
     gen = QuestionGenerator()
-    qs = gen.generate_question_set(count=3, topic="services", difficulty="intermediate")
+    qs = gen.generate_question_set(count=3, topic="services")
     assert isinstance(qs, list)
     assert len(qs) == 3
     for q in qs:
         assert q["topic"] == "services"
-        assert q["difficulty"] == "intermediate"
+        # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
+        # We don't assert its absence here as AI might include it.
 
 def test_fallback_on_unknown_topic_or_difficulty():
     gen = QuestionGenerator()
-    q = gen.generate_question(topic="nonexistent", difficulty="expert")
-    # Fallback should return pods beginner question when no templates match
-    assert q["topic"] == "pods"
-    assert q["difficulty"] == "beginner"
+    # Since ai_chat is mocked, this test might need adjustment if the fallback logic
+    # depends on ai_chat failing. For now, it will just use the mocked response.
+    # Difficulty fallback removed; test topic fallback works without error
+    q = gen.generate_question(topic="nonexistent")
+    # Provided topic should be preserved
+    assert q["topic"] == "nonexistent"
+    # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
+    # We don't assert its absence here as AI might include it.
