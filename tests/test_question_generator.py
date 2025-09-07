@@ -41,7 +41,7 @@ def test_generate_question_specific_topic_difficulty_without_context():
 
 def test_generate_question_set_length_and_filters():
     gen = QuestionGenerator()
-    qs = gen.generate_question_set(count=3, topic="services")
+    qs = gen.generate_question_set(count=3, subject_matter="services")
     assert isinstance(qs, list)
     assert len(qs) == 3
     for q in qs:
