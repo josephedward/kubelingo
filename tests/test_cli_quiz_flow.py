@@ -22,14 +22,49 @@ def isolate_last_generated_q(monkeypatch):
 def mock_ai_chat_tf(monkeypatch):
     # Mock ai_chat to return a True/False question
     def _mock_ai_chat(system_prompt, user_prompt):
-        return '{"type": "tf", "question": "True or False: Kubernetes is open source.", "answer": "true"}'
+        return json.dumps({
+            "question": "True or False: Kubernetes is open source.",
+            "answer": "true",
+            "type": "tf",
+            "topic": "general",
+            "difficulty": "beginner",
+            "expected_resources": [],
+            "success_criteria": ["Answer is true"],
+            "hints": []
+        })
     monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
 
 @pytest.fixture
 def mock_ai_chat_vocab(monkeypatch):
     # Mock ai_chat to return a vocab question
     def _mock_ai_chat(system_prompt, user_prompt):
-        return '{"type": "vocab", "question": "What is a Pod?", "answer": "Smallest deployable unit"}'
+        return json.dumps({
+            "question": "What is a Pod?",
+            "answer": "Smallest deployable unit in Kubernetes.",
+            "type": "vocab",
+            "topic": "pods",
+            "difficulty": "beginner",
+            "expected_resources": ["Pod"],
+            "success_criteria": ["Definition is accurate"],
+            "hints": []
+        })
+    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+
+@pytest.fixture
+def mock_ai_chat_mcq(monkeypatch):
+    # Mock ai_chat to return a Multiple Choice question
+    def _mock_ai_chat(system_prompt, user_prompt):
+        return json.dumps({
+            "question": "Which of the following is NOT a core Kubernetes object?",
+            "answer": "Virtual Machine",
+            "type": "mcq",
+            "topic": "general",
+            "difficulty": "intermediate",
+            "choices": ["Pod", "Service", "Deployment", "Virtual Machine"],
+            "expected_resources": [],
+            "success_criteria": ["Correct option is selected"],
+            "hints": []
+        })
     monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
 
 @pytest.fixture
@@ -62,7 +97,7 @@ def test_trivia_flow_correct_answer_and_quit(
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
-        DummyPrompt("Trivia"), # Quiz type selection
+        DummyPrompt("True/False"), # Quiz type selection
         DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action (label for 'd')
     ]
@@ -105,7 +140,7 @@ def test_trivia_flow_incorrect_answer_and_retry(
     # Then answering 'True' (correct)
     # Then selecting 'do not save question' to exit
     mock_inquirer_select.side_effect = [
-        DummyPrompt("Trivia"), # Quiz type selection
+        DummyPrompt("True/False"), # Quiz type selection
         DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
         DummyPrompt("retry"), # Post-answer menu action
         DummyPrompt("do not save question") # Post-answer menu action to quit
@@ -139,7 +174,7 @@ def test_trivia_flow_question_menu_before_answer_and_help(
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
-        DummyPrompt("Trivia"), # Quiz type selection
+        DummyPrompt("True/False"), # Quiz type selection
         DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action
     ]
@@ -175,7 +210,7 @@ def test_trivia_flow_no_question_menu_after_answer(
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
-        DummyPrompt("Trivia"), # Quiz type selection
+        DummyPrompt("True/False"), # Quiz type selection
         DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
         DummyPrompt("do not save question") # Post-answer menu action
     ]
@@ -238,3 +273,57 @@ def test_manifest_quiz_vim_editor(
     assert "Manifest edited:" in captured.out
     assert "apiVersion: v1\nkind: Pod" in captured.out # Verify content from mock is printed
     assert "No manifest to edit in this mode." not in captured.out # Ensure old message is gone
+
+def test_vocab_quiz_flow_correct_answer(
+    capsys, mock_ai_chat_vocab, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+):
+    mock_q_menu, mock_a_menu = mock_print_menus
+
+    # Simulate user selecting 'Vocab' and 'pods'
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Vocab"), # Quiz type selection
+        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection
+        DummyPrompt("1"), # How many questions
+        DummyPrompt("do not save question") # Post-answer menu action
+    ]
+    # Simulate user answering 'Smallest deployable unit in Kubernetes.'
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions
+        DummyPrompt("Smallest deployable unit in Kubernetes.") # User answer
+    ]
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    assert "Question: What is a Pod?" in captured.out
+    assert "Correct!" in captured.out
+    mock_q_menu.assert_called_once()
+    mock_a_menu.assert_called_once()
+
+def test_mcq_quiz_flow_correct_answer(
+    capsys, mock_ai_chat_mcq, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+):
+    mock_q_menu, mock_a_menu = mock_print_menus
+
+    # Simulate user selecting 'Multiple Choice' and 'general'
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Multiple Choice"), # Quiz type selection
+        DummyPrompt(KubernetesTopics.PODS.value), # Topic selection (can be any, as mock_ai_chat_mcq is generic)
+        DummyPrompt("1"), # How many questions
+        DummyPrompt("do not save question") # Post-answer menu action
+    ]
+    # Simulate user answering 'Virtual Machine' (which is the correct answer in the mock)
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions
+        DummyPrompt("Virtual Machine") # User answer
+    ]
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    assert "Question: Which of the following is NOT a core Kubernetes object?" in captured.out
+    assert "Correct!" in captured.out
+    mock_q_menu.assert_called_once()
+    mock_a_menu.assert_called_once()
