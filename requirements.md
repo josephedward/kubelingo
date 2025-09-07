@@ -1,3 +1,5 @@
+- There is no root-level cli.py, only kubelingo/cli.py
+
 - Menu must be colored.  
 
 - Questions must be complex and varied; cannot be repetitive 
@@ -31,7 +33,8 @@
 
 
 - Subject Matters
- 	api_discovery_docs, app_configuration, commands_args_env, configmap, core_workloads, deployment, helm_basics, image_registry_use, imperative_vs_declarative, ingress_http_routing, jobs_cronjobs, kubectl_common_operations, kubectl_operations, labels_annotations_selectors, linux_commands_syntax, logging, namespaces_contexts, networking_utilities, observability_troubleshooting, persistence, pod_design_patterns, probes_health, pvc, resource_management, resource_reference, scheduling_hints, secrets, security_basics, service_accounts_in_apps, services, rbac, monitoring, troubleshooting
+ 	+ api_discovery_docs, app_configuration, commands_args_env, configmap, core_workloads, deployment, helm_basics, image_registry_use, imperative_vs_declarative ingress_http_routing, jobs_cronjobs, kubectl_common_operations, kubectl_operations, labels_annotations_selectors, linux_commands_syntax, logging, namespaces_contexts, networking_utilities, observability_troubleshooting, persistence, pod_design_patterns, probes_health, pvc, resource_management, resource_reference, scheduling_hints, secrets, security_basics, service_accounts_in_apps, services, rbac, monitoring, troubleshooting
+	+ questions need to be more specific to the domain, and more detailed - individual flags for resources, low-level 
 
 - Config Menu: 
 	--- API Key Configuration ---
@@ -44,6 +47,11 @@
 	  4. Choose AI Provider (current: openai)
 	  5. Back
 	? Enter your choice: 
+
+- AI providers
+	+ create scripts and test each one can generate each type of question 
+	+ 4 providers * 5 question types + 20 tests (provided of course, you have valid API keys to test with - which you should have)
+	+  all providers must work across all types and topics
 
 - Quiz Menu
 	+ True/False
@@ -88,12 +96,21 @@ Example schema for a question:
 	+ do not write the title of the menu literally
 	+ it comes right after the text of the question
 	+ quit should bring them back to the main menu 
-	+ v)im, n)ext, p)revious, a)nswer  s)ource, q)uit 
+	+ the line below the menu should be blank, a blank REPL that user can navigate like a normal CLI, users can delete or navigate back/forward with arrow keys, can scroll up to get previously input lines
+	+ when a user presses enter (or if the user quits vim), the question should be graded 
+	+ once this loop is exited, and the results/feedback is shown, we should always move directly into the post-answer menu (below)
+	+ do not want to rely on AI for verdict; but detailed AI feedback is helpful 
+	+ if the answer is verbatim the same as the suggested answer, you do not need to show AI feedback
+	+ v)im, c)lear, n)ext, p)revious, a)nswer s)ource, q)uit 
+	________________(input line)
+
+- AI feedback is shown after the user answers, before the post-answer menu
 
 - Post Answer Menu 
 	+ always comes after a question is answered)
-	+ do not want to rely on AI for verdict; but detailed AI feedback is helpful 
+	+ AI does not determine correct/missed; feedback is what is important from AI 
 	+ user chooses to save as correct or missed, or delete as a bad question 
+	+ if the answer is verbatim the same as the suggested answer, you do not need to show AI feedback
 	+ r)etry, c)orrect, m)issed, d)elete question 
 
 - kubernetes command and manifest tools
@@ -102,6 +119,9 @@ Example schema for a question:
 	+ don't worry about static evaluation 
 	+ AI feedback is a critical component
 
-- AI providers
-	+ create scripts and test each one can generate each type of question 
-	+ 4 providers * 5 question types + 20 tests (provided of course, you have valid API keys to test with - which you should have)
+question_flow: 
+	• Construct a system+user prompt (e.g. “You are a Kubernetes instructor… generate a true or false statement about <topic>…”)
+	• Call our existing ai_chat helper in a loop until we have count unique questions
+	• Parse the JSON response into your question dicts with keys id, topic, type: 'tf', question (starting “True or False: …”) and answer ('true' or 'false')
+	• Filter out any questions already in correct_folder
+
