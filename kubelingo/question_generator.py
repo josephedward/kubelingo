@@ -23,23 +23,31 @@ class QuestionGenerator:
     
     def generate_ai_question(self,
                              topic: Optional[str] = None,
-                             question_type: Optional[str] = None) -> Dict[str, Any]:
+                             question_type: Optional[str] = None,
+                             exclude_question_texts: Optional[List[str]] = None) -> Dict[str, Any]:
         if topic is None:
             topic_prompt = "Suggest a single, concise Kubernetes topic (e.g., 'pods', 'deployments', 'services'). Respond with only the topic name."
-            topic = ai_chat(topic_prompt, "").strip().lower()
+            topic = llm_utils.ai_chat(topic_prompt, "").strip().lower()
             if not topic:
-                topic = "general Kubernetes" # Fallback
+                topic = ""
 
         if question_type is None:
-            type_prompt = "Suggest a single question type from 'true/false', 'vocabulary', 'multiple choice', 'short answer'. Respond with only the type name."
-            question_type = ai_chat(type_prompt, "").strip().lower()
+            type_prompt = "Suggest a single question type (e.g., 'true/false', 'vocabulary', 'multiple choice', 'imperative', 'declarative'). Respond with only the type name."
+            question_type = llm_utils.ai_chat(type_prompt, "").strip().lower()
             if not question_type:
-                question_type = "short answer" # Fallback
+                question_type = ""
 
         """Generates a Kubernetes question using AI"""
         if question_type == "true/false":
+            exclude_instruction = ""
+            if exclude_question_texts:
+                # Escape single quotes in the question texts for the prompt
+                escaped_exclude_texts = [text.replace("'", "'\'" ) for text in exclude_question_texts]
+                exclude_instruction = f"Ensure this question is *semantically* and *structurally* significantly different from these: {escaped_exclude_texts}. Do not repeat any of these questions or their core meaning."
+
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes true/false question about {topic}.
 The question should be clear, concise, and test practical Kubernetes knowledge.
+{exclude_instruction}
 Format your response as a JSON object with the following keys:
 "question": "The generated true/false statement",
 "answer": "true" or "false"
@@ -52,9 +60,18 @@ Format your response as a JSON object with the following keys:
 "answer": "The Kubernetes term being defined"
 """
         elif question_type == "multiple choice":
+            exclude_instruction = ""
+            if exclude_question_texts:
+                # Escape single quotes in the question texts for the prompt
+                escaped_exclude_texts = [text.replace("'", "'\''" ) for text in exclude_question_texts]
+                exclude_instruction = f"Ensure this question is entirely new and distinct from these: {escaped_exclude_texts}. Focus on a different aspect or nuance of {topic} if possible. Do not rephrase existing questions."
+
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes multiple choice question about {topic}.
+
+```
 The question should be clear, concise, and test practical Kubernetes knowledge.
 Provide 4 detailed answers: one correct answer and three deceptively wrong distractors.
+{exclude_instruction}
 Format your response as a JSON object with the following keys:
 "question": "The generated multiple choice question text",
 "options": ["Option A", "Option B", "Option C", "Option D"],
@@ -74,8 +91,12 @@ Format your response as a JSON object with the following keys:
         user_prompt = f"Generate a {question_type} question about {topic}."
 
         try:
-            response_text = ai_chat(system_prompt, user_prompt)
+            print(f"DEBUG: System Prompt: {system_prompt}")
+            print(f"DEBUG: User Prompt: {user_prompt}")
+            response_text = llm_utils.ai_chat(system_prompt, user_prompt)
+            print(f"DEBUG: Raw AI Response: {response_text}")
             question_data = json.loads(response_text)
+            print(f"DEBUG: Parsed Question Data: {question_data}")
 
             # Add ID and other metadata
             question_data["id"] = self._generate_question_id()
@@ -100,26 +121,57 @@ Format your response as a JSON object with the following keys:
         self,
         topic: Optional[str] = None,
         question_type: Optional[str] = None,
-        include_context: bool = True
+        include_context: bool = True,
+        exclude_question_texts: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Generate a Kubernetes question with specified parameters."""
-        return self.generate_ai_question(topic, question_type)
+        return self.generate_ai_question(topic, question_type, exclude_question_texts)
 
 
     
     
+    def _normalize_text(self, text: str) -> str:
+        """Normalizes text for comparison (lowercase, remove punctuation)."""
+        import re
+        return re.sub(r'[^a-zA-Z0-9\s]', '', text).lower().strip()
+
     def _generate_question_id(self) -> str:
         """Generate unique question ID"""
         import hashlib
         import time
         return hashlib.md5(f"{time.time()}".encode()).hexdigest()[:8]
     
-    def generate_question_set(self, count: int = 10, **filters) -> List[Dict[str, Any]]:
-        """Generate a set of questions with optional filters"""
+    def generate_question_set(self, count: int = 10, question_type: Optional[str] = None, subject_matter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Generate a set of questions with optional filters, ensuring diversity."""
         questions: List[Dict[str, Any]] = []
-        for _ in range(count):
-            question = self.generate_question(**filters)
-            questions.append(question)
+        generated_question_texts = set()
+        retries = 0
+        max_retries_per_question = 5 # Limit retries to prevent infinite loops
+
+        while len(questions) < count and retries < count * max_retries_per_question:
+            # Pass normalized texts for exclusion
+            normalized_excluded_texts = [self._normalize_text(text.split('|')[0]) for text in generated_question_texts]
+            question = self.generate_question(topic=subject_matter, question_type=question_type, exclude_question_texts=normalized_excluded_texts)
+            
+            question_text = question.get("question")
+            question_topic = question.get("topic", "")
+            question_type_val = question.get("question_type", "")
+            
+            # Use normalized text for uniqueness check
+            normalized_question_text = self._normalize_text(question_text)
+            unique_question_id = f"{normalized_question_text}|{question_topic}|{question_type_val}"
+
+            if question_text and unique_question_id not in generated_question_texts:
+                questions.append(question)
+                generated_question_texts.add(unique_question_id)
+                retries = 0 # Reset retries for the next unique question
+            else:
+                retries += 1
+                # print(f"Duplicate or invalid question generated. Retrying... (Retries: {retries})") # For debugging
+
+        if len(questions) < count:
+            print(f"Warning: Could only generate {len(questions)} unique questions out of {count} requested.")
+
         return questions
     
     def save_questions_to_file(self, questions: List[Dict[str, Any]], filename: str):
@@ -146,7 +198,7 @@ def main():
     print(f"Question: {question1['question']}")
     print(f"Topic: {question1['topic']}")
     print(f"Type: {question1['question_type']}")
-    print()    
+    print()
     question2 = generator.generate_question()
     print(f"Question: {question2['question']}")
     print(f"Topic: {question2['topic']}")
