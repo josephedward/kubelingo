@@ -11,11 +11,12 @@ import yaml
 from InquirerPy import inquirer
 from InquirerPy.utils import get_style
 from kubelingo.importer import import_from_file
-from kubelingo.question_generator import QuestionGenerator, DifficultyLevel
+from kubelingo.question_generator import QuestionGenerator
 from rich.console import Console
 from rich.text import Text
 import requests
 from kubelingo.llm_utils import ai_chat
+from kubelingo.constants import SUBJECT_MATTERS
 
 
 # LLM providers and question types for testing and flows
@@ -49,6 +50,8 @@ KKKKKKKKK    KKKKKKK     uuuuuuuu  uuuu bbbbbbbbbbbbbbbb        eeeeeeeeeeeeee  
                                                                                                                        ggg::::::ggg
                                                                                                                           gggggg
 """
+from kubelingo.constants import SUBJECT_MATTERS
+
 # Define a custom style for InquirerPy prompts
 STYLE = get_style({
     "questionmark": "#e5c07b",
@@ -57,29 +60,6 @@ STYLE = get_style({
     "pointer": "#98c379",
     "instruction": "#abb2bf",
 }, style_override=False)
-
-# Subject matter choices as per requirements.md
-SUBJECT_MATTERS = [
-    'api_discovery_docs', 'app_configuration', 'commands_args_env', 'configmap', 'core_workloads',
-    'deployment', 'helm_basics', 'image_registry_use', 'imperative_vs_declarative', 'ingress_http_routing',
-    'jobs_cronjobs', 'kubectl_common_operations', 'kubectl_operations', 'labels_annotations_selectors',
-    'linux_commands_syntax', 'logging', 'namespaces_contexts', 'networking_utilities',
-    'observability_troubleshooting', 'persistence', 'pod_design_patterns', 'probes_health', 'pvc',
-    'resource_management', 'resource_reference', 'scheduling_hints', 'secrets', 'security_basics',
-    'service_accounts_in_apps', 'services', 'rbac', 'monitoring', 'troubleshooting'
-]
-
-def select_topic() -> str:
-    """Prompt user to select a subject matter topic."""
-    return inquirer.select(
-        message="Select subject matter:",
-        choices=SUBJECT_MATTERS,
-        style=STYLE
-    ).execute()
-
-def colorize_ascii_art(art: str) -> str:
-    """Apply any color/styling to the ASCII art (no-op placeholder)."""
-    return art
 
 def handle_post_answer(question: dict, questions: list, current_question_index: int) -> int:
     """Handle the post-answer menu and return the new question index."""
@@ -99,16 +79,22 @@ def handle_post_answer(question: dict, questions: list, current_question_index: 
         print("Question saved as missed.")
         questions.pop(current_question_index)
         return current_question_index % len(questions) if questions else None
+    elif choice == 's':
+        # display source and return to the same question
+        print(f"Source: {question.get('source', 'N/A')}")
+        return current_question_index
     elif choice == 'd':
-        # delete bad question
-        if question.get('source') != 'generated':
+        # delete or discard question
+        src = question.get('source')
+        if src and src != 'generated':
             try:
-                os.remove(question['source'])
-                print(f"Deleted question from {question['source']}")
+                os.remove(src)
+                print(f"Deleted question from {src}")
             except OSError as e:
                 print(f"Error deleting question file: {e}")
         else:
-            print("Discarding generated question.")
+            # no file to delete, just discard
+            print("Discarding question.")
         questions.pop(current_question_index)
         return current_question_index % len(questions) if questions else None
     # move to next question by default
@@ -132,11 +118,12 @@ def quiz_session(questions: list) -> None:
         question = questions[current_question_index]
 
         print(f"\nQuestion: {question['question']}")
+        
         if 'choices' in question:
             for j, choice in enumerate(question['choices']):
                 print(f"  {j+1}. {choice}")
 
-        print("v)im, c)lear, n)next, p)revious, a)nswer s)ource, q)quit")
+        print("v)im, c)lear, n)next, p)revious, a)nswer, s)ource, q)quit")
 
         user_input = input()
 
@@ -158,7 +145,8 @@ def quiz_session(questions: list) -> None:
             current_question_index = idx
             questions_answered_count += 1
         elif user_input == 's':
-            print(f"Source: {question['source']}")
+            source = question.get('source', 'N/A')
+            print(f"Source: {source}")
             continue
         elif user_input == 'v':
             print("Vim mode is not implemented yet.")
@@ -367,113 +355,109 @@ def save_question(question: dict, directory: str):
 
 def post_answer_menu() -> str:
     """Display the post-answer menu and return the user's choice."""
-    print("r)etry, c)orrect, m)issed, d)elete question")
+    print("r)etry, c)orrect, m)issed, s)ource, d)elete question")
     while True:
         choice = input().strip().lower()
-        if choice in ['r', 'c', 'm', 'd']:
+        if choice in ['r', 'c', 'm', 's', 'd']:
             return choice
         else:
             print("Invalid choice. Please try again.")
 
 def quiz_menu() -> None:
     """Display the quiz menu and start a quiz session."""
-    choice = inquirer.select(
-        message="- Quiz Menu",
-        choices=[
-            "True/False",
-            "Vocab",
-            "Multiple Choice",
-            "Imperative (Commands)",
-            "Declarative (Manifests)",
-            "Stored",
+    while True: # Loop to allow returning from subject matter selection
+        question_type_choices = [
+            "true/false",
+            "vocabulary",
+            "multiple choice",
+            "imperative",
+            "declarative",
+            "stored",
             "Back",
-        ],
-        style=STYLE
-    ).execute()
+        ]
 
-    if choice == "Back":
-        return
-
-    questions = []
-    if choice == "Stored":
-        base_dir = os.path.join(os.getcwd(), 'questions', 'stored')
-        question_files = glob.glob(os.path.join(base_dir, '*.yaml'))
-        if not question_files:
-            print(f"No questions found in the Stored category.")
-            return
-        for file_path in question_files:
-            with open(file_path, 'r') as f:
-                data = yaml.safe_load(f)
-                if isinstance(data, list):
-                    questions.extend(data)
-    elif choice in ("True/False", "Vocab", "Multiple Choice", "Imperative (Commands)", "Declarative (Manifests)"):
-        topic = select_topic()
-        difficulty = inquirer.select(
-            message="Select difficulty level:",
-            choices=[d.value for d in DifficultyLevel],
+        question_type = inquirer.select(
+            message="- Type Menu",
+            choices=question_type_choices,
             style=STYLE
         ).execute()
+
+        if question_type == "Back":
+            return
+
+        questions = []
+        if question_type == "Stored":
+            base_dir = os.path.join(os.getcwd(), 'questions', 'stored')
+            question_files = glob.glob(os.path.join(base_dir, '*.yaml'))
+            if not question_files:
+                print(f"No questions found in the Stored category.")
+                return
+            for file_path in question_files:
+                with open(file_path, 'r') as f:
+                    data = yaml.safe_load(f)
+                    if isinstance(data, list):
+                        questions.extend(data)
+            if not questions:
+                print(f"No questions found for the selected category.")
+                return
+            quiz_session(questions)
+            return # Exit quiz_menu after stored quiz session
+
+        # If not 'Stored', then ask for Subject Matters
+        subject_matter_choices = SUBJECT_MATTERS + ["Back"]
+        subject_matter = inquirer.select(
+            message="- Subject Matters",
+            choices=subject_matter_choices,
+            style=STYLE
+        ).execute()
+
+        if subject_matter == "Back":
+            continue # Go back to type selection
+
         try:
             count_str = inquirer.text(message="How many questions would you like? ").execute()
             count = int(count_str)
         except Exception:
             print("Invalid number. Returning to quiz menu.")
-            return
+            continue # Go back to type selection
+
         gen = QuestionGenerator()
-        question_type_map = {
-            "True/False": "tf",
-            "Vocab": "vocab",
-            "Multiple Choice": "mcq",
-            "Imperative (Commands)": "imperative",
-            "Declarative (Manifests)": "declarative",
-        }
-        question_type = question_type_map.get(choice, "tf") # Default to tf if not found
-        questions = gen.generate_question_set(count=count, topic=topic, difficulty=difficulty, question_type=question_type)
-    else:
-        print("This quiz type is not implemented yet.")
-        return
+        # Pass question_type and topic to generate_question_set
+        questions = gen.generate_question_set(count=count, question_type=question_type, subject_matter=subject_matter)
 
-    if not questions:
-        print(f"No questions found for the selected category.")
-        return
+        if not questions:
+            print(f"No questions found for the selected category.")
+            continue # Go back to type selection
 
-    quiz_session(questions)
+        quiz_session(questions)
+        return # Exit quiz_menu after AI quiz session
 
-def main() -> None:
-    """Display the main menu and dispatch to import."""
+
+def main():
+    """Main entry point for the Kubelingo CLI application."""
+    console = Console()
     while True:
-        # Banner disabled
-        # print(colorize_ascii_art(ASCII_ART))
+        console.print(ASCII_ART, style="bold green")
         choice = inquirer.select(
             message="Main Menu:",
-            choices=["quiz", "import", "settings", "exit"]
+            choices=[
+                "Quiz",
+                "Import",
+                "Settings",
+                "Exit"
+            ],
+            style=STYLE
         ).execute()
-        if choice.lower() == "exit":
-            print("Goodbye!")
-            sys.exit(0)
-        elif choice.lower() == "import":
-            import_menu()
-        elif choice.lower() == "settings":
-            settings_menu()
-        elif choice.lower() == "quiz":
+
+        if choice == "Quiz":
             quiz_menu()
+        elif choice == "Import":
+            import_menu()
+        elif choice == "Settings":
+            settings_menu()
+        elif choice == "Exit":
+            console.print("Exiting Kubelingo. Goodbye!", style="bold red")
+            sys.exit(0)
 
 if __name__ == "__main__":
     main()
-  
-
-def generate_command(*args, **kwargs):  # placeholder for command quiz
-    """Generate a kubectl/helm command quiz (not yet implemented)."""
-    raise NotImplementedError
-
-def answer_question(*args, **kwargs):  # placeholder for manifest answering
-    """Handle question answering for manifest quizzes (not yet implemented)."""
-    raise NotImplementedError
-
-def generate_ai_question_flow(*args, **kwargs):  # placeholder for AI flow
-    """Generate a user-specified AI question flow (not yet implemented)."""
-    raise NotImplementedError
-
-def generate_trivia(topic: str):  # placeholder for trivia flow
-    """Generate trivia for the given topic (not yet implemented)."""
-    raise AttributeError("generate_trivia not implemented")
