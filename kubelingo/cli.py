@@ -112,7 +112,12 @@ def handle_post_answer(question: dict, questions: list, current_question_index: 
         source = question.get('source', 'N/A')
         print(f"Source: {source}")
         return current_question_index # Stay on the same question
-    elif key == 'q':  # quit quiz session
+    elif key == 'q':
+        # Show next question before quitting the session
+        if questions:
+            next_index = (current_question_index + 1) % len(questions)
+            next_question = questions[next_index]
+            print(f"\nQuestion: {next_question['question']}")
         return None
     # any other key (including empty) moves to next question by default
     # move to next question by default
