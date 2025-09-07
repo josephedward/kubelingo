@@ -45,7 +45,6 @@ def test_trivia_flow_matrix_batch1(provider, qtype, topic, monkeypatch, capsys):
     monkeypatch.setattr(cli, 'ai_chat', lambda *a, **k: json.dumps(resp))
 
     # 3) Invoke the trivia generator for the given topic
-    #    Note: assumes a generate_trivia(topic) entrypoint exists
     try:
         cli.generate_trivia(topic=topic)
     except AttributeError:
