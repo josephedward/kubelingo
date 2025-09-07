@@ -41,12 +41,12 @@ KK::::::K  K:::::KKK uuuuuu    uuuuuu   b:::::bbbbbbbbb         eeeeeeeeeeee    
   K::::::K:::::K     u::::u    u::::u   b::::::::::::::::b   e::::::eeeee:::::ee l:::::l  i:::::i  n:::::::::::::nn  g::::::::::::::::g o:::::::::::::::o
   K:::::::::::K      u::::u    u::::u   b:::::bbbbb:::::::b e::::::e     e:::::e l:::::l  i:::::i  n:::::nnnn:::::n g::::::ggggg::::::g go:::::ooooo::::o
   K::::::K:::::K     u::::u    u::::u   b:::::b    b::::::b e:::::::eeeee::::::e l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o::::o
-  K:::::K K:::::K    u::::u    u::::u   b:::::b     b:::::b e:::::::::::::::::e  l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o::::o
+  K:::::K K:::::K    u::::u    u::::u   b:::::b     b:::::b e:::::::::::::::::e  l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o:::::o
   K:::::uuuu:::::u   b:::::b     b:::::b e::::::eeeeeeeeeee   l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o:::::o
 KK::::::K  K:::::KKK u:::::uuuu:::::u   b:::::b     b:::::b e:::::::e            l:::::l i:::::i  n::::n    n::::n g::::::g    g:::::g o:::::ooooo:::::o
 K:::::::K   K::::::K u:::::::::::::::uu b:::::bbbbbb::::::b e::::::::e           l:::::l i:::::i  n::::n    n::::n g:::::::ggggg:::::g o:::::ooooo:::::o
-K:::::::K    K:::::K  u:::::::::::::::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n::::n  g::::::::::::::::g o:::::::::::::::o
-K:::::::K    K:::::K   uu::::::::uu:::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n::::n   gg::::::::::::::g  oo:::::::::::oo
+K:::::::K    K:::::K  u:::::::::::::::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n:::::n   gg::::::::::::::g  oo:::::::::::oo
+K:::::::K    K:::::K   uu::::::::uu:::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n:::::n     gggggggg::::::g    ooooooooooo
 KKKKKKKKK    KKKKKKK   uuu uuuuu  uuuu bbbbbbbbbbbbbbbb        eeeeeeeeeeeeee   lllllll iiiiiii  nnnnnn    nnnnnn     gggggggg::::::g    ooooooooooo
                                                                                                                                g:::::g
                                                                                                                    gggggg      g:::::g
@@ -57,6 +57,7 @@ KKKKKKKKK    KKKKKKK   uuu uuuuu  uuuu bbbbbbbbbbbbbbbb        eeeeeeeeeeeeee   
                                                                                                                           gggggg
 """
 # End of ASCII_ART; constants imported earlier
+
 
 # Define a custom style for InquirerPy prompts
 STYLE = get_style({
@@ -193,17 +194,8 @@ def quiz_session(questions: list) -> None:
             continue
         elif user_input == 'v':
             suggested_answer = question.get('suggested_answer', '')
-            print(f"\n--- Vim Mode (Enter your edited answer below. Type 'DONE' on a new line to finish.) ---\n")
-            print(f"Suggested Answer:\n{suggested_answer}\n")
-            print("Your edited answer:")
-
-            edited_content_lines = []
-            while True:
-                line = input()
-                if line.strip().lower() == 'done':
-                    break
-                edited_content_lines.append(line)
-            user_answer = "\n".join(edited_content_lines) # Assign to user_answer directly
+            print(f"\n--- Opening editor for manifest. Save and close the file to continue. ---")
+            user_answer = _open_manifest_editor(suggested_answer) # Use the actual editor
 
             question['user_answer'] = user_answer # Update question with the user's answer
             
@@ -535,7 +527,6 @@ def quiz_menu() -> None:
             "Imperative (Commands)",
             "Declarative (Manifests)",
             "Stored",
-            "Static",
             "Back",
         ]
 
@@ -659,7 +650,7 @@ def quiz_menu() -> None:
             )
             # Check for generation failures
             if any(isinstance(q.get('question'), str) and q['question'].startswith("Failed to generate AI question") for q in questions):
-                print("AI generation failed. Please try the static quiz mode via 'Static' option.")
+                print("AI generation failed. Please try the stored quiz mode via 'Stored' option.")
                 return
             if not questions:
                 print(f"No questions generated for topic '{subject_matter}'.")
@@ -667,7 +658,6 @@ def quiz_menu() -> None:
 
         quiz_session(questions)
         return # Exit quiz_menu after session
-
 
 
 def main():
