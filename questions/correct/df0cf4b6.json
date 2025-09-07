@@ -1,0 +1,15 @@
+{
+    "id": "df0cf4b6",
+    "topic": "helm_basics",
+    "type": "mcq",
+    "question": "Which Kubernetes term matches the following definition? 'directory accessible to containers in a pod'",
+    "choices": [
+        "volume",
+        "networkpolicy",
+        "rbac",
+        "securitycontext"
+    ],
+    "answer": "volume",
+    "source": "generated",
+    "user_answer": "volume"
+}

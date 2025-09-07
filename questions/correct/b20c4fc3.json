@@ -1,0 +1,15 @@
+{
+    "id": "b20c4fc3",
+    "topic": "helm_basics",
+    "type": "mcq",
+    "question": "Which Kubernetes term matches the following definition? 'smallest deployable unit consisting of one or more containers'",
+    "choices": [
+        "pod",
+        "networkpolicy",
+        "service",
+        "configmap"
+    ],
+    "answer": "pod",
+    "source": "generated",
+    "user_answer": "pod"
+}

@@ -1,0 +1,16 @@
+{
+    "id": "a74bde60",
+    "topic": "helm_basics",
+    "type": "mcq",
+    "question": "Which Kubernetes term matches the following definition? 'API object that manages external access to the services'",
+    "choices": [
+        "rbac",
+        "ingress",
+        "networkpolicy",
+        "deployment"
+    ],
+    "answer": "ingress",
+    "source": "generated",
+    "user_answer": "networkpolicy",
+    "ai_feedback": ""
+}
