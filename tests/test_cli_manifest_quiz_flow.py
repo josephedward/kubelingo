@@ -88,6 +88,7 @@ spec:
         FakeAnswer('Quiz'),                    # Main Menu: Quiz
         FakeAnswer('Declarative (Manifests)'), # Quiz type
         FakeAnswer('pods'),                    # Topic
+        FakeAnswer('Exit')                     # Main Menu: Exit (to terminate the main loop)
     ])
     monkeypatch.setattr(cli.inquirer, 'select', mock_inquirer_select)
     
@@ -99,8 +100,8 @@ spec:
     mock_console_instance = Console()
     monkeypatch.setattr(mock_console_instance, 'print', lambda *args, **kwargs: printed.append(" ".join(str(a) for a in args)))
 
-    # Run the quiz menu for manifest flow
-    cli.quiz_menu()
+    # Run the main CLI application
+    cli.main()
 
     # Assertions
     # Verify that _open_manifest_editor was called

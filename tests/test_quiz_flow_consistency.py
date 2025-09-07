@@ -164,6 +164,7 @@ def test_manifest_quiz_vim_editor_scenarios(
         DummyPrompt("pods"), # Topic selection
     ]
     mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions (added)
         DummyPrompt("v"), # User types 'v' for vim
         DummyPrompt("quit") # User types 'quit' to exit the quiz loop
     ]
@@ -196,6 +197,7 @@ def test_manifest_quiz_vim_editor_then_answer(
         DummyPrompt("do not save question") # Post-answer menu action
     ]
     mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions (added)
         DummyPrompt("v"), # User types 'v' for vim
         DummyPrompt(valid_manifest) # User provides the correct answer after vim
     ]
