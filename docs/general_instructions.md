@@ -5,7 +5,7 @@ I've created a comprehensive system that generates Kubernetes questions, creates
 ### System Architecture
 
 **Core Components:**
-1. **Question Generator** - Creates natural language Kubernetes questions with varying difficulty levels
+1. **Question Generator** - Creates natural language Kubernetes questions
 2. **Backend Integrator** - Manages integration with multiple AI CLI tools
 3. **Grader** - Hybrid grading system combining static validation and AI evaluation
 4. **Main Generator** - Orchestrates everything together
@@ -36,7 +36,7 @@ I've created a comprehensive system that generates Kubernetes questions, creates
 ### Key Features
 
 **Flexible Question Generation:**
-- Multiple difficulty levels (beginner, intermediate, advanced, expert)
+- Various question types and topics
 - Various Kubernetes topics (pods, deployments, services, security, etc.)
 - Realistic scenarios with context variables
 - Success criteria and hints for complex questions
@@ -57,7 +57,7 @@ I've created a comprehensive system that generates Kubernetes questions, creates
 
 **Generate Questions:**
 ```bash
-python k8s_manifest_generator.py --mode question --topic deployments --difficulty intermediate
+python k8s_manifest_generator.py --mode question --topic deployments
 ```
 
 **Generate and Grade Solutions:**
@@ -89,7 +89,7 @@ The system includes an automated setup script that:
 
 **Educational Focus:**
 - Perfect for CKAD exam preparation
-- Progressive difficulty levels
+- Detailed explanations and hints
 - Detailed explanations and hints
 - Comprehensive feedback on solutions
 
