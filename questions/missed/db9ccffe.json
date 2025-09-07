@@ -1,0 +1,10 @@
+{
+    "question": "How can you limit the CPU resources of a Pod named 'my-pod' to 0.5 CPU cores?",
+    "answer": "kubectl set resources pod my-pod --requests='cpu=500m'",
+    "explanation": "This command sets the resource requests for CPU to 0.5 CPU cores (500 milliCPU) for the specified Pod.",
+    "suggested_answer": "kubectl set resources pod my-pod --requests='cpu=500m'",
+    "id": "db9ccffe",
+    "topic": "resource_management",
+    "question_type": "command",
+    "user_answer": "kubectl set resources pod my-pod --requests='cpu=500m'"
+}

@@ -1,0 +1,9 @@
+{
+    "question": "Enabling Role-Based Access Control (RBAC) in Kubernetes helps in restricting access to resources based on the roles assigned to users.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "0e78c29a",
+    "topic": "security_basics",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

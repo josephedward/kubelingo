@@ -1,0 +1,9 @@
+{
+    "question": "Provide the Kubernetes term that matches the following definition: A command-line interface utility that allows users to interact with Kubernetes clusters by sending API requests to the Kubernetes API server.",
+    "answer": "kubectl",
+    "suggested_answer": "kubectl",
+    "id": "a68dbef6",
+    "topic": "linux_commands_syntax",
+    "question_type": "vocabulary",
+    "user_answer": "kubectl"
+}

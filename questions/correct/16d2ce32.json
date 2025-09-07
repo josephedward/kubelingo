@@ -1,0 +1,16 @@
+{
+    "question": "In Kubernetes, what is the primary purpose of specifying an image registry in a container definition?",
+    "options": [
+        "A. To define the container's runtime environment",
+        "B. To specify the location from which the container image will be pulled",
+        "C. To determine the amount of resources allocated to the container",
+        "D. To configure the networking settings for the container"
+    ],
+    "answer": "B. To specify the location from which the container image will be pulled",
+    "suggested_answer": "B. To specify the location from which the container image will be pulled",
+    "id": "16d2ce32",
+    "topic": "image_registry_use",
+    "question_type": "multiple choice",
+    "user_answer": "to specify the location from which the container image will be pulled",
+    "ai_feedback": "Your answer is correct and conveys the primary purpose of specifying an image registry in a container definition. It is concise and accurately reflects the concept. Great job!"
+}

@@ -1,0 +1,9 @@
+{
+    "question": "Helm is a package manager for Kubernetes that helps in managing and deploying applications as a single unit.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "dc1cb1db",
+    "topic": "helm_basics",
+    "question_type": "true/false",
+    "user_answer": "true"
+}
