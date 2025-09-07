@@ -8,6 +8,10 @@ import os
 import json
 import glob
 from InquirerPy import inquirer
+from InquirerPy.utils import get_style
+from rich.console import Console
+from rich.text import Text
+
 
 # ASCII art banner for Kubelingo (disabled for now)
 ASCII_ART = r"""
@@ -36,6 +40,15 @@ KKKKKKKKK    KKKKKKK     uuuuuuuu  uuuu bbbbbbbbbbbbbbbb        eeeeeeeeeeeeee  
                                                                                                                        ggg::::::ggg
                                                                                                                           gggggg
 """
+
+# Define a custom style for InquirerPy prompts
+STYLE = get_style({
+    "questionmark": "#e5c07b",
+    "question": "#c678dd",
+    "answer": "#61afef",
+    "pointer": "#98c379",
+    "instruction": "#abb2bf",
+}, style_override=False)
 
 def colorize_ascii_art(art: str) -> str:
     """Apply any color/styling to the ASCII art (no-op placeholder)."""
@@ -72,21 +85,16 @@ def quiz_session(category: str) -> None:
         return
 
 def import_menu() -> None:
-    """Display import menu to choose between file path or URL."""
+    """Display import menu to select question category for quiz session."""
     choice = inquirer.select(
         message="Import Menu:",
-        choices=["File/Folder Path", "URL", "Back"]
+        choices=["File/Folder Path", "URL", "Back"],
+        style=STYLE
     ).execute()
-    if choice == "Back":
+    if choice == 'Back':
         return
-    if choice == "File/Folder Path":
-        path = inquirer.text(message="Enter file or folder path:").execute()
-        print(f"Importing questions from path: {path}")
-        # TODO: handle file/folder import
-    elif choice == "URL":
-        url = inquirer.text(message="Enter URL to import from:").execute()
-        print(f"Importing questions from URL: {url}")
-        # TODO: handle URL import
+    # TODO: Implement import logic
+    pass
 
 def settings_menu() -> None:
     """Display the Settings submenu for API keys and provider."""
@@ -97,6 +105,9 @@ def settings_menu() -> None:
     openai = config.get("OPENAI_API_KEY", "")
     openrouter = config.get("OPENROUTER_API_KEY", "")
     perplexity = config.get("PERPLEXITY_API_KEY", "")
+    
+    console = Console()
+
     # Helpers
     def mask(key):
         return f"****{key[-4:]}" if key else "()"
@@ -114,21 +125,67 @@ def settings_menu() -> None:
         "perplexity": "sonar-medium-online"
     }
     # Print menu
-    print("- Config Menu:")
-    print("    --- API Key Configuration ---")
-    print(f"      1. Set Gemini API Key (current: {mask(gemini)}{(' ('+status(gemini)+')') if gemini else ''}) (Model: {models['gemini']})")
-    print(f"      2. Set OpenAI API Key (current: {mask(openai)}{(' ('+status(openai,'openai')+')') if openai else ''}) (Model: {models['openai']})")
-    print(f"      3. Set OpenRouter API Key (current: {mask(openrouter)}{(' ('+status(openrouter)+')') if openrouter else ''}) (Model: {models['openrouter']})")
-    print(f"      4. Set Perplexity API Key (current: {mask(perplexity)}{(' ('+status(perplexity)+')') if perplexity else ''}) (Model: {models['perplexity']})")
-    print()
-    print("    --- AI Provider Selection ---")
+    console.print("- Config Menu:", style="bold magenta")
+    console.print("    --- API Key Configuration ---", style="bold cyan")
+    
+    text = Text("      1. Set Gemini API Key (current: ")
+    text.append(mask(gemini), style="yellow")
+    text.append(f" {('('+status(gemini)+')') if gemini else ''}", style="green")
+    text.append(f") (Model: {models['gemini']})")
+    console.print(text)
+
+    text = Text("      2. Set OpenAI API Key (current: ")
+    text.append(mask(openai), style="yellow")
+    text.append(f" {('('+status(openai,'openai')+')') if openai else ''}", style="green")
+    text.append(f") (Model: {models['openai']})")
+    console.print(text)
+
+    text = Text("      3. Set OpenRouter API Key (current: ")
+    text.append(mask(openrouter), style="yellow")
+    text.append(f" {('('+status(openrouter)+')') if openrouter else ''}", style="green")
+    text.append(f") (Model: {models['openrouter']})")
+    console.print(text)
+
+    text = Text("      4. Set Perplexity API Key (current: ")
+    text.append(mask(perplexity), style="yellow")
+    text.append(f" {('('+status(perplexity)+')') if perplexity else ''}", style="green")
+    text.append(f") (Model: {models['perplexity']})")
+    console.print(text)
+
+    console.print()
+    console.print("    --- AI Provider Selection ---", style="bold cyan")
     provider = config.get("KUBELINGO_LLM_PROVIDER", "")
     provider_disp = provider or "none"
-    print(f"      4. Choose AI Provider (current: {provider_disp})")
-    print("      5. Back")
+    
+    text = Text("      5. Choose AI Provider (current: ")
+    text.append(provider_disp, style="yellow")
+    text.append(")")
+    console.print(text)
+
+    console.print("      6. Back")
     choice = input("? Enter your choice: ").strip()
     # TODO: implement choice actions
     return
+
+def quiz_menu() -> None:
+    """Display the quiz menu."""
+    choice = inquirer.select(
+        message="Quiz Menu:",
+        choices=[
+            "True/False",
+            "Vocab",
+            "Multiple Choice",
+            "Imperative (Commands)",
+            "Declarative (Manifests)",
+            "Stored",
+            "Back"
+        ],
+        style=STYLE
+    ).execute()
+    if choice == "Back":
+        return
+    # TODO: Implement quiz logic
+    pass
 
 def main() -> None:
     """Display the main menu and dispatch to import."""
@@ -137,7 +194,8 @@ def main() -> None:
         # print(colorize_ascii_art(ASCII_ART))
         choice = inquirer.select(
             message="Main Menu:",
-            choices=["quiz", "import", "settings", "exit"]
+            choices=["quiz", "import", "settings", "exit"],
+            style=STYLE
         ).execute()
         if choice.lower() == "exit":
             print("Goodbye!")
@@ -146,9 +204,8 @@ def main() -> None:
             import_menu()
         elif choice.lower() == "settings":
             settings_menu()
-        else:
-            # Other menu options to be implemented
-            continue
+        elif choice.lower() == "quiz":
+            quiz_menu()
 
 if __name__ == "__main__":
     main()
