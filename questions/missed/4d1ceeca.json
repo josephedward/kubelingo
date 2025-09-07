@@ -1,0 +1,19 @@
+{
+    "question": "True or False: Service accounts in Kubernetes are used to define the permissions and access control for applications running in Pods.",
+    "expected_resources": [
+        "Pod",
+        "Deployment"
+    ],
+    "success_criteria": [
+        "The correct answer is True"
+    ],
+    "hints": [
+        "Service accounts provide an identity for processes that run in a Pod.",
+        "They are used to authenticate to the Kubernetes API and define the permissions for the Pod."
+    ],
+    "id": "4d1ceeca",
+    "topic": "service_accounts_in_apps",
+    "question_type": "True/False",
+    "user_answer": "true",
+    "ai_feedback": "Your answer is incorrect. Service accounts in Kubernetes are used to give identities to Pods and allow them to interact with the Kubernetes API. They are not used to define permissions and access control for applications running in Pods."
+}
