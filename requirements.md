@@ -1,3 +1,4 @@
+- Menu must be colored.  
 
 - Questions must be complex and varied; cannot be repetitive 
 
