@@ -3,12 +3,16 @@ import os
 import shutil
 import glob
 import pytest
+import random
 
 import kubelingo.cli as cli
 
-
-
-
+class FakePrompt:
+    """Simple dummy to simulate InquirerPy prompt execution."""
+    def __init__(self, value):
+        self.value = value
+    def execute(self):
+        return self.value
 
 def setup_inquirer(monkeypatch, select_vals, text_vals):
     """Monkeypatch inquirer.select and inquirer.text to return predetermined values."""
@@ -82,7 +86,7 @@ def test_static_quiz_quit_no_move(tmp_path, monkeypatch, capsys, cmd):
     qpath.write_text(json.dumps(data))
     monkeypatch.chdir(tmp_path)
     # Disable random shuffle for predictability
-    monkeypatch.setattr(cli.random, 'shuffle', lambda x: None)
+    monkeypatch.setattr(random, 'shuffle', lambda x: None)
     # Stub inquirer: choose Static, then quit command
     setup_inquirer(monkeypatch,
                    select_vals=['Static'],
@@ -108,7 +112,7 @@ def test_static_quiz_solution_moves_file(tmp_path, monkeypatch, capsys, action, 
     data = {'id': qid, 'question': 'Test?', 'suggestions': ['ans'], 'source': ''}
     qpath.write_text(json.dumps(data))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(cli.random, 'shuffle', lambda x: None)
+    monkeypatch.setattr(random, 'shuffle', lambda x: None)
     # Stub inquirer: select Static, input 's' for solution, then action
     setup_inquirer(monkeypatch,
                    select_vals=['Static', action],
@@ -136,7 +140,7 @@ def test_static_quiz_visit_opens_source_and_quit(tmp_path, monkeypatch, capsys):
     data = {'id': qid, 'question': 'Test?', 'suggestions': ['ans'], 'source': link}
     qpath.write_text(json.dumps(data))
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(cli.random, 'shuffle', lambda x: None)
+    monkeypatch.setattr(random, 'shuffle', lambda x: None)
     opened = []
     monkeypatch.setattr(webbrowser, 'open', lambda url: opened.append(url))
     # Stub inquirer: select Static, input 'i' to visit, then 'q' to quit
@@ -160,7 +164,7 @@ def test_static_quiz_vim_opens_editor(tmp_path, monkeypatch, capsys):
     qpath.write_text(json.dumps(data))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv('EDITOR', 'myeditor')
-    monkeypatch.setattr(cli.random, 'shuffle', lambda x: None)
+    monkeypatch.setattr(random, 'shuffle', lambda x: None)
     calls = []
     monkeypatch.setattr(subprocess, 'run', lambda cmd: calls.append(cmd))
     # Stub inquirer: select Static, input 'v' to open vim, then 'q' to quit

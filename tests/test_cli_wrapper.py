@@ -1,5 +1,6 @@
 import pytest
 import kubelingo.cli as cli
+from rich.console import Console
 
 class DummySelect:
     """Dummy object to simulate an inquirer.select return value."""
@@ -8,7 +9,8 @@ class DummySelect:
 
 def test_select_wrapper_with_kwargs(monkeypatch):
     printed = []
-    monkeypatch.setattr(cli.console, 'print', lambda x: printed.append(x))
+    mock_console_instance = Console()
+    monkeypatch.setattr(mock_console_instance, 'print', lambda x: printed.append(x))
     # Override the original select to return our dummy
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummySelect())
     choices = ['opt1', 'opt2', 'opt3']
@@ -21,7 +23,8 @@ def test_select_wrapper_with_kwargs(monkeypatch):
 
 def test_select_wrapper_with_positional(monkeypatch):
     printed = []
-    monkeypatch.setattr(cli.console, 'print', lambda x: printed.append(x))
+    mock_console_instance = Console()
+    monkeypatch.setattr(mock_console_instance, 'print', lambda x: printed.append(x))
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummySelect())
     choices = ['a', 'b']
     # Pass message and choices positionally
@@ -32,7 +35,8 @@ def test_select_wrapper_with_positional(monkeypatch):
 
 def test_select_wrapper_empty_choices(monkeypatch):
     printed = []
-    monkeypatch.setattr(cli.console, 'print', lambda x: printed.append(x))
+    mock_console_instance = Console()
+    monkeypatch.setattr(mock_console_instance, 'print', lambda x: printed.append(x))
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummySelect())
     sel = cli.inquirer.select(message='Do something', choices=[])
     assert isinstance(sel, DummySelect)

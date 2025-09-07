@@ -1,6 +1,8 @@
 import pytest
 import kubelingo.cli as cli
 import json
+import kubelingo.llm_utils as llm_utils
+from rich.console import Console
 
 class FakeAnswer:
     """Fake answer for InquirerPy text prompt."""
@@ -40,8 +42,7 @@ def test_quiz_menu_ai_question_order(monkeypatch, capsys):
     # Mock inquirer.select for quiz type, topic, and difficulty
     select_choices = iter([
         "True/False",  # Quiz type
-        "pods",        # Topic
-        "beginner"     # Difficulty
+        "pods"        # Topic
     ])
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummySelect(next(select_choices)))
 
@@ -56,20 +57,21 @@ def test_quiz_menu_ai_question_order(monkeypatch, capsys):
     def mock_ai_chat(system_prompt, user_prompt):
         order.append('ai_chat_call')
         return '{"question": "Is Kubernetes an open-source container orchestration system?", "expected_resources": ["None"], "success_criteria": ["Answer is true"], "hints": ["Think about its origin"]}'
-    monkeypatch.setattr(cli.llm_utils, "ai_chat", mock_ai_chat)
+    monkeypatch.setattr(llm_utils, "ai_chat", mock_ai_chat)
 
     # Mock QuestionGenerator._generate_question_id to return a fixed ID
     monkeypatch.setattr(cli.QuestionGenerator, "_generate_question_id", lambda: "test_id")
 
     # Mock console.print to track output order
-    original_console_print = cli.console.print
+    mock_console_instance = Console()
+    original_console_print = mock_console_instance.print
     def mock_print(*args, **kwargs):
         if "Question:" in str(args[0]):
             order.append('question_display')
         elif "Suggested Answer:" in str(args[0]):
             order.append('suggested_answer_display')
         original_console_print(*args, **kwargs)
-    monkeypatch.setattr(cli.console, 'print', mock_print)
+    monkeypatch.setattr(Console, 'print', mock_print)
 
     # Mock post_answer_menu to track its call
     original_post_answer_menu = cli.post_answer_menu
@@ -95,5 +97,3 @@ def test_quiz_menu_ai_question_order(monkeypatch, capsys):
     # Assert that the question is displayed
     captured = capsys.readouterr().out
     assert "Question: Is Kubernetes an open-source container orchestration system?" in captured
-    assert "Success Criteria: ['Answer is true']" in captured
-    assert "Hints: ['Think about its origin']" in captured

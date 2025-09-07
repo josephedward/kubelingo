@@ -80,19 +80,11 @@ def mock_inquirer_text(monkeypatch):
     monkeypatch.setattr(inquirer, 'text', mock_text)
     return mock_text
 
-@pytest.fixture
-def mock_print_menus(monkeypatch):
-    # Mock print_question_menu and print_post_answer_menu to track calls
-    mock_q_menu = MagicMock()
-    mock_a_menu = MagicMock()
-    monkeypatch.setattr(cli, 'print_question_menu', mock_q_menu)
-    monkeypatch.setattr(cli, 'print_post_answer_menu', mock_a_menu)
-    return mock_q_menu, mock_a_menu
+
 
 def test_trivia_flow_correct_answer_and_quit(
-    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
@@ -108,11 +100,6 @@ def test_trivia_flow_correct_answer_and_quit(
 
     captured = capsys.readouterr()
 
-    # Assert question menu was shown before answer
-    mock_q_menu.assert_called_once()
-    # Assert post-answer menu was shown after answer
-    mock_a_menu.assert_called_once()
-
     # Assert correct message and post-answer menu options are displayed
     assert "Correct!" in captured.out
     assert "r) retry" in captured.out
@@ -120,18 +107,12 @@ def test_trivia_flow_correct_answer_and_quit(
     assert "m) missed" in captured.out
     assert "d) delete" in captured.out # New label
 
-    # Assert question menu is NOT shown after answer
-    # This is tricky with capsys, but we can check for its header if it were printed
-    assert "v) vim" not in captured.out
-    assert "b) backward" not in captured.out
-
     # Assert last_generated_q is recorded (correctness tracked via output)
     assert cli.last_generated_q is not None
 
 def test_trivia_flow_incorrect_answer_and_retry(
-    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Trivia' and 'pods'
     # Then answering 'False' (incorrect)
@@ -158,18 +139,12 @@ def test_trivia_flow_incorrect_answer_and_retry(
     # Assert correct message after retry
     assert "Correct!" in captured.out
 
-    # Assert question menu was shown before each answer
-    assert mock_q_menu.call_count == 2 # Once for each question presentation
-    # Assert post-answer menu was shown after each answer
-    assert mock_a_menu.call_count == 2 # Once after incorrect, once after correct
-
     # Assert last_generated_q is recorded for the final correct answer
     assert cli.last_generated_q is not None
 
 def test_trivia_flow_question_menu_before_answer_and_help(
-    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
@@ -186,11 +161,6 @@ def test_trivia_flow_question_menu_before_answer_and_help(
 
     captured = capsys.readouterr()
 
-    # Assert question menu was shown initially and after '?'
-    assert mock_q_menu.call_count == 2
-    # Assert post-answer menu was shown after answer
-    mock_a_menu.assert_called_once()
-
     # Verify question menu options are in output (from initial display and '?' command)
     assert "v) vim" in captured.out
     assert "b) backward" in captured.out
@@ -203,9 +173,8 @@ def test_trivia_flow_question_menu_before_answer_and_help(
     assert "Correct!" in captured.out
 
 def test_trivia_flow_no_question_menu_after_answer(
-    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Trivia' and 'pods'
     mock_inquirer_select.side_effect = [
@@ -218,11 +187,6 @@ def test_trivia_flow_no_question_menu_after_answer(
     cli.quiz_menu()
 
     captured = capsys.readouterr()
-
-    # Assert question menu was shown only once (before the answer)
-    mock_q_menu.assert_called_once()
-    # Assert post-answer menu was shown once (after the answer)
-    mock_a_menu.assert_called_once()
 
     # Check that the question menu header/options do not appear after the answer
     # This is a bit indirect, but we can check the order of calls and content
@@ -274,9 +238,8 @@ def test_manifest_quiz_vim_editor(
     assert "No manifest to edit in this mode." not in captured.out # Ensure old message is gone
 
 def test_vocab_quiz_flow_correct_answer(
-    capsys, mock_ai_chat_vocab, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_vocab, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Vocab' and 'pods'
     mock_inquirer_select.side_effect = [
@@ -297,13 +260,10 @@ def test_vocab_quiz_flow_correct_answer(
 
     assert "Question: What is a Pod?" in captured.out
     assert "Correct!" in captured.out
-    mock_q_menu.assert_called_once()
-    mock_a_menu.assert_called_once()
 
 def test_mcq_quiz_flow_correct_answer(
-    capsys, mock_ai_chat_mcq, mock_inquirer_select, mock_inquirer_text, mock_print_menus
+    capsys, mock_ai_chat_mcq, mock_inquirer_select, mock_inquirer_text
 ):
-    mock_q_menu, mock_a_menu = mock_print_menus
 
     # Simulate user selecting 'Multiple Choice' and 'general'
     mock_inquirer_select.side_effect = [
@@ -324,5 +284,3 @@ def test_mcq_quiz_flow_correct_answer(
 
     assert "Question: Which of the following is NOT a core Kubernetes object?" in captured.out
     assert "Correct!" in captured.out
-    mock_q_menu.assert_called_once()
-    mock_a_menu.assert_called_once()

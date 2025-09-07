@@ -46,7 +46,8 @@ def test_manifest_quiz_flow(monkeypatch, capsys):
     monkeypatch.setattr(cli.inquirer, 'text', lambda message: FakeAnswer(next(text_responses)))
     # Capture console.print outputs
     printed = []
-    monkeypatch.setattr(cli.console, 'print', lambda *args, **kwargs: printed.append(" ".join(str(a) for a in args)))
+        monkeypatch.setattr(mock_console_instance, 'print', lambda *args, **kwargs: printed.append(" ".join(str(a) for a in args)))
+
     # Run the quiz menu for manifest flow
     cli.quiz_menu()
     # Verify order of outputs contains question, menu, solution, and post-answer menu

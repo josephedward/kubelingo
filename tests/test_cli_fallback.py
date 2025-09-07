@@ -1,7 +1,9 @@
 import json
 import pytest
+import requests
 
 import kubelingo.cli as cli
+import kubelingo.llm_utils as llm_utils
 
 
 class DummyPrompt:
@@ -28,14 +30,13 @@ def test_generate_trivia_ai_fallback_message(monkeypatch, capsys):
     # Simulate user selecting quiz type, topic, difficulty, and number of questions
     select_choices = iter([
         "True/False",  # Quiz type
-        "pods",        # Topic
-        "beginner"     # Difficulty
+        "pods"        # Topic
     ])
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
     monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt("1")) # Number of questions
 
     # Simulate ai_chat returning an empty string (failure to parse)
-    monkeypatch.setattr(cli.llm_utils, 'ai_chat', lambda *args, **kwargs: "")
+    monkeypatch.setattr(llm_utils, 'ai_chat', lambda *args, **kwargs: "")
 
     # Simulate answering 'q' to exit quiz session
     monkeypatch.setattr(cli, 'post_answer_menu', lambda: 'q')
@@ -74,9 +75,9 @@ def test_ai_chat_error_generic(monkeypatch, capsys, provider_key, provider):
             raise Exception('HTTP Error')
     def fake_post(*args, **kwargs):
         return FakeResp()
-    monkeypatch.setattr(cli, 'requests', type('R', (), {'post': fake_post}))
+    monkeypatch.setattr(requests, 'post', fake_post)
     # Call ai_chat
-    result = cli.ai_chat('system prompt', 'user prompt')
+    result = llm_utils.ai_chat('system prompt', 'user prompt')
     # Should return empty string on failure
     assert result == ""
     out = capsys.readouterr().out
@@ -93,14 +94,13 @@ def test_generate_trivia_ai_malformed_json_fallback(monkeypatch, capsys):
     # Simulate user selecting quiz type, topic, difficulty, and number of questions
     select_choices = iter([
         "True/False",  # Quiz type
-        "pods",        # Topic
-        "beginner"     # Difficulty
+        "pods"        # Topic
     ])
     monkeypatch.setattr(cli.inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(select_choices)))
     monkeypatch.setattr(cli.inquirer, 'text', lambda message: DummyPrompt("1")) # Number of questions
 
     # Simulate ai_chat returning malformed JSON
-    monkeypatch.setattr(cli.llm_utils, 'ai_chat', lambda *args, **kwargs: "{invalid_json")
+    monkeypatch.setattr(llm_utils, 'ai_chat', lambda *args, **kwargs: "{invalid_json")
 
     # Simulate answering 'q' to exit quiz session
     monkeypatch.setattr(cli, 'post_answer_menu', lambda: 'q')
