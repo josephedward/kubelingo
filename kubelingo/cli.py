@@ -4,6 +4,10 @@ CLI entry point for Kubelingo application.
 Displays the main menu as per requirements.md specifications.
 """
 import sys
+import os
+import json
+import glob
+from InquirerPy import inquirer
 
 # ASCII art banner for Kubelingo (disabled for now)
 ASCII_ART = r"""
@@ -37,14 +41,70 @@ def colorize_ascii_art(art: str) -> str:
     """Apply any color/styling to the ASCII art (no-op placeholder)."""
     return art
 
+def quiz_session(category: str) -> None:
+    """Run a simple quiz session on stored questions in the given category."""
+    base_dir = os.path.join(os.getcwd(), 'questions', category.lower())
+    if not os.path.isdir(base_dir):
+        print(f"No {category} questions found.")
+        return
+    found_any = False
+    for filepath in glob.glob(os.path.join(base_dir, '*.json')):
+        filename = os.path.basename(filepath)
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+        except Exception:
+            print(f"Skipping malformed question file (expected dictionary, got error): {filename}")
+            continue
+        if not isinstance(data, dict):
+            print(f"Skipping malformed question file (expected dictionary, got {type(data).__name__}): {filename}")
+            continue
+        found_any = True
+        # Placeholder: present the question
+    if not found_any:
+        print(f"No {category} questions found.")
+    # Prompt to quit quiz
+    action = inquirer.select(
+        message="Select an action:",
+        choices=["Quit Quiz"]
+    ).execute()
+    if action == "Quit Quiz":
+        return
+
+def import_menu() -> None:
+    """Display import menu to choose between file path or URL."""
+    choice = inquirer.select(
+        message="Import Menu:",
+        choices=["File/Folder Path", "URL", "Back"]
+    ).execute()
+    if choice == "Back":
+        return
+    if choice == "File/Folder Path":
+        path = inquirer.text(message="Enter file or folder path:").execute()
+        print(f"Importing questions from path: {path}")
+        # TODO: handle file/folder import
+    elif choice == "URL":
+        url = inquirer.text(message="Enter URL to import from:").execute()
+        print(f"Importing questions from URL: {url}")
+        # TODO: handle URL import
+
 def main() -> None:
-    """Display the main menu."""
-    # Banner disabled
-    # print(colorize_ascii_art(ASCII_ART))
-    print("- Main Menu")
-    print("  + quiz")
-    print("  + import")
-    print("  + settings")
+    """Display the main menu and dispatch to import."""
+    while True:
+        # Banner disabled
+        # print(colorize_ascii_art(ASCII_ART))
+        choice = inquirer.select(
+            message="Main Menu:",
+            choices=["quiz", "import", "settings", "exit"]
+        ).execute()
+        if choice.lower() == "exit":
+            print("Goodbye!")
+            sys.exit(0)
+        elif choice.lower() == "import":
+            import_menu()
+        else:
+            # Other menu options to be implemented
+            continue
 
 if __name__ == "__main__":
     main()
