@@ -71,6 +71,6 @@ def ai_chat(*args, **kwargs):
         resp.raise_for_status()
         data = resp.json()
         return data.get("choices", [])[0].get("message", {}).get("content", "")
-    # No supported provider
-    print("Error: No supported LLM provider configured. Please set KUBELINGO_LLM_PROVIDER to 'openai', 'openrouter', or 'gemini', and configure API keys in environment variables.")
+    # No supported provider configured
+    print("Error: No LLM provider configured. Please set one in Settings.")
     return ""
