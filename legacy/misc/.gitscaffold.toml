@@ -1,8 +1,0 @@
-[import-md]
-# Path to the markdown file to import issues from.
-path = "docs/roadmap.md"
-
-# The maximum header level to create issues from.
-# Setting to 4 will create issues from `####` headers and bullet points.
-# This will create the maximum number of issues based on your roadmap structure.
-level = 4
