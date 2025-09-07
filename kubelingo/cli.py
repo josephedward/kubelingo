@@ -88,6 +88,48 @@ def import_menu() -> None:
         print(f"Importing questions from URL: {url}")
         # TODO: handle URL import
 
+def settings_menu() -> None:
+    """Display the Settings submenu for API keys and provider."""
+    # Load current configuration
+    from dotenv import dotenv_values
+    config = dotenv_values(".env")
+    gemini = config.get("GEMINI_API_KEY", "")
+    openai = config.get("OPENAI_API_KEY", "")
+    openrouter = config.get("OPENROUTER_API_KEY", "")
+    perplexity = config.get("PERPLEXITY_API_KEY", "")
+    # Helpers
+    def mask(key):
+        return f"****{key[-4:]}" if key else "()"
+    def status(key, prefix=""):
+        if not key:
+            return ""
+        if prefix == "openai":
+            return "Valid" if key.startswith("sk-") else "Invalid"
+        return "Valid"
+    # Models
+    models = {
+        "gemini": "gemini-1.5-flash-latest",
+        "openai": "gpt-3.5-turbo",
+        "openrouter": "deepseek/deepseek-r1-0528:free",
+        "perplexity": "sonar-medium-online"
+    }
+    # Print menu
+    print("- Config Menu:")
+    print("    --- API Key Configuration ---")
+    print(f"      1. Set Gemini API Key (current: {mask(gemini)}{(' ('+status(gemini)+')') if gemini else ''}) (Model: {models['gemini']})")
+    print(f"      2. Set OpenAI API Key (current: {mask(openai)}{(' ('+status(openai,'openai')+')') if openai else ''}) (Model: {models['openai']})")
+    print(f"      3. Set OpenRouter API Key (current: {mask(openrouter)}{(' ('+status(openrouter)+')') if openrouter else ''}) (Model: {models['openrouter']})")
+    print(f"      4. Set Perplexity API Key (current: {mask(perplexity)}{(' ('+status(perplexity)+')') if perplexity else ''}) (Model: {models['perplexity']})")
+    print()
+    print("    --- AI Provider Selection ---")
+    provider = config.get("KUBELINGO_LLM_PROVIDER", "")
+    provider_disp = provider or "none"
+    print(f"      4. Choose AI Provider (current: {provider_disp})")
+    print("      5. Back")
+    choice = input("? Enter your choice: ").strip()
+    # TODO: implement choice actions
+    return
+
 def main() -> None:
     """Display the main menu and dispatch to import."""
     while True:
@@ -102,6 +144,8 @@ def main() -> None:
             sys.exit(0)
         elif choice.lower() == "import":
             import_menu()
+        elif choice.lower() == "settings":
+            settings_menu()
         else:
             # Other menu options to be implemented
             continue
