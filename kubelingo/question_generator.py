@@ -174,8 +174,9 @@ Format your response as a JSON object with the following keys:
             question_data["topic"] = topic
             
             question_data["question_type"] = question_type
-
             return question_data
+        except Exception as e:
+            print(f"Error generating AI question: {e}")
             return {
                 "id": self._generate_question_id(),
                 "topic": topic,
