@@ -1,6 +1,10 @@
 import os
 import json
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if present
+load_dotenv()
 
 def ai_chat(*args, **kwargs):
     """
