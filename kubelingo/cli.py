@@ -168,7 +168,7 @@ def settings_menu() -> None:
     return
 
 def quiz_menu() -> None:
-    """Display the quiz menu."""
+    """Display the quiz menu and start a quiz session."""
     choice = inquirer.select(
         message="Quiz Menu:",
         choices=[
@@ -178,14 +178,15 @@ def quiz_menu() -> None:
             "Imperative (Commands)",
             "Declarative (Manifests)",
             "Stored",
-            "Back"
+            "Back",
         ],
-        style=STYLE
+        style=STYLE,
     ).execute()
+
     if choice == "Back":
         return
-    # TODO: Implement quiz logic
-    pass
+    else:
+        quiz_session(choice)
 
 def main() -> None:
     """Display the main menu and dispatch to import."""
