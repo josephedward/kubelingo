@@ -206,21 +206,22 @@ PHASE 4 – Import Menu (AI-Assisted Ingestion)
 
 Example schema for question: 
     {
-      "id": "a1b2c3d4",
-      "topic": "pods",
-      "difficulty": "beginner",
-      "question": "Create a simple Pod named ‘demo-pod running the latest nginx image" (notice how the exact fields expected match with the answer),
-      "documentation_link": "https://kubernetes.io/docs/concepts/workloads/pods/",
-      "suggested_answer": """
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: demo-pod
-    spec:
-      containers:
-      - name: main
-        image: nginx:latest
-    """ (this must be properly formatted yaml) 
+        "id": "a1b2c3d4",
+        "topic": "pods",
+        "difficulty": "beginner",
+        "question": "Create a simple Pod named ‘demo-pod running the latest nginx image" (notice how the exact fields expected match with the answer),
+        "documentation_link": "https://kubernetes.io/docs/concepts/workloads/pods/",
+        "suggested_answer": """ | 
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              name: demo-pod
+            spec:
+              containers:
+              - name: main
+                image: nginx:latest
+            """ (this must be properly formatted yaml) 
+        "user_answer": "" (after answered)
     }
 
 
