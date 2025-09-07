@@ -10,8 +10,14 @@ QuestionGenerator = question_generator.QuestionGenerator
 @pytest.fixture(autouse=True)
 def mock_ai_chat():
     with patch('kubelingo.llm_utils.ai_chat') as mock_chat:
-        # Default mock response for general questions
-        mock_chat.return_value = '{"question": "Mocked question", "expected_resources": [], "success_criteria": [], "hints": []}'
+        # Default mock response for general questions, including expected_resources etc.
+        mock_chat.side_effect = [
+            '{"question": "Mocked question 1", "expected_resources": ["Pod"], "success_criteria": ["Criteria"], "hints": ["Hint"]}',
+            '{"question": "Mocked question 2", "expected_resources": ["Pod"], "success_criteria": ["Criteria"], "hints": ["Hint"]}',
+            '{"question": "Mocked question 3", "expected_resources": ["Pod"], "success_criteria": ["Criteria"], "hints": ["Hint"]}',
+            '{"question": "Mocked question 4", "expected_resources": ["Pod"], "success_criteria": ["Criteria"], "hints": ["Hint"]}',
+            '{"question": "Mocked question 5", "expected_resources": ["Pod"], "success_criteria": ["Criteria"], "hints": ["Hint"]}',
+        ]
         yield mock_chat
 
 @pytest.fixture(autouse=True)
@@ -21,7 +27,7 @@ def fixed_seed():
 
 def test_generate_question_defaults():
     gen = QuestionGenerator()
-    q = gen.generate_question()
+    q = gen.generate_question(question_type="short answer") # Explicitly request short answer to get expected_resources
     assert isinstance(q, dict)
     assert "question" in q
     # Topic selection is handled by AI; ensure a non-empty string is returned
@@ -49,7 +55,8 @@ def test_generate_question_set_length_and_filters():
         # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
         # We don't assert its absence here as AI might include it.
 
-def test_fallback_on_unknown_topic_or_difficulty():
+def test_fallback_on_unknown_topic_or_difficulty(monkeypatch):
+    monkeypatch.setattr(random, 'choice', lambda x: "resource_management") # Mock random.choice to return a predictable topic
     gen = QuestionGenerator()
     # Since ai_chat is mocked, this test might need adjustment if the fallback logic
     # depends on ai_chat failing. For now, it will just use the mocked response.

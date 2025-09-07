@@ -43,7 +43,7 @@ def test_quiz_menu_generates_ai_question(monkeypatch, capsys):
 
     # Mock QuestionGenerator
     class MockQuestionGenerator:
-        def generate_question_set(self, count):
+        def generate_question_set(self, count, question_type=None, subject_matter=None):
             return [{
                 "question": "Is Kubernetes an open-source container orchestration system?",
                 "choices": [],

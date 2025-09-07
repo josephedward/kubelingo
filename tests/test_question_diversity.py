@@ -28,7 +28,6 @@ def test_ai_generated_question_diversity(monkeypatch):
     for _ in range(num_questions_to_generate):
         question = generator.generate_question(
             topic="pods",
-            difficulty="beginner",
             question_type="true/false"
         )
         generated_questions_text.append(question["question"])
