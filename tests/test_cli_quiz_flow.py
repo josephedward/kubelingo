@@ -66,10 +66,7 @@ def mock_ai_chat_mcq(monkeypatch):
             "success_criteria": ["Correct option is selected"],
             "hints": []
         })
-    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
-
-@pytest.fixture
-def mock_inquirer_select(monkeypatch):
+    monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
     # Mock inquirer.select for topic selection and post-answer menu
     mock_select = MagicMock()
     monkeypatch.setattr(inquirer, 'select', mock_select)
@@ -111,7 +108,7 @@ def test_trivia_flow_correct_answer_and_quit(
     captured = capsys.readouterr()
 
     # Assert correct message and post-answer menu options are displayed
-    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
     assert "r)etry" in captured.out
     assert "c)orrect" in captured.out
     assert "m)issed" in captured.out
@@ -154,9 +151,9 @@ def test_trivia_flow_incorrect_answer_and_retry(
     captured = capsys.readouterr()
 
     # Assert incorrect message
-    assert "Wrong. Expected 'true'." in captured.out
+    assert "(Your answer differs from the suggested answer.)" in captured.out
     # Assert correct message after retry
-    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
 
     # Assert last_generated_q is recorded for the final correct answer
     assert cli.last_generated_q is not None
@@ -197,7 +194,7 @@ def test_trivia_flow_question_menu_before_answer_and_help(
     assert "q) quit" in captured.out
 
     # Assert correct message
-    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
 
 def test_trivia_flow_no_question_menu_after_answer(
     capsys, mock_ai_chat_tf, mock_inquirer_select, mock_inquirer_text, monkeypatch
@@ -228,12 +225,12 @@ def test_trivia_flow_no_question_menu_after_answer(
     # Check that the question menu header/options do not appear after the answer
     # This is a bit indirect, but we can check the order of calls and content
     # The 'Correct!' message should appear before the post-answer menu, and no question menu in between.
-    correct_idx = captured.out.find("Correct!")
+    correct_idx = captured.out.find("Suggested Answer:")
     post_answer_menu_idx = captured.out.find("r) retry") # First option of post-answer menu
 
-    assert correct_idx != -1
-    assert post_answer_menu_idx != -1
-    assert correct_idx < post_answer_menu_idx
+    assert correct_idx != -1 # Ensure Suggested Answer is found
+    assert post_answer_menu_idx != -1 # Ensure post-answer menu is found
+    assert correct_idx < post_answer_menu_idx # Ensure order
 
     # Ensure no question menu options appear between 'Correct!' and 'r) retry'
     segment = captured.out[correct_idx:post_answer_menu_idx]
@@ -243,6 +240,7 @@ def test_trivia_flow_no_question_menu_after_answer(
     assert "a) answer" not in segment
     assert "s) visit" not in segment
     assert "q) quit" not in segment
+    assert "(Your answer differs from the suggested answer.)" not in segment
 
 @patch('kubelingo.cli._open_manifest_editor')
 def test_manifest_quiz_vim_editor(
@@ -301,7 +299,7 @@ def test_vocab_quiz_flow_correct_answer(
     captured = capsys.readouterr()
 
     assert "Question: What is a Pod?" in captured.out
-    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
 
 def test_mcq_quiz_flow_correct_answer(
     capsys, mock_ai_chat_mcq, mock_inquirer_select, mock_inquirer_text, monkeypatch
@@ -330,7 +328,102 @@ def test_mcq_quiz_flow_correct_answer(
     captured = capsys.readouterr()
 
     assert "Question: Which of the following is NOT a core Kubernetes object?" in captured.out
-    assert "Correct!" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
+
+
+@pytest.fixture
+def mock_ai_chat_imperative(monkeypatch):
+    # Mock ai_chat to return an Imperative (command) question
+    def _mock_ai_chat(system_prompt, user_prompt):
+        return json.dumps({
+            "question": "How do you get all pods in the 'default' namespace?",
+            "answer": "kubectl get pods",
+            "type": "imperative",
+            "topic": "pods",
+            "difficulty": "easy",
+            "explanation": "This command lists all pods in the default namespace."
+        })
+    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+
+@pytest.fixture
+def mock_ai_chat_declarative(monkeypatch):
+    # Mock ai_chat to return a Declarative (manifest) question
+    def _mock_ai_chat(system_prompt, user_prompt):
+        return json.dumps({
+            "question": "Create a Pod named 'my-nginx' using the 'nginx' image.",
+            "answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-nginx\nspec:\n  containers:\n  - name: nginx\n    image: nginx",
+            "type": "declarative",
+            "topic": "pods",
+            "difficulty": "medium",
+            "explanation": "This manifest defines a simple Pod."
+        })
+    monkeypatch.setattr(cli, "ai_chat", _mock_ai_chat)
+
+
+def test_imperative_quiz_flow_correct_answer(
+    capsys,
+    mock_ai_chat_imperative,
+    mock_inquirer_select,
+    mock_inquirer_text,
+    monkeypatch
+):
+    # Simulate user selecting 'Imperative (Commands)' and 'pods'
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Imperative (Commands)"), # Quiz type selection
+        DummyPrompt("pods"), # Topic selection
+        DummyPrompt("do not save question") # Post-answer menu action
+    ]
+    # Simulate user answering 'kubectl get pods'
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions
+        DummyPrompt("kubectl get pods") # User answer
+    ]
+
+    input_choices = iter([
+        "a", # Answer the question
+        "q"  # Quit the quiz session
+    ])
+    monkeypatch.setattr(builtins, 'input', lambda: next(input_choices))
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    assert "Question: How do you get all pods in the 'default' namespace?" in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
+
+
+def test_declarative_quiz_flow_correct_answer(
+    capsys,
+    mock_ai_chat_declarative,
+    mock_inquirer_select,
+    mock_inquirer_text,
+    monkeypatch
+):
+    # Simulate user selecting 'Declarative (Manifests)' and 'pods'
+    mock_inquirer_select.side_effect = [
+        DummyPrompt("Declarative (Manifests)"), # Quiz type selection
+        DummyPrompt("pods"), # Topic selection
+        DummyPrompt("do not save question") # Post-answer menu action
+    ]
+    # Simulate user answering the correct manifest
+    mock_inquirer_text.side_effect = [
+        DummyPrompt("1"), # Number of questions
+        DummyPrompt("apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-nginx\nspec:\n  containers:\n  - name: nginx\n    image: nginx") # User answer
+    ]
+
+    input_choices = iter([
+        "a", # Answer the question
+        "q"  # Quit the quiz session
+    ])
+    monkeypatch.setattr(builtins, 'input', lambda: next(input_choices))
+
+    cli.quiz_menu()
+
+    captured = capsys.readouterr()
+
+    assert "Question: Create a Pod named 'my-nginx' using the 'nginx' image." in captured.out
+    assert "(Your answer differs from the suggested answer.)" not in captured.out
 
 
 
