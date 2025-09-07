@@ -403,6 +403,11 @@ Respond in JSON format:
                 confidence=0.2
             )
 
+def grade_simple_answer(user_answer: str, correct_answer: str) -> bool:
+    """Grade a simple answer by case-insensitive comparison."""
+    return user_answer.strip().lower() == correct_answer.strip().lower()
+
+
 class KubernetesGrader:
     """Main grading orchestrator"""
     
