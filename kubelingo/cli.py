@@ -11,46 +11,16 @@ import yaml
 from InquirerPy import inquirer
 from InquirerPy.utils import get_style
 from kubelingo.importer import import_from_file
-from kubelingo.question_generator import QuestionGenerator
+from kubelingo.question_generator import QuestionGenerator, DifficultyLevel
 from rich.console import Console
 from rich.text import Text
 import requests
 from kubelingo.llm_utils import ai_chat
 
 
-# ASCII art banner for Kubelingo (disabled for now)
-import sys
-import os
-import json
-import glob
-import yaml
-from InquirerPy import inquirer
-from InquirerPy.utils import get_style
-from kubelingo.importer import import_from_file
-from kubelingo.question_generator import QuestionGenerator
-from kubelingo.llm_utils import ai_chat
-from rich.console import Console
-from rich.text import Text
-
-
-# grade_simple_answer removed; using AI feedback and user-driven verdict instead
-# Helpers for CLI suggestions and diversity
-def suggest_command(topic: str, context_vars: dict) -> str:
-    """Generate or suggest a kubectl command given topic and context variables."""
-    # Placeholder implementation; real logic should construct commands
-    return ""
-
-def is_diverse(new_question: str, recent_questions: list) -> bool:
-    """Return True if new_question is sufficiently different from recent_questions."""
-    nl = new_question.lower()
-    for rq in recent_questions:
-        rl = rq.lower()
-        if rl in nl or nl in rl:
-            return False
-    return True
 # LLM providers and question types for testing and flows
 LLM_PROVIDERS = ["gemini", "openai", "openrouter", "perplexity"]
-QUESTION_TYPES = ["tf", "mcq", "vocab"]
+QUESTION_TYPES = ["tf", "mcq", "vocab", "imperative", "declarative", "stored"]
 
 # ASCII art banner for Kubelingo (disabled for now)
 ASCII_ART = r"""
@@ -61,11 +31,11 @@ K:::::::K    K:::::K                    b:::::b                                 
 K:::::::K   K::::::K                    b:::::b                                  l:::::l
 KK::::::K  K:::::KKK uuuuuu    uuuuuu   b:::::bbbbbbbbb         eeeeeeeeeeee     l:::::l  iiiiii  nnnn  nnnnnnnn      ggggggggg   gggg   ooooooooooo
   K:::::K K:::::K    u::::u    u::::u   b::::::::::::::bb     ee::::::::::::ee   l:::::l  i::::i  n::nn::::::::nn    g:::::::::ggg:::g oo:::::::::::oo
-  K::::::K:::::K     u::::u    u::::u   b::::::::::::::::b   e::::::eeeee:::::ee l:::::l  i::::i  n:::::::::::::nn  g::::::::::::::::g o:::::::::::::::o
+  K::::::K:::::K     u::::u    u::::u   b::::::::::::::::b   e::::::eeeee:::::ee l:::::l  i:::::i  n:::::::::::::nn  g::::::::::::::::g o:::::::::::::::o
   K:::::::::::K      u::::u    u::::u   b:::::bbbbb:::::::b e::::::e     e:::::e l:::::l  i:::::i  n::::::::::::::n g::::::ggggg::::::g go:::::ooooo::::o
   K:::::::::::K      u::::u    u::::u   b:::::b    b::::::b e:::::::eeeee::::::e l:::::l  i:::::i  n:::::nnnn:::::n g:::::g     g:::::g o::::o     o::::o
   K::::::K:::::K     u::::u    u::::u   b:::::b     b:::::b e:::::::::::::::::e  l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o::::o
-  K:::::K K:::::K    u::::u    u::::u   b:::::b     b:::::b e::::::eeeeeeeeeee   l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o::::o
+  K:::::K K:::::K    u:::::uuuu:::::u   b:::::b     b:::::b e::::::eeeeeeeeeee   l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o:::::o
 KK::::::K  K:::::KKK u:::::uuuu:::::u   b:::::b     b:::::b e:::::::e            l:::::l i:::::i  n::::n    n::::n g::::::g    g:::::g o:::::ooooo:::::o
 K:::::::K   K::::::K u:::::::::::::::uu b:::::bbbbbb::::::b e::::::::e           l:::::l i:::::i  n::::n    n::::n g:::::::ggggg:::::g o:::::ooooo:::::o
 K:::::::K    K:::::K  u:::::::::::::::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n::::n  g::::::::::::::::g o:::::::::::::::o
@@ -98,46 +68,6 @@ SUBJECT_MATTERS = [
     'resource_management', 'resource_reference', 'scheduling_hints', 'secrets', 'security_basics',
     'service_accounts_in_apps', 'services', 'rbac', 'monitoring', 'troubleshooting'
 ]
-# LLM providers and question types for testing and flows
-LLM_PROVIDERS = ["gemini", "openai", "openrouter", "perplexity"]
-QUESTION_TYPES = ["tf", "mcq", "vocab", "imperative", "declarative", "stored"]
-
-# Define a custom style for InquirerPy prompts
-STYLE = get_style({
-    "questionmark": "#e5c07b",
-    "question": "#c678dd",
-    "answer": "#61afef",
-    "pointer": "#98c379",
-    "instruction": "#abb2bf",
-}, style_override=False)
-
-# Subject matter choices as per requirements.md
-SUBJECT_MATTERS = [
-    'api_discovery_docs', 'app_configuration', 'commands_args_env', 'configmap', 'core_workloads',
-    'deployment', 'helm_basics', 'image_registry_use', 'imperative_vs_declarative', 'ingress_http_routing',
-    'jobs_cronjobs', 'kubectl_common_operations', 'kubectl_operations', 'labels_annotations_selectors',
-    'linux_commands_syntax', 'logging', 'namespaces_contexts', 'networking_utilities',
-    'observability_troubleshooting', 'persistence', 'pod_design_patterns', 'probes_health', 'pvc',
-    'resource_management', 'resource_reference', 'scheduling_hints', 'secrets', 'security_basics',
-    'service_accounts_in_apps', 'services', 'rbac', 'monitoring', 'troubleshooting'
-]
-
-
-# grade_simple_answer removed; using AI feedback and user-driven verdict instead
-# Helpers for CLI suggestions and diversity
-def suggest_command(topic: str, context_vars: dict) -> str:
-    """Generate or suggest a kubectl command given topic and context variables."""
-    # Placeholder implementation; real logic should construct commands
-    return ""
-
-def is_diverse(new_question: str, recent_questions: list) -> bool:
-    """Return True if new_question is sufficiently different from recent_questions."""
-    nl = new_question.lower()
-    for rq in recent_questions:
-        rl = rq.lower()
-        if rl in nl or nl in rl:
-            return False
-    return True
 
 def select_topic() -> str:
     """Prompt user to select a subject matter topic."""
@@ -351,25 +281,25 @@ def settings_menu() -> None:
     text = Text("      1. Set Gemini API Key (current: ", style="green")
     text.append(mask(gemini), style="yellow")
     text.append(f" {('('+status(gemini)+')') if gemini else ''}", style="green")
-    text.append(f") (Model: {models['gemini']})")
+    text.append(f" (Model: {models['gemini']})")
     console.print(text)
 
     text = Text("      2. Set OpenAI API Key (current: ", style="green")
     text.append(mask(openai), style="yellow")
     text.append(f" {('('+status(openai,'openai')+')') if openai else ''}", style="green")
-    text.append(f") (Model: {models['openai']})")
+    text.append(f" (Model: {models['openai']})")
     console.print(text)
 
     text = Text("      3. Set OpenRouter API Key (current: ", style="green")
     text.append(mask(openrouter), style="yellow")
     text.append(f" {('('+status(openrouter)+')') if openrouter else ''}", style="green")
-    text.append(f") (Model: {models['openrouter']})")
+    text.append(f" (Model: {models['openrouter']})")
     console.print(text)
 
     text = Text("      4. Set Perplexity API Key (current: ", style="green")
     text.append(mask(perplexity), style="yellow")
     text.append(f" {('('+status(perplexity)+')') if perplexity else ''}", style="green")
-    text.append(f") (Model: {models['perplexity']})")
+    text.append(f" (Model: {models['perplexity']})")
     console.print(text)
 
     console.print()
@@ -385,7 +315,47 @@ def settings_menu() -> None:
     console.print("      6. Back", style="green")
     choice = input("? Enter your choice: ").strip()
     # TODO: implement choice actions
+    if choice == "1":
+        key = inquirer.text(message="Enter Gemini API Key:", password=True).execute()
+        _update_env_file("GEMINI_API_KEY", key)
+    elif choice == "2":
+        key = inquirer.text(message="Enter OpenAI API Key:", password=True).execute()
+        _update_env_file("OPENAI_API_KEY", key)
+    elif choice == "3":
+        key = inquirer.text(message="Enter OpenRouter API Key:", password=True).execute()
+        _update_env_file("OPENROUTER_API_KEY", key)
+    elif choice == "4":
+        key = inquirer.text(message="Enter Perplexity API Key:", password=True).execute()
+        _update_env_file("PERPLEXITY_API_KEY", key)
+    elif choice == "5":
+        provider_choice = inquirer.select(
+            message="Choose AI Provider:",
+            choices=LLM_PROVIDERS,
+            default=provider if provider else None,
+            style=STYLE
+        ).execute()
+        _update_env_file("KUBELINGO_LLM_PROVIDER", provider_choice)
     return
+
+def _update_env_file(key: str, value: str):
+    """Updates or adds a key-value pair in the .env file."""
+    env_path = os.path.join(os.getcwd(), ".env")
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            lines = f.readlines()
+
+    found = False
+    with open(env_path, 'w') as f:
+        for line in lines:
+            if line.startswith(f"{key}="):
+                f.write(f"{key}={value}\n")
+                found = True
+            else:
+                f.write(line)
+        if not found:
+            f.write(f"{key}={value}\n")
+    print(f"Updated {key} in .env file.")
 
 def save_question(question: dict, directory: str):
     """Save a question to a file."""
@@ -436,8 +406,13 @@ def quiz_menu() -> None:
                 data = yaml.safe_load(f)
                 if isinstance(data, list):
                     questions.extend(data)
-    elif choice in ("Vocab", "True/False", "Multiple Choice", "Imperative (Commands)", "Declarative (Manifests)"):
+    elif choice in ("True/False", "Vocab", "Multiple Choice", "Imperative (Commands)", "Declarative (Manifests)"):
         topic = select_topic()
+        difficulty = inquirer.select(
+            message="Select difficulty level:",
+            choices=[d.value for d in DifficultyLevel],
+            style=STYLE
+        ).execute()
         try:
             count_str = inquirer.text(message="How many questions would you like? ").execute()
             count = int(count_str)
@@ -445,12 +420,15 @@ def quiz_menu() -> None:
             print("Invalid number. Returning to quiz menu.")
             return
         gen = QuestionGenerator()
-        if choice == "Vocab":
-            questions = gen.generate_vocab_questions(count=count, topic=topic)
-        elif choice == "True/False":
-            questions = gen.generate_tf_questions(topic=topic, count=count)
-        else:
-            questions = gen.generate_mcq_questions(topic=topic, count=count)
+        question_type_map = {
+            "True/False": "tf",
+            "Vocab": "vocab",
+            "Multiple Choice": "mcq",
+            "Imperative (Commands)": "imperative",
+            "Declarative (Manifests)": "declarative",
+        }
+        question_type = question_type_map.get(choice, "tf") # Default to tf if not found
+        questions = gen.generate_question_set(count=count, topic=topic, difficulty=difficulty, question_type=question_type)
     else:
         print("This quiz type is not implemented yet.")
         return
