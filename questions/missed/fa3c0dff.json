@@ -1,0 +1,11 @@
+{
+    "question": "Given a Pod named 'my-pod' in the 'production' namespace, how can you view the logs of the container named 'my-container' within the Pod using kubectl?",
+    "answer": "kubectl logs -n production my-pod -c my-container",
+    "explanation": "This command retrieves the logs of the specified container within the specified Pod in the specified namespace.",
+    "suggested_answer": "kubectl logs -n production my-pod -c my-container",
+    "id": "fa3c0dff",
+    "topic": "kubectl_operations",
+    "question_type": "command",
+    "user_answer": "k logs pod my-pod -c my-container",
+    "ai_feedback": "Your answer is almost correct. The correct command to view the logs of a specific container within a Pod is `kubectl logs <pod-name> -c <container-name>`. So the correct command in this case would be `kubectl logs my-pod -c my-container`. Just a small typo with the command 'k' instead of 'kubectl'. Other than that, your answer is accurate."
+}

@@ -1,0 +1,9 @@
+{
+    "question": "Enabling api_discovery_docs in Kubernetes allows users to access detailed API documentation for the cluster's resources.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "b79d8adc",
+    "topic": "api_discovery_docs",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

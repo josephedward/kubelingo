@@ -1,0 +1,11 @@
+{
+    "question": "How can you list all the pods in the 'development' namespace using kubectl?",
+    "answer": "kubectl get pods -n development",
+    "explanation": "This command uses 'kubectl get' to list pods and the '-n' flag to specify the namespace as 'development'.",
+    "suggested_answer": "kubectl get pods -n development",
+    "id": "e3aed8a7",
+    "topic": "kubectl_operations",
+    "question_type": "command",
+    "user_answer": "k get pods -n development",
+    "ai_feedback": "Your answer is correct and concise. It accurately lists all pods in the 'development' namespace using the appropriate flag (-n) to specify the namespace. Good job!"
+}
