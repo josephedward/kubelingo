@@ -54,21 +54,19 @@ Format your response as a JSON object with the following keys:
 """
         elif question_type == "vocabulary":
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes vocabulary question about {topic}.
-The question should provide a definition and ask for the corresponding Kubernetes term.
-Format your response as a JSON object with the following keys:
-"question": "The definition of a Kubernetes term",
-"answer": "The Kubernetes term being defined"
+The question should ask for a single Kubernetes term given a concise definition.
+Respond with only the JSON object using the following keys:
+  "question": "Provide the Kubernetes term that matches the following definition: ...",
+  "answer": "the-term"
 """
         elif question_type == "multiple choice":
             exclude_instruction = ""
             if exclude_question_texts:
                 # Escape single quotes in the question texts for the prompt
                 escaped_exclude_texts = [text.replace("'", "'\''" ) for text in exclude_question_texts]
-                exclude_instruction = f"Ensure this question is entirely new and distinct from these: {escaped_exclude_texts}. Focus on a different aspect or nuance of {topic} if possible. Do not rephrase existing questions."
+                exclude_instruction = f"Generate a question that is semantically distinct and tests a different aspect of {topic}. Avoid any questions that are similar in meaning or rephrased versions of these: {escaped_exclude_texts}."
 
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes multiple choice question about {topic}.
-
-```
 The question should be clear, concise, and test practical Kubernetes knowledge.
 Provide 4 detailed answers: one correct answer and three deceptively wrong distractors.
 {exclude_instruction}
@@ -77,7 +75,43 @@ Format your response as a JSON object with the following keys:
 "options": ["Option A", "Option B", "Option C", "Option D"],
 "answer": "The correct option (e.g., 'Option B')"
 """
-        else: # Default for general questions (e.g., short answer, manifest generation)
+        elif question_type in ("imperative", "command"):  # support 'imperative' alias
+            exclude_instruction = ""
+            if exclude_question_texts:
+                # Escape single quotes in the question texts for the prompt
+                escaped_exclude_texts = [text.replace("'", "'\''" ) for text in exclude_question_texts]
+                exclude_instruction = f"Generate a question that is semantically distinct and tests a different aspect of {topic}. Avoid any questions that are similar in meaning or rephrased versions of these: {escaped_exclude_texts}."
+
+            system_prompt = f"""
+You are an expert in Kubernetes. Your task is to generate a Kubernetes command question about {topic}.
+The question should be clear, concise, and test practical Kubernetes knowledge.
+The command in the 'answer' field MUST be syntactically correct.
+All variables used in the 'answer' command MUST be defined in the 'question' field.
+{exclude_instruction}
+Format your response as a JSON object with the following keys:
+"question": "The natural language question, including any variable definitions (e.g., 'Given a deployment named 'my-app', how do you scale it to 3 replicas?')",
+"answer": "The syntactically correct kubectl, helm, or linux command (e.g., 'kubectl scale deployment my-app --replicas=3')",
+"explanation": "A brief explanation of the command"
+"""
+        elif question_type in ("declarative", "manifest"):  # support 'declarative' alias
+            exclude_instruction = ""
+            if exclude_question_texts:
+                # Escape single quotes in the question texts for the prompt
+                escaped_exclude_texts = [text.replace("'", "'\''" ) for text in exclude_question_texts]
+                exclude_instruction = f"Generate a question that is semantically distinct and tests a different aspect of {topic}. Avoid any questions that are similar in meaning or rephrased versions of these: {escaped_exclude_texts}."
+
+            system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes manifest question about {topic}.
+The question should be clear, concise, and test practical Kubernetes knowledge.
+The manifest in the 'answer' field MUST be syntactically correct YAML.
+All variables used in the 'answer' manifest MUST be defined in the 'question' field.
+{exclude_instruction}
+Format your response as a JSON object with the following keys:
+"question": "The natural language question, including any variable definitions (e.g., 'Create a Pod named \'nginx-pod\' using the \'nginx\' image.')",
+"answer": "The syntactically correct YAML manifest for the resource (e.g., 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: nginx-pod\nspec:\n  containers:\n  - name: nginx\n    image: nginx')",
+"explanation": "A brief explanation of the manifest"
+"""
+        
+        else: # Default for general questions (e.g., short answer)
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes question about {topic} in a {question_type} format.
 The question should be clear, concise, and test practical Kubernetes knowledge.
 Provide the question, expected resources (e.g., Pod, Deployment), success criteria, and hints.
@@ -91,12 +125,49 @@ Format your response as a JSON object with the following keys:
         user_prompt = f"Generate a {question_type} question about {topic}."
 
         try:
-            print(f"DEBUG: System Prompt: {system_prompt}")
-            print(f"DEBUG: User Prompt: {user_prompt}")
+            
+            
             response_text = llm_utils.ai_chat(system_prompt, user_prompt)
-            print(f"DEBUG: Raw AI Response: {response_text}")
+            
             question_data = json.loads(response_text)
-            print(f"DEBUG: Parsed Question Data: {question_data}")
+            
+            # Ensure CLI has a suggested_answer field for display
+            if 'answer' in question_data and 'suggested_answer' not in question_data:
+                question_data['suggested_answer'] = question_data['answer']
+
+            # For multiple choice questions, ensure options are unique
+            if question_type == "multiple choice" and "options" in question_data:
+                original_options = question_data["options"]
+                unique_options = list(dict.fromkeys(original_options)) # Preserves order while removing duplicates
+                
+                # Ensure the correct answer is still in the unique options.
+                # If not, it means the AI generated a duplicate for the answer,
+                # and we need to handle this gracefully, e.g., by re-adding it
+                # or logging a warning. For now, we'll just ensure it's present.
+                if question_data["answer"] not in unique_options:
+                    unique_options.append(question_data["answer"])
+                
+                # If the number of unique options is less than 4, and we expect 4,
+                # we might need to pad or regenerate. For now, just use unique.
+                question_data["options"] = unique_options
+
+            if question_type == "manifest":
+                if self.manifest_generator:
+                    manifest_prompt = question_data.get("question", "")
+                    if manifest_prompt:
+                        generated_yaml = self.manifest_generator.generate_with_gemini(manifest_prompt)
+                        validation_result = self.manifest_generator.validate_yaml(generated_yaml)
+                        if validation_result["valid"]:
+                            question_data["answer"] = generated_yaml
+                            
+                        else:
+                            print(f"WARNING: Generated manifest is invalid: {validation_result['error']}")
+                            # Optionally, handle invalid manifest, e.g., by setting answer to error message
+                            question_data["answer"] = f"ERROR: Invalid manifest generated. {validation_result['error']}"
+                    else:
+                        print("WARNING: No manifest prompt found in question data.")
+                else:
+                    print("WARNING: Manifest generator not initialized for manifest question type.")
 
             # Add ID and other metadata
             question_data["id"] = self._generate_question_id()
@@ -105,8 +176,6 @@ Format your response as a JSON object with the following keys:
             question_data["question_type"] = question_type
 
             return question_data
-        except Exception as e:
-            print(f"Error generating AI question: {e}")
             return {
                 "id": self._generate_question_id(),
                 "topic": topic,
@@ -147,6 +216,8 @@ Format your response as a JSON object with the following keys:
         generated_question_texts = set()
         retries = 0
         max_retries_per_question = 5 # Limit retries to prevent infinite loops
+        max_consecutive_failures = 3 # If AI fails to generate unique question 3 times in a row for the same topic, stop.
+        consecutive_failures = 0
 
         while len(questions) < count and retries < count * max_retries_per_question:
             # Pass normalized texts for exclusion
@@ -165,9 +236,13 @@ Format your response as a JSON object with the following keys:
                 questions.append(question)
                 generated_question_texts.add(unique_question_id)
                 retries = 0 # Reset retries for the next unique question
+                consecutive_failures = 0 # Reset consecutive failures
             else:
                 retries += 1
-                # print(f"Duplicate or invalid question generated. Retrying... (Retries: {retries})") # For debugging
+                consecutive_failures += 1
+                if consecutive_failures >= max_consecutive_failures:
+                    print(f"Warning: AI consistently failed to generate unique questions for topic '{subject_matter}'. Stopping question generation for this topic.")
+                    break # Exit the while loop
 
         if len(questions) < count:
             print(f"Warning: Could only generate {len(questions)} unique questions out of {count} requested.")
