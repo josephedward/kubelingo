@@ -18,9 +18,9 @@ from difflib import unified_diff
 from dotenv import load_dotenv
 
 # Import our custom modules
-from backend_integrator import BackendIntegrator, BackendType
-from grader import KubernetesGrader, AIEvaluator, GraderType
-from question_generator import QuestionGenerator
+from kubelingo.backend_integrator import BackendIntegrator, BackendType
+from kubelingo.grader import KubernetesGrader, AIEvaluator, GraderType
+from kubelingo.question_generator import QuestionGenerator
 
 # Load environment variables
 load_dotenv()
@@ -29,7 +29,7 @@ class ManifestGenerator:
     def __init__(self, env_file_path: str = ".env"):
         self.env_vars = self._load_env_vars(env_file_path)
         self.backend_integrator = BackendIntegrator(env_file_path)
-        self.question_generator = QuestionGenerator()
+        self.question_generator = QuestionGenerator(ai_manifest_generator=self)
         
         # Initialize AI evaluator for grading if keys available
         self.grader = None
@@ -81,6 +81,8 @@ class ManifestGenerator:
             response.raise_for_status()
             
             content = response.json()["choices"][0]["message"]["content"]
+            if return_raw_text:
+                return content
             return self._extract_yaml_from_content(content)
             
         except Exception as e:
@@ -119,37 +121,9 @@ class ManifestGenerator:
         except Exception as e:
             return f"Error: {str(e)}"
     
-    def generate_with_grok(self, prompt: str) -> str:
-        """Generate using xAI Grok API"""
-        if not self.env_vars.get("XAI_API_KEY"):
-            return "Error: XAI_API_KEY not found"
-        
-        headers = {
-            "Authorization": f"Bearer {self.env_vars['XAI_API_KEY']}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "messages": [
-                {"role": "system", "content": "You are a Kubernetes expert. Generate valid YAML manifests. Only respond with YAML code."},
-                {"role": "user", "content": f"Generate Kubernetes YAML for: {prompt}"}
-            ],
-            "model": "grok-beta",
-            "temperature": 0.3
-        }
-        
-        try:
-            response = requests.post("https://api.x.ai/v1/chat/completions",
-                                   headers=headers, json=data, timeout=30)
-            response.raise_for_status()
-            
-            content = response.json()["choices"][0]["message"]["content"]
-            return self._extract_yaml_from_content(content)
-            
-        except Exception as e:
-            return f"Error: {str(e)}"
     
-    def generate_with_ollama(self, prompt: str, model: str = "llama3") -> str:
+    
+    def generate_with_ollama(self, prompt: str, model: str = "llama3", return_raw_text: bool = False) -> str:
         """Generate using local Ollama"""
         ollama_url = self.env_vars.get("OLLAMA_HOST", "http://localhost:11434")
         
@@ -165,6 +139,8 @@ class ManifestGenerator:
             response.raise_for_status()
             
             content = response.json()["response"]
+            if return_raw_text:
+                return content
             return self._extract_yaml_from_content(content)
             
         except Exception as e:
@@ -273,7 +249,7 @@ class ManifestGenerator:
         api_generators = {
             "openai": self.generate_with_openai,
             "gemini": self.generate_with_gemini,
-            "grok": self.generate_with_grok,
+            
             "ollama": self.generate_with_ollama
         }
         
@@ -370,7 +346,7 @@ def main():
             filters["difficulty"] = args.difficulty
         
         if args.question_count == 1:
-            question = generator.question_generator.generate_question(**filters)
+            question = generator.question_generator.generate_question(**filters, use_ai=args.use_ai, ai_backend=args.ai_backend)
             print(f"Topic: {question['topic'].title()}")
             print(f"Difficulty: {question['difficulty'].title()}")
             print(f"Question: {question['question']}")
@@ -380,7 +356,7 @@ def main():
                 args.prompt = question['question']
                 print(f"\nUsing generated question as prompt for manifest generation...")
         else:
-            questions = generator.question_generator.generate_question_set(args.question_count, **filters)
+            questions = generator.question_generator.generate_question_set(args.question_count, **filters, use_ai=args.use_ai, ai_backend=args.ai_backend)
             
             for i, q in enumerate(questions, 1):
                 print(f"\n{i}. [{q['topic'].title()}] {q['question']}")
@@ -496,6 +472,3 @@ def main():
             json.dump(output_data, f, indent=2)
         
         print(f"\nResults saved to {args.output_file}")
-
-if __name__ == "__main__":
-    main()
