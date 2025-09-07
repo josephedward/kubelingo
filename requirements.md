@@ -99,6 +99,7 @@ Example schema for a question:
 
 
 -  Question Menu 
+	+ all question and answer menus should function EXACTLY the same across question types  
 	+ do not write the title of the menu literally
 	+ it comes right after the text of the question
 	+ quit should bring them back to the main menu 
@@ -110,10 +111,11 @@ Example schema for a question:
 	+ v)im, c)lear, n)ext, p)revious, a)nswer s)ource, q)uit 
 	________________(input line)
 
-- AI feedback is shown after the user answers, before the post-answer menu
+- AI feedback is shown after the user answers, before the post-answer menu (once)
 
 - Post Answer Menu 
 	+ always comes after a question is answered)
+	+ all question and answer menus should function EXACTLY the same across question types  
 	+ AI does not determine correct/missed; feedback is what is important from AI 
 	+ user chooses to save as correct or missed, or delete as a bad question 
 	+ if the answer is verbatim the same as the suggested answer, you do not need to show AI feedback
@@ -127,18 +129,20 @@ Example schema for a question:
 	+ AI feedback is a critical component
 
 question_flow: 
-	• Construct a system+user prompt (e.g. “You are a Kubernetes instructor… generate a true or false statement about <topic>…”)
-	• Call our existing ai_chat helper in a loop until we have count unique questions
-	• Parse the JSON response into your question dicts with keys id, topic, type: 'tf', question (starting “True or False: …”) and answer ('true' or 'false')
-	• Filter out any questions already in correct_folder
+	+ Construct a system+user prompt (e.g. “You are a Kubernetes instructor… generate a true or false statement about <topic>…”)
+	+ Call our existing ai_chat helper in a loop until we have count unique questions
+	+ Parse the JSON response into your question dicts with keys id, topic, type: 'tf', question (starting “True or False: …”) and answer ('true' or 'false')
+	+ Filter out any questions already in correct_folder
+	+ all question and answer menus should function EXACTLY the same across question types  
 
 question_generator
-	- vocab definitions are repeated twice 
-	- vocab definitions are far too simple; to truly cover the k8s API would require thousands and thousands of entries
-	- difficulty is not even a concept in the current implementation of the quiz
-	- static rules are going to produce results that are far too simplisitic
-	- all of these functions must use AI to get the proper level of detail  
-	- use advanced tooling specfied in docs/general_instructions.md
+	+ vocab definitions should not be repeated twice 
+	+ vocab definitions are far too simple; to truly cover the k8s API would require thousands and thousands of entries
+	+ difficulty is not even a concept in the current implementation of the quiz
+	+ static rules are going to produce results that are far too simplisitic
+	+ all of these functions must use AI to get the proper level of detail  
+	+ use advanced tooling specfied in docs/general_instructions.md
+	+ all question and answer menus should function EXACTLY the same across question types  
 
 difficulty
 	- is not a concept for now 
