@@ -29,7 +29,7 @@ class ManifestGenerator:
     def __init__(self, env_file_path: str = ".env"):
         self.env_vars = self._load_env_vars(env_file_path)
         self.backend_integrator = BackendIntegrator(env_file_path)
-        self.question_generator = QuestionGenerator(ai_manifest_generator=self)
+        self.question_generator = QuestionGenerator(manifest_generator=self)
         
         # Initialize AI evaluator for grading if keys available
         self.grader = None
@@ -316,8 +316,7 @@ def parse_args():
     
     # Question generation options
     parser.add_argument("--topic", help="Kubernetes topic for question generation")
-    parser.add_argument("--difficulty", choices=["beginner", "intermediate", "advanced"], 
-                       help="Question difficulty level")
+    
     parser.add_argument("--question-count", type=int, default=1, help="Number of questions to generate")
     
     # File options
@@ -342,13 +341,12 @@ def main():
         filters = {}
         if args.topic:
             filters["topic"] = args.topic
-        if args.difficulty:
-            filters["difficulty"] = args.difficulty
+        
         
         if args.question_count == 1:
             question = generator.question_generator.generate_question(**filters, use_ai=args.use_ai, ai_backend=args.ai_backend)
             print(f"Topic: {question['topic'].title()}")
-            print(f"Difficulty: {question['difficulty'].title()}")
+            
             print(f"Question: {question['question']}")
             print(f"Success Criteria: {question['success_criteria']}")
             
