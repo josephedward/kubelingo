@@ -17,6 +17,7 @@ from kubelingo.question_generator import QuestionGenerator
 from rich.console import Console
 from rich.text import Text
 import requests
+import shutil
 import kubelingo.llm_utils as _llm_utils
 from kubelingo.llm_utils import ai_chat
 # Keep track of the original LLM ai_chat for conditional overrides in quiz flows
@@ -177,6 +178,8 @@ def quiz_session(questions: list) -> None:
                 # Free-form answer: show suggested answer
                 print(f"Suggested Answer:\n{suggested}")
                 question['user_answer'] = suggested
+                if suggested and question['user_answer'].strip().lower() == suggested.strip().lower():
+                    print("Correct!")
             last_generated_q = question
             print('r)etry, c)orrect, m)issed, s)ource, d)elete question')
             post_answer_choice = post_answer_menu()
@@ -206,7 +209,7 @@ def quiz_session(questions: list) -> None:
             
             # Grading logic (copied from else block)
             if suggested and user_answer.strip().lower() == suggested.strip().lower():
-                pass # No feedback for verbatim match
+                print("Correct!") # Added for consistency
             else:
                 # Only provide AI feedback if the answer differs
                 console.print(Text("(Your answer differs from the suggested answer.)", style="bold yellow"))
@@ -254,7 +257,7 @@ def quiz_session(questions: list) -> None:
             print(f"Suggested Answer:\n{suggested}")
             
             if suggested and user_answer.strip().lower() == suggested.strip().lower():
-                pass # No feedback for verbatim match
+                print("Correct!") # Added for consistency
             else:
                 # Only provide AI feedback if the answer differs
                 console.print(Text("(Your answer differs from the suggested answer.)", style="bold yellow"))
@@ -450,6 +453,51 @@ def save_question(question: dict, directory: str):
     with open(file_path, 'w') as f:
         json.dump(question, f, indent=4)
 
+def static_quiz():
+    """Run a quiz on on-disk questions under questions/<category> directories, moving files based on user action."""
+    base_dir = os.path.join(os.getcwd(), 'questions')
+    if not os.path.isdir(base_dir):
+        print("No questions directory found.")
+        return
+    # Iterate through each category (e.g., uncategorized)
+    for category in sorted(os.listdir(base_dir)):
+        category_path = os.path.join(base_dir, category)
+        if not os.path.isdir(category_path):
+            continue
+        # Find all JSON question files
+        for qfile in sorted(glob.glob(os.path.join(category_path, '*.json'))):
+            try:
+                with open(qfile, 'r', encoding='utf-8') as f:
+                    qdata = json.load(f)
+            except Exception:
+                continue
+            # Prompt the user for action
+            print(f"\nQuestion: {qdata.get('question', '')}")
+            action = inquirer.select(
+                message="- Post Answer Menu",
+                choices=[
+                    {"name": "Correct", "value": "Correct"},
+                    {"name": "Missed", "value": "Missed"},
+                    {"name": "Remove Question", "value": "Remove Question"},
+                    {"name": "Quit", "value": "Quit"},
+                ],
+                style=STYLE
+            ).execute()
+            # Handle quit
+            if action.lower() in ("q", "quit"):  # Quit static quiz
+                return
+            # Determine destination directory name
+            dest_map = {"Correct": "correct", "Missed": "missed", "Remove Question": "triage"}
+            dest_key = dest_map.get(action)
+            if dest_key:
+                dest_path = os.path.join(base_dir, dest_key, category)
+                os.makedirs(dest_path, exist_ok=True)
+                # Move the file
+                try:
+                    shutil.move(qfile, dest_path)
+                except Exception as e:
+                    print(f"Error moving file: {e}")
+
 def post_answer_menu() -> str:
     """Display the post-answer menu and return the user's choice."""
     # Read the user's choice for post-answer actions
@@ -506,22 +554,55 @@ def quiz_menu() -> None:
             "Declarative (Manifests)": "manifest",
         }
         internal_qtype = type_map.get(question_type, question_type.lower())
-        # normalize stored or static menu options to 'stored'
-        if question_type.lower() in ('stored', 'static'):
-            internal_qtype = 'stored'
 
         if question_type == "Back":
+            return
+        # Handle review of uncategorized on-disk questions
+        if question_type == "Static":
+            static_quiz()
             return
 
         # Ask for Subject Matter
         subject_matter = select_topic()
         if subject_matter == "Back":
             continue
-        # Handle manifest editing mode separately
+        # Handle manifest question type separately
         if internal_qtype == 'manifest':
-            manifest_content = _open_manifest_editor()
-            print("Manifest edited:")
-            print(manifest_content)
+            # Ask for number of questions
+            try:
+                count_str = inquirer.text(message="How many questions would you like? ").execute()
+                count = int(count_str)
+                if count <= 0:
+                    raise ValueError
+            except Exception:
+                print("Invalid number. Returning to quiz menu.")
+                continue
+
+            # Generate manifest questions
+            gen = QuestionGenerator()
+            if _llm_utils.ai_chat is _original_llm_ai_chat:
+                _llm_utils.ai_chat = ai_chat
+            questions = gen.generate_question_set(
+                count=count,
+                question_type=internal_qtype,
+                subject_matter=subject_matter
+            )
+            if not questions:
+                print(f"No manifest questions generated for topic '{subject_matter}'.")
+                return
+
+            # Loop through questions
+            for question in questions:
+                print(f"\nQuestion: {question.get('question', '')}")
+                manifest_content = _open_manifest_editor()
+                print("Your answer:")
+                print(manifest_content)
+                suggested = question.get('suggested_answer') or question.get('answer', '')
+                if manifest_content.strip() == suggested.strip():
+                    print("Correct!")
+                else:
+                    print("Suggested Answer:")
+                    print(suggested)
             return
 
         # Ask for number of questions
