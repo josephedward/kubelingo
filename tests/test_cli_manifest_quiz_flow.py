@@ -66,7 +66,7 @@ spec:
     
     # Mock tempfile.NamedTemporaryFile to control the temporary file path and ensure it's cleaned up
     mock_tmp_file = MagicMock()
-    mock_tmp_file.name = "test_manifest.yaml" # A dummy path for testing
+    mock_tmp_file.name = os.path.join(os.getcwd(), 'tests', 'test_manifest.yaml')  # A dummy path for testing
     mock_tmp_file.__enter__.return_value = mock_tmp_file
     mock_tmp_file.__exit__.return_value = None # Ensure __exit__ is called
     # Patch both local and stdlib tempfile.NamedTemporaryFile used in the function
@@ -385,7 +385,7 @@ spec:
     
     # Mock tempfile.NamedTemporaryFile to control the temporary file path and ensure it's cleaned up
     mock_tmp_file = MagicMock()
-    mock_tmp_file.name = "test_manifest_no_changes.yaml" # A dummy path for testing
+    mock_tmp_file.name = os.path.join(os.getcwd(), 'tests', 'test_manifest_no_changes.yaml')  # A dummy path for testing
     mock_tmp_file.__enter__.return_value = mock_tmp_file
     mock_tmp_file.__exit__.return_value = None # Ensure __exit__ is called
     import tempfile as std_tempfile
