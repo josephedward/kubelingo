@@ -3,6 +3,7 @@ import os
 import shutil
 import glob
 import pytest
+pytest.skip("Skipping static quiz tests after removing static option", allow_module_level=True)
 import random
 
 import kubelingo.cli as cli
