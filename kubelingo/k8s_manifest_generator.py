@@ -15,15 +15,17 @@ import argparse
 import time
 from typing import Dict, List, Optional, Any
 from difflib import unified_diff
-from dotenv import load_dotenv
-
 # Import our custom modules
 from kubelingo.backend_integrator import BackendIntegrator, BackendType
 from kubelingo.grader import KubernetesGrader, AIEvaluator, GraderType
 from kubelingo.question_generator import QuestionGenerator
-
-# Load environment variables
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    # Load environment variables
+    load_dotenv()
+except ImportError:
+    # dotenv not installed; skip loading .env file
+    pass
 
 class ManifestGenerator:
     def __init__(self, env_file_path: str = ".env"):
