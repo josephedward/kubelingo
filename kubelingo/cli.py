@@ -12,10 +12,16 @@ import yaml
 import tempfile
 from InquirerPy import inquirer
 from InquirerPy.utils import get_style
+import builtins
+from prompt_toolkit import prompt
+
+# Replace built-in input with prompt_toolkit prompt to enable line editing and history
+builtins.input = prompt
 from kubelingo.importer import import_from_file
 from kubelingo.question_generator import QuestionGenerator
 from rich.console import Console
 from rich.text import Text
+from rich.align import Align
 import requests
 import shutil
 import kubelingo.llm_utils as _llm_utils
@@ -31,33 +37,55 @@ QUESTION_TYPES = ["tf", "mcq", "vocab", "imperative", "declarative", "command", 
 
 # ASCII art banner for Kubelingo (disabled for now)
 ASCII_ART = r"""
-                                        bbbbbbb
-KKKKKKKKK    KKKKKKK                    b:::::b                                  lllllll   iiii
-K:::::::K    K:::::K                    b:::::b                                  l:::::l  i::::i
-K:::::::K    K:::::K                    b:::::b                                  l:::::l   iiii
-K:::::::K   K::::::K                    b:::::b                                  l:::::l 
-KK::::::K  K:::::KKK uuuuuu    uuuuuu   b:::::bbbbbbbbb         eeeeeeeeeeee     l:::::l  iiiiii  nnnn  nnnnnnnn      ggggggggg   gggg   ooooooooooo
-  K:::::K K:::::K    u::::u    u::::u   b::::::::::::::bb     ee::::::::::::ee   l:::::l  i::::i  n::nn::::::::nn    g:::::::::ggg:::g oo:::::::::::oo
-  K::::::K:::::K     u::::u    u::::u   b::::::::::::::::b   e::::::eeeee:::::ee l:::::l  i:::::i  n:::::::::::::nn  g::::::::::::::::g o:::::::::::::::o
-  K:::::::::::K      u::::u    u::::u   b:::::bbbbb:::::::b e::::::e     e:::::e l:::::l  i:::::i  n:::::nnnn:::::n g::::::ggggg::::::g go:::::ooooo::::o
-  K::::::K:::::K     u::::u    u::::u   b:::::b    b::::::b e:::::::eeeee::::::e l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o::::o
-  K:::::K K:::::K    u::::u    u::::u   b:::::b     b:::::b e:::::::::::::::::e  l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o:::::o
-  K:::::uuuu:::::u   b:::::b     b:::::b e::::::eeeeeeeeeee   l:::::l  i:::::i  n::::n    n::::n g:::::g     g:::::g o::::o     o:::::o
-KK::::::K  K:::::KKK u:::::uuuu:::::u   b:::::b     b:::::b e:::::::e            l:::::l i:::::i  n::::n    n::::n g::::::g    g:::::g o:::::ooooo:::::o
-K:::::::K   K::::::K u:::::::::::::::uu b:::::bbbbbb::::::b e::::::::e           l:::::l i:::::i  n::::n    n::::n g:::::::ggggg:::::g o:::::ooooo:::::o
-K:::::::K    K:::::K  u:::::::::::::::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n:::::n   gg::::::::::::::g  oo:::::::::::oo
-K:::::::K    K:::::K   uu::::::::uu:::u b:::::::::::::::b     ee:::::::::::::e   l:::::l i:::::i  n::::n    n:::::n     gggggggg::::::g    ooooooooooo
-KKKKKKKKK    KKKKKKK   uuu uuuuu  uuuu bbbbbbbbbbbbbbbb        eeeeeeeeeeeeee   lllllll iiiiiii  nnnnnn    nnnnnn     gggggggg::::::g    ooooooooooo
-                                                                                                                               g:::::g
-                                                                                                                   gggggg      g:::::g
-                                                                                                                   g:::::gg   gg:::::g
-                                                                                                                    g::::::ggg:::::::g
-                                                                                                                     gg:::::::::::::g
-                                                                                                                       ggg::::::ggg
-                                                                                                                          gggggg
+ /$$   /$$           /$$                 /$$       /$$                              
+| $$  /$$/          | $$                | $$      |__/                              
+| $$ /$$/  /$$   /$$| $$$$$$$   /$$$$$$ | $$       /$$ /$$$$$$$   /$$$$$$   /$$$$$$ 
+| $$$$$/  | $$  | $$| $$__  $$ /$$__  $$| $$      | $$| $$__  $$ /$$__  $$ /$$__  $$
+| $$  $$  | $$  | $$| $$  \ $$| $$$$$$$$| $$      | $$| $$  \ $$| $$  \ $$| $$  \ $$
+| $$\  $$ | $$  | $$| $$  | $$| $$_____/| $$      | $$| $$  | $$| $$  | $$| $$  | $$
+| $$ \  $$|  $$$$$$/| $$$$$$$/|  $$$$$$$| $$$$$$$$| $$| $$  | $$|  $$$$$$$|  $$$$$$/
+|__/  \__/ \______/ |_______/  \_______/|________/|__/|__/  |__/ \____  $$ \______/ 
+                                                                 /$$  \ $$          
+                                                                |  $$$$$$/          
+                                                                 \______/           
 """
 # End of ASCII_ART; constants imported earlier
 
+
+# Generate a Rich Text representation of the ASCII art with a blue/purple spiral coloring
+def get_spiral_colored_art(art: str) -> Text:
+    # Split into lines for full banner
+    lines = art.strip('\n').splitlines()
+    # Trim trailing spaces and pad to uniform width
+    height = len(lines)
+    width = max(len(line.rstrip()) for line in lines)
+    grid = [list(line.rstrip().ljust(width)) for line in lines]
+    order = []
+    top, bottom = 0, height - 1
+    left, right = 0, width - 1
+    while left <= right and top <= bottom:
+        for c in range(left, right + 1):
+            order.append((top, c))
+        for r in range(top + 1, bottom + 1):
+            order.append((r, right))
+        if top < bottom:
+            for c in range(right - 1, left - 1, -1):
+                order.append((bottom, c))
+        if left < right:
+            for r in range(bottom - 1, top, -1):
+                order.append((r, left))
+        top += 1; bottom -= 1; left += 1; right -= 1
+    pos_to_idx = {pos: idx for idx, pos in enumerate(order)}
+    txt = Text()
+    for r in range(height):
+        for c in range(width):
+            ch = grid[r][c]
+            idx = pos_to_idx.get((r, c), 0)
+            color = 'blue' if idx % 2 == 0 else 'magenta'
+            txt.append(ch, style=color)
+        if r < height - 1:
+            txt.append('\n')
+    return txt
 
 # Define a custom style for InquirerPy prompts
 STYLE = get_style({
@@ -669,7 +697,7 @@ def main():
     """Main entry point for the Kubelingo CLI application."""
     console = Console()
     while True:
-        console.print(ASCII_ART, style="bold green")
+        console.print(Align(get_spiral_colored_art(ASCII_ART), align="center"))
         choice = inquirer.select(
             message="Main Menu:",
             choices=[
