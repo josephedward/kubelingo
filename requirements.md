@@ -150,8 +150,11 @@ difficulty
 	- remove it where you find it 
 
 vim
-- tab should always move two spaces 
-- should be in color; easier to see 
-- question flow should be no different for manifests 
-- vim just contains/writes the answer 
-- we could still even wait to validate after pressing enter on the line
+	- tab should always move two spaces 
+	- should be in color; easier to see 
+	- question flow should be no different for manifests 
+	- vim just contains/writes the answer 
+	- we could still even wait to validate after pressing enter on the line
+
+test yaml 
+	- should only be created in /tests/ directory 
