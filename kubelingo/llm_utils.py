@@ -1,10 +1,13 @@
 import os
 import json
 import requests
-from dotenv import load_dotenv
-
-# Load environment variables from .env file if present
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    # Load environment variables from .env file if present
+    load_dotenv()
+except ImportError:
+    # dotenv not installed; skip loading .env file
+    pass
 
 def ai_chat(*args, **kwargs):
     """
