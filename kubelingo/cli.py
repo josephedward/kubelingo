@@ -10,15 +10,10 @@ import json
 import glob
 import yaml
 import tempfile
-from InquirerPy import inquirer
-from InquirerPy.utils import get_style
 import builtins
-from prompt_toolkit import prompt
-
-# Replace built-in input with prompt_toolkit prompt to enable line editing and history
-builtins.input = prompt
 from kubelingo.importer import import_from_file
 from kubelingo.question_generator import QuestionGenerator
+from kubelingo.k8s_manifest_generator import ManifestGenerator
 from rich.console import Console
 from rich.text import Text
 from rich.align import Align
@@ -29,7 +24,23 @@ from kubelingo.llm_utils import ai_chat
 # Keep track of the original LLM ai_chat for conditional overrides in quiz flows
 _original_llm_ai_chat = _llm_utils.ai_chat
 from kubelingo.constants import SUBJECT_MATTERS
-
+try:
+    from prompt_toolkit import prompt
+except ImportError:
+    prompt = input
+# Replace built-in input with prompt (prompt_toolkit or fallback) to enable line editing and history
+builtins.input = prompt
+try:
+    from InquirerPy import inquirer
+    from InquirerPy.utils import get_style
+except ImportError:
+    import types
+    inquirer = types.SimpleNamespace(
+        select=lambda *args, **kwargs: None,
+        text=lambda *args, **kwargs: None
+    )
+    def get_style(style_dict, style_override=False):
+        return None
 
 # LLM providers and question types for testing and flows
 LLM_PROVIDERS = ["gemini", "openai", "openrouter", "perplexity"]
@@ -97,64 +108,13 @@ STYLE = get_style({
 }, style_override=False)
 last_generated_q = None  # track the last answered question for testing
 
-def handle_post_answer(question: dict, questions: list, current_question_index: int, choice: str) -> int:
-    # normalize full choice string to first letter command
-    # normalize full choice string to first letter command
-    key = choice[0].lower() if choice else ''
-    if key == 'r':
-        # retry same question
-        return current_question_index
-    elif key == 'c':
-        # save as correct and remove from question list
-        save_question(question, os.path.join(os.getcwd(), 'questions', 'correct'))
-        print("Question saved as correct.")
-        questions.pop(current_question_index)
-        if not questions:
-            return None
-        return current_question_index % len(questions)
-    elif key == 'm':
-        # save as missed and remove from question list
-        save_question(question, os.path.join(os.getcwd(), 'questions', 'missed'))
-        print("Question saved as missed.")
-        questions.pop(current_question_index)
-        if not questions:
-            return None
-        return current_question_index % len(questions)
-    elif key == 'd':
-        # delete or discard question
-        src = question.get('source')
-        if src and src != 'generated':
-            try:
-                os.remove(src)
-                print(f"Deleted question from {src}")
-            except OSError as e:
-                print(f"Error deleting question file: {e}")
-        else:
-            # no file to delete, just discard
-            print("Discarding question.")
-        questions.pop(current_question_index)
-        if not questions:
-            return None
-        return current_question_index % len(questions)
-    elif key == 's': # Handle 's)ource' option
-        source = question.get('source', 'N/A')
-        print(f"Source: {source}")
-        return current_question_index # Stay on the same question
-    elif key == 'q':
-        # Show next question before quitting the session
-        if questions:
-            next_index = (current_question_index + 1) % len(questions)
-            next_question = questions[next_index]
-            print(f"\nQuestion: {next_question['question']}")
-        return None
-    # any other key (including empty) moves to next question by default
-    # move to next question by default
-    if not questions: # If no questions left, return None
-        return None
-    return (current_question_index + 1) % len(questions)
 
-def quiz_session(questions: list) -> None:
-    """Run a simple quiz session on a given list of questions."""
+
+
+
+
+def quiz_loop(questions: list) -> None:
+    """The main quiz loop with a consistent menu flow for all question types."""
     global last_generated_q
     console = Console()
     if not questions:
@@ -162,158 +122,175 @@ def quiz_session(questions: list) -> None:
         return
 
     current_question_index = 0
-
-    while questions: # Loop as long as there are questions
-        if not questions: # If all questions are removed (e.g., by 'd'), exit
-            break
-
+    while current_question_index < len(questions):
         question = questions[current_question_index]
-        suggested = question.get('suggested_answer', '') # Define suggested here
-        # Support both 'choices' and 'options' keys for multiple choice questions
+        question_type = question.get("question_type")
         choices = question.get('choices') or question.get('options')
-        # Determine the suggested answer for grading and feedback
-        suggested = question.get('suggested_answer') or question.get('answer', '')
+
+        # Clear screen for non-manifest questions
+        if question_type != 'manifest':
+            os.system('cls' if os.name == 'nt' else 'clear')
+        console.print(Align(get_spiral_colored_art(ASCII_ART), align="center"))
         print(f"\nQuestion: {question['question']}")
         if choices:
-            for idx_opt, opt in enumerate(choices, start=1):
-                print(f"  {idx_opt}. {opt}")
-
-        # Question menu (consistent across all types)
-        console.print(Text("v) vim, c) clear, n) next, p) previous, a) answer, s) source, q) quit", style="green"))
-        user_input = input().strip().lower()
-        # Help: reprint menu options
-        if user_input == '?':
-            console.print(Text("v) vim, c) clear, n) next, p) previous, a) answer, s) source, q) quit", style="green"))
+            for idx, opt in enumerate(choices, start=1):
+                print(f"  {idx}. {opt}")
+        # For manifest questions, automatically launch editor and grade without showing menu
+        if question_type == 'manifest':
+            # Prepare editor template: vim modeline + commented prompt
+            lines = question['question'].splitlines()
+            commented = "\n".join(f"# {line}" for line in lines)
+            modeline = "# vim: set ft=yaml ts=2 sw=2 sts=2 et\n"
+            template = f"{modeline}{commented}\n\n"
+            # Launch editor
+            user_answer = _open_manifest_editor(template=template)
+            # Show answer and grade
+            print("Your answer:")
+            print(user_answer)
+            suggested_answer = question.get('suggested_answer') or question.get('answer', '')
+            if user_answer.strip() == suggested_answer.strip():
+                print("Correct!")
+            else:
+                print("Suggested Answer:")
+                print(suggested_answer)
+            current_question_index += 1
             continue
 
-        if user_input == 'q':
-            break
-        elif user_input == 'p':
-            current_question_index = (current_question_index - 1) % len(questions)
-            continue
-        elif user_input == 'n':
-            current_question_index = (current_question_index + 1) % len(questions)
-            continue
-        elif user_input == 'a':
-            # Grade using suggested answer or show it for non-MCQ
-            if choices:
-                # Multiple-choice: auto-grade correctness
-                correct = False
-                # Normalize comparison
-                if suggested and question.get('answer'):
-                    if suggested.strip().lower() == question['answer'].strip().lower():
-                        correct = True
-                if correct:
+        # --- Question Menu ---
+        action_taken = False
+        while not action_taken:
+            console.print(Text("\nv)im, c)lear, n)ext, p)revious, a)nswer, s)ource, q)uit", style="green"))
+            user_input = input().strip().lower()
+            
+            if user_input.startswith('q'):
+                print("\nQuiz session finished.")
+                return
+            elif user_input.startswith('p'):
+                current_question_index = (current_question_index - 1 + len(questions)) % len(questions)
+                break # Breaks inner loop to show previous question
+            elif user_input.startswith('n'):
+                current_question_index = (current_question_index + 1) % len(questions)
+                break # Breaks inner loop to show next question
+            elif user_input.startswith('c'):
+                continue # Redraws the screen
+            elif user_input.startswith('s'):
+                source = question.get('source', 'N/A')
+                print(f"Source: {source}")
+                continue
+
+            # --- Answering ---
+            user_answer = ""
+            if user_input.startswith('v'):
+                qtext = question.get('question', '')
+                lines = qtext.splitlines()
+                commented = "\n".join(f"# {line}" for line in lines)
+                template = f"{commented}\n\n"
+                user_answer = _open_manifest_editor(template=template)
+                action_taken = True
+            elif user_input.startswith('a'):
+                # Use InquirerPy text prompt for answer input when available
+                try:
+                    user_answer = inquirer.text(message="Your answer:").execute().strip()
+                except Exception:
+                    user_answer = input().strip()
+                action_taken = True
+            else: # Treat any other input as the answer
+                user_answer = user_input
+                action_taken = True
+
+            if action_taken:
+                # --- Grading and Feedback ---
+                suggested_answer = question.get('suggested_answer') or question.get('answer', '')
+                is_correct = user_answer.strip().lower() == suggested_answer.strip().lower()
+
+                print("\nYour answer:")
+                print(user_answer)
+                if is_correct:
                     print("Correct!")
                 else:
-                    print("Incorrect!")
-                question['user_answer'] = suggested
-            else:
-                # Free-form answer: show suggested answer
-                print(f"Suggested Answer:\n{suggested}")
-                question['user_answer'] = suggested
-                if suggested and question['user_answer'].strip().lower() == suggested.strip().lower():
-                    print("Correct!")
-            last_generated_q = question
-            print('r)etry, c)orrect, m)issed, s)ource, d)elete question')
-            post_answer_choice = post_answer_menu()
-            idx = handle_post_answer(question, questions, current_question_index, post_answer_choice)
-            if idx is None:
-                break
-            current_question_index = idx
-        elif user_input == 's':
-            source = question.get('source', 'N/A')
-            print(f"Source: {source}")
-            continue
-        elif user_input == 'v':
-            suggested_answer = question.get('suggested_answer', '')
-            print(f"\n--- Opening editor for manifest. Save and close the file to continue. ---")
-            user_answer = _open_manifest_editor(suggested_answer) # Use the actual editor
+                    print("\nSuggested Answer:")
+                    print(suggested_answer)
+                    try:
+                        sys_prompt = (
+                            "You are a helpful Kubernetes instructor. "
+                            "Provide constructive feedback on the user's answer compared to the suggested answer."
+                        )
+                        user_prompt = (
+                            f"Question: {question['question']}\n"
+                            f"Suggested Answer:\n{suggested_answer}\n"
+                            f"User Answer:\n{user_answer}"
+                        )
+                        feedback = ai_chat(sys_prompt, user_prompt)
+                        if feedback:
+                            console.print("\nAI Feedback:", style="bold cyan")
+                            console.print(feedback)
+                            question['ai_feedback'] = feedback
+                    except Exception as e:
+                        print(f"[AI feedback error: {e}]")
+                last_generated_q = question
 
-            question['user_answer'] = user_answer # Update question with the user's answer
-            
-            # Grading logic (copied from else block)
-            if suggested and user_answer.strip().lower() == suggested.strip().lower():
-                print("Correct!") # Added for consistency
-            else:
-                # Only provide AI feedback if the answer differs
-                console.print(Text("(Your answer differs from the suggested answer.)", style="bold yellow"))
-                try:
-                    sys_prompt = (
-                        "You are a helpful Kubernetes instructor. "
-                        "Provide constructive feedback on the user's answer compared to the suggested answer."
-                    )
-                    user_prompt = (
-                        f"Question: {question['question']}\n"
-                        f"Suggested Answer:\n{suggested}\n"
-                        f"User Answer:\n{user_answer}"
-                    )
-                    feedback = ai_chat(sys_prompt, user_prompt)
-                except Exception as e:
-                    feedback = f"[AI feedback error: {e}]"
-                if feedback:
-                    console.print(Text("\nAI Feedback:\n", style="bold cyan"))
-                    console.print(feedback)
-                question['ai_feedback'] = feedback
-            
-            last_generated_q = question
-            print('r)etry, c)orrect, m)issed, s)ource, d)elete question')
-            post_answer_choice = post_answer_menu()
-            idx = handle_post_answer(question, questions, current_question_index, post_answer_choice)
-            if idx is None: # Only break if handle_post_answer explicitly returns None
-                break
-            current_question_index = idx
-        elif user_input == 'c':
-            os.system('cls' if os.name == 'nt' else 'clear')
-            continue # Stay on the same question after clearing
-        else:
-            # Treat input as an answer; record, show suggested answer, and grade it
-            user_answer = user_input
-            # Map numeric choice to actual option if applicable
-            if choices and user_input.isdigit():
-                try:
-                    sel = int(user_input) - 1
-                    if 0 <= sel < len(choices):
-                        user_answer = choices[sel]
-                except ValueError:
-                    pass
-            question['user_answer'] = user_answer
-            # Display suggested answer for comparison
-            print(f"Suggested Answer:\n{suggested}")
-            
-            if suggested and user_answer.strip().lower() == suggested.strip().lower():
-                print("Correct!") # Added for consistency
-            else:
-                # Only provide AI feedback if the answer differs
-                console.print(Text("(Your answer differs from the suggested answer.)", style="bold yellow"))
-                try:
-                    sys_prompt = (
-                        "You are a helpful Kubernetes instructor. "
-                        "Provide constructive feedback on the user's answer compared to the suggested answer."
-                    )
-                    user_prompt = (
-                        f"Question: {question['question']}\n"
-                        f"Suggested Answer:\n{suggested}\n"
-                        f"User Answer:\n{user_answer}"
-                    )
-                    feedback = ai_chat(sys_prompt, user_prompt)
-                except Exception as e:
-                    feedback = f"[AI feedback error: {e}]"
-                if feedback:
-                    console.print(Text("\nAI Feedback:\n", style="bold cyan"))
-                    console.print(feedback)
-                question['ai_feedback'] = feedback
-            
-            last_generated_q = question
-            print('r)etry, c)orrect, m)issed, s)ource, d)elete question')
-            post_answer_choice = post_answer_menu()
-            idx = handle_post_answer(question, questions, current_question_index, post_answer_choice)
-            if idx is None: # Only break if handle_post_answer explicitly returns None
-                break
-            current_question_index = idx
-    print("Quiz session finished.")
+                # --- Post-Answer Menu ---
+                post_action_taken = False
+                while not post_action_taken:
+                    console.print(Text("\nr)etry, c)orrect, m)issed, s)ource, d)elete question", style="yellow"))
+                    post_choice = input().strip().lower()
+                    if post_choice.startswith('r'):
+                        post_action_taken = True  # Will re-run the current question
+                    elif post_choice.startswith('c'):
+                        save_question(question, os.path.join(os.getcwd(), 'questions', 'correct'))
+                        print("Question saved as correct.")
+                        questions.pop(current_question_index)
+                        post_action_taken = True
+                    elif post_choice.startswith('m'):
+                        save_question(question, os.path.join(os.getcwd(), 'questions', 'missed'))
+                        print("Question saved as missed.")
+                        questions.pop(current_question_index)
+                        post_action_taken = True
+                    elif post_choice.startswith('d'):
+                        src = question.get('source')
+                        if src and src != 'generated':
+                            try:
+                                os.remove(src)
+                                print(f"Deleted question from {src}")
+                            except OSError as e:
+                                print(f"Error deleting question file: {e}")
+                        else:
+                            print("Discarding question.")
+                        questions.pop(current_question_index)
+                        post_action_taken = True
+                    elif post_choice.startswith('s'):
+                        source = question.get('source', 'N/A')
+                        print(f"Source: {source}")
+                    else:
+                        print("Invalid choice.")
+                # After post-answer action, adjust index
+                if not post_choice.startswith('r'):
+                    if not questions:
+                        current_question_index = -1  # End loop
+                    elif current_question_index >= len(questions):
+                        current_question_index = 0
+                    # Otherwise, index remains the same for the next question
+                else:
+                    # if retry, we need to decrement the index so that it gets incremented to the same question
+                    current_question_index -= 1
+
+        current_question_index += 1
+
+    if not questions:
+        print("\nNo more questions.")
+
+# Alias for backward compatibility
+quiz_session = quiz_loop
+# Post-answer menu input helper (for consistency)
+def post_answer_menu() -> str:
+    """Read the user's choice from the post-answer menu."""
+    try:
+        return input().strip().lower()
+    except EOFError:
+        return 'q'
 
 def import_menu() -> None:
+
     """Display the import menu for questions via file or URL."""
     questions_dir = os.path.join(os.getcwd(), 'questions')
     if not os.path.isdir(questions_dir):
@@ -523,22 +500,34 @@ def static_quiz():
                 except Exception as e:
                     print(f"Error moving file: {e}")
 
-def post_answer_menu() -> str:
-    """Display the post-answer menu and return the user's choice."""
-    # Read the user's choice for post-answer actions
-    return input().strip().lower()
+
 def _open_manifest_editor(template: str = "") -> str:
     """
     Open a manifest editor for Kubernetes YAML content.
     Writes the provided template to a temp file, opens the EDITOR, and returns edited content.
     """
     import tempfile, os
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.yaml') as tmpfile:
+    # Ensure test manifests are written under the 'tests' directory
+    tests_dir = os.path.join(os.getcwd(), 'tests')
+    try:
+        os.makedirs(tests_dir, exist_ok=True)
+    except Exception:
+        pass
+    # Create temp file in tests directory so test manifest files appear there
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.yaml', dir=tests_dir) as tmpfile:
         tmpfile.write(template or "")
         tmpfile.flush()
         tmp_path = tmpfile.name
     editor = os.environ.get('EDITOR', 'vim') or 'vim'
-    os.system(f'{editor} {tmp_path}')
+    
+    # For vim, add commands to ensure settings are applied
+    if 'vim' in editor:
+        # The modeline should be respected, but we can add extra commands if needed
+        # Forcing syntax on is a good practice
+        os.system(f'{editor} -c "syntax on" {tmp_path}')
+    else:
+        os.system(f'{editor} {tmp_path}')
+
     try:
         with open(tmp_path, 'r') as tmpfile:
             content = tmpfile.read()
@@ -547,7 +536,12 @@ def _open_manifest_editor(template: str = "") -> str:
             os.remove(tmp_path)
         except OSError:
             pass
-    return content
+    # Remove the modeline before returning; if no modeline present, return full content
+    lines = content.split('\n')
+    if lines and lines[0].startswith('# vim:'):
+        return '\n'.join(lines[1:])
+    else:
+        return content
 
 def quiz_menu() -> None:
     """Display the quiz menu and start a quiz session."""
@@ -581,55 +575,15 @@ def quiz_menu() -> None:
 
         if question_type == "Back":
             return
-        # Handle review of uncategorized on-disk questions
+        
         if question_type == "Static":
             static_quiz()
             return
 
-        # Ask for Subject Matter
         subject_matter = select_topic()
         if subject_matter == "Back":
             continue
-        # Handle manifest question type separately
-        if internal_qtype == 'manifest':
-            # Ask for number of questions
-            try:
-                count_str = inquirer.text(message="How many questions would you like? ").execute()
-                count = int(count_str)
-                if count <= 0:
-                    raise ValueError
-            except Exception:
-                print("Invalid number. Returning to quiz menu.")
-                continue
-
-            # Generate manifest questions
-            gen = QuestionGenerator()
-            if _llm_utils.ai_chat is _original_llm_ai_chat:
-                _llm_utils.ai_chat = ai_chat
-            questions = gen.generate_question_set(
-                count=count,
-                question_type=internal_qtype,
-                subject_matter=subject_matter
-            )
-            if not questions:
-                print(f"No manifest questions generated for topic '{subject_matter}'.")
-                return
-
-            # Loop through questions
-            for question in questions:
-                print(f"\nQuestion: {question.get('question', '')}")
-                manifest_content = _open_manifest_editor()
-                print("Your answer:")
-                print(manifest_content)
-                suggested = question.get('suggested_answer') or question.get('answer', '')
-                if manifest_content.strip() == suggested.strip():
-                    print("Correct!")
-                else:
-                    print("Suggested Answer:")
-                    print(suggested)
-            return
-
-        # Ask for number of questions
+        
         try:
             count_str = inquirer.text(message="How many questions would you like? ").execute()
             count = int(count_str)
@@ -640,10 +594,8 @@ def quiz_menu() -> None:
             continue
 
         questions = []
-        # Load stored questions from disk if requested
         if internal_qtype == "stored":
             base_dir = os.path.join(os.getcwd(), 'questions', 'stored')
-            # Load all JSON files
             files = glob.glob(os.path.join(base_dir, '*.json'))
             if not files:
                 print("No stored questions available.")
@@ -656,32 +608,31 @@ def quiz_menu() -> None:
                         all_qs.append(data)
                 except Exception:
                     continue
-            # Filter by subject matter (topic)
             questions = [q for q in all_qs if q.get('topic') == subject_matter]
             if not questions:
                 print(f"No stored questions found for subject '{subject_matter}'.")
                 continue
-            # Limit to requested count
             if count < len(questions):
                 questions = questions[:count]
             elif count > len(questions):
                 print(f"Only {len(questions)} stored questions available; showing all.")
-            # Ensure question_type field is present
             for q in questions:
                 if 'question_type' not in q:
                     q['question_type'] = q.get('type', 'stored')
         else:
-            # Generate AI questions for other types
             gen = QuestionGenerator()
-            # Ensure QuestionGenerator uses CLI ai_chat (without overwriting test stubs)
+            if internal_qtype == 'manifest':
+                mg = ManifestGenerator()
+                gen.manifest_generator = mg
+
             if _llm_utils.ai_chat is _original_llm_ai_chat:
                 _llm_utils.ai_chat = ai_chat
+            
             questions = gen.generate_question_set(
                 count=count,
                 question_type=internal_qtype,
                 subject_matter=subject_matter
             )
-            # Check for generation failures
             if any(isinstance(q.get('question'), str) and q['question'].startswith("Failed to generate AI question") for q in questions):
                 print("AI generation failed. Please try the stored quiz mode via 'Stored' option.")
                 return
@@ -689,8 +640,8 @@ def quiz_menu() -> None:
                 print(f"No questions generated for topic '{subject_matter}'.")
                 continue
 
-        quiz_session(questions)
-        return # Exit quiz_menu after session
+        quiz_loop(questions)
+        return
 
 
 def main():
