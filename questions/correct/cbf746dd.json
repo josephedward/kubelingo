@@ -1,0 +1,9 @@
+{
+    "question": "In Kubernetes, resource requests and limits should always be set to the same value for optimal resource management.",
+    "answer": "false",
+    "source": "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
+    "suggested_answer": "false",
+    "id": "cbf746dd",
+    "topic": "resource_management",
+    "question_type": "true/false"
+}
