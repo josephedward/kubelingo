@@ -114,14 +114,13 @@ Format your response as a JSON object with the following keys:
 
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes manifest question about {topic}.
 The question should be clear, concise, and test practical Kubernetes knowledge.
-The manifest in the 'answer' field MUST be syntactically correct YAML.
+The manifest in the 'answer' field MUST be syntactically correct YAML, provided as a single-line string with '\n' for newlines.
 All variables used in the 'answer' manifest MUST be defined in the 'question' field.
 {exclude_instruction}
 Format your response as a JSON object with the following keys:
 "question": "The natural language question, including any variable definitions (e.g., 'Create a Pod named \'nginx-pod\' using the \'nginx\' image.')",
-"answer": "The syntactically correct YAML manifest for the resource (e.g., 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: nginx-pod\nspec:\n  containers:\n  - name: nginx\n    image: nginx')",
-"explanation": "A brief explanation of the manifest"
-"""
+"answer": "The syntactically correct YAML manifest for the resource as a single-line string (e.g., 'apiVersion: v1\nkind: Pod\nmetadata:\n  name: nginx-pod\nspec:\n  containers:\n  - name: nginx\n    image: nginx')",
+"explanation": "A brief explanation of the manifest"""
         
         else: # Default for general questions (e.g., short answer)
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes question about {topic} in a {question_type} format.
@@ -140,13 +139,50 @@ Format your response as a JSON object with the following keys:
         else:
             user_prompt = f"Generate a {question_type} question about {topic}."
 
+        retries = 3
+        question_data = None
+        for i in range(retries):
+            try:
+                # Get raw AI response
+                response_text = llm_utils.ai_chat(system_prompt, user_prompt)
+                
+                # Extract JSON from the response
+                json_str = self._extract_json_from_response(response_text)
+                
+                if not json_str:
+                    raise ValueError("No JSON object found in the AI response.")
+
+                # Parse JSON output
+                question_data = json.loads(json_str)
+                
+                # If parsing is successful, break the loop
+                break
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error decoding JSON on attempt {i+1}/{retries}: {e}")
+                if i == retries - 1:
+                    # This was the last attempt, return an error dictionary
+                    return {
+                        "id": self._generate_question_id(),
+                        "topic": topic,
+                        "question_type": question_type,
+                        "question": f"Failed to generate AI question for {topic} ({question_type}). Error: {e}",
+                        "expected_resources": [],
+                        "success_criteria": [],
+                        "hints": []
+                    }
+        
+        if not question_data:
+             return {
+                "id": self._generate_question_id(),
+                "topic": topic,
+                "question_type": question_type,
+                "question": f"Failed to generate AI question for {topic} ({question_type}). Error: Failed to get a valid response from the AI after {retries} retries.",
+                "expected_resources": [],
+                "success_criteria": [],
+                "hints": []
+            }
+
         try:
-            
-            
-            response_text = llm_utils.ai_chat(system_prompt, user_prompt)
-            
-            question_data = json.loads(response_text)
-            
             # Ensure CLI has a suggested_answer field for display
             if 'answer' in question_data and 'suggested_answer' not in question_data:
                 question_data['suggested_answer'] = question_data['answer']
@@ -172,16 +208,19 @@ Format your response as a JSON object with the following keys:
                     manifest_prompt = question_data.get("question", "")
                     if manifest_prompt:
                         generated_yaml = self.manifest_generator.generate_with_gemini(manifest_prompt)
-                        validation_result = self.manifest_generator.validate_yaml(generated_yaml)
-                        if validation_result["valid"]:
-                            question_data["answer"] = generated_yaml
-                            
+                        # Handle API-level errors
+                        if generated_yaml.strip().startswith("Error:"):
+                            question_data["answer"] = f"ERROR: Failed to generate manifest. {generated_yaml.strip()}"
                         else:
-                            print(f"WARNING: Generated manifest is invalid: {validation_result['error']}")
-                            # Optionally, handle invalid manifest, e.g., by setting answer to error message
-                            question_data["answer"] = f"ERROR: Invalid manifest generated. {validation_result['error']}"
+                            validation_result = self.manifest_generator.validate_yaml(generated_yaml)
+                            # Use YAML if valid, otherwise capture error
+                            if validation_result.get("valid"):
+                                question_data["answer"] = generated_yaml
+                            else:
+                                err = validation_result.get('error', 'Unknown error')
+                                question_data["answer"] = f"ERROR: Invalid manifest generated. {err}"
                     else:
-                        print("WARNING: No manifest prompt found in question data.")
+                        question_data["answer"] = "ERROR: No manifest prompt provided."
                 else:
                     print("WARNING: Manifest generator not initialized for manifest question type.")
 
@@ -191,17 +230,9 @@ Format your response as a JSON object with the following keys:
             
             question_data["question_type"] = question_type
             return question_data
-        except Exception as e:
-            print(f"Error generating AI question: {e}")
-            return {
-                "id": self._generate_question_id(),
-                "topic": topic,
-                "question_type": question_type,
-                "question": f"Failed to generate AI question for {topic} ({question_type}). Error: {e}",
-                "expected_resources": [],
-                "success_criteria": [],
-                "hints": []
-            }
+        finally:
+            # Ensure any necessary cleanup after processing question_data
+            pass
     
     def generate_question(
         self,
@@ -214,7 +245,20 @@ Format your response as a JSON object with the following keys:
         return self.generate_ai_question(topic, question_type, exclude_question_texts)
 
 
-    
+    def _extract_json_from_response(self, response_text: str) -> Optional[str]:
+        """
+        Extracts a JSON object from a string, which may contain markdown fences.
+        """
+        import re
+        # Pattern to find JSON within ```json ... ``` or just {...}
+        pattern = re.compile(r'```json\s*(\{.*?\})\s*```|(\{.*?\})', re.DOTALL)
+        match = pattern.search(response_text)
+        
+        if match:
+            # Prioritize the first capturing group (json within ```json), then the second (bare json)
+            return match.group(1) if match.group(1) else match.group(2)
+            
+        return None
     
     def _normalize_text(self, text: str) -> str:
         """Normalizes text for comparison (lowercase, remove punctuation)."""
