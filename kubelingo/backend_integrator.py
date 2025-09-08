@@ -14,7 +14,10 @@ import shlex
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
-import pexpect
+try:
+    import pexpect
+except ImportError:
+    pexpect = None
 
 class BackendType(Enum):
     KUBECTL_AI_GOOGLE = "kubectl-ai-google"
