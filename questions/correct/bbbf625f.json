@@ -1,0 +1,9 @@
+{
+    "question": "Provide the Kubernetes term that matches the following definition: A command-line interface for interacting with Kubernetes clusters.",
+    "answer": "Kubectl",
+    "source": "https://kubernetes.io/docs/reference/kubectl/overview/",
+    "suggested_answer": "Kubectl",
+    "id": "bbbf625f",
+    "topic": "kubectl_common_operations",
+    "question_type": "vocabulary"
+}
