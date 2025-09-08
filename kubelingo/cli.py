@@ -141,25 +141,27 @@ def quiz_loop(questions: list) -> None:
             console.print(Text("\nv)im, c)lear, n)ext, p)revious, a)nswer, s)ource, q)uit", style="green"))
             user_input = input().strip().lower()
             
-            if user_input.startswith('q'):
+            # Navigation and command handling (single-letter or full-word commands)
+            if user_input in ('q', 'quit'):
                 print("\nQuiz session finished.")
                 return
-            elif user_input.startswith('p'):
+            elif user_input in ('p', 'previous'):
                 current_question_index = (current_question_index - 1 + len(questions)) % len(questions)
-                break # Breaks inner loop to show previous question
-            elif user_input.startswith('n'):
+                break  # show previous question
+            elif user_input in ('n', 'next'):
                 current_question_index = (current_question_index + 1) % len(questions)
-                break # Breaks inner loop to show next question
-            elif user_input.startswith('c'):
-                continue # Redraws the screen
-            elif user_input.startswith('s'):
+                break  # show next question
+            elif user_input in ('c', 'clear'):
+                continue  # redraw screen
+            elif user_input in ('s', 'source'):
                 source = question.get('source', 'N/A')
                 print(f"Source: {source}")
                 continue
 
             # --- Answering ---
             user_answer = ""
-            if user_input.startswith('v'):
+            # Answering: manifest editor or direct text
+            if user_input in ('v', 'vim'):
                 # Pre-fill editor with the question as comments so user sees requirements
                 qtext = question.get('question', '')
                 lines = qtext.splitlines()
@@ -167,7 +169,7 @@ def quiz_loop(questions: list) -> None:
                 template = f"{commented}\n\n"
                 user_answer = _open_manifest_editor(template=template)
                 action_taken = True
-            elif user_input.startswith('a'):
+            elif user_input in ('a', 'answer'):
                 # Use InquirerPy text prompt for answer input when available
                 try:
                     user_answer = inquirer.text(message="Your answer:").execute().strip()
@@ -210,6 +212,7 @@ def quiz_loop(questions: list) -> None:
                 last_generated_q = question
 
                 # --- Post-Answer Menu ---
+                print("--- TRACE: Reached post-answer menu ---")
                 post_action_taken = False
                 while not post_action_taken:
                     console.print(Text("\nr)etry, c)orrect, m)issed, s)ource, d)elete question or q)uit", style="yellow"))
@@ -243,6 +246,7 @@ def quiz_loop(questions: list) -> None:
                     elif post_choice.startswith('s'):
                         source = question.get('source', 'N/A')
                         print(f"Source: {source}")
+                        post_action_taken = True
                     else:
                         print("Invalid choice.")
                 # After post-answer action, adjust index
@@ -562,10 +566,7 @@ def quiz_menu() -> None:
             static_quiz()
             return
 
-        subject_matter = select_topic()
-        if subject_matter == "Back":
-            continue
-        
+        # Prompt for number of questions
         try:
             count_str = inquirer.text(message="How many questions would you like? ").execute()
             count = int(count_str)
@@ -575,7 +576,54 @@ def quiz_menu() -> None:
             print("Invalid number. Returning to quiz menu.")
             continue
 
+        # Special handling for Declarative (Manifests) quizzes
+        if question_type == "Declarative (Manifests)":
+            # Initialize manifest generator
+            gen = QuestionGenerator()
+            mg = ManifestGenerator()
+            gen.manifest_generator = mg
+            # Select subject matter/topic
+            subject_matter = select_topic()
+            if subject_matter == "Back":
+                continue
+            # Generate manifest questions
+            questions = gen.generate_question_set(
+                count=count,
+                question_type="manifest",
+                subject_matter=subject_matter
+            )
+            # Iterate through each question and open editor
+            for q in questions:
+                # Show the question prompt
+                print(f"\nQuestion: {q.get('question', '')}")
+                # Open editor with suggested manifest as template
+                template = q.get('suggested_answer', '')
+                user_ans = _open_manifest_editor(template=template)
+                # Show user answer
+                print("\nYour answer:")
+                print(user_ans)
+                # Validate YAML
+                try:
+                    yaml.safe_load(user_ans)
+                except Exception as e:
+                    print(f"Invalid YAML provided: {e}")
+                    print("\nSuggested Answer:")
+                    print(template)
+                    continue
+                # Compare answers
+                if user_ans.strip().lower() == template.strip().lower():
+                    print("Correct!")
+                else:
+                    print("\nSuggested Answer:")
+                    print(template)
+            return
+
         questions = []
+        gen = QuestionGenerator() # Initialize gen here
+        if internal_qtype == 'manifest': # Move manifest generator setup here
+            mg = ManifestGenerator()
+            gen.manifest_generator = mg
+
         if internal_qtype == "stored":
             base_dir = os.path.join(os.getcwd(), 'questions', 'stored')
             files = glob.glob(os.path.join(base_dir, '*.json'))
@@ -590,9 +638,9 @@ def quiz_menu() -> None:
                         all_qs.append(data)
                 except Exception:
                     continue
-            questions = [q for q in all_qs if q.get('topic') == subject_matter]
+            questions = all_qs # Load all stored questions, no topic filter
             if not questions:
-                print(f"No stored questions found for subject '{subject_matter}'.")
+                print(f"No stored questions found.") # Updated message
                 continue
             if count < len(questions):
                 questions = questions[:count]
@@ -601,31 +649,32 @@ def quiz_menu() -> None:
             for q in questions:
                 if 'question_type' not in q:
                     q['question_type'] = q.get('type', 'stored')
-        else:
-            gen = QuestionGenerator()
-            if internal_qtype == 'manifest':
-                mg = ManifestGenerator()
-                gen.manifest_generator = mg
+        
+
+        
+        else: # AI-generated questions
+            subject_matter = select_topic()
+            if subject_matter == "Back":
+                continue
 
             if _llm_utils.ai_chat is _original_llm_ai_chat:
                 _llm_utils.ai_chat = ai_chat
             
-        questions = gen.generate_question_set(
-            count=count,
-            question_type=internal_qtype,
-            subject_matter=subject_matter
-        )
-        # Ensure each question dict has question_type for proper handling in quiz_loop
-        for q in questions:
-            q['question_type'] = internal_qtype
-            if any(isinstance(q.get('question'), str) and q['question'].startswith("Failed to generate AI question") for q in questions):
-                print("AI generation failed. Please try the stored quiz mode via 'Stored' option.")
-                return
-            if not questions:
-                print(f"No questions generated for topic '{subject_matter}'.")
-                continue
+            questions = gen.generate_question_set(
+                count=count,
+                question_type=internal_qtype,
+                subject_matter=subject_matter
+            )
+            # Ensure each question dict has question_type for proper handling in quiz_loop
+            for q in questions:
+                q['question_type'] = internal_qtype
+                if any(isinstance(q.get('question'), str) and q['question'].startswith("Failed to generate AI question") for q in questions):
+                    print("AI generation failed. Please try the stored quiz mode via 'Stored' option.")
+                    return
+                if not questions:
+                    print(f"No questions generated for topic '{subject_matter}'.")
+                    continue
 
-        
         # Start the quiz session via alias
         quiz_session(questions)
         return
