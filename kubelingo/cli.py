@@ -602,18 +602,16 @@ def quiz_menu() -> None:
                 # Show user answer
                 print("\nYour answer:")
                 print(user_ans)
-                # Validate YAML
-                try:
-                    yaml.safe_load(user_ans)
-                except Exception as e:
-                    print(f"Invalid YAML provided: {e}")
-                    print("\nSuggested Answer:")
-                    print(template)
-                    continue
-                # Compare answers
+                # Check exact match first
                 if user_ans.strip().lower() == template.strip().lower():
                     print("Correct!")
                 else:
+                    # Attempt YAML validation for non-exact matches
+                    try:
+                        yaml.safe_load(user_ans)
+                    except Exception as e:
+                        print(f"Invalid YAML provided: {e}")
+                    # Show suggested answer for differences
                     print("\nSuggested Answer:")
                     print(template)
             return
