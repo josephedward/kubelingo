@@ -127,34 +127,13 @@ def quiz_loop(questions: list) -> None:
         question_type = question.get("question_type")
         choices = question.get('choices') or question.get('options')
 
-        # Clear screen for non-manifest questions
-        if question_type != 'manifest':
-            os.system('cls' if os.name == 'nt' else 'clear')
+        # Clear screen before showing question
+        os.system('cls' if os.name == 'nt' else 'clear')
         console.print(Align(get_spiral_colored_art(ASCII_ART), align="center"))
         print(f"\nQuestion: {question['question']}")
         if choices:
-            for idx, opt in enumerate(choices, start=1):
-                print(f"  {idx}. {opt}")
-        # For manifest questions, automatically launch editor and grade without showing menu
-        if question_type == 'manifest':
-            # Prepare editor template: vim modeline + commented prompt
-            lines = question['question'].splitlines()
-            commented = "\n".join(f"# {line}" for line in lines)
-            modeline = "# vim: set ft=yaml ts=2 sw=2 sts=2 et\n"
-            template = f"{modeline}{commented}\n\n"
-            # Launch editor
-            user_answer = _open_manifest_editor(template=template)
-            # Show answer and grade
-            print("Your answer:")
-            print(user_answer)
-            suggested_answer = question.get('suggested_answer') or question.get('answer', '')
-            if user_answer.strip() == suggested_answer.strip():
-                print("Correct!")
-            else:
-                print("Suggested Answer:")
-                print(suggested_answer)
-            current_question_index += 1
-            continue
+            for opt in choices:
+                print(f"  {opt}")
 
         # --- Question Menu ---
         action_taken = False
@@ -181,6 +160,7 @@ def quiz_loop(questions: list) -> None:
             # --- Answering ---
             user_answer = ""
             if user_input.startswith('v'):
+                # Pre-fill editor with the question as comments so user sees requirements
                 qtext = question.get('question', '')
                 lines = qtext.splitlines()
                 commented = "\n".join(f"# {line}" for line in lines)
@@ -232,8 +212,10 @@ def quiz_loop(questions: list) -> None:
                 # --- Post-Answer Menu ---
                 post_action_taken = False
                 while not post_action_taken:
-                    console.print(Text("\nr)etry, c)orrect, m)issed, s)ource, d)elete question", style="yellow"))
+                    console.print(Text("\nr)etry, c)orrect, m)issed, s)ource, d)elete question or q)uit", style="yellow"))
                     post_choice = input().strip().lower()
+                    if post_choice.startswith('q'):
+                        return
                     if post_choice.startswith('r'):
                         post_action_taken = True  # Will re-run the current question
                     elif post_choice.startswith('c'):
@@ -524,7 +506,7 @@ def _open_manifest_editor(template: str = "") -> str:
     if 'vim' in editor:
         # The modeline should be respected, but we can add extra commands if needed
         # Forcing syntax on is a good practice
-        os.system(f'{editor} -c "syntax on" {tmp_path}')
+        os.system(f'{editor} -c "set tabstop=2 shiftwidth=2 expandtab" -c "syntax on" {tmp_path}')
     else:
         os.system(f'{editor} {tmp_path}')
 
@@ -628,11 +610,14 @@ def quiz_menu() -> None:
             if _llm_utils.ai_chat is _original_llm_ai_chat:
                 _llm_utils.ai_chat = ai_chat
             
-            questions = gen.generate_question_set(
-                count=count,
-                question_type=internal_qtype,
-                subject_matter=subject_matter
-            )
+        questions = gen.generate_question_set(
+            count=count,
+            question_type=internal_qtype,
+            subject_matter=subject_matter
+        )
+        # Ensure each question dict has question_type for proper handling in quiz_loop
+        for q in questions:
+            q['question_type'] = internal_qtype
             if any(isinstance(q.get('question'), str) and q['question'].startswith("Failed to generate AI question") for q in questions):
                 print("AI generation failed. Please try the stored quiz mode via 'Stored' option.")
                 return
@@ -640,7 +625,9 @@ def quiz_menu() -> None:
                 print(f"No questions generated for topic '{subject_matter}'.")
                 continue
 
-        quiz_loop(questions)
+        
+        # Start the quiz session via alias
+        quiz_session(questions)
         return
 
 
