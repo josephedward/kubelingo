@@ -1,0 +1,9 @@
+{
+    "question": "A Kubernetes Pod can have multiple readiness probes defined for different containers within the Pod.",
+    "answer": "false",
+    "suggested_answer": "false",
+    "id": "7b15a21d",
+    "topic": "probes_health",
+    "question_type": "true/false",
+    "ai_feedback": "Your answer is incorrect. A Kubernetes Pod can indeed have multiple readiness probes defined for different containers within the Pod. This allows each container to specify its own readiness check based on its specific requirements."
+}
