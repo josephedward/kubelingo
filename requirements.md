@@ -60,8 +60,6 @@
 	+ absolutely MUST be syntactically correct; this is the entire point
 	+ all the variables in the answer must be in the body of the question 
 
-
-
 - Import Menu 
 	+ File/Folder Path 
 	+ URL
@@ -137,12 +135,15 @@ question_flow:
 
 question_generator
 	+ vocab definitions should not be repeated twice 
-	+ vocab definitions are far too simple; to truly cover the k8s API would require thousands and thousands of entries
+	+ ai feedback should not be repeated 
+	+ menus should not be repeated 
+	+ vocab definitions are far too simple; to truly cover the k8s API would require thousands and thousands of static entries
 	+ difficulty is not even a concept in the current implementation of the quiz
 	+ static rules are going to produce results that are far too simplisitic
 	+ all of these functions must use AI to get the proper level of detail  
 	+ use advanced tooling specfied in docs/general_instructions.md
 	+ all question and answer menus should function EXACTLY the same across question types  
+	+ all questions must have a source document; search online and in our list of URLs as a fallback 
 
 difficulty
 	- is not a concept for now 
@@ -150,11 +151,13 @@ difficulty
 	- remove it where you find it 
 
 vim
+	- NO special behavior for manifest quizzes 
+	- there IS A COMMAND FOR LAUNCHING VIM 
 	- tab should always move two spaces 
 	- should be in color; easier to see 
 	- question flow should be no different for manifests 
 	- vim just contains/writes the answer 
-	- we could still even wait to validate after pressing enter on the line
+	- validate after pressing enter on the line; that allows the user to edit their answer before submitting 
 
 test yaml 
 	- should only be created in /tests/ directory 
