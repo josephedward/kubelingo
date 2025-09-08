@@ -1,0 +1,9 @@
+{
+    "question": "True or False: In Kubernetes, PersistentVolumeClaims (PVCs) can dynamically provision storage if a PersistentVolume (PV) with the requested storage class is not available.",
+    "answer": "true",
+    "source": "https://kubernetes.io/docs/concepts/storage/persistent-volumes/",
+    "suggested_answer": "true",
+    "id": "a33412c6",
+    "topic": "persistence",
+    "question_type": "true/false"
+}
