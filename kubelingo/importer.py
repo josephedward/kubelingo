@@ -34,7 +34,7 @@ def import_from_file(file_path: str) -> list:
                 topic=item.get('topic'),
                 question=item.get('question'),
                 suggested_answer=item.get('suggested_answer'),
-                source=item.get('source'),
+                source=item.get('source', 'Imported'),
                 qid=item.get('id')
             ))
         return items
@@ -58,7 +58,7 @@ def _parse_json(file_path: str) -> list:
             topic=item.get('topic'),
             question=item.get('question'),
             suggested_answer=item.get('suggested_answer'),
-            source=item.get('source')
+            source=item.get('source', 'Imported')
         ))
     return questions
 
@@ -72,7 +72,7 @@ def _parse_yaml(file_path: str) -> list:
             topic=item.get('topic'),
             question=item.get('question'),
             suggested_answer=item.get('suggested_answer'),
-            source=item.get('source')
+            source=item.get('source', 'Imported')
         ))
     return questions
 
