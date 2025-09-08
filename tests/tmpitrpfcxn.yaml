@@ -1,9 +1,0 @@
-# vim: set ft=yaml ts=2 sw=2 sts=2 et:
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: logging-config
-data:
-  app.log: |-
-    path: /var/log/app.log
-    level: info

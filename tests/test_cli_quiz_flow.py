@@ -28,7 +28,7 @@ def mock_ai_chat_tf(monkeypatch):
             "answer": "true",
             "type": "tf",
             "topic": "general",
-            "difficulty": "beginner",
+            
             "expected_resources": [],
             "success_criteria": ["Answer is true"],
             "hints": []
@@ -44,7 +44,7 @@ def mock_ai_chat_vocab(monkeypatch):
             "answer": "Smallest deployable unit in Kubernetes.",
             "type": "vocab",
             "topic": "pods",
-            "difficulty": "beginner",
+            
             "expected_resources": ["Pod"],
             "success_criteria": ["Definition is accurate"],
             "hints": []
@@ -60,7 +60,7 @@ def mock_ai_chat_mcq(monkeypatch):
             "answer": "Virtual Machine",
             "type": "mcq",
             "topic": "general",
-            "difficulty": "intermediate",
+            
             "choices": ["Pod", "Service", "Deployment", "Virtual Machine"],
             "expected_resources": [],
             "success_criteria": ["Correct option is selected"],
@@ -343,7 +343,7 @@ def mock_ai_chat_imperative(monkeypatch):
             "answer": "kubectl get pods",
             "type": "imperative",
             "topic": "pods",
-            "difficulty": "easy",
+            
             "explanation": "This command lists all pods in the default namespace."
         })
     monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)
@@ -357,7 +357,7 @@ def mock_ai_chat_declarative(monkeypatch):
             "answer": "apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-nginx\nspec:\n  containers:\n  - name: nginx\n    image: nginx",
             "type": "declarative",
             "topic": "pods",
-            "difficulty": "medium",
+            
             "explanation": "This manifest defines a simple Pod."
         })
     monkeypatch.setattr(cli._llm_utils, "ai_chat", _mock_ai_chat)

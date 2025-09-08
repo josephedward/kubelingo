@@ -27,7 +27,7 @@ def test_generate_trivia_ai_fallback_message(monkeypatch, capsys):
     When ai_chat returns non-JSON, generate_trivia should print a generic fallback message
     and not include any provider-specific name.
     """
-    # Simulate user selecting quiz type, topic, difficulty, and number of questions
+    # Simulate user selecting quiz type, topic, and number of questions
     select_choices = iter([
         "True/False",  # Quiz type
         "pods"        # Topic
@@ -91,7 +91,7 @@ def test_generate_trivia_ai_malformed_json_fallback(monkeypatch, capsys):
     """
     When ai_chat returns malformed JSON, generate_trivia should print the AI generation failed message.
     """
-    # Simulate user selecting quiz type, topic, difficulty, and number of questions
+    # Simulate user selecting quiz type, topic, and number of questions
     select_choices = iter([
         "True/False",  # Quiz type
         "pods"        # Topic

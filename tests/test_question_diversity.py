@@ -19,7 +19,7 @@ def test_ai_generated_question_diversity(monkeypatch):
     ]
     
     # Use a side_effect to return different responses on successive calls
-    monkeypatch.setattr(QuestionGenerator, 'generate_ai_question', MagicMock(side_effect=lambda topic, difficulty, question_type: json.loads(mock_responses.pop(0))))
+    monkeypatch.setattr(QuestionGenerator, 'generate_ai_question', MagicMock(side_effect=lambda topic, question_type, exclude_question_texts: json.loads(mock_responses.pop(0))))
 
     generator = QuestionGenerator()
     num_questions_to_generate = 10

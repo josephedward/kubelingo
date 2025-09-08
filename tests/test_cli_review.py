@@ -13,10 +13,7 @@ from cli import TRIVIA_DESCRIPTIONS, TRIVIA_TERMS
 from InquirerPy import inquirer
 from enum import Enum
 
-class DifficultyLevel(Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+
 
 class FakeAnswer:
     """Fake answer to mimic InquirerPy answer object."""

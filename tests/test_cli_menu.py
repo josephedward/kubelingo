@@ -18,7 +18,7 @@ class FakeAnswer:
         return self.value
 
 def test_quiz_menu_generates_ai_question(monkeypatch, capsys):
-    # Mock inquirer.select for quiz type, topic, and difficulty
+    # Mock inquirer.select for quiz type and topic
     select_choices = iter([
         "True/False",  # Quiz type selection
         "pods"         # Topic selection

@@ -25,12 +25,12 @@ def mock_ai_chat(monkeypatch):
 
 def test_delete_generates_new_question(monkeypatch, capsys, mock_ai_chat):
     """Deleting a question should trigger a new, different AI-generated question."""
-    # Sequence of select inputs: quiz type, topic, difficulty, count, post-answer action (delete)
+    # Sequence of select inputs: quiz type, topic, count, post-answer action (delete)
     selects = iter([
         'Quiz',        # Main Menu: Quiz
         'True/False',  # Quiz type
         'pods',        # Topic
-        'beginner',    # Difficulty
+        
         'delete'       # Post-answer menu action
     ])
     monkeypatch.setattr(inquirer, 'select', lambda message, choices, default=None, style=None: DummyPrompt(next(selects)))

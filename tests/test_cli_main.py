@@ -10,10 +10,7 @@ import cli
 from InquirerPy import inquirer
 from enum import Enum
 
-class DifficultyLevel(Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+
 
 class FakeAnswer:
     """Fake answer to mimic InquirerPy answer object."""

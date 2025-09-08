@@ -11,10 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cli
 
-class DifficultyLevel(Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+
 
 class TestCliCommands(unittest.TestCase):
 
@@ -112,7 +109,7 @@ class TestCliCommands(unittest.TestCase):
         mock_question_generator.return_value.generate_question.return_value = {
             'id': 'test-id',
             'topic': 'troubleshooting',
-            'difficulty': 'intermediate',
+            
             'question': 'How do you view the logs of a pod?',
             'documentation_link': 'http://example.com/docs',
             'context_variables': {'pod_name': 'my-pod'},
@@ -129,8 +126,7 @@ class TestCliCommands(unittest.TestCase):
         expected_calls = [
             call(message='Select quiz type:', choices=['Trivia', 'Command', 'Manifest', 'Static', 'AI Generated', 'Back']),
             call(message='Select topic:', choices=[t.value for t in cli.KubernetesTopics]),
-            # The difficulty selection is no longer present in quiz_menu directly for Command type
-            # call(message='Select difficulty:', choices=[lvl.value for lvl in cli.DifficultyLevel]),
+            
             call(message='Select an action:', choices=['Again', 'Correct', 'Missed', 'Remove Question'])
         ]
 

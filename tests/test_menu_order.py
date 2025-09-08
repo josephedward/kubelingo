@@ -39,7 +39,7 @@ def mock_print_menu(monkeypatch, order_list, menu_name):
 def test_quiz_menu_ai_question_order(monkeypatch, capsys):
     order = []
 
-    # Mock inquirer.select for quiz type, topic, and difficulty
+    # Mock inquirer.select for quiz type and topic
     select_choices = iter([
         "True/False",  # Quiz type
         "pods"        # Topic

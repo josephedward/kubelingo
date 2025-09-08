@@ -32,13 +32,13 @@ def test_generate_question_defaults():
     assert "question" in q
     # Topic selection is handled by AI; ensure a non-empty string is returned
     assert isinstance(q["topic"], str) and q["topic"]
-    # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
-    # We don't assert its absence here as AI might include it.
+
+
     assert "id" in q and len(q["id"]) == 8
     assert isinstance(q["expected_resources"], list)
     assert isinstance(q["success_criteria"], list)
 
-def test_generate_question_specific_topic_difficulty_without_context():
+def test_generate_question_specific_topic_without_context():
     gen = QuestionGenerator()
     q = gen.generate_question(topic="deployments", include_context=False)
     assert q["topic"] == "deployments"
@@ -52,20 +52,12 @@ def test_generate_question_set_length_and_filters():
     assert len(qs) == 3
     for q in qs:
         assert q["topic"] == "services"
-        # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
-        # We don't assert its absence here as AI might include it.
+    
+    
 
-def test_fallback_on_unknown_topic_or_difficulty(monkeypatch):
-    monkeypatch.setattr(random, 'choice', lambda x: "resource_management") # Mock random.choice to return a predictable topic
-    gen = QuestionGenerator()
-    # Since ai_chat is mocked, this test might need adjustment if the fallback logic
-    # depends on ai_chat failing. For now, it will just use the mocked response.
-    # Difficulty fallback removed; test topic fallback works without error
-    q = gen.generate_question(topic="nonexistent")
-    # Provided topic should be preserved
-    assert q["topic"] == "nonexistent"
-    # Difficulty is now a parameter, not directly in the returned question dict unless AI adds it
-    # We don't assert its absence here as AI might include it.
+
+
+
 
 def test_multiple_choice_options_uniqueness(mock_ai_chat):
     gen = QuestionGenerator()

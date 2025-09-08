@@ -43,12 +43,11 @@ def test_quiz_menu_flow_standardization(menu_choice):
 
         # Configure mocks
         mock_select_instance = MagicMock()
-        # Simulate the sequence of select calls: quiz type, topic, difficulty
+        # Simulate the sequence of select calls: quiz type, topic
         if menu_choice in ["True/False", "Vocab", "Multiple Choice", "Imperative (Commands)", "Declarative (Manifests)"]:
             mock_select.side_effect = [
                 DummyPrompt(menu_choice), # Quiz type
                 DummyPrompt('some_topic'), # Topic
-                DummyPrompt('beginner')    # Difficulty
             ]
         else:
             mock_select.return_value = DummyPrompt(menu_choice)
