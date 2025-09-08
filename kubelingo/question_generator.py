@@ -65,11 +65,15 @@ Format your response as a JSON object with the following keys:
             # Make topic human-readable
             pretty_topic = topic.replace('_', ' ').strip().title() if topic else ''
             system_prompt = f"""You are an expert in Kubernetes. Your task is to generate a Kubernetes vocabulary question about {pretty_topic}.
-The question should ask for a single Kubernetes term given a concise definition.
+The question should ask for a single, well-known Kubernetes term given a concise definition.
+The definition should be clear and directly lead to the term.
 {exclude_instruction}
 Respond with only the JSON object using the following keys:
-  "question": "Provide the Kubernetes term that matches the following definition: ...",
-  "answer": "the-term"
+  "question": "Provide the Kubernetes term that matches the following definition: [concise definition here]",
+  "answer": "[single Kubernetes term]"
+Example:
+  "question": "Provide the Kubernetes term that matches the following definition: A set of Pods that run on a Node.",
+  "answer": "DaemonSet"
 """
         elif question_type == "multiple choice":
             exclude_instruction = ""
@@ -139,6 +143,10 @@ Format your response as a JSON object with the following keys:
             system_prompt += "For multiple choice questions, each element in the \"options\" array should start with a letter (A., B., C., D.) followed by the option text, without any numeric prefixes.\n"
 
         # Craft user prompt, using human-friendly topic for vocabulary questions
+        system_prompt += "\nAll questions must include a \"source\" field in the JSON output. The \"source\" should be a URL to the official Kubernetes documentation or other authoritative resources supporting this question.\n"
+        if question_type == "multiple choice":
+            system_prompt += "For multiple choice questions, each element in the \"options\" array should start with a letter (A., B., C., D.) followed by the option text, without any numeric prefixes.\n"
+
         if question_type == "vocabulary":
             user_prompt = f"Generate a vocabulary question about {pretty_topic}."
         else:
@@ -234,6 +242,8 @@ Format your response as a JSON object with the following keys:
             question_data["topic"] = topic
             
             question_data["question_type"] = question_type
+            if "source" not in question_data:
+                question_data["source"] = "AI Generated"
             return question_data
         finally:
             # Ensure any necessary cleanup after processing question_data
