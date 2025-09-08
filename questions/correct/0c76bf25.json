@@ -1,0 +1,11 @@
+{
+    "question": "How can you list all the namespaces in a Kubernetes cluster and display additional information like labels and annotations?",
+    "answer": "kubectl get namespaces -o wide",
+    "explanation": "This command uses kubectl to retrieve a list of all namespaces in the cluster along with additional information like labels and annotations.",
+    "suggested_answer": "kubectl get namespaces -o wide",
+    "id": "0c76bf25",
+    "topic": "namespaces_contexts",
+    "question_type": "command",
+    "user_answer": "k get ns -o=wide",
+    "ai_feedback": "Your answer is almost correct and provides the necessary information. Just remember to use the full command \"kubectl\" instead of the shortened \"k\" for better clarity and consistency in your commands. So the correct command would be:\n\n```\nkubectl get namespaces -o wide\n```\n\nUsing the full command \"kubectl\" is a good practice to ensure clarity and consistency in your Kubernetes commands."
+}

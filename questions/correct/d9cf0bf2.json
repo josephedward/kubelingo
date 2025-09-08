@@ -1,0 +1,15 @@
+{
+    "question": "In Kubernetes, which approach involves specifying the desired end state without defining the exact steps to achieve it?",
+    "options": [
+        "Imperative",
+        "Declarative",
+        "Procedural",
+        "Prescriptive"
+    ],
+    "answer": "Declarative",
+    "suggested_answer": "Declarative",
+    "id": "d9cf0bf2",
+    "topic": "imperative_vs_declarative",
+    "question_type": "multiple choice",
+    "user_answer": "Declarative"
+}

@@ -1,0 +1,10 @@
+{
+    "question": "A liveness probe is used to determine if a container is healthy and should continue running, while a readiness probe is used to determine if a container is ready to start accepting traffic.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "850e227d",
+    "topic": "probes_health",
+    "question_type": "true/false",
+    "user_answer": "false",
+    "ai_feedback": "Your answer is incorrect. The suggested answer is true. A liveness probe is indeed used to determine if a container is healthy and should continue running, while a readiness probe is used to determine if a container is ready to start accepting traffic. It's important to understand the distinction between these two types of probes in Kubernetes for effective container management."
+}

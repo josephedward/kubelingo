@@ -1,0 +1,15 @@
+{
+    "question": "In Kubernetes, what is the main difference between imperative and declarative object management?",
+    "options": [
+        "Imperative management involves manually updating object configurations, while declarative management uses desired state configuration files.",
+        "Imperative management is the preferred method for managing Pods, while declarative management is best for managing Services.",
+        "Imperative management is more efficient in terms of resource utilization, while declarative management provides better scalability.",
+        "Declarative management requires continuous monitoring and manual intervention, while imperative management ensures automatic self-healing."
+    ],
+    "answer": "Imperative management involves manually updating object configurations, while declarative management uses desired state configuration files.",
+    "suggested_answer": "Imperative management involves manually updating object configurations, while declarative management uses desired state configuration files.",
+    "id": "401f3ca8",
+    "topic": "imperative_vs_declarative",
+    "question_type": "multiple choice",
+    "user_answer": "Imperative management involves manually updating object configurations, while declarative management uses desired state configuration files."
+}

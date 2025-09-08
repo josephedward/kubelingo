@@ -1,0 +1,9 @@
+{
+    "question": "A liveness probe can be used to restart a container if it becomes unresponsive, while a readiness probe can be used to determine if a container is able to serve traffic.",
+    "answer": "true",
+    "suggested_answer": "true",
+    "id": "a75c8474",
+    "topic": "probes_health",
+    "question_type": "true/false",
+    "user_answer": "true"
+}

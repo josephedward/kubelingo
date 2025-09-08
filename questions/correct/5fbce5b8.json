@@ -1,0 +1,9 @@
+{
+    "question": "What is the Kubernetes term for a collection of Kubernetes resources that can be easily shared and deployed using Helm?",
+    "answer": "chart",
+    "suggested_answer": "chart",
+    "id": "5fbce5b8",
+    "topic": "helm_basics",
+    "question_type": "vocabulary",
+    "user_answer": "chart"
+}

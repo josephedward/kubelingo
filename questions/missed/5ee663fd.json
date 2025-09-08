@@ -1,0 +1,11 @@
+{
+    "question": "How can you set the default namespace for a kubectl context named 'my-context' to 'my-namespace' in a Kubernetes cluster?",
+    "answer": "kubectl config set-context my-context --namespace=my-namespace",
+    "explanation": "This command updates the default namespace for the specified kubectl context to 'my-namespace'. It allows users to avoid specifying the namespace for every kubectl command within that context.",
+    "suggested_answer": "kubectl config set-context my-context --namespace=my-namespace",
+    "id": "5ee663fd",
+    "topic": "namespaces_contexts",
+    "question_type": "command",
+    "user_answer": "k config set-context default my-context ns my-namespace",
+    "ai_feedback": "Your answer is almost correct, but there are a couple of mistakes. The command `k` should be replaced with `kubectl`, and the flag `--namespace` should be used instead of `ns`. The correct command should be:\n```\nkubectl config set-context my-context --namespace=my-namespace\n```\nRemember to use the full command `kubectl` and the correct flag `--namespace`."
+}

@@ -1,0 +1,9 @@
+{
+    "question": "Provide the Kubernetes term that matches the following definition: A tool that helps you manage Kubernetes applications through the use of charts.",
+    "answer": "Helm",
+    "suggested_answer": "Helm",
+    "id": "b812423d",
+    "topic": "helm_basics",
+    "question_type": "vocabulary",
+    "user_answer": "helm"
+}

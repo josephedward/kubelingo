@@ -1,0 +1,11 @@
+{
+    "question": "How can you create a new namespace named 'my-namespace' in a Kubernetes cluster?",
+    "answer": "kubectl create namespace my-namespace",
+    "explanation": "This command uses kubectl to create a new namespace named 'my-namespace' in the Kubernetes cluster.",
+    "suggested_answer": "kubectl create namespace my-namespace",
+    "id": "24b634cf",
+    "topic": "namespaces_contexts",
+    "question_type": "command",
+    "user_answer": "k create ns my-namespace",
+    "ai_feedback": "The user's answer is almost correct, but it can be improved by providing the full command `kubectl create namespace my-namespace`. It is recommended to use the full command for clarity and consistency in Kubernetes commands."
+}
