@@ -32,7 +32,7 @@ This plan outlines the steps to move from the current state to a fully robust im
 
 **5. Design & Implement Performance & Outcome Tracking (Enhancement)**
     *   **5.1 Re-evaluate Data Model (SQL vs. YAML):**
-        *   **Decision Point:** Confirm if an SQL database is truly preferred over the existing `user_data/performance.yaml`. If so, define a detailed SQL schema for a `question_attempts` table, including fields like `user_id`, `question_id`, `difficulty`, `timestamp`, `response_time`, `grade_score`, `passed_bool`, `ai_feedback`, `static_feedback`, `model_used`, etc.
+        *   **Decision Point:** Confirm if an SQL database is truly preferred over the existing `user_data/performance.yaml`. If so, define a detailed SQL schema for a `question_attempts` table, including fields like `user_id`, `question_id`, `timestamp`, `response_time`, `grade_score`, `passed_bool`, `ai_feedback`, `static_feedback`, `model_used`, etc.
     *   **5.2 Implement Database Integration (If SQL):**
         *   Choose a suitable Python ORM (e.g., SQLAlchemy, Peewee) and integrate it into the project.
         *   Create database connection and session management utilities.
@@ -96,7 +96,7 @@ This plan outlines the steps to move from the current state to a fully robust im
             *   **Resource Utilization:** Monitor CPU, memory, and network usage, especially during AI interactions.
     *   **8.4 Gather Feedback & Tune:**
         *   Actively collect feedback from the test group.
-        *   Iteratively tune AI prompts, grading thresholds, and difficulty calibration based on user performance and feedback.
+        *   Iteratively tune AI prompts, and grading thresholds based on user performance and feedback.
 
 **9. Full Cutover & Cleanup**
     *   **9.1 Remove Leftover Offline Artifacts:**
