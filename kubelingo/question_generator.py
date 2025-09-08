@@ -3,7 +3,7 @@
 Kubernetes Question Generator Module
 
 This module generates natural language questions about Kubernetes topics
-with varying difficulty levels for training and assessment purposes.
+for training and assessment purposes.
 """
 
 import random
@@ -132,6 +132,11 @@ Format your response as a JSON object with the following keys:
 "success_criteria": ["List", "of", "criteria"],
 "hints": ["List", "of", "hints"]
 """
+
+        # Include source requirement and formatting instructions before crafting user prompt
+        system_prompt += "\nAll questions must include a \"source\" field in the JSON output. The \"source\" should be a URL to the official Kubernetes documentation or other authoritative resources supporting this question.\n"
+        if question_type == "multiple choice":
+            system_prompt += "For multiple choice questions, each element in the \"options\" array should start with a letter (A., B., C., D.) followed by the option text, without any numeric prefixes.\n"
 
         # Craft user prompt, using human-friendly topic for vocabulary questions
         if question_type == "vocabulary":
