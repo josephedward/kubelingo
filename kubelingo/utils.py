@@ -53,7 +53,9 @@ QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
-QUESTIONS_STORED_DIR = os.path.join(_PROJECT_ROOT, "data", "questions", "stored")
+# Canonical location for curated stored questions
+# Per requirements, favor top-level `stored/` over `data/questions/stored`
+QUESTIONS_STORED_DIR = os.path.join(_PROJECT_ROOT, "stored")
 # Allow tests and callers to override the user data directory via env var
 # Defaults to the repository-level `.user_data/` folder.
 USER_DATA_DIR = os.getenv(
