@@ -1,5 +1,5 @@
 import pytest
-import cli
+from kubelingo import cli_shim as cli
 
 
 def test_print_question_menu(capsys):

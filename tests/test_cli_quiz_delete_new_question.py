@@ -1,7 +1,6 @@
 import pytest
 from InquirerPy import inquirer
-
-import cli
+from kubelingo import cli_shim as cli
 
 class DummyPrompt:
     """Mimics InquirerPy prompt responses."""
