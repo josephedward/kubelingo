@@ -31,3 +31,4 @@ misc
 /.venv
 /kubelingo/.venv
 AGENTS.md
+.user_data/
