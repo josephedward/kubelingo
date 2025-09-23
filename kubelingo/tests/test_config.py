@@ -8,9 +8,9 @@ def test_check_ai_ready_for_generation_with_env_file(monkeypatch, tmp_path):
     even if load_dotenv() has not been explicitly called by the caller.
     """
     # 1. Create a temporary .env file
-    env_content = 'KUBELINGO_LLM_PROVIDER="openai"
+    env_content = '''KUBELINGO_LLM_PROVIDER="openai"
 OPENAI_API_KEY="sk-proj-12345678901234567890123456789012"
-'
+'''
     env_file = tmp_path / ".env"
     env_file.write_text(env_content)
 

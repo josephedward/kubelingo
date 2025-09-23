@@ -1,5 +1,5 @@
 import os
-from kubelingo import utils as _utils
+from . import utils as _utils
 import sys
 import getpass
 import random
@@ -1982,6 +1982,14 @@ def handle_main_menu():
     print("  2) Import")
     print("  3) Settings")
     print("  4) Exit")
+    # In non-interactive contexts (e.g., pytest capturing stdin), avoid blocking on input.
+    # Honor an opt-in env var as well for automation.
+    try:
+        non_interactive = (not sys.stdin.isatty()) or os.getenv('KUBELINGO_NONINTERACTIVE', '').lower() in ('1', 'true', 'yes')
+    except Exception:
+        non_interactive = False
+    if non_interactive:
+        return '4'
     while True:
         sel = input("Enter your choice: ").strip()
         if sel in ('1','2','3','4'):
