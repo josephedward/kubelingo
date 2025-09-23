@@ -1,7 +1,7 @@
 import sys
 import pytest
 
-from k8s_manifest_generator import main, ManifestGenerator
+from kubelingo.k8s_manifest_generator import main, ManifestGenerator
 
 
 def test_two_step_question_mode(monkeypatch, capsys):

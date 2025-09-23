@@ -1,17 +1,8 @@
 import random
 import re
-import importlib.util
-from pathlib import Path
-
-# Load question_generator module dynamically
-module_path = Path(__file__).parent.parent / "question_generator.py"
-spec = importlib.util.spec_from_file_location("question_generator", str(module_path))
-qg_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(qg_module)
-QuestionGenerator = qg_module.QuestionGenerator
-KubernetesTopics = qg_module.KubernetesTopics
-
 import pytest
+from kubelingo.question_generator import QuestionGenerator
+from kubelingo.cli_shim import KubernetesTopics
 
 @pytest.fixture(autouse=True)
 def fixed_seed():
@@ -23,7 +14,9 @@ def test_context_variables_match_question():
     gen = QuestionGenerator()
     # Test for each Kubernetes topic
     for topic in [t.value for t in KubernetesTopics]:
-        q = gen.generate_question(topic=topic, include_context=True)
+        q = gen.generate_question(kind=topic, count=1)
+        if isinstance(q, list):
+            q = q[0]
         assert isinstance(q, dict)
         question_text = q.get("question", "")
         context_vars = q.get("context_variables", {}) or {}

@@ -1,6 +1,6 @@
 import pytest
-from cli import question_generator_instance
-from question_generator import KubernetesTopics
+from kubelingo.cli_shim import question_generator_instance
+from kubelingo.cli_shim import KubernetesTopics
 from unittest.mock import patch, MagicMock
 
 @pytest.fixture

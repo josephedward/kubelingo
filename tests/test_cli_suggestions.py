@@ -1,7 +1,8 @@
 import pytest
 
 from kubelingo.cli_shim import suggest_command
-from question_generator import QuestionGenerator, KubernetesTopics
+from kubelingo.question_generator import QuestionGenerator
+from kubelingo.cli_shim import KubernetesTopics
 
 
 @pytest.mark.parametrize("topic", [t.value for t in KubernetesTopics])

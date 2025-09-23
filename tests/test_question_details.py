@@ -1,20 +1,12 @@
 import random
-import importlib.util
-from pathlib import Path
 import re
 import glob
 import json
 import yaml
 
 import pytest
-
-# Load question_generator module from file
-module_path = Path(__file__).parent.parent / "question_generator.py"
-spec = importlib.util.spec_from_file_location("question_generator", str(module_path))
-qg_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(qg_module)
-QuestionGenerator = qg_module.QuestionGenerator
-KubernetesTopics = qg_module.KubernetesTopics
+from kubelingo.question_generator import QuestionGenerator
+from kubelingo.cli_shim import KubernetesTopics
 
 @pytest.fixture(autouse=True)
 def fixed_seed():
@@ -30,7 +22,9 @@ def test_question_contains_required_details():
     - Scenario Context
     """
     gen = QuestionGenerator()
-    q = gen.generate_question(topic="services", include_context=True)
+    q = gen.generate_question(kind="services", count=1)
+    if isinstance(q, list):
+        q = q[0]
 
     assert isinstance(q, dict)
 
