@@ -1,7 +1,7 @@
 import os
 import yaml
 import webbrowser
-from kubelingo.utils import USER_DATA_DIR, MISSED_QUESTIONS_FILE, ensure_user_data_dir, get_canonical_question_representation
+from kubelingo.utils import USER_DATA_DIR, MISSED_QUESTIONS_FILE, CORRECT_QUESTIONS_FILE, INCORRECT_QUESTIONS_FILE, ensure_user_data_dir, get_canonical_question_representation
 from kubelingo.performance_tracker import save_performance_data
 from kubelingo.source_manager import get_source_for_kind
 from kubelingo.schema import write_question_file, normalize_question_dict

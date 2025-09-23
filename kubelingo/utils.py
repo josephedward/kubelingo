@@ -6,6 +6,11 @@ def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
     os.makedirs(USER_DATA_DIR, exist_ok=True)
 
+def ensure_question_dirs():
+    """Ensures the question directories exist."""
+    os.makedirs(QUESTIONS_DIR, exist_ok=True)
+    os.makedirs(QUESTIONS_STORED_DIR, exist_ok=True)
+
 # Represent multiline strings as literal blocks in YAML dumps
 def _str_presenter(dumper, data):
     # Use literal block style for strings containing newlines
@@ -51,6 +56,8 @@ USER_DATA_DIR = os.getenv(
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
+CORRECT_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "correct_questions.yaml")
+INCORRECT_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "incorrect_questions.yaml")
 
 import openai
 import requests

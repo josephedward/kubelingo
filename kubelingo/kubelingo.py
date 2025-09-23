@@ -1,5 +1,5 @@
 import os
-from . import utils as _utils
+from kubelingo import utils as _utils
 import sys
 import getpass
 import random
@@ -15,9 +15,11 @@ from .utils import (
     get_normalized_question_text,
     _get_llm_model,
     QUESTIONS_DIR,
+    QUESTIONS_STORED_DIR,
     USER_DATA_DIR,
     MISSED_QUESTIONS_FILE,
     ensure_user_data_dir,
+    ensure_question_dirs,
     backup_performance_yaml,
 )
 from .validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
