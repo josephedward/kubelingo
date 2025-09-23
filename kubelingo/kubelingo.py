@@ -505,9 +505,52 @@ def get_display(value):
     return f"{Fore.GREEN}On{Style.RESET_ALL}" if value == "True" else f"{Fore.RED}Off{Style.RESET_ALL}"
 
 def test_api_keys():
-    """Tests the validity of API keys and returns a dictionary with their statuses."""
-    # Simplified: skip external API checks to avoid network calls
-    return {"gemini": False, "openai": False, "openrouter": False, "perplexity": False}
+    """Tests the presence/shape of API keys without network calls.
+
+    Note: This is an offline, heuristic check meant to avoid network calls
+    in restricted environments. It validates only basic key patterns so
+    that real keys are not incorrectly flagged as invalid.
+    """
+    from dotenv import dotenv_values
+
+    cfg = dotenv_values(".env")
+
+    assume_valid = os.getenv("KUBELINGO_ASSUME_KEYS_VALID", "false").lower() in ("1", "true", "yes")
+
+    def has_value(name):
+        return bool(os.getenv(name) or cfg.get(name))
+
+    def val(name):
+        return (os.getenv(name) or cfg.get(name) or "").strip()
+
+    if assume_valid:
+        return {
+            "gemini": has_value("GEMINI_API_KEY"),
+            "openai": has_value("OPENAI_API_KEY"),
+            "openrouter": has_value("OPENROUTER_API_KEY"),
+            "perplexity": has_value("PERPLEXITY_API_KEY"),
+        }
+
+    gk = val("GEMINI_API_KEY")
+    ok = val("OPENAI_API_KEY")
+    ork = val("OPENROUTER_API_KEY")
+    pk = val("PERPLEXITY_API_KEY")
+
+    # Lightweight pattern checks (non-exhaustive, just to prevent false negatives)
+    gemini_ok = gk.startswith("AIza") and len(gk) >= 20 if gk else False
+    # OpenAI keys can be project-scoped (sk-proj-...), or other sk- prefixes
+    openai_ok = ok.startswith("sk-") and len(ok) >= 20 if ok else False
+    # Typical OpenRouter keys start with sk-or- (e.g., sk-or-v1-...)
+    openrouter_ok = ork.startswith("sk-or-") and len(ork) >= 20 if ork else False
+    # Perplexity keys typically start with pplx-
+    perplexity_ok = pk.startswith("pplx-") and len(pk) >= 15 if pk else False
+
+    return {
+        "gemini": gemini_ok,
+        "openai": openai_ok,
+        "openrouter": openrouter_ok,
+        "perplexity": perplexity_ok,
+    }
     
 def handle_validation_menu():
     """Handles the validation configuration menu."""
