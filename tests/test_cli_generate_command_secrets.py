@@ -1,5 +1,5 @@
 import pytest
-import cli
+import kubelingo.cli_shim as cli
 from InquirerPy import inquirer
 
 

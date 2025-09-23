@@ -1,7 +1,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch, call
-from cli import generate_command
+from kubelingo.cli_shim import generate_command
 
 @patch('cli.print_menu')
 @patch('cli.inquirer.text')

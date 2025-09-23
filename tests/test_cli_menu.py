@@ -1,5 +1,5 @@
 import pytest
-import cli
+import kubelingo.cli_shim as cli
 
 class FakeAnswer:
     """Fake answer for InquirerPy text prompt."""

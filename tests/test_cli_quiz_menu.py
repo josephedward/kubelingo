@@ -2,7 +2,7 @@ import pytest
 from InquirerPy import inquirer
 import webbrowser
 
-import cli
+import kubelingo.cli_shim as cli
 
 
 class FakeAnswer:

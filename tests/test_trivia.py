@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from cli import generate_trivia
+from kubelingo.cli_shim import generate_trivia
 
 @patch('cli.ai_chat')
 @patch('cli.console.print')

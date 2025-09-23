@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from InquirerPy import inquirer
 
-import cli
-from question_generator import KubernetesTopics
+import kubelingo.cli_shim as cli
+from kubelingo.cli_shim import KubernetesTopics
 
 class DummyPrompt:
     def __init__(self, value):

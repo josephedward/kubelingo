@@ -9,7 +9,7 @@ from enum import Enum
 # Adjust the path to import cli.py
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import cli
+import kubelingo.cli_shim as cli
 
 class DifficultyLevel(Enum):
     BEGINNER = "beginner"

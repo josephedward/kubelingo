@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-import cli
+import kubelingo.cli_shim as cli
 
 
 class DummySelect:

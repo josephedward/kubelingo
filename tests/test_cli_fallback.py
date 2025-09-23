@@ -1,7 +1,7 @@
 import json
 import pytest
 
-import cli
+import kubelingo.cli_shim as cli
 
 
 class DummyPrompt:

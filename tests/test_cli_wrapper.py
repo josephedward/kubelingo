@@ -1,5 +1,5 @@
 import pytest
-import cli
+import kubelingo.cli_shim as cli
 
 class DummySelect:
     """Dummy object to simulate an inquirer.select return value."""

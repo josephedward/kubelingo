@@ -1,5 +1,5 @@
 import pytest
-from cli import is_diverse
+from kubelingo.cli_shim import is_diverse
 
 @pytest.mark.parametrize("new, recent, expected", [
     # Identical question should not be considered diverse

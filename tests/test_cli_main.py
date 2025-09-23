@@ -4,8 +4,8 @@ import sys
 import json
 import shutil
 import tempfile
-from cli import main, ASCII_ART, colorize_ascii_art
-import cli
+from kubelingo.cli_shim import main, ASCII_ART, colorize_ascii_art
+import kubelingo.cli_shim as cli
 from InquirerPy import inquirer
 from enum import Enum
 

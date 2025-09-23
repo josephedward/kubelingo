@@ -1,6 +1,6 @@
 import pytest
 import webbrowser
-import cli
+import kubelingo.cli_shim as cli
 
 class FakeAnswer:
     """Fake answer for InquirerPy prompts."""
