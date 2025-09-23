@@ -32,6 +32,14 @@ def mark_correct(session, question, performance_data, get_norm_fn):
     else:
         print("✔ Question already in correct questions file.")
 
+    # Persist a per-question YAML under user_data/correct/
+    try:
+        target_dir = os.path.join(USER_DATA_DIR, 'correct')
+        write_question_file(norm_q, target_dir)
+    except Exception:
+        # Non-fatal; consolidated file still updated above
+        pass
+
 def mark_incorrect(question, topic):
     """Mark a question as incorrect, adding it to the missed questions list."""
     ensure_user_data_dir()
@@ -72,6 +80,14 @@ def mark_incorrect(question, topic):
         print("✖ Question added to incorrect questions file.")
     else:
         print("✖ Question already in incorrect questions file.")
+
+    # Persist a per-question YAML under user_data/incorrect/
+    try:
+        target_dir = os.path.join(USER_DATA_DIR, 'incorrect')
+        write_question_file(norm_q, target_dir)
+    except Exception:
+        # Non-fatal; consolidated file still updated above
+        pass
 
 ## revisit removed per requirements
 
