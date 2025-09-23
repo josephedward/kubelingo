@@ -155,6 +155,7 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
     # Fallback to AI-powered validation
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
+        # Keep the message aligned with tests' expectation
         return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY or OPENAI_API_KEY for AI-powered manifest validation."}
 
     # We need to re-extract the raw solution string for the prompt,
@@ -213,6 +214,23 @@ def validate_manifest_with_llm(question_dict, user_input, verbose=True):
         try:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
+                headers=model["headers"],
+                json={
+                    "model": model["default_model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a Kubernetes expert grading a student's YAML manifest for a CKAD exam practice question."},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+            )
+            response.raise_for_status()
+            text = response.json()['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            return {'correct': False, 'feedback': f"Error validating manifest with LLM: {e}"}
+    elif llm_type == "perplexity":
+        try:
+            response = requests.post(
+                "https://api.perplexity.ai/chat/completions",
                 headers=model["headers"],
                 json={
                     "model": model["default_model"],
