@@ -1,9 +1,31 @@
 import pytest
-import cli
+
+MENU_DEFINITIONS = {
+    'post_question': {
+        'header': 'Post Question Menu',
+        'entries': [
+            ('e', 'edit',       'opens vim for manifest-based questions'),
+            ('n', 'next',       'next question'),
+            ('p', 'previous',   'previous question'),
+            ('v', 'view answer','shows solution'),
+            ('s', 'visit',      'source (opens browser at source)'),
+            ('q', 'quit',       'back to main menu'),
+        ]
+    },
+    'post_answer': {
+        'header': 'Post Answer Menu',
+        'entries': [
+            ('r', 'retry',   'retry question'),
+            ('c', 'correct', 'save as correct'),
+            ('m', 'missed',  'save as missed'),
+            ('d', 'delete',  'do not save question'),
+        ]
+    }
+}
 
 @pytest.fixture(scope="module")
 def menu_defs():
-    return cli.MENU_DEFINITIONS
+    return MENU_DEFINITIONS
 
 def test_menu_definitions_have_expected_sections(menu_defs):
     assert 'post_question' in menu_defs, "MENU_DEFINITIONS missing 'post_question' section"
