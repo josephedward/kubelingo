@@ -6,16 +6,13 @@ Kubelingo Repo Structure
     - `__main__.py` supports `python -m kubelingo`
 
 - Test shims (for fast, isolated tests)
-  - `cli.py` — minimal CLI used by tests to simulate menus/flows
-  - `question_generator.py` — simplified generator used by tests
-  - `backend_integrator.py` — simplified backend adapter used by tests
-  - `k8s_manifest_generator.py` — simplified manifest generator used by tests
+  - `kubelingo/cli_shim.py` — minimal CLI used by tests to simulate menus/flows
+  - All former top-level shims have been removed to avoid duplication.
   - `InquirerPy/` — tiny stub exposing `inquirer` with `select()` and `text()`
 
 Notes
 
 - For implementing features, fix bugs, or making architectural changes,
   update modules under `kubelingo/`.
-- The single application command is `kubelingo`. Do not invoke `cli.py`
-  for the real app; it exists only to satisfy the test suite.
-
+- The single application command is `kubelingo`. The test CLI surface is
+  `kubelingo.cli_shim` and is not used by the real app.
