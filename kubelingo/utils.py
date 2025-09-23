@@ -5,6 +5,13 @@ from yaml import SafeDumper, Dumper
 def ensure_user_data_dir():
     """Ensures the user_data directory exists."""
     os.makedirs(USER_DATA_DIR, exist_ok=True)
+    # Ensure canonical subdirectories for per-question storage exist
+    try:
+        os.makedirs(os.path.join(USER_DATA_DIR, 'correct'), exist_ok=True)
+        os.makedirs(os.path.join(USER_DATA_DIR, 'incorrect'), exist_ok=True)
+    except Exception:
+        # Best-effort; callers also create directories on write
+        pass
 
 def ensure_question_dirs():
     """Ensures the question directories exist."""
