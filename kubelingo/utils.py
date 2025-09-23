@@ -55,10 +55,10 @@ QUESTIONS_DIR = os.getenv(
 )
 QUESTIONS_STORED_DIR = os.path.join(_PROJECT_ROOT, "data", "questions", "stored")
 # Allow tests and callers to override the user data directory via env var
-# Defaults to the repository-level `user_data/` folder.
+# Defaults to the repository-level `.user_data/` folder.
 USER_DATA_DIR = os.getenv(
     "KUBELINGO_USER_DATA_DIR",
-    os.path.join(_PROJECT_ROOT, "user_data")
+    os.path.join(_PROJECT_ROOT, ".user_data")
 )
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
@@ -297,7 +297,7 @@ import shutil
 
 def backup_performance_yaml():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    source_path = os.path.join(project_root, 'user_data', 'performance.yaml')
+    source_path = os.path.join(project_root, '.user_data', 'performance.yaml')
     destination_dir = os.path.join(project_root, 'misc')
     destination_path = os.path.join(destination_dir, 'performance.yaml')
 
