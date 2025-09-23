@@ -41,7 +41,12 @@ QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
-USER_DATA_DIR = os.path.join(_PROJECT_ROOT, "user_data")
+# Allow tests and callers to override the user data directory via env var
+# Defaults to the repository-level `user_data/` folder.
+USER_DATA_DIR = os.getenv(
+    "KUBELINGO_USER_DATA_DIR",
+    os.path.join(_PROJECT_ROOT, "user_data")
+)
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
 PERFORMANCE_FILE = os.path.join(USER_DATA_DIR, "performance.yaml")
@@ -124,6 +129,37 @@ def _get_llm_model(skip_prompt=False):
         except Exception as e:
             if not skip_prompt:
                 print(f"{Fore.RED}Error initializing OpenRouter model: {e}{Style.RESET_ALL}")
+            return None, None
+    elif llm_provider == "perplexity":
+        api_key = os.getenv("PERPLEXITY_API_KEY")
+        if not api_key:
+            if not skip_prompt:
+                print(f"{Fore.RED}PERPLEXITY_API_KEY not found in environment variables.{Style.RESET_ALL}")
+            return None, None
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+            model_info = {
+                "headers": headers,
+                "default_model": "sonar-medium-online",
+            }
+            # Test model availability with a dummy request
+            response = requests.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers=headers,
+                json={
+                    "model": model_info["default_model"],
+                    "messages": [{"role": "user", "content": "hi"}],
+                }
+            )
+            response.raise_for_status()
+            return "perplexity", model_info
+        except Exception as e:
+            if not skip_prompt:
+                print(f"{Fore.RED}Error initializing Perplexity model: {e}{Style.RESET_ALL}")
             return None, None
     else:
         if not skip_prompt:
