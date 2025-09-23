@@ -1,0 +1,10 @@
+type: command
+topic: namespaces_contexts
+question: Create a new namespace called 'dev' and then set the context to use this
+  namespace. What command would you use?
+suggested_answer: kubectl create namespace dev && kubectl config set-context --current
+  --namespace=dev
+source: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+id: e550b82d
+user_answer: ''
+ai_feedback: ''

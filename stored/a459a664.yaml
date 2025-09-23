@@ -1,0 +1,9 @@
+type: true_false
+topic: ingress
+question: 'True or False: A Service directly schedules Pods on nodes.'
+suggestion: 'false'
+source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+id: a459a664
+suggested_answer: 'false'
+user_answer: ''
+ai_feedback: ''

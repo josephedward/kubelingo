@@ -1,0 +1,48 @@
+questions:
+- question: Add a label 'env=prod' to the pod named 'my-pod'.
+  suggestion:
+  - kubectl label pod my-pod env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- question: Get all pods with the label 'env=prod'.
+  suggestion:
+  - kubectl get pods -l env=prod
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- question: 'Create a manifest for a pod named ''labeled-pod'' with image ''nginx''
+    that has two labels: ''env=prod'' and ''app=frontend''.'
+  suggestion:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: labeled-pod
+      labels:
+        env: prod
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- question: Command to label Namespace prod with tier=backend (overwrite if exists).
+  suggestion:
+  - kubectl label ns prod tier=backend --overwrite
+  source: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+- question: Command to list Pod names only using jsonpath.
+  suggestion:
+  - kubectl get pods -o jsonpath='{.items[*].metadata.name}'
+  source: https://kubernetes.io/docs/reference/kubectl/jsonpath/
+- question: Label pod busybox with env=prod.
+  suggestion:
+  - kubectl label pod busybox env=prod
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- question: Remove the label 'env' from pod busybox.
+  suggestion:
+  - kubectl label pod busybox env-
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- question: Annotate deployment frontend with description=test.
+  suggestion:
+  - kubectl annotate deployment frontend description=test
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20replace%20
+- question: Remove the annotation 'description' from deployment frontend.
+  suggestion:
+  - kubectl annotate deployment frontend description-
+  source: https://kubernetes.io/vi/docs/reference/kubectl/cheatsheet/#:~:text=kubectl%20label%20pods%20my,T%E1%BB%B1%20%C4%91%E1%BB%99ng

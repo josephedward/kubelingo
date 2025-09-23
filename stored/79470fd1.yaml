@@ -1,0 +1,10 @@
+type: vocab
+topic: ingress
+question: 'Provide the Kubernetes term that matches: Holds confidential data such
+  as passwords and tokens.'
+suggestion: Secret
+source: https://kubernetes.io/docs/concepts/workloads/pods/
+id: 79470fd1
+suggested_answer: Secret
+user_answer: ''
+ai_feedback: ''

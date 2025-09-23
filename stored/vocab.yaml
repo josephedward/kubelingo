@@ -1,0 +1,120 @@
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: The smallest deployable unit in Kubernetes."
+  suggestion: "Pod"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Provides stable networking for a set of Pods."
+  suggestion: "Service"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Holds non-confidential configuration data in key-value pairs."
+  suggestion: "ConfigMap"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Holds confidential data such as passwords and tokens."
+  suggestion: "Secret"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Manages a replicated application, ensuring a specified number of Pods are running."
+  suggestion: "Deployment"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Ensures that a specified number of Pod replicas are running at any given time."
+  suggestion: "ReplicaSet"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Provides a mechanism for isolating groups of resources within a single cluster."
+  suggestion: "Namespace"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: A worker machine in Kubernetes, which may be a virtual machine or a physical machine."
+  suggestion: "Node"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: The command-line tool for running commands against Kubernetes clusters."
+  suggestion: "kubectl"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: An API object that manages external access to the services in a cluster, typically HTTP."
+  suggestion: "Ingress"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned."
+  suggestion: "PersistentVolume"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: A request for storage by a user."
+  suggestion: "PersistentVolumeClaim"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Manages the deployment and scaling of a set of Pods, with guarantees about the ordering and uniqueness of these Pods."
+  suggestion: "StatefulSet"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Ensures that all (or some) Nodes run a copy of a Pod."
+  suggestion: "DaemonSet"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Creates one or more Pods and ensures that a specified number of them successfully terminate."
+  suggestion: "Job"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Manages time-based Jobs, like cron in Unix-like systems."
+  suggestion: "CronJob"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Key/value pairs that are attached to objects, such as Pods."
+  suggestion: "Label"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Used to select a set of resources based on their labels."
+  suggestion: "Selector"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Key/value pairs that are used to attach arbitrary non-identifying metadata to objects."
+  suggestion: "Annotation"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: A network proxy that runs on each node in the cluster, implementing part of the Kubernetes Service concept."
+  suggestion: "Kube-proxy"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: An agent that runs on each node in the cluster, ensuring that containers are running in a Pod."
+  suggestion: "Kubelet"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: The component that exposes the Kubernetes API."
+  suggestion: "API Server"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Runs controller processes."
+  suggestion: "Controller Manager"
+  source: "Kubernetes Documentation"
+- type: vocab
+  topic: vocab
+  question: "Provide the Kubernetes term that matches: Watches for newly created Pods that have no assigned node, and selects a node for them to run on."
+  suggestion: "Scheduler"
+  source: "Kubernetes Documentation"

@@ -1,0 +1,11 @@
+type: mcq
+topic: deployments
+question: |-
+  Which resource stores non-confidential configuration key/values?
+  Options: Secret, ConfigMap, Ingress, Job
+suggestion: ConfigMap
+source: https://kubernetes.io/docs/concepts/services-networking/service/
+id: 7a321fd3
+suggested_answer: ConfigMap
+user_answer: ''
+ai_feedback: ''

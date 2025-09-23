@@ -1,0 +1,17 @@
+type: Manifests
+topic: configmap
+question: 'Create a ConfigMap named ''app-config'' in the ''default'' namespace with
+  the following data: key1: value1, key2: value2.'
+suggested_answer: |-
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: app-config
+    namespace: default
+  data:
+    key1: value1
+    key2: value2
+source: https://kubernetes.io/docs/concepts/configuration/config-map/
+id: c9520430
+user_answer: ''
+ai_feedback: ''

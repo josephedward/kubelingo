@@ -1,0 +1,9 @@
+topic: pods
+question: 'Provide the Kubernetes term that matches: Provides stable networking for
+  a set of Pods.'
+suggestion: Service
+source: https://kubernetes.io/docs/concepts/workloads/pods/
+id: fc440502
+suggested_answer: Service
+user_answer: ''
+ai_feedback: ''

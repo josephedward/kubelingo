@@ -1,0 +1,9 @@
+type: true_false
+topic: pods
+question: 'True or False: A ConfigMap is suitable for storing TLS private keys.'
+suggestion: 'false'
+source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+id: c336760b
+suggested_answer: 'false'
+user_answer: ''
+ai_feedback: ''

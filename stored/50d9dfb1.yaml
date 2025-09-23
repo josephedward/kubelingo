@@ -1,0 +1,9 @@
+type: True/False
+topic: app_configuration
+question: In Kubernetes, ConfigMaps can be used to store sensitive information such
+  as passwords and API keys.
+suggested_answer: 'false'
+source: https://kubernetes.io/docs/concepts/configuration/configmap/
+id: 50d9dfb1
+user_answer: ''
+ai_feedback: ''

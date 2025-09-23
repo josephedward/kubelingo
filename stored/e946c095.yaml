@@ -1,0 +1,9 @@
+type: true_false
+topic: pods
+question: 'True or False: A Deployment manages ReplicaSets to keep a set of Pods running.'
+suggestion: 'true'
+source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+id: e946c095
+suggested_answer: 'true'
+user_answer: ''
+ai_feedback: ''

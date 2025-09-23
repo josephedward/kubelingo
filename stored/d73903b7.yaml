@@ -1,0 +1,9 @@
+type: true_false
+topic: helm_basics
+question: 'True or False: A Service directly schedules Pods on nodes.'
+suggestion: 'false'
+source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+id: d73903b7
+suggested_answer: 'false'
+user_answer: ''
+ai_feedback: ''

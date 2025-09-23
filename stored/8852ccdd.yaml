@@ -1,0 +1,10 @@
+type: vocab
+topic: ingress
+question: 'Provide the Kubernetes term that matches: Holds non-confidential configuration
+  data in key-value pairs.'
+suggestion: ConfigMap
+source: https://kubernetes.io/docs/concepts/workloads/pods/
+id: 8852ccdd
+suggested_answer: ConfigMap
+user_answer: ''
+ai_feedback: ''

@@ -1,0 +1,8 @@
+type: true_false
+topic: api_discovery_docs
+question: 'True or False: A Service directly schedules Pods on nodes.'
+source: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+id: 184c570d
+suggested_answer: 'false'
+user_answer: ''
+ai_feedback: ''

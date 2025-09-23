@@ -1,0 +1,9 @@
+type: vocab
+topic: configmap
+question: 'Provide the Kubernetes term that matches: Holds confidential data such
+  as passwords and tokens.'
+source: https://kubernetes.io/docs/concepts/workloads/pods/
+id: 6bc10288
+suggested_answer: Secret
+user_answer: ''
+ai_feedback: ''
