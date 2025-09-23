@@ -8,6 +8,7 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
+import requests
 from kubelingo.utils import (
     load_questions,
     get_normalized_question_text,
@@ -506,7 +507,7 @@ def get_display(value):
 def test_api_keys():
     """Tests the validity of API keys and returns a dictionary with their statuses."""
     # Simplified: skip external API checks to avoid network calls
-    return {"gemini": False, "openai": False, "openrouter": False}
+    return {"gemini": False, "openai": False, "openrouter": False, "perplexity": False}
     
 def handle_validation_menu():
     """Handles the validation configuration menu."""
@@ -556,22 +557,25 @@ def handle_keys_menu():
     gemini_key = config.get("GEMINI_API_KEY", "Not Set")
     openai_key = config.get("OPENAI_API_KEY", "Not Set")
     openrouter_key = config.get("OPENROUTER_API_KEY", "Not Set")
+    perplexity_key = config.get("PERPLEXITY_API_KEY", "Not Set")
 
     statuses = test_api_keys()
     gemini_display = f"{Fore.GREEN}****{gemini_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["gemini"] else f"{Fore.RED}****{gemini_key[-4:]} (Invalid){Style.RESET_ALL}"
     openai_display = f"{Fore.GREEN}****{openai_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openai"] else f"{Fore.RED}****{openai_key[-4:]} (Invalid){Style.RESET_ALL}"
     openrouter_display = f"{Fore.GREEN}****{openrouter_key[-4:]} (Valid){Style.RESET_ALL}" if statuses["openrouter"] else f"{Fore.RED}****{openrouter_key[-4:]} (Invalid){Style.RESET_ALL}"
+    perplexity_display = f"{Fore.GREEN}****{perplexity_key[-4:]} (Valid){Style.RESET_ALL}" if statuses.get("perplexity") else f"{Fore.RED}****{perplexity_key[-4:]} (Invalid){Style.RESET_ALL}"
 
     print(f"  {Style.BRIGHT}1.{Style.RESET_ALL} Set Gemini API Key (current: {gemini_display}) (Model: gemini-1.5-flash-latest)")
     print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
     print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
+    print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Set Perplexity API Key (current: {perplexity_display}) (Model: sonar-medium-online)")
     # Get current AI provider setting
     provider = config.get("KUBELINGO_LLM_PROVIDER", "")
     provider_display = f"{Fore.GREEN}{provider}{Style.RESET_ALL}" if provider else f"{Fore.RED}None{Style.RESET_ALL}"
 
     print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Provider Selection ---")
-    print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Choose AI Provider (current: {provider_display})")
-    print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Back")
+    print(f"  {Style.BRIGHT}5.{Style.RESET_ALL} Choose AI Provider (current: {provider_display})")
+    print(f"  {Style.BRIGHT}6.{Style.RESET_ALL} Back")
 
     while True:
         choice = input("Enter your choice: ").strip()
@@ -617,13 +621,27 @@ def handle_keys_menu():
             time.sleep(1)
             break
         elif choice == '4':
+            key = input("Enter your Perplexity API Key: ").strip()
+            if key:
+                set_key(".env", "PERPLEXITY_API_KEY", key)
+                os.environ["PERPLEXITY_API_KEY"] = key
+                print("\nPerplexity API Key saved.")
+                statuses = test_api_keys()
+                if not statuses.get("perplexity", False):
+                    print(f"{Fore.RED}Invalid Perplexity API Key. Please check your key.{Style.RESET_ALL}")
+            else:
+                print("\nNo key entered.")
+            time.sleep(1)
+            break
+        elif choice == '5':
             print("\nSelect AI Provider:")
             print("  1. openrouter")
             print("  2. gemini")
             print("  3. openai")
-            print("  4. none (disable AI)")
+            print("  4. perplexity")
+            print("  5. none (disable AI)")
             sub = input("Enter your choice: ").strip()
-            mapping = {'1': 'openrouter', '2': 'gemini', '3': 'openai', '4': ''}
+            mapping = {'1': 'openrouter', '2': 'gemini', '3': 'openai', '4': 'perplexity', '5': ''}
             if sub in mapping:
                 sel = mapping[sub]
                 set_key(".env", "KUBELINGO_LLM_PROVIDER", sel)
@@ -633,7 +651,7 @@ def handle_keys_menu():
                 print("\nInvalid selection.")
             time.sleep(1)
             break
-        elif choice == '5':
+        elif choice == '6':
             return
         else:
             print("Invalid choice. Please try again.")
@@ -667,7 +685,7 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
     """
     llm_type, model = _get_llm_model(skip_prompt=True)
     if not model:
-        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY for AI-powered validation."}
+        return {'correct': False, 'feedback': "INFO: Set GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or PERPLEXITY_API_KEY for AI-powered validation."}
 
     prompt = f'''
         You are a Kubernetes expert whose sole task is to determine the technical correctness of a student's answer to a CKAD exam practice question.
@@ -716,6 +734,20 @@ def get_ai_verdict(question, user_answer, suggestion, custom_query=None):
         elif llm_type == "openrouter":
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
+                headers=model["headers"],
+                json={
+                    "model": model["default_model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a Kubernetes expert determining technical correctness."},
+                        {"role": "user", "content": prompt}
+                    ]
+                }
+            )
+            response.raise_for_status()
+            ai_response = response.json()['choices'][0]['message']['content'].strip()
+        elif llm_type == "perplexity":
+            response = requests.post(
+                "https://api.perplexity.ai/chat/completions",
                 headers=model["headers"],
                 json={
                     "model": model["default_model"],
@@ -1137,7 +1169,7 @@ def list_and_select_topic(performance_data):
                 all_questions = topic_data.get('questions', [])
                 total_questions = len(all_questions)
 
-                if total_questions == 0 and not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")):
+                if total_questions == 0 and not (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("PERPLEXITY_API_KEY")):
                     print("This topic has no questions and no API key is set to generate them.")
                     continue
 
@@ -1153,7 +1185,7 @@ def list_and_select_topic(performance_data):
                     ]
                     num_incomplete = len(incomplete_questions)
 
-                    can_generate = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"))
+                    can_generate = bool(os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("PERPLEXITY_API_KEY"))
                     # Section is considered 100% complete if there are no incomplete questions.
                     is_complete = num_incomplete == 0
 
@@ -1705,6 +1737,8 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
     #     return
     colorama_init(autoreset=True)
     print(colorize_ascii_art(ASCII_ART))
+    # Add a blank line below the logo for spacing
+    print()
     statuses = test_api_keys()
     if not any(statuses.values()):
         print(f"{Fore.RED}Warning: No valid API keys found. Without a valid API key, you will just be string matching against a single suggested answer.{Style.RESET_ALL}")
