@@ -26,7 +26,8 @@ try:
     from .utils import QUESTIONS_STORED_DIR as QUESTIONS_STORED_DIR
 except Exception:
     _pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    QUESTIONS_STORED_DIR = os.path.join(_pkg_root, 'data', 'questions', 'stored')
+    # Fallback aligns with canonical `stored/` directory
+    QUESTIONS_STORED_DIR = os.path.join(_pkg_root, 'stored')
 from .validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
 from . import source_manager as sm
 from . import issue_manager as im
