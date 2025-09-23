@@ -1,98 +1,221 @@
- # Kubelingo Usage Guide
+# Kubelingo Usage Guide
 
- This document provides detailed instructions on installing, configuring, and using Kubelingo, a CLI tool for studying the Certified Kubernetes Application Developer (CKAD) exam.
+A practical, example-driven guide to install, configure, and use Kubelingo for CKAD preparation. Includes workflows for command and manifest questions, validation settings, source management, and troubleshooting.
 
- ## Table of Contents
- - [Prerequisites](#prerequisites)
- - [Installation](#installation)
-   - [From PyPI](#from-pypi)
-   - [From Source](#from-source)
- - [Configuration](#configuration)
- - [Running Kubelingo](#running-kubelingo)
-   - [Interactive CLI](#interactive-cli)
-   - [Command-Line Options](#command-line-options)
- - [Source Management](#source-management)
- - [Testing & Coverage](#testing--coverage)
+## Prerequisites
+- Python 3.8+ (3.11+ recommended)
+- `kubectl` in `PATH` (any context is fine; dry-run does not mutate)
+- Optional editor: `vim` (Kubelingo launches `vim` for manifest questions)
+- Optional tools for strict validation: `yamllint`, `kubeconform`, `kube-score`, `trivy`
+- Optional AI: API keys for Gemini/OpenAI/OpenRouter (see Configuration)
 
- ## Prerequisites
- - Python 3.7 or newer (3.11+ recommended)
- - `kubectl` installed and configured in your `PATH`
- - Optional: `vim` (for manifest editing)
- - Optional: API keys for AI feedback (see [Configuration](#configuration))
+## Installation
 
- ## Installation
+- From PyPI
+```bash
+pip install kubelingo
+```
 
- ### From PyPI
- ```bash
- pip install kubelingo
- ```
+- From source (editable dev install)
+```bash
+git clone https://github.com/josephedward/kubelingo.git
+cd kubelingo
+pip install -r requirements.txt
+pip install -e .
+```
 
- ### From Source
- ```bash
- git clone https://github.com/josephedward/kubelingo.git
- cd kubelingo
- pip install -r requirements.txt
- pip install .
- ```
+Verify install:
+```bash
+kubelingo --help
+```
 
- ## Configuration
+## Configuration
 
- Kubelingo can provide AI-powered feedback and question generation if you supply API keys.
- Create a file named `.env` in the project root with one or both of the following:
- ```dotenv
- GEMINI_API_KEY=<your_google_gemini_key>
- OPENAI_API_KEY=<your_openai_key>
- ```
- The tool will load this file automatically on startup.
+Create a `.env` in the project root to control validation and optional AI providers.
 
- ## Running Kubelingo
+- Validation level (tool chain depth)
+```dotenv
+# one of: permissive | moderate | strict
+KUBELINGO_VALIDATION_LEVEL=moderate
+```
 
- ### Interactive CLI
- Launch the study interface:
- ```bash
- kubelingo
- ```
- 1. The ASCII-art logo is displayed.
- 2. Select a topic and the number of questions to practice.
-3. For **command** questions, type your `kubectl` (or `helm`) command and press Enter. To submit your answer, either press Enter on a blank line or type `done` and press Enter.
- 4. For **manifest** questions, Kubelingo will open a temporary file in `vim` (or your default editor).
-    - Write or paste your YAML manifest.
-    - Save and close the editor to submit.
- 5. Review the colored diff, AI feedback (if configured), and performance summary.
+- Per-tool toggles (True/False) — enable/disable specific validators
+```dotenv
+KUBELINGO_VALIDATION_YAMLLINT=True
+KUBELINGO_VALIDATION_KUBECONFORM=True
+KUBELINGO_VALIDATION_KUBECTL-VALIDATE=True
+KUBELINGO_VALIDATION_KUBE-SCORE=True
+KUBELINGO_VALIDATION_TRIVY=True
+```
 
- ### Command-Line Options
- Run `kubelingo --help` to see all options:
- ```bash
- Usage: kubelingo [OPTIONS]
+- LLM provider (optional)
+```dotenv
+# one of: gemini | openai | openrouter
+KUBELINGO_LLM_PROVIDER=gemini
+GEMINI_API_KEY=...
+# or
+# KUBELINGO_LLM_PROVIDER=openai
+# OPENAI_API_KEY=...
+# or
+# KUBELINGO_LLM_PROVIDER=openrouter
+# OPENROUTER_API_KEY=...
+```
 
-Options:
-  --add-sources             Add missing sources from a consolidated YAML file
-  --consolidated PATH       Path to consolidated YAML (required with --add-sources)
-  --check-sources           Check all question files for missing sources
-  --interactive-sources     Interactively search and assign sources
-  --auto-approve            Auto-approve first result (use with --interactive-sources)
-  --help                    Show this message and exit
- ```
+Notes:
+- Kubelingo works without AI; feedback falls back to deterministic checks.
+- Strict mode uses more external tools; install them or toggle to False.
 
- ## Source Management
+## Quick Start
 
- - **Check sources**: `kubelingo --check-sources` verifies that each question YAML has a `source` URL.
- - **Interactive sources**: `kubelingo --interactive-sources` lets you search and assign sources using Google or Bing.
- - **Bulk add**: `kubelingo --add-sources --consolidated PATH` automatically inserts missing `source` fields from a consolidated file.
+Launch the interactive CLI:
+```bash
+kubelingo
+```
 
- ## Testing & Coverage
+- Choose a topic (pods, services, deployments, etc.) and how many questions to practice.
+- Topic prompt suffixes:
+  - `i` = study incomplete questions
+  - `g` or `s` = generate a new question (requires 100% completion + API key)
+  - digits (e.g., `5`) = practice that many questions
+  - Enter = practice all questions
+- Post-answer menu: `[n]ext`, `[b]ack`, `[i]ssue`, `[s]ource`, `[r]etry`, `[c]onfigure`, `[q]uit`.
 
- Run the test suite with pytest:
- ```bash
- pytest
- ```
+## Answering Questions
 
- Generate a coverage report:
- ```bash
- pip install pytest-cov
- pytest --cov=kubelingo --cov-report=term-missing
- ```
+### Command questions (kubectl)
+Prompt example:
+> Create a Deployment named 'nginx-deploy' with 3 replicas of the image 'nginx:1.20'.
 
- ## Further Reading
- - [Official CKAD Exam Curriculum](https://github.com/cncf/curriculum/blob/master/exams/ckad/)
- - [Kubernetes Documentation](https://kubernetes.io/docs/)
+Valid answer (one of several possibilities):
+```bash
+kubectl create deployment nginx-deploy --image=nginx:1.20 --replicas=3
+```
+
+Tips:
+- Aliases normalized: `k`→`kubectl`, `deploy`→`deployment`, `-n X`→`--namespace X`.
+- Flags are sorted; functional correctness is what matters.
+- Kubelingo may perform a dry-run and convert to YAML to compare structurally.
+
+Submitting:
+- Enter your command and press Enter.
+- For multi-line input, submit an empty line or type `done`.
+
+### Manifest questions (YAML + vim)
+You will be dropped into `vim` with the prompt commented at top and space to write your manifest.
+
+Prompt example:
+> Create a Service of type NodePort named 'web-svc' that exposes port 80 targetPort 80 for Pods labeled app=web.
+
+Minimal valid answer:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+spec:
+  type: NodePort
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 80
+```
+
+Save and quit (`:wq`). Kubelingo will:
+- Compare structurally with the canonical solution (ignoring names, order, container-name fields).
+- Run configured validators (yamllint, kubeconform, etc.).
+- Show a colorized diff and concise feedback.
+
+## Validation Details
+
+Levels (`KUBELINGO_VALIDATION_LEVEL`):
+- permissive: `yamllint`
+- moderate: `yamllint`, `kubeconform`
+- strict: `yamllint`, `kubeconform`, `kubectl` dry-run, `kube-score`, `trivy`
+
+Notes:
+- Missing tool? It’s skipped with a note. Install to enable.
+- Structural equivalence focuses on apiVersion/kind/spec correctness.
+- With an LLM configured, edge cases receive brief AI feedback.
+
+## Managing Sources (Question Hygiene)
+
+Ensure every question includes a reputable `source` URL.
+
+- Check for missing sources
+```bash
+kubelingo --check-sources
+```
+
+- Add sources in bulk from a consolidated YAML
+```bash
+kubelingo --add-sources --consolidated /path/to/consolidated_questions.yaml
+```
+
+- Interactively search and assign sources (optional `--auto-approve`)
+```bash
+kubelingo --interactive-sources
+kubelingo --interactive-sources --auto-approve
+```
+
+## Data & Progress
+
+- Location: `user_data/`
+  - `performance.yaml`: per-topic list of correctly answered questions
+  - `missed_questions.yaml`: optional list of flagged misses
+  - `issues.yaml`: user-reported question issues
+
+- Backup performance data
+```bash
+python scripts/backup_performance_yaml.py
+```
+
+## Installing Optional Tools
+
+- macOS (Homebrew)
+```bash
+brew install yamllint kubeconform kube-score trivy
+```
+
+- Debian/Ubuntu
+```bash
+sudo apt-get update && sudo apt-get install -y yamllint
+# kubeconform/kube-score/trivy: use official releases for latest binaries
+```
+
+Verify tools:
+```bash
+yamllint --version && kubeconform -v && kube-score version && trivy --version
+kubectl version --client
+```
+
+## Troubleshooting
+
+- kubectl not found
+  - Install kubectl and ensure it’s in `PATH`. Dry-run uses your context but doesn’t mutate.
+- vim not found or prefer another editor
+  - Install `vim` or adjust your environment; Kubelingo currently launches `vim` directly.
+- Validation tools missing
+  - Install them, lower `KUBELINGO_VALIDATION_LEVEL`, or set per-tool toggles to `False`.
+- No AI feedback
+  - Set `KUBELINGO_LLM_PROVIDER` and the corresponding API key in `.env`.
+- Source search disabled
+  - The `googlesearch` library or network may be unavailable. Use `--add-sources` or add sources manually.
+
+## Testing & Coverage (contributors)
+
+- Run tests
+```bash
+pytest
+```
+
+- Coverage report
+```bash
+pip install pytest-cov
+pytest --cov=kubelingo --cov-report=term-missing
+```
+
+## References
+- CKAD Curriculum: https://github.com/cncf/curriculum/blob/master/exams/ckad/
+- Kubernetes Docs: https://kubernetes.io/docs/
+
