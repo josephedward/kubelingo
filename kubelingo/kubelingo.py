@@ -15,13 +15,18 @@ from .utils import (
     get_normalized_question_text,
     _get_llm_model,
     QUESTIONS_DIR,
-    QUESTIONS_STORED_DIR,
     USER_DATA_DIR,
     MISSED_QUESTIONS_FILE,
     ensure_user_data_dir,
     ensure_question_dirs,
     backup_performance_yaml,
 )
+try:
+    # Prefer constant from utils, but be resilient if missing
+    from .utils import QUESTIONS_STORED_DIR as QUESTIONS_STORED_DIR
+except Exception:
+    _pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    QUESTIONS_STORED_DIR = os.path.join(_pkg_root, 'data', 'questions', 'stored')
 from .validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
 from . import source_manager as sm
 from . import issue_manager as im
