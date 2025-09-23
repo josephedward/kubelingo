@@ -1,6 +1,6 @@
 import pytest
 
-from cli import suggest_command
+from kubelingo.cli_shim import suggest_command
 from question_generator import QuestionGenerator, KubernetesTopics
 
 
