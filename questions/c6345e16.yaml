@@ -1,9 +1,0 @@
-type: vocab
-topic: Kubernetes
-question: What is the term for the mechanisms used by Kubernetes to check the health
-  of a container, ensuring that it is running as expected?
-suggested_answer: probes_health
-source: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
-id: c6345e16
-user_answer: ''
-ai_feedback: ''
