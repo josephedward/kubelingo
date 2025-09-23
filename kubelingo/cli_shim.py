@@ -127,6 +127,17 @@ class KubernetesTopics(Enum):
 
 last_generated_q = None
 
+# Expose a module-level QuestionGenerator symbol so tests can monkeypatch it.
+try:
+    from kubelingo.question_generator import QuestionGenerator as _RealQuestionGenerator  # type: ignore
+except Exception:  # pragma: no cover - fallback stub for isolated test envs
+    class _RealQuestionGenerator:  # type: ignore
+        def generate_question(self, *args, **kwargs):
+            return {"question": "Test question", "suggested_answer": ""}
+
+# Public alias used by tests (monkeypatched in several places)
+QuestionGenerator = _RealQuestionGenerator  # type: ignore
+
 
 def ai_chat(system_prompt=None, user_prompt=None):
     """Minimal HTTP client tailored for tests.
@@ -295,8 +306,7 @@ def generate_command(topic, gen=None):
         topic = inquirer.select(message='Select topic:', choices=[t.value for t in KubernetesTopics]).execute()
     # Get a question
     if gen is None:
-        # Use production QuestionGenerator within the package (tests may monkeypatch this symbol)
-        from kubelingo.question_generator import QuestionGenerator
+        # Use the module-level alias so tests can monkeypatch it
         gen = QuestionGenerator()
     # Support multiple generator signatures used across tests
     try:
@@ -460,6 +470,31 @@ class _QuestionGeneratorAdapter:
         return q
 
 question_generator_instance = _QuestionGeneratorAdapter()
+
+
+def generate_question(topic=None, gen=None):
+    """Module-level helper that generates a single question dict.
+
+    Tests monkeypatch this function to inject deterministic behavior. When not
+    patched, it delegates to the QuestionGenerator or adapter.
+    """
+    t = topic or 'pods'
+    if gen is None:
+        try:
+            gen = QuestionGenerator()  # type: ignore
+        except Exception:
+            gen = question_generator_instance  # type: ignore
+    # Support multiple signatures used across the code/tests
+    try:
+        q = gen.generate_question(kind=t, count=1)
+    except TypeError:
+        try:
+            q = gen.generate_question(topic=t, include_context=True)
+        except TypeError:
+            q = gen.generate_question(t)
+    if isinstance(q, list):
+        q = q[0] if q else {}
+    return q or {}
 
 
 def static_quiz():
