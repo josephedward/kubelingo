@@ -1,5 +1,5 @@
 import os
-import kubelingo.utils as _utils
+from . import utils as _utils
 import sys
 import getpass
 import random
@@ -8,11 +8,11 @@ if sys.stdin.isatty():
 import time
 import yaml
 import argparse
+from dotenv import dotenv_values
 import requests
-from kubelingo.utils import (
+from .utils import (
     load_questions,
     get_normalized_question_text,
-    remove_question_from_corpus,
     _get_llm_model,
     QUESTIONS_DIR,
     USER_DATA_DIR,
@@ -20,11 +20,60 @@ from kubelingo.utils import (
     ensure_user_data_dir,
     backup_performance_yaml,
 )
-from kubelingo.validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
-import kubelingo.source_manager as sm
-import kubelingo.issue_manager as im
-import kubelingo.study_session as study_session
-from kubelingo.performance_tracker import _performance_data_changed, save_performance_data
+from .validation import manifests_equivalent, validate_manifest, validate_manifest_with_llm
+from . import source_manager as sm
+from . import issue_manager as im
+from . import study_session as study_session
+from .performance_tracker import _performance_data_changed, save_performance_data
+from .schema import write_question_file
+
+# Curated subjects list used for generation tagging (menu + Other...)
+SUBJECTS_CURATED = [
+    'Api Discovery Docs',
+    'App Configuration',
+    'Commands Args Env',
+    'Configmap',
+    'Core Workloads',
+    'Deployment',
+    'Helm Basics',
+    'Image Registry Use',
+    'Imperative Vs Declarative',
+    'Ingress Http Routing',
+    'Jobs Cronjobs',
+    'Kubectl Common Operations',
+    'Kubectl Operations',
+    'Labels Annotations Selectors',
+    'Linux Commands Syntax',
+    'Logging',
+    'Namespaces Contexts',
+    'Networking Utilities',
+    'Observability Troubleshooting',
+    'Persistence',
+    'Pod Design Patterns',
+    'Probes Health',
+    'Resource Management',
+    'Resource Reference',
+    'Scheduling Hints',
+    'Security Basics',
+    'Service Accounts In Apps',
+    'Services',
+    'RBAC',
+    'Monitoring',
+    'Troubleshooting',
+    # Resource kinds commonly used (match user’s menu)
+    'Pod',
+    'Service',
+    'Secret',
+    'PVC',
+    'Job',
+]
+
+def _slugify(label: str) -> str:
+    return '_'.join(label.strip().lower().split())
+from .provider_adapter import generate_with_provider, ProviderError
+from .quality import quality_check
+from .provider_adapter import generate_with_provider, ProviderError
+from .quality import quality_check
 
 
 
@@ -181,6 +230,89 @@ DEBUG = os.getenv('KUBELINGO_DEBUG', 'False').lower() in ('1', 'true')
 def dbg(msg):
     if DEBUG:
         print(f"[DEBUG] {msg}", file=sys.stderr)
+
+def _current_provider() -> str:
+    """Return the selected AI provider from env or .env, or '' if unset.
+
+    Resolution order:
+    1) KUBELINGO_LLM_PROVIDER environment variable
+    2) Repo root .env (sibling of the package directory)
+    3) Package-level .env (inside the package directory)
+    4) Default dotenv resolution
+    """
+    prov = os.getenv('KUBELINGO_LLM_PROVIDER', '').strip()
+    if prov:
+        return prov
+    # Repo root .env (project root)
+    try:
+        pkg_dir = os.path.dirname(__file__)
+        project_root = os.path.abspath(os.path.join(pkg_dir, os.pardir))
+        env_path = os.path.join(project_root, '.env')
+        if os.path.exists(env_path):
+            prov = (dotenv_values(env_path).get('KUBELINGO_LLM_PROVIDER', '') or '').strip()
+            if prov:
+                return prov
+    except Exception:
+        pass
+    # Package-level .env (single-folder installs may use this)
+    try:
+        pkg_env = os.path.join(os.path.dirname(__file__), '.env')
+        if os.path.exists(pkg_env):
+            prov = (dotenv_values(pkg_env).get('KUBELINGO_LLM_PROVIDER', '') or '').strip()
+            if prov:
+                return prov
+    except Exception:
+        pass
+    # Fallback to default search as a last resort
+    try:
+        prov = (dotenv_values().get('KUBELINGO_LLM_PROVIDER', '') or '').strip()
+    except Exception:
+        prov = ''
+    return prov
+
+def check_ai_ready_for_generation(print_warnings: bool = True):
+    """Verify that an AI provider is selected and that a matching API key is present/valid.
+
+    Returns a tuple (ok: bool, message: str). When ok is False and print_warnings is True,
+    the message is printed in red. This is an offline check.
+    """
+    from dotenv import load_dotenv
+    load_dotenv()
+    prov = _current_provider()
+    if not prov:
+        # Attempt to infer provider from available keys to avoid false negatives
+        statuses = test_api_keys()
+        inferred = None
+        for name in ('openai', 'gemini', 'openrouter', 'perplexity'):
+            if statuses.get(name):
+                inferred = name
+                break
+        if inferred:
+            os.environ['KUBELINGO_LLM_PROVIDER'] = inferred
+            prov = inferred
+        else:
+            msg = "No AI provider configured. Go to Settings → LLM Settings to select a provider and set an API key."
+            if print_warnings:
+                print(f"{Fore.RED}{msg}{Style.RESET_ALL}")
+            return False, msg
+
+    # Map provider -> key validity flag from test_api_keys()
+    provider_key_map = {
+        'openai': 'openai',
+        'gemini': 'gemini',
+        'openrouter': 'openrouter',
+        'perplexity': 'perplexity',
+    }
+    statuses = test_api_keys()
+    key_flag_name = provider_key_map.get(prov.lower())
+    has_valid_key = statuses.get(key_flag_name, False)
+    if not has_valid_key:
+        msg = f"AI provider '{prov}' selected but its API key is missing or invalid. Go to Settings → LLM Settings to set it."
+        if print_warnings:
+            print(f"{Fore.RED}{msg}{Style.RESET_ALL}")
+        return False, msg
+
+    return True, ""
 import webbrowser
 try:
     from googlesearch import search
@@ -513,7 +645,16 @@ def test_api_keys():
     """
     from dotenv import dotenv_values
 
-    cfg = dotenv_values(".env")
+    # Prefer a repo-local .env alongside the package, fallback to CWD
+    try:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        env_path = os.path.join(project_root, '.env')
+        if os.path.exists(env_path):
+            cfg = dotenv_values(env_path)
+        else:
+            cfg = dotenv_values('.env')
+    except Exception:
+        cfg = dotenv_values('.env')
 
     assume_valid = os.getenv("KUBELINGO_ASSUME_KEYS_VALID", "false").lower() in ("1", "true", "yes")
 
@@ -612,8 +753,8 @@ def handle_keys_menu():
     print(f"  {Style.BRIGHT}2.{Style.RESET_ALL} Set OpenAI API Key (current: {openai_display}) (Model: gpt-3.5-turbo)")
     print(f"  {Style.BRIGHT}3.{Style.RESET_ALL} Set OpenRouter API Key (current: {openrouter_display}) (Model: deepseek/deepseek-r1-0528:free)")
     print(f"  {Style.BRIGHT}4.{Style.RESET_ALL} Set Perplexity API Key (current: {perplexity_display}) (Model: sonar-medium-online)")
-    # Get current AI provider setting
-    provider = config.get("KUBELINGO_LLM_PROVIDER", "")
+    # Get current AI provider using the same resolver as generation checks
+    provider = _current_provider()
     provider_display = f"{Fore.GREEN}{provider}{Style.RESET_ALL}" if provider else f"{Fore.RED}None{Style.RESET_ALL}"
 
     print(f"\n{Style.BRIGHT}{Fore.CYAN}--- AI Provider Selection ---")
@@ -827,7 +968,7 @@ def handle_vim_edit(question):
     Handles the user editing a manifest in Vim.
     """
     # Determine the canonical solution manifest (suggestion or solution)
-    raw = question.get('suggestion') or question.get('solution')
+    raw = question.get('suggestion') or question.get('solution') or question.get('suggested_answer')
     # If suggestion is a list, take the first element
     if isinstance(raw, list):
         raw = raw[0] if raw else None
@@ -852,7 +993,9 @@ def handle_vim_edit(question):
         sol_manifest = raw
 
     question_comment = '\n'.join([f'# {line}' for line in question['question'].split('\n')])
-    starter_content = question.get('starter_manifest', '')
+    # Use explicit starter content if provided; do NOT auto-seed with the solution
+    # to avoid revealing the answer to the user in the editor.
+    starter_content = (question.get('starter_manifest') or '').strip()
     
     header = f"{question_comment}\n\n# --- Start your YAML manifest below --- \n"
     full_content = header + starter_content
@@ -1098,7 +1241,9 @@ def list_and_select_topic(performance_data):
     dbg(f"list_and_select_topic: perf_keys={list(performance_data.keys())}")
     # Determine missed questions file dynamically based on USER_DATA_DIR
     missed_file = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
-    available_topics = sorted([f.replace('.yaml', '') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')])
+    # Use curated subjects for consistent ordering across menus
+    curated_labels = SUBJECTS_CURATED
+    available_topics = [_slugify(lbl) for lbl in curated_labels]
     has_missed = os.path.exists(missed_file) and os.path.getsize(missed_file) > 0
     dbg(f"list_and_select_topic: available_topics={available_topics}, has_missed={has_missed}")
     
@@ -1123,7 +1268,12 @@ def list_and_select_topic(performance_data):
         print(f"  {Style.BRIGHT}0.{Style.RESET_ALL} Review Missed Questions [{missed_questions_count}]")
 
     for i, topic_name in enumerate(available_topics):
-        display_name = topic_name.replace('_', ' ').title()
+        # Map slug back to curated display label
+        try:
+            idx = available_topics.index(topic_name)
+            display_name = curated_labels[idx]
+        except ValueError:
+            display_name = topic_name.replace('_', ' ').title()
 
         question_data = load_questions(topic_name, Fore, Style)
         num_questions = len(question_data.get('questions', [])) if question_data else 0
@@ -1132,8 +1282,8 @@ def list_and_select_topic(performance_data):
         num_correct = len(stats.get('correct_questions') or [])
         
         stats_str = ""
+        percent = (num_correct / num_questions) * 100 if num_questions > 0 else 0
         if num_questions > 0:
-            percent = (num_correct / num_questions) * 100
             stats_str = f" ({Fore.GREEN}{num_correct}{Style.RESET_ALL}/{Fore.RED}{num_questions}{Style.RESET_ALL} correct - {Fore.CYAN}{percent:.0f}%{Style.RESET_ALL})"
 
         completion_indicator = ""
@@ -1372,8 +1522,20 @@ def run_topic(topic, questions_to_study, performance_data):
         if q is None: # Should not happen if is_session_complete is False
             break
         
-        # Determine canonical solution manifest for diff/display
-        sol_manifest = q.get('suggestion') or q.get('solution')
+        # Determine path by question type
+        # Determine question kind (prefer explicit type, else topic) and normalize common variants
+        qtype_raw = (q.get('type') or q.get('topic') or '').strip().lower()
+        qtype_norm = qtype_raw.replace(' ', '_').replace('/', '_')
+        if qtype_norm in ('true_false', 'truefalse', 'tf'):
+            qtype = 'true_false'
+        elif qtype_norm in ('multiple_choice', 'multiplechoice', 'mcq'):
+            qtype = 'mcq'
+        elif qtype_norm in ('vocab', 'vocabulary', 'vocabulary_term'):
+            qtype = 'vocab'
+        else:
+            qtype = qtype_norm
+        # Legacy suggestion for non-trivia types (support 'suggested_answer' too)
+        sol_manifest = q.get('suggestion') or q.get('solution') or q.get('suggested_answer')
         if isinstance(sol_manifest, list):
             sol_manifest = sol_manifest[0] if sol_manifest else None
         is_correct = False  # Reset for each question attempt
@@ -1392,14 +1554,113 @@ def run_topic(topic, questions_to_study, performance_data):
         print(f"{Style.BRIGHT}{Fore.CYAN}{session.get_session_progress()} (Topic: {question_topic_context})", flush=True)
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         print(q['question'], flush=True)
+        # If MCQ and options are provided as a structured list, display them
+        if qtype == 'mcq':
+            opts = q.get('options') or []
+            if isinstance(opts, list) and opts:
+                for idx, opt in enumerate(opts, 1):
+                    print(f"  {idx}) {opt}")
         print(f"{Fore.CYAN}{'-' * 40}", flush=True)
         dbg("Before suggestion or input prompt")
-        # Auto-show solution on first display to avoid hanging on blank input
-        if not suggestion_shown_for_current_question:
-            special_action = 'solution'
-            user_commands = []
-        else:
-            user_commands, special_action = get_user_input(allow_solution_command=True)
+        # Pre-answer menu: decide how to proceed (answer, vim, next, previous, source, quit)
+        import kubelingo.question_manager as qm
+        # Determine if manifest editing is applicable
+        manifest_capable = sol_manifest is not None and (
+            isinstance(sol_manifest, (dict, list)) or (isinstance(sol_manifest, str) and '\n' in sol_manifest)
+        )
+        user_commands = []
+        special_action = None
+        while True:
+            # For trivia-style questions (tf/vocab/mcq), explicitly hint that direct input is allowed
+            qm.show_question_menu(manifest_capable, is_trivia=(qtype in ('true_false','vocab','mcq')))
+            raw = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter choice: {Style.RESET_ALL}").strip()
+            low = raw.lower()
+            if low == 'q':
+                return 'quit_app'
+            if low == 's':
+                qm.open_source(q)
+                continue
+            if low == 'n':  # next
+                next_q = session.next_question()
+                if next_q is None:
+                    return
+                break
+            if low == 'p':  # previous
+                prev_q = session.previous_question()
+                if not prev_q:
+                    print(f"{Fore.YELLOW}No previous question.{Style.RESET_ALL}")
+                break
+            if low == 'e' and manifest_capable:
+                user_manifest, result, sys_error = handle_vim_edit(q)
+                if result is None:
+                    continue
+                if isinstance(result, dict):
+                    is_correct = result.get('correct', False)
+                    if not sys_error:
+                        if result.get('validation_feedback'):
+                            print(f"{Style.BRIGHT}{Fore.YELLOW}\n--- Validation Details ---")
+                            print(result['validation_feedback'])
+                        if result.get('ai_feedback'):
+                            print(f"{Style.BRIGHT}{Fore.MAGENTA}\n--- AI Feedback ---")
+                            print(result['ai_feedback'])
+                        print(f"\n{Fore.GREEN}Correct!" if is_correct else f"\n{Fore.RED}Incorrect")
+                else:
+                    print(str(result))
+                user_answer_graded = True
+                special_action = 'graded'
+                break
+            if low in ('a','v'):
+                # Reveal solution, then post-answer menu
+                special_action = 'solution'
+                user_commands = []
+                break
+            # Treat raw input as an answer for trivia types
+            if qtype in ('true_false','vocab','mcq'):
+                correct = str(q.get('suggested_answer') or q.get('suggestion') or '').strip()
+                if qtype == 'true_false':
+                    ans = low
+                    if ans in ('t','true'):
+                        ans = 'true'
+                    elif ans in ('f','false'):
+                        ans = 'false'
+                    else:
+                        print(f"{Fore.RED}Invalid input. Expected true/false.{Style.RESET_ALL}")
+                        continue
+                    is_correct = (ans == correct.lower())
+                elif qtype == 'vocab':
+                    is_correct = (raw.strip().lower() == correct.lower())
+                else:  # mcq
+                    # Gather options either from structured field or parsed from question text
+                    options = []
+                    if isinstance(q.get('options'), list) and q['options']:
+                        options = [str(o).strip() for o in q['options']]
+                    elif 'Options:' in q.get('question',''):
+                        try:
+                            opts_part = q['question'].split('Options:',1)[1]
+                            options = [o.strip() for o in opts_part.split(',') if o.strip()]
+                        except Exception:
+                            options = []
+                    sel = raw.strip()
+                    if options and sel.isdigit() and 1 <= int(sel) <= len(options):
+                        sel_val = options[int(sel)-1]
+                        is_correct = (sel_val.lower() == correct.lower())
+                    else:
+                        is_correct = (sel.lower() == correct.lower())
+                user_answer_graded = True
+                # Provide brief feedback; do not auto-reveal full solution unless incorrect
+                if is_correct:
+                    print(f"\n{Fore.GREEN}Correct")
+                else:
+                    print(f"\n{Fore.RED}Incorrect")
+                    print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
+                    print(f"{Fore.YELLOW}{correct}")
+                    if q.get('source'):
+                        print(f"\n{Style.BRIGHT}{Fore.BLUE}Source: {q['source']}{Style.RESET_ALL}")
+                special_action = 'graded'
+                break
+            else:
+                user_commands.append(raw)
+                break
         dbg(f"After suggestion/input: user_commands={user_commands}, special_action={special_action}")
         # If still no action, skip to next iteration
         if not user_commands and special_action is None:
@@ -1416,7 +1677,7 @@ def run_topic(topic, questions_to_study, performance_data):
             user_answer_graded = True
             suggestion_shown_for_current_question = True
             print(f"{Style.BRIGHT}{Fore.YELLOW}\nSuggestion:")
-            suggestion = q.get('suggestion', [q.get('solution', 'N/A')])
+            suggestion = q.get('suggestion') or q.get('solution') or q.get('suggested_answer') or 'N/A'
             solution_text = suggestion[0] if isinstance(suggestion, list) else suggestion
             if isinstance(solution_text, (dict, list)):
                 dumped = yaml.safe_dump(solution_text, default_flow_style=False, sort_keys=False, indent=2)
@@ -1431,7 +1692,7 @@ def run_topic(topic, questions_to_study, performance_data):
             # No break here, flow to post-answer menu
 
         elif special_action == 'vim':
-            if not q.get('suggestion') and not q.get('solution'):
+            if not q.get('suggestion') and not q.get('solution') and not q.get('suggested_answer'):
                 print("This question does not have a solution to validate against for vim edit.")
                 continue
             user_manifest, result, sys_error = handle_vim_edit(q)
@@ -1468,6 +1729,10 @@ def run_topic(topic, questions_to_study, performance_data):
 
         elif special_action == 'menu':
             return
+
+        elif special_action == 'graded':
+            # Answer has been graded; proceed to post-answer menu
+            pass
 
         # If the canonical solution is a Kubernetes manifest, enable Vim-based editing
         elif sol_manifest is not None and (
@@ -1512,7 +1777,7 @@ def run_topic(topic, questions_to_study, performance_data):
             normalized_user_answer = normalize_command(user_commands)
             
             # The suggestion can be a single string or a list of strings
-            suggestions = q.get('suggestion') or q.get('solution')
+            suggestions = q.get('suggestion') or q.get('solution') or q.get('suggested_answer')
             if not suggestions:
                 suggestions = []
             elif isinstance(suggestions, str):
@@ -1597,7 +1862,7 @@ def run_topic(topic, questions_to_study, performance_data):
                 print(f"\n{Fore.RED}Incorrect")
 
             # No break here, flow to post-answer menu
-        else: # User typed 'done' without commands, or empty input
+        else: # User typed 'done' without commands, or unrecognized action
             print("Please enter a command or a special action.")
             continue # Re-display the same question prompt
 
@@ -1611,30 +1876,25 @@ def run_topic(topic, questions_to_study, performance_data):
             # Save performance data after each graded question
             save_performance_data(performance_data)
 
-        # Post-answer menu loop
-        # Post-answer menu - use question_manager for actions
+        # Post-answer menu loop (full options per spec)
         import kubelingo.question_manager as qm
         while True:
-            qm.show_menu()
+            qm.show_post_answer_menu()
             choice = input(f"{Style.BRIGHT}{Fore.YELLOW}Enter choice: {Style.RESET_ALL}").strip().upper()
-            if choice == 'F' or choice == 'N':  # Forward/Next
+            if choice == 'C':  # Correct
+                qm.mark_correct(session, q, performance_data, get_normalized_question_text)
+                # Advance to next question or return to previous menu if done
                 next_q = session.next_question()
                 if next_q is None:
-                    return  # Session complete
+                    return
                 break
-            elif choice == 'B':  # Backward
-                prev_q = session.previous_question()
-                if prev_q:
-                    print(f"{Fore.GREEN}Returning to previous question.{Style.RESET_ALL}")
-                    break
-                else:
-                    print(f"{Fore.YELLOW}No previous question.{Style.RESET_ALL}")
-            elif choice == 'C':  # Correct
-                qm.mark_correct(session, q, performance_data, get_normalized_question_text)
-            elif choice == 'I':  # Incorrect
+            elif choice == 'M' or choice == 'I':  # Missed / Incorrect
                 qm.mark_incorrect(q, topic)
-            elif choice == 'R':  # Revisit
-                qm.mark_revisit(q, topic)
+                # Advance to next question or return to previous menu if done
+                next_q = session.next_question()
+                if next_q is None:
+                    return
+                break
             elif choice == 'D':  # Delete
                 qm.mark_delete(q, topic)
                 # Remove from current session
@@ -1643,15 +1903,17 @@ def run_topic(topic, questions_to_study, performance_data):
                 except ValueError:
                     pass
                 return  # Exit after deletion
-            elif choice == 'V':  # Visit source
-                qm.open_source(q)
-            elif choice == 'A':  # Again (retry)
+            elif choice == 'R' or choice == 'A':  # Retry
                 session.add_to_retry_queue(q)
                 print(f"{Fore.GREEN}Added to retry queue.{Style.RESET_ALL}")
                 next_q = session.next_question()
                 if next_q is None:
                     return
                 break
+            # 'X' Revisit removed
+            elif choice == 'V':  # Visit source
+                import kubelingo.question_manager as qm_mod
+                qm_mod.open_source(q)
             elif choice == 'S':  # Settings
                 handle_config_menu()
             elif choice == 'Q':  # Quit
@@ -1661,6 +1923,270 @@ def run_topic(topic, questions_to_study, performance_data):
 
     # No final session menu: simply return to main menu after completion
     return
+
+def handle_import_menu():
+    """Handles importing questions from file/folder or URL (stub)."""
+    print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Import Menu ---{Style.RESET_ALL}")
+    print("  1) File/Folder Path")
+    print("  2) URL")
+    print("  3) Back")
+    while True:
+        choice = input("Enter your choice: ").strip()
+        if choice == '1':
+            path = input("Enter a file or folder path: ").strip()
+            if not path:
+                print("No path provided.")
+                continue
+            try:
+                from .importer import import_from_path
+                imported = import_from_path(path)
+                if imported == 0:
+                    print("No questions found to import.")
+                else:
+                    print(f"Imported {imported} question(s) into {QUESTIONS_STORED_DIR}.")
+            except Exception as e:
+                print(f"Import failed: {e}")
+            return
+        elif choice == '2':
+            url = input("Enter a URL to import from: ").strip()
+            if not url:
+                print("No URL provided.")
+                continue
+            try:
+                from .importer import import_from_url
+                imported = import_from_url(url)
+                if imported == 0:
+                    print("No questions found to import.")
+                else:
+                    print(f"Imported {imported} question(s) into {QUESTIONS_STORED_DIR}.")
+            except Exception as e:
+                print(f"Import failed: {e}")
+            return
+        elif choice == '3':
+            return
+        else:
+            print("Invalid choice. Please try again.")
+
+def handle_main_menu():
+    """Top-level menu per requirements: quiz, import, settings."""
+    print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Main Menu ---{Style.RESET_ALL}")
+    print("  1) Quiz")
+    print("  2) Import")
+    print("  3) Settings")
+    print("  4) Exit")
+    while True:
+        sel = input("Enter your choice: ").strip()
+        if sel in ('1','2','3','4'):
+            return sel
+        print("Invalid choice. Please try again.")
+
+def _load_stored_questions():
+    """Load canonical question files from the stored directory."""
+    questions = []
+    try:
+        if not os.path.isdir(QUESTIONS_STORED_DIR):
+            return questions
+        for fname in os.listdir(QUESTIONS_STORED_DIR):
+            if not fname.endswith('.yaml'):
+                continue
+            fpath = os.path.join(QUESTIONS_STORED_DIR, fname)
+            try:
+                with open(fpath, 'r') as f:
+                    q = yaml.safe_load(f) or {}
+                if isinstance(q, dict) and q.get('question'):
+                    questions.append(q)
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return questions
+
+def handle_quiz_menu(performance_data):
+    """Quiz type selection and routing per requirements."""
+    print(f"\n{Style.BRIGHT}{Fore.CYAN}--- Quiz Menu ---{Style.RESET_ALL}")
+    print("  1) True/False")
+    print("  2) Vocab")
+    print("  3) Multiple Choice")
+    print("  4) Imperative (Commands)")
+    print("  5) Declarative (Manifests)")
+    print("  6) Stored")
+    print("  7) Back")
+
+    while True:
+        sel = input("Enter your choice: ").strip()
+        if sel in ('1','2','3'):
+            # Ensure an AI provider and matching API key are configured
+            ok, _ = check_ai_ready_for_generation(print_warnings=True)
+            if not ok:
+                return
+            # Let user pick a subject (curated + dynamic) to tag the generated questions
+            # Use curated subjects only to ensure both menus match
+            display = SUBJECTS_CURATED[:]
+            print("\nSelect a subject to tag these questions:")
+            for i, lbl in enumerate(display, 1):
+                print(f"  {i}) {lbl}")
+            inp = input(f"Enter a number (1-{len(display)}): ").strip()
+            topic = '_trivia'
+            try:
+                idx = int(inp)
+                if 1 <= idx <= len(display):
+                    topic = _slugify(display[idx-1])
+            except ValueError:
+                pass
+            count_inp = input("How many questions? (default 1): ").strip()
+            try:
+                n = int(count_inp) if count_inp else 1
+                n = max(1, min(n, 20))
+            except ValueError:
+                n = 1
+            try:
+                from .question_generator import gen_true_false, gen_vocab, gen_mcq
+                gens = {'1': gen_true_false, '2': gen_vocab, '3': gen_mcq}
+                gen_fn = gens[sel]
+                qs = []
+                for _ in range(n):
+                    try:
+                        qs.append(gen_fn(topic))
+                    except TypeError:
+                        # Backwards compatibility with zero-arg generators
+                        qs.append(gen_fn())
+                # Optionally save generated questions into stored for later practice
+                try:
+                    ensure_question_dirs()
+                    for q in qs:
+                        write_question_file(q, QUESTIONS_STORED_DIR)
+                except Exception:
+                    pass
+                run_topic_result = run_topic(topic, qs, performance_data)
+                if run_topic_result == 'quit_app':
+                    sys.exit(0)
+                return
+            except Exception as e:
+                print(f"Error generating questions: {e}")
+                return
+        if sel in ('4','5'):
+            # Ensure an AI provider and matching API key are configured
+            ok, _ = check_ai_ready_for_generation(print_warnings=True)
+            if not ok:
+                return
+            # Let user pick a subject (curated + dynamic) to tag the generated questions
+            dyn = sorted({f.replace('.yaml','') for f in os.listdir(QUESTIONS_DIR) if f.endswith('.yaml')})
+            seen = set()
+            display = []
+            for lbl in SUBJECTS_CURATED + [t.replace('_',' ').title() for t in dyn]:
+                key = lbl.lower()
+                if key not in seen:
+                    seen.add(key)
+                    display.append(lbl)
+            print("\nSelect a subject to tag these questions:")
+            for i, lbl in enumerate(display, 1):
+                print(f"  {i}) {lbl}")
+            inp = input(f"Enter a number (1-{len(display)}): ").strip()
+            topic = '_imperative' if sel == '4' else '_declarative'
+            try:
+                idx = int(inp)
+                if 1 <= idx <= len(display):
+                    topic = _slugify(display[idx-1])
+            except ValueError:
+                pass
+            count_inp = input("How many questions? (default 1): ").strip()
+            try:
+                n = int(count_inp) if count_inp else 1
+                n = max(1, min(n, 20))
+            except ValueError:
+                n = 1
+            try:
+                from .question_generator import gen_commands, gen_manifests
+                gen_fn = gen_commands if sel == '4' else gen_manifests
+                qs = []
+                for _ in range(n):
+                    try:
+                        qs.append(gen_fn(topic))
+                    except TypeError:
+                        qs.append(gen_fn())
+                try:
+                    ensure_question_dirs()
+                    for q in qs:
+                        write_question_file(q, QUESTIONS_STORED_DIR)
+                except Exception:
+                    pass
+                run_topic_result = run_topic(topic, qs, performance_data)
+                if run_topic_result == 'quit_app':
+                    sys.exit(0)
+                return
+            except Exception as e:
+                print(f"Error generating questions: {e}")
+                return
+        if sel == '6':
+            stored = _load_stored_questions()
+            if not stored:
+                print(f"No stored questions found. Add some to {QUESTIONS_STORED_DIR}.")
+                return
+            print(f"Found {len(stored)} stored question(s).")
+            num_inp = input("Enter number to study (or press Enter for all): ").strip()
+            try:
+                if num_inp:
+                    n = max(1, min(int(num_inp), len(stored)))
+                else:
+                    n = len(stored)
+            except ValueError:
+                print("Invalid number. Returning to quiz menu.")
+                return
+            # Random sample without replacement
+            try:
+                sample = random.sample(stored, n) if n < len(stored) else stored
+            except ValueError:
+                sample = stored
+            run_topic_result = run_topic('_stored', sample, performance_data)
+            if run_topic_result == 'quit_app':
+                sys.exit(0)
+            return
+        if sel == '7':
+            return
+        print("Invalid choice. Please try again.")
+
+def run_providers_matrix():
+    """Run 4 providers x 5 question types and validate quality.
+    Skips providers without API keys. Writes a summary to misc/providers_matrix.md.
+    """
+    providers = [
+        ("openai", "OPENAI_API_KEY"),
+        ("gemini", "GEMINI_API_KEY"),
+        ("openrouter", "OPENROUTER_API_KEY"),
+        ("perplexity", "PERPLEXITY_API_KEY"),
+    ]
+    types = ["true_false", "vocab", "mcq", "commands", "manifests"]
+    results = []
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'misc'), exist_ok=True)
+    out_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'misc', 'providers_matrix.md'))
+    for prov, env in providers:
+        if not os.getenv(env):
+            results.append((prov, None, "SKIP", [f"Missing {env}"]))
+            continue
+        for qtype in types:
+            try:
+                item = generate_with_provider(prov, qtype, topic="core_workloads")
+                errs = quality_check(item)
+                status = "PASS" if not errs else "FAIL"
+                results.append((prov, qtype, status, errs))
+            except ProviderError as e:
+                results.append((prov, qtype, "ERROR", [str(e)]))
+            except Exception as e:
+                results.append((prov, qtype, "ERROR", [str(e)]))
+    # Write summary
+    try:
+        lines = ["# Providers Matrix Summary\n"]
+        for prov, qtype, status, errs in results:
+            if qtype is None:
+                lines.append(f"- {prov}: {status} ({'; '.join(errs)})\n")
+            else:
+                detail = '' if not errs else f" — {', '.join(errs)}"
+                lines.append(f"- {prov} × {qtype}: {status}{detail}\n")
+        with open(out_path, 'w') as f:
+            f.write(''.join(lines))
+        print(f"Matrix summary written to {out_path}")
+    except Exception as e:
+        print(f"Could not write matrix summary: {e}")
 
 @click.command()
 @click.option('--generate-kind', 'gen_kind', type=str,
@@ -1683,9 +2209,11 @@ def run_topic(topic, questions_to_study, performance_data):
               help='Clean and normalize a Kubernetes manifest (reads from stdin or via --manifest-file).')
 @click.option('--manifest-file', 'manifest_file', type=click.Path(exists=True), default=None,
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
+@click.option('--providers-matrix', 'providers_matrix', is_flag=True, default=False,
+              help='Run provider x type generation matrix and quality checks.')
 @click.pass_context
 def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
-        clean_manifest, manifest_file):
+        clean_manifest, manifest_file, providers_matrix):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
@@ -1693,7 +2221,7 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
     # Handle static question generation
     if gen_kind:
         try:
-            from kubelingo.question_generator import generate_questions
+            from .question_generator import generate_questions
             # Ensure questions directory exists
             os.makedirs(QUESTIONS_DIR, exist_ok=True)
             # Generate questions
@@ -1712,8 +2240,21 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
             with open(out_file, 'w') as f:
                 yaml.dump(data, f, default_flow_style=False, sort_keys=False)
             print(f"Generated {len(new_qs)} questions for kind '{gen_kind}' -> {out_file}")
+            # Also save individual copies to the stored directory per requirements
+            try:
+                ensure_question_dirs()
+                for q in new_qs:
+                    write_question_file(q, QUESTIONS_STORED_DIR)
+                print(f"Saved {len(new_qs)} question files to {QUESTIONS_STORED_DIR}")
+            except Exception as e:
+                print(f"Warning: could not save individual question files: {e}")
         except Exception as e:
             print(f"Error generating questions: {e}")
+        return
+
+    # Handle providers matrix
+    if providers_matrix:
+        run_providers_matrix()
         return
 
     # # Handle manifest cleaning mode
@@ -1793,34 +2334,32 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
     global _performance_data_changed
     _performance_data_changed = False # Reset flag on startup
     
+    # Ensure canonical questions subdirectories exist
+    ensure_question_dirs()
+
     while True:
-        dbg("cli: calling list_and_select_topic")
-        topic_info = list_and_select_topic(performance_data)
-        dbg(f"cli: list_and_select_topic returned {topic_info}")
-        if topic_info is None or topic_info[0] is None:
+        choice = handle_main_menu()
+        if choice == '1':  # Quiz
+            # Use the new quiz menu (types + stored), not only topic selection
+            handle_quiz_menu(performance_data)
             if perf_loaded_ok:
                 save_performance_data(performance_data)
                 backup_performance_yaml()
-            break
-        
-        selected_topic, num_to_study, questions_to_study = topic_info
-        
-        if perf_loaded_ok:
-            backup_performance_yaml()
-        run_topic_result = run_topic(selected_topic, questions_to_study, performance_data)
-        if run_topic_result == 'quit_app':
+            if not sys.stdin.isatty():
+                break
+            time.sleep(1)
+        elif choice == '2':  # Import
+            handle_import_menu()
+            continue
+        elif choice == '3':  # Settings
+            handle_config_menu()
+            continue
+        elif choice == '4':  # Exit
             if perf_loaded_ok:
                 save_performance_data(performance_data)
                 backup_performance_yaml()
-            sys.exit(0) # Exit application if run_topic signals quit
-        if perf_loaded_ok:
-            save_performance_data(performance_data)
-            backup_performance_yaml()
-        # In non-interactive mode (e.g., piped input), exit after one run to avoid hanging.
-        if not sys.stdin.isatty():
+            print("\nGoodbye!")
             break
-        # Pause briefly before redisplaying the menu in interactive mode.
-        time.sleep(2)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Kubelingo CLI tool for CKAD exam study.")

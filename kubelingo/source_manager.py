@@ -4,6 +4,7 @@ Kubernetes questions for the Kubelingo study tool.
 """
 
 import os
+from typing import Optional
 import random
 import yaml
 import requests
@@ -21,7 +22,7 @@ except ImportError:
     search = None
 
 from kubelingo.utils import (_get_llm_model, QUESTIONS_DIR, USER_DATA_DIR, load_questions,
-                             get_normalized_question_text, remove_question_from_corpus)
+                             get_normalized_question_text, remove_question_from_corpus, assign_source)
 from kubelingo.validation import validate_manifest, validate_manifest_with_llm
 
 # --- Exceptions ---
@@ -58,7 +59,7 @@ def get_source_for_kind(kind: str) -> str:
 
 # --- Main Generation Orchestrator ---
 
-def generate_more_questions(topic, base_question=None):
+def generate_more_questions(topic, base_question=None, difficulty: Optional[str] = None):
     """
     Orchestrates the entire process of generating a new, unique, and validated
     question for a given topic, with retry mechanism.
@@ -92,17 +93,138 @@ def generate_more_questions(topic, base_question=None):
     else:
         print(f"{Fore.YELLOW}  - Could not generate a question from web sources, falling back to LLM generation.{Style.RESET_ALL}", flush=True)
 
-        # If no question from web source, proceed with existing generation logic
-        # 1. Determine existing questions for context
-        print("  - Preparing context for question generation...", flush=True)
-        if base_question:
-            existing_questions = [base_question]
-        else:
-            existing_questions_data = load_questions(topic, Fore, Style)
-            existing_questions = existing_questions_data.get('questions', []) if existing_questions_data else []
-            if not existing_questions:
-                print(f"{Fore.YELLOW}  - Warning: No existing questions found for topic '{topic}'. Cannot generate a related question.{Style.RESET_ALL}", flush=True)
+        llm_type, model = _get_llm_model()
+        if not model:
+            print("\nINFO: Set GEMINI_API_KEY or OPENAI_API_KEY environment variables to generate new questions.")
+            return None
+
+        print("  - Generating a new question using LLM... this might take a moment.", flush=True)
+        try:
+            question_type = random.choice(['command', 'manifest'])
+
+            # Get all existing questions for the topic to include in the prompt for uniqueness
+            all_existing_questions = load_questions(topic, Fore, Style)
+            existing_questions_list = all_existing_questions.get('questions', []) if all_existing_questions else []
+
+            existing_questions_yaml = ""
+            if existing_questions_list:
+                existing_questions_yaml = "\n        Existing Questions (DO NOT copy these semantically or literally):\n        ---"
+                for eq in existing_questions_list:
+                    existing_questions_yaml += f"        - question: {eq.get('question', '')}\n"
+                    if eq.get('solution'):
+                        existing_questions_yaml += f"          solution: {str(eq.get('solution', ''))[:50]}...\n" # Truncate solution for prompt
+                    existing_questions_yaml += "\n"
+                existing_questions_yaml += "        ---\n"
+
+            difficulty_prompt = f"The question should be of '{difficulty}' difficulty." if difficulty else ""
+
+            prompt = f'''
+        You are a Kubernetes expert creating questions for a CKAD study guide.
+        Generate one new, distinct but related question about '{topic}'.
+        {difficulty_prompt}
+        The new question MUST be unique and not a semantic or literal copy of any existing questions provided.
+
+        {existing_questions_yaml}
+        Your new question should be a {question_type}-based question.
+        - If it is a 'command' question, the suggestion should be a single or multi-line shell command (e.g., kubectl).
+        - If it is a 'manifest' question, the suggestion should be a complete YAML manifest and the question should be phrased to ask for a manifest.
+
+        The new question should be in the same topic area but test a slightly different aspect or use different parameters.
+        Provide the output in valid YAML format, as a single item in a 'questions' list.
+        The output must include a 'source' field with a valid URL pointing to the official Kubernetes documentation or a highly reputable source that justifies the answer.
+        The solution must be correct and working.
+        If a 'starter_manifest' is provided, it must use the literal block scalar style (e.g., 'starter_manifest: |').
+        Also, include a brief 'rationale' field explaining why this question is relevant for CKAD and what it tests.
+
+        Example for a manifest question:
+        questions:
+          - question: "Create a manifest for a Pod named 'new-pod'"
+            solution: |
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: new-pod
+            source: "https://kubernetes.io/docs/concepts/workloads/pods/"
+            rationale: "Tests basic Pod creation and YAML syntax."
+
+        Example for a command question:
+        questions:
+          - question: "Create a pod named 'new-pod' imperatively..."
+            solution: "kubectl run new-pod --image=nginx"
+            source: "https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#run"
+            rationale: "Tests imperative command usage for Pod creation."
+        '''
+            if llm_type == "gemini":
+                response = model.generate_content(prompt)
+            elif llm_type == "openai":
+                response = model.chat.completions.create(
+                    model="gpt-3.5-turbo", # Or another suitable model
+                    messages=[
+                        {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                response.text = response.choices[0].message.content # Normalize response for consistent parsing
+            elif llm_type == "openrouter":
+                resp = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=model["headers"],
+                    json={
+                        "model": model["default_model"],
+                        "messages": [
+                            {"role": "system", "content": "You are a Kubernetes expert creating questions for a CKAD study guide."},
+                            {"role": "user", "content": prompt}
+                        ]
+                    }
+                )
+                resp.raise_for_status()
+                response = type("obj", (object,), {'text': resp.json()['choices'][0]['message']['content']}) # Create a dummy object with .text attribute
+
+            # Clean the response to only get the YAML part
+            cleaned_response = response.text.strip()
+            if cleaned_response.startswith('```yaml'):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.endswith('```'):
+                cleaned_response = cleaned_response[:-3]
+
+            try:
+                new_question_data = yaml.safe_load(cleaned_response)
+            except yaml.YAMLError:
+                print("\nAI failed to generate a valid question (invalid YAML). Please try again.")
                 return None
+
+            if new_question_data and 'questions' in new_question_data and new_question_data['questions']:
+                new_q = new_question_data['questions'][0]
+
+                # Uniqueness check
+                normalized_new_q_text = get_normalized_question_text(new_q)
+                for eq in existing_questions_list:
+                    if get_normalized_question_text(eq) == normalized_new_q_text:
+                        print(f"{Fore.YELLOW}\nGenerated question is a duplicate. Retrying...{Style.RESET_ALL}")
+                        return None # Indicate failure to generate a unique question
+
+                # Ensure 'source' field exists
+                if not new_q.get('source'):
+                    print(f"{Fore.YELLOW}\nGenerated question is missing a 'source' field. Attempting to find one...{Style.RESET_ALL}")
+                    # Assuming assign_source is available and works as intended
+                    # You might need to import assign_source if it's not in the current scope
+                    # from .utils import assign_source
+                    if not assign_source(new_q, topic, Fore, Style):
+                        print(f"{Fore.RED}Failed to assign a source to the generated question.{Style.RESET_ALL}")
+                        return None
+
+                # Normalize generated question: clean whitespace in solution
+                if 'solution' in new_q and isinstance(new_q['solution'], str):
+                    new_q['solution'] = new_q['solution'].strip()
+
+                print("\nNew question generated!")
+                return new_q
+            else:
+                print("\nAI failed to generate a valid question. Please try again.")
+                return None
+        except Exception as e:
+            print(f"Error during LLM question generation: {e}")
+            return None
 
 #         print(f"\nError generating question: {e}")
 #         return None

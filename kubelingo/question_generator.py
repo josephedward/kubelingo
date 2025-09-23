@@ -1,209 +1,129 @@
 """
 Question Generator Module for Kubelingo
-Generates self-contained Kubernetes questions with multiple valid solution formats.
+
+AI-only generation: all questions are produced via the configured provider.
+Static question banks and templates have been removed.
 """
-import random
-from typing import List, Dict, Any
-from kubelingo.source_manager import get_source_for_kind
+
+import os
+from dotenv import dotenv_values
+from typing import List, Dict, Any, Optional, Union
+from .schema import normalize_question_dict
+from .provider_adapter import generate_with_provider, ProviderError
+
 
 class GenerationError(Exception):
-    """Raised when question generation fails due to unsupported kind or exhausted options."""
+    """Raised when question generation fails due to provider issues or invalid input."""
     pass
 
-# Parameter pools for question generation
-_POD_NAMES = ['web-server', 'cache-server', 'db-pod']
-_POD_IMAGES = ['nginx:1.20', 'redis:6.2', 'mysql:5.7']
 
-_DEPLOY_NAMES = ['nginx-deploy', 'api-server-deploy', 'worker-deploy']
-_DEPLOY_IMAGES = _POD_IMAGES
-_REPLICA_COUNTS = [1, 3, 5]
+def _provider() -> str:
+    prov = os.getenv("KUBELINGO_LLM_PROVIDER", "").strip().lower()
+    if prov:
+        return prov
+    # Try repo-local .env (project root) next
+    try:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        env_path = os.path.join(project_root, '.env')
+        if os.path.exists(env_path):
+            prov = (dotenv_values(env_path).get("KUBELINGO_LLM_PROVIDER", "") or "").strip().lower()
+            if prov:
+                return prov
+    except Exception:
+        pass
+    # Fallback to default search
+    try:
+        prov = (dotenv_values().get("KUBELINGO_LLM_PROVIDER", "") or "").strip().lower()
+    except Exception:
+        prov = ''
+    if not prov:
+        raise GenerationError("No AI provider configured. Set it in the Config menu.")
+    return prov
 
-_SERVICE_NAMES = ['web-svc', 'cache-svc', 'db-svc']
-_SERVICE_TYPES = ['ClusterIP', 'NodePort']
-_PORTS = [80, 443, 6379]
 
-_PVC_NAMES = ['data-pvc', 'cache-pvc']
-_STORAGE_SIZES = ['1Gi', '5Gi']
-_ACCESS_MODES = ['ReadWriteOnce', 'ReadOnlyMany']
+def _gen_with_provider(qtype: str, topic: Optional[str]) -> Dict[str, Any]:
+    prov = _provider()
+    t = topic or qtype
+    try:
+        item = generate_with_provider(prov, qtype, t)
+    except ProviderError as e:
+        raise GenerationError(str(e))
+    if not isinstance(item, dict):
+        raise GenerationError("Provider did not return a JSON object.")
+    item.setdefault('type', qtype)
+    item.setdefault('topic', t)
+    return normalize_question_dict(item, t)
 
-_CM_NAMES = ['app-config', 'db-config']
-_CM_KEYS = ['LOG_LEVEL', 'DB_HOST']
-_CM_VALUES = ['DEBUG', 'db.example.com']
 
-_SECRET_NAMES = ['app-secret', 'db-secret']
-_SECRET_KEYS = ['USERNAME', 'PASSWORD']
-_SECRET_VALUES = ['user1', 'pass123']
+def gen_vocab(topic: Optional[str] = None) -> Dict[str, Any]:
+    return _gen_with_provider('vocab', topic)
 
-_JOB_NAMES = ['db-backup', 'email-job']
-_JOB_IMAGES = ['busybox', 'alpine']
 
-def _gen_pod() -> Dict[str, Any]:
-    name = random.choice(_POD_NAMES)
-    image = random.choice(_POD_IMAGES)
-    question = f"Create a Pod named '{name}' that runs a container with the image '{image}'."
-    suggestions = [
-        f"kubectl run {name} --image={image}",
-        {
-            'apiVersion': 'v1',
-            'kind': 'Pod',
-            'metadata': {'name': name},
-            'spec': {'containers': [{'name': name, 'image': image}]}
-        }
-    ]
-    requirements = {'kind': 'Pod', 'name': name, 'image': image}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('Pod'), 'requirements': requirements}
+def gen_true_false(topic: Optional[str] = None) -> Dict[str, Any]:
+    return _gen_with_provider('true_false', topic)
 
-def _gen_deployment() -> Dict[str, Any]:
-    name = random.choice(_DEPLOY_NAMES)
-    image = random.choice(_DEPLOY_IMAGES)
-    replicas = random.choice(_REPLICA_COUNTS)
-    question = f"Create a Deployment named '{name}' with {replicas} replicas of the image '{image}'."
-    suggestions = [
-        f"kubectl create deployment {name} --image={image} --replicas={replicas}",
-        {
-            'apiVersion': 'apps/v1',
-            'kind': 'Deployment',
-            'metadata': {'name': name},
-            'spec': {'replicas': replicas,
-                     'selector': {'matchLabels': {'app': name}},
-                     'template': {
-                         'metadata': {'labels': {'app': name}},
-                         'spec': {'containers': [{'name': name, 'image': image}]}
-                     }}
-        }
-    ]
-    requirements = {'kind': 'Deployment', 'name': name, 'image': image, 'replicas': replicas}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('Deployment'), 'requirements': requirements}
 
-def _gen_service() -> Dict[str, Any]:
-    name = random.choice(_SERVICE_NAMES)
-    svc_type = random.choice(_SERVICE_TYPES)
-    port = random.choice(_PORTS)
-    target = random.choice(_PORTS)
-    selector = {'app': name.split('-')[0]}
-    question = (f"Create a Service of type {svc_type} named '{name}' that exposes port {port}"
-                f" targeting port {target} for Pods labeled app={selector['app']}." )
-    suggestions = [
-        f"kubectl expose deployment {selector['app']} --name={name} --port={port} --target-port={target} --type={svc_type}",
-        {
-            'apiVersion': 'v1',
-            'kind': 'Service',
-            'metadata': {'name': name},
-            'spec': {'type': svc_type,
-                     'selector': selector,
-                     'ports': [{'port': port, 'targetPort': target}]}
-        }
-    ]
-    requirements = {'kind': 'Service', 'name': name,
-                    'service_type': svc_type, 'port': port,
-                    'targetPort': target, 'selector': selector}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('Service'), 'requirements': requirements}
+def gen_mcq(topic: Optional[str] = None) -> Dict[str, Any]:
+    return _gen_with_provider('mcq', topic)
 
-def _gen_pvc() -> Dict[str, Any]:
-    name = random.choice(_PVC_NAMES)
-    size = random.choice(_STORAGE_SIZES)
-    mode = random.choice(_ACCESS_MODES)
-    question = (f"Create a PersistentVolumeClaim named '{name}' that requests {size} of storage"
-                f" with access mode {mode}. Use the default storage class.")
-    suggestions = [
-        f"kubectl create pvc {name} --storage={size} --access-mode={mode}",
-        {
-            'apiVersion': 'v1',
-            'kind': 'PersistentVolumeClaim',
-            'metadata': {'name': name},
-            'spec': {'accessModes': [mode],
-                     'resources': {'requests': {'storage': size}}}
-        }
-    ]
-    requirements = {'kind': 'PersistentVolumeClaim', 'name': name,
-                    'storage': size, 'access_modes': [mode]}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('PersistentVolumeClaim'), 'requirements': requirements}
 
-def _gen_configmap() -> Dict[str, Any]:
-    name = random.choice(_CM_NAMES)
-    key = random.choice(_CM_KEYS)
-    val = random.choice(_CM_VALUES)
-    question = f"Create a ConfigMap named '{name}' with data key '{key}' set to '{val}'."
-    suggestions = [
-        f"kubectl create configmap {name} --from-literal={key}={val}",
-        {
-            'apiVersion': 'v1',
-            'kind': 'ConfigMap',
-            'metadata': {'name': name},
-            'data': {key: val}
-        }
-    ]
-    requirements = {'kind': 'ConfigMap', 'name': name, 'data': {key: val}}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('ConfigMap'), 'requirements': requirements}
-
-def _gen_secret() -> Dict[str, Any]:
-    name = random.choice(_SECRET_NAMES)
-    key = random.choice(_SECRET_KEYS)
-    val = random.choice(_SECRET_VALUES)
-    question = f"Create a Secret named '{name}' of type Generic with data key '{key}' set to '{val}'."
-    suggestions = [
-        f"kubectl create secret generic {name} --from-literal={key}={val}",
-        {
-            'apiVersion': 'v1',
-            'kind': 'Secret',
-            'metadata': {'name': name},
-            'type': 'Opaque',
-            'stringData': {key: val}
-        }
-    ]
-    requirements = {'kind': 'Secret', 'name': name, 'type': 'Opaque', 'stringData': {key: val}}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('Secret'), 'requirements': requirements}
-
-def _gen_job() -> Dict[str, Any]:
-    name = random.choice(_JOB_NAMES)
-    image = random.choice(_JOB_IMAGES)
-    question = f"Create a Job named '{name}' that runs a pod with the image '{image}'."
-    suggestions = [
-        f"kubectl create job {name} --image={image}",
-        {
-            'apiVersion': 'batch/v1',
-            'kind': 'Job',
-            'metadata': {'name': name},
-            'spec': {'template': {'spec': {'containers': [{'name': name, 'image': image}], 'restartPolicy': 'OnFailure'}}}
-        }
-    ]
-    requirements = {'kind': 'Job', 'name': name, 'image': image}
-    return {'question': question, 'suggestion': suggestions,
-            'source': get_source_for_kind('Job'), 'requirements': requirements}
-
-_GENERATORS = {
-    'pod': _gen_pod,
-    'deployment': _gen_deployment,
-    'service': _gen_service,
-    'persistentvolumeclaim': _gen_pvc,
-    'pvc': _gen_pvc,
-    'configmap': _gen_configmap,
-    'secret': _gen_secret,
-    'job': _gen_job,
+_GENERATORS: Dict[str, Any] = {
+    'vocab': gen_vocab,
+    'true_false': gen_true_false,
+    'mcq': gen_mcq,
 }
 
-def generate_questions(kind: str, count: int = 1) -> List[Dict[str, Any]]:
-    """Generate `count` unique questions of the given Kubernetes resource kind."""
-    key = kind.lower()
-    if key not in _GENERATORS:
-        raise GenerationError(f"Unsupported resource kind: {kind}")
-    gen_fn = _GENERATORS[key]
-    questions = []
+
+def gen_commands(topic: Optional[str] = None) -> Dict[str, Any]:
+    return _gen_with_provider('commands', topic)
+
+
+def gen_manifests(topic: Optional[str] = None) -> Dict[str, Any]:
+    return _gen_with_provider('manifests', topic)
+
+
+class QuestionGenerator:
+    def generate_question(self, kind: str, count: int = 1, difficulty: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        return generate_questions(kind, count, difficulty)
+
+
+def generate_questions(kind: str, count: int = 1, difficulty: Optional[str] = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    """Generate `count` questions using the configured AI provider only.
+
+    - If `kind` is one of: true_false, vocab, mcq, commands, manifests → use that type directly.
+    - Otherwise, treat `kind` as a topic and generate manifest-type questions for that topic.
+    """
+    key = (kind or '').strip().lower()
+    if not key:
+        raise GenerationError("Missing kind/topic for generation.")
+
+    if key in ('true_false', 'vocab', 'mcq', 'commands', 'manifests'):
+        qtype = key
+        topic = key
+    else:
+        # Resource/topic-driven generation: default to manifests
+        qtype = 'manifests'
+        topic = key
+
+    prov = _provider()
+    questions: List[Dict[str, Any]] = []
     seen = set()
     attempts = 0
-    while len(questions) < count and attempts < count * 5:
-        q = gen_fn()
-        text = q['question']
-        if text not in seen:
-            seen.add(text)
-            questions.append(q)
-        attempts += 1
-    if len(questions) < count:
-        raise GenerationError(f"Could not generate {count} unique questions for kind '{kind}'")
-    return questions
+    while len(questions) < count and attempts < count * 4:
+        try:
+            item = generate_with_provider(prov, qtype, topic)
+            item = normalize_question_dict(item, topic)
+            text = item.get('question', '')
+            if text and text not in seen:
+                seen.add(text)
+                questions.append(item)
+        except ProviderError as e:
+            raise GenerationError(str(e))
+        except Exception:
+            pass
+        finally:
+            attempts += 1
+
+    if not questions:
+        raise GenerationError(f"Could not generate questions for kind '{kind}' via provider '{prov}'.")
+    return questions[0] if count == 1 else questions
