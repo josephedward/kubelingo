@@ -9,6 +9,7 @@ def ensure_user_data_dir():
     try:
         os.makedirs(os.path.join(USER_DATA_DIR, 'correct'), exist_ok=True)
         os.makedirs(os.path.join(USER_DATA_DIR, 'incorrect'), exist_ok=True)
+        os.makedirs(os.path.join(USER_DATA_DIR, 'stored'), exist_ok=True)
     except Exception:
         # Best-effort; callers also create directories on write
         pass
@@ -53,14 +54,18 @@ QUESTIONS_DIR = os.getenv(
     "KUBELINGO_QUESTIONS_DIR",
     _ROOT_QUESTIONS if os.path.isdir(_ROOT_QUESTIONS) else _PKG_QUESTIONS
 )
-# Canonical location for curated stored questions
-# Per requirements, favor top-level `stored/` over `data/questions/stored`
-QUESTIONS_STORED_DIR = os.path.join(_PROJECT_ROOT, "stored")
 # Allow tests and callers to override the user data directory via env var
 # Defaults to the repository-level `.user_data/` folder.
 USER_DATA_DIR = os.getenv(
     "KUBELINGO_USER_DATA_DIR",
     os.path.join(_PROJECT_ROOT, ".user_data")
+)
+# Location for per-question stored files (where imports/generations are saved).
+# Default to a folder under USER_DATA_DIR so we never write into the repo tree.
+# Allow override for tests/config via KUBELINGO_QUESTIONS_STORED_DIR.
+QUESTIONS_STORED_DIR = os.getenv(
+    "KUBELINGO_QUESTIONS_STORED_DIR",
+    os.path.join(USER_DATA_DIR, "stored")
 )
 MISSED_QUESTIONS_FILE = os.path.join(USER_DATA_DIR, "missed_questions.yaml")
 ISSUES_FILE = os.path.join(USER_DATA_DIR, "issues.yaml")
