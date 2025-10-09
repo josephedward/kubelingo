@@ -94,10 +94,16 @@ MENU_DEFINITIONS['post_question']['line'] = QUESTION_MENU_LINE
 MENU_DEFINITIONS['post_answer']['line'] = _format_menu_line('post_answer')
 
 
+POST_QUESTION_MENU_PRINTED = False
+
+
 def print_menu(name):
     if name not in MENU_DEFINITIONS:
         return
     console.print(_format_menu_line(name))
+    if name == 'post_question':
+        global POST_QUESTION_MENU_PRINTED
+        POST_QUESTION_MENU_PRINTED = True
 
 
 def print_menu_entries(name):
@@ -251,6 +257,8 @@ def generate_trivia(topic=None):
         obj = json.loads(resp)
     except Exception:
         print("AI generation failed. Please try the static quiz mode via 'Static' option.")
+        # Even on failure, show the post-question menu once for UX consistency
+        print_menu('post_question')
         return
     qtext = obj.get('question', '')
     answer = str(obj.get('answer', '')).strip().lower()
@@ -356,7 +364,12 @@ def quiz_menu():
         generate_trivia(topic=topic)
     elif choice == 'Command':
         topic = inquirer.select(message='Select topic:', choices=[t.value for t in KubernetesTopics]).execute()
+        # Track whether the command flow printed the menu; print once if not
+        global POST_QUESTION_MENU_PRINTED
+        POST_QUESTION_MENU_PRINTED = False
         generate_command(topic=topic)
+        if not POST_QUESTION_MENU_PRINTED:
+            print_menu('post_question')
     elif choice == 'Manifest':
         # Manifest quiz flow: fetch a question, show menus, allow viewing solution
         topic = inquirer.select(message='Select topic:', choices=[t.value for t in KubernetesTopics]).execute()
