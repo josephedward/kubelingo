@@ -2227,9 +2227,13 @@ def run_providers_matrix():
               help='Path to a file containing the manifest to clean. If omitted, reads from stdin.')
 @click.option('--providers-matrix', 'providers_matrix', is_flag=True, default=False,
               help='Run provider x type generation matrix and quality checks.')
+@click.option('--generate-scripts-from', 'scripts_from', type=click.Path(exists=True), default=None,
+              help='Path to a stored question YAML to generate setup/validation scripts from.')
+@click.option('--scripts-out', 'scripts_out', type=click.Path(), default='scripts',
+              help='Directory to write generated scripts into (default: scripts).')
 @click.pass_context
 def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, interactive_sources, auto_approve, audit_questions,
-        clean_manifest, manifest_file, providers_matrix):
+        clean_manifest, manifest_file, providers_matrix, scripts_from, scripts_out):
     """Kubelingo CLI tool for CKAD exam study or source management."""
     # Load environment variables from .env file
     load_dotenv()
@@ -2271,6 +2275,18 @@ def cli(ctx, gen_kind, gen_count, add_sources, consolidated, check_sources, inte
     # Handle providers matrix
     if providers_matrix:
         run_providers_matrix()
+        return
+
+    # Generate setup/validation scripts from a stored question file
+    if scripts_from:
+        try:
+            from .script_generator import generate_scripts_from_question_file
+            os.makedirs(scripts_out, exist_ok=True)
+            setup_path, validation_path = generate_scripts_from_question_file(scripts_from, scripts_out)
+            print(f"Generated setup script: {setup_path}")
+            print(f"Generated validation script: {validation_path}")
+        except Exception as e:
+            print(f"Error generating scripts: {e}")
         return
 
     # # Handle manifest cleaning mode
